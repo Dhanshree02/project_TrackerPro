@@ -1,0 +1,266 @@
+ <div id="wbs-tab" class="tab-content">
+        <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 16px; font-weight: 700; color: var(--primary);">WBS Breakdown</h3>
+                <button class="btn btn-secondary" onclick="downloadWBS()">📥 Download WBS</button>
+            </div>
+
+            <!-- WBS INFO CARDS -->
+            <div class="two-column">
+                <div class="card">
+                    <div class="card-header">WBS Details</div>
+                    <div class="info-row">
+                        <div class="info-label">WBS ID</div>
+                        <div class="info-value">WBS-2024-001</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Contract Type</div>
+                        <div class="info-value">Fixed Price</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Engagement Manager</div>
+                        <div class="info-value">Priya Sharma</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Sales Person</div>
+                        <div class="info-value">Amit Verma</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Billing Information</div>
+                    <div class="info-row">
+                        <div class="info-label">Project Type</div>
+                        <div class="info-value">Ad-Hoc</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Billing Model</div>
+                        <div class="info-value">70% Advance + 30% on Delivery</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Total Amount</div>
+                        <div class="info-value finance-hidden">---------</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Currency</div>
+                        <div class="info-value finance-hidden">---------</div>
+                    </div>
+                </div>
+            </div>
+
+        <!-- SERVICES TABLE -->
+        <div style="margin-top: 20px;">
+            <div class="section-title">Services & Deliverables from WBS</div>
+            <div class="table-container">
+                <table class="wbs-detail-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Task ID</th>
+                            <th>Department</th>
+                            <th>Service Name</th>
+                            <th>Qty</th>
+                            <th>Description</th>
+                            <th>Frequency</th>
+                            <th>Location</th>
+                            <th>Service Model</th>
+                            <th>Delivery Model</th>
+                            <th>Final Delivery Format</th>
+                            <th>Billing Model</th>
+                            <th>Tools</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Duration (Days)</th>
+                            <th>Duration (Hrs)</th>
+                            <th>Total Days</th>
+                            <th>Total Hours</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: #f0f9ff;">
+                            <td>1</td>
+                            <td><span class="readonly">WBS-01</span></td>
+                            <td>Penetration Testing</td>
+                            <td>External Network Penetration Testing</td>
+                            <td><span class="readonly">1</span></td>
+                            <td>External network penetration test for internet-facing assets</td>
+                            <td>Once</td>
+                            <td>On-site</td>
+                            <td>Service</td>
+                            <td>Remote + On-site</td>
+                            <td>PDF Report</td>
+                            <td>Ad-Hoc</td>
+                            <td>Nmap, Burp Suite</td>
+                            <td>01 Feb 2026</td>
+                            <td>05 Feb 2026</td>
+                            <td><span class="readonly">5</span></td>
+                            <td><span class="readonly">40</span></td>
+                            <td><span class="readonly">5</span></td>
+                            <td><span class="readonly">40</span></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td><span class="readonly">WBS-02</span></td>
+                            <td>Vulnerability Assessment</td>
+                            <td>Web Application Vulnerability Assessment</td>
+                            <td><span class="readonly">2</span></td>
+                            <td>Security review for web apps and APIs</td>
+                            <td>Weekly</td>
+                            <td>Remote</td>
+                            <td>Service</td>
+                            <td>Remote</td>
+                            <td>Excel + PDF</td>
+                            <td>Ad-Hoc</td>
+                            <td>OWASP ZAP, Burp Suite</td>
+                            <td>06 Feb 2026</td>
+                            <td>10 Feb 2026</td>
+                            <td><span class="readonly">4</span></td>
+                            <td><span class="readonly">32</span></td>
+                            <td><span class="readonly">8</span></td>
+                            <td><span class="readonly">64</span></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td><span class="readonly">WBS-03</span></td>
+                            <td>Cloud Security</td>
+                            <td>AWS Cloud Security Assessment</td>
+                            <td><span class="readonly">1</span></td>
+                            <td>Cloud misconfiguration and control review</td>
+                            <td>Once</td>
+                            <td>Remote</td>
+                            <td>Service</td>
+                            <td>Remote</td>
+                            <td>PDF Report</td>
+                            <td>Ad-Hoc</td>
+                            <td>AWS Config, Security Hub</td>
+                            <td>11 Feb 2026</td>
+                            <td>16 Feb 2026</td>
+                            <td><span class="readonly">6</span></td>
+                            <td><span class="readonly">48</span></td>
+                            <td><span class="readonly">6</span></td>
+                            <td><span class="readonly">48</span></td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td><span class="readonly">WBS-04</span></td>
+                            <td>Code & Application Security</td>
+                            <td>Static Application Security Testing (SAST)</td>
+                            <td><span class="readonly">1</span></td>
+                            <td>Source code review and vulnerability analysis</td>
+                            <td>Once</td>
+                            <td>Remote</td>
+                            <td>Service</td>
+                            <td>Remote</td>
+                            <td>PDF + XLSX</td>
+                            <td>Ad-Hoc</td>
+                            <td>SonarQube, Semgrep</td>
+                            <td>17 Feb 2026</td>
+                            <td>21 Feb 2026</td>
+                            <td><span class="readonly">5</span></td>
+                            <td><span class="readonly">40</span></td>
+                            <td><span class="readonly">5</span></td>
+                            <td><span class="readonly">40</span></td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td><span class="readonly">WBS-05</span></td>
+                            <td>Compliance & Audit</td>
+                            <td>ISO 27001 Assessment</td>
+                            <td><span class="readonly">1</span></td>
+                            <td>Compliance gap assessment and audit checklist</td>
+                            <td>Once</td>
+                            <td>On-site</td>
+                            <td>Service</td>
+                            <td>On-site + Remote</td>
+                            <td>PDF Report</td>
+                            <td>Ad-Hoc</td>
+                            <td>Checklist, Audit Toolkit</td>
+                            <td>22 Feb 2026</td>
+                            <td>01 Mar 2026</td>
+                            <td><span class="readonly">8</span></td>
+                            <td><span class="readonly">64</span></td>
+                            <td><span class="readonly">8</span></td>
+                            <td><span class="readonly">64</span></td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td><span class="readonly">WBS-06</span></td>
+                            <td>Network & Infrastructure</td>
+                            <td>Network Security Assessment</td>
+                            <td><span class="readonly">1</span></td>
+                            <td>Infrastructure review and segmentation validation</td>
+                            <td>Once</td>
+                            <td>On-site</td>
+                            <td>Service</td>
+                            <td>On-site + Remote</td>
+                            <td>PDF Report</td>
+                            <td>Ad-Hoc</td>
+                            <td>Nmap, Wireshark</td>
+                            <td>02 Mar 2026</td>
+                            <td>07 Mar 2026</td>
+                            <td><span class="readonly">6</span></td>
+                            <td><span class="readonly">48</span></td>
+                            <td><span class="readonly">6</span></td>
+                            <td><span class="readonly">48</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TOTALS -->
+        <div style="margin-top: 20px; padding: 16px; background: var(--light-gray); border-radius: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">Subtotal</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--primary);" class="finance-hidden">-------</div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">Tax (18%)</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--primary);" class="finance-hidden">-------</div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">Total Days</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--primary);">35 days</div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">Grand Total</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--primary);" class="finance-hidden">-------</div>
+            </div>
+        </div>
+
+        <!-- INVOICE SCHEDULE -->
+        <div style="margin-top: 20px;">
+            <div class="section-title">Invoice Schedule</div>
+            <div class="table-container">
+                <table class="expense-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Milestone/Period</th>
+                            <th>Invoice Target Date</th>
+                            <th>Duration/Days</th>
+                            <th>Billing Model</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Advance 70%</td>
+                            <td><input type="date" disabled style="border: none; background: transparent;" value="2026-02-01"></td>
+                            <td>20 days</td>
+                            <td>70% Advance</td>
+                            <td><button class="btn btn-primary" onclick="requestInvoiceRaise('Advance 70%')">Invoice should be raised</button></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Final Delivery 30%</td>
+                            <td><input type="date" disabled style="border: none; background: transparent;" value="2026-08-30"></td>
+                            <td>15 days</td>
+                            <td>30% on Delivery</td>
+                            <td><button class="btn btn-primary" onclick="requestInvoiceRaise('Final Delivery 30%')">Invoice should be raised</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>

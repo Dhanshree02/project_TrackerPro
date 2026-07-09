@@ -1,0 +1,168 @@
+import type { OrgDocument } from "@/modules/my-org/types";
+
+// ─── Seed Documents ───────────────────────────────────────────────────────────
+// Uses existing people from mock-data as uploadedBy names.
+// 4 Tech SOPs, 5 PMS SOPs, 4 Policy Docs, 4 Help Desk = 17 total
+
+export const seedDocuments: OrgDocument[] = [
+  // ── Tech. SOPs ──
+  {
+    id: "doc-001",
+    name: "API Gateway Configuration Guide.pdf",
+    categoryId: "tech-sops",
+    size: 2457600,
+    fileType: "pdf",
+    lastUpdated: "2026-06-10",
+    uploadedBy: "Rahul Gupta",
+  },
+  {
+    id: "doc-002",
+    name: "CI-CD Pipeline Setup Procedures.docx",
+    categoryId: "tech-sops",
+    size: 1048576,
+    fileType: "docx",
+    lastUpdated: "2026-05-22",
+    uploadedBy: "Vikram Shah",
+  },
+  {
+    id: "doc-003",
+    name: "Database Backup and Recovery SOP.pdf",
+    categoryId: "tech-sops",
+    size: 3145728,
+    fileType: "pdf",
+    lastUpdated: "2026-04-15",
+    uploadedBy: "Aarav Mehta",
+  },
+  {
+    id: "doc-004",
+    name: "Security Incident Response Plan.pdf",
+    categoryId: "tech-sops",
+    size: 1572864,
+    fileType: "pdf",
+    lastUpdated: "2026-06-01",
+    uploadedBy: "Rahul Gupta",
+  },
+
+  // ── PMS. SOPs ──
+  {
+    id: "doc-005",
+    name: "Project Onboarding Checklist.pdf",
+    categoryId: "pms-sops",
+    size: 524288,
+    fileType: "pdf",
+    lastUpdated: "2026-06-12",
+    uploadedBy: "Riya Kapoor",
+  },
+  {
+    id: "doc-006",
+    name: "WBS Creation Guidelines.docx",
+    categoryId: "pms-sops",
+    size: 786432,
+    fileType: "docx",
+    lastUpdated: "2026-05-30",
+    uploadedBy: "Aarav Mehta",
+  },
+  {
+    id: "doc-007",
+    name: "Timesheet Submission Process.pdf",
+    categoryId: "pms-sops",
+    size: 409600,
+    fileType: "pdf",
+    lastUpdated: "2026-04-20",
+    uploadedBy: "Riya Kapoor",
+  },
+  {
+    id: "doc-008",
+    name: "Resource Allocation SOP.pdf",
+    categoryId: "pms-sops",
+    size: 655360,
+    fileType: "pdf",
+    lastUpdated: "2026-06-05",
+    uploadedBy: "Rahul Gupta",
+  },
+  {
+    id: "doc-009",
+    name: "Change Request Management Process.docx",
+    categoryId: "pms-sops",
+    size: 327680,
+    fileType: "docx",
+    lastUpdated: "2026-05-18",
+    uploadedBy: "Aarav Mehta",
+  },
+
+  // ── Policy Docs ──
+  {
+    id: "doc-010",
+    name: "Code of Conduct 2026.pdf",
+    categoryId: "policy-docs",
+    size: 1048576,
+    fileType: "pdf",
+    lastUpdated: "2026-01-05",
+    uploadedBy: "Vikrant Malhotra",
+  },
+  {
+    id: "doc-011",
+    name: "Remote Work Policy.pdf",
+    categoryId: "policy-docs",
+    size: 614400,
+    fileType: "pdf",
+    lastUpdated: "2026-03-10",
+    uploadedBy: "Vikrant Malhotra",
+  },
+  {
+    id: "doc-012",
+    name: "Data Privacy and GDPR Guidelines.pdf",
+    categoryId: "policy-docs",
+    size: 2097152,
+    fileType: "pdf",
+    lastUpdated: "2026-02-14",
+    uploadedBy: "Anita Desai",
+  },
+  {
+    id: "doc-013",
+    name: "Leave and Attendance Policy.pdf",
+    categoryId: "policy-docs",
+    size: 819200,
+    fileType: "pdf",
+    lastUpdated: "2026-04-01",
+    uploadedBy: "Anita Desai",
+  },
+
+  // ── Help Desk ──
+  {
+    id: "doc-014",
+    name: "New Employee IT Setup Guide.pdf",
+    categoryId: "help-desk",
+    size: 1310720,
+    fileType: "pdf",
+    lastUpdated: "2026-05-15",
+    uploadedBy: "Vikram Shah",
+  },
+  {
+    id: "doc-015",
+    name: "VPN Access Troubleshooting Guide.docx",
+    categoryId: "help-desk",
+    size: 491520,
+    fileType: "docx",
+    lastUpdated: "2026-04-28",
+    uploadedBy: "Vikram Shah",
+  },
+  {
+    id: "doc-016",
+    name: "Helpdesk Ticket Escalation Process.pdf",
+    categoryId: "help-desk",
+    size: 368640,
+    fileType: "pdf",
+    lastUpdated: "2026-06-08",
+    uploadedBy: "Rahul Gupta",
+  },
+  {
+    id: "doc-017",
+    name: "Software Access Request Form.docx",
+    categoryId: "help-desk",
+    size: 245760,
+    fileType: "docx",
+    lastUpdated: "2026-05-02",
+    uploadedBy: "Riya Kapoor",
+  },
+];

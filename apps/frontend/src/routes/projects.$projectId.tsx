@@ -1,0 +1,3320 @@
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import React, { useMemo, useState } from "react";
+import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock } from "lucide-react";
+import { toast } from "sonner";
+import { AppShell } from "@/components/app-shell";
+import { StageTracker } from "@/components/stage-tracker";
+import { useRoleContext } from "@/lib/role-context";
+import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person } from "@/lib/mock-data";
+import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar } from "@/components/pills";
+import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType } from "@/lib/dh-helpers";
+import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation } from "@/lib/dh-store";
+import { Modal, Field } from "@/routes/projects.index";
+import { cn } from "@/lib/utils";
+
+// Helper function for consistent date formatting (prevents hydration mismatch)
+function formatDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${m}/${d}/${y}`;
+}
+
+export const Route = createFileRoute("/projects/$projectId")({
+  loader: ({ params }): { project: Project; client: Client } => {
+    const project = projects.find((p) => p.id === params.projectId);
+    if (!project) throw notFound();
+    const client = clients.find((c) => c.id === project.clientId)!;
+    return { project, client };
+  },
+  head: ({ loaderData }) => ({
+    meta: [
+      { title: `${loaderData?.project.name ?? "Project"} — Pulse PMO` },
+      { name: "description", content: loaderData?.project.description ?? "Project details." },
+    ],
+  }),
+  component: ProjectDetail,
+});
+
+const tabs = ["Overview", "WBS", "Tasks", "Team", "Health", "Invoices"] as const;
+type Tab = (typeof tabs)[number];
+
+function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
+  return (
+    <div>
+      <div className="flex items-center gap-3 py-2" style={{ paddingLeft: depth * 20 }}>
+        <span className="min-w-0 flex-1 text-sm">{node.name}</span>
+        <ProgressBar value={node.progress} className="w-32" />
+        <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">{node.progress}%</span>
+      </div>
+      {node.children?.map((c) => <WbsItem key={c.id} node={c} depth={depth + 1} />)}
+    </div>
+  );
+}
+
+function ProjectDetail() {
+  const { project, client } = Route.useLoaderData() as { project: Project; client: Client };
+  const { user, isDhanshree } = useRoleContext();
+  const snapshotInvoices = useDhStore((s) => s.invoices);
+  const [raiseModalOpen, setRaiseModalOpen] = useState(false);
+  const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
+  const [invoiceNumberInput, setInvoiceNumberInput] = useState("");
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window !== "undefined") {
+      const h = window.location.hash;
+      if (h === "#health" || h.startsWith("#health-")) {
+        return "Health";
+      }
+    }
+    return "Overview";
+  });
+
+  const pm = getPerson(project.pmId);
+  const tl = getPerson(project.tlId);
+  const team = project.teamIds.map(getPerson);
+
+  // Get project stages - call unconditionally to avoid Rules of Hooks violation
+  const stages = useMemo(() => getStagesList(project.id), [project.id]);
+
+  // Subscribe to store for sub-status derivation (Dhanshree only)
+  const storePrereqs = useDhStore((s) => s.prereqs[project.id]);
+  const storeProjectStages = useDhStore((s) => s.projectStages[project.id]);
+
+  const subStatusMap = useMemo<Record<string, string>>(() => {
+    if (!isDhanshree) return {} as Record<string, string>;
+    const prereq = storePrereqs;
+    const tracker = storeProjectStages;
+
+    // --- Sales ---
+    const salesStatus = tracker?.stages?.sales?.currentStatus;
+    let salesSub = "Pending";
+    if (salesStatus === "Assigned") salesSub = "Sales Assigned";
+    else if (salesStatus === "Approval") salesSub = "WBS Approval Completed";
+
+    // --- PMO ---
+    const allCollected = prereq?.services?.every(s => s.collectionStatus === "Collected") ?? false;
+    const allValidated = prereq?.services?.every(s => s.validationStatus === "Validated") ?? false;
+    const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
+    const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
+    let pmoSub = "Prerequisite Collection Pending";
+    if (allCollected && allValidated && hasPM && hasSPM) pmoSub = "Project Allocation Completed";
+    else if (allCollected && allValidated) pmoSub = "Validation Completed";
+    else if (allCollected) pmoSub = "Collection Completed";
+    else if (allCollected === false && (prereq?.services?.some(s => s.collectionStatus === "Collected") ?? false)) pmoSub = "Collection In Progress";
+
+    // --- Delivery ---
+    const deliveryStatus = tracker?.stages?.delivery?.currentStatus ?? project.status;
+    let deliverySub = String(deliveryStatus);
+    if (deliveryStatus === "Ongoing") {
+      const pct = project.progress;
+      deliverySub = pct >= 80 ? `${pct}% — Near Completion` : pct >= 50 ? `${pct}% — In Progress` : `${pct}% — Early Stage`;
+    } else if (deliveryStatus === "Completed") deliverySub = "Project Delivered";
+    else if (deliveryStatus === "After Release") deliverySub = "Post-Release Monitoring";
+
+    // --- Accounts ---
+    const acctDetail = tracker?.accountsDetail;
+    let acctSub = "PO Pending";
+    if (acctDetail) {
+      if (acctDetail.paymentStatus === "Payment Received") acctSub = "Payment Received";
+      else if (acctDetail.poStatus === "PO Validated") acctSub = "PO Validated — Awaiting Payment";
+      else if (acctDetail.poStatus === "PO Received") acctSub = "PO Received — Under Validation";
+      else acctSub = "PO Pending";
+    }
+
+    return { Sales: salesSub, PMO: pmoSub, Delivery: deliverySub, Accounts: acctSub };
+  }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
+
+  return (
+    <AppShell title={project.name} subtitle={`${client.name} · ${project.description}`}>
+      <nav className="mb-3 flex items-center gap-1 text-xs text-muted-foreground">
+        <Link to="/clients" className="hover:text-foreground">Clients</Link>
+        <ChevronRight className="h-3 w-3" />
+        <Link to="/clients/$clientId" params={{ clientId: client.id }} className="hover:text-foreground">{client.name}</Link>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-foreground">{project.name}</span>
+      </nav>
+
+      {/* Project Stages Tracker - Dhanshree Role Only */}
+      {isDhanshree && (
+        <div className="mb-3 rounded-lg border border-border bg-card shadow-sm">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="text-xs font-semibold text-gray-900">Project Stages Tracker</h2>
+            <p className="text-[11px] text-gray-600 mt-0.5">Track project progression through Sales → PMO → Delivery → Accounts</p>
+          </div>
+          <StageTracker stages={stages} subStatusMap={subStatusMap} />
+        </div>
+      )}
+
+      <div className="rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
+          <HealthPill status={project.health} />
+          <StatusPill status={project.status} />
+          {!isDhanshree && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+              <Lock className="h-3 w-3" /> View only · {user.role}
+            </span>
+          )}
+          <div className="ml-auto flex items-center gap-3">
+            <ProgressBar value={project.progress} className="w-40" />
+            <span className="text-xs font-medium tabular-nums">{project.progress}%</span>
+          </div>
+        </div>
+
+        <div className="flex gap-1 overflow-x-auto border-b border-border px-2">
+          {tabs.map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={cn("border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-5">
+          {tab === "Overview" && (
+            <OverviewTab project={project} pm={pm} tl={tl} team={team} isDhanshree={isDhanshree} />
+          )}
+
+          {tab === "WBS" && <WbsTab project={project} />}
+
+          {tab === "Health" && <HealthTab project={project} />}
+
+          {tab === "Tasks" && (isDhanshree ? <DhTasksTab project={project} /> : <DefaultTasksTab project={project} />)}
+
+          {tab === "Team" && (isDhanshree ? <DhTeamTab project={project} /> : <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />)}
+
+          {tab === "Invoices" && (
+            isDhanshree ? (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Milestone / Period</th>
+                      <th className="px-3 py-2 font-medium">Invoice Target Date</th>
+                      <th className="px-3 py-2 font-medium">Unit Price</th>
+                      <th className="px-3 py-2 font-medium">Qty</th>
+                      <th className="px-3 py-2 font-medium">Currency</th>
+                      <th className="px-3 py-2 font-medium">Invoice Amount</th>
+                      <th className="px-3 py-2 font-medium">Invoice Status</th>
+                      <th className="px-3 py-2 font-medium">Invoice Number</th>
+                      <th className="px-3 py-2 font-medium">Payment Status</th>
+                      <th className="px-3 py-2 font-medium">Date Of Payment Received</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {snapshotInvoices.filter((i) => i.projectId === project.id).map((inv) => {
+                      const statusTone = inv.invoiceStatus === "Raised" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800";
+                      const paymentTone = inv.paymentStatus === "Received" ? "bg-success/10 text-success border-success/30" : "bg-warning/15 text-warning-foreground border-warning/30";
+
+                      return (
+                        <tr key={inv.id} className="hover:bg-accent/30">
+                          <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
+                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.invoiceTargetDate}</td>
+                          <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
+                          <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
+                          <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
+                          <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
+                          <td className="px-3 py-2.5">
+                            <select
+                              value={inv.invoiceStatus}
+                              onChange={(e) => {
+                                const val = e.target.value as "Not Raised" | "Raised";
+                                if (val === "Raised") {
+                                  setRaiseInvoiceId(inv.id);
+                                  setInvoiceNumberInput("");
+                                  setRaiseModalOpen(true);
+                                } else {
+                                  dhStore.cancelInvoice(project.id, inv.id, user.id, user.name);
+                                  toast.success("Invoice status reset to Not Raised");
+                                }
+                              }}
+                              className={cn(
+                                "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
+                                statusTone
+                              )}
+                            >
+                              <option value="Not Raised" className="bg-white text-gray-800">Not Raised</option>
+                              <option value="Raised" className="bg-white text-gray-800">Raised</option>
+                            </select>
+                          </td>
+                          <td className="px-3 py-2.5 font-mono text-xs">
+                            {inv.invoiceNumber || "-"}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <select
+                              value={inv.paymentStatus}
+                              disabled={inv.invoiceStatus === "Not Raised"}
+                              onChange={(e) => {
+                                const val = e.target.value as "Not Received" | "Received";
+                                dhStore.updatePaymentStatus(project.id, inv.id, val, user.id, user.name);
+                                toast.success(`Payment Status updated to ${val}`);
+                              }}
+                              className={cn(
+                                "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
+                                paymentTone
+                              )}
+                            >
+                              <option value="Not Received" className="bg-white text-gray-800">Not Received</option>
+                              <option value="Received" className="bg-white text-gray-800">Received</option>
+                            </select>
+                          </td>
+                          <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                            {inv.paymentReceivedDate || "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {snapshotInvoices.filter((i) => i.projectId === project.id).length === 0 && (
+                      <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Unit Price</th>
+                      <th className="px-3 py-2 font-medium">Qty</th>
+                      <th className="px-3 py-2 font-medium">Currency</th>
+                      <th className="px-3 py-2 font-medium">Invoice Amount</th>
+                      <th className="px-3 py-2 font-medium">Actions</th>
+                      <th className="px-3 py-2 font-medium">Payment Status</th>
+                      <th className="px-3 py-2 font-medium">Payment Received</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {invoices.filter((i) => i.projectId === project.id).map((inv, idx) => {
+                      const paymentTone = inv.paymentStatus === "completed" ? "bg-success/10 text-success border-success/30"
+                        : inv.paymentStatus === "overdue" ? "bg-destructive/10 text-destructive border-destructive/30"
+                          : inv.paymentStatus === "pending" ? "bg-warning/15 text-warning-foreground border-warning/30"
+                            : "bg-muted text-muted-foreground border-border";
+                      return (
+                        <tr key={idx} className="hover:bg-accent/30">
+                          <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
+                          <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
+                          <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
+                          <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
+                          <td className="px-3 py-2.5 text-center">
+                            {inv.status === "raised" && (
+                              <button className="inline-flex items-center gap-1 rounded-md text-xs font-medium text-primary hover:bg-primary/10 px-2 py-1">
+                                <Plus className="h-3 w-3" /> Raise
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${paymentTone}`}>{inv.paymentStatus.replace("_", " ")}</span>
+                          </td>
+                          <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                            {inv.paymentReceivedDate ? new Date(inv.paymentReceivedDate).toLocaleDateString() : "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {invoices.filter((i) => i.projectId === project.id).length === 0 && (
+                      <tr><td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+
+      {raiseModalOpen && (
+        <Modal
+          title="Raise Invoice"
+          onClose={() => setRaiseModalOpen(false)}
+        >
+          <div className="space-y-4">
+            <Field label="Invoice Number" required>
+              <input
+                type="text"
+                value={invoiceNumberInput}
+                onChange={(e) => setInvoiceNumberInput(e.target.value)}
+                placeholder="E.g., INV-2026-001"
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </Field>
+
+            <div className="flex justify-end gap-2 border-t border-border pt-4">
+              <button
+                onClick={() => setRaiseModalOpen(false)}
+                className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium hover:bg-accent cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!invoiceNumberInput.trim()) {
+                    toast.error("Invoice Number is mandatory");
+                    return;
+                  }
+                  if (raiseInvoiceId) {
+                    dhStore.raiseInvoice(project.id, raiseInvoiceId, invoiceNumberInput.trim(), user.id, user.name);
+                    toast.success("Invoice raised successfully!");
+                  }
+                  setRaiseModalOpen(false);
+                }}
+                className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </AppShell>
+  );
+}
+
+// ---------- WBS Tab ----------
+function WbsTab({ project }: { project: Project }) {
+  if (project.wbsDetails) {
+    const wbsDetails = project.wbsDetails;
+    const totalServices = wbsDetails.services.reduce((acc, curr) => acc + curr.total, 0);
+    const tax = totalServices * 0.18;
+    const grandTotal = totalServices + tax;
+
+    return (
+      <div className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
+            <div className="space-y-2">
+              <InfoRow label="Contract Type" value={wbsDetails.contractType} />
+              <InfoRow label="Project Type" value={wbsDetails.projectType} />
+              <InfoRow label="Sales Person" value={wbsDetails.salesPerson} />
+            </div>
+          </div>
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
+            <div className="space-y-2">
+              <InfoRow label="Billing Model" value={wbsDetails.accounts.billingModel} />
+              <InfoRow label="Payment Terms" value={wbsDetails.accounts.paymentTerms} />
+              <InfoRow label="Total Services Value" value={`${wbsDetails.currency} ${totalServices.toLocaleString()}`} />
+              <InfoRow label="Currency" value={wbsDetails.currency} />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="mb-3 text-sm font-semibold">Services & Deliverables from WBS</h3>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Department</th>
+                  <th className="px-3 py-2 font-medium">Service Name</th>
+                  <th className="px-3 py-2 font-medium">Qty</th>
+                  <th className="px-3 py-2 font-medium">Description</th>
+                  <th className="px-3 py-2 font-medium">Location</th>
+                  <th className="px-3 py-2 font-medium">Service Model</th>
+                  <th className="px-3 py-2 font-medium">Delivery Model</th>
+                  <th className="px-3 py-2 font-medium">Billing Model</th>
+                  <th className="px-3 py-2 font-medium">Start Date</th>
+                  <th className="px-3 py-2 font-medium">End Date</th>
+                  <th className="px-3 py-2 font-medium">Est. Hours</th>
+                  <th className="px-3 py-2 font-medium text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {wbsDetails.services.map((svc) => (
+                  <tr key={svc.id} className="hover:bg-accent/30">
+                    <td className="px-3 py-2">{svc.department}</td>
+                    <td className="px-3 py-2 font-medium">{svc.serviceName}</td>
+                    <td className="px-3 py-2 text-center">{svc.qty}</td>
+                    <td className="px-3 py-2 max-w-xs truncate" title={svc.description}>{svc.description}</td>
+                    <td className="px-3 py-2">{svc.location}{svc.locationText ? ` — ${svc.locationText}` : ""}</td>
+                    <td className="px-3 py-2">{svc.serviceModel ?? "—"}</td>
+                    <td className="px-3 py-2">{svc.deliveryModel ?? "—"}</td>
+                    <td className="px-3 py-2">{svc.billingModel ?? "—"}</td>
+                    <td className="px-3 py-2">{svc.startDate}</td>
+                    <td className="px-3 py-2">{svc.endDate}</td>
+                    <td className="px-3 py-2 text-center">{svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : svc.duration * 8)} hrs</td>
+                    <td className="px-3 py-2 text-right font-medium">{wbsDetails.currency} {svc.total.toLocaleString()}</td>
+                  </tr>
+                ))}
+                {wbsDetails.services.length === 0 && (
+                  <tr><td colSpan={12} className="px-3 py-6 text-center text-sm text-muted-foreground">No services defined.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3 rounded-lg border border-border bg-muted/20 p-4">
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-1">Total Services</div>
+            <div className="text-lg font-semibold">{wbsDetails.currency} {totalServices.toLocaleString()}</div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-1">Tax (18%)</div>
+            <div className="text-lg font-semibold">{wbsDetails.currency} {tax.toLocaleString()}</div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-1">Grand Total</div>
+            <div className="text-lg font-semibold">{wbsDetails.currency} {grandTotal.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Milestone/Period</th>
+                  <th className="px-3 py-2 font-medium">Invoice Date</th>
+                  <th className="px-3 py-2 font-medium">Remarks</th>
+                  <th className="px-3 py-2 font-medium">Amount</th>
+                  <th className="px-3 py-2 font-medium text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {wbsDetails.accounts.invoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-accent/30">
+                    <td className="px-3 py-2 font-medium">{inv.milestone}</td>
+                    <td className="px-3 py-2">{inv.invoiceDate}</td>
+                    <td className="px-3 py-2">{inv.remarks}</td>
+                    <td className="px-3 py-2 font-medium">{wbsDetails.currency} {inv.amount.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right">
+                      <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                        Raise Invoice
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {wbsDetails.accounts.invoices.length === 0 && (
+                  <tr><td colSpan={5} className="px-3 py-6 text-center text-sm text-muted-foreground">No invoices scheduled.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <WbsPrerequisiteSection project={project} />
+      </div>
+    );
+  }
+
+  const wbsId = `WBS-2024-${project.id.padStart(3, '0')}`;
+  const subtotal = 50000;
+  const tax = subtotal * 0.18;
+  const grandTotal = subtotal + tax;
+
+  const wbsServices = [
+    { id: 1, taskId: 'WBS-01', dept: 'Penetration Testing', name: 'External Network Penetration Testing', qty: 1, desc: 'External network penetration test for internet-facing assets', freq: 'Once', loc: 'On-site', svc: 'Service', delivery: 'Remote + On-site', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Nmap, Burp Suite', start: '01 Feb 2026', end: '05 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+    { id: 2, taskId: 'WBS-02', dept: 'Vulnerability Assessment', name: 'Web Application Vulnerability Assessment', qty: 2, desc: 'Security review for web apps and APIs', freq: 'Weekly', loc: 'Remote', svc: 'Service', delivery: 'Remote', format: 'Excel + PDF', billing: 'Ad-Hoc', tools: 'OWASP ZAP, Burp Suite', start: '06 Feb 2026', end: '10 Feb 2026', durDays: 4, durHrs: 32, totalDays: 8, totalHrs: 64 },
+    { id: 3, taskId: 'WBS-03', dept: 'Cloud Security', name: 'AWS Cloud Security Assessment', qty: 1, desc: 'Cloud misconfiguration and control review', freq: 'Once', loc: 'Remote', svc: 'Service', delivery: 'Remote', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'AWS Config, Security Hub', start: '11 Feb 2026', end: '16 Feb 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+    { id: 4, taskId: 'WBS-04', dept: 'Code & Application Security', name: 'Static Application Security Testing (SAST)', qty: 1, desc: 'Source code review and vulnerability analysis', freq: 'Once', loc: 'Remote', svc: 'Service', delivery: 'Remote', format: 'PDF + XLSX', billing: 'Ad-Hoc', tools: 'SonarQube, Semgrep', start: '17 Feb 2026', end: '21 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+    { id: 5, taskId: 'WBS-05', dept: 'Compliance & Audit', name: 'ISO 27001 Assessment', qty: 1, desc: 'Compliance gap assessment and audit checklist', freq: 'Once', loc: 'On-site', svc: 'Service', delivery: 'On-site + Remote', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Checklist, Audit Toolkit', start: '22 Feb 2026', end: '01 Mar 2026', durDays: 8, durHrs: 64, totalDays: 8, totalHrs: 64 },
+    { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure', name: 'Network Security Assessment', qty: 1, desc: 'Infrastructure review and segmentation validation', freq: 'Once', loc: 'On-site', svc: 'Service', delivery: 'On-site + Remote', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Nmap, Wireshark', start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* WBS Info Cards */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
+          <div className="space-y-2">
+            <InfoRow label="WBS ID" value={wbsId} />
+            <InfoRow label="Contract Type" value="Fixed Price" />
+            <InfoRow label="Engagement Manager" value="Priya Sharma" />
+            <InfoRow label="Sales Person" value="Amit Verma" />
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
+          <div className="space-y-2">
+            <InfoRow label="Project Type" value="Ad-Hoc" />
+            <InfoRow label="Billing Model" value="70% Advance + 30% on Delivery" />
+            <InfoRow label="Total Amount" value="---------" muted />
+            <InfoRow label="Currency" value="---------" muted />
+          </div>
+        </div>
+      </div>
+
+      {/* Services Table */}
+      <div>
+        <h3 className="mb-3 text-sm font-semibold">Services & Deliverables from WBS</h3>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-xs">
+            <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 font-medium">#</th>
+                <th className="px-3 py-2 font-medium">Task ID</th>
+                <th className="px-3 py-2 font-medium">Department</th>
+                <th className="px-3 py-2 font-medium">Service Name</th>
+                <th className="px-3 py-2 font-medium">Qty</th>
+                <th className="px-3 py-2 font-medium">Description</th>
+                <th className="px-3 py-2 font-medium">Frequency</th>
+                <th className="px-3 py-2 font-medium">Location</th>
+                <th className="px-3 py-2 font-medium">Service Model</th>
+                <th className="px-3 py-2 font-medium">Delivery Model</th>
+                <th className="px-3 py-2 font-medium">Final Delivery</th>
+                <th className="px-3 py-2 font-medium">Billing Model</th>
+                <th className="px-3 py-2 font-medium">Tools</th>
+                <th className="px-3 py-2 font-medium">Start Date</th>
+                <th className="px-3 py-2 font-medium">End Date</th>
+                <th className="px-3 py-2 font-medium">Duration Days</th>
+                <th className="px-3 py-2 font-medium">Duration Hrs</th>
+                <th className="px-3 py-2 font-medium">Total Days</th>
+                <th className="px-3 py-2 font-medium">Total Hrs</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {wbsServices.map((svc) => (
+                <tr key={svc.id} className="hover:bg-accent/30">
+                  <td className="px-3 py-2">{svc.id}</td>
+                  <td className="px-3 py-2 font-mono text-muted-foreground">{svc.taskId}</td>
+                  <td className="px-3 py-2">{svc.dept}</td>
+                  <td className="px-3 py-2 font-medium">{svc.name}</td>
+                  <td className="px-3 py-2 text-center">{svc.qty}</td>
+                  <td className="px-3 py-2 max-w-xs truncate" title={svc.desc}>{svc.desc}</td>
+                  <td className="px-3 py-2">{svc.freq}</td>
+                  <td className="px-3 py-2">{svc.loc}</td>
+                  <td className="px-3 py-2">{svc.svc}</td>
+                  <td className="px-3 py-2">{svc.delivery}</td>
+                  <td className="px-3 py-2">{svc.format}</td>
+                  <td className="px-3 py-2">{svc.billing}</td>
+                  <td className="px-3 py-2">{svc.tools}</td>
+                  <td className="px-3 py-2">{svc.start}</td>
+                  <td className="px-3 py-2">{svc.end}</td>
+                  <td className="px-3 py-2 text-center">{svc.durDays}</td>
+                  <td className="px-3 py-2 text-center">{svc.durHrs}</td>
+                  <td className="px-3 py-2 text-center">{svc.totalDays}</td>
+                  <td className="px-3 py-2 text-center">{svc.totalHrs}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Totals */}
+      <div className="grid gap-4 md:grid-cols-4 rounded-lg border border-border bg-muted/20 p-4">
+        <div>
+          <div className="text-xs font-medium text-muted-foreground mb-1">Subtotal</div>
+          <div className="text-lg font-semibold text-muted-foreground">---------</div>
+        </div>
+        <div>
+          <div className="text-xs font-medium text-muted-foreground mb-1">Tax (18%)</div>
+          <div className="text-lg font-semibold text-muted-foreground">---------</div>
+        </div>
+        <div>
+          <div className="text-xs font-medium text-muted-foreground mb-1">Total Days</div>
+          <div className="text-lg font-semibold">35 days</div>
+        </div>
+        <div>
+          <div className="text-xs font-medium text-muted-foreground mb-1">Grand Total</div>
+          <div className="text-lg font-semibold text-muted-foreground">---------</div>
+        </div>
+      </div>
+
+      {/* Invoice Schedule */}
+      <div>
+        <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 font-medium">#</th>
+                <th className="px-3 py-2 font-medium">Milestone/Period</th>
+                <th className="px-3 py-2 font-medium">Invoice Target Date</th>
+                <th className="px-3 py-2 font-medium">Duration/Days</th>
+                <th className="px-3 py-2 font-medium">Billing Model</th>
+                <th className="px-3 py-2 font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              <tr className="hover:bg-accent/30">
+                <td className="px-3 py-2">1</td>
+                <td className="px-3 py-2 font-medium">Advance 70%</td>
+                <td className="px-3 py-2">02 Feb 2026</td>
+                <td className="px-3 py-2">20 days</td>
+                <td className="px-3 py-2">70% Advance</td>
+                <td className="px-3 py-2">
+                  <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                    Invoice should be raised
+                  </button>
+                </td>
+              </tr>
+              <tr className="hover:bg-accent/30">
+                <td className="px-3 py-2">2</td>
+                <td className="px-3 py-2 font-medium">Final Delivery 30%</td>
+                <td className="px-3 py-2">01 Sep 2026</td>
+                <td className="px-3 py-2">15 days</td>
+                <td className="px-3 py-2">30% on Delivery</td>
+                <td className="px-3 py-2">
+                  <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                    Invoice should be raised
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Prerequisite Collection Status Section */}
+      <WbsPrerequisiteSection project={project} />
+    </div>
+  );
+}
+
+function InfoRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  return (
+    <div className="flex justify-between text-xs">
+      <span className="text-muted-foreground font-medium">{label}</span>
+      <span className={cn("font-semibold", muted && "text-muted-foreground")}>{value}</span>
+    </div>
+  );
+}
+
+// ---------- Overview ----------
+function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project; pm: Person; tl: Person; team: Person[]; isDhanshree: boolean }) {
+  const ems = getProjectEMs(project);
+  const pms = getProjectPMs(project);
+  const tls = getProjectTLs(project);
+
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      <div className="md:col-span-2 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold">Description</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Info icon={Calendar} label="Start" value={formatDate(new Date(project.startDate))} />
+          <Info icon={Calendar} label="End" value={formatDate(new Date(project.endDate))} />
+          <Info icon={Wallet} label="Budget" value={`$${(project.budget / 1000).toFixed(0)}k`} sub={`Spent $${(project.spent / 1000).toFixed(0)}k`} />
+        </div>
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">Budget burn</h3>
+          <ProgressBar value={(project.spent / project.budget) * 100} />
+          <p className="mt-1 text-xs text-muted-foreground">{((project.spent / project.budget) * 100).toFixed(0)}% utilized</p>
+        </div>
+
+        {isDhanshree && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <PeopleBlock title="Engagement Managers" people={ems} />
+            <PeopleBlock title="Project Managers" people={pms} />
+            <PeopleBlock title="Team Leads" people={tls} />
+          </div>
+        )}
+      </div>
+      <aside className="space-y-3 rounded-lg border border-border bg-accent/30 p-4">
+        <PersonRow label="Project Manager" person={pm} />
+        <PersonRow label="Team Lead" person={tl} />
+        <div>
+          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Team</div>
+          <div className="flex flex-wrap gap-1.5">
+            {team.map((m) => (
+              <div key={m.id} className="flex items-center gap-2 rounded-md bg-card px-2 py-1 text-xs">
+                <Avatar name={m.name} size={20} />
+                <span>{m.name.split(" ")[0]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        {isDhanshree && <ExtensionRequestCard project={project} />}
+      </aside>
+    </div>
+  );
+}
+
+function ExtensionRequestCard({ project }: { project: Project }) {
+  const { user } = useRoleContext();
+  const [newEndDate, setNewEndDate] = useState(project.endDate);
+  const [reason, setReason] = useState("");
+  const [taggedIds, setTaggedIds] = useState<string[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const approversPool = useMemo(() => {
+    return people.filter(p => ["Senior PM", "Engagement Manager", "PM", "PMO", "HOD"].includes(p.role));
+  }, []);
+
+  const extDays = useMemo(() => {
+    if (!newEndDate) return 0;
+    const d1 = new Date(project.endDate);
+    const d2 = new Date(newEndDate);
+    const diff = d2.getTime() - d1.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }, [newEndDate, project.endDate]);
+
+  const visibleApprovers = useMemo(() => {
+    return approversPool.filter(p => !query.trim() || p.name.toLowerCase().includes(query.toLowerCase()));
+  }, [approversPool, query]);
+
+  const toggle = (id: string) => {
+    setTaggedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleSubmit = () => {
+    if (!reason.trim()) {
+      toast.error("Reason For Extension is mandatory");
+      return;
+    }
+    if (taggedIds.length === 0) {
+      toast.error("Please tag at least one approver");
+      return;
+    }
+    dhStore.submitExtensionRequest(project.id, newEndDate, extDays, reason, taggedIds, user.name, user.id);
+    toast.success("Timeline Extension Approval request submitted successfully!");
+    setReason("");
+    setTaggedIds([]);
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-3 space-y-3 mt-4 text-xs text-left">
+      <div className="flex items-center gap-1.5 border-b border-border pb-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+        <Clock className="h-4 w-4" />
+        <span>Extension Request</span>
+      </div>
+
+      <div className="space-y-2">
+        <div>
+          <span className="text-muted-foreground block mb-0.5 font-medium">Current End Date</span>
+          <p className="font-semibold text-gray-800">{formatDate(new Date(project.endDate))}</p>
+        </div>
+
+        <div>
+          <label className="text-muted-foreground block mb-1 font-medium">Requested New End Date</label>
+          <input
+            type="date"
+            value={newEndDate}
+            onChange={(e) => setNewEndDate(e.target.value)}
+            className="w-full h-8 rounded-md border border-border bg-card px-2 text-xs font-medium focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+
+        <div>
+          <span className="text-muted-foreground block mb-0.5 font-medium">Extension Duration</span>
+          <p className="font-semibold text-primary">{extDays} Days</p>
+        </div>
+
+        <div>
+          <label className="text-muted-foreground block mb-1 font-medium">
+            Reason For Extension <span className="text-destructive font-bold">*</span>
+          </label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Provide a valid corporate reason..."
+            rows={2}
+            className="w-full rounded-md border border-border bg-card p-1.5 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+
+        <div>
+          <label className="text-muted-foreground block mb-1 font-medium">Tag Stakeholder Approvers</label>
+          <div className="relative">
+            <button
+              onClick={() => setShowSearch(!showSearch)}
+              className="w-full h-8 rounded-md border border-border bg-card px-2 text-left text-xs text-muted-foreground flex justify-between items-center"
+            >
+              <span>{taggedIds.length > 0 ? `${taggedIds.length} approvers tagged` : "Select Approvers"}</span>
+              <span className="text-[10px]">▼</span>
+            </button>
+
+            {showSearch && (
+              <div className="absolute top-9 left-0 right-0 z-50 rounded-md border border-border bg-card shadow-lg p-2 space-y-2">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search name..."
+                  className="w-full h-7 rounded-md border border-border bg-card px-2 text-xs"
+                />
+                <ul className="max-h-28 overflow-y-auto divide-y divide-border text-[10px] space-y-1">
+                  {visibleApprovers.map((p) => {
+                    const isSel = taggedIds.includes(p.id);
+                    return (
+                      <li key={p.id} className="py-1">
+                        <button
+                          onClick={() => toggle(p.id)}
+                          className="flex items-center justify-between w-full text-left"
+                        >
+                          <span>{p.name} ({p.role})</span>
+                          {isSel && <Check className="h-3 w-3 text-primary" />}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+          {taggedIds.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {taggedIds.map((id) => {
+                const p = getPerson(id);
+                return (
+                  <span key={id} className="inline-flex items-center gap-1 rounded bg-muted border border-border px-1 py-0.5 text-[9px] font-medium text-gray-700">
+                    {p.name.split(" ")[0]}
+                    <button onClick={() => toggle(id)} className="text-muted-foreground hover:text-foreground">×</button>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={!reason.trim() || taggedIds.length === 0}
+          className="w-full h-8 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 text-xs transition-colors disabled:opacity-50 mt-1"
+        >
+          Submit Request
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PeopleBlock({ title, people }: { title: string; people: Person[] }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{title}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {people.map((p) => (
+          <div key={p.id} className="flex items-center gap-1.5 rounded-full border border-border bg-accent/30 px-2 py-0.5 text-xs">
+            <Avatar name={p.name} size={18} />
+            <span>{p.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Default Tasks (other roles) ----------
+function DefaultTasksTab({ project }: { project: Project }) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 font-medium">Task</th>
+            <th className="px-3 py-2 font-medium">Assignee</th>
+            <th className="px-3 py-2 font-medium">Status</th>
+            <th className="px-3 py-2 font-medium">Due</th>
+            <th className="px-3 py-2 font-medium">Progress</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {project.tasks.map((t) => {
+            const a = getPerson(t.assigneeId);
+            return (
+              <tr key={t.id} className="hover:bg-accent/30">
+                <td className="px-3 py-2.5 font-medium">{t.title}</td>
+                <td className="px-3 py-2.5"><div className="flex items-center gap-2"><Avatar name={a.name} size={22} /><span className="text-xs">{a.name}</span></div></td>
+                <td className="px-3 py-2.5"><TaskStatusPill status={t.status} /></td>
+                <td className="px-3 py-2.5 text-xs text-muted-foreground">{new Date(t.dueDate).toLocaleDateString()}</td>
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-2"><ProgressBar value={t.progress} className="w-24" /><span className="w-8 text-right text-xs tabular-nums text-muted-foreground">{t.progress}%</span></div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ---------- Dhanshree Tasks ----------
+function getActivityName(t: Task): string {
+  const title = t.title.toLowerCase();
+  if (title.includes("requirement") || title.includes("gathering") || title.includes("discovery")) {
+    return "1. Discovery";
+  }
+  if (title.includes("architecture") || title.includes("design") || title.includes("mockup")) {
+    return "2. Design";
+  }
+  if (title.includes("api") || title.includes("implementation") || title.includes("frontend") || title.includes("build") || title.includes("integration")) {
+    return "3. Build";
+  }
+  if (title.includes("qa") || title.includes("uat") || title.includes("test")) {
+    return "4. Launch";
+  }
+  if (title.includes("deployment") || title.includes("launch")) {
+    return "4. Launch";
+  }
+  return "Execution";
+}
+
+// ── Working-day helper (skip Sat/Sun) ──────────────────────────────────────
+function addWorkingDaysFromDate(startIso: string, days: number): string {
+  const d = new Date(startIso);
+  let rem = days;
+  while (rem > 0) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) rem--;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+// ── AvatarStack with hover tooltip ────────────────────────────────────────
+function AvatarStack({ names }: { names: string[] }) {
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const ref = React.useRef<HTMLDivElement>(null);
+  const validNames = names.filter(Boolean);
+  const initials = (n: string) => n.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  const colors = ["bg-primary", "bg-info", "bg-success", "bg-warning"];
+  const first = validNames[0];
+  const extra = validNames.length - 1;
+
+  const showTooltip = () => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    setTooltipPos({ x: rect.left, y: rect.bottom + 6 });
+  };
+  const hideTooltip = () => setTooltipPos(null);
+
+  if (validNames.length === 0) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  return (
+    <>
+      <div
+        ref={ref}
+        className="inline-flex items-center cursor-default"
+        onMouseEnter={showTooltip}
+        onMouseLeave={hideTooltip}
+      >
+        {/* First circle */}
+        <span className={cn(
+          "inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-card text-[10px] font-bold text-white z-10 select-none",
+          colors[0]
+        )}>
+          {initials(first)}
+        </span>
+        {/* +N badge — only when more than 1 person */}
+        {extra >= 1 && (
+          <span className="-ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-card bg-white px-1 text-[10px] font-bold text-foreground shadow-sm z-20 select-none">
+            +{extra}
+          </span>
+        )}
+      </div>
+
+      {/* Tooltip rendered via portal-like fixed positioning — never clipped by overflow */}
+      {tooltipPos && (
+        <div
+          className="fixed z-[9999] min-w-[170px] rounded-lg border border-border bg-popover p-2.5 shadow-xl"
+          style={{ top: tooltipPos.y, left: tooltipPos.x }}
+          onMouseEnter={showTooltip}
+          onMouseLeave={hideTooltip}
+        >
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {validNames.length} Assigned
+          </p>
+          <div className="space-y-1">
+            {validNames.map((n, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs font-medium text-foreground">
+                <span className={cn(
+                  "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white",
+                  colors[i % colors.length]
+                )}>
+                  {initials(n)}
+                </span>
+                {n}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+const TASK_STAGES = ["Not Started", "Completed", "On Hold (Internal)", "On Hold (Client End)", "After Release"] as const;
+type TaskStage = typeof TASK_STAGES[number];
+
+function stageCls(s: TaskStage) {
+  return ({
+    "Not Started": "border-border bg-muted text-muted-foreground",
+    "Completed": "border-success/30 bg-success/10 text-success",
+    "On Hold (Internal)": "border-warning/40 bg-warning/15 text-warning-foreground",
+    "On Hold (Client End)": "border-orange-300 bg-orange-50 text-orange-700",
+    "After Release": "border-purple-200 bg-purple-50 text-purple-700",
+  } as Record<TaskStage, string>)[s] ?? "border-border bg-muted text-muted-foreground";
+}
+
+function DhTasksTab({ project }: { project: Project }) {
+  const snapshot = useDhStore((s) => s);
+  const prereq = snapshot.prereqs[project.id];
+  const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
+
+  if (prereq && !prereq.isProjectReadyToStart) {
+    return (
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
+        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
+        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — Project Not Started</h4>
+        <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
+          Resource assignment and task tracking are disabled until prerequisites are completed, PM/SPM are assigned, and the project is marked as "Ready To Start".
+        </p>
+      </div>
+    );
+  }
+
+  const [assignFor, setAssignFor] = useState<Task | null>(null);
+  // Subscribe to taskAssignments so the table re-renders when assignments change
+  const liveAssignments = useDhStore((s) => s.taskAssignments);
+  // Local editable state per task: actualStartDate, utilizedHours, stage
+  const [actuals, setActuals] = useState<Record<string, { actualStartDate: string; actualEndDate: string; utilizedHours: string; stage: TaskStage }>>(() => {
+    const m: Record<string, { actualStartDate: string; actualEndDate: string; utilizedHours: string; stage: TaskStage }> = {};
+    project.tasks.forEach((t) => {
+      m[t.id] = {
+        actualStartDate: t.actualStartDate ?? "",
+        actualEndDate: t.actualEndDate ?? "",
+        utilizedHours: t.utilizedHours != null ? String(t.utilizedHours) : "",
+        stage: (t.stage as TaskStage) ?? "Not Started",
+      };
+    });
+    return m;
+  });
+
+  const teamPool = useMemo(() => {
+    const ids = Array.from(new Set([project.pmId, project.tlId, ...project.teamIds, ...shadowTeamIds]));
+    return ids.map((id) => {
+      const person = getPerson(id);
+      return { person, isProjectTeam: project.pmId === id || project.tlId === id || project.teamIds.includes(id), isShadowTeam: shadowTeamIds.includes(id) };
+    });
+  }, [project, shadowTeamIds]);
+
+  function commitActuals(taskId: string) {
+    const a = actuals[taskId];
+    if (!a) return;
+    dhStore.updateTaskActuals(project.id, taskId, {
+      actualStartDate: a.actualStartDate || undefined,
+      utilizedHours: a.utilizedHours ? Number(a.utilizedHours) : undefined,
+      stage: a.stage,
+      actualEndDate: a.actualEndDate || undefined,
+    });
+  }
+
+  // Derive actualEndDate from actualStartDate + estimatedHours (skip weekends)
+  function deriveActualEndDate(taskId: string, estHours: number): string {
+    const a = actuals[taskId];
+    if (!a?.actualStartDate) return "—";
+    const days = Math.ceil(estHours / 8);
+    return addWorkingDaysFromDate(a.actualStartDate, days);
+  }
+
+  return (
+    <>
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-center text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Service ID</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Service Name</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">WBS Start Date</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">WBS End Date</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Est. Hours</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Actual Start Date</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Actual End Date</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Utilized Hours</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Stage</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Assigned Resources</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {project.tasks.length === 0 && (
+              <tr>
+                <td colSpan={11} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  No services — create this project via Assign WBS to populate tasks.
+                </td>
+              </tr>
+            )}
+            {project.tasks.map((t) => {
+              const estHrs = t.estimatedHours ?? 0;
+              const a = actuals[t.id] ?? { actualStartDate: "", actualEndDate: "", utilizedHours: "", stage: "Not Started" as TaskStage };
+              // Use liveAssignments from store for reactivity — falls back to getTaskAssignment for seed data
+              const liveIds = (liveAssignments[t.id]?.assigneeIds ?? dhStore.getTaskAssignment(project.id, t.id).assigneeIds)
+                .filter(Boolean); // remove any empty/falsy ids
+              const assigneeNames = liveIds.map((id) => getPerson(id).name).filter(Boolean);
+              const resourceCount = Math.max(1, liveIds.length);
+              // Actual End Date: use manual override if set, else auto-calc
+              const autoEnd = deriveActualEndDate(t.id, estHrs);
+              const displayActualEnd = a.actualEndDate || autoEnd;
+              // Utilized Hours = estHrs / resourceCount, formatted as Xhr Ymin
+              const utilizedDecimal = estHrs > 0 ? estHrs / resourceCount : 0;
+              const utilizedHrs = Math.floor(utilizedDecimal);
+              const utilizedMin = Math.round((utilizedDecimal - utilizedHrs) * 60);
+              const utilizedDisplay = estHrs > 0
+                ? utilizedMin > 0 ? `${utilizedHrs} hr ${utilizedMin} min` : `${utilizedHrs} hr`
+                : "—";
+
+              return (
+                <tr key={t.id} className="hover:bg-accent/30">
+                  {/* Service ID */}
+                  <td className="px-3 py-2.5 text-center align-middle font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                    {t.serviceId ?? t.id.slice(-6).toUpperCase()}
+                  </td>
+                  {/* Service Name */}
+                  <td className="px-3 py-2.5 text-center align-middle font-medium max-w-[180px] truncate" title={t.title}>
+                    {t.title}
+                  </td>
+                  {/* WBS Start Date */}
+                  <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
+                    {t.wbsStartDate ? new Date(t.wbsStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                  </td>
+                  {/* WBS End Date */}
+                  <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
+                    {t.wbsEndDate ? new Date(t.wbsEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                  </td>
+                  {/* Estimated Hours */}
+                  <td className="px-3 py-2.5 text-center align-middle tabular-nums text-muted-foreground">
+                    {estHrs > 0 ? `${estHrs} hrs` : "—"}
+                  </td>
+                  {/* Actual Start Date — PM editable */}
+                  <td className="px-3 py-2.5 text-center align-middle">
+                    <input
+                      type="date"
+                      value={a.actualStartDate}
+                      onChange={(e) => {
+                        const newStart = e.target.value;
+                        // Auto-fill actualEndDate from new start date + estHrs (skip weekends)
+                        const autoEndDate = newStart && estHrs > 0 ? addWorkingDaysFromDate(newStart, Math.ceil(estHrs / 8)) : "";
+                        setActuals((prev) => ({
+                          ...prev,
+                          [t.id]: { ...prev[t.id], actualStartDate: newStart, actualEndDate: autoEndDate }
+                        }));
+                      }}
+                      onBlur={() => commitActuals(t.id)}
+                      className="h-7 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  </td>
+                  {/* Actual End Date — editable, pre-filled from auto-calc, user can override */}
+                  <td className="px-3 py-2.5 text-center align-middle">
+                    <input
+                      type="date"
+                      value={a.actualEndDate || autoEnd}
+                      onChange={(e) => {
+                        setActuals((prev) => ({ ...prev, [t.id]: { ...prev[t.id], actualEndDate: e.target.value } }));
+                      }}
+                      onBlur={() => commitActuals(t.id)}
+                      className="h-7 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  </td>
+                  {/* Utilized Hours — auto-calculated (Est. Hours ÷ resource count), read-only */}
+                  <td className="px-3 py-2.5 text-center align-middle">
+                    <span className="inline-flex items-center justify-center h-7 rounded-md border border-border bg-muted px-2 text-xs text-muted-foreground whitespace-nowrap cursor-not-allowed select-none">
+                      {utilizedDisplay}
+                    </span>
+                  </td>
+                  {/* Stage — editable select */}
+                  <td className="px-3 py-2.5 text-center align-middle">
+                    <select
+                      value={a.stage}
+                      onChange={(e) => {
+                        const v = e.target.value as TaskStage;
+                        setActuals((prev) => ({ ...prev, [t.id]: { ...prev[t.id], stage: v } }));
+                        dhStore.updateTaskActuals(project.id, t.id, { stage: v });
+                        toast.success("Stage updated", { description: `${t.title} → ${v}` });
+                      }}
+                      className={cn("h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring", stageCls(a.stage))}
+                    >
+                      {TASK_STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </td>
+                  {/* Assigned Resources — avatar stack (display only, hover for names) */}
+                  <td className="px-3 py-2.5 text-center align-middle">
+                    <div className="flex justify-center">
+                      <AvatarStack names={assigneeNames} />
+                    </div>
+                  </td>
+                  {/* Actions */}
+                  <td className="px-3 py-2.5 text-center align-middle">
+                    <button onClick={() => setAssignFor(t)}
+                      className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] hover:bg-accent">
+                      <UserPlus className="h-3 w-3" /> Assign
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {assignFor && (
+        <AssignTaskModal task={assignFor} pool={teamPool} project={project}
+          selected={liveAssignments[assignFor.id]?.assigneeIds ?? dhStore.getTaskAssignment(project.id, assignFor.id).assigneeIds}
+          onClose={() => setAssignFor(null)}
+          onSave={(ids) => {
+            dhStore.assignResourcesToTask(project.id, assignFor.id, ids);
+            toast.success("Assignments updated", { description: `${ids.length} member${ids.length === 1 ? "" : "s"} on ${assignFor.title}` });
+            setAssignFor(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function AssignTaskModal({ project, task, pool, selected, onClose, onSave }: { project: Project; task: Task; pool: { person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[]; selected: string[]; onClose: () => void; onSave: (ids: string[]) => void }) {
+  const [sel, setSel] = useState<string[]>(selected);
+  const [q, setQ] = useState("");
+
+  // Load assignment history persistently
+  const assignment = dhStore.getTaskAssignment(project.id, task.id);
+  const history = assignment.history;
+
+  const toggle = (id: string) => setSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+  const visible = pool.filter(({ person: p }) => !q.trim() || p.name.toLowerCase().includes(q.toLowerCase()));
+
+  return (
+    <Modal title={`Assign — ${task.title}`} onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-xs text-muted-foreground">Resources from Project Team and Shadow Team can be assigned. Select one or more.</p>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search team member…"
+            className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+        </div>
+        {sel.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
+            {sel.map((id) => {
+              const p = getPerson(id);
+              const teamInfo = pool.find(item => item.person.id === id);
+              const teamLabel = teamInfo?.isShadowTeam ? "(Shadow Team)" : "(Project Team)";
+              return (
+                <span key={id} className={cn("inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-1 pr-2 text-xs font-medium shadow-sm",
+                  teamInfo?.isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
+                  <Avatar name={p.name} size={18} /> {p.name} <span className="text-[10px] text-muted-foreground">{teamLabel}</span>
+                  <button onClick={() => toggle(id)} className="ml-1 text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+        <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-md border border-border">
+          {visible.map(({ person: p, isProjectTeam, isShadowTeam }) => {
+            const isSel = sel.includes(p.id);
+            const teamLabel = isShadowTeam ? "Shadow Team" : "Project Team";
+            return (
+              <li key={p.id}>
+                <button onClick={() => toggle(p.id)}
+                  className={cn("flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent/40", isSel && "bg-primary/5")}>
+                  <Avatar name={p.name} size={26} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{p.name}</div>
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <span>{p.role}</span>
+                      <span>·</span>
+                      <span className={cn("inline-flex px-1.5 py-0.2 rounded text-[9px] font-semibold border",
+                        isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
+                        {teamLabel}
+                      </span>
+                    </div>
+                  </div>
+                  {isSel && <Check className="h-4 w-4 text-primary" />}
+                </button>
+              </li>
+            );
+          })}
+          {visible.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted-foreground">No match</li>}
+        </ul>
+
+        {/* Assignment History Log */}
+        <div className="border-t border-border pt-3">
+          <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Assignment History Log</label>
+          <ul className="mt-2 max-h-28 overflow-y-auto space-y-1 text-xs text-muted-foreground divide-y divide-border pr-1">
+            {history.map((h, i) => (
+              <li key={i} className="flex justify-between items-center py-1.5">
+                <span>
+                  <strong>{h.resourceName}</strong> was{" "}
+                  <span className={cn("font-semibold", h.action === "Assign" ? "text-success" : "text-destructive")}>{h.action.toLowerCase()}ed</span>{" "}
+                  as <strong>{h.teamType}</strong>
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {new Date(h.timestamp).toLocaleDateString()} {new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </li>
+            ))}
+            {history.length === 0 && (
+              <li className="text-center py-3 text-xs text-muted-foreground">No assignment history yet</li>
+            )}
+          </ul>
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-border pt-3">
+          <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+          <button onClick={() => onSave(sel)} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Save Assignments</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------- Default Team (other roles) ----------
+function DefaultTeamTab({ project, pm, tl, team }: { project: Project; pm: Person; tl: Person; team: Person[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {[pm, tl, ...team].map((m) => {
+        const tasks = project.tasks.filter((t) => t.assigneeId === m.id);
+        return (
+          <div key={m.id} className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center gap-3">
+              <Avatar name={m.name} size={36} />
+              <div>
+                <div className="text-sm font-semibold">{m.name}</div>
+                <div className="text-xs text-muted-foreground">{m.role}</div>
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-muted-foreground">{tasks.length} active {tasks.length === 1 ? "task" : "tasks"}</div>
+            <ul className="mt-2 space-y-1">
+              {tasks.slice(0, 3).map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="truncate">{t.title}</span>
+                  <TaskStatusPill status={t.status} />
+                </li>
+              ))}
+              {tasks.length === 0 && <li className="text-xs text-muted-foreground">No assigned tasks</li>}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------- Dhanshree Team ----------
+type ActionType = null | "view" | "edit" | "remove" | "praise" | "feedback" | "request" | "add";
+type TeamTabType = "project" | "shadow";
+
+function DhTeamTab({ project }: { project: Project }) {
+  const snapshot = useDhStore((s) => s);
+  const prereq = snapshot.prereqs[project.id];
+
+  if (prereq && !prereq.isProjectReadyToStart) {
+    return (
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
+        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
+        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — Project Not Started</h4>
+        <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
+          Team building, resource assignment, shadow team allocation, task assignment, and activity assignment are disabled until the prerequisite collections and validations are completed, PM/SPM are assigned, and the project is marked as "Ready To Start".
+        </p>
+      </div>
+    );
+  }
+
+  const initial = useMemo(() => getProjectTeam(project), [project]);
+  const [teamTab, setTeamTab] = useState<TeamTabType>("project");
+  const [rows, setRows] = useState(initial);
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [action, setAction] = useState<{ type: ActionType; person: Person | null }>({ type: null, person: null });
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Reactive access to DhStore shadow team records
+  const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
+  const shadowDetails = snapshot.shadowTeamDetails[project.id] ?? {};
+
+  const shadowRows = useMemo(() => {
+    return shadowTeamIds.map(id => {
+      const person = getPerson(id);
+      const detail = shadowDetails[id] || { duration: `${new Date(project.startDate).toLocaleDateString()} → ${new Date(project.endDate).toLocaleDateString()}`, billability: "Billable" as Billability, resourceType: "Dedicated" as ResourceType };
+      return {
+        person,
+        duration: detail.duration,
+        billability: detail.billability,
+        resourceType: detail.resourceType
+      };
+    });
+  }, [shadowTeamIds, shadowDetails, project]);
+
+  const updateRow = (id: string, patch: Partial<typeof rows[number]>) => {
+    setRows((r) => r.map((x) => x.person.id === id ? { ...x, ...patch } : x));
+  };
+  const removeRow = (id: string) => {
+    setRows((r) => r.filter((x) => x.person.id !== id));
+    toast.success("Resource removed from team");
+  };
+
+  return (
+    <>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1">
+          {(["project", "shadow"] as TeamTabType[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTeamTab(t)}
+              className={cn("rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                teamTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+            >
+              {t === "project" ? "Project Team" : "Shadow Team"}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-3.5 w-3.5" /> Add Team Member
+        </button>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-center text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 font-medium">Resource</th>
+              <th className="px-3 py-2 font-medium">Department</th>
+              <th className="px-3 py-2 font-medium">Sub Department</th>
+              <th className="px-3 py-2 font-medium">Allocation Duration</th>
+              <th className="px-3 py-2 font-medium">Billability</th>
+              <th className="px-3 py-2 font-medium">Resource Type</th>
+              <th className="px-3 py-2 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {(teamTab === "project" ? rows : shadowRows).map((r) => (
+              <tr key={r.person.id} className="hover:bg-accent/30">
+                <td className="px-3 py-2.5 text-center align-middle">
+                  <div className="flex items-center justify-center gap-2">
+                    <Avatar name={r.person.name} size={26} />
+                    <div className="text-left">
+                      <div className="font-medium">{r.person.name}</div>
+                      <div className="text-[11px] text-muted-foreground">{r.person.role}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 text-center align-middle">{getDept(r.person)}</td>
+                <td className="px-3 py-2.5 text-center align-middle text-muted-foreground">{getSubDept(r.person)}</td>
+                <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground">{r.duration}</td>
+                <td className="px-3 py-2.5 text-center align-middle">
+                  <span className={cn(
+                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                    r.billability === "Billable"
+                      ? "bg-success/10 border-success/30 text-success"
+                      : "bg-muted border-border text-muted-foreground"
+                  )}>
+                    {r.billability}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 text-center align-middle">
+                  <span className={cn(
+                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                    r.resourceType === "Dedicated"
+                      ? "bg-primary/10 border-primary/30 text-primary"
+                      : "bg-info/10 border-info/30 text-info"
+                  )}>
+                    {r.resourceType}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 text-center align-middle">
+                  <div className="relative flex items-center justify-center gap-1">
+                    <button title="View" onClick={() => setAction({ type: "view", person: r.person })}
+                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Eye className="h-3.5 w-3.5" /></button>
+                    <button title="Edit" onClick={() => setAction({ type: "edit", person: r.person })}
+                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button title="Remove" onClick={() => setAction({ type: "remove", person: r.person })}
+                      className="rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button title="More" onClick={() => setMenuOpen(menuOpen === r.person.id ? null : r.person.id)}
+                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><MoreHorizontal className="h-3.5 w-3.5" /></button>
+                    {menuOpen === r.person.id && (
+                      <div className="absolute right-0 top-9 z-10 w-44 overflow-hidden rounded-md border border-border bg-card shadow-lg" onMouseLeave={() => setMenuOpen(null)}>
+                        {[
+                          { k: "praise", label: "Give Praise", icon: Star },
+                          { k: "feedback", label: "Give Feedback", icon: MessageSquare },
+                          { k: "request", label: "Request Feedback", icon: Send },
+                        ].map((o) => (
+                          <button key={o.k} onClick={() => { setMenuOpen(null); setAction({ type: o.k as ActionType, person: r.person }); }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent">
+                            <o.icon className="h-3.5 w-3.5 text-muted-foreground" /> {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {(teamTab === "project" ? rows : shadowRows).length === 0 && (
+              <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">No {teamTab} team members allocated</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {action.type && action.person && (
+        <TeamActionModal
+          action={action.type}
+          person={action.person}
+          project={project}
+          row={teamTab === "project" ? rows.find((r) => r.person.id === action.person!.id) : shadowRows.find((r) => r.person.id === action.person!.id)}
+          onClose={() => setAction({ type: null, person: null })}
+          onSaveEdit={(patch) => {
+            if (teamTab === "project") {
+              updateRow(action.person!.id, patch);
+            } else {
+              dhStore.updateShadowMember(project.id, action.person!.id, patch);
+            }
+            toast.success("Resource updated");
+            setAction({ type: null, person: null });
+          }}
+          onConfirmRemove={() => {
+            if (teamTab === "project") {
+              removeRow(action.person!.id);
+            } else {
+              dhStore.removeShadowMember(project.id, action.person!.id);
+              toast.success("Shadow team member removed");
+            }
+            setAction({ type: null, person: null });
+          }}
+        />
+      )}
+
+      {showAddModal && (
+        <AddTeamMemberModal
+          project={project}
+          teamType={teamTab}
+          existingPersonIds={(teamTab === "project" ? rows : shadowRows).map((r) => r.person.id)}
+          onClose={() => setShowAddModal(false)}
+          onAdd={(newRow) => {
+            if (teamTab === "project") {
+              setRows((r) => [...r, newRow]);
+            } else {
+              dhStore.addShadowMember(project.id, newRow.person.id, newRow.duration, newRow.billability, newRow.resourceType);
+            }
+            toast.success("Team member added");
+            setShowAddModal(false);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function TeamActionModal({ action, person, project, row, onClose, onSaveEdit, onConfirmRemove }: {
+  action: Exclude<ActionType, null>; person: Person; project: Project;
+  row?: { person: Person; duration: string; billability: Billability; resourceType: ResourceType };
+  onClose: () => void;
+  onSaveEdit: (patch: { billability?: Billability; resourceType?: ResourceType; duration?: string }) => void;
+  onConfirmRemove: () => void;
+}) {
+  const [editState, setEditState] = useState({
+    billability: row?.billability ?? ("Billable" as Billability),
+    resourceType: row?.resourceType ?? ("Dedicated" as ResourceType),
+    duration: row?.duration ?? "",
+  });
+  const [praise, setPraise] = useState({ message: "", tag: "Team Player" });
+  const [feedback, setFeedback] = useState({ strengths: "", improvements: "", comments: "", rating: 4 });
+  const [requestNote, setRequestNote] = useState("");
+
+  if (action === "view") {
+    const tasks = project.tasks.filter((t) => t.assigneeId === person.id);
+    return (
+      <Modal title={`${person.name} — Workload`} onClose={onClose} wide>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="md:col-span-1 space-y-3">
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/30 p-3">
+              <Avatar name={person.name} size={42} />
+              <div>
+                <div className="text-sm font-semibold">{person.name}</div>
+                <div className="text-[11px] text-muted-foreground">{person.role}</div>
+                <div className="text-[11px] text-muted-foreground">{person.email}</div>
+              </div>
+            </div>
+            <Info icon={Calendar} label="Allocation" value={row?.duration ?? "—"} />
+            <Info icon={Wallet} label="Billability" value={row?.billability ?? "—"} />
+            <Info icon={Calendar} label="Resource Type" value={row?.resourceType ?? "—"} />
+          </div>
+          <div className="md:col-span-2 space-y-3">
+            <div>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Assigned Tasks · {tasks.length}</h4>
+              <ul className="space-y-1.5">
+                {tasks.length === 0 && <li className="text-sm text-muted-foreground">No tasks assigned on this project</li>}
+                {tasks.map((t) => (
+                  <li key={t.id} className="flex items-center gap-2 rounded-md border border-border bg-card p-2 text-xs">
+                    <span className="flex-1 truncate font-medium">{t.title}</span>
+                    <TaskStatusPill status={t.status} />
+                    <ProgressBar value={t.progress} className="w-20" />
+                    <span className="w-8 text-right tabular-nums text-muted-foreground">{t.progress}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Other Projects</h4>
+              <ul className="space-y-1">
+                {projects.filter((p) => p.id !== project.id && (p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id))).slice(0, 4).map((p) => (
+                  <li key={p.id} className="flex items-center gap-2 text-xs">
+                    <span className="flex-1 truncate">{p.name}</span>
+                    <StatusPill status={p.status} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (action === "edit") {
+    return (
+      <Modal title={`Edit Allocation — ${person.name}`} onClose={onClose}>
+        <div className="space-y-3">
+          <Field label="Allocation Duration"><input className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" value={editState.duration} onChange={(e) => setEditState((s) => ({ ...s, duration: e.target.value }))} /></Field>
+          <Field label="Billability">
+            <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.billability} onChange={(e) => setEditState((s) => ({ ...s, billability: e.target.value as Billability }))}>
+              {(["Billable", "Non-Billable"] as Billability[]).map((o) => <option key={o}>{o}</option>)}
+            </select>
+          </Field>
+          <Field label="Resource Type">
+            <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.resourceType} onChange={(e) => setEditState((s) => ({ ...s, resourceType: e.target.value as ResourceType }))}>
+              {(["Dedicated", "Shared Resource"] as ResourceType[]).map((o) => <option key={o}>{o}</option>)}
+            </select>
+          </Field>
+          <div className="flex justify-end gap-2 border-t border-border pt-3">
+            <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+            <button onClick={() => onSaveEdit(editState)} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Save</button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (action === "remove") {
+    return (
+      <Modal title="Remove resource" onClose={onClose}>
+        <p className="text-sm">Are you sure you want to remove <strong>{person.name}</strong> from this project's team? This action cannot be undone.</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+          <button onClick={onConfirmRemove} className="rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90">Remove</button>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (action === "praise") {
+    return (
+      <Modal title={`Give Praise — ${person.name}`} onClose={onClose}>
+        <div className="space-y-3">
+          <Field label="Badge">
+            <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={praise.tag} onChange={(e) => setPraise((s) => ({ ...s, tag: e.target.value }))}>
+              {["Team Player", "Innovator", "Customer Hero", "Above & Beyond", "Mentor"].map((o) => <option key={o}>{o}</option>)}
+            </select>
+          </Field>
+          <Field label="Appreciation Message">
+            <textarea rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={praise.message} onChange={(e) => setPraise((s) => ({ ...s, message: e.target.value }))} placeholder="Share what made this great…" />
+          </Field>
+          <div className="flex justify-end gap-2 border-t border-border pt-3">
+            <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+            <button onClick={() => { if (!praise.message.trim()) return toast.error("Add a message"); toast.success("Praise sent", { description: `${praise.tag} → ${person.name}` }); onClose(); }} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Send Praise</button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (action === "feedback") {
+    return (
+      <Modal title={`Give Feedback — ${person.name}`} onClose={onClose}>
+        <div className="space-y-3">
+          <Field label="Strengths"><textarea rows={2} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={feedback.strengths} onChange={(e) => setFeedback((s) => ({ ...s, strengths: e.target.value }))} /></Field>
+          <Field label="Areas of Improvement"><textarea rows={2} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={feedback.improvements} onChange={(e) => setFeedback((s) => ({ ...s, improvements: e.target.value }))} /></Field>
+          <Field label="Comments"><textarea rows={2} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={feedback.comments} onChange={(e) => setFeedback((s) => ({ ...s, comments: e.target.value }))} /></Field>
+          <Field label={`Rating: ${feedback.rating}/5`}>
+            <input type="range" min={1} max={5} value={feedback.rating} onChange={(e) => setFeedback((s) => ({ ...s, rating: Number(e.target.value) }))} className="w-full" />
+          </Field>
+          <div className="flex justify-end gap-2 border-t border-border pt-3">
+            <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+            <button onClick={() => { if (!feedback.strengths.trim() && !feedback.improvements.trim()) return toast.error("Add at least one section"); toast.success("Feedback submitted"); onClose(); }} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Submit Feedback</button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (action === "request") {
+    return (
+      <Modal title={`Request Feedback for ${person.name}`} onClose={onClose}>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">A request will be sent to the reporting manager. You'll be notified when feedback is submitted.</p>
+          <Field label="Note (optional)"><textarea rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={requestNote} onChange={(e) => setRequestNote(e.target.value)} placeholder="Add context for the manager…" /></Field>
+          <div className="flex justify-end gap-2 border-t border-border pt-3">
+            <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+            <button onClick={() => { toast.success("Feedback request sent", { description: "Status: Pending" }); onClose(); }} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Send Request</button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  return null;
+}
+
+function AddTeamMemberModal({
+  project,
+  teamType = "project",
+  existingPersonIds,
+  onClose,
+  onAdd,
+}: {
+  project: Project;
+  teamType?: TeamTabType;
+  existingPersonIds: string[];
+  onClose: () => void;
+  onAdd: (row: ReturnType<typeof getProjectTeam>[number]) => void;
+}) {
+  const [selectedPersonId, setSelectedPersonId] = useState<string>("");
+  const [duration, setDuration] = useState<string>("");
+  const [billability, setBillability] = useState<Billability>("Billable");
+  const [resourceType, setResourceType] = useState<ResourceType>("Dedicated");
+
+  // Filter out already assigned people
+  const availablePeople = people.filter((p) => !existingPersonIds.includes(p.id));
+
+  const handleAdd = () => {
+    if (!selectedPersonId || !duration) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    const selectedPerson = getPerson(selectedPersonId);
+    const newRow: ReturnType<typeof getProjectTeam>[number] = {
+      person: selectedPerson,
+      duration,
+      billability,
+      resourceType,
+    };
+
+    onAdd(newRow);
+  };
+
+  return (
+    <Modal title="Add Team Member" onClose={onClose} wide={false}>
+      <div className="space-y-4">
+        <Field label="Resource" required>
+          <select
+            value={selectedPersonId}
+            onChange={(e) => setSelectedPersonId(e.target.value)}
+            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Select a team member...</option>
+            {availablePeople.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} — {p.role}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Department" required>
+          {selectedPersonId ? (
+            <div className="px-3 py-2 text-sm text-muted-foreground">{getDept(getPerson(selectedPersonId))}</div>
+          ) : (
+            <div className="px-3 py-2 text-sm text-muted-foreground">—</div>
+          )}
+        </Field>
+
+        <Field label="Sub Department" required>
+          {selectedPersonId ? (
+            <div className="px-3 py-2 text-sm text-muted-foreground">{getSubDept(getPerson(selectedPersonId))}</div>
+          ) : (
+            <div className="px-3 py-2 text-sm text-muted-foreground">—</div>
+          )}
+        </Field>
+
+        <Field label="Allocation Duration" required>
+          <input
+            type="text"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            placeholder="e.g., 2/1/2026 → 8/30/2026"
+            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </Field>
+
+        <Field label="Billability" required>
+          <div className="inline-flex rounded-full border border-border bg-card p-0.5 text-sm">
+            {(["Billable", "Non-Billable"] as Billability[]).map((b) => (
+              <button
+                key={b}
+                onClick={() => setBillability(b)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 font-medium",
+                  billability === b
+                    ? b === "Billable"
+                      ? "bg-success/15 text-success"
+                      : "bg-muted text-muted-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Resource Type" required>
+          <select
+            value={resourceType}
+            onChange={(e) => setResourceType(e.target.value as ResourceType)}
+            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {(["Dedicated", "Shared Resource"] as ResourceType[]).map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <div className="flex justify-end gap-2 pt-4">
+          <button
+            onClick={onClose}
+            className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAdd}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Add Team Member
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function Info({ icon: Icon, label, value, sub }: {
+  icon: React.ComponentType<{ className?: string }>; label: string; value: string; sub?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground"><Icon className="h-3.5 w-3.5" /> {label}</div>
+      <div className="mt-1 text-sm font-semibold">{value}</div>
+      {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
+    </div>
+  );
+}
+
+function PersonRow({ label, person }: { label: string; person: Person }) {
+  return (
+    <div>
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 flex items-center gap-2">
+        <Avatar name={person.name} size={28} />
+        <div>
+          <div className="text-sm font-medium">{person.name}</div>
+          <div className="text-[11px] text-muted-foreground">{person.email}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Health Tab ----------
+function HealthTab({ project }: { project: Project }) {
+  const store = useDhStore((s) => s);
+  const { user, isDhanshree } = useRoleContext();
+  const [healthTab, setHealthTab] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const h = window.location.hash;
+      if (h === "#health-alerts") return "Alerts";
+      if (h === "#health-issues") return "Issues";
+      // Escalations tab removed for Dhanshree — fall back to Issues
+      if (h === "#health-escalations") return isDhanshree ? "Issues" : "Escalations";
+      if (h === "#health-appreciations") return "Appreciation";
+    }
+    return "Issues";
+  });
+
+  const projectIssues = store.issues.filter((i) => i.projectId === project.id);
+  const projectAlerts = store.alerts.filter((a) => a.projectId === project.id);
+  const projectEscalations = store.escalations.filter((e) => e.projectId === project.id);
+  const projectAppreciations = store.appreciations.filter((a) => a.projectId === project.id);
+
+  const canRaiseIssue = user.role === "Team Member" || user.role === "Team Lead" || user.role === "Dhanshree";
+
+  // Check if user has access to Client Communication
+  const canAccessClientComm = ["Dhanshree", "PMO", "Project Manager", "Engagement Manager", "Senior Project Manager", "Head of Delivery", "Business Operations"].includes(user.role);
+  const client = clients.find((c) => c.id === project.clientId)!;
+
+  // Dhanshree: Escalations tab removed (data still available, tab hidden)
+  const tabsList = isDhanshree
+    ? (["Issues", "Alerts", "Appreciation", "Client Engagement"] as const)
+    : (["Issues", "Alerts", "Escalations", "Appreciation", "Client Communication"] as const);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1 text-sm">
+        {tabsList.map((t) => (
+          <button
+            key={t}
+            onClick={() => setHealthTab(t)}
+            className={cn(
+              "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap",
+              healthTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {healthTab === "Issues" && <HealthIssuesPanel issues={projectIssues} project={project} canRaise={canRaiseIssue} />}
+      {healthTab === "Alerts" && <HealthAlertsPanel alerts={projectAlerts} />}
+      {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} />}
+      {healthTab === "Appreciation" && <HealthAppreciationPanel appreciations={projectAppreciations} project={project} />}
+
+      {isDhanshree && healthTab === "Client Engagement" && (
+        <DhClientEngagementTab project={project} clientName={client.name} />
+      )}
+
+      {!isDhanshree && healthTab === "Client Communication" && canAccessClientComm && (
+        <ClientCommTab project={project} />
+      )}
+
+      {!isDhanshree && healthTab === "Client Communication" && !canAccessClientComm && (
+        <div className="rounded-lg border border-border bg-muted/20 p-8 text-center">
+          <p className="text-sm text-muted-foreground">You don't have access to Client Communication</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; project: Project; canRaise: boolean }) {
+  const store = useDhStore((s) => s);
+  const { user } = useRoleContext();
+  const [showRaiseModal, setShowRaiseModal] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "Technical Issue (Project Related)" as IssueCategory,
+    priority: "Medium" as DhPriority,
+  });
+
+  const handleSubmit = () => {
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast.error("Fill all fields");
+      return;
+    }
+    dhStore.raiseIssue({
+      title: formData.title,
+      description: formData.description,
+      projectId: project.id,
+      raisedById: user.id,
+      raisedByName: user.name,
+      raisedByRole: user.role,
+      category: formData.category,
+      priority: formData.priority,
+    });
+    toast.success("Issue raised", { description: "PMs and SPMs notified" });
+    setShowRaiseModal(false);
+    setFormData({ title: "", description: "", category: "Technical Issue (Project Related)", priority: "Medium" });
+  };
+
+  const hasNoIssues = issues.length === 0;
+
+  return (
+    <div className="space-y-3">
+      {hasNoIssues && canRaise ? (
+        <div className="rounded-lg border-2 border-dashed border-border bg-muted/20 py-12 text-center">
+          <p className="text-sm text-muted-foreground mb-4">No issues raised yet</p>
+          <button
+            onClick={() => setShowRaiseModal(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" /> Raise Issues Alerts
+          </button>
+        </div>
+      ) : (
+        canRaise && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowRaiseModal(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-3.5 w-3.5" /> Raise Issues Alerts
+            </button>
+          </div>
+        )
+      )}
+
+      {showRaiseModal && (
+        <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)}>
+          <div className="space-y-3">
+            <Field label="Issue Title">
+              <input value={formData.title} onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))} placeholder="Brief summary..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </Field>
+            <Field label="Description">
+              <textarea value={formData.description} onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))} placeholder="Detailed description..." rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </Field>
+            <Field label="Issue Type">
+              <select value={formData.category} onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {(["Resource Behavior", "Technical Issue (Project Related)", "Process Related", "Skill Mismatch", "Dependency Blocker", "Communication Gap", "Other"] as IssueCategory[]).map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            </Field>
+            <Field label="Priority">
+              <select value={formData.priority} onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => <option key={pri} value={pri}>{pri}</option>)}
+              </select>
+            </Field>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button onClick={() => setShowRaiseModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button onClick={handleSubmit} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Raise Issue</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {issues.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">No issues raised yet</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {issues.map((issue: DhIssue) => {
+            const priorityColors: Record<DhPriority, string> = { Low: "border-info/30 bg-info/10 text-info", Medium: "border-warning/30 bg-warning/15 text-warning-foreground", High: "border-destructive/30 bg-destructive/10 text-destructive", Critical: "border-destructive/30 bg-destructive/10 text-destructive" };
+            return (
+              <div key={issue.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-medium">{issue.title}</h4>
+                      <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", priorityColors[issue.priority])}>{issue.priority}</span>
+                      <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{issue.status}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{issue.description}</p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{issue.raisedByName} · {issue.raisedByRole}</span>
+                      <span>·</span>
+                      <span>{new Date(issue.createdAt).toLocaleDateString()}</span>
+                      {issue.comments.length > 0 && <><span>·</span><span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" /> {issue.comments.length}</span></>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HealthAlertsPanel({ alerts }: { alerts: DhAlert[] }) {
+  if (alerts.length === 0) {
+    return <div className="rounded-lg border border-border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">No active alerts</p></div>;
+  }
+  return (
+    <div className="space-y-2">
+      {alerts.map((alert) => (
+        <div key={alert.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
+          <div className="flex items-start justify-between">
+            <div>
+              <h4 className="text-sm font-medium">{alert.title}</h4>
+              <p className="mt-1 text-xs text-muted-foreground">Raised by {alert.raisedByName} · {new Date(alert.createdAt).toLocaleDateString()}</p>
+            </div>
+            <span className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">{alert.status}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HealthEscalationsPanel({ escalations, project }: { escalations: DhEscalation[]; project: Project }) {
+  const store = useDhStore((s) => s);
+  const { user } = useRoleContext();
+  const [showRaiseModal, setShowRaiseModal] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    severity: "High" as "Critical" | "High" | "Medium",
+    owner: project.pmId,
+    deadline: "",
+  });
+  const canRaise = user.role === "Project Manager" || user.role === "Senior Project Manager" || user.role === "Engagement Manager" || user.role === "Dhanshree";
+
+  const handleSubmit = () => {
+    if (!formData.title.trim() || !formData.deadline.trim()) {
+      toast.error("Fill all fields");
+      return;
+    }
+    dhStore.addEscalation({
+      projectId: project.id,
+      title: formData.title,
+      severity: formData.severity as DhPriority,
+      ownerName: getPerson(formData.owner).name,
+      ownerId: formData.owner,
+      deadline: formData.deadline,
+      status: "Open",
+    });
+    toast.success("Escalation raised", { description: "Leadership notified" });
+    setShowRaiseModal(false);
+    setFormData({ title: "", description: "", severity: "High", owner: project.pmId, deadline: "" });
+  };
+
+  return (
+    <div className="space-y-3">
+      <button className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+        <AlertTriangle className="h-3.5 w-3.5" /> Raise Escalation
+      </button>
+      {escalations.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">No escalations</p></div>
+      ) : (
+        <div className="space-y-2">
+          {escalations.map((esc) => {
+            const severityColor = esc.severity === "Critical" ? "border-destructive/30 bg-destructive/10 text-destructive" : esc.severity === "High" ? "border-warning/30 bg-warning/15 text-warning-foreground" : "border-info/30 bg-info/10 text-info";
+            return (
+              <div key={esc.id} className="rounded-lg border border-border bg-card p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm font-medium">{esc.title}</h4>
+                    <p className="mt-1 text-xs text-muted-foreground">Owner: {esc.ownerName} · Deadline: {esc.deadline}</p>
+                  </div>
+                  <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium whitespace-nowrap", severityColor)}>{esc.severity}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HealthAppreciationPanel({ appreciations, project }: { appreciations: DhAppreciation[]; project: Project }) {
+  const store = useDhStore((s) => s);
+  const { user } = useRoleContext();
+  const [showAppreciateModal, setShowAppreciateModal] = useState(false);
+  const [formData, setFormData] = useState({ toUserId: project.teamIds[0] || "u5", badge: "Star Performer" as const, note: "" });
+  const canAppreciate = user.role === "Project Manager" || user.role === "Senior Project Manager" || user.role === "Team Lead" || user.role === "Engagement Manager" || user.role === "Dhanshree";
+
+  const teamPool = useMemo(() => {
+    const ids = [project.pmId, project.tlId, ...project.teamIds];
+    return Array.from(new Set(ids)).map(getPerson);
+  }, [project]);
+
+  const handleSubmit = () => {
+    if (!formData.note.trim()) { toast.error("Add message"); return; }
+    dhStore.addAppreciation({
+      projectId: project.id,
+      toUserId: formData.toUserId,
+      toName: getPerson(formData.toUserId).name,
+      fromName: user.name,
+      badge: formData.badge,
+      note: formData.note,
+    });
+    toast.success("Appreciation sent!");
+    setShowAppreciateModal(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      {canAppreciate && (
+        <button onClick={() => setShowAppreciateModal(true)} className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+          <Star className="h-3.5 w-3.5" /> Appreciate
+        </button>
+      )}
+
+      {showAppreciateModal && (
+        <Modal title="Give Appreciation" onClose={() => setShowAppreciateModal(false)}>
+          <div className="space-y-3">
+            <Field label="Resource">
+              <select value={formData.toUserId} onChange={(e) => setFormData((s) => ({ ...s, toUserId: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {teamPool.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Badge">
+              <select value={formData.badge} onChange={(e) => setFormData((s) => ({ ...s, badge: e.target.value as any }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {(["Star Performer", "Team Player", "Innovator", "Client Champion"] as const).map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </Field>
+            <Field label="Message">
+              <textarea value={formData.note} onChange={(e) => setFormData((s) => ({ ...s, note: e.target.value }))} placeholder="Why appreciate..." rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </Field>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button onClick={() => setShowAppreciateModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button onClick={handleSubmit} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Send</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {appreciations.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">No appreciations yet</p></div>
+      ) : (
+        <div className="space-y-2">
+          {appreciations.map((app) => (
+            <div key={app.id} className="rounded-lg border border-border bg-card p-3">
+              <div className="flex items-start gap-3">
+                <Award className="h-4 w-4 flex-shrink-0 text-yellow-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{app.toName} <span className="text-muted-foreground font-normal">received</span> {app.badge}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{app.note}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">From {app.fromName} · {new Date(app.at).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Dhanshree Client Engagement Tab ----------
+function DhClientEngagementTab({ project, clientName }: { project: Project; clientName: string }) {
+  const store = useDhStore((s) => s);
+  const { user } = useRoleContext();
+  const [commTab, setCommTab] = useState<"Interview Scheduling" | "Additional Client Requirement">("Interview Scheduling");
+
+  const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
+  const projectRequirements = store.requirements.filter((r) => r.projectId === project.id);
+  const isEM = user.role === "Engagement Manager" || user.role === "Dhanshree";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1 text-sm shadow-sm">
+        {(["Interview Scheduling", "Additional Client Requirement"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setCommTab(t)}
+            className={cn(
+              "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap",
+              commTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {commTab === "Interview Scheduling" && (
+        <InterviewSchedulingPanel interviews={projectInterviews} project={project} isEM={isEM} />
+      )}
+      {commTab === "Additional Client Requirement" && (
+        <AdditionalRequirementsPanel requirements={projectRequirements} project={project} clientName={clientName} />
+      )}
+    </div>
+  );
+}
+
+function AdditionalRequirementsPanel({ requirements, project, clientName }: { requirements: DhAdditionalRequirement[]; project: Project; clientName: string }) {
+  const [showModal, setShowModal] = useState(false);
+  const [selectedReq, setSelectedReq] = useState<DhAdditionalRequirement | null>(null);
+
+  const [client, setClient] = useState(clientName);
+  const [projName, setProjName] = useState(project.name);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<DhPriority>("Medium");
+  const [requestedBy, setRequestedBy] = useState("");
+  const [requestedDate, setRequestedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [attachmentName, setAttachmentName] = useState("");
+
+  const handleLog = () => {
+    if (!title.trim() || !description.trim() || !requestedBy.trim()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    dhStore.addRequirement({
+      projectId: project.id,
+      clientName: client,
+      projectName: projName,
+      title,
+      description,
+      priority,
+      requestedBy,
+      requestedDate,
+      attachmentName: attachmentName || undefined,
+      status: "Open",
+      comments: []
+    });
+    toast.success("Requirement logged persistently!");
+    setShowModal(false);
+    // Reset
+    setTitle("");
+    setDescription("");
+    setRequestedBy("");
+    setAttachmentName("");
+  };
+
+  const priorityColors = {
+    Low: "bg-muted text-muted-foreground border-border",
+    Medium: "bg-info/10 text-info border-info/30",
+    High: "bg-warning/15 text-warning-foreground border-warning/40",
+    Critical: "bg-destructive/10 text-destructive border-destructive/30",
+  };
+
+  const statusColors = {
+    "Open": "bg-warning/10 text-warning-foreground border-warning/30",
+    "Under Review": "bg-info/10 text-info-foreground border-info/30",
+    "Approved": "bg-success/10 text-success border-success/30",
+    "Rejected": "bg-destructive/10 text-destructive border-destructive/30",
+    "Implemented": "bg-success/10 text-success border-success/30",
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Additional Requirements ({requirements.length})</h4>
+        <button
+          onClick={() => setShowModal(true)}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-3.5 w-3.5" /> Log Requirement
+        </button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {requirements.map((req) => (
+          <div key={req.id} className="rounded-lg border border-border bg-card p-4 hover:shadow-md transition-shadow relative">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <span className="text-[10px] font-mono text-muted-foreground">{req.requirementId}</span>
+              <div className="flex gap-1.5">
+                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[9px] font-medium capitalize", priorityColors[req.priority])}>
+                  {req.priority}
+                </span>
+                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[9px] font-medium capitalize", statusColors[req.status])}>
+                  {req.status}
+                </span>
+              </div>
+            </div>
+            <h5 className="font-semibold text-sm line-clamp-1">{req.title}</h5>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{req.description}</p>
+
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-[11px] text-muted-foreground">
+              <span>By: {req.requestedBy}</span>
+              <span>{new Date(req.requestedDate).toLocaleDateString()}</span>
+            </div>
+
+            <button
+              onClick={() => setSelectedReq(req)}
+              className="mt-3 flex w-full items-center justify-center rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent"
+            >
+              View & Comment ({req.comments.length})
+            </button>
+          </div>
+        ))}
+        {requirements.length === 0 && (
+          <div className="col-span-full rounded-lg border-2 border-dashed border-border py-12 text-center text-xs text-muted-foreground">
+            No additional client requirements logged for this project yet.
+          </div>
+        )}
+      </div>
+
+      {/* Log Requirement Modal */}
+      {showModal && (
+        <Modal title="Log Additional Client Requirement" onClose={() => setShowModal(false)}>
+          <div className="space-y-3">
+            <Field label="Client Name"><input value={client} onChange={(e) => setClient(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
+            <Field label="Project Name"><input value={projName} onChange={(e) => setProjName(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
+            <Field label="Requirement Title" required><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <Field label="Description" required><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detailed requirement..." rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Priority">
+                <select value={priority} onChange={(e) => setPriority(e.target.value as DhPriority)} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm">
+                  {["Low", "Medium", "High", "Critical"].map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </Field>
+              <Field label="Requested Date">
+                <input type="date" value={requestedDate} onChange={(e) => setRequestedDate(e.target.value)} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" />
+              </Field>
+            </div>
+
+            <Field label="Requested By"><input value={requestedBy} onChange={(e) => setRequestedBy(e.target.value)} placeholder="Client contact..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+
+            <Field label="Attachment File Name (optional)">
+              <div className="flex gap-2">
+                <input value={attachmentName} onChange={(e) => setAttachmentName(e.target.value)} placeholder="e.g. SOW_Addendum.pdf" className="h-9 flex-1 rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                <input type="file" id="file-upload" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setAttachmentName(file.name);
+                }} />
+                <label htmlFor="file-upload" className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-3 py-2 text-xs hover:bg-accent cursor-pointer">
+                  <Paperclip className="h-3.5 w-3.5" /> Browse
+                </label>
+              </div>
+            </Field>
+
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button onClick={() => setShowModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button onClick={handleLog} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Log Requirement</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Details & Comments Modal */}
+      {selectedReq && (
+        <RequirementDetailsModal
+          requirement={selectedReq}
+          onClose={() => setSelectedReq(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAdditionalRequirement; onClose: () => void }) {
+  const [commentText, setCommentText] = useState("");
+  const store = useDhStore(s => s);
+
+  const req = store.requirements.find(r => r.id === requirement.id) || requirement;
+
+  const handleComment = () => {
+    if (!commentText.trim()) return;
+    dhStore.addRequirementComment(req.id, {
+      authorId: "u14",
+      authorName: "Dhanshree",
+      text: commentText.trim()
+    });
+    setCommentText("");
+    toast.success("Comment added persistently!");
+  };
+
+  const statusColors = {
+    "Open": "bg-warning/10 text-warning-foreground border-warning/30",
+    "Under Review": "bg-info/10 text-info-foreground border-info/30",
+    "Approved": "bg-success/10 text-success border-success/30",
+    "Rejected": "bg-destructive/10 text-destructive border-destructive/30",
+    "Implemented": "bg-success/10 text-success border-success/30",
+  };
+
+  return (
+    <Modal title={`Requirement Details — ${req.requirementId}`} onClose={onClose} wide>
+      <div className="grid gap-4 md:grid-cols-3 text-sm">
+        {/* Info side column */}
+        <div className="md:col-span-1 space-y-3">
+          <div className="rounded-lg border border-border bg-muted/20 p-3">
+            <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2">Requirement Status</h5>
+            <div className="flex items-center gap-2">
+              <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold", statusColors[req.status])}>
+                {req.status}
+              </span>
+              <select
+                value={req.status}
+                onChange={(e) => {
+                  const s = e.target.value as RequirementStatus;
+                  dhStore.updateRequirementStatus(req.id, s, "dhanshree", "Dhanshree");
+                  toast.success(`Status updated to ${s}`);
+                }}
+                className={cn(
+                  "h-8 rounded-md border px-2.5 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  req.status === "Approved" || req.status === "Implemented" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
+                    req.status === "Open" ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100" :
+                      req.status === "Under Review" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
+                        req.status === "Rejected" ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" :
+                          "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                )}
+              >
+                {["Open", "Under Review", "Approved", "Rejected", "Implemented"].map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <Info icon={Calendar} label="Client" value={req.clientName} />
+          <Info icon={Briefcase} label="Project" value={req.projectName} />
+          <Info icon={Users} label="Requested By" value={req.requestedBy} />
+          <Info icon={Calendar} label="Date" value={new Date(req.requestedDate).toLocaleDateString()} />
+          <Info icon={AlertTriangle} label="Priority" value={req.priority} />
+
+          {req.attachmentName && (
+            <div className="rounded-lg border border-border bg-card p-3">
+              <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">Attachment</div>
+              <div className="flex items-center gap-1.5 mt-1.5 text-xs text-primary font-medium">
+                <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate hover:underline cursor-pointer">{req.attachmentName}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Thread and Comments */}
+        <div className="md:col-span-2 flex flex-col h-[65vh]">
+          <div className="border-b border-border pb-3 mb-3">
+            <h4 className="font-semibold text-base text-gray-800">{req.title}</h4>
+            <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{req.description}</p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <MessageSquare className="h-3.5 w-3.5" /> Discussion Thread ({req.comments.length})
+            </h5>
+
+            {req.comments.map((c: DhComment) => (
+              <div key={c.id} className="flex gap-3 text-xs">
+                <Avatar name={c.authorName} size={28} />
+                <div className="flex-1 rounded-lg border border-border bg-accent/30 p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-gray-800">{c.authorName}</span>
+                    <span className="text-[10px] text-muted-foreground">{new Date(c.at).toLocaleString()}</span>
+                  </div>
+                  <p className="text-gray-700 leading-normal">{c.text}</p>
+                </div>
+              </div>
+            ))}
+            {req.comments.length === 0 && (
+              <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                No comments in discussion yet. Add a remark or feedback below.
+              </div>
+            )}
+
+            {/* History log in the thread */}
+            <div className="border-t border-border pt-3 mt-4">
+              <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2">Requirement History</h5>
+              <ol className="relative ml-2 space-y-2 border-l border-border pl-4 text-xs text-muted-foreground">
+                {req.history.map((h: { status: RequirementStatus; at: string; updatedBy: string; updatedByName: string }, idx: number) => (
+                  <li key={idx} className="relative">
+                    <span className="absolute -left-[21px] mt-1 h-2 w-2 rounded-full bg-primary" />
+                    <span>
+                      Status set to <strong>{h.status}</strong> by <strong>{h.updatedByName}</strong>
+                    </span>
+                    <span className="ml-2 text-[10px] text-muted-foreground">
+                      {new Date(h.at).toLocaleDateString()} {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-3 flex gap-2">
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Add a remark, feedback, or update to the thread..."
+              rows={2}
+              className="flex-1 resize-none rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <button
+              onClick={handleComment}
+              disabled={!commentText.trim()}
+              className="inline-flex items-center gap-1.5 self-end rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Send className="h-3.5 w-3.5" /> Post
+            </button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------- Client Communication Tab ----------
+function ClientCommTab({ project }: { project: Project }) {
+  const store = useDhStore((s) => s);
+  const { user } = useRoleContext();
+  const [commTab, setCommTab] = useState<"Interview Scheduling" | "Prerequisite Validation">("Interview Scheduling");
+
+  const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
+  const projectPrereq = store.prereqs[project.id];
+  const isEM = user.role === "Engagement Manager" || user.role === "Dhanshree";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1 text-sm">
+        {(["Interview Scheduling", "Prerequisite Validation"] as const).map((t) => (
+          <button key={t} onClick={() => setCommTab(t)} className={cn("rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap", commTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{t}</button>
+        ))}
+      </div>
+
+      {commTab === "Interview Scheduling" && <InterviewSchedulingPanel interviews={projectInterviews} project={project} isEM={isEM} />}
+      {commTab === "Prerequisite Validation" && projectPrereq && <PrerequisiteValidationPanel prereq={projectPrereq} project={project} isEM={isEM} />}
+    </div>
+  );
+}
+
+function InterviewSchedulingPanel({ interviews, project, isEM }: { interviews: DhInterview[]; project: Project; isEM: boolean }) {
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({ resourceId: project.teamIds[0] || "u5", client: "Client", date: new Date().toISOString().slice(0, 10), round: "Technical Round 1", interviewer: "Architect" });
+
+  const teamPool = useMemo(() => project.teamIds.map(getPerson), [project]);
+
+  const handleSchedule = () => {
+    dhStore.addInterview({
+      projectId: project.id,
+      resourceId: formData.resourceId,
+      resourceName: getPerson(formData.resourceId).name,
+      employeeId: "ENG-001",
+      clientName: formData.client,
+      projectName: project.name,
+      interviewDate: formData.date,
+      interviewTime: "10:00 AM",
+      interviewRound: formData.round,
+      interviewer: formData.interviewer,
+      notes: "",
+      status: "Pending",
+    });
+    toast.success("Interview scheduled persistently");
+    setShowModal(false);
+  };
+
+  const updateStatus = (interviewId: string, newStatus: InterviewStatus) => {
+    dhStore.updateInterviewStatus(interviewId, newStatus, "engagement_manager");
+    toast.success(`Interview status updated to ${newStatus}`);
+  };
+
+  return (
+    <div className="space-y-3">
+      {isEM && (
+        <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+          <Plus className="h-3.5 w-3.5" /> Schedule Interview
+        </button>
+      )}
+
+      {showModal && (
+        <Modal title="Schedule Interview" onClose={() => setShowModal(false)}>
+          <div className="space-y-3">
+            <Field label="Resource">
+              <select value={formData.resourceId} onChange={(e) => setFormData((s) => ({ ...s, resourceId: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {teamPool.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Client"><input value={formData.client} onChange={(e) => setFormData((s) => ({ ...s, client: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <Field label="Date"><input type="date" value={formData.date} onChange={(e) => setFormData((s) => ({ ...s, date: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <Field label="Round"><input value={formData.round} onChange={(e) => setFormData((s) => ({ ...s, round: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <Field label="Interviewer"><input value={formData.interviewer} onChange={(e) => setFormData((s) => ({ ...s, interviewer: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button onClick={() => setShowModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button onClick={handleSchedule} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Schedule</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {interviews.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">No interviews scheduled</p></div>
+      ) : (
+        <div className="space-y-2">
+          {interviews.map((iv) => {
+            const statusColor = iv.status === "Selected" ? "border-success/30 bg-success/10 text-success" : iv.status === "Rejected" ? "border-destructive/30 bg-destructive/10 text-destructive" : iv.status === "Pending" ? "border-info/30 bg-info/10 text-info" : "border-warning/30 bg-warning/15 text-warning-foreground";
+            return (
+              <div key={iv.id} className="rounded-lg border border-border bg-card p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium">{iv.resourceName}</h4>
+                    <p className="mt-1 text-xs text-muted-foreground">{iv.clientName} · {iv.interviewRound}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(iv.interviewDate).toLocaleDateString()} · {iv.interviewer}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", statusColor)}>{iv.status}</span>
+                    {isEM && (
+                      <select
+                        value={iv.status}
+                        onChange={(e) => updateStatus(iv.id, e.target.value as InterviewStatus)}
+                        className={cn(
+                          "h-7 rounded-md border px-2 text-[10px] font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                          iv.status === "Selected" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
+                            iv.status === "Rejected" ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" :
+                              iv.status === "Pending" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
+                                "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                        )}
+                      >
+                        {(["Pending", "Selected", "Rejected", "Postponed"] as InterviewStatus[]).map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PrerequisiteValidationPanel({ prereq, project, isEM }: { prereq: DhProjectPrereq; project: Project; isEM: boolean }) {
+  const [editingStatus, setEditingStatus] = useState<PrereqStatus>(prereq.validation);
+
+  const handleStatusChange = (newStatus: PrereqStatus) => {
+    dhStore.setPrereqValidation(project.id, newStatus);
+    setEditingStatus(newStatus);
+    toast.success("Status updated persistently");
+  };
+
+  const statusColor = (status: PrereqStatus) => {
+    if (status === "Validated") return "border-success/30 bg-success/10 text-success";
+    return "border-amber-200/30 bg-amber-50/30 text-amber-900";
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-border bg-card p-4">
+        <h4 className="mb-3 text-sm font-semibold">Validation Status</h4>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Validation by EM</span>
+            {isEM ? (
+              <select
+                value={editingStatus}
+                onChange={(e) => handleStatusChange(e.target.value as PrereqStatus)}
+                className={cn(
+                  "h-8 rounded-md border px-2.5 text-[10px] font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  editingStatus === "Validated"
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                    : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                )}
+              >
+                {(["Validation Pending", "Validated"] as PrereqStatus[]).map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            ) : (
+              <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", statusColor(editingStatus))}>{editingStatus}</span>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground">Only Engagement Manager can update this status</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- WBS Prerequisite Section Helpers ----------
+function getPMStats(pmId: string): { total: number; ongoing: number; completed: number; freePct: number } {
+  const all = projects.filter(p => p.pmId === pmId || p.teamIds?.includes(pmId));
+  const total = all.length;
+  const ongoing = all.filter(p => p.status === "ongoing").length;
+  const completed = all.filter(p => p.status === "completed").length;
+  // Free % = completed / total × 100 (more completed = more capacity freed up)
+  const freePct = total > 0 ? Math.round((completed / total) * 100) : 100;
+  return { total, ongoing, completed, freePct };
+}
+
+function getOngoingProjectCountForPM(pmId: string): number {
+  return projects.filter(p => p.pmId === pmId && p.status === "ongoing").length;
+}
+
+function getClientInfo(clientId: string) {
+  const client = allClients().find((c: any) => c.id === clientId);
+  if (!client) return null;
+  return {
+    name: client.name,
+    type: client.clientType || "NEW",
+    previousPmIds: client.previousPmIds || []
+  };
+}
+
+function WbsPrerequisiteSection({ project }: { project: Project }) {
+  const snapshot = useDhStore((s) => s);
+  const prereqs = snapshot.prereqs;
+  const { user } = useRoleContext();
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  // Per-service "Ready to Start" state — tracks which services have been marked ready
+  const [serviceReady, setServiceReady] = useState<Record<string, boolean>>({});
+
+  const prereq = prereqs[project.id] ?? {
+    projectId: project.id,
+    validation: "Validation Pending",
+    collection: "NA",
+    assignedPmIds: [],
+    assignedSpmIds: [],
+    isProjectReadyToStart: false,
+    services: [],
+    auditTrail: []
+  };
+
+  const servicesList = prereq.services || [];
+
+  // Auto-calculated Project Level statuses
+  const allCollected = servicesList.length > 0 && servicesList.every(s => s.collectionStatus === "Collected");
+  const allValidated = servicesList.length > 0 && servicesList.every(s => s.validationStatus === "Validated");
+
+  const projectCollectionStatus = allCollected ? "Completed" : "Pending";
+  const projectValidationStatus = allValidated ? "Validated" : "Pending";
+
+  // Get client info
+  const clientInfo = getClientInfo(project.clientId);
+
+  // Tagged previous managers based on roles
+  const clientPrevPMs = useMemo(() => {
+    if (!clientInfo || clientInfo.type !== "OLD" || !clientInfo.previousPmIds) return [];
+    return clientInfo.previousPmIds.map(getPerson).filter((p: any) => p && p.role === "PM");
+  }, [clientInfo]);
+
+  const clientPrevSPMs = useMemo(() => {
+    if (!clientInfo || clientInfo.type !== "OLD" || !clientInfo.previousPmIds) return [];
+    return clientInfo.previousPmIds.map(getPerson).filter((p: any) => p && p.role === "Senior PM");
+  }, [clientInfo]);
+
+  // Determine Ready to Start conditions
+  const canShowAssignment = allCollected && allValidated;
+  const canProjectStart = allCollected && allValidated && prereq.assignedPmIds.length > 0 && prereq.assignedSpmIds.length > 0;
+
+  // Get team pool
+  const teamPool = useMemo(() => {
+    const ids = Array.from(new Set([project.pmId, project.tlId, ...project.teamIds]));
+    return ids.map(getPerson);
+  }, [project]);
+
+  const pmPeople = teamPool.filter(p => prereq.assignedPmIds.includes(p.id));
+  const spmPeople = teamPool.filter(p => prereq.assignedSpmIds.includes(p.id));
+
+  const statusColor = (status: string) => {
+    if (status === "Completed" || status === "Validated" || status === "Collected" || status === "Ready To Start") return "border-success/30 bg-success/10 text-success";
+    if (status === "Pending" || status === "Pending To Collect" || status === "Pending To Validate") return "border-muted-foreground/30 bg-muted text-muted-foreground";
+    return "border-muted-foreground/30 bg-muted text-muted-foreground";
+  };
+
+  const handleServiceChange = (serviceId: string, field: "collectionStatus" | "validationStatus", value: string) => {
+    dhStore.setServicePrereqStatus(project.id, serviceId, field, value, user.id, user.name);
+    toast.success("Service status updated successfully");
+  };
+
+  return (
+    <>
+      <div className="border-t border-border pt-5">
+        <h3 className="text-sm font-semibold mb-4 text-gray-900">PMO Intake & Prerequisite Workflow</h3>
+
+        {/* STEP 1: CLIENT PROFILE & STEP 2: PM/SPM ASSIGNMENT */}
+        <div className="grid gap-4 md:grid-cols-2 mb-4">
+
+          {/* CLIENT PROFILE INFORMATION */}
+          <div className="rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-border pb-2">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
+              <h4 className="text-sm font-bold text-gray-800">Client Profile Information</h4>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Client ID</span>
+                <span className="font-semibold text-gray-800">{project.clientId}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Client Name</span>
+                <span className="font-semibold text-gray-800">{clientInfo?.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Client Type</span>
+                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
+                  clientInfo?.type === "NEW" ? "border-green-200/50 bg-green-50/50 text-green-700" : "border-blue-200/50 bg-blue-50/50 text-blue-700"
+                )}>
+                  {clientInfo?.type === "NEW" ? "🆕 NEW" : "🔄 OLD"}
+                </span>
+              </div>
+            </div>
+
+            {/* Previously Assigned Project Managers display */}
+            {clientInfo?.type === "OLD" && (
+              <div className="space-y-3 pt-3 border-t border-border">
+                <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">Previously Assigned Project Managers</p>
+                  {clientPrevPMs.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {clientPrevPMs.map((pm: any) => {
+                        const stats = getPMStats(pm.id);
+                        const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                        return (
+                          <div key={pm.id} className="rounded-md border border-border p-2.5 bg-muted/20 text-[10px] space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <Avatar name={pm.name} size={18} />
+                                <span className="font-bold text-gray-800 text-xs">{pm.name}</span>
+                              </div>
+                              <span className={`font-bold text-sm tabular-nums ${freeColor}`}>{stats.freePct}% free</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <span className="rounded px-1.5 py-0.5 bg-muted font-semibold">Total: {stats.total}</span>
+                              <span className="rounded px-1.5 py-0.5 bg-info/10 text-info font-semibold">Ongoing: {stats.ongoing}</span>
+                              <span className="rounded px-1.5 py-0.5 bg-success/10 text-success font-semibold">Completed: {stats.completed}</span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive"}`}
+                                style={{ width: `${stats.freePct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground italic">No PM historical assignments available.</p>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">Previously Assigned Senior PMs</p>
+                  {clientPrevSPMs.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {clientPrevSPMs.map((pm: any) => {
+                        const stats = getPMStats(pm.id);
+                        const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                        return (
+                          <div key={pm.id} className="rounded-md border border-border p-2.5 bg-muted/20 text-[10px] space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <Avatar name={pm.name} size={18} />
+                                <span className="font-bold text-gray-800 text-xs">{pm.name}</span>
+                              </div>
+                              <span className={`font-bold text-sm tabular-nums ${freeColor}`}>{stats.freePct}% free</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <span className="rounded px-1.5 py-0.5 bg-muted font-semibold">Total: {stats.total}</span>
+                              <span className="rounded px-1.5 py-0.5 bg-info/10 text-info font-semibold">Ongoing: {stats.ongoing}</span>
+                              <span className="rounded px-1.5 py-0.5 bg-success/10 text-success font-semibold">Completed: {stats.completed}</span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive"}`}
+                                style={{ width: `${stats.freePct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground italic">No Senior PM historical assignments available.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {clientInfo?.type === "NEW" && (
+              <div className="pt-3 border-t border-border rounded-md p-3 bg-muted/30 text-center text-xs text-muted-foreground font-medium">
+                No historical PM/SPM assignments available.
+              </div>
+            )}
+          </div>
+
+          {/* PM/SPM ASSIGNMENT FLOW */}
+          <div className="rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-border pb-2">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-purple-500/20 text-xs font-semibold text-purple-600">2</span>
+              <h4 className="text-sm font-bold text-gray-800">Project Allocation</h4>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed">
+              <div>
+                <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Project Managers</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {pmPeople.map(p => (
+                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium">
+                      <Avatar name={p.name} size={14} /> {p.name}
+                    </span>
+                  ))}
+                  {pmPeople.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
+                </div>
+              </div>
+
+              <div>
+                <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Senior PMs</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {spmPeople.map(p => (
+                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium">
+                      <Avatar name={p.name} size={14} /> {p.name}
+                    </span>
+                  ))}
+                  {spmPeople.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowAssignModal(true)}
+              disabled={!canShowAssignment}
+              className={cn(
+                "w-full inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
+                canShowAssignment
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+              )}
+            >
+              <UserPlus className="h-4 w-4" /> Assign PM / SPM Stakeholders
+            </button>
+            {!canShowAssignment && (
+              <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect & validate prerequisites are validated.</p>
+            )}
+          </div>
+        </div>
+
+        {/* STEP 3 & 4: SERVICE WISE TRACKING TABLE */}
+        <div className="grid gap-4 md:grid-cols-3 mb-4">
+          <div className="md:col-span-2 rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 border-b border-border pb-2">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-xs font-semibold text-orange-600">3</span>
+              <h4 className="text-sm font-bold text-gray-800">Service wise Prerequisite Tracking</h4>
+            </div>
+
+            <div className="overflow-x-auto rounded-md border border-border bg-card">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 font-bold">Service Name</th>
+                    <th className="px-3 py-2 font-bold">Collection Status</th>
+                    <th className="px-3 py-2 font-bold">Validation Status</th>
+                    <th className="px-3 py-2 font-bold">Ready to Start</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {servicesList.map((svc) => {
+                    const isCollected = svc.collectionStatus === "Collected";
+                    const isValidated = svc.validationStatus === "Validated";
+                    const canStart = isCollected && isValidated;
+                    const isReady = serviceReady[svc.serviceId] ?? false;
+                    return (
+                      <tr key={svc.serviceId} className="hover:bg-accent/20">
+                        <td className="px-3 py-2.5 font-semibold text-gray-800">{svc.serviceName}</td>
+                        <td className="px-3 py-2.5">
+                          <select
+                            value={svc.collectionStatus}
+                            onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
+                            className={cn(
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                              svc.collectionStatus === "Collected"
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                            )}
+                          >
+                            <option value="Pending To Collect">Pending To Collect</option>
+                            <option value="Collected">Collected</option>
+                          </select>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <select
+                            value={svc.validationStatus}
+                            disabled={!isCollected}
+                            onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
+                            className={cn(
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                              !isCollected
+                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                : svc.validationStatus === "Validated"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                            )}
+                          >
+                            <option value="Pending To Validate">Pending To Validate</option>
+                            <option value="Validated">Validated</option>
+                          </select>
+                        </td>
+                        <td className="px-3 py-2.5 text-center align-middle">
+                          {isReady ? (
+                            <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
+                              ✓ Started
+                            </span>
+                          ) : (
+                            <button
+                              disabled={!canStart}
+                              onClick={() => {
+                                setServiceReady((prev) => ({ ...prev, [svc.serviceId]: true }));
+                                toast.success("Service marked as Ready to Start", { description: svc.serviceName });
+                              }}
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
+                                canStart
+                                  ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
+                                  : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
+                              )}
+                              title={!canStart ? "Set Collection Status to Collected and Validation Status to Validated first" : "Mark this service as Ready to Start"}
+                            >
+                              Ready
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* WBS Assignment Modal */}
+      {showAssignModal && (
+        <WbsAssignmentModal
+          project={project}
+          prereq={prereq}
+          teamPool={teamPool}
+          clientInfo={clientInfo}
+          onClose={() => setShowAssignModal(false)}
+        />
+      )}
+    </>
+  );
+}
+
+// Updated Assignment Modal with intelligent filtering
+function WbsAssignmentModal({
+  project,
+  prereq,
+  teamPool,
+  clientInfo,
+  onClose,
+}: {
+  project: Project;
+  prereq: DhProjectPrereq;
+  teamPool: Person[];
+  clientInfo: { name: string; type: "NEW" | "OLD"; previousPmIds: string[] } | null;
+  onClose: () => void;
+}) {
+  const [selectedPMs, setSelectedPMs] = useState<string[]>(prereq.assignedPmIds);
+  const [selectedSPMs, setSelectedSPMs] = useState<string[]>(prereq.assignedSpmIds);
+  const [pmQuery, setPmQuery] = useState("");
+  const [spmQuery, setSpmQuery] = useState("");
+
+  // Show all available team members regardless of client type
+  const filteredPool = useMemo(() => {
+    return teamPool;
+  }, [teamPool]);
+
+  const pmVisiblePool = filteredPool.filter(p => !pmQuery.trim() || p.name.toLowerCase().includes(pmQuery.toLowerCase()));
+  const spmVisiblePool = filteredPool.filter(p => !spmQuery.trim() || p.name.toLowerCase().includes(spmQuery.toLowerCase()));
+
+  const selectedPMPeople = filteredPool.filter(p => selectedPMs.includes(p.id));
+  const selectedSPMPeople = filteredPool.filter(p => selectedSPMs.includes(p.id));
+
+  const togglePM = (id: string) => {
+    setSelectedPMs(s => (s.includes(id) ? s.filter(x => x !== id) : [...s, id]));
+  };
+
+  const toggleSPM = (id: string) => {
+    setSelectedSPMs(s => (s.includes(id) ? s.filter(x => x !== id) : [...s, id]));
+  };
+
+  const handleSubmit = () => {
+    if (selectedPMs.length === 0 || selectedSPMs.length === 0) {
+      toast.error("Validation", { description: "Please select at least one PM and one SPM" });
+      return;
+    }
+
+    dhStore.assignPMs(project.id, selectedPMs, selectedSPMs);
+    toast.success("WBS Assignment Completed", {
+      description: `${selectedPMs.length} PM(s) and ${selectedSPMs.length} SPM(s) assigned. Notifications sent to HOD and PM/SPM buckets.`,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal title="Assign WBS - Project Managers & Senior PMs" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Showing all available Project Managers and Senior PMs
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Project Managers Selection */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Project Managers</label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={pmQuery}
+                onChange={(e) => setPmQuery(e.target.value)}
+                placeholder="Search PM..."
+                className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+            {selectedPMPeople.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {selectedPMPeople.map(p => (
+                  <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
+                    <Avatar name={p.name} size={16} /> {p.name}
+                    <button onClick={() => togglePM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <ul className="max-h-40 divide-y divide-border overflow-y-auto rounded-md border border-border">
+              {pmVisiblePool.map(p => {
+                const isSel = selectedPMs.includes(p.id);
+                const ongoingCount = getOngoingProjectCountForPM(p.id);
+                return (
+                  <li key={p.id}>
+                    <button
+                      onClick={() => togglePM(p.id)}
+                      className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 text-xs", isSel && "bg-primary/5")}
+                    >
+                      <Avatar name={p.name} size={22} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">{p.name}</div>
+                        <div className="text-[10px] text-muted-foreground">{ongoingCount} Ongoing Projects</div>
+                      </div>
+                      {isSel && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
+                    </button>
+                  </li>
+                );
+              })}
+              {pmVisiblePool.length === 0 && <li className="px-3 py-4 text-center text-xs text-muted-foreground">No match</li>}
+            </ul>
+          </div>
+
+          {/* Senior PMs Selection */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Senior Project Managers</label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={spmQuery}
+                onChange={(e) => setSpmQuery(e.target.value)}
+                placeholder="Search SPM..."
+                className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+            {selectedSPMPeople.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {selectedSPMPeople.map(p => (
+                  <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
+                    <Avatar name={p.name} size={16} /> {p.name}
+                    <button onClick={() => toggleSPM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <ul className="max-h-40 divide-y divide-border overflow-y-auto rounded-md border border-border">
+              {spmVisiblePool.map(p => {
+                const isSel = selectedSPMs.includes(p.id);
+                const ongoingCount = getOngoingProjectCountForPM(p.id);
+                return (
+                  <li key={p.id}>
+                    <button
+                      onClick={() => toggleSPM(p.id)}
+                      className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 text-xs", isSel && "bg-primary/5")}
+                    >
+                      <Avatar name={p.name} size={22} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">{p.name}</div>
+                        <div className="text-[10px] text-muted-foreground">{ongoingCount} Ongoing Projects</div>
+                      </div>
+                      {isSel && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
+                    </button>
+                  </li>
+                );
+              })}
+              {spmVisiblePool.length === 0 && <li className="px-3 py-4 text-center text-xs text-muted-foreground">No match</li>}
+            </ul>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-border pt-3">
+          <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Submit WBS Assignment
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
