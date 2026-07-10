@@ -22,9 +22,9 @@ function formatDate(date: Date): string {
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params }): { project: Project; client: Client } => {
-    const project = projects.find((p) => p.id === params.projectId);
+    const project = allProjects().find((p) => p.id === params.projectId);
     if (!project) throw notFound();
-    const client = clients.find((c) => c.id === project.clientId)!;
+    const client = allClients().find((c) => c.id === project.clientId)!;
     return { project, client };
   },
   head: ({ loaderData }) => ({
@@ -53,8 +53,21 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
 }
 
 function ProjectDetail() {
-  const { project, client } = Route.useLoaderData() as { project: Project; client: Client };
+  const { project: loaderProject, client: loaderClient } = Route.useLoaderData() as { project: Project; client: Client };
   const { user, isDhanshree } = useRoleContext();
+
+  // Subscribe to store so runtime-created projects stay live/reactive
+  const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
+  const project: Project = useMemo(
+    () => allProjects().find((p) => p.id === loaderProject.id) ?? loaderProject,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [loaderProject.id, extraCount]
+  );
+  const client: Client = useMemo(
+    () => allClients().find((c) => c.id === project.clientId) ?? loaderClient,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [project.clientId, extraCount]
+  );
   const snapshotInvoices = useDhStore((s) => s.invoices);
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
@@ -89,8 +102,8 @@ function ProjectDetail() {
     // --- Sales ---
     const salesStatus = tracker?.stages?.sales?.currentStatus;
     let salesSub = "Pending";
-    if (salesStatus === "Assigned") salesSub = "Sales Assigned";
-    else if (salesStatus === "Approval") salesSub = "WBS Approval Completed";
+    if (salesStatus === "Assigned") salesSub = "WBS Created & Assigned";
+    else if (salesStatus === "Approval") salesSub = "WBS Approval In Progress";
 
     // --- PMO ---
     const allCollected = prereq?.services?.every(s => s.collectionStatus === "Collected") ?? false;
@@ -547,38 +560,50 @@ function WbsTab({ project }: { project: Project }) {
               <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">Department</th>
+                  <th className="px-3 py-2 font-medium">Service ID</th>
                   <th className="px-3 py-2 font-medium">Service Name</th>
-                  <th className="px-3 py-2 font-medium">Qty</th>
                   <th className="px-3 py-2 font-medium">Description</th>
-                  <th className="px-3 py-2 font-medium">Location</th>
+                  <th className="px-3 py-2 font-medium">Qty</th>
+                  <th className="px-3 py-2 font-medium">Frequency</th>
                   <th className="px-3 py-2 font-medium">Service Model</th>
                   <th className="px-3 py-2 font-medium">Delivery Model</th>
+                  <th className="px-3 py-2 font-medium">Project Site</th>
+                  <th className="px-3 py-2 font-medium">Delivery Format</th>
+                  <th className="px-3 py-2 font-medium">Tools</th>
                   <th className="px-3 py-2 font-medium">Billing Model</th>
-                  <th className="px-3 py-2 font-medium">Start Date</th>
-                  <th className="px-3 py-2 font-medium">End Date</th>
-                  <th className="px-3 py-2 font-medium">Est. Hours</th>
-                  <th className="px-3 py-2 font-medium text-right">Total</th>
+                  <th className="px-3 py-2 font-medium">WBS Start Date</th>
+                  <th className="px-3 py-2 font-medium">WBS End Date</th>
+                  <th className="px-3 py-2 font-medium">Duration Days</th>
+                  <th className="px-3 py-2 font-medium">Duration Hours</th>
+                  <th className="px-3 py-2 font-medium">Total Days</th>
+                  <th className="px-3 py-2 font-medium">Total Hours</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {wbsDetails.services.map((svc) => (
                   <tr key={svc.id} className="hover:bg-accent/30">
                     <td className="px-3 py-2">{svc.department}</td>
+                    <td className="px-3 py-2 font-mono text-muted-foreground">{svc.id}</td>
                     <td className="px-3 py-2 font-medium">{svc.serviceName}</td>
+                    <td className="px-3 py-2 max-w-[140px] truncate cursor-default" title={svc.description}>{svc.description}</td>
                     <td className="px-3 py-2 text-center">{svc.qty}</td>
-                    <td className="px-3 py-2 max-w-xs truncate" title={svc.description}>{svc.description}</td>
-                    <td className="px-3 py-2">{svc.location}{svc.locationText ? ` — ${svc.locationText}` : ""}</td>
+                    <td className="px-3 py-2">{svc.frequency ?? "—"}</td>
                     <td className="px-3 py-2">{svc.serviceModel ?? "—"}</td>
                     <td className="px-3 py-2">{svc.deliveryModel ?? "—"}</td>
-                    <td className="px-3 py-2">{svc.billingModel ?? "—"}</td>
+                    <td className="px-3 py-2">{svc.location}{svc.locationText ? ` — ${svc.locationText}` : ""}</td>
+                    <td className="px-3 py-2">{(svc as any).finalDelivery ?? (svc as any).deliveryFormat ?? svc.finalDeliveryFormat ?? "—"}</td>
+                    <td className="px-3 py-2">{svc.tools ?? "—"}</td>
+                    <td className="px-3 py-2">{svc.billingModel || wbsDetails.accounts.billingModel || "—"}</td>
                     <td className="px-3 py-2">{svc.startDate}</td>
                     <td className="px-3 py-2">{svc.endDate}</td>
-                    <td className="px-3 py-2 text-center">{svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : svc.duration * 8)} hrs</td>
-                    <td className="px-3 py-2 text-right font-medium">{wbsDetails.currency} {svc.total.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-center">{(svc as any).durationDays ?? svc.duration ?? "—"}</td>
+                    <td className="px-3 py-2 text-center">{(svc as any).durationHours ?? (svc.duration ? svc.duration * 8 : "—")}</td>
+                    <td className="px-3 py-2 text-center">{svc.totalDays ?? "—"}</td>
+                    <td className="px-3 py-2 text-center">{svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : "—")}</td>
                   </tr>
                 ))}
                 {wbsDetails.services.length === 0 && (
-                  <tr><td colSpan={12} className="px-3 py-6 text-center text-sm text-muted-foreground">No services defined.</td></tr>
+                  <tr><td colSpan={18} className="px-3 py-6 text-center text-sm text-muted-foreground">No services defined.</td></tr>
                 )}
               </tbody>
             </table>
@@ -686,42 +711,42 @@ function WbsTab({ project }: { project: Project }) {
             <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium">#</th>
-                <th className="px-3 py-2 font-medium">Task ID</th>
                 <th className="px-3 py-2 font-medium">Department</th>
+                <th className="px-3 py-2 font-medium">Service ID</th>
                 <th className="px-3 py-2 font-medium">Service Name</th>
-                <th className="px-3 py-2 font-medium">Qty</th>
                 <th className="px-3 py-2 font-medium">Description</th>
+                <th className="px-3 py-2 font-medium">Qty</th>
                 <th className="px-3 py-2 font-medium">Frequency</th>
-                <th className="px-3 py-2 font-medium">Location</th>
                 <th className="px-3 py-2 font-medium">Service Model</th>
                 <th className="px-3 py-2 font-medium">Delivery Model</th>
-                <th className="px-3 py-2 font-medium">Final Delivery</th>
-                <th className="px-3 py-2 font-medium">Billing Model</th>
+                <th className="px-3 py-2 font-medium">Project Site</th>
+                <th className="px-3 py-2 font-medium">Delivery Format</th>
                 <th className="px-3 py-2 font-medium">Tools</th>
-                <th className="px-3 py-2 font-medium">Start Date</th>
-                <th className="px-3 py-2 font-medium">End Date</th>
+                <th className="px-3 py-2 font-medium">Billing Model</th>
+                <th className="px-3 py-2 font-medium">WBS Start Date</th>
+                <th className="px-3 py-2 font-medium">WBS End Date</th>
                 <th className="px-3 py-2 font-medium">Duration Days</th>
-                <th className="px-3 py-2 font-medium">Duration Hrs</th>
+                <th className="px-3 py-2 font-medium">Duration Hours</th>
                 <th className="px-3 py-2 font-medium">Total Days</th>
-                <th className="px-3 py-2 font-medium">Total Hrs</th>
+                <th className="px-3 py-2 font-medium">Total Hours</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {wbsServices.map((svc) => (
                 <tr key={svc.id} className="hover:bg-accent/30">
                   <td className="px-3 py-2">{svc.id}</td>
-                  <td className="px-3 py-2 font-mono text-muted-foreground">{svc.taskId}</td>
                   <td className="px-3 py-2">{svc.dept}</td>
+                  <td className="px-3 py-2 font-mono text-muted-foreground">{svc.taskId}</td>
                   <td className="px-3 py-2 font-medium">{svc.name}</td>
+                  <td className="px-3 py-2 max-w-[140px] truncate cursor-default" title={svc.desc}>{svc.desc}</td>
                   <td className="px-3 py-2 text-center">{svc.qty}</td>
-                  <td className="px-3 py-2 max-w-xs truncate" title={svc.desc}>{svc.desc}</td>
                   <td className="px-3 py-2">{svc.freq}</td>
-                  <td className="px-3 py-2">{svc.loc}</td>
                   <td className="px-3 py-2">{svc.svc}</td>
                   <td className="px-3 py-2">{svc.delivery}</td>
+                  <td className="px-3 py-2">{svc.loc}</td>
                   <td className="px-3 py-2">{svc.format}</td>
-                  <td className="px-3 py-2">{svc.billing}</td>
                   <td className="px-3 py-2">{svc.tools}</td>
+                  <td className="px-3 py-2">{svc.billing}</td>
                   <td className="px-3 py-2">{svc.start}</td>
                   <td className="px-3 py-2">{svc.end}</td>
                   <td className="px-3 py-2 text-center">{svc.durDays}</td>
@@ -821,45 +846,134 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
   const pms = getProjectPMs(project);
   const tls = getProjectTLs(project);
 
+  const wbs = project.wbsDetails;
+  const hasWbsData = !!(project.wbsId || wbs);
+  // A WBS-created project with no team assigned yet — PM/TL/team are placeholders
+  const isNewWbsProject = hasWbsData && project.teamIds.length === 0;
+  const totalServices = wbs ? wbs.services.reduce((a, b) => a + b.total, 0) : 0;
+  const currency = wbs?.currency ?? project.currency ?? "INR";
+  const taxPct = wbs ? (project.taxPercent ?? 18) : 18;
+  const grandTotal = totalServices + totalServices * (taxPct / 100);
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <div className="md:col-span-2 space-y-4">
         <div>
           <h3 className="text-sm font-semibold">Description</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{project.description || project.sectionAComments || "—"}</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <Info icon={Calendar} label="Start" value={formatDate(new Date(project.startDate))} />
           <Info icon={Calendar} label="End" value={formatDate(new Date(project.endDate))} />
-          <Info icon={Wallet} label="Budget" value={`$${(project.budget / 1000).toFixed(0)}k`} sub={`Spent $${(project.spent / 1000).toFixed(0)}k`} />
+          <Info icon={Wallet} label="Budget" value={`${currency} ${(project.budget / 1000).toFixed(0)}k`} sub={`Spent ${currency} ${(project.spent / 1000).toFixed(0)}k`} />
         </div>
-        <div>
-          <h3 className="mb-2 text-sm font-semibold">Budget burn</h3>
-          <ProgressBar value={(project.spent / project.budget) * 100} />
-          <p className="mt-1 text-xs text-muted-foreground">{((project.spent / project.budget) * 100).toFixed(0)}% utilized</p>
-        </div>
+        {project.budget > 0 && (
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Budget burn</h3>
+            <ProgressBar value={(project.spent / project.budget) * 100} />
+            <p className="mt-1 text-xs text-muted-foreground">{((project.spent / project.budget) * 100).toFixed(0)}% utilized</p>
+          </div>
+        )}
+
+        {/* WBS Project Info — shown for projects created via the WBS form */}
+        {hasWbsData && (
+          <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold border-b border-border pb-2">Project Details</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {project.wbsId && <InfoRow label="WBS ID" value={project.wbsId} />}
+              {project.projectSeqId && <InfoRow label="Project ID" value={project.projectSeqId} />}
+              {(project.contractType || wbs?.contractType) && (
+                <InfoRow label="Contract Type" value={project.contractType ?? wbs!.contractType} />
+              )}
+              {(project.projectType || wbs?.projectType) && (
+                <InfoRow label="Project Type" value={project.projectType ?? wbs!.projectType} />
+              )}
+              {(project.engagementManager || (wbs as any)?.engagementManager) && (
+                <InfoRow label="Engagement Manager" value={project.engagementManager ?? (wbs as any).engagementManager ?? "—"} />
+              )}
+              {(project.salesPerson || wbs?.salesPerson) && (
+                <InfoRow label="Sales Person" value={project.salesPerson ?? wbs!.salesPerson} />
+              )}
+              {project.projectIssuedDate && (
+                <InfoRow label="Project Onboarding Date" value={formatDate(new Date(project.projectIssuedDate))} />
+              )}
+              {currency && <InfoRow label="Currency" value={currency} />}
+              {wbs?.accounts?.billingModel && (
+                <InfoRow label="Billing Model" value={wbs.accounts.billingModel} />
+              )}
+              {wbs?.accounts?.paymentTerms && (
+                <InfoRow label="Payment Terms" value={wbs.accounts.paymentTerms} />
+              )}
+              {wbs?.accounts?.poStatus && (
+                <InfoRow label="PO Status" value={wbs.accounts.poStatus} />
+              )}
+              {project.wbsStatus && (
+                <InfoRow label="WBS Status" value={project.wbsSubStatus ?? project.wbsStatus} />
+              )}
+            </div>
+            {totalServices > 0 && (
+              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
+                <div>
+                  <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Services Subtotal</div>
+                  <div className="text-sm font-semibold">{currency} {totalServices.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Tax ({taxPct}%)</div>
+                  <div className="text-sm font-semibold">{currency} {(totalServices * taxPct / 100).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Grand Total</div>
+                  <div className="text-sm font-semibold text-primary">{currency} {grandTotal.toLocaleString()}</div>
+                </div>
+              </div>
+            )}
+            {(project.totalDays || project.totalHours) ? (
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
+                {project.totalDays ? (
+                  <div>
+                    <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Days</div>
+                    <div className="text-sm font-semibold">{project.totalDays} days</div>
+                  </div>
+                ) : null}
+                {project.totalHours ? (
+                  <div>
+                    <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Hours</div>
+                    <div className="text-sm font-semibold">{project.totalHours} hrs</div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {isDhanshree && (
           <div className="grid gap-3 sm:grid-cols-3">
+            {/* Engagement Manager — for WBS projects use the value from the form;
+                getProjectEMs now reads project.engagementManager so this is consistent */}
             <PeopleBlock title="Engagement Managers" people={ems} />
-            <PeopleBlock title="Project Managers" people={pms} />
-            <PeopleBlock title="Team Leads" people={tls} />
+            {/* PM & TL are assigned later in the WBS tab — show "Not yet assigned" until teamIds is populated */}
+            <PeopleBlock title="Project Managers" people={pms} unassigned={isNewWbsProject} />
+            <PeopleBlock title="Team Leads" people={tls} unassigned={isNewWbsProject} />
           </div>
         )}
       </div>
       <aside className="space-y-3 rounded-lg border border-border bg-accent/30 p-4">
-        <PersonRow label="Project Manager" person={pm} />
-        <PersonRow label="Team Lead" person={tl} />
+        <PersonRow label="Project Manager" person={pm} unassigned={isNewWbsProject} />
+        <PersonRow label="Team Lead" person={tl} unassigned={isNewWbsProject} />
         <div>
           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Team</div>
-          <div className="flex flex-wrap gap-1.5">
-            {team.map((m) => (
-              <div key={m.id} className="flex items-center gap-2 rounded-md bg-card px-2 py-1 text-xs">
-                <Avatar name={m.name} size={20} />
-                <span>{m.name.split(" ")[0]}</span>
-              </div>
-            ))}
-          </div>
+          {isNewWbsProject ? (
+            <p className="text-xs italic text-muted-foreground">Team will be assigned in the WBS tab after prerequisite collection.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {team.map((m) => (
+                <div key={m.id} className="flex items-center gap-2 rounded-md bg-card px-2 py-1 text-xs">
+                  <Avatar name={m.name} size={20} />
+                  <span>{m.name.split(" ")[0]}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         {isDhanshree && <ExtensionRequestCard project={project} />}
       </aside>
@@ -1016,18 +1130,22 @@ function ExtensionRequestCard({ project }: { project: Project }) {
   );
 }
 
-function PeopleBlock({ title, people }: { title: string; people: Person[] }) {
+function PeopleBlock({ title, people, unassigned }: { title: string; people: Person[]; unassigned?: boolean }) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
       <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{title}</div>
-      <div className="flex flex-wrap gap-1.5">
-        {people.map((p) => (
-          <div key={p.id} className="flex items-center gap-1.5 rounded-full border border-border bg-accent/30 px-2 py-0.5 text-xs">
-            <Avatar name={p.name} size={18} />
-            <span>{p.name}</span>
-          </div>
-        ))}
-      </div>
+      {unassigned || people.length === 0 ? (
+        <span className="text-[11px] italic text-muted-foreground">Not yet assigned</span>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {people.map((p) => (
+            <div key={p.id} className="flex items-center gap-1.5 rounded-full border border-border bg-accent/30 px-2 py-0.5 text-xs">
+              <Avatar name={p.name} size={18} />
+              <span>{p.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2043,17 +2161,21 @@ function Info({ icon: Icon, label, value, sub }: {
   );
 }
 
-function PersonRow({ label, person }: { label: string; person: Person }) {
+function PersonRow({ label, person, unassigned }: { label: string; person: Person; unassigned?: boolean }) {
   return (
     <div>
       <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-1 flex items-center gap-2">
-        <Avatar name={person.name} size={28} />
-        <div>
-          <div className="text-sm font-medium">{person.name}</div>
-          <div className="text-[11px] text-muted-foreground">{person.email}</div>
+      {unassigned ? (
+        <div className="mt-1 text-xs italic text-muted-foreground">Not yet assigned</div>
+      ) : (
+        <div className="mt-1 flex items-center gap-2">
+          <Avatar name={person.name} size={28} />
+          <div>
+            <div className="text-sm font-medium">{person.name}</div>
+            <div className="text-[11px] text-muted-foreground">{person.email}</div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -475,7 +475,9 @@ function WbsNewProjectPage() {
         id: r.rowId, department: r.dept, serviceName: r.name,
         qty: r.qty, description: r.description, frequency: r.frequency,
         location: r.location, locationText: r.locationText, serviceModel: r.serviceModel,
-        deliveryModel: r.deliveryModel, billingModel: r.billingModel,
+        deliveryModel: r.deliveryModel,
+        // propagate the Section B billing model to every service row
+        billingModel: billingModel || r.billingModel,
         finalDeliveryFormat: r.deliveryFormat,
         tools: r.tools, startDate: r.startDate, endDate: r.endDate,
         duration: r.durationDays, unitPrice: r.unitPrice, total: r.total,
@@ -523,11 +525,18 @@ function WbsNewProjectPage() {
     if (billingModel === "Custom" && !paymentTerms.trim()) { toast.error("Payment Terms is required when Billing Model is Custom"); return; }
     const err = validateServiceRows();
     if (err) { toast.error(err); return; }
+
+    // Derive project start/end from the service rows (earliest start → latest end)
+    const allStarts = serviceRows.map(r => r.startDate).filter(Boolean).sort();
+    const allEnds   = serviceRows.map(r => r.endDate).filter(Boolean).sort();
+    const projStart = allStarts[0] ?? new Date().toISOString().slice(0, 10);
+    const projEnd   = allEnds[allEnds.length - 1] ?? new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
+
     const proj = dhStore.addProject({
       name: projectName, clientId: selectedClientId,
       description: sectionAComments,
-      startDate: new Date().toISOString().slice(0, 10),
-      endDate: projectIssuedDate || new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10),
+      startDate: projStart,
+      endDate: projEnd,
       budget: subtotal,
       wbsStatus: "assigned", wbsSubStatus: "WBS Assigned",
       engagementManager, salesPerson, contractType, projectType,
@@ -535,7 +544,7 @@ function WbsNewProjectPage() {
       invoiceValue: invoiceTarget, sectionAComments, sectionBComments,
       wbsDetails: buildWbsDetails(),
     });
-    toast.success("WBS Assigned");
+    toast.success("WBS created successfully");
     navigate({ to: "/projects/$projectId", params: { projectId: proj.id } });
   }
 

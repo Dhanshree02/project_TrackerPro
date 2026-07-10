@@ -13,8 +13,25 @@ const seeded = (seed: string, max: number) =>
   Math.abs(seed.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % max;
 
 export function getProjectEMs(p: Project): Person[] {
-  // Always at least 1, sometimes 2
-  const ids = [EM_POOL[0], "u1"]; // EM + Senior PM also acts as engagement
+  // If the project was created via the WBS form, use the stored engagementManager name.
+  // Fall back to the hardcoded pool for legacy mock projects.
+  if (p.engagementManager) {
+    // Find the person by name (the form stores a display name, not an ID)
+    const byName = people.find(
+      (person) => person.name.toLowerCase() === p.engagementManager!.toLowerCase()
+    );
+    if (byName) return [byName];
+    // Name not found in people list — build a synthetic Person so the UI never breaks
+    return [{
+      id: "em-" + p.id,
+      name: p.engagementManager,
+      role: "Engagement Manager",
+      avatar: p.engagementManager.slice(0, 2).toUpperCase(),
+      email: "",
+    }];
+  }
+  // Legacy fallback for base mock projects
+  const ids = [EM_POOL[0], "u1"];
   const n = (seeded(p.id, 2) === 0 ? 1 : 2);
   return ids.slice(0, n).map(getPerson);
 }
