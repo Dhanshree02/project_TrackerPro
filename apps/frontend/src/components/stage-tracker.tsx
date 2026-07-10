@@ -1,17 +1,33 @@
 import React, { useState } from "react";
-import { ChevronRight, Circle, CheckCircle2, AlertCircle } from "lucide-react";
+import { ChevronRight, Circle, CheckCircle2, AlertCircle, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { ProjectStageData, StageHistoryEntry } from "@/lib/dh-store";
 
+// ── Sub-stage types (Dhanshree role only) ────────────────────────────────────
+
+export interface SubStageItem {
+  /** Display label shown in the checklist. */
+  label: string;
+  /** completed = green tick, active = blue dot, pending = grey circle */
+  status: "completed" | "active" | "pending";
+}
+
 export interface StageTrackerProps {
   stages: ProjectStageData[];
-  /** Optional: sub-status string keyed by stageName e.g. { Sales: "WBS Approval Completed", PMO: "Validation Completed" } */
+  /** Optional: sub-status string keyed by stageName e.g. { Sales: "WBS Stabilized" } */
   subStatusMap?: Record<string, string>;
+  /**
+   * Optional: ordered sub-stage checklist items keyed by stageName.
+   * When provided, clicking a stage shows the checklist panel instead of
+   * the plain history view.
+   * e.g. { Sales: [{label:"WBS Created",status:"completed"}, …], … }
+   */
+  subStagesMap?: Record<string, SubStageItem[]>;
   onStageClick?: (stage: ProjectStageData) => void;
 }
 
-export function StageTracker({ stages, subStatusMap, onStageClick }: StageTrackerProps) {
+export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick }: StageTrackerProps) {
   const [selectedStage, setSelectedStage] = useState<ProjectStageData | null>(null);
 
   const getStageColor = (index: number) => {
@@ -25,13 +41,29 @@ export function StageTracker({ stages, subStatusMap, onStageClick }: StageTracke
   };
 
   const getStatusBadgeColor = (status: string) => {
-    if (status === "Completed" || status === "Approval" || status === "Invoice Raised" || status === "PO Raised" || status === "PO Received" || status === "WBS Approval Completed" || status === "Project Allocation Completed" || status === "Payment Received") {
+    if (
+      status === "Completed" || status === "Approval" ||
+      status === "Invoice Raised" || status === "PO Raised" || status === "PO Received" ||
+      status === "WBS Approval Completed" || status === "Project Allocation Completed" ||
+      status === "Payment Received" || status === "WBS Created" || status === "WBS Stabilized" ||
+      status === "WBS Modified" || status === "Ready To Start" || status === "Sr. PM Assigned" ||
+      status === "PM Assigned" || status === "Prerequisite Collected" ||
+      status === "Prerequisite Validated" || status === "After Released" ||
+      status === "Certification Released" || status === "PO Not Required"
+    ) {
       return "bg-emerald-100 text-emerald-800";
     }
     if (status === "Cancelled" || status === "On Hold Internally" || status === "On Hold Externally") {
       return "bg-red-100 text-red-800";
     }
-    if (status === "Ongoing" || status === "Assigned" || status === "Validation" || status === "Ready To Start Project" || status === "Validation Completed" || status === "Payment Pending" || status === "Invoice Not Raised" || status === "PO Pending") {
+    if (
+      status === "Ongoing" || status === "Assigned" || status === "Validation" ||
+      status === "Ready To Start Project" || status === "Validation Completed" ||
+      status === "Payment Pending" || status === "Invoice Not Raised" || status === "PO Pending" ||
+      status === "Senior PM Assigned" || status === "Project Manager Assigned" ||
+      status === "Initial Testing Completed" || status === "Re-testing Completed" ||
+      status === "Meta Data Completed"
+    ) {
       return "bg-blue-100 text-blue-800";
     }
     if (status === "After Release") {
@@ -45,7 +77,9 @@ export function StageTracker({ stages, subStatusMap, onStageClick }: StageTracke
       subStatus.includes("Completed") ||
       subStatus.includes("Received") ||
       subStatus.includes("Validated") ||
-      subStatus.includes("Approval")
+      subStatus.includes("Approval") ||
+      subStatus.includes("Released") ||
+      subStatus.includes("Stabilized")
     ) return "text-emerald-600 font-semibold";
     if (
       subStatus.includes("Pending") ||
@@ -122,13 +156,106 @@ export function StageTracker({ stages, subStatusMap, onStageClick }: StageTracke
         </div>
       </div>
 
-      {/* Selected Stage Details */}
+      {/* Selected Stage Details Panel */}
       {selectedStage && (
-        <StageDetailView stage={selectedStage} subStatus={subStatusMap?.[selectedStage.stageName]} onClose={() => setSelectedStage(null)} />
+        subStagesMap?.[selectedStage.stageName]
+          ? (
+            <SubStagePanel
+              stage={selectedStage}
+              subStages={subStagesMap[selectedStage.stageName]}
+              subStatus={subStatusMap?.[selectedStage.stageName]}
+              onClose={() => setSelectedStage(null)}
+            />
+          ) : (
+            <StageDetailView
+              stage={selectedStage}
+              subStatus={subStatusMap?.[selectedStage.stageName]}
+              onClose={() => setSelectedStage(null)}
+            />
+          )
       )}
     </div>
   );
 }
+
+// ── Sub-stage Checklist Panel ─────────────────────────────────────────────────
+
+interface SubStagePanelProps {
+  stage: ProjectStageData;
+  subStages: SubStageItem[];
+  subStatus?: string;
+  onClose: () => void;
+}
+
+function SubStagePanel({ stage, subStages, subStatus, onClose }: SubStagePanelProps) {
+  const completedCount = subStages.filter(s => s.status === "completed").length;
+
+  return (
+    <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-3">
+        <div>
+          <h3 className="text-sm font-bold text-gray-900">{stage.stageName} Stage</h3>
+          <p className="text-xs text-gray-600 mt-0.5">
+            Status: <span className="font-semibold text-gray-900">{stage.currentStatus}</span>
+            {subStatus && <span className="ml-2 text-blue-600 font-semibold">· {subStatus}</span>}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-medium text-gray-500">
+            {completedCount}/{subStages.length} completed
+          </span>
+          <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 p-0">✕</Button>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-3 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+          style={{ width: `${subStages.length > 0 ? (completedCount / subStages.length) * 100 : 0}%` }}
+        />
+      </div>
+
+      {/* Sub-stage checklist */}
+      <div className="space-y-1.5">
+        {subStages.map((item, idx) => (
+          <SubStageRow key={idx} item={item} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SubStageRow({ item }: { item: SubStageItem }) {
+  if (item.status === "completed") {
+    return (
+      <div className="flex items-center gap-2.5 rounded-md bg-white border border-emerald-100 px-3 py-2">
+        <CheckCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+        <span className="text-xs font-medium text-emerald-700">{item.label}</span>
+        <span className="ml-auto text-[10px] font-medium text-emerald-500">Done</span>
+      </div>
+    );
+  }
+  if (item.status === "active") {
+    return (
+      <div className="flex items-center gap-2.5 rounded-md bg-blue-50 border border-blue-200 px-3 py-2">
+        <AlertCircle className="h-3.5 w-3.5 shrink-0 text-blue-500 animate-pulse" />
+        <span className="text-xs font-semibold text-blue-700">{item.label}</span>
+        <span className="ml-auto text-[10px] font-medium text-blue-500">Active</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2.5 rounded-md bg-white border border-gray-100 px-3 py-2 opacity-60">
+      <Circle className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+      <span className="text-xs font-medium text-gray-500">{item.label}</span>
+      <span className="ml-auto text-[10px] font-medium text-gray-400">Pending</span>
+    </div>
+  );
+}
+
+// ── Legacy detail view (used when subStagesMap is not provided) ───────────────
 
 interface StageDetailViewProps {
   stage: ProjectStageData;

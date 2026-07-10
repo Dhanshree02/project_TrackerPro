@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
-import { StageTracker } from "@/components/stage-tracker";
+import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
 import { useRoleContext } from "@/lib/role-context";
 import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar } from "@/components/pills";
@@ -80,6 +80,7 @@ function ProjectDetail() {
   const storePrereqs = useDhStore((s) => s.prereqs[project.id]);
   const storeProjectStages = useDhStore((s) => s.projectStages[project.id]);
 
+  // ── subStatusMap: one-line badge sub-text per stage (preserved unchanged) ──
   const subStatusMap = useMemo<Record<string, string>>(() => {
     if (!isDhanshree) return {} as Record<string, string>;
     const prereq = storePrereqs;
@@ -124,6 +125,145 @@ function ProjectDetail() {
     return { Sales: salesSub, PMO: pmoSub, Delivery: deliverySub, Accounts: acctSub };
   }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
 
+  // ── subStagesMap: expandable sub-stage checklist (Dhanshree only) ──────────
+  const subStagesMap = useMemo<Record<string, SubStageItem[]>>(() => {
+    if (!isDhanshree) return {} as Record<string, SubStageItem[]>;
+    const prereq = storePrereqs;
+    const tracker = storeProjectStages;
+
+    // ---- Sales sub-stages: WBS lifecycle ----
+    // currentStatus in dh-store: "Pending" | "Assigned" | "Approval"
+    const salesStatus = tracker?.stages?.sales?.currentStatus ?? "Pending";
+    const wbsStatus = (project as any).wbsStatus ?? "draft";
+    // WBS Created = project exists (always true once we reach this page)
+    // WBS Stabilized = wbsStatus is "approved" / "started" / "approval_pending" (sent for approval means stabilized)
+    // WBS Modified = salesStatus === "Approval" and wbsStatus includes modification signals
+    const wbsCreated = true;
+    const wbsStabilized =
+      salesStatus === "Approval" ||
+      wbsStatus === "approved" ||
+      wbsStatus === "started" ||
+      wbsStatus === "assigned";
+    const wbsModified =
+      salesStatus === "Approval" && (wbsStatus === "assigned" || wbsStatus === "started");
+
+    const salesSubStages: SubStageItem[] = [
+      {
+        label: "WBS Created",
+        status: wbsCreated ? "completed" : "active",
+      },
+      {
+        label: "WBS Stabilized",
+        status: wbsStabilized ? "completed" : wbsCreated ? "active" : "pending",
+      },
+      {
+        label: "WBS Modified",
+        status: wbsModified ? "completed" : wbsStabilized ? "active" : "pending",
+      },
+    ];
+
+    // ---- PMO sub-stages: assignment + prerequisite workflow ----
+    const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
+    const hasPM  = (prereq?.assignedPmIds?.length  ?? 0) > 0;
+    const allCollected = prereq?.services?.every(s => s.collectionStatus === "Collected") ?? false;
+    const allValidated = prereq?.services?.every(s => s.validationStatus === "Validated") ?? false;
+    const isReadyToStart = prereq?.isProjectReadyToStart ?? false;
+
+    // Each step unlocks the next in sequence.
+    const pmoSteps = [
+      { label: "Senior Project Manager Assigned", done: hasSPM },
+      { label: "Project Manager Assigned",        done: hasPM && hasSPM },
+      { label: "Prerequisite Collected",           done: allCollected && hasPM },
+      { label: "Prerequisite Validated",           done: allValidated && allCollected && hasPM },
+      { label: "Ready To Start",                  done: isReadyToStart },
+    ];
+
+    // Find first step not done → it is "active"
+    let foundActive = false;
+    const pmoSubStages: SubStageItem[] = pmoSteps.map(step => {
+      if (step.done) return { label: step.label, status: "completed" as const };
+      if (!foundActive) {
+        foundActive = true;
+        return { label: step.label, status: "active" as const };
+      }
+      return { label: step.label, status: "pending" as const };
+    });
+
+    // ---- Delivery sub-stages: sequential execution states ----
+    const deliveryStatus = tracker?.stages?.delivery?.currentStatus ?? "Ongoing";
+    // Map the five sequential delivery sub-stages to current position.
+    const deliveryOrder = [
+      "Initial Testing Completed",
+      "Re-testing Completed",
+      "Meta Data Completed",
+      "Certification Released",
+      "After Released",
+    ] as const;
+    // Derive which step is active from deliveryStatus + project progress.
+    // The store tracks high-level status. We map progress % → delivery position.
+    let deliveryActiveIdx: number;
+    if (deliveryStatus === "Completed" || deliveryStatus === "After Release") {
+      deliveryActiveIdx = deliveryOrder.length; // all done
+    } else {
+      const pct = project.progress;
+      if (pct >= 80) deliveryActiveIdx = 3;       // Certification Released active
+      else if (pct >= 60) deliveryActiveIdx = 2;  // Meta Data Completed active
+      else if (pct >= 40) deliveryActiveIdx = 1;  // Re-testing Completed active
+      else if (pct >= 20) deliveryActiveIdx = 0;  // Initial Testing Completed active
+      else deliveryActiveIdx = 0;
+    }
+    const deliverySubStages: SubStageItem[] = deliveryOrder.map((label, idx) => {
+      if (idx < deliveryActiveIdx) return { label, status: "completed" as const };
+      if (idx === deliveryActiveIdx && deliveryActiveIdx < deliveryOrder.length)
+        return { label, status: "active" as const };
+      return { label, status: "pending" as const };
+    });
+
+    // ---- Accounts sub-stages: PO + Invoice workflow ----
+    const acctStatus = tracker?.stages?.accounts?.currentStatus ?? "PO Not Raised";
+    const acctDetail = tracker?.accountsDetail;
+
+    const poReceived =
+      acctStatus === "PO Received" ||
+      acctStatus === "PO Raised" ||
+      acctStatus === "Invoice Raised" ||
+      acctStatus === "Invoice Not Raised" ||
+      acctDetail?.poStatus === "PO Received" ||
+      acctDetail?.poStatus === "PO Validated";
+    const poNotRequired = acctStatus === "PO Not Raised" && !poReceived;
+    const invoiceRaised =
+      acctStatus === "Invoice Raised" ||
+      acctDetail?.paymentStatus === "Payment Received";
+
+    // PO Pending is the default starting state.
+    // PO Received / PO Not Required are mutually exclusive alternatives.
+    // Invoice Raised follows either of them.
+    const poPending = !poReceived && !poNotRequired && !invoiceRaised;
+    let accountsSubStages: SubStageItem[];
+    if (poNotRequired) {
+      accountsSubStages = [
+        { label: "PO Pending",      status: "completed" as const },
+        { label: "PO Not Required", status: "active"    as const },
+        { label: "PO Received",     status: "pending"   as const },
+        { label: "Invoice Raised",  status: invoiceRaised ? "completed" as const : "pending" as const },
+      ];
+    } else {
+      accountsSubStages = [
+        { label: "PO Pending",      status: poPending   ? "active"    as const : "completed" as const },
+        { label: "PO Received",     status: poReceived  ? "completed" as const : "pending"   as const },
+        { label: "PO Not Required", status: "pending"   as const },
+        { label: "Invoice Raised",  status: invoiceRaised ? "completed" as const : poReceived ? "active" as const : "pending" as const },
+      ];
+    }
+
+    return {
+      Sales:    salesSubStages,
+      PMO:      pmoSubStages,
+      Delivery: deliverySubStages,
+      Accounts: accountsSubStages,
+    };
+  }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
+
   return (
     <AppShell title={project.name} subtitle={`${client.name} · ${project.description}`}>
       <nav className="mb-3 flex items-center gap-1 text-xs text-muted-foreground">
@@ -141,7 +281,7 @@ function ProjectDetail() {
             <h2 className="text-xs font-semibold text-gray-900">Project Stages Tracker</h2>
             <p className="text-[11px] text-gray-600 mt-0.5">Track project progression through Sales → PMO → Delivery → Accounts</p>
           </div>
-          <StageTracker stages={stages} subStatusMap={subStatusMap} />
+          <StageTracker stages={stages} subStatusMap={subStatusMap} subStagesMap={subStagesMap} />
         </div>
       )}
 
@@ -2868,7 +3008,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
     return "border-muted-foreground/30 bg-muted text-muted-foreground";
   };
 
-  const handleServiceChange = (serviceId: string, field: "collectionStatus" | "validationStatus", value: string) => {
+  const handleServiceChange = (serviceId: string, field: "collectionStatus" | "validationStatus" | "billingStatus", value: string) => {
     dhStore.setServicePrereqStatus(project.id, serviceId, field, value, user.id, user.name);
     toast.success("Service status updated successfully");
   };
@@ -3053,6 +3193,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                     <th className="px-3 py-2 font-bold">Service Name</th>
                     <th className="px-3 py-2 font-bold">Collection Status</th>
                     <th className="px-3 py-2 font-bold">Validation Status</th>
+                    <th className="px-3 py-2 font-bold">Billing Status</th>
                     <th className="px-3 py-2 font-bold">Ready to Start</th>
                   </tr>
                 </thead>
@@ -3060,7 +3201,8 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                   {servicesList.map((svc) => {
                     const isCollected = svc.collectionStatus === "Collected";
                     const isValidated = svc.validationStatus === "Validated";
-                    const canStart = isCollected && isValidated;
+                    const isBillingOk = svc.billingStatus === "Advance Received" || svc.billingStatus === "Advance Not Required";
+                    const canStart = isCollected && isValidated && isBillingOk;
                     const isReady = serviceReady[svc.serviceId] ?? false;
                     return (
                       <tr key={svc.serviceId} className="hover:bg-accent/20">
@@ -3098,6 +3240,24 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                             <option value="Validated">Validated</option>
                           </select>
                         </td>
+                        <td className="px-3 py-2.5">
+                          <select
+                            value={svc.billingStatus ?? "Advance Pending"}
+                            onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
+                            className={cn(
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                              svc.billingStatus === "Advance Received"
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                : svc.billingStatus === "Advance Not Required"
+                                  ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                  : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                            )}
+                          >
+                            <option value="Advance Pending">Advance Pending</option>
+                            <option value="Advance Received">Advance Received</option>
+                            <option value="Advance Not Required">Advance Not Required</option>
+                          </select>
+                        </td>
                         <td className="px-3 py-2.5 text-center align-middle">
                           {isReady ? (
                             <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
@@ -3116,7 +3276,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                                   ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
                                   : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
                               )}
-                              title={!canStart ? "Set Collection Status to Collected and Validation Status to Validated first" : "Mark this service as Ready to Start"}
+                              title={!canStart ? "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first" : "Mark this service as Ready to Start"}
                             >
                               Ready
                             </button>

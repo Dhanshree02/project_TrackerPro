@@ -13,7 +13,7 @@ export default defineConfig({
   vite: {
     server: {
       port: 6002,
-      strictPort: false,
+      allowedHosts: true,
     },
   },
 });

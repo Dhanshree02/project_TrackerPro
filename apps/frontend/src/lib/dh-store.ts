@@ -220,6 +220,7 @@ export interface DhServicePrereq {
   serviceName: string;
   collectionStatus: "Pending To Collect" | "Collected";
   validationStatus: "Pending To Validate" | "Validated";
+  billingStatus?: "Advance Received" | "Advance Pending" | "Advance Not Required";
 }
 
 export interface DhInvoice {
@@ -242,7 +243,7 @@ export interface DhInvoice {
 
 export interface DhAuditTrailEntry {
   id: string;
-  fieldChanged: "Collection Status" | "Validation Status" | "Ready To Start" | "Extension Request";
+  fieldChanged: "Collection Status" | "Validation Status" | "Billing Status" | "Ready To Start" | "Extension Request";
   updatedBy: string;
   updatedByName: string;
   date: string;
@@ -267,19 +268,19 @@ export interface DhProjectPrereq {
 export function getSeededServices(isReady: boolean): DhServicePrereq[] {
   if (isReady) {
     return [
-      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated" },
-      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Validated" },
-      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Collected", validationStatus: "Validated" },
-      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated" },
-      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated" },
+      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
+      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
+      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
+      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
+      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
     ];
   } else {
     return [
-      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated" },
-      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Pending To Validate" },
-      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Pending To Collect", validationStatus: "Pending To Validate" },
-      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated" },
-      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated" },
+      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
+      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Pending To Validate", billingStatus: "Advance Pending" },
+      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Pending To Collect", validationStatus: "Pending To Validate", billingStatus: "Advance Pending" },
+      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
+      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
     ];
   }
 }
@@ -2177,7 +2178,7 @@ export const dhStore = {
   setServicePrereqStatus(
     projectId: string,
     serviceId: string,
-    field: "collectionStatus" | "validationStatus",
+    field: "collectionStatus" | "validationStatus" | "billingStatus",
     value: string,
     updatedById: string,
     updatedByName: string
@@ -2187,11 +2188,11 @@ export const dhStore = {
 
     if (!p.services) {
       p.services = [
-        { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated" },
-        { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Validated" },
-        { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Collected", validationStatus: "Validated" },
-        { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated" },
-        { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated" },
+        { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
+        { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
+        { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
+        { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
+        { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
       ];
     }
 
@@ -2214,12 +2215,12 @@ export const dhStore = {
     if (!p.auditTrail) p.auditTrail = [];
     p.auditTrail.unshift({
       id: uid("aud"),
-      fieldChanged: field === "collectionStatus" ? "Collection Status" : "Validation Status",
+      fieldChanged: field === "collectionStatus" ? "Collection Status" : field === "validationStatus" ? "Validation Status" : "Billing Status",
       updatedBy: updatedById,
       updatedByName,
       date: dateStr,
       time: timeStr,
-      oldStatus: oldVal,
+      oldStatus: oldVal ?? "Advance Pending",
       newStatus: value
     });
 
