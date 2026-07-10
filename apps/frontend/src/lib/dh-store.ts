@@ -1346,15 +1346,21 @@ export const dhStore = {
     state.extraProjects.push(p);
 
     // Initialize stage tracker
+    // "Create WBS" always sets sales stage to "Assigned" — the WBS has been
+    // created and handed over by the sales person. "Approval" is only set when
+    // explicitly sent for approval (approval_pending).
+    const initialSalesStatus: SalesStatus =
+      input.wbsStatus === "approval_pending" ? "Approval" : "Assigned";
+
     state.projectStages[id] = {
       projectId: id,
       stages: {
         sales: {
           stageName: "Sales",
-          currentStatus: input.wbsStatus === "approval_pending" ? "Approval" : "Pending",
-          isCompleted: false,
+          currentStatus: initialSalesStatus,
+          isCompleted: initialSalesStatus === "Assigned",
           isActive: true,
-          history: [{ id: uid("sh"), timestamp: now, action: "Project created via WBS Form", updatedBy: "u14", updatedByName: "Dhanshree", newStatus: input.wbsStatus === "approval_pending" ? "Approval" : "Pending" }],
+          history: [{ id: uid("sh"), timestamp: now, action: "WBS created via WBS Form", updatedBy: "u14", updatedByName: "Dhanshree", newStatus: initialSalesStatus }],
         },
         pmo: { stageName: "PMO", currentStatus: "Prerequisite Collection", isCompleted: false, isActive: false, history: [] },
         delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
@@ -1362,10 +1368,24 @@ export const dhStore = {
       },
     };
 
-    // Initialize prerequisite record
+    // Initialize prerequisite record — seed services from WBS so the
+    // Service-wise Prerequisite Tracking table shows real service names
+    const prereqServices: DhServicePrereq[] = input.wbsDetails?.services?.map((svc: any, i: number) => ({
+      serviceId: svc.id ?? `svc-${i}`,
+      serviceName: svc.serviceName ?? svc.department ?? `Service ${i + 1}`,
+      collectionStatus: "Pending To Collect" as const,
+      validationStatus: "Pending To Validate" as const,
+      billingStatus: "Advance Pending" as const,
+    })) ?? [];
+
     state.prereqs[id] = {
-      projectId: id, validation: "Validation Pending", collection: "Initiated",
-      assignedPmIds: [], assignedSpmIds: [],
+      projectId: id,
+      validation: "Validation Pending",
+      collection: "Initiated",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+      services: prereqServices,
+      auditTrail: [],
     };
 
     // Create approval record if sent for approval
@@ -2187,13 +2207,9 @@ export const dhStore = {
     if (!p) return;
 
     if (!p.services) {
-      p.services = [
-        { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
-        { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
-        { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
-        { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
-        { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
-      ];
+      // No services seeded — initialize empty; new projects always get seeded
+      // from WBS services in addProject. Only legacy base projects fall here.
+      p.services = [];
     }
 
     const svc = p.services.find(s => s.serviceId === serviceId);
