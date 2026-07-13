@@ -398,7 +398,10 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                       className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-sm text-primary hover:bg-accent"
                       onMouseDown={() => {
                         setSelectedExisting(null);
-                        setS((p) => ({ ...p, clientName: tkSearch.trim() }));
+                        setSvSearch("");
+                        setSvDropOpen(false);
+                        setSvAlreadyExists(false);
+                        setS((p) => ({ ...p, clientName: tkSearch.trim(), companyName: "" }));
                         setTkDropOpen(false);
                       }}
                     >
