@@ -130,12 +130,11 @@ export function getDayIndicator(
     .filter((event): event is CalendarEvent => Boolean(event));
 
   const leaveCount = events.filter((event) =>
-    ["paidLeave", "unpaidLeave", "noAttendance"].includes(event.type),
+    event.type === "leave",
   ).length;
 
   if (leaveCount > 1) return indicatorColors.multipleLeave;
   if (leaveCount === 1) return indicatorColors.leave;
-  if (events.some((event) => event.type === "wfh")) return attendanceMeta.wfh.solid;
 
   return undefined;
 }

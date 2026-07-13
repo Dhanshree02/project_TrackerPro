@@ -2,16 +2,11 @@
 
 export type MemberStatus = "Active" | "WFH" | "On Leave";
 
-export type AttendanceType =
-  | "wfh"
-  | "onDuty"
-  | "paidLeave"
-  | "unpaidLeave"
-  | "noAttendance"
-  | "weeklyOff"
-  | "holiday";
+/** Four visible attendance states shown in the calendar. */
+export type AttendanceType = "active" | "wfh" | "leave" | "weeklyOff" | "holiday";
 
-export type SelectableAttendanceType = "paidLeave" | "holiday" | "wfh";
+/** User-selectable per cell: active, leave, wfh, or clear (removes the mark). */
+export type SelectableAttendanceType = "active" | "leave" | "wfh" | "clear";
 
 export type TeamMember = {
   id: string;
@@ -38,6 +33,12 @@ export type ScheduleEntry = {
   type: AttendanceType;
   sequenceId?: string;
   title?: string;
+};
+
+/** A company-wide holiday on a specific date. */
+export type HolidayEntry = {
+  date: string;   // YYYY-MM-DD
+  name: string;
 };
 
 export type OpenCell = { memberId: string; dateKey: string } | null;
