@@ -1,78 +1,155 @@
 // ─── My Team Page ─────────────────────────────────────────────────────────────
-// Composes all My Team components and owns all page-level state.
-// Data is fetched exclusively through the service layer — the UI never
-// imports dummy data directly so switching to APIs requires no UI changes.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BriefcaseBusiness,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   Users,
+  Plus,
+  X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { teamDataService } from "./services/teamDataService";
 import {
   attendanceMeta,
-  indicatorColors,
   monthFormatter,
   weekdayFormatter,
 } from "./constants";
-import { getDayIndicator, makeDateKeyFromDate } from "./utils";
-import type { OpenCell, SelectableAttendanceType, TeamSchedule } from "./types";
+import { getDayIndicator, makeDateKeyFromDate, makeDateKey } from "./utils";
+import type {
+  HolidayEntry,
+  OpenCell,
+  SelectableAttendanceType,
+  TeamSchedule,
+} from "./types";
 import { CalendarDayCell } from "./components/CalendarDayCell";
-import { Legend, SmallDot } from "./components/Legend";
+import { Legend } from "./components/Legend";
 import { SummaryCard } from "./components/SummaryCard";
 
 export function MyTeamPage() {
-  // ── Data from service layer ──────────────────────────────────────────────────
-  // useMemo so the array reference is stable and the schedule initialiser only
-  // runs once — exactly the same behaviour as the original createTeamSchedule().
   const teamMembers = useMemo(() => teamDataService.getTeamMembers(), []);
 
   // ── UI state ─────────────────────────────────────────────────────────────────
-  const [selectedMonth, setSelectedMonth] = useState(
-    () => new Date(2026, 5, 1), // June 2026 — same default as original
-  );
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
 
-  const [teamSchedule, setTeamSchedule] = useState<TeamSchedule>(
-    () => teamDataService.createInitialSchedule(teamMembers),
-  );
+  const [teamSchedule, setTeamSchedule] = useState<TeamSchedule>(() => {
+    const raw = teamDataService.createInitialSchedule(teamMembers);
+    // Build today's key using LOCAL date (avoids UTC timezone shift)
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+    const cleaned: TeamSchedule = {};
+    for (const memberId of Object.keys(raw)) {
+      cleaned[memberId] = {};
+      for (const [dateKey, event] of Object.entries(raw[memberId])) {
+        const isFuture = dateKey > todayKey;
+        const shouldStrip = isFuture && (event.type === "active" || event.type === "wfh" || event.type === "holiday");
+        if (!shouldStrip) {
+          cleaned[memberId][dateKey] = event;
+        }
+      }
+    }
+    return cleaned;
+  });
 
   const [openCell, setOpenCell] = useState<OpenCell>(null);
+
+  // ── Holiday popover state ────────────────────────────────────────────────────
+  const [holidays, setHolidays] = useState<HolidayEntry[]>([]);
+  const [holidayPanelOpen, setHolidayPanelOpen] = useState(false);
+  const [holidayName, setHolidayName] = useState("");
+  const [holidayError, setHolidayError] = useState("");
+  // mini-calendar inside the popover
+  const [pickerMonth, setPickerMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [pickerSelectedDate, setPickerSelectedDate] = useState<string>(""); // YYYY-MM-DD
+  const holidayBtnRef = useRef<HTMLDivElement>(null);
 
   // ── Derived calendar values ──────────────────────────────────────────────────
   const year = selectedMonth.getFullYear();
   const monthIndex = selectedMonth.getMonth();
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
+  // today at midnight — locks past dates
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  // mini-calendar derived values
+  const pickerYear       = pickerMonth.getFullYear();
+  const pickerMonthIndex = pickerMonth.getMonth();
+  const pickerDaysInMonth = new Date(pickerYear, pickerMonthIndex + 1, 0).getDate();
+  const pickerFirstDow   = new Date(pickerYear, pickerMonthIndex, 1).getDay(); // 0=Sun
+
   const days = useMemo(
     () => Array.from({ length: daysInMonth }, (_, i) => i + 1),
     [daysInMonth],
   );
 
-  // ── Summary counts ───────────────────────────────────────────────────────────
+  // Build a map of dateKey → holiday name so CalendarDayCell can display the name on hover
+  const holidayMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    holidays.forEach((h) => { map[h.date] = h.name; });
+    return map;
+  }, [holidays]);
+
+  // ── Summary counts — derived from today's calendar entries ─────────────────
+  // Active = marked "active" OR "wfh" OR no entry at all (present by default)
+  // WFH    = marked "wfh"
+  // On leave = marked "leave"
+  // Active card intentionally includes WFH employees.
   const totalMembers = teamMembers.length;
-  const activeCount = teamMembers.filter((m) => m.status === "Active").length;
-  const wfhCount = teamMembers.filter((m) => m.status === "WFH").length;
-  const onLeaveCount = teamMembers.filter((m) => m.status === "On Leave").length;
+
+  // Build todayKey from LOCAL date parts to avoid UTC timezone shift
+  const todayKey = useMemo(() => {
+    const d = today;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, [today]);
+
+  const { activeCount, wfhCount, onLeaveCount } = useMemo(() => {
+    let active = 0, wfh = 0, onLeave = 0;
+    teamMembers.forEach((m) => {
+      const memberSchedule = teamSchedule[m.id];
+      const event = memberSchedule ? memberSchedule[todayKey] : undefined;
+      const type = event ? event.type : undefined;
+
+      if (type === "active") {
+        active++;
+      } else if (type === "wfh") {
+        wfh++;
+        active++; // WFH also counts toward Active
+      } else if (type === "leave") {
+        onLeave++;
+      }
+      // undefined / weeklyOff / holiday — not counted in any card
+    });
+    return { activeCount: active, wfhCount: wfh, onLeaveCount: onLeave };
+  }, [teamMembers, teamSchedule, todayKey]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const changeMonth = (amount: number) => {
     setOpenCell(null);
     setSelectedMonth(
-      (current) =>
-        new Date(current.getFullYear(), current.getMonth() + amount, 1),
+      (c) => new Date(c.getFullYear(), c.getMonth() + amount, 1),
     );
   };
 
   const handleCellToggle = (memberId: string, date: Date) => {
+    if (date < today) return; // past dates are read-only
+    // Holiday cells are not user-editable per-member — skip
     const dateKey = makeDateKeyFromDate(date);
+    if (holidayMap[dateKey]) return;
     setOpenCell((current) => {
-      if (current?.memberId === memberId && current.dateKey === dateKey) {
-        return null;
-      }
+      if (current?.memberId === memberId && current.dateKey === dateKey) return null;
       return { memberId, dateKey };
     });
   };
@@ -83,17 +160,81 @@ export function MyTeamPage() {
     type: SelectableAttendanceType,
   ) => {
     const dateKey = makeDateKeyFromDate(date);
-    setTeamSchedule((current) => ({
-      ...current,
-      [memberId]: {
-        ...current[memberId],
-        [dateKey]: {
-          type,
-          title: attendanceMeta[type].label,
+    if (type === "clear") {
+      // Remove the attendance mark entirely
+      setTeamSchedule((current) => {
+        const memberSchedule = { ...current[memberId] };
+        delete memberSchedule[dateKey];
+        return { ...current, [memberId]: memberSchedule };
+      });
+    } else {
+      setTeamSchedule((current) => ({
+        ...current,
+        [memberId]: {
+          ...current[memberId],
+          [dateKey]: { type, title: attendanceMeta[type].label },
         },
-      },
-    }));
+      }));
+    }
     setOpenCell(null);
+  };
+
+  // Close holiday panel when clicking outside
+  useEffect(() => {
+    if (!holidayPanelOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (holidayBtnRef.current && !holidayBtnRef.current.contains(e.target as Node)) {
+        setHolidayPanelOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [holidayPanelOpen]);
+
+  // Add a holiday — applies to ALL team members on that date
+  const handleAddHoliday = () => {
+    setHolidayError("");
+    if (!pickerSelectedDate) { setHolidayError("Please select a date."); return; }
+    if (!holidayName.trim()) { setHolidayError("Please enter a holiday name."); return; }
+    if (holidays.some((h) => h.date === pickerSelectedDate)) {
+      setHolidayError("A holiday already exists on this date."); return;
+    }
+
+    const entry: HolidayEntry = { date: pickerSelectedDate, name: holidayName.trim() };
+    setHolidays((prev) => [...prev, entry]);
+
+    // Apply to every team member on that date
+    setTeamSchedule((current) => {
+      const next = { ...current };
+      teamMembers.forEach((m) => {
+        next[m.id] = {
+          ...next[m.id],
+          [pickerSelectedDate]: { type: "holiday", title: holidayName.trim() },
+        };
+      });
+      return next;
+    });
+
+    // Reset panel
+    setPickerSelectedDate("");
+    setHolidayName("");
+    setHolidayPanelOpen(false);
+  };
+
+  const handleRemoveHoliday = (dateKey: string) => {
+    setHolidays((prev) => prev.filter((h) => h.date !== dateKey));
+    // Remove the holiday event from all team members
+    setTeamSchedule((current) => {
+      const next = { ...current };
+      teamMembers.forEach((m) => {
+        if (next[m.id]?.[dateKey]?.type === "holiday") {
+          const memberSchedule = { ...next[m.id] };
+          delete memberSchedule[dateKey];
+          next[m.id] = memberSchedule;
+        }
+      });
+      return next;
+    });
   };
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -105,99 +246,171 @@ export function MyTeamPage() {
       <div className="space-y-4">
         {/* Summary cards */}
         <section className="grid gap-3 md:grid-cols-3">
-          <SummaryCard
-            label="Active today"
-            current={activeCount}
-            total={totalMembers}
-            icon={Users}
-          />
-
-          <SummaryCard
-            label="WFH today"
-            current={wfhCount}
-            total={totalMembers}
-            icon={BriefcaseBusiness}
-          />
-
-          <SummaryCard
-            label="On leave today"
-            current={onLeaveCount}
-            total={totalMembers}
-            icon={CalendarDays}
-          />
+          <SummaryCard label="Active today"  current={activeCount}  total={totalMembers} icon={Users}           />
+          <SummaryCard label="WFH today"     current={wfhCount}     total={totalMembers} icon={BriefcaseBusiness} />
+          <SummaryCard label="On leave today" current={onLeaveCount} total={totalMembers} icon={CalendarDays}    />
         </section>
 
         {/* Team calendar */}
         <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
           <h2 className="text-sm font-semibold">Team calendar</h2>
-
           <p className="mt-1 text-xs text-muted-foreground">
-            Click any date to mark leave, holiday, or work from home
+            Click any future date to mark leave. Use the holiday manager to add company-wide holidays.
           </p>
 
           <div className="mt-4 overflow-x-auto rounded-sm border border-[#e5e8ef] bg-white px-4 py-5">
-            <div
-              className="pb-32"
-              style={{ minWidth: `${300 + daysInMonth * 28}px` }}
-            >
-              {/* Month navigation */}
-              <div className="mb-4 flex items-center gap-2">
-                <button
-                  type="button"
-                  aria-label="Previous month"
-                  onClick={() => changeMonth(-1)}
-                  className="flex h-5 w-5 items-center justify-center rounded-[3px] bg-[#5a49b8] text-white transition hover:bg-[#4e3fa4]"
-                >
+            <div className="pb-32" style={{ minWidth: `${300 + daysInMonth * 28}px` }}>
+
+              {/* ── Month navigation + Add Holiday button ── */}
+              <div className="mb-4 flex items-center gap-3 flex-wrap">
+
+                {/* Month arrows */}
+                <button type="button" aria-label="Previous month" onClick={() => changeMonth(-1)}
+                  className="flex h-6 w-6 items-center justify-center rounded-[3px] bg-[#5a49b8] text-white transition hover:bg-[#4e3fa4]">
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </button>
-
                 <span className="min-w-[76px] text-center text-xs font-semibold text-[#586174]">
                   {monthFormatter.format(selectedMonth)}
                 </span>
-
-                <button
-                  type="button"
-                  aria-label="Next month"
-                  onClick={() => changeMonth(1)}
-                  className="flex h-5 w-5 items-center justify-center rounded-[3px] bg-[#5a49b8] text-white transition hover:bg-[#4e3fa4]"
-                >
+                <button type="button" aria-label="Next month" onClick={() => changeMonth(1)}
+                  className="flex h-6 w-6 items-center justify-center rounded-[3px] bg-[#5a49b8] text-white transition hover:bg-[#4e3fa4]">
                   <ChevronRight className="h-3.5 w-3.5" />
                 </button>
+
+                {/* Add Holiday button + popover */}
+                <div ref={holidayBtnRef} className="relative ml-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHolidayPanelOpen((o) => !o);
+                      setHolidayError("");
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#a6c63a] bg-[#f4f9e8] px-3 py-1 text-[11px] font-semibold text-[#4a6b0a] transition hover:bg-[#e2ecc0]"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Holiday
+                  </button>
+
+                  {/* Popover panel */}
+                  {holidayPanelOpen && (
+                    <div className="absolute left-0 top-[calc(100%+6px)] z-[200] w-[260px] rounded-xl border border-[#e1e4eb] bg-white shadow-[0_8px_32px_rgba(34,42,62,0.16)]">
+                      {/* Caret */}
+                      <span className="absolute -top-[7px] left-5 h-3.5 w-3.5 rotate-45 border-l border-t border-[#e1e4eb] bg-white" />
+
+                      {/* Mini calendar header */}
+                      <div className="flex items-center justify-between border-b border-[#f0f2f5] px-3 py-2">
+                        <button type="button" onClick={() => setPickerMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+                          className="flex h-5 w-5 items-center justify-center rounded hover:bg-[#f0eef9] text-[#5a49b8]">
+                          <ChevronLeft className="h-3 w-3" />
+                        </button>
+                        <span className="text-[11px] font-semibold text-[#3d3d5c]">
+                          {new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(pickerMonth)}
+                        </span>
+                        <button type="button" onClick={() => setPickerMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+                          className="flex h-5 w-5 items-center justify-center rounded hover:bg-[#f0eef9] text-[#5a49b8]">
+                          <ChevronRight className="h-3 w-3" />
+                        </button>
+                      </div>
+
+                      {/* Day-of-week labels */}
+                      <div className="grid grid-cols-7 px-2 pt-2">
+                        {["Su","Mo","Tu","We","Th","Fr","Sa"].map((d) => (
+                          <div key={d} className="flex h-6 items-center justify-center text-[9px] font-bold text-[#9aa2b2]">{d}</div>
+                        ))}
+                      </div>
+
+                      {/* Day grid */}
+                      <div className="grid grid-cols-7 px-2 pb-2">
+                        {/* Leading empty cells */}
+                        {Array.from({ length: pickerFirstDow }).map((_, i) => (
+                          <div key={`e${i}`} />
+                        ))}
+                        {Array.from({ length: pickerDaysInMonth }, (_, i) => i + 1).map((day) => {
+                          const dateKey = makeDateKey(pickerYear, pickerMonthIndex, day);
+                          const cellDate = new Date(pickerYear, pickerMonthIndex, day);
+                          cellDate.setHours(0, 0, 0, 0);
+                          const isPast = cellDate <= today; // past AND today are not selectable
+                          const isSelected = pickerSelectedDate === dateKey;
+                          const hasHoliday = holidays.some((h) => h.date === dateKey);
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              disabled={isPast || hasHoliday}
+                              onClick={() => { setPickerSelectedDate(dateKey); setHolidayError(""); }}
+                              className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-medium transition
+                                ${isSelected ? "bg-[#a6c63a] text-white font-bold" : ""}
+                                ${hasHoliday && !isSelected ? "bg-[#e2ecc0] text-[#4a6b0a] cursor-not-allowed" : ""}
+                                ${isPast ? "text-[#c8cdd6] cursor-not-allowed" : !isSelected && !hasHoliday ? "text-[#374151] hover:bg-[#f0eef9] hover:text-[#5a49b8]" : ""}
+                              `}
+                            >
+                              {day}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Selected date display */}
+                      <div className="border-t border-[#f0f2f5] px-3 py-2">
+                        <p className="mb-1 text-[10px] font-medium text-[#6b7280]">
+                          {pickerSelectedDate
+                            ? `Selected: ${new Date(pickerSelectedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}`
+                            : "Select a future date above"}
+                        </p>
+                        {/* Holiday name input */}
+                        <input
+                          type="text"
+                          value={holidayName}
+                          onChange={(e) => { setHolidayName(e.target.value); setHolidayError(""); }}
+                          placeholder="Holiday name (e.g. Diwali)"
+                          className="w-full rounded border border-[#d1d5db] px-2 py-1 text-xs text-[#1f2937] outline-none focus:ring-1 focus:ring-[#a6c63a]"
+                        />
+                        {holidayError && (
+                          <p className="mt-1 text-[10px] text-red-500">{holidayError}</p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleAddHoliday}
+                          className="mt-2 w-full rounded-md bg-[#a6c63a] py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#8fab28]"
+                        >
+                          Save Holiday
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Saved holiday chips */}
+                {holidays.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 ml-1">
+                    {holidays.map((h) => (
+                      <span key={h.date}
+                        className="inline-flex items-center gap-1 rounded-full border border-[#c9dfa0] bg-[#f0f7db] px-2 py-0.5 text-[10px] font-semibold text-[#4a6b0a]">
+                        {new Date(h.date + "T00:00:00").toLocaleDateString("en-US", { day: "numeric", month: "short" })} · {h.name}
+                        <button type="button" onClick={() => handleRemoveHoliday(h.date)}
+                          className="ml-0.5 text-[#4a6b0a] hover:text-red-500" aria-label={`Remove ${h.name}`}>
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Day headers with leave indicators */}
+              {/* Day headers */}
               <div className="flex border-b border-[#edf0f4] pb-2">
                 <div className="w-[300px] shrink-0" />
-
-                <div
-                  className="grid"
-                  style={{
-                    gridTemplateColumns: `repeat(${daysInMonth}, 28px)`,
-                  }}
-                >
+                <div className="grid" style={{ gridTemplateColumns: `repeat(${daysInMonth}, 28px)` }}>
                   {days.map((day) => {
                     const date = new Date(year, monthIndex, day);
                     const weekday = weekdayFormatter.format(date).slice(0, 2);
-                    const indicatorColor = getDayIndicator(
-                      teamSchedule,
-                      teamMembers,
-                      year,
-                      monthIndex,
-                      day,
-                    );
-
+                    const indicatorColor = getDayIndicator(teamSchedule, teamMembers, year, monthIndex, day);
                     return (
-                      <div
-                        key={day}
-                        className="relative flex h-[24px] items-start justify-center text-[10px] font-bold text-[#566073]"
-                      >
+                      <div key={day} className="relative flex h-[24px] items-start justify-center text-[10px] font-bold text-[#566073]">
                         {weekday}
-
                         {indicatorColor && (
-                          <span
-                            className="absolute bottom-[1px] left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full"
-                            style={{ backgroundColor: indicatorColor }}
-                          />
+                          <span className="absolute bottom-[1px] left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full"
+                            style={{ backgroundColor: indicatorColor }} />
                         )}
                       </div>
                     );
@@ -208,42 +421,27 @@ export function MyTeamPage() {
               {/* Member rows */}
               <div className="divide-y divide-[#edf0f4]">
                 {teamMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    className="relative flex min-h-[48px] items-center overflow-visible"
-                  >
+                  <div key={member.id} className="relative flex min-h-[48px] items-center overflow-visible">
                     {/* Member identity */}
                     <div className="flex w-[300px] shrink-0 items-center gap-2.5 pr-4">
-                      <div
-                        className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
-                        style={{ backgroundColor: member.avatarColor }}
-                      >
+                      <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                        style={{ backgroundColor: member.avatarColor }}>
                         {member.initials}
                       </div>
-
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-[#626b7c]">
-                          {member.name}
-                        </p>
-                        <p className="truncate text-[9px] text-[#9aa1ae]">
-                          {member.designation}
-                        </p>
+                        <p className="truncate text-xs font-semibold text-[#626b7c]">{member.name}</p>
+                        <p className="truncate text-[9px] text-[#9aa1ae]">{member.designation}</p>
                       </div>
                     </div>
 
-                    {/* Calendar cells for this member */}
-                    <div
-                      className="grid overflow-visible"
-                      style={{
-                        gridTemplateColumns: `repeat(${daysInMonth}, 28px)`,
-                      }}
-                    >
+                    {/* Calendar cells */}
+                    <div className="grid overflow-visible"
+                      style={{ gridTemplateColumns: `repeat(${daysInMonth}, 28px)` }}>
                       {days.map((day) => {
                         const date = new Date(year, monthIndex, day);
                         const dateKey = makeDateKeyFromDate(date);
-                        const isOpen =
-                          openCell?.memberId === member.id &&
-                          openCell.dateKey === dateKey;
+                        const isOpen = openCell?.memberId === member.id && openCell.dateKey === dateKey;
+                        const isHoliday = !!holidayMap[dateKey];
 
                         return (
                           <CalendarDayCell
@@ -252,13 +450,12 @@ export function MyTeamPage() {
                             date={date}
                             schedule={teamSchedule}
                             isOpen={isOpen}
-                            onToggle={() =>
-                              handleCellToggle(member.id, date)
-                            }
+                            isPast={date < today}
+                            isHoliday={isHoliday}
+                            holidayName={holidayMap[dateKey]}
+                            onToggle={() => handleCellToggle(member.id, date)}
                             onClose={() => setOpenCell(null)}
-                            onSelect={(type) =>
-                              handleAttendanceSelect(member.id, date, type)
-                            }
+                            onSelect={(type) => handleAttendanceSelect(member.id, date, type)}
                           />
                         );
                       })}
@@ -269,43 +466,13 @@ export function MyTeamPage() {
 
               {/* Legend */}
               <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-[10px] font-medium text-[#6f7685]">
-                <Legend
-                  color={attendanceMeta.wfh.solid}
-                  text="Work from home"
-                />
-                <Legend
-                  color={attendanceMeta.onDuty.solid}
-                  text="On duty"
-                />
-                <Legend
-                  color={attendanceMeta.paidLeave.solid}
-                  text="Paid Leave"
-                />
-                <Legend
-                  color={attendanceMeta.unpaidLeave.solid}
-                  text="Unpaid Leave"
-                />
-                <Legend
-                  color={attendanceMeta.noAttendance.solid}
-                  text="Leave due to No Attendance"
-                />
-                <Legend
-                  color={attendanceMeta.weeklyOff.solid}
-                  text="Weekly off"
-                />
-                <Legend
-                  color={attendanceMeta.holiday.solid}
-                  text="Holiday"
-                />
-                <SmallDot
-                  color={indicatorColors.leave}
-                  text="Someone on Leave"
-                />
-                <SmallDot
-                  color={indicatorColors.multipleLeave}
-                  text="Multiple Leave on a day"
-                />
+                <Legend color={attendanceMeta.active.solid}    text="Active Today" />
+                <Legend color={attendanceMeta.wfh.solid}       text="Work From Home" />
+                <Legend color={attendanceMeta.leave.solid}     text="Leave" />
+                <Legend color={attendanceMeta.weeklyOff.solid} text="Weekly Off" />
+                <Legend color={attendanceMeta.holiday.solid}   text="Holiday" />
               </div>
+
             </div>
           </div>
         </section>

@@ -1,6 +1,4 @@
 // ─── My Team — Constants ─────────────────────────────────────────────────────
-// All static lookup tables and formatters for the My Team module.
-// Reused by components, utils, and the service layer.
 
 import type { AttendanceType, SelectableAttendanceType } from "../types";
 
@@ -8,67 +6,57 @@ export const attendanceMeta: Record<
   AttendanceType,
   { label: string; solid: string; soft: string; textColor: string }
 > = {
+  active: {
+    label: "Active Today",
+    solid: "#8b75c8",   // purple
+    soft:  "#ded7f0",
+    textColor: "#ffffff",
+  },
   wfh: {
-    label: "Work from home",
-    solid: "#8b75c8",
-    soft: "#ded7f0",
+    label: "Work From Home",
+    solid: "#cf67bd",   // pink/magenta
+    soft:  "#f0d7eb",
     textColor: "#ffffff",
   },
-  onDuty: {
-    label: "On duty",
-    solid: "#cf67bd",
-    soft: "#f0d7eb",
-    textColor: "#ffffff",
-  },
-  paidLeave: {
-    label: "Paid Leave",
-    solid: "#74cbd4",
-    soft: "#ccecef",
-    textColor: "#ffffff",
-  },
-  unpaidLeave: {
-    label: "Unpaid Leave",
-    solid: "#cfc4a2",
-    soft: "#eae5d5",
-    textColor: "#ffffff",
-  },
-  noAttendance: {
-    label: "Leave due to No Attendance",
-    solid: "#f47f82",
-    soft: "#f8d1d2",
+  leave: {
+    label: "Leave",
+    solid: "#49a6e9",   // blue
+    soft:  "#cce4f7",
     textColor: "#ffffff",
   },
   weeklyOff: {
-    label: "Weekly off",
-    solid: "#ffc02f",
-    soft: "#f9e7b8",
+    label: "Weekly Off",
+    solid: "#ffc02f",   // amber
+    soft:  "#f9e7b8",
     textColor: "#ffffff",
   },
   holiday: {
     label: "Holiday",
-    solid: "#a6c63a",
-    soft: "#e2ecc0",
+    solid: "#a6c63a",   // green
+    soft:  "#e2ecc0",
     textColor: "#ffffff",
   },
 };
 
 export const indicatorColors = {
-  /** Single person on leave */
+  /** One person on leave */
   leave: "#49a6e9",
-  /** Multiple people on leave on the same day */
+  /** Multiple people on leave */
   multipleLeave: "#ff6161",
 } as const;
 
+/** User-selectable options in the per-cell dropdown. */
 export const dropdownOptions: Array<{
   label: string;
   type: SelectableAttendanceType;
 }> = [
-  { label: "Leave", type: "paidLeave" },
-  { label: "Holiday", type: "holiday" },
-  { label: "Work from home", type: "wfh" },
+  { label: "Active",         type: "active" },
+  { label: "Work From Home", type: "wfh"    },
+  { label: "Leave",          type: "leave"  },
+  { label: "Clear",          type: "clear"  },
 ];
 
-/** Formats a Date as "Jun 2026" */
+/** Formats a Date as "Jul 2026" */
 export const monthFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
   year: "numeric",
