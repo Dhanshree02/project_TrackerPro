@@ -131,7 +131,7 @@ export function getProjectTeam(p: Project): TeamAllocation[] {
       person,
       duration: `${new Date(p.startDate).toLocaleDateString()} → ${new Date(p.endDate).toLocaleDateString()}`,
       billability: idx % 3 === 2 ? "Non-Billable" : "Billable",
-      resourceType: idx % 2 === 0 ? "Fixed" : "Adhoc",
+      resourceType: idx % 2 === 0 ? "Dedicated" : "Shared Resource",
     };
   });
 }
