@@ -2,11 +2,22 @@
 
 export type MemberStatus = "Active" | "WFH" | "On Leave";
 
-/** Four visible attendance states shown in the calendar. */
-export type AttendanceType = "active" | "wfh" | "leave" | "weeklyOff" | "holiday";
+/**
+ * Attendance states visible in the calendar.
+ * "onsite"    — explicitly marked as on-site (office)
+ * "wfh"       — working from home
+ * "leave"     — on leave
+ * "weeklyOff" — auto-derived for Sat/Sun
+ * "holiday"   — company-wide holiday (managed via Holiday Manager)
+ */
+export type AttendanceType = "onsite" | "wfh" | "leave" | "weeklyOff" | "holiday";
 
-/** User-selectable per cell: active, leave, wfh, or clear (removes the mark). */
-export type SelectableAttendanceType = "active" | "leave" | "wfh" | "clear";
+/**
+ * Types the user can select from the per-cell dropdown.
+ * "onsite" | "wfh" | "leave" — set an explicit status
+ * "clear"                    — remove any explicit status (employee defaults to active)
+ */
+export type SelectableAttendanceType = "onsite" | "wfh" | "leave" | "clear";
 
 export type TeamMember = {
   id: string;

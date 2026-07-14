@@ -48,7 +48,7 @@ export function MyTeamPage() {
       cleaned[memberId] = {};
       for (const [dateKey, event] of Object.entries(raw[memberId])) {
         const isFuture = dateKey > todayKey;
-        const shouldStrip = isFuture && (event.type === "active" || event.type === "wfh" || event.type === "holiday");
+    const shouldStrip = isFuture && (event.type === "onsite" || event.type === "wfh" || event.type === "holiday");
         if (!shouldStrip) {
           cleaned[memberId][dateKey] = event;
         }
@@ -102,38 +102,35 @@ export function MyTeamPage() {
     return map;
   }, [holidays]);
 
-  // ── Summary counts — derived from today's calendar entries ─────────────────
-  // Active = marked "active" OR "wfh" OR no entry at all (present by default)
-  // WFH    = marked "wfh"
-  // On leave = marked "leave"
-  // Active card intentionally includes WFH employees.
+  // ── Summary counts ───────────────────────────────────────────────────────────
+  // Active today = everyone NOT on leave (default state for all employees).
+  //   Onsite and WFH employees are still "active".
+  //   Only "leave" removes someone from the active count.
+  // WFH today   = explicitly marked wfh on today's date.
+  // On leave    = explicitly marked leave on today's date.
   const totalMembers = teamMembers.length;
 
-  // Build todayKey from LOCAL date parts to avoid UTC timezone shift
+  // todayKey built from local date parts — avoids UTC timezone shift
   const todayKey = useMemo(() => {
     const d = today;
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }, [today]);
 
-  const { activeCount, wfhCount, onLeaveCount } = useMemo(() => {
-    let active = 0, wfh = 0, onLeave = 0;
+  const { activeCount, wfhCount, onLeaveCount, onsiteCount } = useMemo(() => {
+    let wfh = 0, onLeave = 0, onsite = 0;
     teamMembers.forEach((m) => {
-      const memberSchedule = teamSchedule[m.id];
-      const event = memberSchedule ? memberSchedule[todayKey] : undefined;
-      const type = event ? event.type : undefined;
-
-      if (type === "active") {
-        active++;
+      const event = teamSchedule[m.id]?.[todayKey];
+      const type = event?.type;
+      if (type === "leave") {
+        onLeave++;
       } else if (type === "wfh") {
         wfh++;
-        active++; // WFH also counts toward Active
-      } else if (type === "leave") {
-        onLeave++;
+      } else if (type === "onsite") {
+        onsite++;
       }
-      // undefined / weeklyOff / holiday — not counted in any card
     });
-    return { activeCount: active, wfhCount: wfh, onLeaveCount: onLeave };
-  }, [teamMembers, teamSchedule, todayKey]);
+    return { activeCount: totalMembers - onLeave, wfhCount: wfh, onLeaveCount: onLeave, onsiteCount: onsite };
+  }, [teamMembers, teamSchedule, todayKey, totalMembers]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const changeMonth = (amount: number) => {
@@ -245,10 +242,11 @@ export function MyTeamPage() {
     >
       <div className="space-y-4">
         {/* Summary cards */}
-        <section className="grid gap-3 md:grid-cols-3">
-          <SummaryCard label="Active today"  current={activeCount}  total={totalMembers} icon={Users}           />
-          <SummaryCard label="WFH today"     current={wfhCount}     total={totalMembers} icon={BriefcaseBusiness} />
-          <SummaryCard label="On leave today" current={onLeaveCount} total={totalMembers} icon={CalendarDays}    />
+        <section className="grid gap-3 md:grid-cols-4">
+          <SummaryCard label="Active today"   current={activeCount}  total={totalMembers} icon={Users}            />
+          <SummaryCard label="Onsite today"   current={onsiteCount}  total={totalMembers} icon={BriefcaseBusiness} />
+          <SummaryCard label="WFH today"      current={wfhCount}     total={totalMembers} icon={BriefcaseBusiness} />
+          <SummaryCard label="On leave today" current={onLeaveCount} total={totalMembers} icon={CalendarDays}     />
         </section>
 
         {/* Team calendar */}
@@ -466,7 +464,7 @@ export function MyTeamPage() {
 
               {/* Legend */}
               <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-[10px] font-medium text-[#6f7685]">
-                <Legend color={attendanceMeta.active.solid}    text="Active Today" />
+                <Legend color={attendanceMeta.onsite.solid}    text="Onsite" />
                 <Legend color={attendanceMeta.wfh.solid}       text="Work From Home" />
                 <Legend color={attendanceMeta.leave.solid}     text="Leave" />
                 <Legend color={attendanceMeta.weeklyOff.solid} text="Weekly Off" />
