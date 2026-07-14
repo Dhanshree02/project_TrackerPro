@@ -19,6 +19,8 @@ export type AttendanceType = "onsite" | "wfh" | "leave" | "weeklyOff" | "holiday
  */
 export type SelectableAttendanceType = "onsite" | "wfh" | "leave" | "clear";
 
+export type ShiftType = "Morning" | "Afternoon" | "Night" | "General";
+
 export type TeamMember = {
   id: string;
   name: string;
