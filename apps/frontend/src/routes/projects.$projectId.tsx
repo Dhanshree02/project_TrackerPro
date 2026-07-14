@@ -1,16 +1,18 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
-import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock } from "lucide-react";
+import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
 import { useRoleContext } from "@/lib/role-context";
 import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar } from "@/components/pills";
-import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType } from "@/lib/dh-helpers";
-import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation } from "@/lib/dh-store";
+import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType, people as dhPeople } from "@/lib/dh-helpers";
+import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/dh-store";
 import { Modal, Field } from "@/routes/projects.index";
 import { cn } from "@/lib/utils";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
 
 // Helper function for consistent date formatting (prevents hydration mismatch)
 function formatDate(date: Date): string {
@@ -18,6 +20,164 @@ function formatDate(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${m}/${d}/${y}`;
+}
+
+// ---------- Date Range Picker — two small inline calendars ----------
+function DateRangePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  // Parse "M/D/YYYY → M/D/YYYY" → DateRange
+  const parsedRange = useMemo<DateRange>(() => {
+    if (!value) return { from: undefined, to: undefined };
+    const parts = value.split(" → ");
+    const from = parts[0] ? new Date(parts[0]) : undefined;
+    const to   = parts[1] ? new Date(parts[1]) : undefined;
+    return {
+      from: from && !isNaN(from.getTime()) ? from : undefined,
+      to:   to   && !isNaN(to.getTime())   ? to   : undefined,
+    };
+  }, [value]);
+
+  // Single shared month — both calendars always show the same month
+  const [currentMonth, setCurrentMonth] = useState<Date>(parsedRange.from ?? new Date());
+
+  // Format date as dd-mm-yyyy for the text inputs
+  const toInputFmt = (d: Date | undefined) => {
+    if (!d) return "";
+    return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()}`;
+  };
+
+  const parseInputFmt = (s: string): Date | undefined => {
+    const [dd, mm, yyyy] = s.split("-");
+    if (!dd || !mm || !yyyy) return undefined;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    return isNaN(d.getTime()) ? undefined : d;
+  };
+
+  const [fromInput, setFromInput] = useState(toInputFmt(parsedRange.from));
+  const [toInput,   setToInput]   = useState(toInputFmt(parsedRange.to));
+
+  const commit = (from: Date | undefined, to: Date | undefined) => {
+    if (from && to) onChange(`${formatDate(from)} → ${formatDate(to)}`);
+    else if (from) onChange(`${formatDate(from)} → `);
+    else onChange("");
+  };
+
+  // Click on start calendar
+  const handleFromDay = (day: Date) => {
+    setFromInput(toInputFmt(day));
+    // If picked start > current end, clear end
+    const newTo = parsedRange.to && day > parsedRange.to ? undefined : parsedRange.to;
+    if (!newTo) setToInput("");
+    commit(day, newTo);
+  };
+
+  // Click on end calendar
+  const handleToDay = (day: Date) => {
+    // end must not be before start
+    if (parsedRange.from && day < parsedRange.from) {
+      toast.error("End date must be after start date");
+      return;
+    }
+    setToInput(toInputFmt(day));
+    commit(parsedRange.from, day);
+  };
+
+  const handleFromInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFromInput(e.target.value);
+    const d = parseInputFmt(e.target.value);
+    if (d) { setCurrentMonth(d); commit(d, parsedRange.to); }
+  };
+
+  const handleToInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setToInput(e.target.value);
+    const d = parseInputFmt(e.target.value);
+    if (d) { setCurrentMonth(d); commit(parsedRange.from, d); }
+  };
+
+  const handleClear = () => {
+    setFromInput(""); setToInput("");
+    onChange("");
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {/* Two side-by-side small calendars */}
+      <div className="flex gap-0 divide-x divide-border">
+        {/* Start date calendar */}
+        <div className="flex-1 min-w-0">
+          <p className="px-3 pt-2 pb-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Start Date</p>
+          <CalendarUI
+            mode="single"
+            selected={parsedRange.from}
+            onSelect={(day) => day && handleFromDay(day)}
+            month={currentMonth}
+            onMonthChange={setCurrentMonth}
+            showOutsideDays
+            captionLayout="label"
+            className="w-full [--cell-size:1.45rem] text-[10px]"
+          />
+        </div>
+        {/* End date calendar */}
+        <div className="flex-1 min-w-0">
+          <p className="px-3 pt-2 pb-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">End Date</p>
+          <CalendarUI
+            mode="single"
+            selected={parsedRange.to}
+            onSelect={(day) => day && handleToDay(day)}
+            month={currentMonth}
+            onMonthChange={setCurrentMonth}
+            showOutsideDays
+            captionLayout="label"
+            disabled={parsedRange.from ? { before: parsedRange.from } : undefined}
+            className="w-full [--cell-size:1.45rem] text-[10px]"
+          />
+        </div>
+      </div>
+
+      {/* Clear link */}
+      <div className="border-t border-border px-3 py-1.5 flex justify-between items-center">
+        <button
+          type="button"
+          onClick={handleClear}
+          className="text-xs font-medium text-primary hover:underline"
+        >
+          Clear
+        </button>
+      </div>
+
+      {/* Two text inputs */}
+      <div className="flex items-center gap-2 border-t border-border px-3 py-2.5">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="dd-mm-yyyy"
+            value={fromInput}
+            maxLength={10}
+            onChange={handleFromInputChange}
+            className="h-8 w-full rounded-md border border-input bg-card px-2 pr-8 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <CalendarDays className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        </div>
+        <span className="text-xs text-muted-foreground font-medium shrink-0">—</span>
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="dd-mm-yyyy"
+            value={toInput}
+            maxLength={10}
+            onChange={handleToInputChange}
+            className="h-8 w-full rounded-md border border-input bg-card px-2 pr-8 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <CalendarDays className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export const Route = createFileRoute("/projects/$projectId")({
@@ -842,9 +1002,29 @@ function InfoRow({ label, value, muted }: { label: string; value: string; muted?
 
 // ---------- Overview ----------
 function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project; pm: Person; tl: Person; team: Person[]; isDhanshree: boolean }) {
-  const ems = getProjectEMs(project);
-  const pms = getProjectPMs(project);
-  const tls = getProjectTLs(project);
+  // Reactive leadership assignments from store (Dhanshree overrides)
+  const leadershipAssignment = useDhStore((s) => s.leadershipAssignments[project.id] ?? null);
+
+  const ems: Person[] = useMemo(() => {
+    if (leadershipAssignment?.emIds?.length) return leadershipAssignment.emIds.map(getPerson).filter(Boolean) as Person[];
+    return getProjectEMs(project);
+  }, [leadershipAssignment, project]);
+
+  const spms: Person[] = useMemo(() => {
+    if (leadershipAssignment?.spmIds?.length) return leadershipAssignment.spmIds.map(getPerson).filter(Boolean) as Person[];
+    // fallback: prereq assigned SPMs, else default pool
+    return [getPerson("u1")];
+  }, [leadershipAssignment]);
+
+  const pms: Person[] = useMemo(() => {
+    if (leadershipAssignment?.pmIds?.length) return leadershipAssignment.pmIds.map(getPerson).filter(Boolean) as Person[];
+    return getProjectPMs(project);
+  }, [leadershipAssignment, project]);
+
+  const tls: Person[] = useMemo(() => {
+    if (leadershipAssignment?.tlIds?.length) return leadershipAssignment.tlIds.map(getPerson).filter(Boolean) as Person[];
+    return getProjectTLs(project);
+  }, [leadershipAssignment, project]);
 
   const wbs = project.wbsDetails;
   const hasWbsData = !!(project.wbsId || wbs);
@@ -947,13 +1127,11 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
         )}
 
         {isDhanshree && (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {/* Engagement Manager — for WBS projects use the value from the form;
-                getProjectEMs now reads project.engagementManager so this is consistent */}
-            <PeopleBlock title="Engagement Managers" people={ems} />
-            {/* PM & TL are assigned later in the WBS tab — show "Not yet assigned" until teamIds is populated */}
-            <PeopleBlock title="Project Managers" people={pms} unassigned={isNewWbsProject} />
-            <PeopleBlock title="Team Leads" people={tls} unassigned={isNewWbsProject} />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+            <LeadershipBlock title="Engagement Managers" role="Engagement Manager" people={ems} project={project} />
+            <LeadershipBlock title="Senior Project Managers" role="Senior Project Manager" people={spms} project={project} />
+            <LeadershipBlock title="Project Managers" role="Project Manager" people={pms} unassigned={isNewWbsProject} project={project} />
+            <LeadershipBlock title="Team Leads" role="Team Lead" people={tls} unassigned={isNewWbsProject} project={project} />
           </div>
         )}
       </div>
@@ -1150,6 +1328,193 @@ function PeopleBlock({ title, people, unassigned }: { title: string; people: Per
   );
 }
 
+// ---------- Leadership Block (Dhanshree only) — chips + Change Leader button ----------
+function LeadershipBlock({
+  title, role, people, unassigned, project,
+}: {
+  title: string;
+  role: LeadershipRole;
+  people: Person[];
+  unassigned?: boolean;
+  project: Project;
+}) {
+  const [showPanel, setShowPanel] = useState(false);
+  return (
+    <div className="flex flex-col rounded-lg border border-border bg-card p-3 gap-2 min-h-[120px]">
+      {/* Fixed-height title — always 2 lines so all cards align */}
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground leading-tight min-h-[28px]">
+        {title}
+      </div>
+      {/* People chips — grow to fill available space */}
+      <div className="flex-1 flex flex-wrap gap-1.5 content-start">
+        {unassigned || people.length === 0 ? (
+          <span className="text-[11px] italic text-muted-foreground">Not yet assigned</span>
+        ) : (
+          people.map((p) => (
+            <div key={p.id} className="flex items-center gap-1.5 rounded-full border border-border bg-accent/30 px-2 py-0.5 text-xs">
+              <Avatar name={p.name} size={18} />
+              <span>{p.name}</span>
+            </div>
+          ))
+        )}
+      </div>
+      {/* Button always at the bottom */}
+      <button
+        onClick={() => setShowPanel(true)}
+        className="mt-auto w-full h-7 rounded-md border border-primary/40 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 transition-colors"
+      >
+        Change Leader
+      </button>
+      {showPanel && (
+        <ChangeLeaderPanel
+          project={project}
+          role={role}
+          assignedPeople={people}
+          onClose={() => setShowPanel(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------- Change Leader Panel — direct assign / deassign ----------
+function ChangeLeaderPanel({
+  project, role, assignedPeople, onClose,
+}: {
+  project: Project;
+  role: LeadershipRole;
+  assignedPeople: Person[];
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  // Working copy of assigned IDs — saved on "Done"
+  const [assignedIds, setAssignedIds] = useState<string[]>(assignedPeople.map((p) => p.id));
+
+  const allPeople = dhPeople;
+
+  const visible = useMemo(() =>
+    allPeople.filter((p) =>
+      !search.trim() || p.name.toLowerCase().includes(search.toLowerCase()) || p.role.toLowerCase().includes(search.toLowerCase())
+    ),
+    [search, allPeople]
+  );
+
+  const toggle = (id: string) => {
+    setAssignedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleDone = () => {
+    dhStore.updateLeadershipAssignment(project.id, role, assignedIds);
+    const names = assignedIds.map((id) => getPerson(id).name).join(", ") || "None";
+    toast.success(`${role} updated`, { description: names });
+    onClose();
+  };
+
+  return (
+    <Modal title={`Change Leader — ${role}`} onClose={onClose}>
+      <div className="space-y-3">
+
+        {/* Currently assigned chips */}
+        <div>
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
+            Currently Assigned
+          </p>
+          <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+            {assignedIds.length === 0
+              ? <span className="text-xs italic text-muted-foreground">No one assigned</span>
+              : assignedIds.map((id) => {
+                  const p = getPerson(id);
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                      <Avatar name={p.name} size={14} />
+                      {p.name}
+                      <button
+                        onClick={() => toggle(id)}
+                        className="ml-0.5 rounded-full hover:bg-destructive/20 hover:text-destructive"
+                        title="Remove"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  );
+                })
+            }
+          </div>
+        </div>
+
+        {/* Search + full list */}
+        <div>
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
+            All Leaders
+          </p>
+          <div className="relative mb-2">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name or role…"
+              className="h-8 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              autoFocus
+            />
+          </div>
+
+          <ul className="max-h-64 overflow-y-auto divide-y divide-border rounded-md border border-border">
+            {visible.map((p) => {
+              const isAssigned = assignedIds.includes(p.id);
+              return (
+                <li key={p.id}>
+                  <button
+                    onClick={() => toggle(p.id)}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-accent/40",
+                      isAssigned && "bg-primary/5"
+                    )}
+                  >
+                    <Avatar name={p.name} size={24} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{p.name}</div>
+                      <div className="text-[10px] text-muted-foreground">{p.role}</div>
+                    </div>
+                    <div className={cn(
+                      "shrink-0 h-4 w-4 rounded border flex items-center justify-center transition-colors",
+                      isAssigned
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "border-input bg-card"
+                    )}>
+                      {isAssigned && <Check className="h-2.5 w-2.5" />}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+            {visible.length === 0 && (
+              <li className="px-3 py-6 text-center text-xs text-muted-foreground">No match</li>
+            )}
+          </ul>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 border-t border-border pt-3">
+          <button
+            onClick={onClose}
+            className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium hover:bg-accent"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDone}
+            className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ---------- Default Tasks (other roles) ----------
 function DefaultTasksTab({ project }: { project: Project }) {
   return (
@@ -1292,16 +1657,17 @@ function AvatarStack({ names }: { names: string[] }) {
   );
 }
 
-const TASK_STAGES = ["Not Started", "Completed", "On Hold (Internal)", "On Hold (Client End)", "After Release"] as const;
+const TASK_STAGES = ["Ready to Start", "Ongoing", "Completed", "On Hold (Internal)", "On Hold (Client End)", "After Release"] as const;
 type TaskStage = typeof TASK_STAGES[number];
 
 function stageCls(s: TaskStage) {
   return ({
-    "Not Started": "border-border bg-muted text-muted-foreground",
-    "Completed": "border-success/30 bg-success/10 text-success",
-    "On Hold (Internal)": "border-warning/40 bg-warning/15 text-warning-foreground",
-    "On Hold (Client End)": "border-orange-300 bg-orange-50 text-orange-700",
-    "After Release": "border-purple-200 bg-purple-50 text-purple-700",
+    "Ready to Start":      "border-primary/30 bg-primary/10 text-primary",
+    "Ongoing":             "border-blue-300 bg-blue-50 text-blue-700",
+    "Completed":           "border-success/30 bg-success/10 text-success",
+    "On Hold (Internal)":  "border-warning/40 bg-warning/15 text-warning-foreground",
+    "On Hold (Client End)":"border-orange-300 bg-orange-50 text-orange-700",
+    "After Release":       "border-purple-200 bg-purple-50 text-purple-700",
   } as Record<TaskStage, string>)[s] ?? "border-border bg-muted text-muted-foreground";
 }
 
@@ -1333,7 +1699,7 @@ function DhTasksTab({ project }: { project: Project }) {
         actualStartDate: t.actualStartDate ?? "",
         actualEndDate: t.actualEndDate ?? "",
         utilizedHours: t.utilizedHours != null ? String(t.utilizedHours) : "",
-        stage: (t.stage as TaskStage) ?? "Not Started",
+        stage: (t.stage as TaskStage) ?? "Ready to Start",
       };
     });
     return m;
@@ -1395,7 +1761,7 @@ function DhTasksTab({ project }: { project: Project }) {
             )}
             {project.tasks.map((t) => {
               const estHrs = t.estimatedHours ?? 0;
-              const a = actuals[t.id] ?? { actualStartDate: "", actualEndDate: "", utilizedHours: "", stage: "Not Started" as TaskStage };
+              const a = actuals[t.id] ?? { actualStartDate: "", actualEndDate: "", utilizedHours: "", stage: "Ready to Start" as TaskStage };
               // Use liveAssignments from store for reactivity — falls back to getTaskAssignment for seed data
               const liveIds = (liveAssignments[t.id]?.assigneeIds ?? dhStore.getTaskAssignment(project.id, t.id).assigneeIds)
                 .filter(Boolean); // remove any empty/falsy ids
@@ -1655,28 +2021,44 @@ function DhTeamTab({ project }: { project: Project }) {
   const snapshot = useDhStore((s) => s);
   const prereq = snapshot.prereqs[project.id];
 
-  if (prereq && !prereq.isProjectReadyToStart) {
-    return (
-      <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
-        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
-        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — Project Not Started</h4>
-        <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
-          Team building, resource assignment, shadow team allocation, task assignment, and activity assignment are disabled until the prerequisite collections and validations are completed, PM/SPM are assigned, and the project is marked as "Ready To Start".
-        </p>
-      </div>
-    );
-  }
-
-  const initial = useMemo(() => getProjectTeam(project), [project]);
   const [teamTab, setTeamTab] = useState<TeamTabType>("project");
-  const [rows, setRows] = useState(initial);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [action, setAction] = useState<{ type: ActionType; person: Person | null }>({ type: null, person: null });
   const [showAddModal, setShowAddModal] = useState(false);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   // Reactive access to DhStore shadow team records
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
   const shadowDetails = snapshot.shadowTeamDetails[project.id] ?? {};
+
+  // Project team: base rows from helper, overridden by persisted store details
+  const projectTeamOverrides = snapshot.projectTeamDetails[project.id] ?? {};
+  const projectTeamAdditionIds = snapshot.projectTeamAdditions[project.id] ?? [];
+
+  const rows = useMemo(() => {
+    // Base members from project (PM, TL, team)
+    const base = getProjectTeam(project)
+      .filter((r) => !removedIds.has(r.person.id))
+      .map((r) => {
+        const override = projectTeamOverrides[r.person.id];
+        return override ? { ...r, ...override } : r;
+      });
+
+    // Members added at runtime via Add Team Member modal
+    const additions = projectTeamAdditionIds
+      .filter((id) => !removedIds.has(id))
+      .map((id) => {
+        const person = getPerson(id);
+        const detail = projectTeamOverrides[id] ?? {
+          duration: "",
+          billability: "Billable" as Billability,
+          resourceType: "Dedicated" as ResourceType,
+        };
+        return { person, ...detail };
+      });
+
+    return [...base, ...additions];
+  }, [project, projectTeamOverrides, projectTeamAdditionIds, removedIds]);
 
   const shadowRows = useMemo(() => {
     return shadowTeamIds.map(id => {
@@ -1692,12 +2074,28 @@ function DhTeamTab({ project }: { project: Project }) {
   }, [shadowTeamIds, shadowDetails, project]);
 
   const updateRow = (id: string, patch: Partial<typeof rows[number]>) => {
-    setRows((r) => r.map((x) => x.person.id === id ? { ...x, ...patch } : x));
+    dhStore.updateProjectTeamMember(project.id, id, patch);
   };
   const removeRow = (id: string) => {
-    setRows((r) => r.filter((x) => x.person.id !== id));
+    setRemovedIds((prev) => new Set(prev).add(id));
+    if (projectTeamAdditionIds.includes(id)) {
+      dhStore.removeProjectTeamAddition(project.id, id);
+    }
     toast.success("Resource removed from team");
   };
+
+  // Access-blocked guard AFTER all hooks
+  if (prereq && !prereq.isProjectReadyToStart) {
+    return (
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
+        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
+        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — Project Not Started</h4>
+        <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
+          Team building, resource assignment, shadow team allocation, task assignment, and activity assignment are disabled until the prerequisite collections and validations are completed, PM/SPM are assigned, and the project is marked as "Ready To Start".
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -1723,35 +2121,40 @@ function DhTeamTab({ project }: { project: Project }) {
       </div>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-center text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-medium">Resource</th>
-              <th className="px-3 py-2 font-medium">Department</th>
-              <th className="px-3 py-2 font-medium">Sub Department</th>
-              <th className="px-3 py-2 font-medium">Allocation Duration</th>
-              <th className="px-3 py-2 font-medium">Billability</th>
-              <th className="px-3 py-2 font-medium">Resource Type</th>
-              <th className="px-3 py-2 font-medium">Actions</th>
+              <th className="px-4 py-2.5 text-left font-medium">Resource</th>
+              <th className="px-3 py-2.5 text-center font-medium">Department</th>
+              <th className="px-3 py-2.5 text-center font-medium">Sub Department</th>
+              <th className="px-3 py-2.5 text-center font-medium">Allocation Duration</th>
+              <th className="px-3 py-2.5 text-center font-medium">Billability</th>
+              <th className="px-3 py-2.5 text-center font-medium">Resource Type</th>
+              <th className="px-3 py-2.5 text-center font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {(teamTab === "project" ? rows : shadowRows).map((r) => (
               <tr key={r.person.id} className="hover:bg-accent/30">
-                <td className="px-3 py-2.5 text-center align-middle">
-                  <div className="flex items-center justify-center gap-2">
-                    <Avatar name={r.person.name} size={26} />
-                    <div className="text-left">
-                      <div className="font-medium">{r.person.name}</div>
-                      <div className="text-[11px] text-muted-foreground">{r.person.role}</div>
+                {/* Resource — left aligned with avatar */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={r.person.name} size={28} />
+                    <div>
+                      <div className="text-sm font-semibold leading-tight">{r.person.name}</div>
+                      <div className="text-[11px] text-muted-foreground leading-tight">{r.person.role}</div>
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2.5 text-center align-middle">{getDept(r.person)}</td>
-                <td className="px-3 py-2.5 text-center align-middle text-muted-foreground">{getSubDept(r.person)}</td>
-                <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground">{r.duration}</td>
-                <td className="px-3 py-2.5 text-center align-middle">
+                {/* Department — center */}
+                <td className="px-3 py-3 text-center text-sm align-middle">{getDept(r.person)}</td>
+                {/* Sub Department — center */}
+                <td className="px-3 py-3 text-center text-sm text-muted-foreground align-middle">{getSubDept(r.person)}</td>
+                {/* Allocation Duration — center, monospaced */}
+                <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{r.duration || "—"}</td>
+                {/* Billability — center pill */}
+                <td className="px-3 py-3 text-center align-middle">
                   <span className={cn(
-                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
                     r.billability === "Billable"
                       ? "bg-success/10 border-success/30 text-success"
                       : "bg-muted border-border text-muted-foreground"
@@ -1759,9 +2162,10 @@ function DhTeamTab({ project }: { project: Project }) {
                     {r.billability}
                   </span>
                 </td>
-                <td className="px-3 py-2.5 text-center align-middle">
+                {/* Resource Type — center pill */}
+                <td className="px-3 py-3 text-center align-middle">
                   <span className={cn(
-                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
                     r.resourceType === "Dedicated"
                       ? "bg-primary/10 border-primary/30 text-primary"
                       : "bg-info/10 border-info/30 text-info"
@@ -1769,8 +2173,9 @@ function DhTeamTab({ project }: { project: Project }) {
                     {r.resourceType}
                   </span>
                 </td>
-                <td className="px-3 py-2.5 text-center align-middle">
-                  <div className="relative flex items-center justify-center gap-1">
+                {/* Actions — center */}
+                <td className="px-3 py-3 text-center align-middle">
+                  <div className="relative inline-flex items-center gap-1">
                     <button title="View" onClick={() => setAction({ type: "view", person: r.person })}
                       className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Eye className="h-3.5 w-3.5" /></button>
                     <button title="Edit" onClick={() => setAction({ type: "edit", person: r.person })}
@@ -1840,7 +2245,13 @@ function DhTeamTab({ project }: { project: Project }) {
           onClose={() => setShowAddModal(false)}
           onAdd={(newRow) => {
             if (teamTab === "project") {
-              setRows((r) => [...r, newRow]);
+              dhStore.addProjectTeamMember(
+                project.id,
+                newRow.person.id,
+                newRow.duration,
+                newRow.billability,
+                newRow.resourceType,
+              );
             } else {
               dhStore.addShadowMember(project.id, newRow.person.id, newRow.duration, newRow.billability, newRow.resourceType);
             }
@@ -1923,7 +2334,7 @@ function TeamActionModal({ action, person, project, row, onClose, onSaveEdit, on
     return (
       <Modal title={`Edit Allocation — ${person.name}`} onClose={onClose}>
         <div className="space-y-3">
-          <Field label="Allocation Duration"><input className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" value={editState.duration} onChange={(e) => setEditState((s) => ({ ...s, duration: e.target.value }))} /></Field>
+          <Field label="Allocation Duration"><DateRangePicker value={editState.duration} onChange={(val) => setEditState((s) => ({ ...s, duration: val }))} /></Field>
           <Field label="Billability">
             <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.billability} onChange={(e) => setEditState((s) => ({ ...s, billability: e.target.value as Billability }))}>
               {(["Billable", "Non-Billable"] as Billability[]).map((o) => <option key={o}>{o}</option>)}
@@ -2035,8 +2446,12 @@ function AddTeamMemberModal({
   const availablePeople = people.filter((p) => !existingPersonIds.includes(p.id));
 
   const handleAdd = () => {
-    if (!selectedPersonId || !duration) {
-      toast.error("Please fill in all required fields");
+    if (!selectedPersonId) {
+      toast.error("Please select a team member");
+      return;
+    }
+    if (!duration || !duration.includes(" → ") || duration.startsWith(" → ") || duration.endsWith(" → ")) {
+      toast.error("Please select both start and end dates for allocation duration");
       return;
     }
 
@@ -2086,12 +2501,9 @@ function AddTeamMemberModal({
         </Field>
 
         <Field label="Allocation Duration" required>
-          <input
-            type="text"
+          <DateRangePicker
             value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            placeholder="e.g., 2/1/2026 → 8/30/2026"
-            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onChange={setDuration}
           />
         </Field>
 
@@ -2258,7 +2670,7 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    category: "Technical Issue (Project Related)" as IssueCategory,
+    category: "Technical Related Issues" as IssueCategory,
     priority: "Medium" as DhPriority,
   });
 
@@ -2279,7 +2691,7 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
     });
     toast.success("Issue raised", { description: "PMs and SPMs notified" });
     setShowRaiseModal(false);
-    setFormData({ title: "", description: "", category: "Technical Issue (Project Related)", priority: "Medium" });
+    setFormData({ title: "", description: "", category: "Technical Related Issues", priority: "Medium" });
   };
 
   const hasNoIssues = issues.length === 0;
@@ -2320,7 +2732,7 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
             </Field>
             <Field label="Issue Type">
               <select value={formData.category} onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {(["Resource Behavior", "Technical Issue (Project Related)", "Process Related", "Skill Mismatch", "Dependency Blocker", "Communication Gap", "Other"] as IssueCategory[]).map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+                {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </Field>
             <Field label="Priority">
@@ -3073,7 +3485,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
   const snapshot = useDhStore((s) => s);
   const prereqs = snapshot.prereqs;
   const { user } = useRoleContext();
-  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
   // Per-service "Ready to Start" state — tracks which services have been marked ready
   const [serviceReady, setServiceReady] = useState<Record<string, boolean>>({});
 
@@ -3141,10 +3553,10 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
         <h3 className="text-sm font-semibold mb-4 text-gray-900">PMO Intake & Prerequisite Workflow</h3>
 
         {/* STEP 1: CLIENT PROFILE & STEP 2: PM/SPM ASSIGNMENT */}
-        <div className="grid gap-4 md:grid-cols-2 mb-4">
+        <div className="grid gap-4 md:grid-cols-3 mb-4">
 
           {/* CLIENT PROFILE INFORMATION */}
-          <div className="rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm">
+          <div className="md:col-span-2 rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm">
             <div className="flex items-center gap-2 border-b border-border pb-2">
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
               <h4 className="text-sm font-bold text-gray-800">Client Profile Information</h4>
@@ -3282,27 +3694,41 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
               </div>
             </div>
 
-            <button
-              onClick={() => setShowAssignModal(true)}
-              disabled={!canShowAssignment}
-              className={cn(
-                "w-full inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
-                canShowAssignment
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-              )}
-            >
-              <UserPlus className="h-4 w-4" /> Assign PM / SPM Stakeholders
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAssignModalMode("pm")}
+                disabled={!canShowAssignment}
+                className={cn(
+                  "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
+                  canShowAssignment
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                )}
+              >
+                <UserPlus className="h-3.5 w-3.5" /> Assign PM
+              </button>
+              <button
+                onClick={() => setAssignModalMode("spm")}
+                disabled={!canShowAssignment}
+                className={cn(
+                  "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
+                  canShowAssignment
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                )}
+              >
+                <UserPlus className="h-3.5 w-3.5" /> Assign SPM
+              </button>
+            </div>
             {!canShowAssignment && (
-              <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect & validate prerequisites are validated.</p>
+              <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
             )}
           </div>
         </div>
 
         {/* STEP 3 & 4: SERVICE WISE TRACKING TABLE */}
         <div className="grid gap-4 md:grid-cols-3 mb-4">
-          <div className="md:col-span-2 rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
+          <div className="md:col-span-4 rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
             <div className="flex items-center gap-2 border-b border-border pb-2">
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-xs font-semibold text-orange-600">3</span>
               <h4 className="text-sm font-bold text-gray-800">Service wise Prerequisite Tracking</h4>
@@ -3310,13 +3736,13 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
 
             <div className="overflow-x-auto rounded-md border border-border bg-card">
               <table className="w-full text-xs">
-                <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
+                <thead className="bg-muted/40 uppercase tracking-wide text-muted-foreground">
                   <tr>
-                    <th className="px-3 py-2 font-bold">Service Name</th>
-                    <th className="px-3 py-2 font-bold">Collection Status</th>
-                    <th className="px-3 py-2 font-bold">Validation Status</th>
-                    <th className="px-3 py-2 font-bold">Billing Status</th>
-                    <th className="px-3 py-2 font-bold">Ready to Start</th>
+                    <th className="px-3 py-2 font-bold text-center">Service Name</th>
+                    <th className="px-3 py-2 font-bold text-center">Collection Status</th>
+                    <th className="px-3 py-2 font-bold text-center">Validation Status</th>
+                    <th className="px-3 py-2 font-bold text-center">Billing Status</th>
+                    <th className="px-3 py-2 font-bold text-center">Ready to Start</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -3328,8 +3754,8 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                     const isReady = serviceReady[svc.serviceId] ?? false;
                     return (
                       <tr key={svc.serviceId} className="hover:bg-accent/20">
-                        <td className="px-3 py-2.5 font-semibold text-gray-800">{svc.serviceName}</td>
-                        <td className="px-3 py-2.5">
+                        <td className="px-3 py-2.5 text-center align-middle font-semibold text-gray-800">{svc.serviceName}</td>
+                        <td className="px-3 py-2.5 text-center align-middle">
                           <select
                             value={svc.collectionStatus}
                             onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
@@ -3344,7 +3770,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                             <option value="Collected">Collected</option>
                           </select>
                         </td>
-                        <td className="px-3 py-2.5">
+                        <td className="px-3 py-2.5 text-center align-middle">
                           <select
                             value={svc.validationStatus}
                             disabled={!isCollected}
@@ -3362,7 +3788,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                             <option value="Validated">Validated</option>
                           </select>
                         </td>
-                        <td className="px-3 py-2.5">
+                        <td className="px-3 py-2.5 text-center align-middle">
                           <select
                             value={svc.billingStatus ?? "Advance Pending"}
                             onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
@@ -3381,6 +3807,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                           </select>
                         </td>
                         <td className="px-3 py-2.5 text-center align-middle">
+                          <div className="flex items-center justify-center">
                           {isReady ? (
                             <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
                               ✓ Started
@@ -3403,6 +3830,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                               Ready
                             </button>
                           )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -3416,13 +3844,14 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
       </div>
 
       {/* WBS Assignment Modal */}
-      {showAssignModal && (
+      {assignModalMode && (
         <WbsAssignmentModal
           project={project}
           prereq={prereq}
           teamPool={teamPool}
           clientInfo={clientInfo}
-          onClose={() => setShowAssignModal(false)}
+          mode={assignModalMode}
+          onClose={() => setAssignModalMode(null)}
         />
       )}
     </>
@@ -3435,12 +3864,14 @@ function WbsAssignmentModal({
   prereq,
   teamPool,
   clientInfo,
+  mode,
   onClose,
 }: {
   project: Project;
   prereq: DhProjectPrereq;
   teamPool: Person[];
   clientInfo: { name: string; type: "NEW" | "OLD"; previousPmIds: string[] } | null;
+  mode: "pm" | "spm";
   onClose: () => void;
 }) {
   const [selectedPMs, setSelectedPMs] = useState<string[]>(prereq.assignedPmIds);
@@ -3453,8 +3884,14 @@ function WbsAssignmentModal({
     return teamPool;
   }, [teamPool]);
 
-  const pmVisiblePool = filteredPool.filter(p => !pmQuery.trim() || p.name.toLowerCase().includes(pmQuery.toLowerCase()));
-  const spmVisiblePool = filteredPool.filter(p => !spmQuery.trim() || p.name.toLowerCase().includes(spmQuery.toLowerCase()));
+  const pmVisiblePool = filteredPool.filter(p =>
+    !selectedSPMs.includes(p.id) &&
+    (!pmQuery.trim() || p.name.toLowerCase().includes(pmQuery.toLowerCase()))
+  );
+  const spmVisiblePool = filteredPool.filter(p =>
+    !selectedPMs.includes(p.id) &&
+    (!spmQuery.trim() || p.name.toLowerCase().includes(spmQuery.toLowerCase()))
+  );
 
   const selectedPMPeople = filteredPool.filter(p => selectedPMs.includes(p.id));
   const selectedSPMPeople = filteredPool.filter(p => selectedSPMs.includes(p.id));
@@ -3468,121 +3905,147 @@ function WbsAssignmentModal({
   };
 
   const handleSubmit = () => {
-    if (selectedPMs.length === 0 || selectedSPMs.length === 0) {
-      toast.error("Validation", { description: "Please select at least one PM and one SPM" });
+    if (mode === "pm" && selectedPMs.length === 0) {
+      toast.error("Please select at least one Project Manager");
+      return;
+    }
+    if (mode === "spm" && selectedSPMs.length === 0) {
+      toast.error("Please select at least one Senior Project Manager");
       return;
     }
 
-    dhStore.assignPMs(project.id, selectedPMs, selectedSPMs);
-    toast.success("WBS Assignment Completed", {
-      description: `${selectedPMs.length} PM(s) and ${selectedSPMs.length} SPM(s) assigned. Notifications sent to HOD and PM/SPM buckets.`,
-    });
+    // Merge with existing assignments — keep the other role's assignments intact
+    const finalPMs  = mode === "pm"  ? selectedPMs  : prereq.assignedPmIds;
+    const finalSPMs = mode === "spm" ? selectedSPMs : prereq.assignedSpmIds;
+
+    dhStore.assignPMs(project.id, finalPMs, finalSPMs);
+    toast.success(
+      mode === "pm" ? "PM Assigned" : "Senior PM Assigned",
+      { description: mode === "pm"
+          ? `${selectedPMs.length} PM(s) assigned successfully.`
+          : `${selectedSPMs.length} SPM(s) assigned successfully.`
+      }
+    );
     onClose();
   };
 
+  const title = mode === "pm" ? "Assign Project Manager" : "Assign Senior Project Manager";
+
   return (
-    <Modal title="Assign WBS - Project Managers & Senior PMs" onClose={onClose}>
+    <Modal title={title} onClose={onClose}>
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          Showing all available Project Managers and Senior PMs
+          {mode === "pm"
+            ? "Select one or more Project Managers to assign to this project."
+            : "Select one or more Senior Project Managers to assign to this project."}
         </p>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Project Managers Selection */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Project Managers</label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={pmQuery}
-                onChange={(e) => setPmQuery(e.target.value)}
-                placeholder="Search PM..."
-                className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-            {selectedPMPeople.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {selectedPMPeople.map(p => (
-                  <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
-                    <Avatar name={p.name} size={16} /> {p.name}
-                    <button onClick={() => togglePM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
+        <div>
+          {mode === "pm" ? (
+            /* Project Managers Selection */
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Project Managers</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={pmQuery}
+                  onChange={(e) => setPmQuery(e.target.value)}
+                  placeholder="Search PM..."
+                  className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
               </div>
-            )}
-            <ul className="max-h-40 divide-y divide-border overflow-y-auto rounded-md border border-border">
-              {pmVisiblePool.map(p => {
-                const isSel = selectedPMs.includes(p.id);
-                const ongoingCount = getOngoingProjectCountForPM(p.id);
-                return (
-                  <li key={p.id}>
-                    <button
-                      onClick={() => togglePM(p.id)}
-                      className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 text-xs", isSel && "bg-primary/5")}
-                    >
-                      <Avatar name={p.name} size={22} />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-[10px] text-muted-foreground">{ongoingCount} Ongoing Projects</div>
-                      </div>
-                      {isSel && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
-                    </button>
+              {selectedPMPeople.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedPMPeople.map(p => (
+                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
+                      <Avatar name={p.name} size={16} /> {p.name}
+                      <button onClick={() => togglePM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-md border border-border">
+                {pmVisiblePool.map(p => {
+                  const isSel = selectedPMs.includes(p.id);
+                  const ongoingCount = getOngoingProjectCountForPM(p.id);
+                  return (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => togglePM(p.id)}
+                        className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 text-xs", isSel && "bg-primary/5")}
+                      >
+                        <Avatar name={p.name} size={22} />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">{p.name}</div>
+                          <div className="text-[10px] text-muted-foreground">{ongoingCount} Ongoing Projects</div>
+                        </div>
+                        {isSel && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
+                      </button>
+                    </li>
+                  );
+                })}
+                {pmVisiblePool.length === 0 && (
+                  <li className="px-3 py-4 text-center text-xs text-muted-foreground">
+                    {pmQuery ? "No match" : "No available members"}
                   </li>
-                );
-              })}
-              {pmVisiblePool.length === 0 && <li className="px-3 py-4 text-center text-xs text-muted-foreground">No match</li>}
-            </ul>
-          </div>
-
-          {/* Senior PMs Selection */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Senior Project Managers</label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={spmQuery}
-                onChange={(e) => setSpmQuery(e.target.value)}
-                placeholder="Search SPM..."
-                className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
+                )}
+              </ul>
             </div>
-            {selectedSPMPeople.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {selectedSPMPeople.map(p => (
-                  <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
-                    <Avatar name={p.name} size={16} /> {p.name}
-                    <button onClick={() => toggleSPM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
+          ) : (
+            /* Senior PMs Selection */
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Senior Project Managers</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={spmQuery}
+                  onChange={(e) => setSpmQuery(e.target.value)}
+                  placeholder="Search SPM..."
+                  className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
               </div>
-            )}
-            <ul className="max-h-40 divide-y divide-border overflow-y-auto rounded-md border border-border">
-              {spmVisiblePool.map(p => {
-                const isSel = selectedSPMs.includes(p.id);
-                const ongoingCount = getOngoingProjectCountForPM(p.id);
-                return (
-                  <li key={p.id}>
-                    <button
-                      onClick={() => toggleSPM(p.id)}
-                      className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 text-xs", isSel && "bg-primary/5")}
-                    >
-                      <Avatar name={p.name} size={22} />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-[10px] text-muted-foreground">{ongoingCount} Ongoing Projects</div>
-                      </div>
-                      {isSel && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
-                    </button>
+              {selectedSPMPeople.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedSPMPeople.map(p => (
+                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
+                      <Avatar name={p.name} size={16} /> {p.name}
+                      <button onClick={() => toggleSPM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-md border border-border">
+                {spmVisiblePool.map(p => {
+                  const isSel = selectedSPMs.includes(p.id);
+                  const ongoingCount = getOngoingProjectCountForPM(p.id);
+                  return (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => toggleSPM(p.id)}
+                        className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 text-xs", isSel && "bg-primary/5")}
+                      >
+                        <Avatar name={p.name} size={22} />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">{p.name}</div>
+                          <div className="text-[10px] text-muted-foreground">{ongoingCount} Ongoing Projects</div>
+                        </div>
+                        {isSel && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
+                      </button>
+                    </li>
+                  );
+                })}
+                {spmVisiblePool.length === 0 && (
+                  <li className="px-3 py-4 text-center text-xs text-muted-foreground">
+                    {spmQuery ? "No match" : "No available members"}
                   </li>
-                );
-              })}
-              {spmVisiblePool.length === 0 && <li className="px-3 py-4 text-center text-xs text-muted-foreground">No match</li>}
-            </ul>
-          </div>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 border-t border-border pt-3">
@@ -3593,7 +4056,7 @@ function WbsAssignmentModal({
             onClick={handleSubmit}
             className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Submit WBS Assignment
+            {mode === "pm" ? "Assign PM" : "Assign SPM"}
           </button>
         </div>
       </div>
