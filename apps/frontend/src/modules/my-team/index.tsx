@@ -22,6 +22,7 @@ import type {
   HolidayEntry,
   OpenCell,
   SelectableAttendanceType,
+  ShiftType,
   TeamSchedule,
 } from "./types";
 import { CalendarDayCell } from "./components/CalendarDayCell";
@@ -48,7 +49,7 @@ export function MyTeamPage() {
       cleaned[memberId] = {};
       for (const [dateKey, event] of Object.entries(raw[memberId])) {
         const isFuture = dateKey > todayKey;
-        const shouldStrip = isFuture && (event.type === "active" || event.type === "wfh" || event.type === "holiday");
+    const shouldStrip = isFuture && (event.type === "onsite" || event.type === "wfh" || event.type === "holiday");
         if (!shouldStrip) {
           cleaned[memberId][dateKey] = event;
         }
@@ -58,6 +59,15 @@ export function MyTeamPage() {
   });
 
   const [openCell, setOpenCell] = useState<OpenCell>(null);
+
+  // ── Shift state — per member, persists across month navigation ──────────────
+  const [memberShifts, setMemberShifts] = useState<Record<string, ShiftType | "">>(() =>
+    Object.fromEntries(teamMembers.map((m) => [m.id, ""]))
+  );
+
+  const handleShiftChange = (memberId: string, shift: ShiftType | "") => {
+    setMemberShifts((prev) => ({ ...prev, [memberId]: shift }));
+  };
 
   // ── Holiday popover state ────────────────────────────────────────────────────
   const [holidays, setHolidays] = useState<HolidayEntry[]>([]);
@@ -102,38 +112,35 @@ export function MyTeamPage() {
     return map;
   }, [holidays]);
 
-  // ── Summary counts — derived from today's calendar entries ─────────────────
-  // Active = marked "active" OR "wfh" OR no entry at all (present by default)
-  // WFH    = marked "wfh"
-  // On leave = marked "leave"
-  // Active card intentionally includes WFH employees.
+  // ── Summary counts ───────────────────────────────────────────────────────────
+  // Active today = everyone NOT on leave (default state for all employees).
+  //   Onsite and WFH employees are still "active".
+  //   Only "leave" removes someone from the active count.
+  // WFH today   = explicitly marked wfh on today's date.
+  // On leave    = explicitly marked leave on today's date.
   const totalMembers = teamMembers.length;
 
-  // Build todayKey from LOCAL date parts to avoid UTC timezone shift
+  // todayKey built from local date parts — avoids UTC timezone shift
   const todayKey = useMemo(() => {
     const d = today;
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }, [today]);
 
-  const { activeCount, wfhCount, onLeaveCount } = useMemo(() => {
-    let active = 0, wfh = 0, onLeave = 0;
+  const { activeCount, wfhCount, onLeaveCount, onsiteCount } = useMemo(() => {
+    let wfh = 0, onLeave = 0, onsite = 0;
     teamMembers.forEach((m) => {
-      const memberSchedule = teamSchedule[m.id];
-      const event = memberSchedule ? memberSchedule[todayKey] : undefined;
-      const type = event ? event.type : undefined;
-
-      if (type === "active") {
-        active++;
+      const event = teamSchedule[m.id]?.[todayKey];
+      const type = event?.type;
+      if (type === "leave") {
+        onLeave++;
       } else if (type === "wfh") {
         wfh++;
-        active++; // WFH also counts toward Active
-      } else if (type === "leave") {
-        onLeave++;
+      } else if (type === "onsite") {
+        onsite++;
       }
-      // undefined / weeklyOff / holiday — not counted in any card
     });
-    return { activeCount: active, wfhCount: wfh, onLeaveCount: onLeave };
-  }, [teamMembers, teamSchedule, todayKey]);
+    return { activeCount: totalMembers - onLeave, wfhCount: wfh, onLeaveCount: onLeave, onsiteCount: onsite };
+  }, [teamMembers, teamSchedule, todayKey, totalMembers]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const changeMonth = (amount: number) => {
@@ -245,10 +252,11 @@ export function MyTeamPage() {
     >
       <div className="space-y-4">
         {/* Summary cards */}
-        <section className="grid gap-3 md:grid-cols-3">
-          <SummaryCard label="Active today"  current={activeCount}  total={totalMembers} icon={Users}           />
-          <SummaryCard label="WFH today"     current={wfhCount}     total={totalMembers} icon={BriefcaseBusiness} />
-          <SummaryCard label="On leave today" current={onLeaveCount} total={totalMembers} icon={CalendarDays}    />
+        <section className="grid gap-3 md:grid-cols-4">
+          <SummaryCard label="Active today"   current={activeCount}  total={totalMembers} icon={Users}            />
+          <SummaryCard label="Onsite today"   current={onsiteCount}  total={totalMembers} icon={BriefcaseBusiness} />
+          <SummaryCard label="WFH today"      current={wfhCount}     total={totalMembers} icon={BriefcaseBusiness} />
+          <SummaryCard label="On leave today" current={onLeaveCount} total={totalMembers} icon={CalendarDays}     />
         </section>
 
         {/* Team calendar */}
@@ -259,7 +267,7 @@ export function MyTeamPage() {
           </p>
 
           <div className="mt-4 overflow-x-auto rounded-sm border border-[#e5e8ef] bg-white px-4 py-5">
-            <div className="pb-32" style={{ minWidth: `${300 + daysInMonth * 28}px` }}>
+            <div className="pb-32" style={{ minWidth: `${340 + daysInMonth * 28}px` }}>
 
               {/* ── Month navigation + Add Holiday button ── */}
               <div className="mb-4 flex items-center gap-3 flex-wrap">
@@ -399,7 +407,11 @@ export function MyTeamPage() {
 
               {/* Day headers */}
               <div className="flex border-b border-[#edf0f4] pb-2">
-                <div className="w-[300px] shrink-0" />
+                {/* Left panel: name col header + shift col header */}
+                <div className="w-[340px] shrink-0 flex items-end">
+                  <div className="w-[240px] shrink-0" />
+                  <div className="w-[100px] shrink-0 text-[9px] font-bold text-[#9aa2b2] uppercase tracking-wide text-center">Shift</div>
+                </div>
                 <div className="grid" style={{ gridTemplateColumns: `repeat(${daysInMonth}, 28px)` }}>
                   {days.map((day) => {
                     const date = new Date(year, monthIndex, day);
@@ -422,15 +434,38 @@ export function MyTeamPage() {
               <div className="divide-y divide-[#edf0f4]">
                 {teamMembers.map((member) => (
                   <div key={member.id} className="relative flex min-h-[48px] items-center overflow-visible">
-                    {/* Member identity */}
-                    <div className="flex w-[300px] shrink-0 items-center gap-2.5 pr-4">
-                      <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
-                        style={{ backgroundColor: member.avatarColor }}>
-                        {member.initials}
+
+                    {/* ── Left panel: avatar+name | shift dropdown ── */}
+                    <div className="flex w-[340px] shrink-0 items-center">
+
+                      {/* Avatar + name — fixed 240px */}
+                      <div className="flex w-[240px] shrink-0 items-center gap-2 pr-3">
+                        <div
+                          className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                          style={{ backgroundColor: member.avatarColor }}
+                        >
+                          {member.initials}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold text-[#626b7c]">{member.name}</p>
+                          <p className="truncate text-[9px] text-[#9aa1ae]">{member.designation}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-[#626b7c]">{member.name}</p>
-                        <p className="truncate text-[9px] text-[#9aa1ae]">{member.designation}</p>
+
+                      {/* Shift dropdown — 100px, right after the name, before calendar */}
+                      <div className="w-[100px] shrink-0 border-l border-[#edf0f4] pl-2 pr-3">
+                        <select
+                          value={memberShifts[member.id] ?? ""}
+                          onChange={(e) => handleShiftChange(member.id, e.target.value as ShiftType | "")}
+                          className="h-7 w-full rounded-md border border-[#d1d5db] bg-white px-1.5 text-[10px] font-medium text-[#374151] outline-none focus:ring-1 focus:ring-[#5a49b8] cursor-pointer"
+                          title="Select shift"
+                        >
+                          <option value="">Choose…</option>
+                          <option value="Morning">Morning</option>
+                          <option value="Afternoon">Afternoon</option>
+                          <option value="Night">Night</option>
+                          <option value="General">General</option>
+                        </select>
                       </div>
                     </div>
 
@@ -466,7 +501,7 @@ export function MyTeamPage() {
 
               {/* Legend */}
               <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-[10px] font-medium text-[#6f7685]">
-                <Legend color={attendanceMeta.active.solid}    text="Active Today" />
+                <Legend color={attendanceMeta.onsite.solid}    text="Onsite" />
                 <Legend color={attendanceMeta.wfh.solid}       text="Work From Home" />
                 <Legend color={attendanceMeta.leave.solid}     text="Leave" />
                 <Legend color={attendanceMeta.weeklyOff.solid} text="Weekly Off" />

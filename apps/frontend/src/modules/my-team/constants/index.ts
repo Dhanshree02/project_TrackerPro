@@ -6,8 +6,8 @@ export const attendanceMeta: Record<
   AttendanceType,
   { label: string; solid: string; soft: string; textColor: string }
 > = {
-  active: {
-    label: "Active Today",
+  onsite: {
+    label: "Onsite",
     solid: "#8b75c8",   // purple
     soft:  "#ded7f0",
     textColor: "#ffffff",
@@ -39,18 +39,16 @@ export const attendanceMeta: Record<
 };
 
 export const indicatorColors = {
-  /** One person on leave */
   leave: "#49a6e9",
-  /** Multiple people on leave */
   multipleLeave: "#ff6161",
 } as const;
 
-/** User-selectable options in the per-cell dropdown. */
+/** Options shown in the per-cell dropdown. */
 export const dropdownOptions: Array<{
   label: string;
   type: SelectableAttendanceType;
 }> = [
-  { label: "Active",         type: "active" },
+  { label: "Onsite",         type: "onsite" },
   { label: "Work From Home", type: "wfh"    },
   { label: "Leave",          type: "leave"  },
   { label: "Clear",          type: "clear"  },
