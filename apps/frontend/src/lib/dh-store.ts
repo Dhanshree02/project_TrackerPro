@@ -22,13 +22,9 @@ import { type Billability, type ResourceType, getProjectEMs, getProjectPMs } fro
 
 // ---------- Types ----------
 export type IssueCategory =
-  | "Resource Behavior"
-  | "Technical Issue (Project Related)"
-  | "Process Related"
-  | "Skill Mismatch"
-  | "Dependency Blocker"
-  | "Communication Gap"
-  | "Other";
+  | "Technical Related Issues"
+  | "Behavioral Related Issues"
+  | "Process Related Issues";
 
 export type DhIssueStatus = "Open" | "In Progress" | "Resolved";
 export type DhPriority = "Low" | "Medium" | "High" | "Critical";
@@ -132,7 +128,8 @@ export interface DhCentralApproval {
   | "Project Ready To Start Approval"
   | "Resource Allocation Approval"
   | "Client Requirement Approval"
-  | "Timeline Extension Approval";
+  | "Timeline Extension Approval"
+  | "Leadership Change Approval";
   requestedBy: string;
   requestedById: string;
   requestedDate: string;
@@ -146,6 +143,41 @@ export interface DhCentralApproval {
     comment: string;
   }[];
   acknowledgedAt?: string;
+}
+
+// ---------- Leadership Change Request ----------
+export type LeadershipRole = "Engagement Manager" | "Senior Project Manager" | "Project Manager" | "Team Lead";
+
+export interface LeadershipChangeRequest {
+  id: string;
+  projectId: string;
+  projectName: string;
+  role: LeadershipRole;
+  currentLeaderIds: string[];
+  currentLeaderNames: string[];
+  newLeaderIds: string[];
+  newLeaderNames: string[];
+  effectiveDate: string;
+  changeReason: string;
+  additionalComments: string;
+  notifyPersonIds: string[];
+  attachmentName?: string;
+  requestedBy: string;
+  requestedById: string;
+  requestedDate: string;
+  status: "Pending" | "Approved" | "Rejected" | "Request Changes";
+  approvalId: string;
+  auditHistory: {
+    previousLeaderNames: string[];
+    newLeaderNames: string[];
+    changedBy: string;
+    approvedBy?: string;
+    effectiveDate: string;
+    changeReason: string;
+    approvalDate?: string;
+    status: string;
+  }[];
+  createdAt: string;
 }
 
 export interface DhEscalation {
@@ -426,6 +458,10 @@ interface DhState {
   taskAssignments: Record<string, TaskAssignmentState>;
   shadowTeams: Record<string, string[]>;
   shadowTeamDetails: Record<string, Record<string, { duration: string; billability: Billability; resourceType: ResourceType }>>;
+  projectTeamDetails: Record<string, Record<string, { duration: string; billability: Billability; resourceType: ResourceType }>>;
+  projectTeamAdditions: Record<string, string[]>;
+  leadershipChangeRequests: LeadershipChangeRequest[];
+  leadershipAssignments: Record<string, { emIds: string[]; spmIds: string[]; pmIds: string[]; tlIds: string[] }>;
   timesheets: DhTimesheet[];
   approvals: DhCentralApproval[];
   onboardedResources: OnboardedResource[];
@@ -468,7 +504,7 @@ const state: DhState = {
       raisedById: "u5",
       raisedByName: "Nikhil Rao",
       raisedByRole: "TL",
-      category: "Skill Mismatch",
+      category: "Technical Related Issues",
       priority: "High",
       status: "Open",
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -739,16 +775,20 @@ const state: DhState = {
   },
   shadowTeamDetails: {
     p1: {
-      u9: { duration: "02/01/2026 → 08/30/2026", billability: "Billable", resourceType: "Fixed" }
+      u9: { duration: "02/01/2026 → 08/30/2026", billability: "Billable", resourceType: "Dedicated" }
     },
     p3: {
-      u6: { duration: "03/01/2026 → 09/15/2026", billability: "Billable", resourceType: "Fixed" },
-      u10: { duration: "03/01/2026 → 09/15/2026", billability: "Billable", resourceType: "Fixed" }
+      u6: { duration: "03/01/2026 → 09/15/2026", billability: "Billable", resourceType: "Dedicated" },
+      u10: { duration: "03/01/2026 → 09/15/2026", billability: "Billable", resourceType: "Shared Resource" }
     },
     p5: {
-      u5: { duration: "01/20/2026 → 08/10/2026", billability: "Billable", resourceType: "Fixed" }
+      u5: { duration: "01/20/2026 → 08/10/2026", billability: "Billable", resourceType: "Dedicated" }
     }
   },
+  projectTeamDetails: {},
+  projectTeamAdditions: {},
+  leadershipChangeRequests: [],
+  leadershipAssignments: {},
   timesheets: baseTimesheets.map(t => ({
     ...t,
     comments: t.rejectionReason ? [{
@@ -1847,7 +1887,7 @@ export const dhStore = {
     actualStartDate?: string;
     actualEndDate?: string;
     utilizedHours?: number;
-    stage?: "Not Started" | "Completed" | "On Hold (Internal)" | "On Hold (Client End)" | "After Release";
+    stage?: "Ready to Start" | "Ongoing" | "Completed" | "On Hold (Internal)" | "On Hold (Client End)" | "After Release";
   }) {
     const proj = state.extraProjects.find((p) => p.id === projectId);
     if (!proj) return;
@@ -1907,6 +1947,41 @@ export const dhStore = {
         ...state.shadowTeamDetails[projectId][memberId],
         ...patch
       };
+    }
+    emit();
+  },
+
+  updateProjectTeamMember(projectId: string, memberId: string, patch: Partial<{ duration: string; billability: Billability; resourceType: ResourceType }>) {
+    if (!state.projectTeamDetails[projectId]) {
+      state.projectTeamDetails[projectId] = {};
+    }
+    state.projectTeamDetails[projectId][memberId] = {
+      ...(state.projectTeamDetails[projectId][memberId] ?? {}),
+      ...patch,
+    } as { duration: string; billability: Billability; resourceType: ResourceType };
+    emit();
+  },
+
+  addProjectTeamMember(projectId: string, memberId: string, duration: string, billability: Billability, resourceType: ResourceType) {
+    if (!state.projectTeamAdditions[projectId]) {
+      state.projectTeamAdditions[projectId] = [];
+    }
+    if (!state.projectTeamAdditions[projectId].includes(memberId)) {
+      state.projectTeamAdditions[projectId].push(memberId);
+    }
+    if (!state.projectTeamDetails[projectId]) {
+      state.projectTeamDetails[projectId] = {};
+    }
+    state.projectTeamDetails[projectId][memberId] = { duration, billability, resourceType };
+    emit();
+  },
+
+  removeProjectTeamAddition(projectId: string, memberId: string) {
+    if (state.projectTeamAdditions[projectId]) {
+      state.projectTeamAdditions[projectId] = state.projectTeamAdditions[projectId].filter(id => id !== memberId);
+    }
+    if (state.projectTeamDetails[projectId]) {
+      delete state.projectTeamDetails[projectId][memberId];
     }
     emit();
   },
@@ -2326,6 +2401,140 @@ export const dhStore = {
 
     emit();
     return appId;
+  },
+
+  updateLeadershipAssignment(projectId: string, role: LeadershipRole, ids: string[]) {
+    const existing = state.leadershipAssignments[projectId] ?? { emIds: [], spmIds: [], pmIds: [], tlIds: [] };
+    // Replace the entire projectId entry with a new object so shallow-copy snapshot
+    // gets a new reference and useSyncExternalStore triggers re-renders correctly.
+    state.leadershipAssignments = {
+      ...state.leadershipAssignments,
+      [projectId]: {
+        ...existing,
+        ...(role === "Engagement Manager"     ? { emIds:  ids } : {}),
+        ...(role === "Senior Project Manager" ? { spmIds: ids } : {}),
+        ...(role === "Project Manager"        ? { pmIds:  ids } : {}),
+        ...(role === "Team Lead"              ? { tlIds:  ids } : {}),
+      },
+    };
+    emit();
+  },
+
+  submitLeadershipChangeRequest(input: {
+    projectId: string;
+    role: LeadershipRole;
+    currentLeaderIds: string[];
+    currentLeaderNames: string[];
+    newLeaderIds: string[];
+    newLeaderNames: string[];
+    effectiveDate: string;
+    changeReason: string;
+    additionalComments: string;
+    notifyPersonIds: string[];
+    attachmentName?: string;
+    requestedBy: string;
+    requestedById: string;
+  }) {
+    const proj = allProjects().find(p => p.id === input.projectId);
+    if (!proj) return;
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = now.toTimeString().slice(0, 8);
+    const reqId = uid("LCR");
+    const appId = uid("APP-LCR");
+
+    // Create central approval entry
+    state.approvals.unshift({
+      id: appId,
+      projectId: input.projectId,
+      projectName: proj.name,
+      requestType: "Leadership Change Approval",
+      requestedBy: input.requestedBy,
+      requestedById: input.requestedById,
+      requestedDate: dateStr,
+      status: "Pending",
+      description: `Leadership Change Request — ${input.role}: Replacing [${input.currentLeaderNames.join(", ")}] with [${input.newLeaderNames.join(", ")}]. Effective: ${input.effectiveDate}. Reason: ${input.changeReason.trim()}`,
+      comments: [],
+      history: [],
+    });
+
+    // Store the change request
+    const lcr: LeadershipChangeRequest = {
+      id: reqId,
+      projectId: input.projectId,
+      projectName: proj.name,
+      role: input.role,
+      currentLeaderIds: input.currentLeaderIds,
+      currentLeaderNames: input.currentLeaderNames,
+      newLeaderIds: input.newLeaderIds,
+      newLeaderNames: input.newLeaderNames,
+      effectiveDate: input.effectiveDate,
+      changeReason: input.changeReason,
+      additionalComments: input.additionalComments,
+      notifyPersonIds: input.notifyPersonIds,
+      attachmentName: input.attachmentName,
+      requestedBy: input.requestedBy,
+      requestedById: input.requestedById,
+      requestedDate: dateStr,
+      status: "Pending",
+      approvalId: appId,
+      auditHistory: [{
+        previousLeaderNames: input.currentLeaderNames,
+        newLeaderNames: input.newLeaderNames,
+        changedBy: input.requestedBy,
+        effectiveDate: input.effectiveDate,
+        changeReason: input.changeReason,
+        status: "Pending",
+      }],
+      createdAt: now.toISOString(),
+    };
+    state.leadershipChangeRequests.unshift(lcr);
+
+    // Notify tagged people via alerts
+    input.notifyPersonIds.forEach(id => {
+      state.alerts.unshift({
+        id: uid("al"),
+        alertId: uid("ALT"),
+        title: `Leadership Change Request — ${input.role}: ${proj.name}`,
+        kind: "Approval",
+        projectId: input.projectId,
+        raisedByName: input.requestedBy,
+        audienceUserIds: [id],
+        priority: "High",
+        status: "Open",
+        refId: appId,
+        createdAt: now.toISOString(),
+        comments: [],
+        description: `A leadership change has been requested for the ${input.role} role on project "${proj.name}". New leader(s): ${input.newLeaderNames.join(", ")}. Effective: ${input.effectiveDate}. Reason: ${input.changeReason.trim()}`,
+        alertType: "Governance Alert",
+        owner: input.requestedBy,
+        resolutionOwner: getPerson(id)?.name || "Supervisor",
+        escalationOwner: "Anita Desai",
+        attachments: [],
+        history: [{ status: "Open", at: now.toISOString(), updatedBy: input.requestedBy }],
+      });
+    });
+
+    // Add notification
+    const count = state.notifications.length + 1;
+    state.notifications.unshift({
+      id: `NTF-${String(count).padStart(3, '0')}`,
+      title: `Leadership Change Request submitted — ${input.role}: ${proj.name}`,
+      type: "Leadership Change",
+      relatedProject: proj.name,
+      raisedBy: input.requestedBy,
+      createdAt: now.toISOString(),
+      status: "Pending",
+      priority: "High",
+      unread: true,
+      createdBy: input.requestedBy,
+      createdDate: dateStr,
+      history: [{ action: "Leadership change request submitted", date: dateStr, time: timeStr, by: input.requestedBy }],
+    });
+
+    emit();
+    return reqId;
   },
 
   acknowledgeCentralApproval(id: string) {
