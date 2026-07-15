@@ -2,7 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useRoleContext } from "@/lib/role-context";
 import { MyTeamPage } from "@/modules/my-team";
 
-export const Route = createFileRoute("/my-team")({
+export const Route = createFileRoute("/my-team/")({
   head: () => ({
     meta: [
       { title: "My Team — Pulse PMO" },
