@@ -44,7 +44,14 @@ const dhProjects: Item = { to: "/projects", label: "Projects", icon: FolderKanba
 const dhReports: Item = { to: "/dh-reports", label: "Reports", icon: BarChart3 };
 const dhCustomers: Item = { to: "/customers", label: "Customers", icon: Building2 };
 const dhMyOrg: Item = { to: "/my-org", label: "My Org", icon: Building };
-const dhMyTeam: Item = { to: "/my-team", label: "My Team", icon: Users };
+const dhMyTeam: Item = {
+  label: "My Team",
+  icon: Users,
+  subItems: [
+    { to: "/my-team/", label: "Team Dashboard" },
+    { to: "/my-team/timesheets", label: "Timesheets" },
+  ],
+};
 const dhSettings: Item = { to: "/dh-settings", label: "Settings", icon: Settings };
 
 const dhResourcesDropdown: Item = {
@@ -85,6 +92,10 @@ export function AppSidebar() {
     const resourceRoutes = ["/dh-employee-directory", "/dh-resource-pool", "/dh-exit-summary", "/dh-org-tree"];
     if (resourceRoutes.some(route => pathname.startsWith(route))) {
       setOpenDropdowns(prev => ({ ...prev, Resources: true }));
+    }
+    // Auto-open My Team if we are in any of its sub-routes
+    if (pathname.startsWith("/my-team")) {
+      setOpenDropdowns(prev => ({ ...prev, "My Team": true }));
     }
   }, [pathname]);
 
