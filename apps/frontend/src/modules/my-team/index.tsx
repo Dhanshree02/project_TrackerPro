@@ -247,7 +247,7 @@ export function MyTeamPage() {
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <AppShell
-      title="My Team"
+      title="Team Dashboard"
       subtitle="Reporting team, availability, and leave visibility"
     >
       <div className="space-y-4">
