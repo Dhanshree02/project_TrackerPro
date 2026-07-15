@@ -253,10 +253,11 @@ export function MyTeamPage() {
       <div className="space-y-4">
         {/* Summary cards */}
         <section className="grid gap-3 md:grid-cols-4">
+          <SummaryCard label="On leave today" current={onLeaveCount} total={totalMembers} icon={CalendarDays}     />
           <SummaryCard label="Active today"   current={activeCount}  total={totalMembers} icon={Users}            />
           <SummaryCard label="Onsite today"   current={onsiteCount}  total={totalMembers} icon={BriefcaseBusiness} />
           <SummaryCard label="WFH today"      current={wfhCount}     total={totalMembers} icon={BriefcaseBusiness} />
-          <SummaryCard label="On leave today" current={onLeaveCount} total={totalMembers} icon={CalendarDays}     />
+          
         </section>
 
         {/* Team calendar */}

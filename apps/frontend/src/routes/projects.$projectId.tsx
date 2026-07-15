@@ -753,8 +753,8 @@ function WbsTab({ project }: { project: Project }) {
                     <td className="px-3 py-2 text-center">{svc.qty}</td>
                     <td className="px-3 py-2">{svc.frequency ?? "—"}</td>
                     <td className="px-3 py-2">{svc.serviceModel ?? "—"}</td>
-                    <td className="px-3 py-2">{svc.deliveryModel ?? "—"}</td>
-                    <td className="px-3 py-2">{svc.location}{svc.locationText ? ` — ${svc.locationText}` : ""}</td>
+                    <td className="px-3 py-2">{svc.location || "—"}</td>
+                    <td className="px-3 py-2">{svc.locationText || "—"}</td>
                     <td className="px-3 py-2">{(svc as any).finalDelivery ?? (svc as any).deliveryFormat ?? svc.finalDeliveryFormat ?? "—"}</td>
                     <td className="px-3 py-2">{svc.tools ?? "—"}</td>
                     <td className="px-3 py-2">{svc.billingModel || wbsDetails.accounts.billingModel || "—"}</td>
@@ -835,12 +835,12 @@ function WbsTab({ project }: { project: Project }) {
   const grandTotal = subtotal + tax;
 
   const wbsServices = [
-    { id: 1, taskId: 'WBS-01', dept: 'Penetration Testing', name: 'External Network Penetration Testing', qty: 1, desc: 'External network penetration test for internet-facing assets', freq: 'Once', loc: 'On-site', svc: 'Service', delivery: 'Remote + On-site', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Nmap, Burp Suite', start: '01 Feb 2026', end: '05 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
-    { id: 2, taskId: 'WBS-02', dept: 'Vulnerability Assessment', name: 'Web Application Vulnerability Assessment', qty: 2, desc: 'Security review for web apps and APIs', freq: 'Weekly', loc: 'Remote', svc: 'Service', delivery: 'Remote', format: 'Excel + PDF', billing: 'Ad-Hoc', tools: 'OWASP ZAP, Burp Suite', start: '06 Feb 2026', end: '10 Feb 2026', durDays: 4, durHrs: 32, totalDays: 8, totalHrs: 64 },
-    { id: 3, taskId: 'WBS-03', dept: 'Cloud Security', name: 'AWS Cloud Security Assessment', qty: 1, desc: 'Cloud misconfiguration and control review', freq: 'Once', loc: 'Remote', svc: 'Service', delivery: 'Remote', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'AWS Config, Security Hub', start: '11 Feb 2026', end: '16 Feb 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
-    { id: 4, taskId: 'WBS-04', dept: 'Code & Application Security', name: 'Static Application Security Testing (SAST)', qty: 1, desc: 'Source code review and vulnerability analysis', freq: 'Once', loc: 'Remote', svc: 'Service', delivery: 'Remote', format: 'PDF + XLSX', billing: 'Ad-Hoc', tools: 'SonarQube, Semgrep', start: '17 Feb 2026', end: '21 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
-    { id: 5, taskId: 'WBS-05', dept: 'Compliance & Audit', name: 'ISO 27001 Assessment', qty: 1, desc: 'Compliance gap assessment and audit checklist', freq: 'Once', loc: 'On-site', svc: 'Service', delivery: 'On-site + Remote', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Checklist, Audit Toolkit', start: '22 Feb 2026', end: '01 Mar 2026', durDays: 8, durHrs: 64, totalDays: 8, totalHrs: 64 },
-    { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure', name: 'Network Security Assessment', qty: 1, desc: 'Infrastructure review and segmentation validation', freq: 'Once', loc: 'On-site', svc: 'Service', delivery: 'On-site + Remote', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Nmap, Wireshark', start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+    { id: 1, taskId: 'WBS-01', dept: 'Penetration Testing',         name: 'External Network Penetration Testing',        qty: 1, desc: 'External network penetration test for internet-facing assets', freq: 'Once', delivery: 'Onsite',  loc: 'Andheri', svc: 'Initial Test',        format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Nmap, Metasploit',        start: '01 Feb 2026', end: '05 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+    { id: 2, taskId: 'WBS-02', dept: 'Vulnerability Assessment',     name: 'Web Application Vulnerability Assessment',    qty: 2, desc: 'Security review for web apps and APIs',                    freq: 'Once', delivery: 'Offsite', loc: '',        svc: 'Initial + 1 Re-test', format: 'Excel + PDF', billing: 'Ad-Hoc', tools: 'OWASP ZAP, Burp Suite',  start: '06 Feb 2026', end: '10 Feb 2026', durDays: 4, durHrs: 32, totalDays: 8, totalHrs: 64 },
+    { id: 3, taskId: 'WBS-03', dept: 'Cloud Security',               name: 'AWS Cloud Security Assessment',               qty: 1, desc: 'Cloud misconfiguration and control review',               freq: 'Once', delivery: 'Hybrid',  loc: '',        svc: 'Initial Test',        format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'AWS Config, Security Hub', start: '11 Feb 2026', end: '16 Feb 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+    { id: 4, taskId: 'WBS-04', dept: 'Code & Application Security',  name: 'Static Application Security Testing (SAST)', qty: 1, desc: 'Source code review and vulnerability analysis',          freq: 'Once', delivery: 'Onsite',  loc: 'Malad',   svc: 'Initial + 2 Re-test', format: 'PDF + XLSX',  billing: 'Ad-Hoc', tools: 'SonarQube, Semgrep',      start: '17 Feb 2026', end: '21 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+    { id: 5, taskId: 'WBS-05', dept: 'Compliance & Audit',           name: 'ISO 27001 Assessment',                        qty: 1, desc: 'Compliance gap assessment and audit checklist',          freq: 'Once', delivery: 'Onsite',  loc: 'Bandra',  svc: 'Initial + 1 Re-test', format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Checklist, Audit Toolkit', start: '22 Feb 2026', end: '01 Mar 2026', durDays: 8, durHrs: 64, totalDays: 8, totalHrs: 64 },
+    { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure',     name: 'Network Security Assessment',                 qty: 1, desc: 'Infrastructure review and segmentation validation',      freq: 'Once', delivery: 'Offsite', loc: '',        svc: 'Initial + 3 Re-test', format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Nmap, Wireshark',          start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
   ];
 
   return (
@@ -907,7 +907,7 @@ function WbsTab({ project }: { project: Project }) {
                   <td className="px-3 py-2">{svc.freq}</td>
                   <td className="px-3 py-2">{svc.svc}</td>
                   <td className="px-3 py-2">{svc.delivery}</td>
-                  <td className="px-3 py-2">{svc.loc}</td>
+                  <td className="px-3 py-2">{svc.loc || "—"}</td>
                   <td className="px-3 py-2">{svc.format}</td>
                   <td className="px-3 py-2">{svc.tools}</td>
                   <td className="px-3 py-2">{svc.billing}</td>

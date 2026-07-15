@@ -21,8 +21,8 @@ export const seedCategories: OrgCategory[] = [
   },
   {
     id: "policy-docs",
-    name: "Policy Docs",
-    description: "Company-wide policies, guidelines, and compliance documents.",
+    name: "IMP Templates",
+    description: "Important templates, company-wide policies, guidelines, and compliance documents.",
     iconName: "FileText",
     accentColor: "green",
   },
