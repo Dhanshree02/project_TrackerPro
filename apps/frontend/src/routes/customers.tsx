@@ -220,39 +220,45 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       contacts: p.contacts.map((c, i) => (i === idx ? { ...c, [field]: val } : c)),
     }));
 
-  const isStep1Valid = (): boolean => {
-    if (!s.companyName.trim()) return false; // Sub-venture always required
-    if (selectedExisting) return true; // existing client — rest auto-filled
-    return !!(
-      s.clientName.trim() &&
-      s.companyOwner.trim() &&
-      s.engagementManager.trim() &&
-      s.phoneNumber.trim() &&
-      s.city.trim() &&
-      s.country.trim() &&
-      s.industry.trim() &&
-      s.businessType.trim()
-    );
+  // Returns the first missing required field label, or null if all valid
+  const getStep1Error = (): string | null => {
+    if (!s.companyName.trim()) return "End Customer / Sub-venture Name is required";
+    if (selectedExisting) return null; // existing client — rest auto-filled
+    if (!s.clientName.trim())       return "TK Customer / Partner Name is required";
+    if (!s.companyOwner.trim())     return "Company Owner is required";
+    if (!s.engagementManager.trim()) return "Engagement Manager is required";
+    if (!s.phoneNumber.trim())      return "Phone Number is required";
+    if (!s.city.trim())             return "City is required";
+    if (!s.country.trim())          return "Country is required";
+    if (!s.industry.trim())         return "Industry is required";
+    if (!s.businessType.trim())     return "Business Type is required";
+    return null;
   };
 
-  const isStep2Valid = (): boolean =>
-    s.contacts.every(
-      (c) =>
-        c.name.trim() !== "" &&
-        c.email.trim() !== "" &&
-        c.phone.trim() !== "" &&
-        c.designation.trim() !== ""
-    ) &&
-    s.kycFile !== null;
+  const getStep2Error = (): string | null => {
+    for (let i = 0; i < s.contacts.length; i++) {
+      const c = s.contacts[i];
+      const n = s.contacts.length > 1 ? ` (Contact ${i + 1})` : "";
+      if (!c.name.trim())        return `Contact Name${n} is required`;
+      if (!c.email.trim())       return `Contact Email${n} is required`;
+      if (!c.phone.trim())       return `Contact Phone${n} is required`;
+      if (!c.designation.trim()) return `Designation${n} is required`;
+    }
+    if (!s.kycFile) return "KYC Document is required";
+    return null;
+  };
+
+  const isStep1Valid = () => getStep1Error() === null;
+  const isStep2Valid = () => getStep2Error() === null;
 
   const handleNext = () => {
-    if (step === 1 && !isStep1Valid()) {
-      toast.error("Please complete all required fields");
-      return;
+    if (step === 1) {
+      const err = getStep1Error();
+      if (err) { toast.error(err); return; }
     }
-    if (step === 2 && !isStep2Valid()) {
-      toast.error("Please complete all required fields");
-      return;
+    if (step === 2) {
+      const err = getStep2Error();
+      if (err) { toast.error(err); return; }
     }
     setStep((prev) => prev + 1);
   };
