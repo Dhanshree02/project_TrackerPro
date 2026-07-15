@@ -82,8 +82,8 @@ const seedCategories: OrgCategory[] = [
   },
   {
     id: "policy-docs",
-    name: "Policy Docs",
-    description: "Company-wide policies, guidelines, and compliance documents.",
+    name: "IMP Templates",
+    description: "Important templates, company-wide policies, guidelines, and compliance documents.",
     iconName: "FileText",
     accentColor: "green",
   },
@@ -108,7 +108,7 @@ const seedDocuments: OrgDocument[] = [
   { id: "doc-007", name: "Timesheet Submission Process.pdf", categoryId: "pms-sops", size: 409600, fileType: "pdf", lastUpdated: "2026-04-20", uploadedBy: "Riya Kapoor" },
   { id: "doc-008", name: "Resource Allocation SOP.pdf", categoryId: "pms-sops", size: 655360, fileType: "pdf", lastUpdated: "2026-06-05", uploadedBy: "Rahul Gupta" },
   { id: "doc-009", name: "Change Request Management Process.docx", categoryId: "pms-sops", size: 327680, fileType: "docx", lastUpdated: "2026-05-18", uploadedBy: "Aarav Mehta" },
-  // ── Policy Docs ──
+  // ── IMP Templates ──
   { id: "doc-010", name: "Code of Conduct 2026.pdf", categoryId: "policy-docs", size: 1048576, fileType: "pdf", lastUpdated: "2026-01-05", uploadedBy: "Vikrant Malhotra" },
   { id: "doc-011", name: "Remote Work Policy.pdf", categoryId: "policy-docs", size: 614400, fileType: "pdf", lastUpdated: "2026-03-10", uploadedBy: "Vikrant Malhotra" },
   { id: "doc-012", name: "Data Privacy and GDPR Guidelines.pdf", categoryId: "policy-docs", size: 2097152, fileType: "pdf", lastUpdated: "2026-02-14", uploadedBy: "Anita Desai" },
