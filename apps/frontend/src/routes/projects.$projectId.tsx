@@ -770,7 +770,7 @@ function WbsTab({ project }: { project: Project }) {
                   <th className="px-3 py-2 font-medium">Frequency</th>
                   <th className="px-3 py-2 font-medium">Service Model</th>
                   <th className="px-3 py-2 font-medium">Delivery Model</th>
-                  <th className="px-3 py-2 font-medium">Project Site</th>
+                  <th className="px-3 py-2 font-medium">Delivery Site</th>
                   <th className="px-3 py-2 font-medium">Delivery Format</th>
                   <th className="px-3 py-2 font-medium">Tools</th>
                   <th className="px-3 py-2 font-medium">Billing Model</th>
@@ -922,7 +922,7 @@ function WbsTab({ project }: { project: Project }) {
                 <th className="px-3 py-2 font-medium">Frequency</th>
                 <th className="px-3 py-2 font-medium">Service Model</th>
                 <th className="px-3 py-2 font-medium">Delivery Model</th>
-                <th className="px-3 py-2 font-medium">Project Site</th>
+                <th className="px-3 py-2 font-medium">Delivery Site</th>
                 <th className="px-3 py-2 font-medium">Delivery Format</th>
                 <th className="px-3 py-2 font-medium">Tools</th>
                 <th className="px-3 py-2 font-medium">Billing Model</th>

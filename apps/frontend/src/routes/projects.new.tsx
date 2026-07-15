@@ -915,7 +915,7 @@ function WbsNewProjectPage() {
                   <th style={{ ...thStyle, minWidth: 120 }}>Frequency</th>
                   <th style={{ ...thStyle, minWidth: 160 }}>Service Model</th>
                   <th style={{ ...thStyle, minWidth: 110 }}>Delivery Model</th>
-                  <th style={{ ...thStyle, minWidth: 140 }}>Project Side</th>
+                  <th style={{ ...thStyle, minWidth: 140 }}>Delivey Site</th>
                   <th style={{ ...thStyle, minWidth: 140 }}>Final Delivery Format</th>
                   <th style={{ ...thStyle, minWidth: 160 }}>Tools</th>
                   <th style={{ ...thStyle, minWidth: 140 }}>WBS Start Date</th>
