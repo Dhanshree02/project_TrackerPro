@@ -120,8 +120,8 @@ interface ServiceRow {
   qty: number;
   description: string;
   frequency: string;
-  location: string;       // Project Onside — dropdown (Onsite/Offsite/Hybrid)
-  locationText: string;   // Location — free text
+  location: string;       // Delivery Model — dropdown (Onsite/Offsite/Hybrid)
+  locationText: string;   // Project Side — free text
   serviceModel: string;
   deliveryModel: string;  // preserved for WBS record
   billingModel: string;   // preserved for WBS record
@@ -409,9 +409,9 @@ function WbsNewProjectPage() {
       if (!r.taskId.trim())       return `Row ${n}: Service ID is required`;
       if (!r.name.trim())         return `Row ${n}: Service Name is required`;
       if (!r.frequency)           return `Row ${n}: Frequency is required`;
-      if (!r.location)            return `Row ${n}: Project Onside is required`;
+      if (!r.location)            return `Row ${n}: Delivery Model is required`;
       if (r.location === "Onsite" && !r.locationText.trim())
-                                  return `Row ${n}: Location is required for Onsite`;
+                                  return `Row ${n}: Project Side is required for Onsite`;
       if (!r.serviceModel)        return `Row ${n}: Service Model is required`;
       if (!r.deliveryFormat.trim()) return `Row ${n}: Final Delivery Format is required`;
       if (!r.tools.trim())        return `Row ${n}: Tools is required`;
@@ -906,15 +906,15 @@ function WbsNewProjectPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead style={{ background: "#f3f4f6" }}>
                 <tr>
-                  <th style={{ ...thStyle, minWidth: 100 }}>Service ID</th>
                   <th style={{ ...thStyle, minWidth: 140 }}>Department</th>
+                  <th style={{ ...thStyle, minWidth: 100 }}>Service ID</th>
                   <th style={{ ...thStyle, minWidth: 200 }}>Service Name</th>
-                  <th style={{ ...thStyle, minWidth: 60 }}>Qty</th>
                   <th style={{ ...thStyle, minWidth: 180 }}>Description</th>
+                  <th style={{ ...thStyle, minWidth: 60 }}>Qty</th>
                   <th style={{ ...thStyle, minWidth: 120 }}>Frequency</th>
-                  <th style={{ ...thStyle, minWidth: 110 }}>Project Onside</th>
-                  <th style={{ ...thStyle, minWidth: 140 }}>Location</th>
                   <th style={{ ...thStyle, minWidth: 160 }}>Service Model</th>
+                  <th style={{ ...thStyle, minWidth: 110 }}>Delivery Model</th>
+                  <th style={{ ...thStyle, minWidth: 140 }}>Project Side</th>
                   <th style={{ ...thStyle, minWidth: 140 }}>Final Delivery Format</th>
                   <th style={{ ...thStyle, minWidth: 160 }}>Tools</th>
                   <th style={{ ...thStyle, minWidth: 140 }}>WBS Start Date</th>
@@ -943,11 +943,11 @@ function WbsNewProjectPage() {
                   const isOffsite = r.location === "Offsite";
                   return (
                   <tr key={r.rowId}>
-                    <td style={tdStyle}><input type="text" value={r.taskId} onChange={(e) => updateRow(r.rowId, "taskId", e.target.value)} style={{ ...req(r.taskId), minWidth: 100 }} /></td>
                     <td style={tdStyle}><input type="text" value={r.dept} readOnly style={{ ...tblInputStyle, background: "#f3f4f6", minWidth: 140 }} /></td>
+                    <td style={tdStyle}><input type="text" value={r.taskId} onChange={(e) => updateRow(r.rowId, "taskId", e.target.value)} style={{ ...req(r.taskId), minWidth: 100 }} /></td>
                     <td style={tdStyle}><input type="text" value={r.name} onChange={(e) => updateRow(r.rowId, "name", e.target.value)} style={{ ...req(r.name), minWidth: 200 }} /></td>
-                    <td style={tdStyle}><input type="number" value={r.qty} min={1} onChange={(e) => updateRow(r.rowId, "qty", Number(e.target.value))} style={{ ...tblInputStyle, minWidth: 60 }} /></td>
                     <td style={tdStyle}><input type="text" value={r.description} onChange={(e) => updateRow(r.rowId, "description", e.target.value)} style={{ ...tblInputStyle, minWidth: 180 }} /></td>
+                    <td style={tdStyle}><input type="number" value={r.qty} min={1} onChange={(e) => updateRow(r.rowId, "qty", Number(e.target.value))} style={{ ...tblInputStyle, minWidth: 60 }} /></td>
                     <td style={tdStyle}>
                       <select value={r.frequency} onChange={(e) => updateRow(r.rowId, "frequency", e.target.value)} style={{ ...reqSel(r.frequency), minWidth: 120 }}>
                         <option value="">— Select —</option>
@@ -955,6 +955,15 @@ function WbsNewProjectPage() {
                         <option value="Quarterly-1">Quarterly</option>
                         <option value="Half yearly">Half yearly</option>
                         <option value="Yearly">Yearly</option>
+                      </select>
+                    </td>
+                    <td style={tdStyle}>
+                      <select value={r.serviceModel} onChange={(e) => updateRow(r.rowId, "serviceModel", e.target.value)} style={{ ...reqSel(r.serviceModel), minWidth: 160 }}>
+                        <option value="">— Select —</option>
+                        <option value="Initial Test">Initial Test</option>
+                        <option value="Initial + 1 Re-test">Initial + 1 Re-test</option>
+                        <option value="Initial + 2 Re-test">Initial + 2 Re-test</option>
+                        <option value="Initial + 3 Re-test">Initial + 3 Re-test</option>
                       </select>
                     </td>
                     <td style={tdStyle}>
@@ -982,15 +991,6 @@ function WbsNewProjectPage() {
                             : { background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" }),
                         }}
                       />
-                    </td>
-                    <td style={tdStyle}>
-                      <select value={r.serviceModel} onChange={(e) => updateRow(r.rowId, "serviceModel", e.target.value)} style={{ ...reqSel(r.serviceModel), minWidth: 160 }}>
-                        <option value="">— Select —</option>
-                        <option value="Initial Test">Initial Test</option>
-                        <option value="Initial + 1 Re-test">Initial + 1 Re-test</option>
-                        <option value="Initial + 2 Re-test">Initial + 2 Re-test</option>
-                        <option value="Initial + 3 Re-test">Initial + 3 Re-test</option>
-                      </select>
                     </td>
                     <td style={tdStyle}><input type="text" value={r.deliveryFormat} onChange={(e) => updateRow(r.rowId, "deliveryFormat", e.target.value)} placeholder="e.g. PDF, EXCEL, etc." style={{ ...req(r.deliveryFormat), minWidth: 140 }} /></td>
                     <td style={tdStyle}><input type="text" value={r.tools} onChange={(e) => updateRow(r.rowId, "tools", e.target.value)} style={{ ...req(r.tools), minWidth: 160 }} /></td>

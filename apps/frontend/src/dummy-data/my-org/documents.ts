@@ -90,7 +90,7 @@ export const seedDocuments: OrgDocument[] = [
     uploadedBy: "Aarav Mehta",
   },
 
-  // ── Policy Docs ──
+  // ── IMP Templates ──
   {
     id: "doc-010",
     name: "Code of Conduct 2026.pdf",
