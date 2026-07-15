@@ -3,13 +3,13 @@ import { useMemo, useState } from "react";
 import {
   ChevronRight, Mail, Building2, Hash, ExternalLink, Search, X,
   Calendar, Clock, TrendingUp, AlertTriangle, CheckCircle2, PauseCircle, Layers,
-  User, Users, Activity, History,
+  User, Users, Activity, History, Pencil, Check,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
 import { allClients, allProjects, useDhStore } from "@/lib/dh-store";
-import { getPerson } from "@/lib/mock-data";
+import { getPerson, people } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 // Small inline avatar bubble (initials)
@@ -59,6 +59,23 @@ function CustomerDetailPage() {
 
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
+
+  // EM state — initialised from client.engagementManager or derived from projects
+  const defaultEM = useMemo(() => {
+    if (client.engagementManager) return client.engagementManager;
+    // fallback: derive from first project EM field
+    const proj = allProjects().find((p) => p.clientId === client.id && p.engagementManager);
+    return proj?.engagementManager ?? "—";
+  }, [client]);
+  const [emName, setEmName] = useState<string>(defaultEM);
+  const [showEMPicker, setShowEMPicker] = useState(false);
+  const [emSearch, setEmSearch] = useState("");
+
+  // EM pool — people with EM or Senior PM role
+  const emPool = useMemo(() =>
+    people.filter((p) => ["Engagement Manager", "Senior PM", "Business Owner"].includes(p.role)),
+    []
+  );
 
   if (!isDhanshree) return <Navigate to="/customers" />;
 
@@ -146,6 +163,60 @@ function CustomerDetailPage() {
                 {client.clientType === "NEW" ? "New Client" : "Existing Client"}
               </span>
               <span className="inline-flex rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">Active</span>
+
+              {/* EM Name + Change button */}
+              {isDhanshree && (
+                <div className="relative flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-info/30 bg-info/10 px-2.5 py-0.5 text-[11px] font-semibold text-info">
+                    <User className="h-3 w-3" />
+                    {emName !== "—" ? emName : "No EM assigned"}
+                  </span>
+                  <button
+                    onClick={() => { setShowEMPicker((v) => !v); setEmSearch(""); }}
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  >
+                    <Pencil className="h-2.5 w-2.5" /> Change EM
+                  </button>
+
+                  {showEMPicker && (
+                    <div className="absolute left-0 top-8 z-50 w-56 rounded-md border border-border bg-card shadow-lg p-2 space-y-1.5">
+                      <input
+                        value={emSearch}
+                        onChange={(e) => setEmSearch(e.target.value)}
+                        placeholder="Search EM…"
+                        autoFocus
+                        className="h-7 w-full rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                      <ul className="max-h-40 overflow-y-auto divide-y divide-border">
+                        {emPool
+                          .filter((p) => !emSearch.trim() || p.name.toLowerCase().includes(emSearch.toLowerCase()))
+                          .map((p) => (
+                            <li key={p.id}>
+                              <button
+                                onClick={() => { setEmName(p.name); setShowEMPicker(false); }}
+                                className={cn(
+                                  "flex w-full items-center gap-2 px-2 py-1.5 text-xs text-left hover:bg-accent/40 rounded-sm",
+                                  emName === p.name && "bg-primary/5"
+                                )}
+                              >
+                                <AvatarBubble name={p.name} size={20} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium truncate">{p.name}</div>
+                                  <div className="text-[10px] text-muted-foreground">{p.role}</div>
+                                </div>
+                                {emName === p.name && <Check className="h-3 w-3 text-primary shrink-0" />}
+                              </button>
+                            </li>
+                          ))
+                        }
+                        {emPool.filter((p) => !emSearch.trim() || p.name.toLowerCase().includes(emSearch.toLowerCase())).length === 0 && (
+                          <li className="px-2 py-3 text-center text-xs text-muted-foreground">No match</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span className="font-mono font-semibold text-foreground">{fmtClientId(client.id)}</span>

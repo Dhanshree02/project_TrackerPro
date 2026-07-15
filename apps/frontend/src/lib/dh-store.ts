@@ -775,14 +775,14 @@ const state: DhState = {
   },
   shadowTeamDetails: {
     p1: {
-      u9: { duration: "02/01/2026 → 08/30/2026", billability: "Billable", resourceType: "Dedicated" }
+      u9: { duration: "02/01/2026 → 08/30/2026", billability: "Non-Billable", resourceType: "Shared Resource" }
     },
     p3: {
-      u6: { duration: "03/01/2026 → 09/15/2026", billability: "Billable", resourceType: "Dedicated" },
-      u10: { duration: "03/01/2026 → 09/15/2026", billability: "Billable", resourceType: "Shared Resource" }
+      u6: { duration: "03/01/2026 → 09/15/2026", billability: "Non-Billable", resourceType: "Shared Resource" },
+      u10: { duration: "03/01/2026 → 09/15/2026", billability: "Non-Billable", resourceType: "Shared Resource" }
     },
     p5: {
-      u5: { duration: "01/20/2026 → 08/10/2026", billability: "Billable", resourceType: "Dedicated" }
+      u5: { duration: "01/20/2026 → 08/10/2026", billability: "Non-Billable", resourceType: "Shared Resource" }
     }
   },
   projectTeamDetails: {},
@@ -1918,36 +1918,50 @@ export const dhStore = {
   },
 
   addShadowMember(projectId: string, memberId: string, duration: string, billability: Billability, resourceType: ResourceType) {
-    if (!state.shadowTeams[projectId]) {
-      state.shadowTeams[projectId] = [];
-    }
-    if (!state.shadowTeams[projectId].includes(memberId)) {
-      state.shadowTeams[projectId].push(memberId);
-    }
-    if (!state.shadowTeamDetails[projectId]) {
-      state.shadowTeamDetails[projectId] = {};
-    }
-    state.shadowTeamDetails[projectId][memberId] = { duration, billability, resourceType };
+    // Always force shadow team values
+    const fixedBillability: Billability = "Non-Billable";
+    const fixedResourceType: ResourceType = "Shared Resource";
+
+    const existingIds = state.shadowTeams[projectId] ?? [];
+    const newIds = existingIds.includes(memberId) ? existingIds : [...existingIds, memberId];
+
+    const existingDetails = state.shadowTeamDetails[projectId] ?? {};
+    const newDetails = {
+      ...existingDetails,
+      [memberId]: { duration, billability: fixedBillability, resourceType: fixedResourceType },
+    };
+
+    // Replace top-level maps with new references so shallow snapshot copy triggers re-renders
+    state.shadowTeams = { ...state.shadowTeams, [projectId]: newIds };
+    state.shadowTeamDetails = { ...state.shadowTeamDetails, [projectId]: newDetails };
     emit();
   },
 
   removeShadowMember(projectId: string, memberId: string) {
-    if (state.shadowTeams[projectId]) {
-      state.shadowTeams[projectId] = state.shadowTeams[projectId].filter(id => id !== memberId);
-    }
-    if (state.shadowTeamDetails[projectId]) {
-      delete state.shadowTeamDetails[projectId][memberId];
-    }
+    const existingIds = state.shadowTeams[projectId] ?? [];
+    const existingDetails = state.shadowTeamDetails[projectId] ?? {};
+    const newDetails = { ...existingDetails };
+    delete newDetails[memberId];
+
+    state.shadowTeams = { ...state.shadowTeams, [projectId]: existingIds.filter(id => id !== memberId) };
+    state.shadowTeamDetails = { ...state.shadowTeamDetails, [projectId]: newDetails };
     emit();
   },
 
   updateShadowMember(projectId: string, memberId: string, patch: Partial<{ duration: string; billability: Billability; resourceType: ResourceType }>) {
-    if (state.shadowTeamDetails[projectId] && state.shadowTeamDetails[projectId][memberId]) {
-      state.shadowTeamDetails[projectId][memberId] = {
-        ...state.shadowTeamDetails[projectId][memberId],
-        ...patch
-      };
-    }
+    const existingDetails = state.shadowTeamDetails[projectId] ?? {};
+    const existing = existingDetails[memberId] ?? { duration: "", billability: "Non-Billable" as Billability, resourceType: "Shared Resource" as ResourceType };
+    // Always enforce fixed values for shadow team
+    const newDetails = {
+      ...existingDetails,
+      [memberId]: {
+        ...existing,
+        duration: patch.duration ?? existing.duration,
+        billability: "Non-Billable" as Billability,
+        resourceType: "Shared Resource" as ResourceType,
+      },
+    };
+    state.shadowTeamDetails = { ...state.shadowTeamDetails, [projectId]: newDetails };
     emit();
   },
 

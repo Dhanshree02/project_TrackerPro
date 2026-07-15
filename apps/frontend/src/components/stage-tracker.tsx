@@ -48,7 +48,8 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
       status === "Payment Received" || status === "WBS Created" || status === "WBS Stabilized" ||
       status === "WBS Modified" || status === "Ready To Start" || status === "Sr. PM Assigned" ||
       status === "PM Assigned" || status === "Prerequisite Collected" ||
-      status === "Prerequisite Validated" || status === "After Released" ||
+      status === "Prerequisite Validated" || status === "Billing Validation" ||
+      status === "After Released" ||
       status === "Certification Released" || status === "PO Not Required"
     ) {
       return "bg-emerald-100 text-emerald-800";
@@ -132,16 +133,40 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
                 {/* Stage Label */}
                 <div className="text-center w-full px-1">
                   <p className="text-xs font-semibold text-gray-900 mb-1 truncate">{stage.stageName}</p>
-                  <Badge className={`${getStatusBadgeColor(stage.currentStatus)} text-[10px] font-medium px-1.5 py-0.5`}>
-                    {stage.currentStatus}
-                  </Badge>
 
-                  {/* Sub-Status line */}
-                  {subStatus && (
-                    <p className={`mt-1 text-[10px] leading-snug truncate ${getSubStatusColor(subStatus)}`}>
-                      {subStatus}
-                    </p>
-                  )}
+                  {/* Sub-Status line — shows last completed sub-stage name */}
+                  {(() => {
+                    const subStages = subStagesMap?.[stage.stageName];
+                    if (subStages && subStages.length > 0) {
+                      const completedStages = subStages.filter(s => s.status === "completed");
+                      const lastCompleted = completedStages.length > 0 ? completedStages[completedStages.length - 1] : null;
+                      if (lastCompleted) {
+                        return (
+                          <p className="mt-1 text-[10px] leading-snug truncate text-emerald-600 font-semibold">
+                            {lastCompleted.label}
+                          </p>
+                        );
+                      }
+                      // No sub-stage completed yet — show first active or pending
+                      const activeStage = subStages.find(s => s.status === "active");
+                      if (activeStage) {
+                        return (
+                          <p className="mt-1 text-[10px] leading-snug truncate text-blue-600 font-semibold">
+                            {activeStage.label}
+                          </p>
+                        );
+                      }
+                    }
+                    // Fallback to subStatusMap if no subStagesMap
+                    if (subStatus) {
+                      return (
+                        <p className={`mt-1 text-[10px] leading-snug truncate ${getSubStatusColor(subStatus)}`}>
+                          {subStatus}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {/* Completion indicator */}

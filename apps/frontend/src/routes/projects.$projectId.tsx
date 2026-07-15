@@ -268,10 +268,12 @@ function ProjectDetail() {
     // --- PMO ---
     const allCollected = prereq?.services?.every(s => s.collectionStatus === "Collected") ?? false;
     const allValidated = prereq?.services?.every(s => s.validationStatus === "Validated") ?? false;
+    const allBillingOk = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => s.billingStatus === "Advance Received" || s.billingStatus === "Advance Not Required") ?? false);
     const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
     const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
     let pmoSub = "Prerequisite Collection Pending";
-    if (allCollected && allValidated && hasPM && hasSPM) pmoSub = "Project Allocation Completed";
+    if (allCollected && allValidated && allBillingOk && hasPM && hasSPM) pmoSub = "Project Allocation Completed";
+    else if (allCollected && allValidated && allBillingOk) pmoSub = "Billing Validated";
     else if (allCollected && allValidated) pmoSub = "Validation Completed";
     else if (allCollected) pmoSub = "Collection Completed";
     else if (allCollected === false && (prereq?.services?.some(s => s.collectionStatus === "Collected") ?? false)) pmoSub = "Collection In Progress";
@@ -340,6 +342,7 @@ function ProjectDetail() {
     const hasPM  = (prereq?.assignedPmIds?.length  ?? 0) > 0;
     const allCollected = prereq?.services?.every(s => s.collectionStatus === "Collected") ?? false;
     const allValidated = prereq?.services?.every(s => s.validationStatus === "Validated") ?? false;
+    const allBillingOk = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => s.billingStatus === "Advance Received" || s.billingStatus === "Advance Not Required") ?? false);
     const isReadyToStart = prereq?.isProjectReadyToStart ?? false;
 
     // Each step unlocks the next in sequence.
@@ -348,6 +351,7 @@ function ProjectDetail() {
       { label: "Project Manager Assigned",        done: hasPM && hasSPM },
       { label: "Prerequisite Collected",           done: allCollected && hasPM },
       { label: "Prerequisite Validated",           done: allValidated && allCollected && hasPM },
+      { label: "Billing Validation",              done: allBillingOk && allValidated && allCollected && hasPM },
       { label: "Ready To Start",                  done: isReadyToStart },
     ];
 
@@ -1127,8 +1131,7 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
         )}
 
         {isDhanshree && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
-            <LeadershipBlock title="Engagement Managers" role="Engagement Manager" people={ems} project={project} />
+          <div className="grid gap-3 sm:grid-cols-3 items-stretch">
             <LeadershipBlock title="Senior Project Managers" role="Senior Project Manager" people={spms} project={project} />
             <LeadershipBlock title="Project Managers" role="Project Manager" people={pms} unassigned={isNewWbsProject} project={project} />
             <LeadershipBlock title="Team Leads" role="Team Lead" people={tls} unassigned={isNewWbsProject} project={project} />
@@ -2063,7 +2066,7 @@ function DhTeamTab({ project }: { project: Project }) {
   const shadowRows = useMemo(() => {
     return shadowTeamIds.map(id => {
       const person = getPerson(id);
-      const detail = shadowDetails[id] || { duration: `${new Date(project.startDate).toLocaleDateString()} → ${new Date(project.endDate).toLocaleDateString()}`, billability: "Billable" as Billability, resourceType: "Dedicated" as ResourceType };
+      const detail = shadowDetails[id] || { duration: `${new Date(project.startDate).toLocaleDateString()} → ${new Date(project.endDate).toLocaleDateString()}`, billability: "Non-Billable" as Billability, resourceType: "Shared Resource" as ResourceType };
       return {
         person,
         duration: detail.duration,
@@ -2214,6 +2217,7 @@ function DhTeamTab({ project }: { project: Project }) {
           action={action.type}
           person={action.person}
           project={project}
+          teamType={teamTab}
           row={teamTab === "project" ? rows.find((r) => r.person.id === action.person!.id) : shadowRows.find((r) => r.person.id === action.person!.id)}
           onClose={() => setAction({ type: null, person: null })}
           onSaveEdit={(patch) => {
@@ -2253,7 +2257,7 @@ function DhTeamTab({ project }: { project: Project }) {
                 newRow.resourceType,
               );
             } else {
-              dhStore.addShadowMember(project.id, newRow.person.id, newRow.duration, newRow.billability, newRow.resourceType);
+              dhStore.addShadowMember(project.id, newRow.person.id, newRow.duration, "Non-Billable", "Shared Resource");
             }
             toast.success("Team member added");
             setShowAddModal(false);
@@ -2264,9 +2268,10 @@ function DhTeamTab({ project }: { project: Project }) {
   );
 }
 
-function TeamActionModal({ action, person, project, row, onClose, onSaveEdit, onConfirmRemove }: {
+function TeamActionModal({ action, person, project, row, teamType = "project", onClose, onSaveEdit, onConfirmRemove }: {
   action: Exclude<ActionType, null>; person: Person; project: Project;
   row?: { person: Person; duration: string; billability: Billability; resourceType: ResourceType };
+  teamType?: TeamTabType;
   onClose: () => void;
   onSaveEdit: (patch: { billability?: Billability; resourceType?: ResourceType; duration?: string }) => void;
   onConfirmRemove: () => void;
@@ -2334,20 +2339,47 @@ function TeamActionModal({ action, person, project, row, onClose, onSaveEdit, on
     return (
       <Modal title={`Edit Allocation — ${person.name}`} onClose={onClose}>
         <div className="space-y-3">
-          <Field label="Allocation Duration"><DateRangePicker value={editState.duration} onChange={(val) => setEditState((s) => ({ ...s, duration: val }))} /></Field>
+          <Field label="Allocation Duration">
+            <DateRangePicker value={editState.duration} onChange={(val) => setEditState((s) => ({ ...s, duration: val }))} />
+          </Field>
+
           <Field label="Billability">
-            <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.billability} onChange={(e) => setEditState((s) => ({ ...s, billability: e.target.value as Billability }))}>
-              {(["Billable", "Non-Billable"] as Billability[]).map((o) => <option key={o}>{o}</option>)}
-            </select>
+            {teamType === "shadow" ? (
+              <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30">
+                <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">Non-Billable</span>
+                <span className="text-xs text-muted-foreground/60 italic">(fixed for shadow team)</span>
+              </div>
+            ) : (
+              <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.billability} onChange={(e) => setEditState((s) => ({ ...s, billability: e.target.value as Billability }))}>
+                {(["Billable", "Non-Billable"] as Billability[]).map((o) => <option key={o}>{o}</option>)}
+              </select>
+            )}
           </Field>
+
           <Field label="Resource Type">
-            <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.resourceType} onChange={(e) => setEditState((s) => ({ ...s, resourceType: e.target.value as ResourceType }))}>
-              {(["Dedicated", "Shared Resource"] as ResourceType[]).map((o) => <option key={o}>{o}</option>)}
-            </select>
+            {teamType === "shadow" ? (
+              <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30">
+                <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2.5 py-0.5 text-[11px] font-medium text-info">Shared Resource</span>
+                <span className="text-xs text-muted-foreground/60 italic">(fixed for shadow team)</span>
+              </div>
+            ) : (
+              <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.resourceType} onChange={(e) => setEditState((s) => ({ ...s, resourceType: e.target.value as ResourceType }))}>
+                {(["Dedicated", "Shared Resource"] as ResourceType[]).map((o) => <option key={o}>{o}</option>)}
+              </select>
+            )}
           </Field>
+
           <div className="flex justify-end gap-2 border-t border-border pt-3">
             <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-            <button onClick={() => onSaveEdit(editState)} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Save</button>
+            <button
+              onClick={() => onSaveEdit(teamType === "shadow"
+                ? { duration: editState.duration, billability: "Non-Billable", resourceType: "Shared Resource" }
+                : editState
+              )}
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Save
+            </button>
           </div>
         </div>
       </Modal>
@@ -2508,38 +2540,50 @@ function AddTeamMemberModal({
         </Field>
 
         <Field label="Billability" required>
-          <div className="inline-flex rounded-full border border-border bg-card p-0.5 text-sm">
-            {(["Billable", "Non-Billable"] as Billability[]).map((b) => (
-              <button
-                key={b}
-                onClick={() => setBillability(b)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 font-medium",
-                  billability === b
-                    ? b === "Billable"
-                      ? "bg-success/15 text-success"
-                      : "bg-muted text-muted-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {b}
-              </button>
-            ))}
-          </div>
+          {teamType === "shadow" ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/30 text-sm text-muted-foreground">
+              <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">Non-Billable</span>
+              <span className="text-xs text-muted-foreground/60 italic">(fixed for shadow team)</span>
+            </div>
+          ) : (
+            <div className="inline-flex rounded-full border border-border bg-card p-0.5 text-sm">
+              {(["Billable", "Non-Billable"] as Billability[]).map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBillability(b)}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 font-medium",
+                    billability === b
+                      ? b === "Billable"
+                        ? "bg-success/15 text-success"
+                        : "bg-muted text-muted-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+          )}
         </Field>
 
         <Field label="Resource Type" required>
-          <select
-            value={resourceType}
-            onChange={(e) => setResourceType(e.target.value as ResourceType)}
-            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {(["Dedicated", "Shared Resource"] as ResourceType[]).map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+          {teamType === "shadow" ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/30 text-sm text-muted-foreground">
+              <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2.5 py-0.5 text-[11px] font-medium text-info">Shared Resource</span>
+              <span className="text-xs text-muted-foreground/60 italic">(fixed for shadow team)</span>
+            </div>
+          ) : (
+            <select
+              value={resourceType}
+              onChange={(e) => setResourceType(e.target.value as ResourceType)}
+              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {(["Dedicated", "Shared Resource"] as ResourceType[]).map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          )}
         </Field>
 
         <div className="flex justify-end gap-2 pt-4">
