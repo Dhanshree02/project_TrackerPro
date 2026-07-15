@@ -62,7 +62,7 @@ export type AlertKind =
   | "Approval"
   | "Dependency";
 
-export type AlertStatus = "Open" | "In Progress" | "Resolved" | "Closed" | "Acknowledged";
+export type AlertStatus = "Open" | "In Progress" | "Resolved" | "Closed" | "Acknowledged" | "Waiting for Client";
 
 export interface DhAlert {
   id: string;
@@ -96,6 +96,11 @@ export interface DhAlert {
   resolutionDetails?: string;
   attachments?: string[];
   history?: { status: AlertStatus; at: string; updatedBy: string; details?: string }[];
+  // Escalation additions:
+  serviceName?: string;
+  escalationType?: string;
+  escalatedTo?: string[];
+  expectedResolutionDate?: string;
 }
 
 export interface DhTimesheet {
@@ -513,6 +518,35 @@ const state: DhState = {
     },
   ],
   alerts: [
+    {
+      id: "ALT-ESC-001",
+      alertId: "ESC-001",
+      title: "Client production environment access pending",
+      kind: "Escalation",
+      projectId: "p1",
+      raisedByName: "Dhanshree",
+      audienceUserIds: ["u14", "u1", "u3", "u11", "u12"],
+      priority: "Critical",
+      status: "Open",
+      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      comments: [
+        { id: "cm-esc1", authorId: "u14", authorName: "Dhanshree", text: "We need the credentials immediately to begin the WBS verification.", at: new Date(Date.now() - 86400000 * 2).toISOString() }
+      ],
+      description: "Prerequisites for testing cannot continue as the client has not shared the OAuth production credentials.",
+      alertType: "Escalation",
+      owner: "Dhanshree",
+      resolutionOwner: "Vikram Shah",
+      escalationOwner: "Anita Desai",
+      resolutionDetails: "Awaiting response from Northwind Bank IT Security team.",
+      attachments: ["client_security_email.png"],
+      serviceName: "Application Testing",
+      escalationType: "Prerequisite Pending",
+      escalatedTo: ["Vikram Shah", "Aarav Mehta", "Anita Desai"],
+      expectedResolutionDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
+      history: [
+        { status: "Open", at: new Date(Date.now() - 86400000 * 2).toISOString(), updatedBy: "Dhanshree", details: "Escalation raised from WBS prerequisite collection." }
+      ]
+    },
     {
       id: "ALT-001",
       alertId: "ALT-001",
@@ -1506,6 +1540,49 @@ export const dhStore = {
     });
     emit();
     return e;
+  },
+  addEscalationAlert(input: {
+    projectId: string;
+    title: string;
+    description: string;
+    priority: DhPriority;
+    raisedByName: string;
+    serviceName: string;
+    escalationType: string;
+    escalatedTo: string[];
+    expectedResolutionDate?: string;
+    attachments?: string[];
+  }) {
+    const alertId = `ESC-${String(state.alerts.length + 1).padStart(3, '0')}`;
+    const id = uid("al");
+    const now = new Date().toISOString();
+    const alert: DhAlert = {
+      id,
+      alertId,
+      title: input.title,
+      kind: "Escalation",
+      projectId: input.projectId,
+      raisedByName: input.raisedByName,
+      audienceUserIds: ["u14", "u1", "u3", "u11", "u12"],
+      priority: input.priority,
+      status: "Open",
+      createdAt: now,
+      comments: [],
+      description: input.description,
+      alertType: "Escalation",
+      owner: input.raisedByName,
+      attachments: input.attachments || [],
+      serviceName: input.serviceName,
+      escalationType: input.escalationType,
+      escalatedTo: input.escalatedTo,
+      expectedResolutionDate: input.expectedResolutionDate,
+      history: [
+        { status: "Open", at: now, updatedBy: input.raisedByName, details: `Escalation raised for service ${input.serviceName}` }
+      ]
+    };
+    state.alerts.unshift(alert);
+    emit();
+    return alert;
   },
   addAppreciation(input: Omit<DhAppreciation, "id" | "at">) {
     const a: DhAppreciation = { ...input, id: uid("ap"), at: new Date().toISOString() };

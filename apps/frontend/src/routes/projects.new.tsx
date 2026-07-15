@@ -486,6 +486,7 @@ function WbsNewProjectPage() {
       accounts: {
         poStatus, poNumber, poDate, billingModel, paymentTerms, targetDate,
         contactName, contactNumber, contactEmail,
+        poFileName: poFile ? poFile.name : "",
         invoices: invoiceRows.map((inv) => ({
           id: inv.rowId, milestone: inv.milestone, amount: inv.amount,
           invoiceDate: inv.invoiceDate, remarks: inv.description,
