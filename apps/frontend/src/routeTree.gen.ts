@@ -15,6 +15,7 @@ import { Route as TimesheetRouteImport } from './routes/timesheet'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
+import { Route as MyTeamRouteImport } from './routes/my-team'
 import { Route as MyOrgRouteImport } from './routes/my-org'
 import { Route as HealthInterviewSchedulingRouteImport } from './routes/health-interview-scheduling'
 import { Route as HealthAdditionalRequirementsRouteImport } from './routes/health-additional-requirements'
@@ -71,6 +72,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const PortfolioRoute = PortfolioRouteImport.update({
   id: '/portfolio',
   path: '/portfolio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyTeamRoute = MyTeamRouteImport.update({
+  id: '/my-team',
+  path: '/my-team',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyOrgRoute = MyOrgRouteImport.update({
@@ -161,9 +167,9 @@ const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyTeamIndexRoute = MyTeamIndexRouteImport.update({
-  id: '/my-team/',
-  path: '/my-team/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => MyTeamRoute,
 } as any)
 const DhEmployeeDirectoryIndexRoute =
   DhEmployeeDirectoryIndexRouteImport.update({
@@ -187,9 +193,9 @@ const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyTeamTimesheetsRoute = MyTeamTimesheetsRouteImport.update({
-  id: '/my-team/timesheets',
-  path: '/my-team/timesheets',
-  getParentRoute: () => rootRouteImport,
+  id: '/timesheets',
+  path: '/timesheets',
+  getParentRoute: () => MyTeamRoute,
 } as any)
 const DhEmployeeDirectoryIdRoute = DhEmployeeDirectoryIdRouteImport.update({
   id: '/$id',
@@ -229,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
   '/my-org': typeof MyOrgRoute
+  '/my-team': typeof MyTeamRouteWithChildren
   '/portfolio': typeof PortfolioRoute
   '/reports': typeof ReportsRoute
   '/resources': typeof ResourcesRoute
@@ -299,6 +306,7 @@ export interface FileRoutesById {
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
   '/my-org': typeof MyOrgRoute
+  '/my-team': typeof MyTeamRouteWithChildren
   '/portfolio': typeof PortfolioRoute
   '/reports': typeof ReportsRoute
   '/resources': typeof ResourcesRoute
@@ -336,6 +344,7 @@ export interface FileRouteTypes {
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
     | '/my-org'
+    | '/my-team'
     | '/portfolio'
     | '/reports'
     | '/resources'
@@ -405,6 +414,7 @@ export interface FileRouteTypes {
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
     | '/my-org'
+    | '/my-team'
     | '/portfolio'
     | '/reports'
     | '/resources'
@@ -441,6 +451,7 @@ export interface RootRouteChildren {
   HealthAdditionalRequirementsRoute: typeof HealthAdditionalRequirementsRoute
   HealthInterviewSchedulingRoute: typeof HealthInterviewSchedulingRoute
   MyOrgRoute: typeof MyOrgRoute
+  MyTeamRoute: typeof MyTeamRouteWithChildren
   PortfolioRoute: typeof PortfolioRoute
   ReportsRoute: typeof ReportsRoute
   ResourcesRoute: typeof ResourcesRoute
@@ -449,11 +460,9 @@ export interface RootRouteChildren {
   WbsPrerequisiteNewRoute: typeof WbsPrerequisiteNewRoute
   ClientsClientIdRoute: typeof ClientsClientIdRoute
   CustomerDetailClientIdRoute: typeof CustomerDetailClientIdRoute
-  MyTeamTimesheetsRoute: typeof MyTeamTimesheetsRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
   ClientsIndexRoute: typeof ClientsIndexRoute
-  MyTeamIndexRoute: typeof MyTeamIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
 }
 
@@ -499,6 +508,13 @@ declare module '@tanstack/react-router' {
       path: '/portfolio'
       fullPath: '/portfolio'
       preLoaderRoute: typeof PortfolioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-team': {
+      id: '/my-team'
+      path: '/my-team'
+      fullPath: '/my-team'
+      preLoaderRoute: typeof MyTeamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-org': {
@@ -622,10 +638,10 @@ declare module '@tanstack/react-router' {
     }
     '/my-team/': {
       id: '/my-team/'
-      path: '/my-team'
+      path: '/'
       fullPath: '/my-team/'
       preLoaderRoute: typeof MyTeamIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof MyTeamRoute
     }
     '/dh-employee-directory/': {
       id: '/dh-employee-directory/'
@@ -657,10 +673,10 @@ declare module '@tanstack/react-router' {
     }
     '/my-team/timesheets': {
       id: '/my-team/timesheets'
-      path: '/my-team/timesheets'
+      path: '/timesheets'
       fullPath: '/my-team/timesheets'
       preLoaderRoute: typeof MyTeamTimesheetsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof MyTeamRoute
     }
     '/dh-employee-directory/$id': {
       id: '/dh-employee-directory/$id'
@@ -718,6 +734,19 @@ const DhEmployeeDirectoryRouteChildren: DhEmployeeDirectoryRouteChildren = {
 const DhEmployeeDirectoryRouteWithChildren =
   DhEmployeeDirectoryRoute._addFileChildren(DhEmployeeDirectoryRouteChildren)
 
+interface MyTeamRouteChildren {
+  MyTeamTimesheetsRoute: typeof MyTeamTimesheetsRoute
+  MyTeamIndexRoute: typeof MyTeamIndexRoute
+}
+
+const MyTeamRouteChildren: MyTeamRouteChildren = {
+  MyTeamTimesheetsRoute: MyTeamTimesheetsRoute,
+  MyTeamIndexRoute: MyTeamIndexRoute,
+}
+
+const MyTeamRouteWithChildren =
+  MyTeamRoute._addFileChildren(MyTeamRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionCentreRoute: ActionCentreRoute,
@@ -735,6 +764,7 @@ const rootRouteChildren: RootRouteChildren = {
   HealthAdditionalRequirementsRoute: HealthAdditionalRequirementsRoute,
   HealthInterviewSchedulingRoute: HealthInterviewSchedulingRoute,
   MyOrgRoute: MyOrgRoute,
+  MyTeamRoute: MyTeamRouteWithChildren,
   PortfolioRoute: PortfolioRoute,
   ReportsRoute: ReportsRoute,
   ResourcesRoute: ResourcesRoute,
@@ -743,11 +773,9 @@ const rootRouteChildren: RootRouteChildren = {
   WbsPrerequisiteNewRoute: WbsPrerequisiteNewRoute,
   ClientsClientIdRoute: ClientsClientIdRoute,
   CustomerDetailClientIdRoute: CustomerDetailClientIdRoute,
-  MyTeamTimesheetsRoute: MyTeamTimesheetsRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   ProjectsNewRoute: ProjectsNewRoute,
   ClientsIndexRoute: ClientsIndexRoute,
-  MyTeamIndexRoute: MyTeamIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "./projects.index";
 
-export const Route = createFileRoute("/my-team/timesheets" as any)({
+export const Route = createFileRoute("/my-team/timesheets")({
   head: () => ({
     meta: [
       { title: "Timesheets — Pulse PMO" },
