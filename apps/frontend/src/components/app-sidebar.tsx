@@ -44,7 +44,14 @@ const dhProjects: Item = { to: "/projects", label: "Projects", icon: FolderKanba
 const dhReports: Item = { to: "/dh-reports", label: "Reports", icon: BarChart3 };
 const dhCustomers: Item = { to: "/customers", label: "Customers", icon: Building2 };
 const dhMyOrg: Item = { to: "/my-org", label: "My Org", icon: Building };
-const dhMyTeam: Item = { to: "/my-team", label: "My Team", icon: Users };
+const dhMyTeam: Item = {
+  label: "My Team",
+  icon: Users,
+  subItems: [
+    { to: "/my-team/", label: "Team Dashboard" },
+    { to: "/my-team/timesheets", label: "Timesheets" },
+  ],
+};
 const dhSettings: Item = { to: "/dh-settings", label: "Settings", icon: Settings };
 
 const dhResourcesDropdown: Item = {
@@ -75,7 +82,12 @@ export function AppSidebar() {
 
   const isActive = (to?: string, exact?: boolean) => {
     if (!to) return false;
-    return exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+    // Normalise both sides — strip trailing slashes for comparison
+    const norm = (p: string) => p.replace(/\/+$/, "") || "/";
+    const normTo = norm(to);
+    const normPath = norm(pathname);
+    if (exact) return normPath === normTo;
+    return normPath === normTo || normPath.startsWith(normTo + "/");
   };
 
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
@@ -85,6 +97,10 @@ export function AppSidebar() {
     const resourceRoutes = ["/dh-employee-directory", "/dh-resource-pool", "/dh-exit-summary", "/dh-org-tree"];
     if (resourceRoutes.some(route => pathname.startsWith(route))) {
       setOpenDropdowns(prev => ({ ...prev, Resources: true }));
+    }
+    // Auto-open My Team if we are in any of its sub-routes
+    if (pathname.startsWith("/my-team")) {
+      setOpenDropdowns(prev => ({ ...prev, "My Team": true }));
     }
   }, [pathname]);
 
@@ -109,7 +125,7 @@ export function AppSidebar() {
         {items.map((it) => {
           if (it.subItems) {
             const isExpanded = openDropdowns[it.label] ?? false;
-            const isParentActive = it.subItems.some(sub => isActive(sub.to));
+            const isParentActive = it.subItems.some(sub => isActive(sub.to, true));
 
             return (
               <div key={it.label} className="flex flex-col gap-1">
@@ -134,7 +150,7 @@ export function AppSidebar() {
                 {isExpanded && (
                   <div className="ml-7 flex flex-col gap-1 border-l border-sidebar-border/60 pl-3">
                     {it.subItems.map((sub) => {
-                      const subActive = isActive(sub.to);
+                      const subActive = isActive(sub.to, true);
                       return (
                         <Link
                           key={sub.to}
