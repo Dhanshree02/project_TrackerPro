@@ -246,6 +246,28 @@ function ProjectDetail() {
   const tl = getPerson(project.tlId);
   const team = project.teamIds.map(getPerson);
 
+  const poFileName = useMemo(() => {
+    return project.wbsDetails?.accounts?.poFileName || 
+      (project.wbsDetails?.accounts?.poStatus === "PO Received" || 
+       project.wbsDetails?.accounts?.poStatus === "PO Validated" ||
+       project.wbsDetails?.accounts?.poStatus === "PO Raised" || 
+       (project.id === "p1")
+         ? "PO_Northwind_p1.pdf"
+         : "");
+  }, [project]);
+
+  const handleDownloadPO = () => {
+    if (!poFileName) return;
+    const element = document.createElement("a");
+    const file = new Blob(["Mock PO File Content for project: " + project.name], { type: 'application/pdf' });
+    element.href = URL.createObjectURL(file);
+    element.download = poFileName;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    toast.success("Download started", { description: poFileName });
+  };
+
   // Get project stages - call unconditionally to avoid Rules of Hooks violation
   const stages = useMemo(() => getStagesList(project.id), [project.id]);
 
@@ -501,141 +523,158 @@ function ProjectDetail() {
           {tab === "Team" && (isDhanshree ? <DhTeamTab project={project} /> : <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />)}
 
           {tab === "Invoices" && (
-            isDhanshree ? (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Milestone / Period</th>
-                      <th className="px-3 py-2 font-medium">Invoice Target Date</th>
-                      <th className="px-3 py-2 font-medium">Unit Price</th>
-                      <th className="px-3 py-2 font-medium">Qty</th>
-                      <th className="px-3 py-2 font-medium">Currency</th>
-                      <th className="px-3 py-2 font-medium">Invoice Amount</th>
-                      <th className="px-3 py-2 font-medium">Invoice Status</th>
-                      <th className="px-3 py-2 font-medium">Invoice Number</th>
-                      <th className="px-3 py-2 font-medium">Payment Status</th>
-                      <th className="px-3 py-2 font-medium">Date Of Payment Received</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {snapshotInvoices.filter((i) => i.projectId === project.id).map((inv) => {
-                      const statusTone = inv.invoiceStatus === "Raised" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800";
-                      const paymentTone = inv.paymentStatus === "Received" ? "bg-success/10 text-success border-success/30" : "bg-warning/15 text-warning-foreground border-warning/30";
+            <div className="space-y-4">
+              {poFileName && (
+                <div className="flex justify-end">
+                  <div className="flex items-center gap-2 border border-border rounded-lg p-2 px-3 bg-muted/20">
+                    <span className="text-xs font-semibold text-muted-foreground">Attached PO Document:</span>
+                    <button
+                      onClick={handleDownloadPO}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline hover:text-primary/80"
+                    >
+                      <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                      <span>{poFileName}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
-                      return (
-                        <tr key={inv.id} className="hover:bg-accent/30">
-                          <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
-                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.invoiceTargetDate}</td>
-                          <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
-                          <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
-                          <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
-                          <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
-                          <td className="px-3 py-2.5">
-                            <select
-                              value={inv.invoiceStatus}
-                              onChange={(e) => {
-                                const val = e.target.value as "Not Raised" | "Raised";
-                                if (val === "Raised") {
-                                  setRaiseInvoiceId(inv.id);
-                                  setInvoiceNumberInput("");
-                                  setRaiseModalOpen(true);
-                                } else {
-                                  dhStore.cancelInvoice(project.id, inv.id, user.id, user.name);
-                                  toast.success("Invoice status reset to Not Raised");
-                                }
-                              }}
-                              className={cn(
-                                "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
-                                statusTone
+              {isDhanshree ? (
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Milestone / Period</th>
+                        <th className="px-3 py-2 font-medium">Invoice Target Date</th>
+                        <th className="px-3 py-2 font-medium">Unit Price</th>
+                        <th className="px-3 py-2 font-medium">Qty</th>
+                        <th className="px-3 py-2 font-medium">Currency</th>
+                        <th className="px-3 py-2 font-medium">Invoice Amount</th>
+                        <th className="px-3 py-2 font-medium">Invoice Status</th>
+                        <th className="px-3 py-2 font-medium">Invoice Number</th>
+                        <th className="px-3 py-2 font-medium">Payment Status</th>
+                        <th className="px-3 py-2 font-medium">Date Of Payment Received</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {snapshotInvoices.filter((i) => i.projectId === project.id).map((inv) => {
+                        const statusTone = inv.invoiceStatus === "Raised" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800";
+                        const paymentTone = inv.paymentStatus === "Received" ? "bg-success/10 text-success border-success/30" : "bg-warning/15 text-warning-foreground border-warning/30";
+
+                        return (
+                          <tr key={inv.id} className="hover:bg-accent/30">
+                            <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
+                            <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.invoiceTargetDate}</td>
+                            <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
+                            <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
+                            <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
+                            <td className="px-3 py-2.5">
+                              <select
+                                value={inv.invoiceStatus}
+                                onChange={(e) => {
+                                  const val = e.target.value as "Not Raised" | "Raised";
+                                  if (val === "Raised") {
+                                    setRaiseInvoiceId(inv.id);
+                                    setInvoiceNumberInput("");
+                                    setRaiseModalOpen(true);
+                                  } else {
+                                    dhStore.cancelInvoice(project.id, inv.id, user.id, user.name);
+                                    toast.success("Invoice status reset to Not Raised");
+                                  }
+                                }}
+                                className={cn(
+                                  "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
+                                  statusTone
+                                )}
+                              >
+                                <option value="Not Raised" className="bg-white text-gray-800">Not Raised</option>
+                                <option value="Raised" className="bg-white text-gray-800">Raised</option>
+                              </select>
+                            </td>
+                            <td className="px-3 py-2.5 font-mono text-xs">
+                              {inv.invoiceNumber || "-"}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <select
+                                value={inv.paymentStatus}
+                                disabled={inv.invoiceStatus === "Not Raised"}
+                                onChange={(e) => {
+                                  const val = e.target.value as "Not Received" | "Received";
+                                  dhStore.updatePaymentStatus(project.id, inv.id, val, user.id, user.name);
+                                  toast.success(`Payment Status updated to ${val}`);
+                                }}
+                                className={cn(
+                                  "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
+                                  paymentTone
+                                )}
+                              >
+                                <option value="Not Received" className="bg-white text-gray-800">Not Received</option>
+                                <option value="Received" className="bg-white text-gray-800">Received</option>
+                              </select>
+                            </td>
+                            <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                              {inv.paymentReceivedDate || "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {snapshotInvoices.filter((i) => i.projectId === project.id).length === 0 && (
+                        <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Unit Price</th>
+                        <th className="px-3 py-2 font-medium">Qty</th>
+                        <th className="px-3 py-2 font-medium">Currency</th>
+                        <th className="px-3 py-2 font-medium">Invoice Amount</th>
+                        <th className="px-3 py-2 font-medium">Actions</th>
+                        <th className="px-3 py-2 font-medium">Payment Status</th>
+                        <th className="px-3 py-2 font-medium">Payment Received</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {invoices.filter((i) => i.projectId === project.id).map((inv, idx) => {
+                        const paymentTone = inv.paymentStatus === "completed" ? "bg-success/10 text-success border-success/30"
+                          : inv.paymentStatus === "overdue" ? "bg-destructive/10 text-destructive border-destructive/30"
+                            : inv.paymentStatus === "pending" ? "bg-warning/15 text-warning-foreground border-warning/30"
+                              : "bg-muted text-muted-foreground border-border";
+                        return (
+                          <tr key={idx} className="hover:bg-accent/30">
+                            <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
+                            <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
+                            <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-center">
+                              {inv.status === "raised" && (
+                                <button className="inline-flex items-center gap-1 rounded-md text-xs font-medium text-primary hover:bg-primary/10 px-2 py-1">
+                                  <Plus className="h-3 w-3" /> Raise
+                                </button>
                               )}
-                            >
-                              <option value="Not Raised" className="bg-white text-gray-800">Not Raised</option>
-                              <option value="Raised" className="bg-white text-gray-800">Raised</option>
-                            </select>
-                          </td>
-                          <td className="px-3 py-2.5 font-mono text-xs">
-                            {inv.invoiceNumber || "-"}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <select
-                              value={inv.paymentStatus}
-                              disabled={inv.invoiceStatus === "Not Raised"}
-                              onChange={(e) => {
-                                const val = e.target.value as "Not Received" | "Received";
-                                dhStore.updatePaymentStatus(project.id, inv.id, val, user.id, user.name);
-                                toast.success(`Payment Status updated to ${val}`);
-                              }}
-                              className={cn(
-                                "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
-                                paymentTone
-                              )}
-                            >
-                              <option value="Not Received" className="bg-white text-gray-800">Not Received</option>
-                              <option value="Received" className="bg-white text-gray-800">Received</option>
-                            </select>
-                          </td>
-                          <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                            {inv.paymentReceivedDate || "-"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {snapshotInvoices.filter((i) => i.projectId === project.id).length === 0 && (
-                      <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Unit Price</th>
-                      <th className="px-3 py-2 font-medium">Qty</th>
-                      <th className="px-3 py-2 font-medium">Currency</th>
-                      <th className="px-3 py-2 font-medium">Invoice Amount</th>
-                      <th className="px-3 py-2 font-medium">Actions</th>
-                      <th className="px-3 py-2 font-medium">Payment Status</th>
-                      <th className="px-3 py-2 font-medium">Payment Received</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {invoices.filter((i) => i.projectId === project.id).map((inv, idx) => {
-                      const paymentTone = inv.paymentStatus === "completed" ? "bg-success/10 text-success border-success/30"
-                        : inv.paymentStatus === "overdue" ? "bg-destructive/10 text-destructive border-destructive/30"
-                          : inv.paymentStatus === "pending" ? "bg-warning/15 text-warning-foreground border-warning/30"
-                            : "bg-muted text-muted-foreground border-border";
-                      return (
-                        <tr key={idx} className="hover:bg-accent/30">
-                          <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
-                          <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
-                          <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
-                          <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
-                          <td className="px-3 py-2.5 text-center">
-                            {inv.status === "raised" && (
-                              <button className="inline-flex items-center gap-1 rounded-md text-xs font-medium text-primary hover:bg-primary/10 px-2 py-1">
-                                <Plus className="h-3 w-3" /> Raise
-                              </button>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${paymentTone}`}>{inv.paymentStatus.replace("_", " ")}</span>
-                          </td>
-                          <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                            {inv.paymentReceivedDate ? new Date(inv.paymentReceivedDate).toLocaleDateString() : "-"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {invoices.filter((i) => i.projectId === project.id).length === 0 && (
-                      <tr><td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${paymentTone}`}>{inv.paymentStatus.replace("_", " ")}</span>
+                            </td>
+                            <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                              {inv.paymentReceivedDate ? new Date(inv.paymentReceivedDate).toLocaleDateString() : "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {invoices.filter((i) => i.projectId === project.id).length === 0 && (
+                        <tr><td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -1041,7 +1080,7 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <div className="md:col-span-2 space-y-4">
+      <div className={cn("space-y-4", isDhanshree ? "md:col-span-2" : "md:col-span-3")}>
         <div>
           <h3 className="text-sm font-semibold">Description</h3>
           <p className="mt-1 text-sm text-muted-foreground">{project.description || project.sectionAComments || "—"}</p>
@@ -1138,26 +1177,11 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
           </div>
         )}
       </div>
-      <aside className="space-y-3 rounded-lg border border-border bg-accent/30 p-4">
-        <PersonRow label="Project Manager" person={pm} unassigned={isNewWbsProject} />
-        <PersonRow label="Team Lead" person={tl} unassigned={isNewWbsProject} />
-        <div>
-          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Team</div>
-          {isNewWbsProject ? (
-            <p className="text-xs italic text-muted-foreground">Team will be assigned in the WBS tab after prerequisite collection.</p>
-          ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {team.map((m) => (
-                <div key={m.id} className="flex items-center gap-2 rounded-md bg-card px-2 py-1 text-xs">
-                  <Avatar name={m.name} size={20} />
-                  <span>{m.name.split(" ")[0]}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        {isDhanshree && <ExtensionRequestCard project={project} />}
-      </aside>
+      {isDhanshree && (
+        <aside className="space-y-3 rounded-lg border border-border bg-accent/30 p-4">
+          <ExtensionRequestCard project={project} />
+        </aside>
+      )}
     </div>
   );
 }
@@ -2654,7 +2678,29 @@ function HealthTab({ project }: { project: Project }) {
 
   const projectIssues = store.issues.filter((i) => i.projectId === project.id);
   const projectAlerts = store.alerts.filter((a) => a.projectId === project.id);
-  const projectEscalations = store.escalations.filter((e) => e.projectId === project.id);
+  const projectEscalations = useMemo(() => {
+    const legacy = store.escalations.filter((e) => e.projectId === project.id);
+    const newEscs = store.alerts
+      .filter((a) => a.projectId === project.id && a.kind === "Escalation")
+      .map((a) => ({
+        id: a.id,
+        projectId: a.projectId ?? "",
+        title: a.title,
+        severity: a.priority,
+        ownerId: a.id,
+        ownerName: a.owner || a.raisedByName,
+        deadline: a.expectedResolutionDate || a.createdAt.slice(0, 10),
+        status: a.status as any,
+        comments: a.comments,
+        createdAt: a.createdAt,
+        serviceName: a.serviceName,
+        escalationType: a.escalationType,
+        escalatedTo: a.escalatedTo,
+        attachments: a.attachments,
+        description: a.description
+      }));
+    return [...newEscs, ...legacy];
+  }, [store.escalations, store.alerts, project.id]);
   const projectAppreciations = store.appreciations.filter((a) => a.projectId === project.id);
 
   const canRaiseIssue = user.role === "Team Member" || user.role === "Team Lead" || user.role === "Dhanshree";
@@ -2663,9 +2709,9 @@ function HealthTab({ project }: { project: Project }) {
   const canAccessClientComm = ["Dhanshree", "PMO", "Project Manager", "Engagement Manager", "Senior Project Manager", "Head of Delivery", "Business Operations"].includes(user.role);
   const client = clients.find((c) => c.id === project.clientId)!;
 
-  // Dhanshree: Escalations tab removed (data still available, tab hidden)
+  // Dhanshree: Escalations tab restored for WBS Escalation workflow
   const tabsList = isDhanshree
-    ? (["Issues", "Alerts", "Appreciation", "Client Engagement"] as const)
+    ? (["Issues", "Alerts", "Escalations", "Appreciation", "Client Engagement"] as const)
     : (["Issues", "Alerts", "Escalations", "Appreciation", "Client Communication"] as const);
 
   return (
@@ -2848,62 +2894,299 @@ function HealthAlertsPanel({ alerts }: { alerts: DhAlert[] }) {
   );
 }
 
-function HealthEscalationsPanel({ escalations, project }: { escalations: DhEscalation[]; project: Project }) {
+function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; project: Project }) {
   const store = useDhStore((s) => s);
   const { user } = useRoleContext();
-  const [showRaiseModal, setShowRaiseModal] = useState(false);
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    severity: "High" as "Critical" | "High" | "Medium",
-    owner: project.pmId,
-    deadline: "",
-  });
-  const canRaise = user.role === "Project Manager" || user.role === "Senior Project Manager" || user.role === "Engagement Manager" || user.role === "Dhanshree";
+  const [selectedEscId, setSelectedEscId] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    if (!formData.title.trim() || !formData.deadline.trim()) {
-      toast.error("Fill all fields");
-      return;
+  // Modal State
+  const [selectedStatus, setSelectedStatus] = useState<any>("Open");
+  const [resDetails, setResDetails] = useState("");
+  const [newChatMsg, setNewChatMsg] = useState("");
+
+  const selectedEsc = useMemo(() => {
+    return store.alerts.find(a => a.id === selectedEscId);
+  }, [store.alerts, selectedEscId]);
+
+  const openDetails = (id: string) => {
+    const alert = store.alerts.find(a => a.id === id);
+    if (alert) {
+      setSelectedEscId(id);
+      setSelectedStatus(alert.status);
+      setResDetails(alert.resolutionDetails || "");
     }
-    dhStore.addEscalation({
-      projectId: project.id,
-      title: formData.title,
-      severity: formData.severity as DhPriority,
-      ownerName: getPerson(formData.owner).name,
-      ownerId: formData.owner,
-      deadline: formData.deadline,
-      status: "Open",
-    });
-    toast.success("Escalation raised", { description: "Leadership notified" });
-    setShowRaiseModal(false);
-    setFormData({ title: "", description: "", severity: "High", owner: project.pmId, deadline: "" });
   };
 
+  const handleUpdateEscalation = () => {
+    if (!selectedEscId) return;
+    dhStore.updateGovernanceAlert(
+      selectedEscId,
+      {
+        status: selectedStatus,
+        resolutionDetails: resDetails
+      },
+      newChatMsg,
+      user.id,
+      user.name
+    );
+    toast.success("Escalation updated successfully!");
+    setNewChatMsg("");
+    setSelectedEscId(null);
+  };
+
+  const summary = useMemo(() => {
+    const total = escalations.length;
+    const open = escalations.filter(e => e.status === "Open").length;
+    const inProgress = escalations.filter(e => e.status === "In Progress").length;
+    const waitingForClient = escalations.filter(e => e.status === "Waiting for Client").length;
+    const resolved = escalations.filter(e => e.status === "Resolved" || e.status === "Closed").length;
+    const critical = escalations.filter(e => e.severity === "Critical").length;
+    return { total, open, inProgress, waitingForClient, resolved, critical };
+  }, [escalations]);
+
+  const clientInfo = getClientInfo(project.clientId);
+
   return (
-    <div className="space-y-3">
-      <button className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-        <AlertTriangle className="h-3.5 w-3.5" /> Raise Escalation
-      </button>
-      {escalations.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">No escalations</p></div>
-      ) : (
-        <div className="space-y-2">
-          {escalations.map((esc) => {
-            const severityColor = esc.severity === "Critical" ? "border-destructive/30 bg-destructive/10 text-destructive" : esc.severity === "High" ? "border-warning/30 bg-warning/15 text-warning-foreground" : "border-info/30 bg-info/10 text-info";
-            return (
-              <div key={esc.id} className="rounded-lg border border-border bg-card p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h4 className="text-sm font-medium">{esc.title}</h4>
-                    <p className="mt-1 text-xs text-muted-foreground">Owner: {esc.ownerName} · Deadline: {esc.deadline}</p>
-                  </div>
-                  <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium whitespace-nowrap", severityColor)}>{esc.severity}</span>
+    <div className="space-y-4 text-xs">
+      {/* Summary Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total</span>
+          <span className="text-lg font-extrabold text-blue-700 mt-1">{summary.total}</span>
+        </div>
+        <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Open</span>
+          <span className="text-lg font-extrabold text-orange-700 mt-1">{summary.open}</span>
+        </div>
+        <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">In Progress</span>
+          <span className="text-lg font-extrabold text-blue-600 mt-1">{summary.inProgress}</span>
+        </div>
+        <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Waiting Client</span>
+          <span className="text-lg font-extrabold text-purple-700 mt-1">{summary.waitingForClient}</span>
+        </div>
+        <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Resolved</span>
+          <span className="text-lg font-extrabold text-emerald-700 mt-1">{summary.resolved}</span>
+        </div>
+        <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Critical</span>
+          <span className="text-lg font-extrabold text-red-700 mt-1">{summary.critical}</span>
+        </div>
+      </div>
+
+      {/* Escalations Table */}
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 font-bold">Escalation ID</th>
+              <th className="px-3 py-2 font-bold">Service</th>
+              <th className="px-3 py-2 font-bold">Subject</th>
+              <th className="px-3 py-2 font-bold">Type</th>
+              <th className="px-3 py-2 font-bold">Priority</th>
+              <th className="px-3 py-2 font-bold">Raised By</th>
+              <th className="px-3 py-2 font-bold">Expected Date</th>
+              <th className="px-3 py-2 font-bold">Status</th>
+              <th className="px-3 py-2 font-bold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {escalations.map((esc) => {
+              const severityTone = esc.severity === "Critical" ? "bg-red-50 text-red-700 border-red-200" : esc.severity === "High" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-blue-50 text-blue-700 border-blue-200";
+              const statusTone = esc.status === "Resolved" || esc.status === "Closed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : esc.status === "Waiting for Client" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-orange-50 text-orange-700 border-orange-200";
+              return (
+                <tr key={esc.id} className="hover:bg-accent/30">
+                  <td className="px-3 py-2.5 font-mono font-bold text-gray-800">{esc.alertId || "ALT-GEN"}</td>
+                  <td className="px-3 py-2.5 font-semibold text-gray-700">{esc.serviceName || "Core Project"}</td>
+                  <td className="px-3 py-2.5 text-gray-800 font-medium">{esc.title}</td>
+                  <td className="px-3 py-2.5">
+                    <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-gray-700">
+                      {esc.escalationType || "General"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold", severityTone)}>{esc.severity}</span>
+                  </td>
+                  <td className="px-3 py-2.5 font-medium">{esc.ownerName}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{esc.deadline || "—"}</td>
+                  <td className="px-3 py-2.5">
+                    <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold", statusTone)}>{esc.status}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    <button
+                      onClick={() => openDetails(esc.id)}
+                      className="rounded-md border border-input bg-card px-2.5 py-1 text-[10px] hover:bg-accent font-bold text-primary"
+                    >
+                      Review details
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+            {escalations.length === 0 && (
+              <tr>
+                <td colSpan={9} className="px-3 py-8 text-center text-sm text-muted-foreground">No escalations active for this project</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Escalation Review Details Modal */}
+      {selectedEsc && (
+        <Modal title={`Escalation Review Details — ${selectedEsc.alertId || "ALT-GEN"}`} onClose={() => setSelectedEscId(null)} wide>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            {/* Left side details */}
+            <div className="md:col-span-2 space-y-4">
+              <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Project</span>
+                  <span className="font-semibold text-gray-800">{project.name}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Client</span>
+                  <span className="font-semibold text-gray-800">{clientInfo?.name || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Service Name</span>
+                  <span className="font-semibold text-primary">{selectedEsc.serviceName || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Escalation Type</span>
+                  <span className="font-semibold text-gray-800">{selectedEsc.escalationType || "—"}</span>
                 </div>
               </div>
-            );
-          })}
-        </div>
+
+              <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
+                <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Description</span>
+                <p className="text-xs text-gray-700 leading-relaxed font-medium">{selectedEsc.description || "No full description provided."}</p>
+              </div>
+
+              {/* Resolution Progress */}
+              <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+                <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Resolution & Outcome Notes</span>
+                <textarea
+                  value={resDetails}
+                  onChange={(e) => setResDetails(e.target.value)}
+                  placeholder="Document resolution steps, technical outcomes, or action plan here..."
+                  rows={3}
+                  className="w-full rounded-md border border-border bg-card p-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+
+              {/* History Timeline Logs */}
+              {selectedEsc.history && selectedEsc.history.length > 0 && (
+                <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+                  <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Status Transitions Timeline</span>
+                  <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
+                    {selectedEsc.history.map((h, idx) => (
+                      <div key={idx} className="flex gap-2 text-[10px]">
+                        <span className="text-muted-foreground tabular-nums">{new Date(h.at).toLocaleDateString()} {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}:</span>
+                        <span>Status transitioned to <strong className="text-gray-800">{h.status}</strong> by {h.updatedBy} {h.details ? `— "${h.details}"` : ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right side communications thread */}
+            <div className="space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="bg-muted/10 rounded-lg border border-border p-3 space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground">Raised By</span>
+                    <span className="font-semibold text-gray-800">{selectedEsc.raisedByName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground">Escalated To</span>
+                    <span className="font-semibold text-primary truncate max-w-[120px]" title={selectedEsc.escalatedTo?.join(", ")}>
+                      {selectedEsc.escalatedTo?.join(", ") || "—"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Attachments */}
+                <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
+                  <span className="font-semibold text-[9px] text-muted-foreground uppercase block">Attachments</span>
+                  {selectedEsc.attachments && selectedEsc.attachments.length > 0 ? (
+                    <div className="space-y-1">
+                      {selectedEsc.attachments.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 text-[10px] text-primary hover:underline cursor-pointer">
+                          <Paperclip className="h-3 w-3 text-muted-foreground" />
+                          <span>{file}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground italic text-[9px]">No attachments.</span>
+                  )}
+                </div>
+
+                {/* Status Switcher */}
+                <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+                  <span className="font-semibold text-[9px] text-muted-foreground uppercase block">Set Status</span>
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value as any)}
+                    className={cn(
+                      "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                      selectedStatus === "Resolved" || selectedStatus === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
+                        selectedStatus === "Open" ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100" :
+                          selectedStatus === "In Progress" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
+                            selectedStatus === "Waiting for Client" ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100" :
+                              "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                    )}
+                  >
+                    {(["Open", "Acknowledged", "In Progress", "Waiting for Client", "Resolved", "Closed"] as const).map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Discussion Area Comment box */}
+                <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+                  <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Discussion Thread Chat</span>
+                  <div className="space-y-2 max-h-36 overflow-y-auto pl-1 pr-0.5 text-[9px] leading-relaxed">
+                    {selectedEsc.comments.map((cm) => (
+                      <div key={cm.id} className="bg-muted/30 border border-border p-2 rounded-md space-y-0.5">
+                        <div className="flex justify-between font-semibold text-gray-800 text-[8px]">
+                          <span>{cm.authorName}</span>
+                          <span className="text-muted-foreground">{new Date(cm.at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-gray-700">{cm.text}</p>
+                      </div>
+                    ))}
+                    {selectedEsc.comments.length === 0 && (
+                      <span className="text-muted-foreground italic text-[9px]">No chat messages yet.</span>
+                    )}
+                  </div>
+                  <textarea
+                    value={newChatMsg}
+                    onChange={(e) => setNewChatMsg(e.target.value)}
+                    placeholder="Type a message or reply to conversation thread..."
+                    rows={2}
+                    className="w-full rounded-md border border-border p-1.5 text-xs bg-card outline-none focus-visible:ring-1 focus-visible:ring-ring mt-2"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-border pt-3">
+                <button onClick={() => setSelectedEscId(null)} className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-semibold hover:bg-accent">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateEscalation}
+                  className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -3533,6 +3816,17 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
   // Per-service "Ready to Start" state — tracks which services have been marked ready
   const [serviceReady, setServiceReady] = useState<Record<string, boolean>>({});
 
+  // Escalation Modal States
+  const [escalationModalOpen, setEscalationModalOpen] = useState(false);
+  const [escalationModalSvc, setEscalationModalSvc] = useState<any>(null);
+  const [escType, setEscType] = useState("Prerequisite Pending");
+  const [escPriority, setEscPriority] = useState<DhPriority>("High");
+  const [escSubject, setEscSubject] = useState("");
+  const [escDescription, setEscDescription] = useState("");
+  const [escTo, setEscTo] = useState<string[]>([]);
+  const [escResolutionDate, setEscResolutionDate] = useState("");
+  const [escAttachmentName, setEscAttachmentName] = useState("");
+
   const prereq = prereqs[project.id] ?? {
     projectId: project.id,
     validation: "Validation Pending",
@@ -3576,6 +3870,55 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
     const ids = Array.from(new Set([project.pmId, project.tlId, ...project.teamIds]));
     return ids.map(getPerson);
   }, [project]);
+
+  const stakeholders = useMemo(() => {
+    const list: Person[] = [];
+    
+    // Add PM
+    if (project.pmId) {
+      const pmObj = getPerson(project.pmId);
+      if (pmObj) list.push(pmObj);
+    }
+    // Add TL
+    if (project.tlId) {
+      const tlObj = getPerson(project.tlId);
+      if (tlObj) list.push(tlObj);
+    }
+    // Add EM
+    const emName = project.engagementManager || clientInfo?.engagementManager || "Riya Kapoor";
+    const emObj = people.find((p) => p.name === emName || p.role === "Engagement Manager");
+    if (emObj && !list.some(p => p.id === emObj.id)) list.push(emObj);
+    
+    // Add HOD (Anita Desai)
+    const hodObj = people.find(p => p.role === "HOD" || p.name === "Anita Desai");
+    if (hodObj && !list.some(p => p.id === hodObj.id)) list.push(hodObj);
+
+    // Add PMO (Rahul Gupta)
+    const pmoObj = people.find(p => p.role === "PMO" || p.name === "Rahul Gupta");
+    if (pmoObj && !list.some(p => p.id === pmoObj.id)) list.push(pmoObj);
+
+    // Add Business Owner (Vikrant Malhotra)
+    const boObj = people.find(p => p.role === "Business Owner" || p.name === "Vikrant Malhotra");
+    if (boObj && !list.some(p => p.id === boObj.id)) list.push(boObj);
+
+    // Add any assigned SPMs
+    if (prereq.assignedSpmIds) {
+      prereq.assignedSpmIds.forEach(id => {
+        const pObj = getPerson(id);
+        if (pObj && !list.some(p => p.id === pObj.id)) list.push(pObj);
+      });
+    }
+
+    // Add other team members assigned to project
+    project.teamIds.forEach(id => {
+      const pObj = getPerson(id);
+      if (pObj && !list.some(p => p.id === pObj.id) && ["PM", "Senior PM", "TL", "EM", "HOD", "PMO", "Business Owner"].includes(pObj.role)) {
+        list.push(pObj);
+      }
+    });
+
+    return list;
+  }, [project, clientInfo, prereq.assignedSpmIds]);
 
   const pmPeople = teamPool.filter(p => prereq.assignedPmIds.includes(p.id));
   const spmPeople = teamPool.filter(p => prereq.assignedSpmIds.includes(p.id));
@@ -3787,6 +4130,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                     <th className="px-3 py-2 font-bold text-center">Validation Status</th>
                     <th className="px-3 py-2 font-bold text-center">Billing Status</th>
                     <th className="px-3 py-2 font-bold text-center">Ready to Start</th>
+                    <th className="px-3 py-2 font-bold text-center">Escalation</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -3796,6 +4140,10 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                     const isBillingOk = svc.billingStatus === "Advance Received" || svc.billingStatus === "Advance Not Required";
                     const canStart = isCollected && isValidated && isBillingOk;
                     const isReady = serviceReady[svc.serviceId] ?? false;
+
+                    const svcEscalations = snapshot.alerts.filter((a) => a.projectId === project.id && a.kind === "Escalation" && a.serviceName === svc.serviceName);
+                    const activeEsc = svcEscalations.find((e) => e.status !== "Resolved" && e.status !== "Closed");
+
                     return (
                       <tr key={svc.serviceId} className="hover:bg-accent/20">
                         <td className="px-3 py-2.5 text-center align-middle font-semibold text-gray-800">{svc.serviceName}</td>
@@ -3876,6 +4224,35 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                           )}
                           </div>
                         </td>
+                        <td className="px-3 py-2.5 text-center align-middle">
+                          {activeEsc ? (
+                            <button
+                              onClick={() => {
+                                setHealthTab("Alerts");
+                                window.location.hash = "#health-alerts";
+                                toast.info("Active escalation details are available in Health → Alerts");
+                              }}
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold text-white hover:opacity-90 transition-opacity",
+                                activeEsc.priority === "Critical" ? "bg-red-600 border-red-700" :
+                                activeEsc.priority === "High" ? "bg-amber-600 border-amber-700" : "bg-blue-600 border-blue-700"
+                              )}
+                              title="Click to view details in Health tab"
+                            >
+                              ⚠️ {activeEsc.status} ({activeEsc.priority})
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setEscalationModalSvc(svc);
+                                setEscalationModalOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-md bg-destructive text-white hover:bg-destructive/90 px-2 py-0.5 text-[9px] font-bold transition-colors cursor-pointer"
+                            >
+                              Raise Escalation
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -3883,9 +4260,205 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
               </table>
             </div>
           </div>
-
+ 
         </div>
       </div>
+ 
+      {/* Raise Escalation Modal */}
+      {escalationModalOpen && escalationModalSvc && (
+        <Modal title="Raise WBS Escalation" onClose={() => setEscalationModalOpen(false)}>
+          <div className="space-y-4 text-xs">
+            {/* Read-Only Project Info */}
+            <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Project ID</span>
+                <span className="font-semibold text-gray-800">{project.projectSeqId || project.id}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Project Name</span>
+                <span className="font-semibold text-gray-800">{project.name}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Client Name</span>
+                <span className="font-semibold text-gray-800">{clientInfo?.name || "—"}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Service Name</span>
+                <span className="font-semibold text-primary">{escalationModalSvc.serviceName}</span>
+              </div>
+            </div>
+
+            {/* Type & Priority */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="font-bold text-gray-700">Escalation Type <span className="text-destructive">*</span></label>
+                <select
+                  value={escType}
+                  onChange={(e) => setEscType(e.target.value)}
+                  className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
+                >
+                  <option value="Prerequisite Pending">Prerequisite Pending</option>
+                  <option value="Client Dependency">Client Dependency</option>
+                  <option value="Billing Issue">Billing Issue</option>
+                  <option value="Technical Blocker">Technical Blocker</option>
+                  <option value="Resource Blocker">Resource Blocker</option>
+                  <option value="Approval Pending">Approval Pending</option>
+                  <option value="Infrastructure Issue">Infrastructure Issue</option>
+                  <option value="Requirement Clarification">Requirement Clarification</option>
+                  <option value="Timeline Risk">Timeline Risk</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="font-bold text-gray-700">Priority <span className="text-destructive">*</span></label>
+                <select
+                  value={escPriority}
+                  onChange={(e) => setEscPriority(e.target.value as any)}
+                  className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Subject */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-gray-700">Subject <span className="text-destructive">*</span></label>
+              <input
+                type="text"
+                placeholder="e.g. Client has not provided production access"
+                value={escSubject}
+                onChange={(e) => setEscSubject(e.target.value)}
+                className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-gray-700">Description <span className="text-destructive">*</span></label>
+              <textarea
+                placeholder="Explain what is blocked, why work cannot continue, required action, and expected resolution..."
+                value={escDescription}
+                onChange={(e) => setEscDescription(e.target.value)}
+                rows={3}
+                className="w-full rounded-md border border-border bg-card p-2 text-xs outline-none"
+              />
+            </div>
+
+            {/* Attachment */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-gray-700">Attachment</label>
+              <div className="flex items-center gap-2">
+                <label className="border border-border rounded-md px-3 py-1.5 bg-muted/40 cursor-pointer hover:bg-muted/80 text-[10px] font-semibold">
+                  📎 Upload File
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        setEscAttachmentName(e.target.files[0].name);
+                      }
+                    }}
+                  />
+                </label>
+                <span className="text-[10px] text-muted-foreground">
+                  {escAttachmentName || "No file selected (email logs, screenshot, docs...)"}
+                </span>
+                {escAttachmentName && (
+                  <button onClick={() => setEscAttachmentName("")} className="text-destructive text-[10px] hover:underline">Remove</button>
+                )}
+              </div>
+            </div>
+
+            {/* Escalate To (Multi-Select Stakeholders) */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-gray-700">Escalate To (Select Stakeholders) <span className="text-destructive">*</span></label>
+              <div className="border border-border rounded-md p-2 bg-card max-h-32 overflow-y-auto space-y-1">
+                {stakeholders.map((p) => {
+                  const isSelected = escTo.includes(p.name);
+                  return (
+                    <label key={p.id} className="flex items-center gap-2 cursor-pointer hover:bg-accent/40 p-1 rounded-sm text-xs select-none">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {
+                          if (isSelected) {
+                            setEscTo(prev => prev.filter(name => name !== p.name));
+                          } else {
+                            setEscTo(prev => [...prev, p.name]);
+                          }
+                        }}
+                        className="h-3.5 w-3.5 accent-primary cursor-pointer animate-none"
+                      />
+                      <span>{p.name} ({p.role})</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground">Only stakeholders associated with this project are listed.</p>
+            </div>
+
+            {/* Expected Resolution Date */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-gray-700">Expected Resolution Date</label>
+              <input
+                type="date"
+                value={escResolutionDate}
+                onChange={(e) => setEscResolutionDate(e.target.value)}
+                className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button
+                onClick={() => {
+                  setEscalationModalOpen(false);
+                  setEscalationModalSvc(null);
+                }}
+                className="rounded-md border border-input bg-card px-4 py-2 text-xs font-semibold hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!escSubject.trim() || !escDescription.trim() || escTo.length === 0) {
+                    toast.error("Please fill all mandatory fields (Subject, Description, and select at least one recipient)");
+                    return;
+                  }
+                  dhStore.addEscalationAlert({
+                    projectId: project.id,
+                    title: escSubject,
+                    description: escDescription,
+                    priority: escPriority,
+                    raisedByName: user.name || "Dhanshree",
+                    serviceName: escalationModalSvc.serviceName,
+                    escalationType: escType,
+                    escalatedTo: escTo,
+                    expectedResolutionDate: escResolutionDate || undefined,
+                    attachments: escAttachmentName ? [escAttachmentName] : []
+                  });
+                  toast.success("Escalation raised successfully!", { description: `Notification sent to: ${escTo.join(", ")}` });
+                  setEscalationModalOpen(false);
+                  setEscalationModalSvc(null);
+                  setEscSubject("");
+                  setEscDescription("");
+                  setEscTo([]);
+                  setEscResolutionDate("");
+                  setEscAttachmentName("");
+                }}
+                className="rounded-md bg-destructive text-white hover:bg-destructive/90 px-4 py-2 text-xs font-semibold"
+              >
+                Send Escalation
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* WBS Assignment Modal */}
       {assignModalMode && (

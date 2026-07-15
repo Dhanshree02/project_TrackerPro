@@ -171,8 +171,8 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
 
                 {/* Completion indicator */}
                 <div className="mt-1.5 text-center text-[10px]">
-                  {stage.isCompleted && <span className="text-emerald-600 font-semibold">✓ Complete</span>}
-                  {stage.isActive && !stage.isCompleted && <span className="text-blue-600 font-semibold">• Active</span>}
+                  {stage.isCompleted && <span className="text-emerald-600 font-semibold">✓ Completed</span>}
+                  {stage.isActive && !stage.isCompleted && <span className="text-blue-600 font-semibold">• Ongoing</span>}
                   {!stage.isCompleted && !stage.isActive && <span className="text-gray-400">Pending</span>}
                 </div>
               </div>
@@ -267,7 +267,7 @@ function SubStageRow({ item }: { item: SubStageItem }) {
       <div className="flex items-center gap-2.5 rounded-md bg-blue-50 border border-blue-200 px-3 py-2">
         <AlertCircle className="h-3.5 w-3.5 shrink-0 text-blue-500 animate-pulse" />
         <span className="text-xs font-semibold text-blue-700">{item.label}</span>
-        <span className="ml-auto text-[10px] font-medium text-blue-500">Active</span>
+        <span className="ml-auto text-[10px] font-medium text-blue-500">Ongoing</span>
       </div>
     );
   }

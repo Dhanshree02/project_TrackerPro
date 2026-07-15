@@ -619,7 +619,7 @@ function AlertsTab() {
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
                 <option value="all">All Statuses</option>
-                {(["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
+                {(["Open", "Acknowledged", "In Progress", "Waiting for Client", "Resolved", "Closed"] as const).map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
@@ -670,8 +670,9 @@ function AlertsTab() {
                         <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
                           alert.status === "Open" ? "bg-orange-50 text-orange-700 border-orange-200" :
                             alert.status === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                              alert.status === "Resolved" ? "bg-green-50 text-green-700 border-green-200" :
-                                "bg-muted text-muted-foreground border-border"
+                              alert.status === "Resolved" || alert.status === "Closed" ? "bg-green-50 text-green-700 border-green-200" :
+                                alert.status === "Waiting for Client" ? "bg-purple-50 text-purple-700 border-purple-200" :
+                                  "bg-muted text-muted-foreground border-border"
                         )}>
                           {alert.status}
                         </span>
@@ -692,14 +693,37 @@ function AlertsTab() {
 
       {/* Alert Details Modal */}
       {selectedAlert && (
-        <Modal title={`Governance Alert Details — ${selectedAlert.alertId || "ALT-GEN"}`} onClose={() => setSelectedAlertId(null)} wide>
+        <Modal title={selectedAlert.kind === "Escalation" ? `Escalation Review Details — ${selectedAlert.alertId || "ALT-GEN"}` : `Governance Alert Details — ${selectedAlert.alertId || "ALT-GEN"}`} onClose={() => setSelectedAlertId(null)} wide>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {/* Left side details */}
             <div className="md:col-span-2 space-y-4">
               <div className="rounded-lg border border-border p-3 bg-muted/10 space-y-1">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase">Alert Title</span>
+                <span className="font-semibold text-[10px] text-muted-foreground uppercase">{selectedAlert.kind === "Escalation" ? "Escalation Subject" : "Alert Title"}</span>
                 <p className="text-sm font-bold text-gray-800">{selectedAlert.title}</p>
               </div>
+
+              {selectedAlert.kind === "Escalation" && (
+                <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Service Name</span>
+                    <span className="font-semibold text-primary">{selectedAlert.serviceName || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Escalation Type</span>
+                    <span className="font-semibold text-gray-800">{selectedAlert.escalationType || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Raised By</span>
+                    <span className="font-semibold text-gray-800">{selectedAlert.raisedByName || "—"}</span>
+                  </div>
+                  {selectedAlert.expectedResolutionDate && (
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-muted-foreground block">Expected Resolution Date</span>
+                      <span className="font-semibold text-gray-800">{selectedAlert.expectedResolutionDate}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="rounded-lg border border-border p-3 bg-card space-y-2">
                 <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">Full Description</span>
@@ -799,6 +823,16 @@ function AlertsTab() {
                   )}
                 </div>
 
+                {/* Escalated To */}
+                {selectedAlert.kind === "Escalation" && selectedAlert.escalatedTo && (
+                  <div className="rounded-lg border border-border p-3 bg-muted/10 space-y-1">
+                    <span className="font-semibold text-[10px] text-muted-foreground uppercase block">Escalated To</span>
+                    <p className="text-xs font-semibold text-primary truncate" title={selectedAlert.escalatedTo.join(", ")}>
+                      {selectedAlert.escalatedTo.join(", ")}
+                    </p>
+                  </div>
+                )}
+
                 {/* Status Switcher */}
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block">Set Status</span>
@@ -807,15 +841,21 @@ function AlertsTab() {
                     onChange={(e) => setSelectedStatus(e.target.value as any)}
                     className={cn(
                       "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                      selectedStatus === "Resolved" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
+                      selectedStatus === "Resolved" || selectedStatus === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
                         selectedStatus === "Open" ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100" :
                           selectedStatus === "In Progress" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-                            "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                            selectedStatus === "Waiting for Client" ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100" :
+                              "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                     )}
                   >
-                    {(["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
+                    {selectedAlert.kind === "Escalation"
+                      ? (["Open", "Acknowledged", "In Progress", "Waiting for Client", "Resolved", "Closed"] as const).map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))
+                      : (["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))
+                    }
                   </select>
                 </div>
 
