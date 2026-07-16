@@ -243,6 +243,7 @@ export interface DhAdditionalRequirement {
   requestedBy: string;
   requestedDate: string;
   attachmentName?: string;
+  scopeCancellationService?: string;
   status: RequirementStatus;
   comments: DhComment[];
   history: { status: RequirementStatus; at: string; updatedBy: string; updatedByName: string }[];
