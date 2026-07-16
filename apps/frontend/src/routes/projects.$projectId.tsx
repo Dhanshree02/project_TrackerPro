@@ -247,10 +247,10 @@ function ProjectDetail() {
   const team = project.teamIds.map(getPerson);
 
   const poFileName = useMemo(() => {
-    return project.wbsDetails?.accounts?.poFileName || 
-      (project.wbsDetails?.accounts?.poStatus === "PO Received" || 
+    return (project.wbsDetails?.accounts as any)?.poFileName ||
+      (project.wbsDetails?.accounts?.poStatus === "PO Received" ||
        project.wbsDetails?.accounts?.poStatus === "PO Validated" ||
-       project.wbsDetails?.accounts?.poStatus === "PO Raised" || 
+       project.wbsDetails?.accounts?.poStatus === "PO Raised" ||
        (project.id === "p1")
          ? "PO_Northwind_p1.pdf"
          : "");
@@ -1178,15 +1178,92 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
         )}
       </div>
       {isDhanshree && (
-        <aside className="space-y-3 rounded-lg border border-border bg-accent/30 p-4">
-          <ExtensionRequestCard project={project} />
+        <aside className="space-y-3">
+          {/* ── Team Box (reactive) ── */}
+          <TeamInfoBox project={project} ems={ems} />
+
+          {/* Extension Request */}
+          <div className="rounded-lg border border-border bg-accent/30 p-4">
+            <ExtensionRequestCard project={project} />
+          </div>
         </aside>
       )}
     </div>
   );
 }
 
+// ── TeamInfoBox: shows Engagement Manager + all team members, reactive to store ──
+function TeamInfoBox({ project, ems }: { project: Project; ems: Person[] }) {
+  // Subscribe to shadowTeams from store so it updates instantly when Team tab changes
+  const shadowTeamIds = useDhStore((s) => s.shadowTeams[project.id] ?? []);
+
+  // Combine project's core team + shadow team members, deduplicated
+  const allTeamIds = Array.from(new Set([...project.teamIds, ...shadowTeamIds]));
+  const allTeamMembers = allTeamIds.map(getPerson).filter(Boolean) as Person[];
+
+  const emList = ems.filter(Boolean);
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
+      {/* Engagement Manager */}
+      {emList.length > 0 ? (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
+            Engagement Manager
+          </p>
+          <div className="space-y-2">
+            {emList.map((em) => (
+              <div key={em.id} className="flex items-center gap-2">
+                <Avatar name={em.name} size={28} />
+                <div>
+                  <p className="text-xs font-semibold text-gray-900">{em.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {(em as any).email ?? `${em.name.toLowerCase().replace(/\s+/g, ".")}@acme.co`}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-1">
+            Engagement Manager
+          </p>
+          <p className="text-[11px] text-muted-foreground italic">Not assigned</p>
+        </div>
+      )}
+
+      {/* Team Members */}
+      <div className="border-t border-border pt-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
+          Team
+        </p>
+        {allTeamMembers.length > 0 ? (
+          <div className="flex flex-wrap gap-x-3 gap-y-2">
+            {allTeamMembers.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-1.5"
+                title={member.name}
+              >
+                <Avatar name={member.name} size={22} />
+                <span className="text-[11px] font-medium text-gray-700">
+                  {member.name.split(" ")[0]}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[11px] text-muted-foreground italic">No team members assigned</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ExtensionRequestCard({ project }: { project: Project }) {
+
   const { user } = useRoleContext();
   const [newEndDate, setNewEndDate] = useState(project.endDate);
   const [reason, setReason] = useState("");
@@ -2919,17 +2996,35 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
 
   const handleUpdateEscalation = () => {
     if (!selectedEscId) return;
+    const esc = store.alerts.find(a => a.id === selectedEscId);
+    const isCreator = user.name === esc?.raisedByName;
+    const statusChanged = isCreator && esc && selectedStatus !== esc.status;
+
     dhStore.updateGovernanceAlert(
       selectedEscId,
       {
-        status: selectedStatus,
+        // Only the creator can change status
+        ...(isCreator ? { status: selectedStatus } : {}),
         resolutionDetails: resDetails
       },
       newChatMsg,
       user.id,
       user.name
     );
-    toast.success("Escalation updated successfully!");
+
+    // Notify escalated users when creator closes or reopens
+    if (statusChanged && esc) {
+      const notifTitle = `Escalation ${esc.alertId || esc.id} has been marked as ${selectedStatus} by ${user.name}`;
+      dhStore.addNotification({
+        type: "Escalation Status Update",
+        title: notifTitle,
+        relatedProject: esc.projectId ?? project.id,
+        raisedBy: user.name,
+        priority: "High",
+      });
+    }
+
+    toast.success(isCreator ? "Escalation updated successfully!" : "Comment added successfully!");
     setNewChatMsg("");
     setSelectedEscId(null);
   };
@@ -2937,11 +3032,9 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
   const summary = useMemo(() => {
     const total = escalations.length;
     const open = escalations.filter(e => e.status === "Open").length;
-    const inProgress = escalations.filter(e => e.status === "In Progress").length;
-    const waitingForClient = escalations.filter(e => e.status === "Waiting for Client").length;
-    const resolved = escalations.filter(e => e.status === "Resolved" || e.status === "Closed").length;
+    const closed = escalations.filter(e => e.status === "Closed").length;
     const critical = escalations.filter(e => e.severity === "Critical").length;
-    return { total, open, inProgress, waitingForClient, resolved, critical };
+    return { total, open, closed, critical };
   }, [escalations]);
 
   const clientInfo = getClientInfo(project.clientId);
@@ -2949,7 +3042,7 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
   return (
     <div className="space-y-4 text-xs">
       {/* Summary Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total</span>
           <span className="text-lg font-extrabold text-blue-700 mt-1">{summary.total}</span>
@@ -2959,16 +3052,8 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
           <span className="text-lg font-extrabold text-orange-700 mt-1">{summary.open}</span>
         </div>
         <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">In Progress</span>
-          <span className="text-lg font-extrabold text-blue-600 mt-1">{summary.inProgress}</span>
-        </div>
-        <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Waiting Client</span>
-          <span className="text-lg font-extrabold text-purple-700 mt-1">{summary.waitingForClient}</span>
-        </div>
-        <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Resolved</span>
-          <span className="text-lg font-extrabold text-emerald-700 mt-1">{summary.resolved}</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Closed</span>
+          <span className="text-lg font-extrabold text-emerald-700 mt-1">{summary.closed}</span>
         </div>
         <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Critical</span>
@@ -2995,7 +3080,7 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
           <tbody className="divide-y divide-border">
             {escalations.map((esc) => {
               const severityTone = esc.severity === "Critical" ? "bg-red-50 text-red-700 border-red-200" : esc.severity === "High" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-blue-50 text-blue-700 border-blue-200";
-              const statusTone = esc.status === "Resolved" || esc.status === "Closed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : esc.status === "Waiting for Client" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-orange-50 text-orange-700 border-orange-200";
+              const statusTone = esc.status === "Closed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-orange-50 text-orange-700 border-orange-200";
               return (
                 <tr key={esc.id} className="hover:bg-accent/30">
                   <td className="px-3 py-2.5 font-mono font-bold text-gray-800">{esc.alertId || "ALT-GEN"}</td>
@@ -3125,25 +3210,37 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
                   )}
                 </div>
 
-                {/* Status Switcher */}
+                {/* Status Switcher — only the escalation creator can change status */}
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                  <span className="font-semibold text-[9px] text-muted-foreground uppercase block">Set Status</span>
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value as any)}
-                    className={cn(
-                      "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                      selectedStatus === "Resolved" || selectedStatus === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
-                        selectedStatus === "Open" ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100" :
-                          selectedStatus === "In Progress" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-                            selectedStatus === "Waiting for Client" ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100" :
-                              "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                    )}
-                  >
-                    {(["Open", "Acknowledged", "In Progress", "Waiting for Client", "Resolved", "Closed"] as const).map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                  <span className="font-semibold text-[9px] text-muted-foreground uppercase block">Status</span>
+                  {user.name === selectedEsc?.raisedByName ? (
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value as any)}
+                      className={cn(
+                        "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                        selectedStatus === "Closed"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                          : "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                      )}
+                    >
+                      {(["Open", "Closed"] as const).map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold",
+                        selectedStatus === "Closed"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          : "bg-orange-50 border-orange-200 text-orange-700"
+                      )}>
+                        {selectedStatus === "Closed" ? "⚫" : "🟢"} {selectedStatus}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground italic">Only the creator can change this</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Discussion Area Comment box */}
@@ -3276,7 +3373,7 @@ function HealthAppreciationPanel({ appreciations, project }: { appreciations: Dh
 function DhClientEngagementTab({ project, clientName }: { project: Project; clientName: string }) {
   const store = useDhStore((s) => s);
   const { user } = useRoleContext();
-  const [commTab, setCommTab] = useState<"Interview Scheduling" | "Additional Client Requirement">("Interview Scheduling");
+  const [commTab, setCommTab] = useState<"Interview Scheduling" | "Change Management">("Interview Scheduling");
 
   const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
   const projectRequirements = store.requirements.filter((r) => r.projectId === project.id);
@@ -3285,7 +3382,7 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
   return (
     <div className="space-y-4">
       <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1 text-sm shadow-sm">
-        {(["Interview Scheduling", "Additional Client Requirement"] as const).map((t) => (
+        {(["Interview Scheduling", "Change Management"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setCommTab(t)}
@@ -3302,7 +3399,7 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
       {commTab === "Interview Scheduling" && (
         <InterviewSchedulingPanel interviews={projectInterviews} project={project} isEM={isEM} />
       )}
-      {commTab === "Additional Client Requirement" && (
+      {commTab === "Change Management" && (
         <AdditionalRequirementsPanel requirements={projectRequirements} project={project} clientName={clientName} />
       )}
     </div>
@@ -3408,14 +3505,14 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
         ))}
         {requirements.length === 0 && (
           <div className="col-span-full rounded-lg border-2 border-dashed border-border py-12 text-center text-xs text-muted-foreground">
-            No additional client requirements logged for this project yet.
+            No change management requests logged for this project yet.
           </div>
         )}
       </div>
 
       {/* Log Requirement Modal */}
       {showModal && (
-        <Modal title="Log Additional Client Requirement" onClose={() => setShowModal(false)}>
+        <Modal title="Log Change Management Request" onClose={() => setShowModal(false)}>
           <div className="space-y-3">
             <Field label="Client Name"><input value={client} onChange={(e) => setClient(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
             <Field label="Project Name"><input value={projName} onChange={(e) => setProjName(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
@@ -3885,7 +3982,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
       if (tlObj) list.push(tlObj);
     }
     // Add EM
-    const emName = project.engagementManager || clientInfo?.engagementManager || "Riya Kapoor";
+    const emName = project.engagementManager || (clientInfo as any)?.engagementManager || "Riya Kapoor";
     const emObj = people.find((p) => p.name === emName || p.role === "Engagement Manager");
     if (emObj && !list.some(p => p.id === emObj.id)) list.push(emObj);
     
@@ -4142,6 +4239,9 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                     const isReady = serviceReady[svc.serviceId] ?? false;
 
                     const svcEscalations = snapshot.alerts.filter((a) => a.projectId === project.id && a.kind === "Escalation" && a.serviceName === svc.serviceName);
+                    // Any escalation (including Closed) — once raised, show status control
+                    const anyEsc = svcEscalations[0] ?? null;
+                    // For backward compat keep activeEsc for other uses
                     const activeEsc = svcEscalations.find((e) => e.status !== "Resolved" && e.status !== "Closed");
 
                     return (
@@ -4225,22 +4325,52 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                           </div>
                         </td>
                         <td className="px-3 py-2.5 text-center align-middle">
-                          {activeEsc ? (
-                            <button
-                              onClick={() => {
-                                setHealthTab("Alerts");
-                                window.location.hash = "#health-alerts";
-                                toast.info("Active escalation details are available in Health → Alerts");
-                              }}
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold text-white hover:opacity-90 transition-opacity",
-                                activeEsc.priority === "Critical" ? "bg-red-600 border-red-700" :
-                                activeEsc.priority === "High" ? "bg-amber-600 border-amber-700" : "bg-blue-600 border-blue-700"
-                              )}
-                              title="Click to view details in Health tab"
-                            >
-                              ⚠️ {activeEsc.status} ({activeEsc.priority})
-                            </button>
+                          {anyEsc ? (
+                            // Escalation exists — creator gets dropdown, others get read-only badge
+                            user.name === anyEsc.raisedByName ? (
+                              <select
+                                value={anyEsc.status === "Closed" ? "Closed" : "Open"}
+                                onChange={(e) => {
+                                  const newStatus = e.target.value as "Open" | "Closed";
+                                  dhStore.updateGovernanceAlert(
+                                    anyEsc.id,
+                                    { status: newStatus },
+                                    "",
+                                    user.id,
+                                    user.name
+                                  );
+                                  dhStore.addNotification({
+                                    type: "Escalation Status Update",
+                                    title: `Escalation ${anyEsc.alertId || anyEsc.id} has been ${newStatus === "Closed" ? "Closed" : "Reopened"} by ${user.name}`,
+                                    relatedProject: project.id,
+                                    raisedBy: user.name,
+                                    priority: "High",
+                                  });
+                                  toast.success(`Escalation ${newStatus === "Closed" ? "closed" : "reopened"}`, {
+                                    description: `${svc.serviceName} — status updated to ${newStatus}`,
+                                  });
+                                }}
+                                className={cn(
+                                  "h-6 rounded-md border px-1.5 text-[9px] font-bold outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer",
+                                  anyEsc.status === "Closed"
+                                    ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+                                    : "bg-red-50 border-red-300 text-red-700"
+                                )}
+                              >
+                                <option value="Open">Open</option>
+                                <option value="Closed">Closed</option>
+                              </select>
+                            ) : (
+                              // Non-creator — read-only badge
+                              <span className={cn(
+                                "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold",
+                                anyEsc.status === "Closed"
+                                  ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+                                  : "bg-red-50 border-red-300 text-red-700"
+                              )}>
+                                {anyEsc.status === "Closed" ? "⚫" : "⚠️"} {anyEsc.status}
+                              </span>
+                            )
                           ) : (
                             <button
                               onClick={() => {
@@ -4402,16 +4532,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
               <p className="text-[10px] text-muted-foreground">Only stakeholders associated with this project are listed.</p>
             </div>
 
-            {/* Expected Resolution Date */}
-            <div className="flex flex-col gap-1">
-              <label className="font-bold text-gray-700">Expected Resolution Date</label>
-              <input
-                type="date"
-                value={escResolutionDate}
-                onChange={(e) => setEscResolutionDate(e.target.value)}
-                className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
-              />
-            </div>
+
 
             {/* Actions */}
             <div className="flex justify-end gap-2 border-t border-border pt-3">

@@ -96,7 +96,7 @@ function ProjectsPage() {
               <List className="h-3.5 w-3.5" /> List
             </button>
           </div>
-          <button onClick={() => navigate({ to: "/projects/new" })}
+          <button onClick={() => navigate({ to: "/projects/new" } as any)}
             className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
             <Plus className="h-3.5 w-3.5" /> New Project
           </button>

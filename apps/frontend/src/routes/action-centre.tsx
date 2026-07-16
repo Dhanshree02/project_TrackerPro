@@ -535,10 +535,12 @@ function AlertsTab() {
 
   const handleUpdateAlert = () => {
     if (!selectedAlertId) return;
+    const alert = selectedAlert;
+    // For Escalation alerts — never update status from here (creator-only via Health tab)
     dhStore.updateGovernanceAlert(
       selectedAlertId,
       {
-        status: selectedStatus,
+        ...(alert?.kind !== "Escalation" ? { status: selectedStatus } : {}),
         owner: selectedOwner,
         resolutionOwner: selectedResOwner,
         escalationOwner: selectedEscOwner,
@@ -833,7 +835,8 @@ function AlertsTab() {
                   </div>
                 )}
 
-                {/* Status Switcher */}
+                {/* Status Switcher — hidden for Escalation kind (only creator can change status via project Health tab) */}
+                {selectedAlert.kind !== "Escalation" && (
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block">Set Status</span>
                   <select
@@ -848,16 +851,29 @@ function AlertsTab() {
                               "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                     )}
                   >
-                    {selectedAlert.kind === "Escalation"
-                      ? (["Open", "Acknowledged", "In Progress", "Waiting for Client", "Resolved", "Closed"] as const).map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))
-                      : (["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))
+                    {(["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))
                     }
                   </select>
                 </div>
+                )}
+                {selectedAlert.kind === "Escalation" && (
+                <div className="rounded-lg border border-border p-3 bg-muted/20 space-y-2">
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block">Status</span>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold",
+                      selectedAlert.status === "Closed"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                        : "bg-orange-50 border-orange-200 text-orange-700"
+                    )}>
+                      {selectedAlert.status === "Closed" ? "⚫" : "🟢"} {selectedAlert.status}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground italic">Only the escalation creator can change this status</span>
+                  </div>
+                </div>
+                )}
 
                 {/* Discussion Area Comment box */}
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
@@ -1514,7 +1530,7 @@ const NOTIFICATION_TYPES = [
   "Issue Resolved",
   "Client Interview Selected",
   "Client Interview Rejected",
-  "Additional Client Requirement",
+  "Change Management",
   "Approval Request",
   "Timesheet Approved",
   "Timesheet Rejected",

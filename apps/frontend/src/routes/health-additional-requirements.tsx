@@ -12,7 +12,7 @@ import { useDhStore, dhStore, type RequirementStatus, type DhPriority, type DhCo
 export const Route = createFileRoute("/health-additional-requirements")({
   head: () => ({
     meta: [
-      { title: "Additional Client Requirements — Pulse PMO" },
+      { title: "Change Management — Pulse PMO" },
       { name: "description", content: "Manage additional requirements raised by clients post-onboarding." },
     ],
   }),
@@ -61,7 +61,7 @@ function AdditionalRequirementsPage() {
   const selected = requirements.find((req) => req.id === selectedId) ?? filtered[0] ?? null;
 
   return (
-    <AppShell title="Client Engagement" subtitle="Additional Client Requirements">
+    <AppShell title="Client Engagement" subtitle="Change Management">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

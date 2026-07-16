@@ -103,6 +103,8 @@ export interface WBSDetails {
 export type WbsStatus = "draft" | "approval_pending" | "ph_approved" | "accounts_approved" | "approved" | "started" | "assigned";
 
 export interface Project {
+  [x: string]: { services: never[]; };
+  proj: { services: never[]; };
   id: string;
   name: string;
   clientId: string;
@@ -443,412 +445,541 @@ const mkWbs = (): WBSNode[] => [
 
 export const projects: Project[] = [
   {
-    id: "p1", name: "Core Banking Modernization", clientId: "c1", wbsId: "IN-2025-26-C001-P006",
-    subVenture: PROJECT_SUBVENTURES["p1"],
-    status: "ongoing", health: "amber", progress: 62,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u10"], shadowTeamIds: ["u9"],
-    startDate: "2026-02-01", endDate: "2026-08-30",
-    budget: 1200000, spent: 740000,
-    description: "Modernize legacy core banking platform to a cloud-native microservices stack.",
-    wbs: mkWbs(), tasks: mkTasks("p1", ["u5", "u7", "u8"]),
+      id: "p1", name: "Core Banking Modernization", clientId: "c1", wbsId: "IN-2025-26-C001-P006",
+      subVenture: PROJECT_SUBVENTURES["p1"],
+      status: "ongoing", health: "amber", progress: 62,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u10"], shadowTeamIds: ["u9"],
+      startDate: "2026-02-01", endDate: "2026-08-30",
+      budget: 1200000, spent: 740000,
+      description: "Modernize legacy core banking platform to a cloud-native microservices stack.",
+      wbs: mkWbs(), tasks: mkTasks("p1", ["u5", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p2", name: "Mobile Banking App v3", clientId: "c1", wbsId: "IN-2025-26-C001-P002",
-    status: "ongoing", health: "green", progress: 78,
-    pmId: "u3", tlId: "u6", teamIds: ["u9", "u10"],
-    startDate: "2026-01-15", endDate: "2026-06-30",
-    budget: 480000, spent: 360000,
-    description: "Next-gen mobile app with biometric auth and real-time payments.",
-    wbs: mkWbs(), tasks: mkTasks("p2", ["u6", "u9", "u10"]),
+      id: "p2", name: "Mobile Banking App v3", clientId: "c1", wbsId: "IN-2025-26-C001-P002",
+      status: "ongoing", health: "green", progress: 78,
+      pmId: "u3", tlId: "u6", teamIds: ["u9", "u10"],
+      startDate: "2026-01-15", endDate: "2026-06-30",
+      budget: 480000, spent: 360000,
+      description: "Next-gen mobile app with biometric auth and real-time payments.",
+      wbs: mkWbs(), tasks: mkTasks("p2", ["u6", "u9", "u10"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p3", name: "Clinical Data Platform", clientId: "c2", wbsId: "IN-2025-26-C002-P011",
-    status: "ongoing", health: "red", progress: 35,
-    pmId: "u4", tlId: "u5", teamIds: ["u7", "u8", "u9"], shadowTeamIds: ["u6", "u10"],
-    startDate: "2026-03-01", endDate: "2026-09-15",
-    budget: 950000, spent: 410000,
-    description: "Unified clinical trials data platform with HIPAA compliance.",
-    wbs: mkWbs(), tasks: mkTasks("p3", ["u5", "u7", "u8"]),
+      id: "p3", name: "Clinical Data Platform", clientId: "c2", wbsId: "IN-2025-26-C002-P011",
+      status: "ongoing", health: "red", progress: 35,
+      pmId: "u4", tlId: "u5", teamIds: ["u7", "u8", "u9"], shadowTeamIds: ["u6", "u10"],
+      startDate: "2026-03-01", endDate: "2026-09-15",
+      budget: 950000, spent: 410000,
+      description: "Unified clinical trials data platform with HIPAA compliance.",
+      wbs: mkWbs(), tasks: mkTasks("p3", ["u5", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p4", name: "Pharma Sales Dashboard", clientId: "c2", wbsId: "IN-2025-26-C002-P008",
-    status: "on_hold", health: "amber", progress: 45,
-    pmId: "u4", tlId: "u6", teamIds: ["u8", "u10"],
-    startDate: "2026-02-10", endDate: "2026-07-20",
-    budget: 320000, spent: 180000,
-    description: "Sales analytics dashboard with territory performance views.",
-    wbs: mkWbs(), tasks: mkTasks("p4", ["u6", "u8", "u10"]),
+      id: "p4", name: "Pharma Sales Dashboard", clientId: "c2", wbsId: "IN-2025-26-C002-P008",
+      status: "on_hold", health: "amber", progress: 45,
+      pmId: "u4", tlId: "u6", teamIds: ["u8", "u10"],
+      startDate: "2026-02-10", endDate: "2026-07-20",
+      budget: 320000, spent: 180000,
+      description: "Sales analytics dashboard with territory performance views.",
+      wbs: mkWbs(), tasks: mkTasks("p4", ["u6", "u8", "u10"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p5", name: "Omnichannel Commerce", clientId: "c3", wbsId: "IN-2025-26-C003-P004",
-    status: "ongoing", health: "green", progress: 58,
-    pmId: "u3", tlId: "u6", teamIds: ["u7", "u9", "u10"], shadowTeamIds: ["u5"],
-    startDate: "2026-01-20", endDate: "2026-08-10",
-    budget: 760000, spent: 420000,
-    description: "Unified storefront across web, mobile and in-store kiosks.",
-    wbs: mkWbs(), tasks: mkTasks("p5", ["u6", "u7", "u9"]),
+      id: "p5", name: "Omnichannel Commerce", clientId: "c3", wbsId: "IN-2025-26-C003-P004",
+      status: "ongoing", health: "green", progress: 58,
+      pmId: "u3", tlId: "u6", teamIds: ["u7", "u9", "u10"], shadowTeamIds: ["u5"],
+      startDate: "2026-01-20", endDate: "2026-08-10",
+      budget: 760000, spent: 420000,
+      description: "Unified storefront across web, mobile and in-store kiosks.",
+      wbs: mkWbs(), tasks: mkTasks("p5", ["u6", "u7", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p6", name: "POS Migration", clientId: "c3", wbsId: "IN-2024-25-C003-P002",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u4", tlId: "u5", teamIds: ["u8", "u9"],
-    startDate: "2025-09-01", endDate: "2026-03-30",
-    budget: 280000, spent: 265000,
-    description: "Migrated 1,200 POS terminals to new cloud-managed platform.",
-    wbs: mkWbs(), tasks: mkTasks("p6", ["u5", "u8", "u9"]),
+      id: "p6", name: "POS Migration", clientId: "c3", wbsId: "IN-2024-25-C003-P002",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u4", tlId: "u5", teamIds: ["u8", "u9"],
+      startDate: "2025-09-01", endDate: "2026-03-30",
+      budget: 280000, spent: 265000,
+      description: "Migrated 1,200 POS terminals to new cloud-managed platform.",
+      wbs: mkWbs(), tasks: mkTasks("p6", ["u5", "u8", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p7", name: "Fleet Tracking System", clientId: "c4", wbsId: "IN-2025-26-C004-P009",
-    status: "ongoing", health: "amber", progress: 48,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u9"],
-    startDate: "2026-02-15", endDate: "2026-09-01",
-    budget: 540000, spent: 280000,
-    description: "Real-time GPS tracking and route optimization for 5,000 vehicles.",
-    wbs: mkWbs(), tasks: mkTasks("p7", ["u5", "u7", "u9"]),
+      id: "p7", name: "Fleet Tracking System", clientId: "c4", wbsId: "IN-2025-26-C004-P009",
+      status: "ongoing", health: "amber", progress: 48,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u9"],
+      startDate: "2026-02-15", endDate: "2026-09-01",
+      budget: 540000, spent: 280000,
+      description: "Real-time GPS tracking and route optimization for 5,000 vehicles.",
+      wbs: mkWbs(), tasks: mkTasks("p7", ["u5", "u7", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p8", name: "Warehouse Automation", clientId: "c4", wbsId: "IN-2025-26-C004-P001",
-    status: "ongoing", health: "green", progress: 70,
-    pmId: "u4", tlId: "u6", teamIds: ["u8", "u10"],
-    startDate: "2026-01-05", endDate: "2026-07-15",
-    budget: 890000, spent: 600000,
-    description: "Robotics + WMS integration across 4 distribution centers.",
-    wbs: mkWbs(), tasks: mkTasks("p8", ["u6", "u8", "u10"]),
+      id: "p8", name: "Warehouse Automation", clientId: "c4", wbsId: "IN-2025-26-C004-P001",
+      status: "ongoing", health: "green", progress: 70,
+      pmId: "u4", tlId: "u6", teamIds: ["u8", "u10"],
+      startDate: "2026-01-05", endDate: "2026-07-15",
+      budget: 890000, spent: 600000,
+      description: "Robotics + WMS integration across 4 distribution centers.",
+      wbs: mkWbs(), tasks: mkTasks("p8", ["u6", "u8", "u10"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p9", name: "Smart Grid Analytics", clientId: "c5", wbsId: "IN-2025-26-C005-P010",
-    status: "ongoing", health: "amber", progress: 55,
-    pmId: "u3", tlId: "u6", teamIds: ["u7", "u8", "u9"],
-    startDate: "2026-02-20", endDate: "2026-10-10",
-    budget: 1050000, spent: 510000,
-    description: "Predictive load balancing and outage detection across the grid.",
-    wbs: mkWbs(), tasks: mkTasks("p9", ["u6", "u7", "u8"]),
+      id: "p9", name: "Smart Grid Analytics", clientId: "c5", wbsId: "IN-2025-26-C005-P010",
+      status: "ongoing", health: "amber", progress: 55,
+      pmId: "u3", tlId: "u6", teamIds: ["u7", "u8", "u9"],
+      startDate: "2026-02-20", endDate: "2026-10-10",
+      budget: 1050000, spent: 510000,
+      description: "Predictive load balancing and outage detection across the grid.",
+      wbs: mkWbs(), tasks: mkTasks("p9", ["u6", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p10", name: "AI-Powered Analytics Platform", clientId: "c6", wbsId: "IN-2025-26-C006-P012",
-    status: "ongoing", health: "green", progress: 82,
-    pmId: "u3", tlId: "u5", teamIds: ["u5", "u7", "u8"],
-    startDate: "2026-03-01", endDate: "2026-08-30",
-    budget: 750000, spent: 615000,
-    description: "Machine learning pipeline for real-time data analytics and insights.",
-    wbs: mkWbs(), tasks: mkTasks("p10", ["u5", "u7", "u8"]),
+      id: "p10", name: "AI-Powered Analytics Platform", clientId: "c6", wbsId: "IN-2025-26-C006-P012",
+      status: "ongoing", health: "green", progress: 82,
+      pmId: "u3", tlId: "u5", teamIds: ["u5", "u7", "u8"],
+      startDate: "2026-03-01", endDate: "2026-08-30",
+      budget: 750000, spent: 615000,
+      description: "Machine learning pipeline for real-time data analytics and insights.",
+      wbs: mkWbs(), tasks: mkTasks("p10", ["u5", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p11", name: "Digital Wallet MVP", clientId: "c7", wbsId: "IN-2025-26-C007-P003",
-    status: "ongoing", health: "green", progress: 65,
-    pmId: "u4", tlId: "u6", teamIds: ["u6", "u9", "u10"],
-    startDate: "2026-01-15", endDate: "2026-06-20",
-    budget: 580000, spent: 377000,
-    description: "Mobile-first digital payment wallet with blockchain security.",
-    wbs: mkWbs(), tasks: mkTasks("p11", ["u6", "u9", "u10"]),
+      id: "p11", name: "Digital Wallet MVP", clientId: "c7", wbsId: "IN-2025-26-C007-P003",
+      status: "ongoing", health: "green", progress: 65,
+      pmId: "u4", tlId: "u6", teamIds: ["u6", "u9", "u10"],
+      startDate: "2026-01-15", endDate: "2026-06-20",
+      budget: 580000, spent: 377000,
+      description: "Mobile-first digital payment wallet with blockchain security.",
+      wbs: mkWbs(), tasks: mkTasks("p11", ["u6", "u9", "u10"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p12", name: "Hospital Management System", clientId: "c8", wbsId: "IN-2025-26-C008-P007",
-    status: "ongoing", health: "amber", progress: 48,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u9"],
-    startDate: "2026-02-10", endDate: "2026-09-25",
-    budget: 920000, spent: 441600,
-    description: "Comprehensive EHR and patient management system for 50+ hospitals.",
-    wbs: mkWbs(), tasks: mkTasks("p12", ["u7", "u8", "u9"]),
+      id: "p12", name: "Hospital Management System", clientId: "c8", wbsId: "IN-2025-26-C008-P007",
+      status: "ongoing", health: "amber", progress: 48,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u9"],
+      startDate: "2026-02-10", endDate: "2026-09-25",
+      budget: 920000, spent: 441600,
+      description: "Comprehensive EHR and patient management system for 50+ hospitals.",
+      wbs: mkWbs(), tasks: mkTasks("p12", ["u7", "u8", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p13", name: "Carbon Tracking Platform", clientId: "c9", wbsId: "IN-2025-26-C009-P005",
-    status: "ongoing", health: "green", progress: 71,
-    pmId: "u4", tlId: "u6", teamIds: ["u5", "u8", "u10"],
-    startDate: "2026-01-20", endDate: "2026-07-31",
-    budget: 640000, spent: 454400,
-    description: "Enterprise platform for monitoring and reducing carbon footprint.",
-    wbs: mkWbs(), tasks: mkTasks("p13", ["u5", "u8", "u10"]),
+      id: "p13", name: "Carbon Tracking Platform", clientId: "c9", wbsId: "IN-2025-26-C009-P005",
+      status: "ongoing", health: "green", progress: 71,
+      pmId: "u4", tlId: "u6", teamIds: ["u5", "u8", "u10"],
+      startDate: "2026-01-20", endDate: "2026-07-31",
+      budget: 640000, spent: 454400,
+      description: "Enterprise platform for monitoring and reducing carbon footprint.",
+      wbs: mkWbs(), tasks: mkTasks("p13", ["u5", "u8", "u10"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p14", name: "Autonomous Vehicle Control", clientId: "c10", wbsId: "IN-2025-26-C010-P013",
-    status: "ongoing", health: "red", progress: 38,
-    pmId: "u3", tlId: "u5", teamIds: ["u6", "u7", "u9"],
-    startDate: "2026-03-10", endDate: "2026-11-15",
-    budget: 1200000, spent: 456000,
-    description: "Advanced control system for autonomous vehicle fleet management.",
-    wbs: mkWbs(), tasks: mkTasks("p14", ["u6", "u7", "u9"]),
+      id: "p14", name: "Autonomous Vehicle Control", clientId: "c10", wbsId: "IN-2025-26-C010-P013",
+      status: "ongoing", health: "red", progress: 38,
+      pmId: "u3", tlId: "u5", teamIds: ["u6", "u7", "u9"],
+      startDate: "2026-03-10", endDate: "2026-11-15",
+      budget: 1200000, spent: 456000,
+      description: "Advanced control system for autonomous vehicle fleet management.",
+      wbs: mkWbs(), tasks: mkTasks("p14", ["u6", "u7", "u9"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C1: Northwind Bank — extra projects ──
   {
-    id: "p15", name: "Internet Banking Portal", clientId: "c1", wbsId: "IN-2024-25-C001-P003",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u8"],
-    startDate: "2024-06-01", endDate: "2025-01-15",
-    budget: 520000, spent: 510000,
-    description: "Full-featured internet banking portal with 2FA and real-time notifications.",
-    wbs: mkWbs(), tasks: mkTasks("p15", ["u6", "u7", "u8"]),
+      id: "p15", name: "Internet Banking Portal", clientId: "c1", wbsId: "IN-2024-25-C001-P003",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u8"],
+      startDate: "2024-06-01", endDate: "2025-01-15",
+      budget: 520000, spent: 510000,
+      description: "Full-featured internet banking portal with 2FA and real-time notifications.",
+      wbs: mkWbs(), tasks: mkTasks("p15", ["u6", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p16", name: "Fraud Detection ML Model", clientId: "c1", wbsId: "IN-2023-24-C001-P006",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u3", tlId: "u5", teamIds: ["u8", "u9"],
-    startDate: "2024-02-01", endDate: "2024-10-30",
-    budget: 680000, spent: 665000,
-    description: "Machine learning pipeline for real-time transaction fraud detection.",
-    wbs: mkWbs(), tasks: mkTasks("p16", ["u5", "u8", "u9"]),
+      id: "p16", name: "Fraud Detection ML Model", clientId: "c1", wbsId: "IN-2023-24-C001-P006",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u3", tlId: "u5", teamIds: ["u8", "u9"],
+      startDate: "2024-02-01", endDate: "2024-10-30",
+      budget: 680000, spent: 665000,
+      description: "Machine learning pipeline for real-time transaction fraud detection.",
+      wbs: mkWbs(), tasks: mkTasks("p16", ["u5", "u8", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p17", name: "API Gateway Revamp", clientId: "c1", wbsId: "IN-2026-27-C001-P001",
-    status: "ongoing", health: "green", progress: 0,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u10"],
-    startDate: "2026-06-01", endDate: "2026-12-31",
-    budget: 390000, spent: 0,
-    description: "Rebuild API gateway with rate limiting, OAuth 2.0 and developer portal.",
-    wbs: mkWbs(), tasks: mkTasks("p17", ["u5", "u7", "u10"]),
+      id: "p17", name: "API Gateway Revamp", clientId: "c1", wbsId: "IN-2026-27-C001-P001",
+      status: "ongoing", health: "green", progress: 0,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u10"],
+      startDate: "2026-06-01", endDate: "2026-12-31",
+      budget: 390000, spent: 0,
+      description: "Rebuild API gateway with rate limiting, OAuth 2.0 and developer portal.",
+      wbs: mkWbs(), tasks: mkTasks("p17", ["u5", "u7", "u10"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p18", name: "Loan Origination System", clientId: "c1", wbsId: "IN-2023-24-C001-P005",
-    status: "completed", health: "amber", progress: 72,
-    pmId: "u4", tlId: "u6", teamIds: ["u8", "u9"],
-    startDate: "2023-09-01", endDate: "2024-04-30",
-    budget: 450000, spent: 420000,
-    description: "End-to-end digital loan origination and approval workflow system.",
-    wbs: mkWbs(), tasks: mkTasks("p18", ["u6", "u8", "u9"]),
+      id: "p18", name: "Loan Origination System", clientId: "c1", wbsId: "IN-2023-24-C001-P005",
+      status: "completed", health: "amber", progress: 72,
+      pmId: "u4", tlId: "u6", teamIds: ["u8", "u9"],
+      startDate: "2023-09-01", endDate: "2024-04-30",
+      budget: 450000, spent: 420000,
+      description: "End-to-end digital loan origination and approval workflow system.",
+      wbs: mkWbs(), tasks: mkTasks("p18", ["u6", "u8", "u9"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C2: Helix Pharma — extra projects ──
   {
-    id: "p19", name: "Lab Information System", clientId: "c2", wbsId: "IN-2023-24-C002-P007",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u10"],
-    startDate: "2024-01-10", endDate: "2024-09-20",
-    budget: 610000, spent: 590000,
-    description: "Digital laboratory information system for sample tracking and reporting.",
-    wbs: mkWbs(), tasks: mkTasks("p19", ["u5", "u7", "u8"]),
+      id: "p19", name: "Lab Information System", clientId: "c2", wbsId: "IN-2023-24-C002-P007",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u10"],
+      startDate: "2024-01-10", endDate: "2024-09-20",
+      budget: 610000, spent: 590000,
+      description: "Digital laboratory information system for sample tracking and reporting.",
+      wbs: mkWbs(), tasks: mkTasks("p19", ["u5", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p20", name: "Regulatory Compliance Portal", clientId: "c2", wbsId: "IN-2026-27-C002-P002",
-    status: "ongoing", health: "green", progress: 0,
-    pmId: "u4", tlId: "u6", teamIds: ["u9", "u10"],
-    startDate: "2026-06-10", endDate: "2026-12-20",
-    budget: 280000, spent: 0,
-    description: "Centralized portal for managing FDA/EMA regulatory submissions.",
-    wbs: mkWbs(), tasks: mkTasks("p20", ["u6", "u9", "u10"]),
+      id: "p20", name: "Regulatory Compliance Portal", clientId: "c2", wbsId: "IN-2026-27-C002-P002",
+      status: "ongoing", health: "green", progress: 0,
+      pmId: "u4", tlId: "u6", teamIds: ["u9", "u10"],
+      startDate: "2026-06-10", endDate: "2026-12-20",
+      budget: 280000, spent: 0,
+      description: "Centralized portal for managing FDA/EMA regulatory submissions.",
+      wbs: mkWbs(), tasks: mkTasks("p20", ["u6", "u9", "u10"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p21", name: "Drug Trial Management", clientId: "c2", wbsId: "IN-2023-24-C002-P002",
-    status: "completed", health: "amber", progress: 68,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u9"],
-    startDate: "2023-05-01", endDate: "2024-01-31",
-    budget: 730000, spent: 690000,
-    description: "Phase II/III clinical trial participant management and data collection.",
-    wbs: mkWbs(), tasks: mkTasks("p21", ["u5", "u7", "u9"]),
+      id: "p21", name: "Drug Trial Management", clientId: "c2", wbsId: "IN-2023-24-C002-P002",
+      status: "completed", health: "amber", progress: 68,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u9"],
+      startDate: "2023-05-01", endDate: "2024-01-31",
+      budget: 730000, spent: 690000,
+      description: "Phase II/III clinical trial participant management and data collection.",
+      wbs: mkWbs(), tasks: mkTasks("p21", ["u5", "u7", "u9"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C3: Orbit Retail — extra projects ──
   {
-    id: "p22", name: "Loyalty Rewards Platform", clientId: "c3", wbsId: "IN-2023-24-C003-P008",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u8"],
-    startDate: "2024-03-01", endDate: "2024-11-30",
-    budget: 340000, spent: 330000,
-    description: "Points-based loyalty engine with gamification for 5M+ customers.",
-    wbs: mkWbs(), tasks: mkTasks("p22", ["u6", "u7", "u8"]),
+      id: "p22", name: "Loyalty Rewards Platform", clientId: "c3", wbsId: "IN-2023-24-C003-P008",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u8"],
+      startDate: "2024-03-01", endDate: "2024-11-30",
+      budget: 340000, spent: 330000,
+      description: "Points-based loyalty engine with gamification for 5M+ customers.",
+      wbs: mkWbs(), tasks: mkTasks("p22", ["u6", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p23", name: "Inventory AI Forecasting", clientId: "c3",
-    status: "ongoing", health: "green", progress: 0,
-    pmId: "u3", tlId: "u5", teamIds: ["u8", "u10"],
-    startDate: "2026-06-05", endDate: "2026-11-30",
-    budget: 420000, spent: 0,
-    description: "AI-driven demand forecasting and automated replenishment system.",
-    wbs: mkWbs(), tasks: mkTasks("p23", ["u5", "u8", "u10"]),
+      id: "p23", name: "Inventory AI Forecasting", clientId: "c3",
+      status: "ongoing", health: "green", progress: 0,
+      pmId: "u3", tlId: "u5", teamIds: ["u8", "u10"],
+      startDate: "2026-06-05", endDate: "2026-11-30",
+      budget: 420000, spent: 0,
+      description: "AI-driven demand forecasting and automated replenishment system.",
+      wbs: mkWbs(), tasks: mkTasks("p23", ["u5", "u8", "u10"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p24", name: "Customer Data Platform", clientId: "c3",
-    status: "completed", health: "amber", progress: 55,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u9"],
-    startDate: "2023-01-15", endDate: "2023-09-30",
-    budget: 490000, spent: 460000,
-    description: "Unified customer data platform integrating 12 data sources.",
-    wbs: mkWbs(), tasks: mkTasks("p24", ["u6", "u7", "u9"]),
+      id: "p24", name: "Customer Data Platform", clientId: "c3",
+      status: "completed", health: "amber", progress: 55,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u9"],
+      startDate: "2023-01-15", endDate: "2023-09-30",
+      budget: 490000, spent: 460000,
+      description: "Unified customer data platform integrating 12 data sources.",
+      wbs: mkWbs(), tasks: mkTasks("p24", ["u6", "u7", "u9"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C4: Zenith Logistics — extra projects ──
   {
-    id: "p25", name: "Supply Chain Visibility", clientId: "c4",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u9"],
-    startDate: "2024-04-01", endDate: "2024-12-15",
-    budget: 570000, spent: 555000,
-    description: "End-to-end supply chain visibility platform with IoT sensor integration.",
-    wbs: mkWbs(), tasks: mkTasks("p25", ["u5", "u7", "u8"]),
+      id: "p25", name: "Supply Chain Visibility", clientId: "c4",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u9"],
+      startDate: "2024-04-01", endDate: "2024-12-15",
+      budget: 570000, spent: 555000,
+      description: "End-to-end supply chain visibility platform with IoT sensor integration.",
+      wbs: mkWbs(), tasks: mkTasks("p25", ["u5", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p26", name: "Driver Mobile App", clientId: "c4",
-    status: "ongoing", health: "green", progress: 0,
-    pmId: "u4", tlId: "u6", teamIds: ["u9", "u10"],
-    startDate: "2026-06-15", endDate: "2026-11-20",
-    budget: 220000, spent: 0,
-    description: "Driver-facing mobile app for route optimization and POD collection.",
-    wbs: mkWbs(), tasks: mkTasks("p26", ["u6", "u9", "u10"]),
+      id: "p26", name: "Driver Mobile App", clientId: "c4",
+      status: "ongoing", health: "green", progress: 0,
+      pmId: "u4", tlId: "u6", teamIds: ["u9", "u10"],
+      startDate: "2026-06-15", endDate: "2026-11-20",
+      budget: 220000, spent: 0,
+      description: "Driver-facing mobile app for route optimization and POD collection.",
+      wbs: mkWbs(), tasks: mkTasks("p26", ["u6", "u9", "u10"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C5: Lumen Energy — extra projects ──
   {
-    id: "p27", name: "Renewable Energy Dashboard", clientId: "c5",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u8"],
-    startDate: "2024-02-01", endDate: "2024-10-31",
-    budget: 460000, spent: 445000,
-    description: "Executive dashboard for real-time monitoring of solar and wind assets.",
-    wbs: mkWbs(), tasks: mkTasks("p27", ["u6", "u7", "u8"]),
+      id: "p27", name: "Renewable Energy Dashboard", clientId: "c5",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u8"],
+      startDate: "2024-02-01", endDate: "2024-10-31",
+      budget: 460000, spent: 445000,
+      description: "Executive dashboard for real-time monitoring of solar and wind assets.",
+      wbs: mkWbs(), tasks: mkTasks("p27", ["u6", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p28", name: "Customer Energy Portal", clientId: "c5",
-    status: "ongoing", health: "green", progress: 0,
-    pmId: "u3", tlId: "u5", teamIds: ["u8", "u9"],
-    startDate: "2026-06-08", endDate: "2026-12-15",
-    budget: 310000, spent: 0,
-    description: "Self-service portal for residential customers to track usage and billing.",
-    wbs: mkWbs(), tasks: mkTasks("p28", ["u5", "u8", "u9"]),
+      id: "p28", name: "Customer Energy Portal", clientId: "c5",
+      status: "ongoing", health: "green", progress: 0,
+      pmId: "u3", tlId: "u5", teamIds: ["u8", "u9"],
+      startDate: "2026-06-08", endDate: "2026-12-15",
+      budget: 310000, spent: 0,
+      description: "Self-service portal for residential customers to track usage and billing.",
+      wbs: mkWbs(), tasks: mkTasks("p28", ["u5", "u8", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p29", name: "Grid Modernization Program", clientId: "c5",
-    status: "completed", health: "amber", progress: 61,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u10"],
-    startDate: "2023-06-01", endDate: "2024-03-31",
-    budget: 870000, spent: 840000,
-    description: "Phase 1 smart meter rollout across 3 states.",
-    wbs: mkWbs(), tasks: mkTasks("p29", ["u6", "u7", "u10"]),
+      id: "p29", name: "Grid Modernization Program", clientId: "c5",
+      status: "completed", health: "amber", progress: 61,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u10"],
+      startDate: "2023-06-01", endDate: "2024-03-31",
+      budget: 870000, spent: 840000,
+      description: "Phase 1 smart meter rollout across 3 states.",
+      wbs: mkWbs(), tasks: mkTasks("p29", ["u6", "u7", "u10"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C6: CloudSync AI — extra projects ──
   {
-    id: "p30", name: "Data Lakehouse Migration", clientId: "c6",
-    status: "ongoing", health: "green", progress: 0,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u10"],
-    startDate: "2026-06-01", endDate: "2026-11-30",
-    budget: 490000, spent: 0,
-    description: "Migrate 3PB data warehouse to modern lakehouse architecture on Snowflake.",
-    wbs: mkWbs(), tasks: mkTasks("p30", ["u5", "u7", "u8"]),
+      id: "p30", name: "Data Lakehouse Migration", clientId: "c6",
+      status: "ongoing", health: "green", progress: 0,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u8", "u10"],
+      startDate: "2026-06-01", endDate: "2026-11-30",
+      budget: 490000, spent: 0,
+      description: "Migrate 3PB data warehouse to modern lakehouse architecture on Snowflake.",
+      wbs: mkWbs(), tasks: mkTasks("p30", ["u5", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p31", name: "MLOps Framework", clientId: "c6",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u4", tlId: "u6", teamIds: ["u8", "u9"],
-    startDate: "2024-03-15", endDate: "2024-11-30",
-    budget: 380000, spent: 365000,
-    description: "Production ML model lifecycle management with drift detection and retraining.",
-    wbs: mkWbs(), tasks: mkTasks("p31", ["u6", "u8", "u9"]),
+      id: "p31", name: "MLOps Framework", clientId: "c6",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u4", tlId: "u6", teamIds: ["u8", "u9"],
+      startDate: "2024-03-15", endDate: "2024-11-30",
+      budget: 380000, spent: 365000,
+      description: "Production ML model lifecycle management with drift detection and retraining.",
+      wbs: mkWbs(), tasks: mkTasks("p31", ["u6", "u8", "u9"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C7: FinTech Global — extra projects ──
   {
-    id: "p32", name: "Cross-Border Payments", clientId: "c7",
-    status: "ongoing", health: "amber", progress: 0,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u8"],
-    startDate: "2026-06-12", endDate: "2027-01-31",
-    budget: 920000, spent: 0,
-    description: "SWIFT-compliant cross-border payment rails for 40+ countries.",
-    wbs: mkWbs(), tasks: mkTasks("p32", ["u6", "u7", "u8"]),
+      id: "p32", name: "Cross-Border Payments", clientId: "c7",
+      status: "ongoing", health: "amber", progress: 0,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u8"],
+      startDate: "2026-06-12", endDate: "2027-01-31",
+      budget: 920000, spent: 0,
+      description: "SWIFT-compliant cross-border payment rails for 40+ countries.",
+      wbs: mkWbs(), tasks: mkTasks("p32", ["u6", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p33", name: "KYC Automation", clientId: "c7",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u9", "u10"],
-    startDate: "2024-01-01", endDate: "2024-08-31",
-    budget: 540000, spent: 525000,
-    description: "AI-driven KYC document verification reducing manual review by 80%.",
-    wbs: mkWbs(), tasks: mkTasks("p33", ["u5", "u7", "u9"]),
+      id: "p33", name: "KYC Automation", clientId: "c7",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u9", "u10"],
+      startDate: "2024-01-01", endDate: "2024-08-31",
+      budget: 540000, spent: 525000,
+      description: "AI-driven KYC document verification reducing manual review by 80%.",
+      wbs: mkWbs(), tasks: mkTasks("p33", ["u5", "u7", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p34", name: "Open Banking API Suite", clientId: "c7",
-    status: "completed", health: "amber", progress: 44,
-    pmId: "u4", tlId: "u6", teamIds: ["u8", "u10"],
-    startDate: "2023-03-01", endDate: "2023-10-15",
-    budget: 320000, spent: 300000,
-    description: "PSD2-compliant open banking API suite for third-party integrators.",
-    wbs: mkWbs(), tasks: mkTasks("p34", ["u6", "u8", "u10"]),
+      id: "p34", name: "Open Banking API Suite", clientId: "c7",
+      status: "completed", health: "amber", progress: 44,
+      pmId: "u4", tlId: "u6", teamIds: ["u8", "u10"],
+      startDate: "2023-03-01", endDate: "2023-10-15",
+      budget: 320000, spent: 300000,
+      description: "PSD2-compliant open banking API suite for third-party integrators.",
+      wbs: mkWbs(), tasks: mkTasks("p34", ["u6", "u8", "u10"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C8: MediCare Plus — extra projects ──
   {
-    id: "p35", name: "Telemedicine Platform", clientId: "c8",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u8", "u10"],
-    startDate: "2024-05-01", endDate: "2025-01-15",
-    budget: 670000, spent: 650000,
-    description: "HIPAA-compliant video consultation and remote monitoring platform.",
-    wbs: mkWbs(), tasks: mkTasks("p35", ["u6", "u7", "u8"]),
+      id: "p35", name: "Telemedicine Platform", clientId: "c8",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u8", "u10"],
+      startDate: "2024-05-01", endDate: "2025-01-15",
+      budget: 670000, spent: 650000,
+      description: "HIPAA-compliant video consultation and remote monitoring platform.",
+      wbs: mkWbs(), tasks: mkTasks("p35", ["u6", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p36", name: "Insurance Claims Automation", clientId: "c8",
-    status: "ongoing", health: "green", progress: 0,
-    pmId: "u3", tlId: "u5", teamIds: ["u8", "u9"],
-    startDate: "2026-06-20", endDate: "2026-12-31",
-    budget: 380000, spent: 0,
-    description: "AI-powered claims processing reducing settlement time from 30 to 3 days.",
-    wbs: mkWbs(), tasks: mkTasks("p36", ["u5", "u8", "u9"]),
+      id: "p36", name: "Insurance Claims Automation", clientId: "c8",
+      status: "ongoing", health: "green", progress: 0,
+      pmId: "u3", tlId: "u5", teamIds: ["u8", "u9"],
+      startDate: "2026-06-20", endDate: "2026-12-31",
+      budget: 380000, spent: 0,
+      description: "AI-powered claims processing reducing settlement time from 30 to 3 days.",
+      wbs: mkWbs(), tasks: mkTasks("p36", ["u5", "u8", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p37", name: "Patient Engagement App", clientId: "c8",
-    status: "completed", health: "amber", progress: 52,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u10"],
-    startDate: "2023-07-01", endDate: "2024-03-31",
-    budget: 290000, spent: 270000,
-    description: "Patient-facing app for appointment booking, reminders and health records.",
-    wbs: mkWbs(), tasks: mkTasks("p37", ["u6", "u7", "u10"]),
+      id: "p37", name: "Patient Engagement App", clientId: "c8",
+      status: "completed", health: "amber", progress: 52,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u10"],
+      startDate: "2023-07-01", endDate: "2024-03-31",
+      budget: 290000, spent: 270000,
+      description: "Patient-facing app for appointment booking, reminders and health records.",
+      wbs: mkWbs(), tasks: mkTasks("p37", ["u6", "u7", "u10"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C9: EcoGreen Solutions — extra projects ──
   {
-    id: "p38", name: "ESG Reporting Engine", clientId: "c9",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u8"],
-    startDate: "2024-02-15", endDate: "2024-10-30",
-    budget: 420000, spent: 405000,
-    description: "Automated ESG data aggregation and reporting aligned to GRI and TCFD standards.",
-    wbs: mkWbs(), tasks: mkTasks("p38", ["u5", "u7", "u8"]),
+      id: "p38", name: "ESG Reporting Engine", clientId: "c9",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u8"],
+      startDate: "2024-02-15", endDate: "2024-10-30",
+      budget: 420000, spent: 405000,
+      description: "Automated ESG data aggregation and reporting aligned to GRI and TCFD standards.",
+      wbs: mkWbs(), tasks: mkTasks("p38", ["u5", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p39", name: "Waste Management IoT", clientId: "c9",
-    status: "ongoing", health: "green", progress: 0,
-    pmId: "u4", tlId: "u6", teamIds: ["u8", "u9", "u10"],
-    startDate: "2026-06-18", endDate: "2026-12-20",
-    budget: 360000, spent: 0,
-    description: "Smart bin monitoring network with route optimization for waste collectors.",
-    wbs: mkWbs(), tasks: mkTasks("p39", ["u6", "u8", "u9"]),
+      id: "p39", name: "Waste Management IoT", clientId: "c9",
+      status: "ongoing", health: "green", progress: 0,
+      pmId: "u4", tlId: "u6", teamIds: ["u8", "u9", "u10"],
+      startDate: "2026-06-18", endDate: "2026-12-20",
+      budget: 360000, spent: 0,
+      description: "Smart bin monitoring network with route optimization for waste collectors.",
+      wbs: mkWbs(), tasks: mkTasks("p39", ["u6", "u8", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p40", name: "Water Quality Platform", clientId: "c9",
-    status: "completed", health: "amber", progress: 48,
-    pmId: "u3", tlId: "u5", teamIds: ["u7", "u10"],
-    startDate: "2023-04-01", endDate: "2023-11-30",
-    budget: 310000, spent: 290000,
-    description: "IoT sensor network for real-time water quality monitoring across 200 sites.",
-    wbs: mkWbs(), tasks: mkTasks("p40", ["u5", "u7", "u10"]),
+      id: "p40", name: "Water Quality Platform", clientId: "c9",
+      status: "completed", health: "amber", progress: 48,
+      pmId: "u3", tlId: "u5", teamIds: ["u7", "u10"],
+      startDate: "2023-04-01", endDate: "2023-11-30",
+      budget: 310000, spent: 290000,
+      description: "IoT sensor network for real-time water quality monitoring across 200 sites.",
+      wbs: mkWbs(), tasks: mkTasks("p40", ["u5", "u7", "u10"]),
+      proj: {
+          services: []
+      }
   },
 
   // ── C10: AutoDrive Systems — extra projects ──
   {
-    id: "p41", name: "ADAS Integration Suite", clientId: "c10",
-    status: "completed", health: "green", progress: 100,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u8", "u9"],
-    startDate: "2024-01-20", endDate: "2024-11-30",
-    budget: 980000, spent: 960000,
-    description: "Advanced driver-assistance system integration for 3 OEM partners.",
-    wbs: mkWbs(), tasks: mkTasks("p41", ["u6", "u7", "u8"]),
+      id: "p41", name: "ADAS Integration Suite", clientId: "c10",
+      status: "completed", health: "green", progress: 100,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u8", "u9"],
+      startDate: "2024-01-20", endDate: "2024-11-30",
+      budget: 980000, spent: 960000,
+      description: "Advanced driver-assistance system integration for 3 OEM partners.",
+      wbs: mkWbs(), tasks: mkTasks("p41", ["u6", "u7", "u8"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p42", name: "V2X Communication Platform", clientId: "c10",
-    status: "ongoing", health: "amber", progress: 0,
-    pmId: "u3", tlId: "u5", teamIds: ["u8", "u9"],
-    startDate: "2026-06-25", endDate: "2027-02-28",
-    budget: 1100000, spent: 0,
-    description: "Vehicle-to-everything communication layer for smart city integration.",
-    wbs: mkWbs(), tasks: mkTasks("p42", ["u5", "u8", "u9"]),
+      id: "p42", name: "V2X Communication Platform", clientId: "c10",
+      status: "ongoing", health: "amber", progress: 0,
+      pmId: "u3", tlId: "u5", teamIds: ["u8", "u9"],
+      startDate: "2026-06-25", endDate: "2027-02-28",
+      budget: 1100000, spent: 0,
+      description: "Vehicle-to-everything communication layer for smart city integration.",
+      wbs: mkWbs(), tasks: mkTasks("p42", ["u5", "u8", "u9"]),
+      proj: {
+          services: []
+      }
   },
   {
-    id: "p43", name: "OBD Diagnostics Cloud", clientId: "c10",
-    status: "completed", health: "amber", progress: 38,
-    pmId: "u4", tlId: "u6", teamIds: ["u7", "u10"],
-    startDate: "2023-08-01", endDate: "2024-04-30",
-    budget: 430000, spent: 400000,
-    description: "Cloud-based OBD-II diagnostics aggregation for fleet health monitoring.",
-    wbs: mkWbs(), tasks: mkTasks("p43", ["u6", "u7", "u10"]),
+      id: "p43", name: "OBD Diagnostics Cloud", clientId: "c10",
+      status: "completed", health: "amber", progress: 38,
+      pmId: "u4", tlId: "u6", teamIds: ["u7", "u10"],
+      startDate: "2023-08-01", endDate: "2024-04-30",
+      budget: 430000, spent: 400000,
+      description: "Cloud-based OBD-II diagnostics aggregation for fleet health monitoring.",
+      wbs: mkWbs(), tasks: mkTasks("p43", ["u6", "u7", "u10"]),
+      proj: {
+          services: []
+      }
   },
 ];
 
