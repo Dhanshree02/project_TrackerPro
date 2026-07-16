@@ -243,6 +243,7 @@ export interface DhAdditionalRequirement {
   requestedBy: string;
   requestedDate: string;
   attachmentName?: string;
+  scopeCancellationService?: string;
   status: RequirementStatus;
   comments: DhComment[];
   history: { status: RequirementStatus; at: string; updatedBy: string; updatedByName: string }[];
@@ -1648,19 +1649,36 @@ export const dhStore = {
   addRequirement(input: Omit<DhAdditionalRequirement, "id" | "history" | "createdAt" | "requirementId">) {
     const req: DhAdditionalRequirement = { ...input, id: uid("req"), requirementId: `REQ-${Date.now()}`, history: [{ status: input.status, at: new Date().toISOString(), updatedBy: "system", updatedByName: "System" }], createdAt: new Date().toISOString() };
     state.requirements.unshift(req);
-    // Notify PM, SPM, EM, HOD, PMO
+    // Alert the people associated with this project (PM, TL, team, shadow team,
+    // prereq-assigned PM/SPMs). Audience-based authorization is applied later.
+    const proj = findProject(req.projectId);
+    const prereq = state.prereqs[req.projectId];
+    const audienceUserIds = Array.from(new Set([
+      ...(proj ? [proj.pmId, proj.tlId, ...proj.teamIds, ...(proj.shadowTeamIds ?? [])] : []),
+      ...(prereq?.assignedPmIds ?? []),
+      ...(prereq?.assignedSpmIds ?? []),
+      "u14", // Dhanshree — delivery operations
+    ].filter(Boolean)));
     state.alerts.unshift({
       id: uid("al"),
-      title: `New requirement: ${req.title}`,
+      alertId: `REQ-AL-${String(state.alerts.length + 1).padStart(3, "0")}`,
+      title: req.title,
       kind: "Approval",
       projectId: req.projectId,
       raisedByName: req.requestedBy,
-      audienceUserIds: ["u1", "u3", "u4", "u2", "u11", "u12"],
+      audienceUserIds,
       priority: req.priority,
       status: "Open",
       refId: req.id,
       createdAt: req.createdAt,
       comments: [],
+      description: req.description,
+      alertType: "Client Concern",
+      owner: req.requestedBy,
+      serviceName: req.scopeCancellationService,
+      history: [
+        { status: "Open", at: req.createdAt, updatedBy: req.requestedBy, details: `Additional client requirement logged for ${req.projectName}` }
+      ],
     });
     emit();
     return req;
