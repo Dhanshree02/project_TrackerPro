@@ -3327,6 +3327,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
   const [requestedDate, setRequestedDate] = useState(new Date().toISOString().split("T")[0]);
   const [attachmentName, setAttachmentName] = useState("");
   const [scopeCancellation, setScopeCancellation] = useState("");
+  const [reqTab, setReqTab] = useState<"Add Service" | "Scope Cancellation">("Add Service");
 
   // Services come from wbsDetails (projects created via the WBS form) or, for
   // seeded demo projects without wbsDetails, the legacy WBS-tab service list.
@@ -3337,7 +3338,14 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
   }, [project]);
 
   const handleLog = () => {
-    const finalTitle = title === "Other" ? customTitle.trim() : title;
+    const isCancellation = reqTab === "Scope Cancellation";
+    if (isCancellation && !scopeCancellation) {
+      toast.error("Please select the service to cancel");
+      return;
+    }
+    const finalTitle = isCancellation
+      ? `Scope Cancellation: ${scopeCancellation}`
+      : (title === "Other" ? customTitle.trim() : title);
     if (!finalTitle || !description.trim() || !requestedBy.trim()) {
       toast.error("Please fill in all required fields");
       return;
@@ -3352,13 +3360,14 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
       requestedBy,
       requestedDate,
       attachmentName: attachmentName || undefined,
-      scopeCancellationService: scopeCancellation || undefined,
+      scopeCancellationService: isCancellation ? scopeCancellation : undefined,
       status: "Open",
       comments: []
     });
-    toast.success("Requirement logged persistently!");
+    toast.success(isCancellation ? "Scope cancellation request logged!" : "Requirement logged persistently!");
     setShowModal(false);
     // Reset
+    setReqTab("Add Service");
     setTitle("");
     setCustomTitle("");
     setDescription("");
@@ -3435,20 +3444,55 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
       {showModal && (
         <Modal title="Log Additional Client Requirement" onClose={() => setShowModal(false)}>
           <div className="space-y-3">
-            <Field label="Client Name"><input value={client} onChange={(e) => setClient(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
-            <Field label="Project Name"><input value={projName} onChange={(e) => setProjName(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
-            <Field label="Requirement Title" required>
-              <select value={title} onChange={(e) => { setTitle(e.target.value); if (e.target.value !== "Other") setCustomTitle(""); }} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <option value="" disabled>Select requirement type...</option>
-                <option value="Resource Requirement">Resource Requirement</option>
-                <option value="Scope Requirement">Scope Requirement</option>
-                <option value="Other">Other</option>
-              </select>
-            </Field>
-            {title === "Other" && (
-              <Field label="Specify Requirement Title" required><input value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} placeholder="Enter requirement title..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Client Name"><input value={client} onChange={(e) => setClient(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
+              <Field label="Project Name"><input value={projName} onChange={(e) => setProjName(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
+            </div>
+
+            <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1 text-xs">
+              {(["Add Service", "Scope Cancellation"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setReqTab(t)}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 font-medium transition-colors",
+                    reqTab === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {reqTab === "Add Service" && (
+              <>
+                <Field label="Requirement Title" required>
+                  <select value={title} onChange={(e) => { setTitle(e.target.value); if (e.target.value !== "Other") setCustomTitle(""); }} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <option value="" disabled>Select requirement type...</option>
+                    <option value="Resource Requirement">Resource Requirement</option>
+                    <option value="Scope Requirement">Scope Requirement</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </Field>
+                {title === "Other" && (
+                  <Field label="Specify Requirement Title" required><input value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} placeholder="Enter requirement title..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+                )}
+              </>
             )}
-            <Field label="Description" required><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detailed requirement..." rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+
+            {reqTab === "Scope Cancellation" && (
+              <Field label="Service to Cancel" required>
+                <select value={scopeCancellation} onChange={(e) => setScopeCancellation(e.target.value)} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <option value="" disabled>Select service...</option>
+                  {projectServices.map((svc) => (
+                    <option key={svc.id} value={svc.name}>{svc.name}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
+
+            <Field label={reqTab === "Scope Cancellation" ? "Reason for Cancellation" : "Description"} required><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={reqTab === "Scope Cancellation" ? "Reason for cancelling this service..." : "Detailed requirement..."} rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Priority">
@@ -3476,18 +3520,9 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
               </div>
             </Field>
 
-            <Field label="Scope Cancellation">
-              <select value={scopeCancellation} onChange={(e) => setScopeCancellation(e.target.value)} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <option value="">Select service...</option>
-                {projectServices.map((svc) => (
-                  <option key={svc.id} value={svc.name}>{svc.name}</option>
-                ))}
-              </select>
-            </Field>
-
             <div className="flex justify-end gap-2 border-t border-border pt-3">
               <button onClick={() => setShowModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-              <button onClick={handleLog} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Log Requirement</button>
+              <button onClick={handleLog} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">{reqTab === "Scope Cancellation" ? "Log Scope Cancellation" : "Log Requirement"}</button>
             </div>
           </div>
         </Modal>

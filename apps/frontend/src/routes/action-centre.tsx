@@ -490,6 +490,7 @@ function AlertsTab() {
   const [selectedEscOwner, setSelectedEscOwner] = useState("");
   const [resDetails, setResDetails] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<AlertStatus>("Open");
+  const [approved, setApproved] = useState(false);
   const { user } = useRoleContext();
 
   const allAlerts = store.alerts;
@@ -521,6 +522,9 @@ function AlertsTab() {
     return allAlerts.find(a => a.id === selectedAlertId);
   }, [allAlerts, selectedAlertId]);
 
+  // Alerts raised by the Log Requirement flow (add service / scope cancellation)
+  const isRequirementAlert = !!selectedAlert?.alertId?.startsWith("REQ-AL-");
+
   const openDetails = (id: string) => {
     const alert = allAlerts.find(a => a.id === id);
     if (alert) {
@@ -530,6 +534,7 @@ function AlertsTab() {
       setSelectedEscOwner(alert.escalationOwner || "");
       setResDetails(alert.resolutionDetails || "");
       setSelectedStatus(alert.status);
+      setApproved(false);
     }
   };
 
@@ -835,7 +840,19 @@ function AlertsTab() {
 
                 {/* Status Switcher */}
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block">Set Status</span>
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block">{isRequirementAlert ? "Status" : "Set Status"}</span>
+                  {isRequirementAlert ? (
+                    // Requirement alerts start as Open; status is updated later by the
+                    // assigned manager / higher authority, not from this window.
+                    <div className={cn(
+                      "w-full rounded-md border p-2 text-xs font-bold shadow-xs",
+                      selectedAlert.status === "Resolved" || selectedAlert.status === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
+                        selectedAlert.status === "Open" ? "bg-orange-50 border-orange-200 text-orange-700" :
+                          "bg-gray-50 border-gray-200 text-gray-600"
+                    )}>
+                      {selectedAlert.status}
+                    </div>
+                  ) : (
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value as any)}
@@ -857,6 +874,7 @@ function AlertsTab() {
                         ))
                     }
                   </select>
+                  )}
                 </div>
 
                 {/* Discussion Area Comment box */}
@@ -887,15 +905,58 @@ function AlertsTab() {
               </div>
 
               <div className="flex justify-end gap-2 border-t border-border pt-3">
-                <button onClick={() => setSelectedAlertId(null)} className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium hover:bg-accent">
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateAlert}
-                  className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                  Save Governance Changes
-                </button>
+                {isRequirementAlert ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        setApproved(true);
+                        toast.success("Requirement approved — click Update to save");
+                      }}
+                      className={cn(
+                        "rounded-md border px-3.5 py-1.5 text-xs font-medium transition-colors",
+                        approved
+                          ? "border-emerald-600 bg-emerald-600 text-white"
+                          : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                      )}
+                    >
+                      {approved ? "Approved ✓" : "Approve"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        // TODO: notify the manager assigned to this project on reject (to be wired later)
+                        toast("Requirement rejected — manager notification will be enabled later");
+                        setSelectedAlertId(null);
+                      }}
+                      className="rounded-md border border-red-300 bg-red-50 px-3.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={handleUpdateAlert}
+                      disabled={!approved}
+                      className={cn(
+                        "rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors",
+                        approved
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "border border-border bg-muted text-muted-foreground cursor-not-allowed"
+                      )}
+                    >
+                      Update
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setSelectedAlertId(null)} className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium hover:bg-accent">
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUpdateAlert}
+                      className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                      Save Governance Changes
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
