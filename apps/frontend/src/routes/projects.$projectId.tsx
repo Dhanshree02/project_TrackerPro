@@ -727,6 +727,17 @@ function ProjectDetail() {
 }
 
 // ---------- WBS Tab ----------
+// Legacy demo service list shown in the WBS tab for seeded projects that
+// have no wbsDetails (also feeds the Scope Cancellation dropdown).
+const LEGACY_WBS_SERVICES = [
+  { id: 1, taskId: 'WBS-01', dept: 'Penetration Testing',         name: 'External Network Penetration Testing',        qty: 1, desc: 'External network penetration test for internet-facing assets', freq: 'Once', delivery: 'Onsite',  loc: 'Andheri', svc: 'Initial Test',        format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Nmap, Metasploit',        start: '01 Feb 2026', end: '05 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+  { id: 2, taskId: 'WBS-02', dept: 'Vulnerability Assessment',     name: 'Web Application Vulnerability Assessment',    qty: 2, desc: 'Security review for web apps and APIs',                    freq: 'Once', delivery: 'Offsite', loc: '',        svc: 'Initial + 1 Re-test', format: 'Excel + PDF', billing: 'Ad-Hoc', tools: 'OWASP ZAP, Burp Suite',  start: '06 Feb 2026', end: '10 Feb 2026', durDays: 4, durHrs: 32, totalDays: 8, totalHrs: 64 },
+  { id: 3, taskId: 'WBS-03', dept: 'Cloud Security',               name: 'AWS Cloud Security Assessment',               qty: 1, desc: 'Cloud misconfiguration and control review',               freq: 'Once', delivery: 'Hybrid',  loc: '',        svc: 'Initial Test',        format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'AWS Config, Security Hub', start: '11 Feb 2026', end: '16 Feb 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+  { id: 4, taskId: 'WBS-04', dept: 'Code & Application Security',  name: 'Static Application Security Testing (SAST)', qty: 1, desc: 'Source code review and vulnerability analysis',          freq: 'Once', delivery: 'Onsite',  loc: 'Malad',   svc: 'Initial + 2 Re-test', format: 'PDF + XLSX',  billing: 'Ad-Hoc', tools: 'SonarQube, Semgrep',      start: '17 Feb 2026', end: '21 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+  { id: 5, taskId: 'WBS-05', dept: 'Compliance & Audit',           name: 'ISO 27001 Assessment',                        qty: 1, desc: 'Compliance gap assessment and audit checklist',          freq: 'Once', delivery: 'Onsite',  loc: 'Bandra',  svc: 'Initial + 1 Re-test', format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Checklist, Audit Toolkit', start: '22 Feb 2026', end: '01 Mar 2026', durDays: 8, durHrs: 64, totalDays: 8, totalHrs: 64 },
+  { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure',     name: 'Network Security Assessment',                 qty: 1, desc: 'Infrastructure review and segmentation validation',      freq: 'Once', delivery: 'Offsite', loc: '',        svc: 'Initial + 3 Re-test', format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Nmap, Wireshark',          start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+];
+
 function WbsTab({ project }: { project: Project }) {
   if (project.wbsDetails) {
     const wbsDetails = project.wbsDetails;
@@ -770,7 +781,7 @@ function WbsTab({ project }: { project: Project }) {
                   <th className="px-3 py-2 font-medium">Frequency</th>
                   <th className="px-3 py-2 font-medium">Service Model</th>
                   <th className="px-3 py-2 font-medium">Delivery Model</th>
-                  <th className="px-3 py-2 font-medium">Project Site</th>
+                  <th className="px-3 py-2 font-medium">Delivery Site</th>
                   <th className="px-3 py-2 font-medium">Delivery Format</th>
                   <th className="px-3 py-2 font-medium">Tools</th>
                   <th className="px-3 py-2 font-medium">Billing Model</th>
@@ -873,14 +884,7 @@ function WbsTab({ project }: { project: Project }) {
   const tax = subtotal * 0.18;
   const grandTotal = subtotal + tax;
 
-  const wbsServices = [
-    { id: 1, taskId: 'WBS-01', dept: 'Penetration Testing',         name: 'External Network Penetration Testing',        qty: 1, desc: 'External network penetration test for internet-facing assets', freq: 'Once', delivery: 'Onsite',  loc: 'Andheri', svc: 'Initial Test',        format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Nmap, Metasploit',        start: '01 Feb 2026', end: '05 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
-    { id: 2, taskId: 'WBS-02', dept: 'Vulnerability Assessment',     name: 'Web Application Vulnerability Assessment',    qty: 2, desc: 'Security review for web apps and APIs',                    freq: 'Once', delivery: 'Offsite', loc: '',        svc: 'Initial + 1 Re-test', format: 'Excel + PDF', billing: 'Ad-Hoc', tools: 'OWASP ZAP, Burp Suite',  start: '06 Feb 2026', end: '10 Feb 2026', durDays: 4, durHrs: 32, totalDays: 8, totalHrs: 64 },
-    { id: 3, taskId: 'WBS-03', dept: 'Cloud Security',               name: 'AWS Cloud Security Assessment',               qty: 1, desc: 'Cloud misconfiguration and control review',               freq: 'Once', delivery: 'Hybrid',  loc: '',        svc: 'Initial Test',        format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'AWS Config, Security Hub', start: '11 Feb 2026', end: '16 Feb 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
-    { id: 4, taskId: 'WBS-04', dept: 'Code & Application Security',  name: 'Static Application Security Testing (SAST)', qty: 1, desc: 'Source code review and vulnerability analysis',          freq: 'Once', delivery: 'Onsite',  loc: 'Malad',   svc: 'Initial + 2 Re-test', format: 'PDF + XLSX',  billing: 'Ad-Hoc', tools: 'SonarQube, Semgrep',      start: '17 Feb 2026', end: '21 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
-    { id: 5, taskId: 'WBS-05', dept: 'Compliance & Audit',           name: 'ISO 27001 Assessment',                        qty: 1, desc: 'Compliance gap assessment and audit checklist',          freq: 'Once', delivery: 'Onsite',  loc: 'Bandra',  svc: 'Initial + 1 Re-test', format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Checklist, Audit Toolkit', start: '22 Feb 2026', end: '01 Mar 2026', durDays: 8, durHrs: 64, totalDays: 8, totalHrs: 64 },
-    { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure',     name: 'Network Security Assessment',                 qty: 1, desc: 'Infrastructure review and segmentation validation',      freq: 'Once', delivery: 'Offsite', loc: '',        svc: 'Initial + 3 Re-test', format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Nmap, Wireshark',          start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
-  ];
+  const wbsServices = LEGACY_WBS_SERVICES;
 
   return (
     <div className="space-y-5">
@@ -922,7 +926,7 @@ function WbsTab({ project }: { project: Project }) {
                 <th className="px-3 py-2 font-medium">Frequency</th>
                 <th className="px-3 py-2 font-medium">Service Model</th>
                 <th className="px-3 py-2 font-medium">Delivery Model</th>
-                <th className="px-3 py-2 font-medium">Project Site</th>
+                <th className="px-3 py-2 font-medium">Delivery Site</th>
                 <th className="px-3 py-2 font-medium">Delivery Format</th>
                 <th className="px-3 py-2 font-medium">Tools</th>
                 <th className="px-3 py-2 font-medium">Billing Model</th>
@@ -3316,14 +3320,33 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
   const [client, setClient] = useState(clientName);
   const [projName, setProjName] = useState(project.name);
   const [title, setTitle] = useState("");
+  const [customTitle, setCustomTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<DhPriority>("Medium");
   const [requestedBy, setRequestedBy] = useState("");
   const [requestedDate, setRequestedDate] = useState(new Date().toISOString().split("T")[0]);
   const [attachmentName, setAttachmentName] = useState("");
+  const [scopeCancellation, setScopeCancellation] = useState("");
+  const [reqTab, setReqTab] = useState<"Add Service" | "Scope Cancellation">("Add Service");
+
+  // Services come from wbsDetails (projects created via the WBS form) or, for
+  // seeded demo projects without wbsDetails, the legacy WBS-tab service list.
+  const projectServices = useMemo(() => {
+    const wbsServices = (project.wbsDetails?.services ?? []).map((s) => ({ id: String(s.id), name: s.serviceName }));
+    if (wbsServices.length > 0) return wbsServices;
+    return LEGACY_WBS_SERVICES.map((s) => ({ id: String(s.id), name: s.name }));
+  }, [project]);
 
   const handleLog = () => {
-    if (!title.trim() || !description.trim() || !requestedBy.trim()) {
+    const isCancellation = reqTab === "Scope Cancellation";
+    if (isCancellation && !scopeCancellation) {
+      toast.error("Please select the service to cancel");
+      return;
+    }
+    const finalTitle = isCancellation
+      ? `Scope Cancellation: ${scopeCancellation}`
+      : (title === "Other" ? customTitle.trim() : title);
+    if (!finalTitle || !description.trim() || !requestedBy.trim()) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -3331,22 +3354,26 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
       projectId: project.id,
       clientName: client,
       projectName: projName,
-      title,
+      title: finalTitle,
       description,
       priority,
       requestedBy,
       requestedDate,
       attachmentName: attachmentName || undefined,
+      scopeCancellationService: isCancellation ? scopeCancellation : undefined,
       status: "Open",
       comments: []
     });
-    toast.success("Requirement logged persistently!");
+    toast.success(isCancellation ? "Scope cancellation request logged!" : "Requirement logged persistently!");
     setShowModal(false);
     // Reset
+    setReqTab("Add Service");
     setTitle("");
+    setCustomTitle("");
     setDescription("");
     setRequestedBy("");
     setAttachmentName("");
+    setScopeCancellation("");
   };
 
   const priorityColors = {
@@ -3417,10 +3444,55 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
       {showModal && (
         <Modal title="Log Additional Client Requirement" onClose={() => setShowModal(false)}>
           <div className="space-y-3">
-            <Field label="Client Name"><input value={client} onChange={(e) => setClient(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
-            <Field label="Project Name"><input value={projName} onChange={(e) => setProjName(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
-            <Field label="Requirement Title" required><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
-            <Field label="Description" required><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detailed requirement..." rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Client Name"><input value={client} onChange={(e) => setClient(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
+              <Field label="Project Name"><input value={projName} onChange={(e) => setProjName(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
+            </div>
+
+            <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1 text-xs">
+              {(["Add Service", "Scope Cancellation"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setReqTab(t)}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 font-medium transition-colors",
+                    reqTab === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {reqTab === "Add Service" && (
+              <>
+                <Field label="Requirement Title" required>
+                  <select value={title} onChange={(e) => { setTitle(e.target.value); if (e.target.value !== "Other") setCustomTitle(""); }} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <option value="" disabled>Select requirement type...</option>
+                    <option value="Resource Requirement">Resource Requirement</option>
+                    <option value="Scope Requirement">Scope Requirement</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </Field>
+                {title === "Other" && (
+                  <Field label="Specify Requirement Title" required><input value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} placeholder="Enter requirement title..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+                )}
+              </>
+            )}
+
+            {reqTab === "Scope Cancellation" && (
+              <Field label="Service to Cancel" required>
+                <select value={scopeCancellation} onChange={(e) => setScopeCancellation(e.target.value)} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <option value="" disabled>Select service...</option>
+                  {projectServices.map((svc) => (
+                    <option key={svc.id} value={svc.name}>{svc.name}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
+
+            <Field label={reqTab === "Scope Cancellation" ? "Reason for Cancellation" : "Description"} required><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={reqTab === "Scope Cancellation" ? "Reason for cancelling this service..." : "Detailed requirement..."} rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Priority">
@@ -3450,7 +3522,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
 
             <div className="flex justify-end gap-2 border-t border-border pt-3">
               <button onClick={() => setShowModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-              <button onClick={handleLog} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Log Requirement</button>
+              <button onClick={handleLog} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">{reqTab === "Scope Cancellation" ? "Log Scope Cancellation" : "Log Requirement"}</button>
             </div>
           </div>
         </Modal>
