@@ -259,6 +259,7 @@ export interface DhServicePrereq {
   collectionStatus: "Pending To Collect" | "Collected";
   validationStatus: "Pending To Validate" | "Validated";
   billingStatus?: "Advance Received" | "Advance Pending" | "Advance Not Required";
+  isReady?: boolean;
 }
 
 export interface DhInvoice {
@@ -306,19 +307,19 @@ export interface DhProjectPrereq {
 export function getSeededServices(isReady: boolean): DhServicePrereq[] {
   if (isReady) {
     return [
-      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
-      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
-      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
-      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
-      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received" },
+      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
+      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
+      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
+      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
+      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
     ];
   } else {
     return [
-      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
-      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Pending To Validate", billingStatus: "Advance Pending" },
-      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Pending To Collect", validationStatus: "Pending To Validate", billingStatus: "Advance Pending" },
-      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
-      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending" },
+      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending", isReady: false },
+      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Pending To Validate", billingStatus: "Advance Pending", isReady: false },
+      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Pending To Collect", validationStatus: "Pending To Validate", billingStatus: "Advance Pending", isReady: false },
+      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending", isReady: false },
+      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending", isReady: false },
     ];
   }
 }
@@ -1357,6 +1358,7 @@ export const dhStore = {
     invoiceValue?: number;
     sectionAComments?: string;
     sectionBComments?: string;
+    subVenture?: string;
   }) {
     const id = uid("p");
     const seqId = getNextProjectSeqNum();
@@ -1417,6 +1419,7 @@ export const dhStore = {
       sectionBComments: input.sectionBComments,
       projectSeqId: seqId,
       wbsId: wbsAutoId,
+      subVenture: input.subVenture,
     };
     state.extraProjects.push(p);
 
@@ -1451,6 +1454,7 @@ export const dhStore = {
       collectionStatus: "Pending To Collect" as const,
       validationStatus: "Pending To Validate" as const,
       billingStatus: "Advance Pending" as const,
+      isReady: false,
     })) ?? [];
 
     state.prereqs[id] = {
@@ -2431,6 +2435,16 @@ export const dhStore = {
     p.collection = allCollected ? "Received" : "Initiated";
     p.validation = allValidated ? "Validated" : "Validation Pending";
 
+    emit();
+  },
+
+  setServicePrereqReady(projectId: string, serviceId: string, isReady: boolean) {
+    const p = state.prereqs[projectId];
+    if (!p) return;
+    if (!p.services) p.services = [];
+    const svc = p.services.find(s => s.serviceId === serviceId);
+    if (!svc) return;
+    svc.isReady = isReady;
     emit();
   },
 

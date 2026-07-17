@@ -575,6 +575,37 @@ function WbsNewProjectPage() {
     toast.success("Draft saved", { description: `"${projectName}" saved to your drafts.` });
   }
 
+  function clearForm() {
+    setProjectName("");
+    setWbsSearch("");
+    setRenewalProject(null);
+    setSelectedClientId("");
+    setClientSearch("");
+    setEngagementManager("");
+    setSalesPerson("");
+    setProjectType("");
+    setContractType("");
+    setBillingModel("");
+    setPaymentTerms("");
+    setCurrency("INR");
+    setTaxPercent(18);
+    setPoStatus("");
+    setPoNumber("");
+    setPoDate("");
+    setTargetDate("");
+    setContactName("");
+    setContactNumber("");
+    setContactEmail("");
+    setSectionAComments("");
+    setSectionBComments("");
+    setServiceRows([]);
+    setSelectedServices({});
+    setTempSelected({});
+    setInvoiceRows([]);
+    setSelectedSubVenture("");
+    setSvSearch("");
+  }
+
   function handleAssignWbs() {
     if (!projectName.trim()) { toast.error("Project Name is required"); return; }
     if (!selectedClientId) { toast.error("Please select a client"); return; }
@@ -600,6 +631,7 @@ function WbsNewProjectPage() {
       projectIssuedDate, currency, taxPercent, totalHours, totalDays,
       invoiceValue: invoiceTarget, sectionAComments, sectionBComments,
       wbsDetails: buildWbsDetails(),
+      subVenture: selectedSubVenture,
     });
     toast.success("WBS created successfully");
     navigate({ to: "/projects/$projectId", params: { projectId: proj.id } });
@@ -647,7 +679,7 @@ function WbsNewProjectPage() {
               checked={isRenewal}
               onChange={(e) => {
                 setIsRenewal(e.target.checked);
-                if (!e.target.checked) { setWbsSearch(""); setRenewalProject(null); }
+                clearForm();
               }}
               style={{ width: 16, height: 16, accentColor: "#1a84d4", cursor: "pointer" }}
             />
@@ -689,15 +721,135 @@ function WbsNewProjectPage() {
                           onMouseDown={() => {
                             setRenewalProject(p);
                             setWbsSearch(p.wbsId ?? p.id);
-                            // Auto-fill Client Info Bar fields from the selected project
+                            
+                            // Auto-fill all project metadata
+                            setProjectName(p.name);
                             setSelectedClientId(p.clientId);
                             setClientSearch(c?.name ?? "");
-                            setEngagementManager(c?.engagementManager ?? "");
-                            // Auto-fill sub-venture from the project's assigned sub-venture
+                            setEngagementManager(p.engagementManager ?? c?.engagementManager ?? "");
+                            setSalesPerson(p.salesPerson ?? "");
+                            setProjectType(p.projectType ?? "");
+                            setContractType(p.contractType ?? "");
+                            
                             if (p.subVenture) {
                               setSelectedSubVenture(p.subVenture);
                               setSvSearch(p.subVenture);
+                            } else {
+                              setSelectedSubVenture("");
+                              setSvSearch("");
                             }
+
+                            // Section B values
+                            const bModel = p.wbsDetails?.accounts?.billingModel ?? p.billingModel ?? "";
+                            setBillingModel(bModel);
+                            setPaymentTerms(p.wbsDetails?.accounts?.paymentTerms ?? p.paymentTerms ?? "");
+                            setCurrency(p.currency ?? "INR");
+                            setTaxPercent(p.taxPercent ?? 18);
+                            setPoStatus(p.wbsDetails?.accounts?.poStatus ?? p.poStatus ?? "");
+                            setPoNumber(p.wbsDetails?.accounts?.poNumber ?? p.poNumber ?? "");
+                            setPoDate(p.wbsDetails?.accounts?.poDate ?? p.poDate ?? "");
+                            setTargetDate(p.wbsDetails?.accounts?.targetDate ?? p.targetDate ?? "");
+                            setContactName(p.wbsDetails?.accounts?.contactName ?? p.contactName ?? "");
+                            setContactNumber(p.wbsDetails?.accounts?.contactNumber ?? p.contactNumber ?? "");
+                            setContactEmail(p.wbsDetails?.accounts?.contactEmail ?? p.contactEmail ?? "");
+                            setSectionAComments(p.sectionAComments ?? p.description ?? "");
+                            setSectionBComments(p.sectionBComments ?? "");
+
+                            // Load services
+                            let servicesList: any[] = [];
+                            if (p.wbsDetails?.services) {
+                              servicesList = p.wbsDetails.services;
+                            } else if (p.tasks && p.tasks.length > 0) {
+                              servicesList = p.tasks.map((task: any, idx: number) => {
+                                let deptName = "Cyber Security";
+                                for (const [dept, svcs] of Object.entries(DEPT_SERVICES)) {
+                                  if (svcs.some((s: any) => s.id === task.serviceId || s.name === task.title)) {
+                                    deptName = dept;
+                                    break;
+                                  }
+                                }
+                                return {
+                                  id: task.serviceId || `svc-${idx}`,
+                                  department: deptName,
+                                  serviceName: task.title,
+                                  qty: 1,
+                                  description: "",
+                                  frequency: "Once",
+                                  location: "Offshore",
+                                  locationText: "",
+                                  serviceModel: "NA",
+                                  deliveryModel: "Remote",
+                                  finalDeliveryFormat: "Report",
+                                  billingModel: "Fixed Bid",
+                                  tools: "",
+                                  startDate: task.wbsStartDate || p.startDate,
+                                  endDate: task.wbsEndDate || task.dueDate || p.endDate,
+                                  duration: task.estimatedHours ? Math.ceil(task.estimatedHours / 8) : 5,
+                                  totalDays: task.estimatedHours ? Math.ceil(task.estimatedHours / 8) : 5,
+                                  totalHrs: task.estimatedHours || 40,
+                                  unitPrice: 5000,
+                                  total: (task.estimatedHours || 40) * 125,
+                                };
+                              });
+                            }
+
+                            if (servicesList.length > 0) {
+                              const restoredRows = servicesList.map((svc: any) => ({
+                                rowId: svc.id,
+                                dept: svc.department,
+                                taskId: svc.id,
+                                name: svc.serviceName,
+                                description: svc.description || "",
+                                qty: svc.qty || 1,
+                                frequency: svc.frequency || "",
+                                serviceModel: svc.serviceModel || "",
+                                location: svc.location || "",
+                                locationText: svc.locationText || "",
+                                deliveryFormat: svc.finalDeliveryFormat || svc.deliveryFormat || "",
+                                tools: svc.tools || "",
+                                startDate: svc.startDate || todayIso,
+                                endDate: svc.endDate || "",
+                                durationDays: svc.duration || svc.durationDays || 0,
+                                durationHrs: (svc.duration || svc.durationDays || 0) * 8,
+                                totalDays: svc.totalDays || svc.duration || 0,
+                                totalHrs: svc.totalHrs || (svc.totalDays || svc.duration || 0) * 8,
+                                unitPrice: svc.unitPrice || 0,
+                                total: svc.total || 0,
+                                deliveryModel: svc.deliveryModel || "Remote",
+                                billingModel: svc.billingModel || bModel || "",
+                              }));
+                              setServiceRows(restoredRows);
+
+                              const selObj: Record<string, Record<string, boolean>> = {};
+                              restoredRows.forEach((row) => {
+                                if (!selObj[row.dept]) selObj[row.dept] = {};
+                                selObj[row.dept][row.rowId] = true;
+                              });
+                              setSelectedServices(selObj);
+                              setTempSelected(selObj);
+                            } else {
+                              setServiceRows([]);
+                              setSelectedServices({});
+                              setTempSelected({});
+                            }
+
+                            // Load invoices
+                            if (p.wbsDetails?.accounts?.invoices) {
+                              const restoredInvoices = p.wbsDetails.accounts.invoices.map((inv: any) => ({
+                                rowId: inv.id,
+                                milestone: inv.milestone,
+                                invoiceDate: inv.invoiceDate,
+                                unitPrice: inv.amount,
+                                qty: 1,
+                                currency: p.currency || "INR",
+                                amount: inv.amount,
+                                description: inv.remarks || "",
+                              }));
+                              setInvoiceRows(restoredInvoices);
+                            } else {
+                              setInvoiceRows([]);
+                            }
+
                             setWbsDropOpen(false);
                           }}
                           style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid #f3f4f6", background: renewalProject?.id === p.id ? "#eff6ff" : "transparent" }}
