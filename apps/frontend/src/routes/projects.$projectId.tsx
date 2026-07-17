@@ -464,7 +464,7 @@ function ProjectDetail() {
   }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
 
   return (
-    <AppShell title={project.name} subtitle={`${client.name} · ${project.description}`}>
+    <AppShell title={project.name} subtitle={`${client.name}${project.subVenture ? ` (${project.subVenture})` : ""} · ${project.description}`}>
       <nav className="mb-3 flex items-center gap-1 text-xs text-muted-foreground">
         <Link to="/clients" className="hover:text-foreground">Clients</Link>
         <ChevronRight className="h-3 w-3" />
@@ -1109,6 +1109,7 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
             <div className="grid gap-2 sm:grid-cols-2">
               {project.wbsId && <InfoRow label="WBS ID" value={project.wbsId} />}
               {project.projectSeqId && <InfoRow label="Project ID" value={project.projectSeqId} />}
+              {project.subVenture && <InfoRow label="End Customer / Sub-venture" value={project.subVenture} />}
               {(project.contractType || wbs?.contractType) && (
                 <InfoRow label="Contract Type" value={project.contractType ?? wbs!.contractType} />
               )}
@@ -1548,6 +1549,18 @@ function ChangeLeaderPanel({
 
 // ---------- Default Tasks (other roles) ----------
 function DefaultTasksTab({ project }: { project: Project }) {
+  const snapshot = useDhStore((s) => s);
+  const prereq = snapshot.prereqs[project.id];
+
+  const visibleTasks = useMemo(() => {
+    if (!prereq) return project.tasks;
+    return project.tasks.filter((t) => {
+      const svc = prereq.services?.find((s) => s.serviceId === t.serviceId);
+      if (!svc) return true;
+      return svc.isReady;
+    });
+  }, [project.tasks, prereq]);
+
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm">
@@ -1561,20 +1574,34 @@ function DefaultTasksTab({ project }: { project: Project }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {project.tasks.map((t) => {
-            const a = getPerson(t.assigneeId);
-            return (
-              <tr key={t.id} className="hover:bg-accent/30">
-                <td className="px-3 py-2.5 font-medium">{t.title}</td>
-                <td className="px-3 py-2.5"><div className="flex items-center gap-2"><Avatar name={a.name} size={22} /><span className="text-xs">{a.name}</span></div></td>
-                <td className="px-3 py-2.5"><TaskStatusPill status={t.status} /></td>
-                <td className="px-3 py-2.5 text-xs text-muted-foreground">{new Date(t.dueDate).toLocaleDateString()}</td>
-                <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-2"><ProgressBar value={t.progress} className="w-24" /><span className="w-8 text-right text-xs tabular-nums text-muted-foreground">{t.progress}%</span></div>
-                </td>
-              </tr>
-            );
-          })}
+          {project.tasks.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                No services — create this project via Assign WBS to populate tasks.
+              </td>
+            </tr>
+          ) : visibleTasks.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                No active tasks. Mark services as Ready in the Prerequisites tab to start tracking tasks.
+              </td>
+            </tr>
+          ) : (
+            visibleTasks.map((t) => {
+              const a = getPerson(t.assigneeId);
+              return (
+                <tr key={t.id} className="hover:bg-accent/30">
+                  <td className="px-3 py-2.5 font-medium">{t.title}</td>
+                  <td className="px-3 py-2.5"><div className="flex items-center gap-2"><Avatar name={a.name} size={22} /><span className="text-xs">{a.name}</span></div></td>
+                  <td className="px-3 py-2.5"><TaskStatusPill status={t.status} /></td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{new Date(t.dueDate).toLocaleDateString()}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-2"><ProgressBar value={t.progress} className="w-24" /><span className="w-8 text-right text-xs tabular-nums text-muted-foreground">{t.progress}%</span></div>
+                  </td>
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
     </div>
@@ -1707,17 +1734,14 @@ function DhTasksTab({ project }: { project: Project }) {
   const prereq = snapshot.prereqs[project.id];
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
 
-  if (prereq && !prereq.isProjectReadyToStart) {
-    return (
-      <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
-        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
-        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — Project Not Started</h4>
-        <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
-          Resource assignment and task tracking are disabled until prerequisites are completed, PM/SPM are assigned, and the project is marked as "Ready To Start".
-        </p>
-      </div>
-    );
-  }
+  const visibleTasks = useMemo(() => {
+    if (!prereq) return project.tasks;
+    return project.tasks.filter((t) => {
+      const svc = prereq.services?.find((s) => s.serviceId === t.serviceId);
+      if (!svc) return true;
+      return svc.isReady;
+    });
+  }, [project.tasks, prereq]);
 
   const [assignFor, setAssignFor] = useState<Task | null>(null);
   // Subscribe to taskAssignments so the table re-renders when assignments change
@@ -1783,121 +1807,128 @@ function DhTasksTab({ project }: { project: Project }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {project.tasks.length === 0 && (
+            {project.tasks.length === 0 ? (
               <tr>
                 <td colSpan={11} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   No services — create this project via Assign WBS to populate tasks.
                 </td>
               </tr>
-            )}
-            {project.tasks.map((t) => {
-              const estHrs = t.estimatedHours ?? 0;
-              const a = actuals[t.id] ?? { actualStartDate: "", actualEndDate: "", utilizedHours: "", stage: "Ready to Start" as TaskStage };
-              // Use liveAssignments from store for reactivity — falls back to getTaskAssignment for seed data
-              const liveIds = (liveAssignments[t.id]?.assigneeIds ?? dhStore.getTaskAssignment(project.id, t.id).assigneeIds)
-                .filter(Boolean); // remove any empty/falsy ids
-              const assigneeNames = liveIds.map((id) => getPerson(id).name).filter(Boolean);
-              const resourceCount = Math.max(1, liveIds.length);
-              // Actual End Date: use manual override if set, else auto-calc
-              const autoEnd = deriveActualEndDate(t.id, estHrs);
-              const displayActualEnd = a.actualEndDate || autoEnd;
-              // Utilized Hours = estHrs / resourceCount, formatted as Xhr Ymin
-              const utilizedDecimal = estHrs > 0 ? estHrs / resourceCount : 0;
-              const utilizedHrs = Math.floor(utilizedDecimal);
-              const utilizedMin = Math.round((utilizedDecimal - utilizedHrs) * 60);
-              const utilizedDisplay = estHrs > 0
-                ? utilizedMin > 0 ? `${utilizedHrs} hr ${utilizedMin} min` : `${utilizedHrs} hr`
-                : "—";
+            ) : visibleTasks.length === 0 ? (
+              <tr>
+                <td colSpan={11} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  No active services. Mark services as Ready in the Prerequisites tab to populate tasks.
+                </td>
+              </tr>
+            ) : (
+              visibleTasks.map((t) => {
+                const estHrs = t.estimatedHours ?? 0;
+                const a = actuals[t.id] ?? { actualStartDate: "", actualEndDate: "", utilizedHours: "", stage: "Ready to Start" as TaskStage };
+                // Use liveAssignments from store for reactivity — falls back to getTaskAssignment for seed data
+                const liveIds = (liveAssignments[t.id]?.assigneeIds ?? dhStore.getTaskAssignment(project.id, t.id).assigneeIds)
+                  .filter(Boolean); // remove any empty/falsy ids
+                const assigneeNames = liveIds.map((id) => getPerson(id).name).filter(Boolean);
+                const resourceCount = Math.max(1, liveIds.length);
+                // Actual End Date: use manual override if set, else auto-calc
+                const autoEnd = deriveActualEndDate(t.id, estHrs);
+                const displayActualEnd = a.actualEndDate || autoEnd;
+                // Utilized Hours = estHrs / resourceCount, formatted as Xhr Ymin
+                const utilizedDecimal = estHrs > 0 ? estHrs / resourceCount : 0;
+                const utilizedHrs = Math.floor(utilizedDecimal);
+                const utilizedMin = Math.round((utilizedDecimal - utilizedHrs) * 60);
+                const utilizedDisplay = estHrs > 0
+                  ? utilizedMin > 0 ? `${utilizedHrs} hr ${utilizedMin} min` : `${utilizedHrs} hr`
+                  : "—";
 
-              return (
-                <tr key={t.id} className="hover:bg-accent/30">
-                  {/* Service ID */}
-                  <td className="px-3 py-2.5 text-center align-middle font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                    {t.serviceId ?? t.id.slice(-6).toUpperCase()}
-                  </td>
-                  {/* Service Name */}
-                  <td className="px-3 py-2.5 text-center align-middle font-medium max-w-[180px] truncate" title={t.title}>
-                    {t.title}
-                  </td>
-                  {/* WBS Start Date */}
-                  <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                    {t.wbsStartDate ? new Date(t.wbsStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-                  </td>
-                  {/* WBS End Date */}
-                  <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                    {t.wbsEndDate ? new Date(t.wbsEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-                  </td>
-                  {/* Estimated Hours */}
-                  <td className="px-3 py-2.5 text-center align-middle tabular-nums text-muted-foreground">
-                    {estHrs > 0 ? `${estHrs} hrs` : "—"}
-                  </td>
-                  {/* Actual Start Date — PM editable */}
-                  <td className="px-3 py-2.5 text-center align-middle">
-                    <input
-                      type="date"
-                      value={a.actualStartDate}
-                      onChange={(e) => {
-                        const newStart = e.target.value;
-                        // Auto-fill actualEndDate from new start date + estHrs (skip weekends)
-                        const autoEndDate = newStart && estHrs > 0 ? addWorkingDaysFromDate(newStart, Math.ceil(estHrs / 8)) : "";
-                        setActuals((prev) => ({
-                          ...prev,
-                          [t.id]: { ...prev[t.id], actualStartDate: newStart, actualEndDate: autoEndDate }
-                        }));
-                      }}
-                      onBlur={() => commitActuals(t.id)}
-                      className="h-7 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                  </td>
-                  {/* Actual End Date — editable, pre-filled from auto-calc, user can override */}
-                  <td className="px-3 py-2.5 text-center align-middle">
-                    <input
-                      type="date"
-                      value={a.actualEndDate || autoEnd}
-                      onChange={(e) => {
-                        setActuals((prev) => ({ ...prev, [t.id]: { ...prev[t.id], actualEndDate: e.target.value } }));
-                      }}
-                      onBlur={() => commitActuals(t.id)}
-                      className="h-7 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                  </td>
-                  {/* Utilized Hours — auto-calculated (Est. Hours ÷ resource count), read-only */}
-                  <td className="px-3 py-2.5 text-center align-middle">
-                    <span className="inline-flex items-center justify-center h-7 rounded-md border border-border bg-muted px-2 text-xs text-muted-foreground whitespace-nowrap cursor-not-allowed select-none">
-                      {utilizedDisplay}
-                    </span>
-                  </td>
-                  {/* Stage — editable select */}
-                  <td className="px-3 py-2.5 text-center align-middle">
-                    <select
-                      value={a.stage}
-                      onChange={(e) => {
-                        const v = e.target.value as TaskStage;
-                        setActuals((prev) => ({ ...prev, [t.id]: { ...prev[t.id], stage: v } }));
-                        dhStore.updateTaskActuals(project.id, t.id, { stage: v });
-                        toast.success("Stage updated", { description: `${t.title} → ${v}` });
-                      }}
-                      className={cn("h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring", stageCls(a.stage))}
-                    >
-                      {TASK_STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </td>
-                  {/* Assigned Resources — avatar stack (display only, hover for names) */}
-                  <td className="px-3 py-2.5 text-center align-middle">
-                    <div className="flex justify-center">
-                      <AvatarStack names={assigneeNames} />
-                    </div>
-                  </td>
-                  {/* Actions */}
-                  <td className="px-3 py-2.5 text-center align-middle">
-                    <button onClick={() => setAssignFor(t)}
-                      className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] hover:bg-accent">
-                      <UserPlus className="h-3 w-3" /> Assign
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                return (
+                  <tr key={t.id} className="hover:bg-accent/30">
+                    {/* Service ID */}
+                    <td className="px-3 py-2.5 text-center align-middle font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                      {t.serviceId ?? t.id.slice(-6).toUpperCase()}
+                    </td>
+                    {/* Service Name */}
+                    <td className="px-3 py-2.5 text-center align-middle font-medium max-w-[180px] truncate" title={t.title}>
+                      {t.title}
+                    </td>
+                    {/* WBS Start Date */}
+                    <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
+                      {t.wbsStartDate ? new Date(t.wbsStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                    </td>
+                    {/* WBS End Date */}
+                    <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
+                      {t.wbsEndDate ? new Date(t.wbsEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                    </td>
+                    {/* Estimated Hours */}
+                    <td className="px-3 py-2.5 text-center align-middle tabular-nums text-muted-foreground">
+                      {estHrs > 0 ? `${estHrs} hrs` : "—"}
+                    </td>
+                    {/* Actual Start Date — PM editable */}
+                    <td className="px-3 py-2.5 text-center align-middle">
+                      <input
+                        type="date"
+                        value={a.actualStartDate}
+                        onChange={(e) => {
+                          const newStart = e.target.value;
+                          // Auto-fill actualEndDate from new start date + estHrs (skip weekends)
+                          const autoEndDate = newStart && estHrs > 0 ? addWorkingDaysFromDate(newStart, Math.ceil(estHrs / 8)) : "";
+                          setActuals((prev) => ({
+                            ...prev,
+                            [t.id]: { ...prev[t.id], actualStartDate: newStart, actualEndDate: autoEndDate }
+                          }));
+                        }}
+                        onBlur={() => commitActuals(t.id)}
+                        className="h-7 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    </td>
+                    {/* Actual End Date — editable, pre-filled from auto-calc, user can override */}
+                    <td className="px-3 py-2.5 text-center align-middle">
+                      <input
+                        type="date"
+                        value={a.actualEndDate || autoEnd}
+                        onChange={(e) => {
+                          setActuals((prev) => ({ ...prev, [t.id]: { ...prev[t.id], actualEndDate: e.target.value } }));
+                        }}
+                        onBlur={() => commitActuals(t.id)}
+                        className="h-7 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    </td>
+                    {/* Utilized Hours — auto-calculated (Est. Hours ÷ resource count), read-only */}
+                    <td className="px-3 py-2.5 text-center align-middle">
+                      <span className="inline-flex items-center justify-center h-7 rounded-md border border-border bg-muted px-2 text-xs text-muted-foreground whitespace-nowrap cursor-not-allowed select-none">
+                        {utilizedDisplay}
+                      </span>
+                    </td>
+                    {/* Stage — editable select */}
+                    <td className="px-3 py-2.5 text-center align-middle">
+                      <select
+                        value={a.stage}
+                        onChange={(e) => {
+                          const v = e.target.value as TaskStage;
+                          setActuals((prev) => ({ ...prev, [t.id]: { ...prev[t.id], stage: v } }));
+                          dhStore.updateTaskActuals(project.id, t.id, { stage: v });
+                          toast.success("Stage updated", { description: `${t.title} → ${v}` });
+                        }}
+                        className={cn("h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring", stageCls(a.stage))}
+                      >
+                        {TASK_STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </td>
+                    {/* Assigned Resources — avatar stack (display only, hover for names) */}
+                    <td className="px-3 py-2.5 text-center align-middle">
+                      <div className="flex justify-center">
+                        <AvatarStack names={assigneeNames} />
+                      </div>
+                    </td>
+                    {/* Actions */}
+                    <td className="px-3 py-2.5 text-center align-middle">
+                      <button onClick={() => setAssignFor(t)}
+                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] hover:bg-accent">
+                        <UserPlus className="h-3 w-3" /> Assign
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -3885,8 +3916,6 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
   const prereqs = snapshot.prereqs;
   const { user } = useRoleContext();
   const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
-  // Per-service "Ready to Start" state — tracks which services have been marked ready
-  const [serviceReady, setServiceReady] = useState<Record<string, boolean>>({});
 
   // Escalation Modal States
   const [escalationModalOpen, setEscalationModalOpen] = useState(false);
@@ -4211,7 +4240,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                     const isValidated = svc.validationStatus === "Validated";
                     const isBillingOk = svc.billingStatus === "Advance Received" || svc.billingStatus === "Advance Not Required";
                     const canStart = isCollected && isValidated && isBillingOk;
-                    const isReady = serviceReady[svc.serviceId] ?? false;
+                    const isReady = svc.isReady ?? false;
 
                     const svcEscalations = snapshot.alerts.filter((a) => a.projectId === project.id && a.kind === "Escalation" && a.serviceName === svc.serviceName);
                     const activeEsc = svcEscalations.find((e) => e.status !== "Resolved" && e.status !== "Closed");
@@ -4280,7 +4309,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                             <button
                               disabled={!canStart}
                               onClick={() => {
-                                setServiceReady((prev) => ({ ...prev, [svc.serviceId]: true }));
+                                dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
                                 toast.success("Service marked as Ready to Start", { description: svc.serviceName });
                               }}
                               className={cn(
