@@ -76,6 +76,19 @@ const DEPT_SERVICES: Record<string, { id: string; name: string; tool: string; un
   ],
 };
 
+const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
+  "Penetration Testing": "Scope",
+  "Vulnerability Assessment": "Scope",
+  "Red Team & Adversary Simulation": "Resource",
+  "Cloud Security": "Resource",
+  "Code & Application Security": "Scope",
+  "Compliance & Audit": "Resource",
+  "Social Engineering & Awareness": "Scope",
+  "Forensics & Incident Response": "Resource",
+  "Network & Infrastructure": "Scope",
+  "Threat Intelligence & Modeling": "Resource",
+};
+
 const BILLING_MODELS: Record<string, string[]> = {
   "Ad-Hoc": ["100% Advance", "70% Advance + 30% on Delivery", "50% Advance + 50% on Delivery", "Custom"],
   "Long Term": ["Monthly Arrears", "Monthly Advance", "Quarterly Arrears", "Quarterly Advance"],
@@ -273,34 +286,46 @@ function WbsNewProjectPage() {
     const draft = drafts.find((d) => d.id === draftId);
     if (!draft) return;
     const snap = draft.formSnapshot as any;
-    if (snap.projectName)       setProjectName(snap.projectName);
-    if (snap.selectedClientId)  setSelectedClientId(snap.selectedClientId);
+    if (snap.projectName) setProjectName(snap.projectName);
+    if (snap.selectedClientId) setSelectedClientId(snap.selectedClientId);
     if (snap.selectedSubVenture) setSelectedSubVenture(snap.selectedSubVenture);
-    if (snap.contractType)      setContractType(snap.contractType);
+    if (snap.contractType) setContractType(snap.contractType);
     if (snap.engagementManager) setEngagementManager(snap.engagementManager);
-    if (snap.salesPerson)       setSalesPerson(snap.salesPerson);
-    if (snap.projectType)       setProjectType(snap.projectType);
-    if (snap.billingModel)      setBillingModel(snap.billingModel);
-    if (snap.paymentTerms)      setPaymentTerms(snap.paymentTerms);
-    if (snap.currency)          setCurrency(snap.currency);
+    if (snap.salesPerson) setSalesPerson(snap.salesPerson);
+    if (snap.projectType) setProjectType(snap.projectType);
+    if (snap.billingModel) setBillingModel(snap.billingModel);
+    if (snap.paymentTerms) setPaymentTerms(snap.paymentTerms);
+    if (snap.currency) setCurrency(snap.currency);
     if (snap.taxPercent != null) setTaxPercent(snap.taxPercent);
-    if (snap.poStatus)          setPoStatus(snap.poStatus);
-    if (snap.poNumber)          setPoNumber(snap.poNumber);
-    if (snap.poDate)            setPoDate(snap.poDate);
-    if (snap.targetDate)        setTargetDate(snap.targetDate);
-    if (snap.contactName)       setContactName(snap.contactName);
-    if (snap.contactNumber)     setContactNumber(snap.contactNumber);
-    if (snap.contactEmail)      setContactEmail(snap.contactEmail);
-    if (snap.sectionAComments)  setSectionAComments(snap.sectionAComments);
-    if (snap.sectionBComments)  setSectionBComments(snap.sectionBComments);
-    if (snap.serviceRows?.length)  setServiceRows(snap.serviceRows);
-    if (snap.invoiceRows?.length)  setInvoiceRows(snap.invoiceRows);
+    if (snap.poStatus) setPoStatus(snap.poStatus);
+    if (snap.poNumber) setPoNumber(snap.poNumber);
+    if (snap.poDate) setPoDate(snap.poDate);
+    if (snap.targetDate) setTargetDate(snap.targetDate);
+    if (snap.contactName) setContactName(snap.contactName);
+    if (snap.contactNumber) setContactNumber(snap.contactNumber);
+    if (snap.contactEmail) setContactEmail(snap.contactEmail);
+    if (snap.sectionAComments) setSectionAComments(snap.sectionAComments);
+    if (snap.sectionBComments) setSectionBComments(snap.sectionBComments);
+    if (snap.serviceRows?.length) {
+      const sanitizedRows = snap.serviceRows.map((r: any) => {
+        let updated = { ...r };
+        if (DEPT_GROUPS[r.dept] === "Resource") {
+          updated.serviceModel = "NA";
+        }
+        if (snap.projectType === "Ad-Hoc") {
+          updated.frequency = "Once";
+        }
+        return updated;
+      });
+      setServiceRows(sanitizedRows);
+    }
+    if (snap.invoiceRows?.length) setInvoiceRows(snap.invoiceRows);
     // also restore client search display
     const restoredClient = clients.find((c) => c.id === snap.selectedClientId);
     if (restoredClient) setClientSearch(restoredClient.name);
     if (snap.selectedSubVenture) setSvSearch(snap.selectedSubVenture);
     toast.success("Draft loaded", { description: `"${draft.projectName}" restored.` });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftId]);
 
   // ── Computed totals ──
@@ -319,7 +344,13 @@ function WbsNewProjectPage() {
   function openPicker() {
     setTempSelected(JSON.parse(JSON.stringify(selectedServices)));
     setPickerOpen(true);
-    setPickerDept(Object.keys(DEPT_SERVICES)[0]);
+    const depts = Object.keys(DEPT_SERVICES).filter((dept) => {
+      const group = DEPT_GROUPS[dept];
+      if (contractType === "Resource Based") return group === "Resource";
+      if (contractType === "Scope Based") return group === "Scope";
+      return true;
+    });
+    setPickerDept(depts[0] || "");
     setPickerSearch("");
   }
 
@@ -335,15 +366,24 @@ function WbsNewProjectPage() {
         const svc = DEPT_SERVICES[dept]?.find((s) => s.id === svcId);
         if (!svc) return;
         const existing = serviceRows.find((r) => r.rowId === svcId);
-        if (existing) { rows.push(existing); }
+        if (existing) {
+          if (DEPT_GROUPS[dept] === "Resource" && existing.serviceModel !== "NA") {
+            existing.serviceModel = "NA";
+          }
+          if (projectType === "Ad-Hoc" && existing.frequency !== "Once") {
+            existing.frequency = "Once";
+          }
+          rows.push(existing);
+        }
         else {
+          const isResource = DEPT_GROUPS[dept] === "Resource";
           rows.push({
             rowId: svcId, taskId: `WBS-${String(rowNum + 1).padStart(2, "0")}`,
-            dept, name: svc.name, qty: 1, description: "", frequency: "",
-            location: "", locationText: "", serviceModel: "",
+            dept, name: svc.name, qty: 1, description: "", frequency: projectType === "Ad-Hoc" ? "Once" : "",
+            location: "", locationText: "", serviceModel: isResource ? "NA" : "",
             deliveryModel: "Remote", billingModel: "",
             deliveryFormat: "", tools: svc.tool,
-            startDate: todayIso, endDate: addWorkingDays(todayIso, svc.days),
+            startDate: todayIso, endDate: "",
             durationDays: svc.days, durationHrs: svc.days * 8,
             totalDays: svc.days, totalHrs: svc.days * 8, unitPrice: svc.unitPrice, total: svc.unitPrice,
           });
@@ -406,21 +446,22 @@ function WbsNewProjectPage() {
     for (let i = 0; i < serviceRows.length; i++) {
       const r = serviceRows[i];
       const n = i + 1;
-      if (!r.taskId.trim())       return `Row ${n}: Service ID is required`;
-      if (!r.name.trim())         return `Row ${n}: Service Name is required`;
-      if (!r.frequency)           return `Row ${n}: Frequency is required`;
-      if (!r.location)            return `Row ${n}: Delivery Model is required`;
+      if (!r.taskId.trim()) return `Row ${n}: Service ID is required`;
+      if (!r.name.trim()) return `Row ${n}: Service Name is required`;
+      if (!r.frequency) return `Row ${n}: Frequency is required`;
+      if (!r.location) return `Row ${n}: Delivery Model is required`;
       if (r.location === "Onsite" && !r.locationText.trim())
-                                  return `Row ${n}: Project Side is required for Onsite`;
-      if (!r.serviceModel)        return `Row ${n}: Service Model is required`;
+        return `Row ${n}: Project Side is required for Onsite`;
+      if (!r.serviceModel) return `Row ${n}: Service Model is required`;
       if (!r.deliveryFormat.trim()) return `Row ${n}: Final Delivery Format is required`;
-      if (!r.tools.trim())        return `Row ${n}: Tools is required`;
-      if (!r.startDate)           return `Row ${n}: WBS Start Date is required`;
-      if (!r.durationDays)        return `Row ${n}: Duration (Days) is required`;
-      if (!r.durationHrs)         return `Row ${n}: Duration (Hrs) is required`;
-      if (!r.totalDays)           return `Row ${n}: Total Days is required`;
-      if (!r.totalHrs)            return `Row ${n}: Total Hrs is required`;
-      if (!r.unitPrice)           return `Row ${n}: Unit Price is required`;
+      if (!r.tools.trim()) return `Row ${n}: Tools is required`;
+      if (!r.startDate) return `Row ${n}: WBS Start Date is required`;
+      if (!r.endDate) return `Row ${n}: WBS End Date is required`;
+      if (!r.durationDays) return `Row ${n}: Duration (Days) is required`;
+      if (!r.durationHrs) return `Row ${n}: Duration (Hrs) is required`;
+      if (!r.totalDays) return `Row ${n}: Total Days is required`;
+      if (!r.totalHrs) return `Row ${n}: Total Hrs is required`;
+      if (!r.unitPrice) return `Row ${n}: Unit Price is required`;
     }
     return null;
   }
@@ -454,6 +495,21 @@ function WbsNewProjectPage() {
       })
     );
   }
+
+  // Filter departments based on Contract Type
+  const allowedDepts = Object.keys(DEPT_SERVICES).filter((dept) => {
+    const group = DEPT_GROUPS[dept];
+    if (contractType === "Resource Based") return group === "Resource";
+    if (contractType === "Scope Based") return group === "Scope";
+    return true;
+  });
+
+  const deptsByGroup = allowedDepts.reduce((acc, dept) => {
+    const group = DEPT_GROUPS[dept] || "Scope";
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(dept);
+    return acc;
+  }, {} as Record<string, string[]>);
 
   // ─── Picker count helper ─────────────────────────────────────────────────
 
@@ -529,9 +585,9 @@ function WbsNewProjectPage() {
 
     // Derive project start/end from the service rows (earliest start → latest end)
     const allStarts = serviceRows.map(r => r.startDate).filter(Boolean).sort();
-    const allEnds   = serviceRows.map(r => r.endDate).filter(Boolean).sort();
+    const allEnds = serviceRows.map(r => r.endDate).filter(Boolean).sort();
     const projStart = allStarts[0] ?? new Date().toISOString().slice(0, 10);
-    const projEnd   = allEnds[allEnds.length - 1] ?? new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
+    const projEnd = allEnds[allEnds.length - 1] ?? new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
 
     const proj = dhStore.addProject({
       name: projectName, clientId: selectedClientId,
@@ -856,10 +912,25 @@ function WbsNewProjectPage() {
           {/* Row 2: Contract Type + Sales Person */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 16 }}>
             <FormGroup label="Contract Type" required>
-              <select value={contractType} onChange={(e) => setContractType(e.target.value)} style={inputStyle(false)}>
+              <select
+                value={contractType}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setContractType(val);
+                  if (val === "Resource Based" || val === "Resource + Scope Based") {
+                    setProjectType("Long Term");
+                  } else {
+                    setProjectType("");
+                  }
+                  setBillingModel("");
+                  setPaymentTerms("");
+                }}
+                style={inputStyle(false)}
+              >
                 <option value="">Select Contract Type</option>
                 <option value="Resource Based">Resource Based</option>
                 <option value="Scope Based">Scope Based</option>
+                <option value="Resource + Scope Based">Resource + Scope Based</option>
               </select>
             </FormGroup>
             <FormGroup label="Sales Person" required>
@@ -874,10 +945,32 @@ function WbsNewProjectPage() {
           {/* Row 3: Project Type + Onboarding Date */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
             <FormGroup label="Project Type" required>
-              <select value={projectType} onChange={(e) => { setProjectType(e.target.value); setBillingModel(""); setPaymentTerms(""); }} style={inputStyle(false)}>
-                <option value="">Select Project Type</option>
-                <option value="Ad-Hoc">Ad-Hoc</option>
-                <option value="Long Term">Long Term (1 year plus)</option>
+              <select
+                value={projectType}
+                disabled={contractType === "Resource Based" || contractType === "Resource + Scope Based" || !contractType}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setProjectType(val);
+                  setBillingModel("");
+                  setPaymentTerms("");
+                  if (val === "Ad-Hoc") {
+                    setServiceRows((prev) => prev.map((r) => ({ ...r, frequency: "Once" })));
+                  }
+                }}
+                style={inputStyle(contractType === "Resource Based" || contractType === "Resource + Scope Based" || !contractType)}
+                title={!contractType ? "Select a Contract Type first" : ""}
+              >
+                {!contractType ? (
+                  <option value="">Select Contract Type first</option>
+                ) : (contractType === "Resource Based" || contractType === "Resource + Scope Based") ? (
+                  <option value="Long Term">Long Term (6 months plus)</option>
+                ) : (
+                  <>
+                    <option value="">Select Project Type</option>
+                    <option value="Ad-Hoc">Ad-Hoc</option>
+                    <option value="Long Term">Long Term (6 months plus)</option>
+                  </>
+                )}
               </select>
             </FormGroup>
             <FormGroup label="Project Onboarding Date" required>
@@ -888,7 +981,19 @@ function WbsNewProjectPage() {
 
         {/* ── Section A ── */}
         <Card title="Section A: PMO Team Details">
-          <button onClick={openPicker} style={{ ...btnStyle("primary"), marginBottom: 12 }}>+ Add Services</button>
+          <button
+            onClick={openPicker}
+            disabled={!contractType}
+            title={!contractType ? "Please select a Contract Type first" : ""}
+            style={{
+              ...btnStyle(contractType ? "primary" : "secondary"),
+              marginBottom: 12,
+              cursor: contractType ? "pointer" : "not-allowed",
+              opacity: contractType ? 1 : 0.6
+            }}
+          >
+            + Add Services
+          </button>
 
           {/* Service tags */}
           {serviceRows.length > 0 && (
@@ -943,74 +1048,105 @@ function WbsNewProjectPage() {
                     !val ? { ...tblInputStyle, border: "1.5px solid #ef4444" } : tblInputStyle;
                   const isOffsite = r.location === "Offsite";
                   return (
-                  <tr key={r.rowId}>
-                    <td style={tdStyle}><input type="text" value={r.dept} readOnly style={{ ...tblInputStyle, background: "#f3f4f6", minWidth: 140 }} /></td>
-                    <td style={tdStyle}><input type="text" value={r.taskId} onChange={(e) => updateRow(r.rowId, "taskId", e.target.value)} style={{ ...req(r.taskId), minWidth: 100 }} /></td>
-                    <td style={tdStyle}><input type="text" value={r.name} onChange={(e) => updateRow(r.rowId, "name", e.target.value)} style={{ ...req(r.name), minWidth: 200 }} /></td>
-                    <td style={tdStyle}><input type="text" value={r.description} onChange={(e) => updateRow(r.rowId, "description", e.target.value)} style={{ ...tblInputStyle, minWidth: 180 }} /></td>
-                    <td style={tdStyle}><input type="number" value={r.qty} min={1} onChange={(e) => updateRow(r.rowId, "qty", Number(e.target.value))} style={{ ...tblInputStyle, minWidth: 60 }} /></td>
-                    <td style={tdStyle}>
-                      <select value={r.frequency} onChange={(e) => updateRow(r.rowId, "frequency", e.target.value)} style={{ ...reqSel(r.frequency), minWidth: 120 }}>
-                        <option value="">— Select —</option>
-                        <option value="Once">Once</option>
-                        <option value="Quarterly-1">Quarterly</option>
-                        <option value="Half yearly">Half yearly</option>
-                        <option value="Yearly">Yearly</option>
-                      </select>
-                    </td>
-                    <td style={tdStyle}>
-                      <select value={r.serviceModel} onChange={(e) => updateRow(r.rowId, "serviceModel", e.target.value)} style={{ ...reqSel(r.serviceModel), minWidth: 160 }}>
-                        <option value="">— Select —</option>
-                        <option value="Initial Test">Initial Test</option>
-                        <option value="Initial + 1 Re-test">Initial + 1 Re-test</option>
-                        <option value="Initial + 2 Re-test">Initial + 2 Re-test</option>
-                        <option value="Initial + 3 Re-test">Initial + 3 Re-test</option>
-                      </select>
-                    </td>
-                    <td style={tdStyle}>
-                      <select value={r.location} onChange={(e) => {
-                        updateRow(r.rowId, "location", e.target.value);
-                        // clear locationText when switching away from Onsite
-                        if (e.target.value !== "Onsite") updateRow(r.rowId, "locationText", "");
-                      }} style={{ ...reqSel(r.location), minWidth: 110 }}>
-                        <option value="">— Select —</option>
-                        <option>Onsite</option><option>Offsite</option><option>Hybrid</option>
-                      </select>
-                    </td>
-                    <td style={tdStyle}>
-                      <input
-                        type="text"
-                        value={r.locationText}
-                        onChange={(e) => updateRow(r.rowId, "locationText", e.target.value)}
-                        placeholder={r.location === "Onsite" ? "Enter location…" : "—"}
-                        readOnly={r.location !== "Onsite"}
-                        style={{
-                          ...tblInputStyle,
-                          minWidth: 140,
-                          ...(r.location === "Onsite"
-                            ? (!r.locationText.trim() ? { border: "1.5px solid #ef4444" } : {})
-                            : { background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" }),
-                        }}
-                      />
-                    </td>
-                    <td style={tdStyle}><input type="text" value={r.deliveryFormat} onChange={(e) => updateRow(r.rowId, "deliveryFormat", e.target.value)} placeholder="e.g. PDF, EXCEL, etc." style={{ ...req(r.deliveryFormat), minWidth: 140 }} /></td>
-                    <td style={tdStyle}><input type="text" value={r.tools} onChange={(e) => updateRow(r.rowId, "tools", e.target.value)} style={{ ...req(r.tools), minWidth: 160 }} /></td>
-                    <td style={tdStyle}><input type="date" value={r.startDate} onChange={(e) => updateRow(r.rowId, "startDate", e.target.value)} style={{ ...req(r.startDate), minWidth: 140 }} /></td>
-                    <td style={tdStyle}><input type="date" value={r.endDate} readOnly style={{ ...tblInputStyle, background: "#f3f4f6", minWidth: 140 }} title="Auto-calculated from Start Date + Total Days (working days only)" /></td>
-                    <td style={tdStyle}><input type="number" value={r.durationDays} onChange={(e) => updateRow(r.rowId, "durationDays", Number(e.target.value))} style={{ ...req(r.durationDays), minWidth: 80 }} /></td>
-                    <td style={tdStyle}><input type="number" value={r.durationHrs} onChange={(e) => updateRow(r.rowId, "durationHrs", Number(e.target.value))} style={{ ...req(r.durationHrs), minWidth: 80 }} /></td>
-                    <td style={tdStyle}><input type="number" value={r.totalDays} onChange={(e) => updateRow(r.rowId, "totalDays", Number(e.target.value))} style={{ ...req(r.totalDays), minWidth: 80 }} /></td>
-                    <td style={tdStyle}><input type="number" value={r.totalHrs} onChange={(e) => updateRow(r.rowId, "totalHrs", Number(e.target.value))} style={{ ...req(r.totalHrs), minWidth: 80 }} /></td>
-                    <td style={tdStyle}><input type="number" value={r.unitPrice} min={0} onChange={(e) => updateRow(r.rowId, "unitPrice", Number(e.target.value))} style={{ ...req(r.unitPrice), minWidth: 100 }} /></td>
-                    <td style={tdStyle}><input type="number" value={r.total} readOnly style={{ ...tblInputStyle, background: "#f3f4f6", minWidth: 100 }} /></td>
-                    <td style={tdStyle}>
-                      <button
-                        onClick={() => removeServiceRow(r.rowId)}
-                        title="Remove row"
-                        style={{ background: "#ef4444", color: "#fff", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
-                      >✕</button>
-                    </td>
-                  </tr>
+                    <tr key={r.rowId}>
+                      <td style={tdStyle}><input type="text" value={r.dept} readOnly style={{ ...tblInputStyle, background: "#f3f4f6", minWidth: 140 }} /></td>
+                      <td style={tdStyle}><input type="text" value={r.taskId} onChange={(e) => updateRow(r.rowId, "taskId", e.target.value)} style={{ ...req(r.taskId), minWidth: 100 }} /></td>
+                      <td style={tdStyle}><input type="text" value={r.name} onChange={(e) => updateRow(r.rowId, "name", e.target.value)} style={{ ...req(r.name), minWidth: 200 }} /></td>
+                      <td style={tdStyle}><input type="text" value={r.description} onChange={(e) => updateRow(r.rowId, "description", e.target.value)} style={{ ...tblInputStyle, minWidth: 180 }} /></td>
+                      <td style={tdStyle}><input type="number" value={r.qty} min={1} onChange={(e) => updateRow(r.rowId, "qty", Number(e.target.value))} style={{ ...tblInputStyle, minWidth: 60 }} /></td>
+                      <td style={tdStyle}>
+                        {projectType === "Ad-Hoc" ? (
+                          <input
+                            type="text"
+                            value="Once"
+                            readOnly
+                            style={{
+                              ...tblInputStyle,
+                              background: "#f3f4f6",
+                              color: "#9ca3af",
+                              cursor: "not-allowed",
+                              minWidth: 120,
+                              textAlign: "center"
+                            }}
+                          />
+                        ) : (
+                          <select value={r.frequency} onChange={(e) => updateRow(r.rowId, "frequency", e.target.value)} style={{ ...reqSel(r.frequency), minWidth: 120 }}>
+                            <option value="">— Select —</option>
+                            <option value="Once">Once</option>
+                            <option value="Half yearly">Half yearly</option>
+                            <option value="Yearly">Yearly</option>
+                          </select>
+                        )}
+                      </td>
+                      <td style={tdStyle}>
+                        {DEPT_GROUPS[r.dept] === "Resource" ? (
+                          <input
+                            type="text"
+                            value="NA"
+                            readOnly
+                            style={{
+                              ...tblInputStyle,
+                              background: "#f3f4f6",
+                              color: "#9ca3af",
+                              cursor: "not-allowed",
+                              minWidth: 160,
+                              textAlign: "center"
+                            }}
+                          />
+                        ) : (
+                          <select value={r.serviceModel} onChange={(e) => updateRow(r.rowId, "serviceModel", e.target.value)} style={{ ...reqSel(r.serviceModel), minWidth: 160 }}>
+                            <option value="">— Select —</option>
+                            <option value="Initial Test">Initial Test</option>
+                            <option value="Initial + 1 Re-test">Initial + 1 Re-test</option>
+                            <option value="Initial + 2 Re-test">Initial + 2 Re-test</option>
+                            <option value="Initial + 3 Re-test">Initial + 3 Re-test</option>
+                          </select>
+                        )}
+                      </td>
+                      <td style={tdStyle}>
+                        <select value={r.location} onChange={(e) => {
+                          updateRow(r.rowId, "location", e.target.value);
+                          // clear locationText when switching away from Onsite
+                          if (e.target.value !== "Onsite") updateRow(r.rowId, "locationText", "");
+                        }} style={{ ...reqSel(r.location), minWidth: 110 }}>
+                          <option value="">— Select —</option>
+                          <option>Onsite</option><option>Offsite</option><option>Hybrid</option>
+                        </select>
+                      </td>
+                      <td style={tdStyle}>
+                        <input
+                          type="text"
+                          value={r.locationText}
+                          onChange={(e) => updateRow(r.rowId, "locationText", e.target.value)}
+                          placeholder={r.location === "Onsite" ? "Enter location…" : "—"}
+                          readOnly={r.location !== "Onsite"}
+                          style={{
+                            ...tblInputStyle,
+                            minWidth: 140,
+                            ...(r.location === "Onsite"
+                              ? (!r.locationText.trim() ? { border: "1.5px solid #ef4444" } : {})
+                              : { background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" }),
+                          }}
+                        />
+                      </td>
+                      <td style={tdStyle}><input type="text" value={r.deliveryFormat} onChange={(e) => updateRow(r.rowId, "deliveryFormat", e.target.value)} placeholder="e.g. PDF, EXCEL, etc." style={{ ...req(r.deliveryFormat), minWidth: 140 }} /></td>
+                      <td style={tdStyle}><input type="text" value={r.tools} onChange={(e) => updateRow(r.rowId, "tools", e.target.value)} style={{ ...req(r.tools), minWidth: 160 }} /></td>
+                      <td style={tdStyle}><input type="date" value={r.startDate} onChange={(e) => updateRow(r.rowId, "startDate", e.target.value)} style={{ ...req(r.startDate), minWidth: 140 }} /></td>
+                      <td style={tdStyle}><input type="date" value={r.endDate} onChange={(e) => updateRow(r.rowId, "endDate", e.target.value)} style={{ ...req(r.endDate), minWidth: 140 }} title="WBS End Date" /></td>
+                      <td style={tdStyle}><input type="number" value={r.durationDays} onChange={(e) => updateRow(r.rowId, "durationDays", Number(e.target.value))} style={{ ...req(r.durationDays), minWidth: 80 }} /></td>
+                      <td style={tdStyle}><input type="number" value={r.durationHrs} onChange={(e) => updateRow(r.rowId, "durationHrs", Number(e.target.value))} style={{ ...req(r.durationHrs), minWidth: 80 }} /></td>
+                      <td style={tdStyle}><input type="number" value={r.totalDays} onChange={(e) => updateRow(r.rowId, "totalDays", Number(e.target.value))} style={{ ...req(r.totalDays), minWidth: 80 }} /></td>
+                      <td style={tdStyle}><input type="number" value={r.totalHrs} onChange={(e) => updateRow(r.rowId, "totalHrs", Number(e.target.value))} style={{ ...req(r.totalHrs), minWidth: 80 }} /></td>
+                      <td style={tdStyle}><input type="number" value={r.unitPrice} min={0} onChange={(e) => updateRow(r.rowId, "unitPrice", Number(e.target.value))} style={{ ...req(r.unitPrice), minWidth: 100 }} /></td>
+                      <td style={tdStyle}><input type="number" value={r.total} readOnly style={{ ...tblInputStyle, background: "#f3f4f6", minWidth: 100 }} /></td>
+                      <td style={tdStyle}>
+                        <button
+                          onClick={() => removeServiceRow(r.rowId)}
+                          title="Remove row"
+                          style={{ background: "#ef4444", color: "#fff", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
+                        >✕</button>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -1197,22 +1333,31 @@ function WbsNewProjectPage() {
       {/* ── Service Picker Modal ── */}
       {pickerOpen && (
         <div onClick={(e) => { if (e.target === e.currentTarget) setPickerOpen(false); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 20px 25px rgba(0,0,0,0.15)", width: "90%", maxWidth: 820, maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+          <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 20px 25px rgba(0,0,0,0.15)", width: "90%", maxWidth: 820, height: 600, maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: 20, borderBottom: "1px solid #d1d5db", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: "#1a5490" }}>Select Services</div>
               <button onClick={() => setPickerOpen(false)} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer" }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
-              {/* Dept list */}
+              {/* Dept list grouped by Contract Type groups (Resource/Scope) */}
               <div>
                 <h4 style={{ marginBottom: 12, fontSize: 13, fontWeight: 700 }}>Departments</h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {Object.keys(DEPT_SERVICES).map((dept) => (
-                    <div key={dept} onClick={() => setPickerDept(dept)} style={{ padding: 12, border: "1px solid #d1d5db", borderRadius: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", background: dept === pickerDept ? "#dbeafe" : "#fff", borderColor: dept === pickerDept ? "#1a84d4" : "#d1d5db" }}>
-                      <span style={{ fontWeight: 600 }}>{dept}</span>
-                      <span style={{ background: "#1a84d4", color: "#fff", padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
-                        {tempSelected[dept] ? Object.keys(tempSelected[dept]).length : 0}
-                      </span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {Object.entries(deptsByGroup).map(([groupName, depts]) => (
+                    <div key={groupName}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8, borderBottom: "1px solid #e5e7eb", paddingBottom: 4 }}>
+                        {groupName} Group
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {depts.map((dept) => (
+                          <div key={dept} onClick={() => setPickerDept(dept)} style={{ padding: 10, border: "1px solid #d1d5db", borderRadius: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", background: dept === pickerDept ? "#dbeafe" : "#fff", borderColor: dept === pickerDept ? "#1a84d4" : "#d1d5db" }}>
+                            <span style={{ fontWeight: 600, fontSize: 12 }}>{dept}</span>
+                            <span style={{ background: "#1a84d4", color: "#fff", padding: "2px 6px", borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
+                              {tempSelected[dept] ? Object.keys(tempSelected[dept]).length : 0}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
