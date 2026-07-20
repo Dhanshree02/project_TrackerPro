@@ -102,16 +102,22 @@ function CustomerDetailPage() {
   const firstProjectName = firstProject?.name ?? "—";
   const firstProjectId   = firstProject ? fmtProjectId(firstProject.id) : "—";
 
-  // Build SPOC list from client contact fields
-  const spocs = [
-    {
-      name:        client.contactName ?? client.contact.split("@")[0],
-      email:       client.contact,
-      phone:       (client as any).contactPhone  ?? "—",
-      designation: (client as any).contactDesignation ?? "—",
-      type:        (client as any).contactType   ?? "Primary",
-    },
-  ];
+  // Build SPOC list — prefer the stored contacts array, fall back to single legacy fields
+  const spocs = (client.contacts && client.contacts.length > 0)
+    ? client.contacts.map((c) => ({
+        name:        c.name,
+        email:       c.email,
+        phone:       c.phone       ?? "—",
+        designation: c.designation ?? "—",
+        type:        c.contactType ?? "Primary",
+      }))
+    : [{
+        name:        client.contactName ?? client.contact.split("@")[0],
+        email:       client.contact,
+        phone:       (client as any).contactPhone        ?? "—",
+        designation: (client as any).contactDesignation  ?? "—",
+        type:        (client as any).contactType         ?? "Primary",
+      }];
 
   // Sub-venture list from client
   const subVentures = client.subVentures ?? [];

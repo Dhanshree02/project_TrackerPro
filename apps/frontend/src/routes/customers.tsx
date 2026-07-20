@@ -367,6 +367,13 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           contactPhone: s.contacts[0]?.phone ?? "",
           contactDesignation: s.contacts[0]?.designation ?? "",
           contactType: s.contacts[0]?.contactType ?? "",
+          contacts: s.contacts.map((c) => ({
+            name: c.name,
+            email: c.email,
+            phone: c.phone,
+            designation: c.designation,
+            contactType: c.contactType,
+          })),
         });
         toast.success("Client onboarded", { description: `${s.clientName} added to your directory.` });
       }
