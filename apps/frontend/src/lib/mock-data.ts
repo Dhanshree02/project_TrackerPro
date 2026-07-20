@@ -142,6 +142,14 @@ export interface Project {
 }
 
 
+export interface ClientContact {
+  name: string;
+  email: string;
+  phone?: string;
+  designation?: string;
+  contactType?: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -157,6 +165,7 @@ export interface Client {
   contactPhone?: string;
   contactDesignation?: string;
   contactType?: string;
+  contacts?: ClientContact[]; // full list of SPOC persons
 }
 
 export interface IssueComment {
@@ -253,7 +262,11 @@ export const clients: Client[] = [
     contact: "ops@northwind.com", clientType: "OLD", previousPmIds: ["u3", "u4"],
     engagementManager: "Rahul Sharma", companyName: "Northwind Financial Services",
     subVentures: ["Northwind Retail Banking", "Northwind Corporate Banking", "Northwind Digital Payments", "Northwind Treasury Services", "Northwind Wealth Management"],
-    contactName: "Rahul Sharma", contactPhone: "+91 98765 43210", contactDesignation: "IT Manager", contactType: "Technical SPOC"
+    contactName: "Rahul Sharma", contactPhone: "+91 98765 43210", contactDesignation: "IT Manager", contactType: "Technical SPOC",
+    contacts: [
+      { name: "Rahul Sharma",  email: "ops@northwind.com",       phone: "+91 98765 43210", designation: "IT Manager",              contactType: "Technical SPOC"  },
+      { name: "Priya Mehta",   email: "priya.m@northwind.com",   phone: "+91 91234 56789", designation: "VP – Digital Banking",     contactType: "Business SPOC"   },
+    ],
   },
   {
     id: "c2", name: "Helix Pharma", industry: "Healthcare", logo: "HP",

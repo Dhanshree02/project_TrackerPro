@@ -1298,6 +1298,7 @@ export const dhStore = {
       contactPhone: input.contactPhone,
       contactDesignation: input.contactDesignation,
       contactType: input.contactType,
+      contacts: input.contacts,
     };
     state.extraClients.push(c);
     emit();
