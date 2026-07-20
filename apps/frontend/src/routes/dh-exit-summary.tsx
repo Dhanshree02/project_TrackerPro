@@ -202,7 +202,7 @@ function ExitSummaryPage() {
                       )}
                       disabled={e.clearanceStatus === "Completed"}
                     >
-                      {e.clearanceStatus === "Completed" ? "Archived" : "Clear Actions"}
+                      {e.clearanceStatus === "Completed" ? "Archived" : "Offboard"}
                     </button>
                   </td>
                 </tr>
