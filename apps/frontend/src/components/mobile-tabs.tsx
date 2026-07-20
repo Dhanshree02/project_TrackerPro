@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type SubItem = { to: string; label: string };
+type SubItem = { to: string; search?: Record<string, any>; label: string };
 type Item = {
   to?: string;
   label: string;
@@ -29,45 +29,55 @@ const tail: Item[] = [
 
 export function MobileTabs() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const search = useRouterState({ select: (s) => s.location.search }) as any;
   const { isPMO, isHOD, isBO, isDhanshree } = useRoleContext();
 
   const items: Item[] = isDhanshree
     ? [
-        { to: "/", label: "Home", icon: LayoutDashboard, exact: true },
-        { to: "/action-centre", label: "Action", icon: ListChecks },
-        { to: "/projects", label: "Projects", icon: FolderKanban },
-        { to: "/customers", label: "Clients", icon: Building2 },
-        {
-          label: "Resources",
-          icon: Users,
-          subItems: [
-            { to: "/dh-employee-directory", label: "Employee Directory" },
-            { to: "/dh-resource-pool", label: "Resource Pool" },
-            { to: "/dh-exit-summary", label: "Employee Exit Summary" },
-            { to: "/dh-org-tree", label: "Organization Tree" },
-          ],
-        },
-        { to: "/dh-settings", label: "Settings", icon: Settings },
-      ]
+      { to: "/", label: "Home", icon: LayoutDashboard, exact: true },
+      { to: "/action-centre", label: "Action", icon: ListChecks },
+      { to: "/projects", label: "Projects", icon: FolderKanban },
+      { to: "/customers", label: "Clients", icon: Building2 },
+      {
+        label: "Resources",
+        icon: Users,
+        subItems: [
+          { to: "/dh-employee-directory", label: "Employee Directory" },
+          { to: "/dh-exit-summary", label: "Employee Exit Summary" },
+          { to: "/dh-org-tree", label: "Organization Tree" },
+        ],
+      },
+      { to: "/dh-settings", label: "Settings", icon: Settings },
+    ]
     : isBO
-    ? [
+      ? [
         { to: "/", label: "Home", icon: LayoutDashboard, exact: true },
         { to: "/portfolio", label: "Portfolio", icon: Layers },
         { to: "/clients", label: "Clients", icon: Briefcase },
         { to: "/health", label: "Health", icon: Activity },
         { to: "/reports", label: "Reports", icon: BarChart3 },
       ]
-    : isHOD
-      ? [
+      : isHOD
+        ? [
           { to: "/", label: "Home", icon: LayoutDashboard, exact: true },
           { to: "/portfolio", label: "Portfolio", icon: Layers },
           { to: "/resources", label: "Resources", icon: Users },
           { to: "/health", label: "Health", icon: Activity },
           { to: "/reports", label: "Reports", icon: BarChart3 },
         ]
-      : isPMO
-        ? [...baseItems, { to: "/resources", label: "Resources", icon: Users }, ...tail]
-        : [...baseItems, ...tail];
+        : isPMO
+          ? [...baseItems, { to: "/resources", label: "Resources", icon: Users }, ...tail]
+          : [...baseItems, ...tail];
+
+  const isSubActive = (subTo: string, subSearch?: Record<string, any>) => {
+    if (!pathname.startsWith(subTo)) return false;
+    if (subTo === "/dh-employee-directory") {
+      const activeTab = search.tab || "directory";
+      const expectedTab = subSearch?.tab || "directory";
+      return activeTab === expectedTab;
+    }
+    return true;
+  };
 
   return (
     <nav
@@ -78,7 +88,7 @@ export function MobileTabs() {
     >
       {items.map((it) => {
         if (it.subItems) {
-          const isParentActive = it.subItems.some((sub) => pathname.startsWith(sub.to));
+          const isParentActive = it.subItems.some((sub) => isSubActive(sub.to, sub.search));
 
           return (
             <DropdownMenu key={it.label}>
@@ -95,11 +105,12 @@ export function MobileTabs() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-popover text-popover-foreground shadow-md border border-border">
                 {it.subItems.map((sub) => {
-                  const subActive = pathname.startsWith(sub.to);
+                  const subActive = isSubActive(sub.to, sub.search);
                   return (
-                    <DropdownMenuItem key={sub.to} asChild>
+                    <DropdownMenuItem key={sub.to + (sub.search?.tab || "")} asChild>
                       <Link
                         to={sub.to}
+                        search={sub.search as any}
                         className={cn(
                           "w-full cursor-pointer justify-start text-xs py-2 px-3",
                           subActive && "bg-accent text-accent-foreground font-semibold"
