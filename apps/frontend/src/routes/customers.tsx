@@ -164,12 +164,89 @@ interface NewClientState {
 }
 
 const inputCls = "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const inputErrCls = "h-9 w-full rounded-md border border-destructive bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-destructive/50";
 const Row = ({ label, v }: { label: string; v: string }) => (<><dt className="text-muted-foreground">{label}</dt><dd className="font-medium">{v || "—"}</dd></>);
+
+// ── Validation helpers ──
+const LETTERS_ONLY_RE = /^[a-zA-Z\s.'-]*$/;
+const PHONE_VALID_RE  = /^[0-9+\-() ]*$/;
+const EMAIL_RE        = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const validateTextField  = (v: string) => LETTERS_ONLY_RE.test(v) ? "" : "Only letters are allowed here";
+const validateEmailField = (v: string) => !v.trim() ? "" : EMAIL_RE.test(v) ? "" : "Enter a valid email address";
+
+/**
+ * Validates a phone number for realistic content — not just format.
+ * Rules (applied in order):
+ *  1. Must only contain digits, +, -, spaces, ()
+ *  2. Must have 7–15 digits
+ *  3. Cannot be all the same digit (e.g. 0000000000)
+ *  4. Cannot be a simple ascending or descending sequence (e.g. 1234567890)
+ *  5. Cannot be the known test/placeholder number 1234567890 or 9876543210
+ *  6. If the country code is +91 (India), the 10-digit local number must start with 6, 7, 8, or 9
+ */
+function validatePhoneField(v: string): string {
+  if (!v.trim()) return "";
+
+  // Rule 1 — allowed characters
+  if (!PHONE_VALID_RE.test(v)) return "Only digits, +, -, spaces and () are allowed";
+
+  const digits = v.replace(/[^0-9]/g, "");
+
+  // Rule 2 — length
+  if (digits.length < 7)  return "Phone number is too short (min 7 digits)";
+  if (digits.length > 15) return "Phone number is too long (max 15 digits)";
+
+  // Rule 3 — all same digit (e.g. 0000000000, 1111111111)
+  if (/^(\d)\1+$/.test(digits)) return "Phone number cannot be all identical digits";
+
+  // Rule 4 — ascending sequential run (e.g. 12345678, 1234567890)
+  const isAscSeq = digits.split("").every((d, i, arr) => i === 0 || Number(d) === Number(arr[i - 1]) + 1);
+  const isDescSeq = digits.split("").every((d, i, arr) => i === 0 || Number(d) === Number(arr[i - 1]) - 1);
+  if (isAscSeq || isDescSeq) return "Phone number cannot be a sequential pattern";
+
+  // Rule 5 — well-known invalid/test numbers
+  const INVALID_NUMBERS = new Set(["1234567890", "9876543210", "0123456789"]);
+  if (INVALID_NUMBERS.has(digits)) return "Please enter a real phone number";
+
+  // Rule 6 — India (+91): 10-digit local number must start with 6, 7, 8, or 9
+  const hasIndiaCode = v.trim().startsWith("+91") || v.trim().startsWith("091");
+  const localDigits  = hasIndiaCode ? digits.slice(2) : digits;
+  if ((hasIndiaCode && localDigits.length === 10) || (!hasIndiaCode && digits.length === 10)) {
+    const firstLocal = hasIndiaCode ? localDigits[0] : digits[0];
+    if (!/[6-9]/.test(firstLocal)) return "Indian mobile numbers must start with 6, 7, 8, or 9";
+  }
+
+  return "";
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="mt-1 text-[11px] font-medium text-destructive">{msg}</p>;
+}
+
+// ── Per-field error state type ──
+interface FormErrors {
+  companyOwner?: string;
+  engagementManager?: string;
+  phoneNumber?: string;
+  city?: string;
+  country?: string;
+  contactName?: Record<number, string>;
+  contactPhone?: Record<number, string>;
+  contactEmail?: Record<number, string>;
+}
 
 function NewClientModal({ onClose }: { onClose: () => void }) {
   const { user } = useRoleContext();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FormErrors>({});
+
+  const setFE = (key: keyof FormErrors, val: string) =>
+    setFieldErrors((p) => ({ ...p, [key]: val }));
+  const setContactFE = (key: "contactName" | "contactPhone" | "contactEmail", idx: number, val: string) =>
+    setFieldErrors((p) => ({ ...p, [key]: { ...(p[key] as Record<number, string> | undefined), [idx]: val } }));
 
   // ── TK Customer search state ──
   const existingClients = allClients();
@@ -554,19 +631,91 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                 <input className={readOnlyCls} value={s.customerId} readOnly />
               </Field>
               <Field label="Company Owner" required>
-                <input className={inputCls} value={s.companyOwner} onChange={(e) => u("companyOwner", e.target.value)} />
+                <input
+                  className={fieldErrors.companyOwner ? inputErrCls : inputCls}
+                  value={s.companyOwner}
+                  placeholder="Enter owner name"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Block numeric characters from being typed
+                    if (/[0-9]/.test(val.slice(-1))) {
+                      setFE("companyOwner", "Only letters are allowed here");
+                      return;
+                    }
+                    u("companyOwner", val);
+                    setFE("companyOwner", validateTextField(val));
+                  }}
+                />
+                <FieldError msg={fieldErrors.companyOwner} />
               </Field>
               <Field label="Engagement Manager" required>
-                <input className={inputCls} value={s.engagementManager} onChange={(e) => u("engagementManager", e.target.value)} />
+                <input
+                  className={fieldErrors.engagementManager ? inputErrCls : inputCls}
+                  value={s.engagementManager}
+                  placeholder="Enter manager name"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/[0-9]/.test(val.slice(-1))) {
+                      setFE("engagementManager", "Only letters are allowed here");
+                      return;
+                    }
+                    u("engagementManager", val);
+                    setFE("engagementManager", validateTextField(val));
+                  }}
+                />
+                <FieldError msg={fieldErrors.engagementManager} />
               </Field>
               <Field label="Phone Number" required>
-                <input className={inputCls} value={s.phoneNumber} onChange={(e) => u("phoneNumber", e.target.value)} />
+                <input
+                  className={fieldErrors.phoneNumber ? inputErrCls : inputCls}
+                  value={s.phoneNumber}
+                  placeholder="e.g. +91 98765 43210"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Block alphabetic characters
+                    if (/[a-zA-Z]/.test(val.slice(-1))) {
+                      setFE("phoneNumber", "Phone number cannot contain letters");
+                      return;
+                    }
+                    u("phoneNumber", val);
+                    setFE("phoneNumber", validatePhoneField(val));
+                  }}
+                />
+                <FieldError msg={fieldErrors.phoneNumber} />
               </Field>
               <Field label="City" required>
-                <input className={inputCls} value={s.city} onChange={(e) => u("city", e.target.value)} />
+                <input
+                  className={fieldErrors.city ? inputErrCls : inputCls}
+                  value={s.city}
+                  placeholder="Enter city"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/[0-9]/.test(val.slice(-1))) {
+                      setFE("city", "Only letters are allowed here");
+                      return;
+                    }
+                    u("city", val);
+                    setFE("city", validateTextField(val));
+                  }}
+                />
+                <FieldError msg={fieldErrors.city} />
               </Field>
               <Field label="Country / Region" required>
-                <input className={inputCls} value={s.country} onChange={(e) => u("country", e.target.value)} />
+                <input
+                  className={fieldErrors.country ? inputErrCls : inputCls}
+                  value={s.country}
+                  placeholder="Enter country"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/[0-9]/.test(val.slice(-1))) {
+                      setFE("country", "Only letters are allowed here");
+                      return;
+                    }
+                    u("country", val);
+                    setFE("country", validateTextField(val));
+                  }}
+                />
+                <FieldError msg={fieldErrors.country} />
               </Field>
               <Field label="Industry" required>
                 <select className={inputCls} value={s.industry} onChange={(e) => u("industry", e.target.value)}>
@@ -628,13 +777,52 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Contact Person" required>
-                  <input className={inputCls} value={ct.name} onChange={(e) => updateContact(idx, "name", e.target.value)} />
+                  <input
+                    className={fieldErrors.contactName?.[idx] ? inputErrCls : inputCls}
+                    value={ct.name}
+                    placeholder="Full name"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (/[0-9]/.test(val.slice(-1))) {
+                        setContactFE("contactName", idx, "Name cannot contain numbers");
+                        return;
+                      }
+                      updateContact(idx, "name", val);
+                      setContactFE("contactName", idx, validateTextField(val));
+                    }}
+                  />
+                  <FieldError msg={fieldErrors.contactName?.[idx]} />
                 </Field>
                 <Field label="Email" required>
-                  <input type="email" className={inputCls} value={ct.email} onChange={(e) => updateContact(idx, "email", e.target.value)} />
+                  <input
+                    type="email"
+                    className={fieldErrors.contactEmail?.[idx] ? inputErrCls : inputCls}
+                    value={ct.email}
+                    placeholder="name@company.com"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateContact(idx, "email", val);
+                      setContactFE("contactEmail", idx, validateEmailField(val));
+                    }}
+                  />
+                  <FieldError msg={fieldErrors.contactEmail?.[idx]} />
                 </Field>
                 <Field label="Phone" required>
-                  <input className={inputCls} value={ct.phone} onChange={(e) => updateContact(idx, "phone", e.target.value)} />
+                  <input
+                    className={fieldErrors.contactPhone?.[idx] ? inputErrCls : inputCls}
+                    value={ct.phone}
+                    placeholder="e.g. +91 98765 43210"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (/[a-zA-Z]/.test(val.slice(-1))) {
+                        setContactFE("contactPhone", idx, "Phone cannot contain letters");
+                        return;
+                      }
+                      updateContact(idx, "phone", val);
+                      setContactFE("contactPhone", idx, validatePhoneField(val));
+                    }}
+                  />
+                  <FieldError msg={fieldErrors.contactPhone?.[idx]} />
                 </Field>
                 <Field label="Designation" required>
                   <input className={inputCls} placeholder="eg cisco/spoc etc." value={ct.designation} onChange={(e) => updateContact(idx, "designation", e.target.value)} />
