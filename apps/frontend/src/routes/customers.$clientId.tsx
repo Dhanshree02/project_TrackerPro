@@ -153,6 +153,12 @@ function CustomerDetailPage() {
               <span>{client.industry}</span>
               <span>·</span>
               <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{client.contact}</span>
+              {client.contractType && (
+                <>
+                  <span>·</span>
+                  <span>{client.contractType}</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -191,6 +197,7 @@ function CustomerDetailPage() {
                 { label: "Industry", value: client.industry },
                 { label: "Contact Person", value: client.contact.split("@")[0] },
                 { label: "Email", value: client.contact },
+                { label: "Contract Type", value: client.contractType || "—" },
                 { label: "Client Type", value: client.clientType === "NEW" ? "New Client" : "Existing Client" },
                 { label: "Client Since", value: clientSinceDate },
                 { label: "Status", value: "Active" },

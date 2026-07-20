@@ -160,6 +160,7 @@ interface NewClientState {
   createdAt: string; createdBy: string;
   kycFile: File | null;
   contacts: ContactEntry[];
+  contractType: string;
   notes: string;
 }
 
@@ -196,6 +197,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
     createdBy: user?.name ?? "Unknown",
     kycFile: null,
     contacts: [{ name: "", email: "", phone: "", designation: "" }],
+    contractType: "",
     notes: "",
   }));
 
@@ -244,6 +246,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       if (!c.phone.trim())       return `Contact Phone${n} is required`;
       if (!c.designation.trim()) return `Designation${n} is required`;
     }
+    if (!s.contractType.trim()) return "Contract Type is required";
     if (!s.kycFile) return "KYC Document is required";
     return null;
   };
@@ -285,6 +288,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           contact: s.contacts[0]?.email ?? "",
           engagementManager: s.engagementManager,
           companyName: s.companyName,
+          contractType: s.contractType,
         });
         toast.success("Client onboarded", { description: `${s.clientName} added to your directory.` });
       }
@@ -643,6 +647,17 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
           <div className="mt-4 pt-4 border-t border-border">
+            <Field label="Contract Type" required>
+              <select className={inputCls} value={s.contractType} onChange={(e) => u("contractType", e.target.value)}>
+                <option value="">Select contract type</option>
+                {["Accounts", "Procurement", "Technical SPOC", "Legal"].map((o) => (
+                  <option key={o}>{o}</option>
+                ))}
+              </select>
+            </Field>
+            <p className="mt-1 text-[11px] text-muted-foreground">Primary type of customer relationship for this client</p>
+          </div>
+          <div className="mt-4 pt-4 border-t border-border">
             <Field label="KYC Document" required>
               <div className="relative">
                 <label className={cn(
@@ -711,6 +726,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
             )}
             <Row label="Created At" v={format(new Date(s.createdAt), "dd MMM yyyy, HH:mm")} />
             <Row label="Created By" v={s.createdBy} />
+            <Row label="Contract Type" v={s.contractType} />
             <Row label="KYC Document" v={s.kycFile ? s.kycFile.name : "—"} />
           </dl>
           <div className="mt-3 space-y-2">
@@ -774,7 +790,7 @@ function CustomerDrawer({ client, onClose }: { client: Client; onClose: () => vo
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-base font-semibold text-primary-foreground">{client.logo}</div>
           <div className="flex-1">
             <h2 className="text-base font-semibold">{client.name}</h2>
-            <p className="text-xs text-muted-foreground">{client.industry} · {client.contact}</p>
+            <p className="text-xs text-muted-foreground">{client.industry} · {client.contact}{client.contractType ? ` · ${client.contractType}` : ""}</p>
           </div>
           <button onClick={onClose} className="rounded-md p-2 hover:bg-accent" aria-label="Close"><X className="h-4 w-4" /></button>
         </header>

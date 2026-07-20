@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import React, { useMemo, useState } from "react";
-import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown } from "lucide-react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Play, Pause, Square } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
@@ -1765,6 +1765,106 @@ function AvatarStack({ names }: { names: string[] }) {
   );
 }
 
+// ---------- Shared Task Timer (used in DhTasksTab & Bucket List via dh-store) ----------
+function formatTimerElapsed(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+}
+
+function formatTimerTotal(ms: number): string {
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function TaskTimerCell({ taskId, projectId }: { taskId: string; projectId: string }) {
+  const timerState = useDhStore((s) => s.taskTimers[taskId]);
+  const [display, setDisplay] = useState("00:00:00");
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const accumulated = timerState?.accumulated ?? 0;
+  const startedAt   = timerState?.startedAt   ?? null;
+  const running     = timerState?.running      ?? false;
+  const completed   = timerState?.completed    ?? false;
+
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (running && startedAt) {
+      const tick = () => setDisplay(formatTimerElapsed(accumulated + (Date.now() - startedAt)));
+      tick();
+      intervalRef.current = setInterval(tick, 1000);
+    } else {
+      setDisplay(formatTimerElapsed(accumulated));
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [running, startedAt, accumulated]);
+
+  const handleStart = useCallback(() => {
+    dhStore.updateTaskTimer(taskId, "start");
+    dhStore.updateTaskStatus(projectId, taskId, "in_progress");
+  }, [taskId, projectId]);
+
+  const handlePause = useCallback(() => {
+    dhStore.updateTaskTimer(taskId, "pause");
+  }, [taskId]);
+
+  const handleResume = useCallback(() => {
+    dhStore.updateTaskTimer(taskId, "resume");
+    dhStore.updateTaskStatus(projectId, taskId, "in_progress");
+  }, [taskId, projectId]);
+
+  const handleComplete = useCallback(() => {
+    dhStore.updateTaskTimer(taskId, "complete");
+    dhStore.updateTaskStatus(projectId, taskId, "done");
+    const finalMs = accumulated + (startedAt ? Date.now() - startedAt : 0);
+    dhStore.updateTaskActuals(projectId, taskId, { utilizedHours: parseFloat((finalMs / 3600000).toFixed(2)) });
+    toast.success("Task completed", { description: `Total: ${formatTimerTotal(finalMs)}` });
+  }, [taskId, projectId, accumulated, startedAt]);
+
+  if (completed) {
+    return (
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="text-[10px] font-medium text-muted-foreground">Total</span>
+        <span className="text-xs font-bold text-success tabular-nums">{formatTimerTotal(accumulated)}</span>
+      </div>
+    );
+  }
+  if (running) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-xs font-bold tabular-nums text-primary">{display}</span>
+        <button onClick={handlePause} className="inline-flex items-center gap-1 rounded-md border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground hover:bg-warning/20">
+          <Pause className="h-2.5 w-2.5" /> Pause
+        </button>
+      </div>
+    );
+  }
+  if (!running && accumulated > 0) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-xs tabular-nums text-muted-foreground">{display}</span>
+        <div className="flex gap-1">
+          <button onClick={handleResume} className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20">
+            <Play className="h-2.5 w-2.5" /> Resume
+          </button>
+          <button onClick={handleComplete} className="inline-flex items-center gap-1 rounded-md border border-success/40 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success hover:bg-success/20">
+            <Square className="h-2.5 w-2.5" /> Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <button onClick={handleStart} className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary hover:bg-primary/20">
+      <Play className="h-2.5 w-2.5" /> Start
+    </button>
+  );
+}
+
 const TASK_STAGES = ["Ready to Start", "Ongoing", "Completed", "On Hold (Internal)", "On Hold (Client End)", "After Release"] as const;
 type TaskStage = typeof TASK_STAGES[number];
 
@@ -1854,6 +1954,7 @@ function DhTasksTab({ project }: { project: Project }) {
               <th className="px-3 py-2 font-medium whitespace-nowrap">Actual Start Date</th>
               <th className="px-3 py-2 font-medium whitespace-nowrap">Actual End Date</th>
               <th className="px-3 py-2 font-medium whitespace-nowrap">Utilized Hours</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Task Timer</th>
               <th className="px-3 py-2 font-medium whitespace-nowrap">Stage</th>
               <th className="px-3 py-2 font-medium whitespace-nowrap">Assigned Resources</th>
               <th className="px-3 py-2 font-medium whitespace-nowrap text-right">Actions</th>
@@ -1862,7 +1963,7 @@ function DhTasksTab({ project }: { project: Project }) {
           <tbody className="divide-y divide-border">
             {project.tasks.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={12} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   No services — create this project via Assign WBS to populate tasks.
                 </td>
               </tr>
@@ -1943,6 +2044,10 @@ function DhTasksTab({ project }: { project: Project }) {
                     <span className="inline-flex items-center justify-center h-7 rounded-md border border-border bg-muted px-2 text-xs text-muted-foreground whitespace-nowrap cursor-not-allowed select-none">
                       {utilizedDisplay}
                     </span>
+                  </td>
+                  {/* Task Timer — shared state with Bucket List */}
+                  <td className="px-3 py-2.5 text-center align-middle">
+                    <TaskTimerCell taskId={t.id} projectId={project.id} />
                   </td>
                   {/* Stage — editable select */}
                   <td className="px-3 py-2.5 text-center align-middle">
@@ -3973,14 +4078,15 @@ function getClientInfo(clientId: string) {
   return {
     name: client.name,
     type: client.clientType || "NEW",
-    previousPmIds: client.previousPmIds || []
+    previousPmIds: client.previousPmIds || [],
+    contractType: client.contractType
   };
 }
 
 function WbsPrerequisiteSection({ project }: { project: Project }) {
   const snapshot = useDhStore((s) => s);
   const prereqs = snapshot.prereqs;
-  const { user } = useRoleContext();
+  const { user, isDhanshree } = useRoleContext();
   const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
   // Per-service "Ready to Start" state — tracks which services have been marked ready
   const [serviceReady, setServiceReady] = useState<Record<string, boolean>>({});
@@ -4135,6 +4241,12 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                   {clientInfo?.type === "NEW" ? "🆕 NEW" : "🔄 OLD"}
                 </span>
               </div>
+              {isDhanshree && clientInfo?.contractType && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Contract Type</span>
+                  <span className="font-semibold text-gray-800">{clientInfo.contractType}</span>
+                </div>
+              )}
             </div>
 
             {/* Previously Assigned Project Managers display */}

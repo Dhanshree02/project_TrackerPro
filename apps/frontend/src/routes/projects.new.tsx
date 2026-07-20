@@ -748,7 +748,7 @@ function WbsNewProjectPage() {
                   </div>
                   {selectedClient && (
                     <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>
-                      {selectedClient.industry} · {selectedClient.contact}
+                      {selectedClient.industry} · {selectedClient.contact}{selectedClient.contractType ? ` · ${selectedClient.contractType}` : ""}
                     </div>
                   )}
                 </div>

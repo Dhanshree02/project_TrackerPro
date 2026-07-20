@@ -468,6 +468,7 @@ interface DhState {
   projectTeamAdditions: Record<string, string[]>;
   leadershipChangeRequests: LeadershipChangeRequest[];
   leadershipAssignments: Record<string, { emIds: string[]; spmIds: string[]; pmIds: string[]; tlIds: string[] }>;
+  taskTimers: Record<string, { accumulated: number; startedAt: number | null; running: boolean; completed: boolean }>;
   timesheets: DhTimesheet[];
   approvals: DhCentralApproval[];
   onboardedResources: OnboardedResource[];
@@ -824,6 +825,7 @@ const state: DhState = {
   projectTeamAdditions: {},
   leadershipChangeRequests: [],
   leadershipAssignments: {},
+  taskTimers: {},
   timesheets: baseTimesheets.map(t => ({
     ...t,
     comments: t.rejectionReason ? [{
@@ -1289,6 +1291,7 @@ export const dhStore = {
       logo,
       engagementManager: input.engagementManager,
       companyName: input.companyName,
+      contractType: input.contractType,
       // If a sub-venture name was provided during onboarding, seed subVentures with it
       subVentures: input.companyName?.trim()
         ? [...(input.subVentures ?? []), input.companyName.trim()]
@@ -2009,6 +2012,43 @@ export const dhStore = {
       const dd = String(d.getDate()).padStart(2, "0");
       task.actualEndDate = `${y}-${m}-${dd}`;
     }
+    emit();
+  },
+
+  // ---------- Task Status (Bucket List + Project Tasks sync) ----------
+  updateTaskStatus(projectId: string, taskId: string, newStatus: string) {
+    // Try extra projects first (created via WBS)
+    const extraProj = state.extraProjects.find((p) => p.id === projectId);
+    if (extraProj) {
+      const task = extraProj.tasks.find((t) => t.id === taskId);
+      if (task) { (task as any).status = newStatus; emit(); return; }
+    }
+    // For base mock projects — mutate the imported array directly
+    const baseProj = baseProjects.find((p) => p.id === projectId);
+    if (baseProj) {
+      const task = baseProj.tasks.find((t) => t.id === taskId);
+      if (task) { (task as any).status = newStatus; }
+    }
+    emit();
+  },
+
+  // ---------- Task Timer ----------
+  updateTaskTimer(taskId: string, action: "start" | "pause" | "resume" | "complete") {
+    const now = Date.now();
+    const existing = state.taskTimers[taskId] ?? { accumulated: 0, startedAt: null, running: false, completed: false };
+
+    let updated = { ...existing };
+    if (action === "start" || action === "resume") {
+      updated = { ...updated, startedAt: now, running: true, completed: false };
+    } else if (action === "pause") {
+      const elapsed = existing.startedAt ? now - existing.startedAt : 0;
+      updated = { ...updated, accumulated: existing.accumulated + elapsed, startedAt: null, running: false };
+    } else if (action === "complete") {
+      const elapsed = existing.startedAt ? now - existing.startedAt : 0;
+      updated = { ...updated, accumulated: existing.accumulated + elapsed, startedAt: null, running: false, completed: true };
+    }
+
+    state.taskTimers = { ...state.taskTimers, [taskId]: updated };
     emit();
   },
 

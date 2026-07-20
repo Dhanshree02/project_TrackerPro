@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Search, Filter, Plus, Send, Trash2, Clock, MessageSquare, Copy, X, CheckCircle2, XCircle, RotateCcw, AlertTriangle, AlertCircle, Calendar, DollarSign, Check, ExternalLink, ShieldAlert, ListFilter, User, Paperclip, Bell, Archive } from "lucide-react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { Search, Filter, Plus, Send, Trash2, Clock, MessageSquare, Copy, X, CheckCircle2, XCircle, RotateCcw, AlertTriangle, AlertCircle, Calendar, DollarSign, Check, ExternalLink, ShieldAlert, ListFilter, User, Paperclip, Bell, Archive, Play, Pause, Square } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { getPerson, people, type TaskStatus, type CellCommentData, type CellCommentMessage } from "@/lib/mock-data";
@@ -75,6 +75,133 @@ type BucketRow = {
   status: TaskStatus;
   assignedById: string;
 };
+
+// ---------- Task Timer Cell ----------
+function formatElapsed(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function formatTotalTime(ms: number): string {
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function TaskTimerCell({ taskId, projectId }: { taskId: string; projectId: string }) {
+  const timerState = useDhStore((s) => s.taskTimers[taskId]);
+  const [display, setDisplay] = useState("00:00:00");
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const accumulated = timerState?.accumulated ?? 0;
+  const startedAt = timerState?.startedAt ?? null;
+  const running = timerState?.running ?? false;
+  const completed = timerState?.completed ?? false;
+
+  // Live tick
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (running && startedAt) {
+      const tick = () => {
+        const total = accumulated + (Date.now() - startedAt);
+        setDisplay(formatElapsed(total));
+      };
+      tick();
+      intervalRef.current = setInterval(tick, 1000);
+    } else {
+      setDisplay(formatElapsed(accumulated));
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [running, startedAt, accumulated]);
+
+  const handleStart = useCallback(() => {
+    dhStore.updateTaskTimer(taskId, "start");
+    dhStore.updateTaskStatus(projectId, taskId, "in_progress");
+  }, [taskId, projectId]);
+
+  const handlePause = useCallback(() => {
+    dhStore.updateTaskTimer(taskId, "pause");
+  }, [taskId]);
+
+  const handleResume = useCallback(() => {
+    dhStore.updateTaskTimer(taskId, "resume");
+    dhStore.updateTaskStatus(projectId, taskId, "in_progress");
+  }, [taskId, projectId]);
+
+  const handleComplete = useCallback(() => {
+    dhStore.updateTaskTimer(taskId, "complete");
+    dhStore.updateTaskStatus(projectId, taskId, "done");
+    // Sync utilized hours to project task
+    const finalMs = accumulated + (startedAt ? Date.now() - startedAt : 0);
+    const hours = parseFloat((finalMs / 3600000).toFixed(2));
+    dhStore.updateTaskActuals(projectId, taskId, { utilizedHours: hours });
+    toast.success("Task completed", { description: `Total time: ${formatTotalTime(finalMs)}` });
+  }, [taskId, projectId, accumulated, startedAt]);
+
+  // Completed state
+  if (completed) {
+    return (
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="text-[10px] font-medium text-muted-foreground">Total Time</span>
+        <span className="text-xs font-bold text-success tabular-nums">{formatTotalTime(accumulated)}</span>
+        <span className="text-[9px] text-muted-foreground">Completed</span>
+      </div>
+    );
+  }
+
+  // Running state
+  if (running) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-xs font-bold tabular-nums text-primary">{display}</span>
+        <button
+          onClick={handlePause}
+          className="inline-flex items-center gap-1 rounded-md border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground hover:bg-warning/20 transition-colors"
+        >
+          <Pause className="h-2.5 w-2.5" /> Pause
+        </button>
+      </div>
+    );
+  }
+
+  // Paused state (has accumulated time but not running)
+  if (!running && accumulated > 0) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-xs tabular-nums text-muted-foreground">{display}</span>
+        <div className="flex gap-1">
+          <button
+            onClick={handleResume}
+            className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20 transition-colors"
+          >
+            <Play className="h-2.5 w-2.5" /> Resume
+          </button>
+          <button
+            onClick={handleComplete}
+            className="inline-flex items-center gap-1 rounded-md border border-success/40 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success hover:bg-success/20 transition-colors"
+          >
+            <Square className="h-2.5 w-2.5" /> Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Initial state — no timer yet
+  return (
+    <button
+      onClick={handleStart}
+      className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary hover:bg-primary/20 transition-colors"
+    >
+      <Play className="h-2.5 w-2.5" /> Start
+    </button>
+  );
+}
 
 function BucketList() {
   const { user } = useRoleContext();
@@ -184,12 +311,11 @@ function BucketList() {
               <th className="px-3 py-2 font-medium">Priority</th>
               <th className="px-3 py-2 font-medium">Due Date</th>
               <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Assigned By</th>
+              <th className="px-3 py-2 font-medium text-center">Task Timer</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {filtered.map((r) => {
-              const by = getPerson(r.assignedById);
               return (
                 <tr key={r.taskId} className="hover:bg-accent/30">
                   <td className="px-3 py-2.5">
@@ -200,8 +326,8 @@ function BucketList() {
                   <td className="px-3 py-2.5"><PriorityPill priority={r.priority} /></td>
                   <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">{new Date(r.dueDate).toLocaleDateString()}</td>
                   <td className="px-3 py-2.5"><TaskStatusPill status={r.status} /></td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2"><Avatar name={by.name} size={24} /><span className="text-xs">{by.name}</span></div>
+                  <td className="px-3 py-2.5 text-center">
+                    <TaskTimerCell taskId={r.taskId} projectId={r.projectId} />
                   </td>
                 </tr>
               );

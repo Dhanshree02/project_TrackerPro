@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ChevronRight, Mail, Briefcase } from "lucide-react";
+import { ChevronRight, Mail, Briefcase, FileText } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { clients } from "@/lib/mock-data";
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/clients/$clientId")({
 
 function ClientDetail() {
   const { client } = Route.useLoaderData();
-  const { assignedProjects } = useRoleContext();
+  const { assignedProjects, isDhanshree } = useRoleContext();
   const projs = assignedProjects.filter((p) => p.clientId === client.id);
   
   const completedProjs = projs.filter((p) => p.status === "completed");
@@ -49,6 +49,11 @@ function ClientDetail() {
             <div className="flex items-center gap-2 text-muted-foreground">
               <Mail className="h-4 w-4" /> {client.contact}
             </div>
+            {isDhanshree && client.contractType && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <FileText className="h-4 w-4" /> {client.contractType}
+              </div>
+            )}
             <div className="flex items-center gap-2 text-muted-foreground">
               <Briefcase className="h-4 w-4" /> {projs.length} projects
             </div>

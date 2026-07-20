@@ -169,12 +169,7 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
                   })()}
                 </div>
 
-                {/* Completion indicator */}
-                <div className="mt-1.5 text-center text-[10px]">
-                  {stage.isCompleted && <span className="text-emerald-600 font-semibold">✓ Completed</span>}
-                  {stage.isActive && !stage.isCompleted && <span className="text-blue-600 font-semibold">• Ongoing</span>}
-                  {!stage.isCompleted && !stage.isActive && <span className="text-gray-400">Pending</span>}
-                </div>
+                {/* Completion indicator removed */}
               </div>
             );
           })}
