@@ -1,9 +1,9 @@
 import { createFileRoute, Link, notFound, Navigate, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  ChevronRight, Mail, Building2, ExternalLink,
-  Calendar, Clock, TrendingUp, AlertTriangle, CheckCircle2, PauseCircle, Layers,
-  User, Activity, History, Pencil, Check,
+  ChevronRight, ChevronDown, Mail, Building2, ExternalLink, Phone,
+  TrendingUp, AlertTriangle, CheckCircle2, PauseCircle, Layers,
+  User, Activity, Pencil, Check, X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
@@ -58,6 +58,8 @@ function CustomerDetailPage() {
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
 
   const [filter, setFilter] = useState<FilterTab>("all");
+  const [selectedSpoc, setSelectedSpoc] = useState<number | null>(null);
+  const [svFilter, setSvFilter] = useState<string>("all");
 
   // EM state — initialised from client.engagementManager or derived from projects
   const defaultEM = useMemo(() => {
@@ -96,11 +98,25 @@ function CustomerDetailPage() {
   // Client since = earliest project startDate
   const allDates = allProj.map((p) => p.startDate).filter(Boolean).sort();
   const clientSinceDate = allDates[0] ? new Date(allDates[0]).toLocaleDateString() : "—";
-  const lastEngagementDate = allDates.length > 0 ? new Date(allDates[allDates.length - 1]).toLocaleDateString() : "—";
-  const firstProjectName = allProj.find((p) => p.startDate === allDates[0])?.name ?? "—";
-  const latestProjectName = allProj.find((p) => p.startDate === allDates[allDates.length - 1])?.name ?? "—";
+  const firstProject = allProj.find((p) => p.startDate === allDates[0]);
+  const firstProjectName = firstProject?.name ?? "—";
+  const firstProjectId   = firstProject ? fmtProjectId(firstProject.id) : "—";
 
-  // Filter pool based on selected tab
+  // Build SPOC list from client contact fields
+  const spocs = [
+    {
+      name:        client.contactName ?? client.contact.split("@")[0],
+      email:       client.contact,
+      phone:       (client as any).contactPhone  ?? "—",
+      designation: (client as any).contactDesignation ?? "—",
+      type:        (client as any).contactType   ?? "Primary",
+    },
+  ];
+
+  // Sub-venture list from client
+  const subVentures = client.subVentures ?? [];
+
+  // Filter pool: status tab + sub-venture
   const poolByTab: Record<FilterTab, typeof allProj> = {
     all: allProj,
     new: newProjs,
@@ -109,7 +125,9 @@ function CustomerDetailPage() {
     archived: archivedProjs,
     on_hold: onHoldProjs,
   };
-  const pool = poolByTab[filter];
+  const pool = poolByTab[filter].filter(
+    (p) => svFilter === "all" || p.subVenture === svFilter
+  );
 
   return (
     <AppShell title={client.name} subtitle={`${fmtClientId(client.id)} · ${client.industry} · 360° Client View`}>
@@ -235,7 +253,7 @@ function CustomerDetailPage() {
         {/* ── LEFT SIDEBAR ── */}
         <aside className="xl:col-span-1 space-y-3">
 
-          {/* Client Information */}
+          {/* Client Information — 7 fields */}
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
@@ -244,17 +262,13 @@ function CustomerDetailPage() {
             </div>
             <dl className="divide-y divide-border">
               {[
-                { label: "Client ID", value: fmtClientId(client.id), mono: true },
-                { label: "Client Name", value: client.name },
-                { label: "Industry", value: client.industry },
-                { label: "Contact Person", value: client.contactName ?? client.contact.split("@")[0] },
-                { label: "Email", value: client.contact },
-                { label: "Phone", value: client.contactPhone ?? "—" },
-                { label: "Designation", value: client.contactDesignation ?? "—" },
-                { label: "Contact Type", value: client.contactType ?? "—" },
-                { label: "Client Type", value: client.clientType === "NEW" ? "New Client" : "Existing Client" },
-                { label: "Client Since", value: clientSinceDate },
-                { label: "Status", value: "Active" },
+                { label: "Client ID",           value: fmtClientId(client.id), mono: true },
+                { label: "Client Name",          value: client.name },
+                { label: "Industry",             value: client.industry },
+                { label: "Client Type",          value: client.clientType === "NEW" ? "New Client" : "Existing Client" },
+                { label: "Client Since",         value: clientSinceDate },
+                { label: "First Project",        value: firstProjectName },
+                { label: "First Project ID",     value: firstProjectId, mono: true },
               ].map(({ label, value, mono }) => (
                 <div key={label} className="grid grid-cols-2 gap-2 px-4 py-2.5 text-xs">
                   <dt className="text-muted-foreground font-medium">{label}</dt>
@@ -273,10 +287,10 @@ function CustomerDetailPage() {
             </div>
             <div className="p-4 space-y-2">
               {[
-                { label: "Active Projects", value: ongoingProjs.length + newProjs.length, icon: TrendingUp, color: "text-info" },
-                { label: "At Risk", value: atRiskCount, icon: AlertTriangle, color: atRiskCount > 0 ? "text-destructive" : "text-muted-foreground" },
-                { label: "Completed", value: activeCompleted.length, icon: CheckCircle2, color: "text-success" },
-                { label: "On Hold", value: onHoldProjs.length, icon: PauseCircle, color: "text-warning-foreground" },
+                { label: "Active Projects", value: ongoingProjs.length + newProjs.length, icon: TrendingUp,    color: "text-info" },
+                { label: "At Risk",         value: atRiskCount,                           icon: AlertTriangle, color: atRiskCount > 0 ? "text-destructive" : "text-muted-foreground" },
+                { label: "Completed",       value: activeCompleted.length,                icon: CheckCircle2,  color: "text-success" },
+                { label: "On Hold",         value: onHoldProjs.length,                   icon: PauseCircle,   color: "text-warning-foreground" },
               ].map(({ label, value, icon: Icon, color }) => (
                 <div key={label} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -288,41 +302,111 @@ function CustomerDetailPage() {
               ))}
             </div>
           </div>
-
-          {/* Client Timeline */}
-          <div className="rounded-xl border border-border bg-card shadow-sm">
-            <div className="border-b border-border px-4 py-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                <History className="h-3.5 w-3.5" /> Client Timeline
-              </h2>
-            </div>
-            <div className="p-4 space-y-3">
-              {[
-                { label: "Client Created", value: clientSinceDate, icon: Calendar },
-                { label: "First Project", value: firstProjectName, icon: Layers },
-                { label: "Latest Project", value: latestProjectName, icon: TrendingUp },
-                { label: "Last Engagement", value: lastEngagementDate, icon: Clock },
-              ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="flex items-start gap-2.5 text-xs">
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-muted">
-                    <Icon className="h-3 w-3 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-muted-foreground font-medium">{label}</div>
-                    <div className="font-semibold truncate">{value}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </aside>
+
 
         {/* ── MAIN PROJECTS SECTION ── */}
         <section className="xl:col-span-3 space-y-3">
 
+          {/* ── SPOC Contacts + Sub-venture filter — side by side ── */}
+          <div className="flex gap-3 items-stretch">
 
+            {/* SPOC Contacts */}
+            <div className="flex-1 rounded-xl border border-border bg-card shadow-sm min-w-0">
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" /> SPOC Contacts
+                </h3>
+              </div>
+              <div className="p-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {spocs.map((spoc, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedSpoc(selectedSpoc === i ? null : i)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-all",
+                        selectedSpoc === i
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                      )}
+                    >
+                      <User className="h-3 w-3" />
+                      SPOC {i + 1} — {spoc.name}
+                    </button>
+                  ))}
+                </div>
 
-          {/* Project Table */}
+                {/* SPOC detail card */}
+                {selectedSpoc !== null && spocs[selectedSpoc] && (
+                  <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs relative">
+                    <button
+                      onClick={() => setSelectedSpoc(null)}
+                      className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AvatarBubble name={spocs[selectedSpoc].name} size={28} />
+                      <div>
+                        <div className="font-semibold text-foreground">{spocs[selectedSpoc].name}</div>
+                        <div className="text-[10px] text-muted-foreground">{spocs[selectedSpoc].designation} · {spocs[selectedSpoc].type}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Mail className="h-3 w-3" />
+                        <span className="truncate">{spocs[selectedSpoc].email}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Phone className="h-3 w-3" />
+                        <span>{spocs[selectedSpoc].phone}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sub-venture filter */}
+            {subVentures.length > 0 && (
+              <div className="w-72 shrink-0 rounded-xl border border-border bg-card shadow-sm">
+                <div className="border-b border-border px-4 py-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                    <Layers className="h-3.5 w-3.5" /> Filter by Sub-venture
+                  </h3>
+                </div>
+                <div className="p-3 space-y-2">
+                  <div className="relative">
+                    <select
+                      value={svFilter}
+                      onChange={(e) => setSvFilter(e.target.value)}
+                      className="h-8 w-full rounded-md border border-border bg-card pr-7 pl-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring appearance-none"
+                    >
+                      <option value="all">All Sub-ventures</option>
+                      {subVentures.map((sv) => (
+                        <option key={sv} value={sv}>{sv}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  {svFilter !== "all" && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground truncate max-w-[160px]">
+                        <span className="font-medium text-foreground">{pool.length}</span> project{pool.length !== 1 ? "s" : ""}
+                      </span>
+                      <button
+                        onClick={() => setSvFilter("all")}
+                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      >
+                        <X className="h-2.5 w-2.5" /> Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
             <header className="flex items-center justify-between border-b border-border px-5 py-3">
               <div>
@@ -349,6 +433,7 @@ function CustomerDetailPage() {
                     <tr>
                       <th className="px-4 py-2.5 font-medium">Project ID</th>
                       <th className="px-4 py-2.5 font-medium">Project Name</th>
+                      <th className="px-4 py-2.5 font-medium">Sub-venture</th>
                       <th className="px-4 py-2.5 font-medium">Status</th>
                       <th className="px-4 py-2.5 font-medium">Progress</th>
                       <th className="px-4 py-2.5 font-medium">PM</th>
@@ -395,6 +480,16 @@ function CustomerDetailPage() {
                                 <div className="truncate text-[11px] text-muted-foreground">{p.description}</div>
                               </div>
                             </div>
+                          </td>
+                          {/* Sub-venture */}
+                          <td className="px-4 py-3">
+                            {p.subVenture ? (
+                              <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info max-w-[140px] truncate">
+                                {p.subVenture}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <StatusPill status={p.status} />
