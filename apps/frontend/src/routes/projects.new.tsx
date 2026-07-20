@@ -119,6 +119,23 @@ const INVOICE_TEMPLATES: Record<string, { milestone: string; pct: number }[]> = 
   "Quarterly Advance": [{ milestone: "Quarterly Advance", pct: 100 }],
 };
 
+const PERCENTAGE_MILESTONES: Record<string, { milestone: string; pct: number }[]> = {
+  "100% Advance": [{ milestone: "100% Advance", pct: 100 }],
+  "70% Advance + 30% on Delivery": [
+    { milestone: "70% Advance", pct: 70 },
+    { milestone: "30% on Delivery", pct: 30 }
+  ],
+  "50% Advance + 50% on Delivery": [
+    { milestone: "50% Advance", pct: 50 },
+    { milestone: "50% on Delivery", pct: 50 }
+  ],
+  "50% Advance + 25% on Initial Assessment + 25% on Delivery": [
+    { milestone: "50% Advance", pct: 50 },
+    { milestone: "25% on Initial Assessment", pct: 25 },
+    { milestone: "25% on Delivery", pct: 25 }
+  ],
+};
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "د.إ", SGD: "S$", AUD: "A$", JPY: "¥", CAD: "C$", CHF: "Fr",
 };
@@ -152,13 +169,20 @@ interface ServiceRow {
 
 interface InvoiceRow {
   rowId: string;
+  serviceId: string;
+  serviceName: string;
   milestone: string;
-  invoiceDate: string;
+  targetDate: string;
   unitPrice: number;
   qty: number;
   currency: string;
   amount: number;
-  description: string;
+  invoiceStatus: string;
+  invoiceNumber: string;
+  paymentStatus: string;
+  paymentDate: string;
+  invoiceDate?: string;
+  description?: string;
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -259,6 +283,7 @@ function WbsNewProjectPage() {
   const [contactNumber, setContactNumber] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [invoiceRows, setInvoiceRows] = useState<InvoiceRow[]>([]);
+  const [hoveredInvoiceRowId, setHoveredInvoiceRowId] = useState<string | null>(null);
 
   // ── Tax ──
   const [taxPercent, setTaxPercent] = useState(18);
@@ -319,7 +344,23 @@ function WbsNewProjectPage() {
       });
       setServiceRows(sanitizedRows);
     }
-    if (snap.invoiceRows?.length) setInvoiceRows(snap.invoiceRows);
+    if (snap.invoiceRows?.length) {
+      setInvoiceRows(snap.invoiceRows.map((inv: any) => ({
+        rowId: inv.rowId || inv.id || "",
+        serviceId: inv.serviceId || "",
+        serviceName: inv.serviceName || "",
+        milestone: inv.milestone || "",
+        targetDate: inv.targetDate || inv.invoiceDate || "",
+        unitPrice: inv.unitPrice || inv.amount || 0,
+        qty: inv.qty || 1,
+        currency: inv.currency || "INR",
+        amount: inv.amount || 0,
+        invoiceStatus: inv.invoiceStatus || "Not Raised",
+        invoiceNumber: inv.invoiceNumber || inv.remarks || "",
+        paymentStatus: inv.paymentStatus || "Not Received",
+        paymentDate: inv.paymentDate || "",
+      })));
+    }
     // also restore client search display
     const restoredClient = clients.find((c) => c.id === snap.selectedClientId);
     if (restoredClient) setClientSearch(restoredClient.name);
@@ -472,29 +513,132 @@ function WbsNewProjectPage() {
     setBillingModel(model);
     // Payment Terms is only editable when Custom — always clear it on any change
     setPaymentTerms("");
-    // Build invoice rows from template
-    const template = INVOICE_TEMPLATES[model];
-    if (!template) { setInvoiceRows([]); return; }
-    setInvoiceRows(
-      template.map((t, i) => ({
-        rowId: `inv-${i}`, milestone: t.milestone, invoiceDate: "",
-        unitPrice: Math.round((billSubtotal * t.pct) / 100),
-        qty: 1, currency, amount: Math.round((billSubtotal * t.pct) / 100),
-        description: "",
-      }))
-    );
   }
 
-  function updateInvoiceRow<K extends keyof InvoiceRow>(rowId: string, field: K, value: InvoiceRow[K]) {
+  // Helper to update specific fields on an invoice row
+  function updateInvoiceRowField<K extends keyof InvoiceRow>(rowId: string, field: K, value: InvoiceRow[K]) {
     setInvoiceRows((prev) =>
       prev.map((r) => {
         if (r.rowId !== rowId) return r;
-        const updated = { ...r, [field]: value };
-        updated.amount = Number(updated.unitPrice) * Number(updated.qty);
-        return updated;
+        return { ...r, [field]: value };
       })
     );
   }
+
+  // Hook to dynamically regenerate Invoice Rows based on WBS and Billing Model configuration
+  const servicesDependency = JSON.stringify(
+    serviceRows.map(r => ({
+      id: r.rowId,
+      name: r.name,
+      qty: r.qty,
+      unitPrice: r.unitPrice,
+      frequency: r.frequency,
+    }))
+  );
+
+  useEffect(() => {
+    if (!billingModel) {
+      setInvoiceRows([]);
+      return;
+    }
+
+    const currentYear = new Date().getFullYear();
+    let nextSeq = 1;
+    // Look up max invoice number sequence from CURRENT invoiceRows to preserve numbering
+    invoiceRows.forEach((r) => {
+      const prefix = `INV-${currentYear}-`;
+      if (r.invoiceNumber && r.invoiceNumber.startsWith(prefix)) {
+        const seqStr = r.invoiceNumber.replace(prefix, "");
+        const seq = parseInt(seqStr, 10);
+        if (!isNaN(seq) && seq >= nextSeq) {
+          nextSeq = seq + 1;
+        }
+      }
+    });
+
+    const nextRows: InvoiceRow[] = [];
+
+    // Helper to build a row (preserving if match exists)
+    const getOrCreateRow = (serviceId: string, serviceName: string, milestone: string, unitPrice: number, qty: number, currency: string, calculatedAmount: number): InvoiceRow => {
+      const lookupKey = `${serviceId}::${milestone}`;
+      const existing = invoiceRows.find((r) => r.rowId === lookupKey);
+
+      if (existing) {
+        // Preserve existing user-entered fields, but update calculated fields (currency, amount, serviceName)
+        return {
+          ...existing,
+          serviceName,
+          unitPrice,
+          qty,
+          currency,
+          amount: calculatedAmount,
+        };
+      } else {
+        // Generate new invoice number
+        const invoiceNumber = `INV-${currentYear}-${String(nextSeq).padStart(4, "0")}`;
+        nextSeq++;
+
+        return {
+          rowId: lookupKey,
+          serviceId,
+          serviceName,
+          milestone,
+          targetDate: "",
+          unitPrice,
+          qty,
+          currency,
+          amount: calculatedAmount,
+          invoiceStatus: "Not Raised",
+          invoiceNumber,
+          paymentStatus: "Not Received",
+          paymentDate: "",
+        };
+      }
+    };
+
+    const getMonthlyPeriods = (freq: string): number => {
+      if (freq === "Once") return 1;
+      if (freq === "Half yearly") return 6;
+      if (freq === "Yearly") return 12;
+      return 1;
+    };
+
+    const getQuarterlyPeriods = (freq: string): number => {
+      if (freq === "Once") return 1;
+      if (freq === "Half yearly") return 2;
+      if (freq === "Yearly") return 4;
+      return 1;
+    };
+
+    // 2. Generate rows based on Billing Model
+    if (PERCENTAGE_MILESTONES[billingModel]) {
+      const milestones = PERCENTAGE_MILESTONES[billingModel];
+      serviceRows.forEach((s) => {
+        milestones.forEach((m) => {
+          const amount = Math.round((s.unitPrice * s.qty * m.pct) / 100);
+          nextRows.push(getOrCreateRow(s.rowId, s.name, m.milestone, s.unitPrice, s.qty, currency, amount));
+        });
+      });
+    } else if (billingModel === "Monthly Arrears" || billingModel === "Monthly Advance") {
+      serviceRows.forEach((s) => {
+        const periods = getMonthlyPeriods(s.frequency);
+        for (let m = 1; m <= periods; m++) {
+          const amount = Math.round((s.unitPrice * s.qty) / periods);
+          nextRows.push(getOrCreateRow(s.rowId, s.name, `Month ${m}`, s.unitPrice, s.qty, currency, amount));
+        }
+      });
+    } else if (billingModel === "Quarterly Arrears" || billingModel === "Quarterly Advance") {
+      serviceRows.forEach((s) => {
+        const periods = getQuarterlyPeriods(s.frequency);
+        for (let q = 1; q <= periods; q++) {
+          const amount = Math.round((s.unitPrice * s.qty) / periods);
+          nextRows.push(getOrCreateRow(s.rowId, s.name, `Quarter ${q}`, s.unitPrice, s.qty, currency, amount));
+        }
+      });
+    }
+
+    setInvoiceRows(nextRows);
+  }, [billingModel, currency, servicesDependency]);
 
   // Filter departments based on Contract Type
   const allowedDepts = Object.keys(DEPT_SERVICES).filter((dept) => {
@@ -544,8 +688,21 @@ function WbsNewProjectPage() {
         contactName, contactNumber, contactEmail,
         poFileName: poFile ? poFile.name : "",
         invoices: invoiceRows.map((inv) => ({
-          id: inv.rowId, milestone: inv.milestone, amount: inv.amount,
-          invoiceDate: inv.invoiceDate, remarks: inv.description,
+          id: inv.rowId,
+          serviceId: inv.serviceId,
+          serviceName: inv.serviceName,
+          milestone: inv.milestone,
+          targetDate: inv.targetDate,
+          invoiceDate: inv.targetDate, // compatibility
+          unitPrice: inv.unitPrice,
+          qty: inv.qty,
+          currency: inv.currency,
+          amount: inv.amount,
+          invoiceStatus: inv.invoiceStatus,
+          invoiceNumber: inv.invoiceNumber,
+          paymentStatus: inv.paymentStatus,
+          paymentDate: inv.paymentDate,
+          remarks: inv.invoiceNumber, // compatibility
         })),
       },
     };
@@ -837,12 +994,19 @@ function WbsNewProjectPage() {
                             if (p.wbsDetails?.accounts?.invoices) {
                               const restoredInvoices = p.wbsDetails.accounts.invoices.map((inv: any) => ({
                                 rowId: inv.id,
+                                serviceId: inv.serviceId || "",
+                                serviceName: inv.serviceName || "",
                                 milestone: inv.milestone,
-                                invoiceDate: inv.invoiceDate,
-                                unitPrice: inv.amount,
-                                qty: 1,
-                                currency: p.currency || "INR",
+                                targetDate: inv.targetDate || inv.invoiceDate || "",
+                                unitPrice: inv.unitPrice || inv.amount || 0,
+                                qty: inv.qty || 1,
+                                currency: inv.currency || p.currency || "INR",
                                 amount: inv.amount,
+                                invoiceStatus: inv.invoiceStatus || "Not Raised",
+                                invoiceNumber: inv.invoiceNumber || inv.remarks || "",
+                                paymentStatus: inv.paymentStatus || "Not Received",
+                                paymentDate: inv.paymentDate || "",
+                                invoiceDate: inv.invoiceDate || "",
                                 description: inv.remarks || "",
                               }));
                               setInvoiceRows(restoredInvoices);
@@ -1380,17 +1544,17 @@ function WbsNewProjectPage() {
             </FormGroup>
           </div>
 
-          {/* Currency */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: "#f3f4f6", borderRadius: 6, marginBottom: 16 }}>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Currency:</label>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={{ ...inputStyle(false), flex: "0 0 120px" }}>
-              {Object.keys(CURRENCY_SYMBOLS).map((c) => <option key={c} value={c}>{c} — {CURRENCY_SYMBOLS[c]}</option>)}
-            </select>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>1 {currency} = {CURRENCY_SYMBOLS[currency]}{currency === "INR" ? "1.00" : "varies"}</span>
-          </div>
-
-          {/* PO Status */}
+          {/* Currency & PO Status */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 16 }}>
+            <FormGroup label="Currency">
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "#f3f4f6", borderRadius: 6, height: 38, boxSizing: "border-box" }}>
+                <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={{ ...inputStyle(false), flex: "0 0 100px", height: 26, padding: "2px 6px", fontSize: 12 }}>
+                  {Object.keys(CURRENCY_SYMBOLS).map((c) => <option key={c} value={c}>{c} — {CURRENCY_SYMBOLS[c]}</option>)}
+                </select>
+                <span style={{ fontSize: 11, color: "#6b7280", whiteSpace: "nowrap" }}>1 {currency} = {CURRENCY_SYMBOLS[currency]}{currency === "INR" ? "1.00" : "varies"}</span>
+              </div>
+            </FormGroup>
+
             <FormGroup label="PO Status" required>
               <select value={poStatus} onChange={(e) => {
                 const val = e.target.value;
@@ -1404,6 +1568,189 @@ function WbsNewProjectPage() {
               </select>
             </FormGroup>
           </div>
+
+          {/* Invoice Details Section */}
+          {billingModel && invoiceRows.length > 0 && (
+            <div style={{ marginTop: 24, marginBottom: 24 }}>
+              <label style={{ fontWeight: 600, fontSize: 14, display: "block", marginBottom: 10, color: "#1a5490" }}>
+                Invoice Details
+              </label>
+              <div style={{ overflowX: "auto", maxHeight: "400px", border: "1px solid #e5e7eb", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead style={{ background: "#f9fafb", position: "sticky", top: 0, zIndex: 10 }}>
+                    {(() => {
+                      const thStyleOverride: React.CSSProperties = {
+                        padding: "12px 10px",
+                        fontWeight: 600,
+                        color: "#4b5563",
+                        borderBottom: "2px solid #e5e7eb",
+                        textAlign: "center",
+                        verticalAlign: "middle",
+                        fontSize: 11,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      };
+                      return (
+                        <tr>
+                          <th style={{ ...thStyleOverride, minWidth: 160 }}>Service Name</th>
+                          <th style={{ ...thStyleOverride, minWidth: 140 }}>Milestone / Period</th>
+                          <th style={{ ...thStyleOverride, minWidth: 130 }}>Invoice Target Date</th>
+                          <th style={{ ...thStyleOverride, minWidth: 100 }}>Unit Price</th>
+                          <th style={{ ...thStyleOverride, minWidth: 60 }}>Qty</th>
+                          <th style={{ ...thStyleOverride, minWidth: 80 }}>Currency</th>
+                          <th style={{ ...thStyleOverride, minWidth: 120 }}>Invoice Amount</th>
+                          <th style={{ ...thStyleOverride, minWidth: 120 }}>Invoice Status</th>
+                          <th style={{ ...thStyleOverride, minWidth: 130 }}>Invoice Number</th>
+                          <th style={{ ...thStyleOverride, minWidth: 120 }}>Payment Status</th>
+                          <th style={{ ...thStyleOverride, minWidth: 130 }}>Date of Payment Received</th>
+                        </tr>
+                      );
+                    })()}
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const serviceGroupColors = [
+                        "#f0f7ff", // Soft Pastel Blue (Azure-like)
+                        "#f0fdf4", // Soft Pastel Green (Google Cloud-like)
+                        "#fffbeb", // Soft Pastel Yellow/Amber
+                        "#fdf2f8", // Soft Pastel Pink
+                        "#faf5ff", // Soft Pastel Purple
+                      ];
+                      
+                      const getHoverColor = (color: string) => {
+                        switch (color) {
+                          case "#f0f7ff": return "#e7f2ff";
+                          case "#f0fdf4": return "#e6faf0";
+                          case "#fffbeb": return "#fff9db";
+                          case "#fdf2f8": return "#fdf0f7";
+                          case "#faf5ff": return "#fbf3ff";
+                          default: return "#f9fafb";
+                        }
+                      };
+
+                      const uniqueServiceIds = Array.from(new Set(invoiceRows.map(r => r.serviceId)));
+                      const serviceColorMap: Record<string, string> = {};
+                      uniqueServiceIds.forEach((id, idx) => {
+                        serviceColorMap[id] = serviceGroupColors[idx % serviceGroupColors.length];
+                      });
+
+                      const tdStyleOverride: React.CSSProperties = {
+                        padding: "10px 8px",
+                        borderBottom: "1px solid #f3f4f6",
+                        verticalAlign: "middle",
+                        textAlign: "center",
+                        fontSize: 12,
+                      };
+
+                      const invInputStyle: React.CSSProperties = {
+                        ...tblInputStyle,
+                        textAlign: "center",
+                        textAlignLast: "center",
+                        margin: "0 auto",
+                      };
+
+                      return invoiceRows.map((inv) => {
+                        const isHovered = hoveredInvoiceRowId === inv.rowId;
+                        const baseBg = serviceColorMap[inv.serviceId] || "#ffffff";
+                        const bg = isHovered ? getHoverColor(baseBg) : baseBg;
+
+                        const rowStyle: React.CSSProperties = {
+                          backgroundColor: bg,
+                          transition: "background-color 0.15s ease",
+                        };
+
+                        return (
+                          <tr
+                            key={inv.rowId}
+                            style={rowStyle}
+                            onMouseEnter={() => setHoveredInvoiceRowId(inv.rowId)}
+                            onMouseLeave={() => setHoveredInvoiceRowId(null)}
+                          >
+                            {/* Service Name */}
+                            <td style={{ ...tdStyleOverride, fontWeight: 500, color: "#374151" }}>{inv.serviceName}</td>
+                            
+                            {/* Milestone / Period */}
+                            <td style={tdStyleOverride}>
+                              <span style={{ display: "inline-flex", alignItems: "center", background: "rgba(255, 255, 255, 0.7)", border: "1px solid rgba(0, 0, 0, 0.05)", color: "#374151", padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: 600 }}>
+                                {inv.milestone}
+                              </span>
+                            </td>
+
+                            {/* Invoice Target Date */}
+                            <td style={tdStyleOverride}>
+                              <input
+                                type="date"
+                                value={inv.targetDate}
+                                onChange={(e) => updateInvoiceRowField(inv.rowId, "targetDate", e.target.value)}
+                                style={invInputStyle}
+                              />
+                            </td>
+
+                            {/* Unit Price */}
+                            <td style={{ ...tdStyleOverride, fontWeight: 500 }}>
+                              {CURRENCY_SYMBOLS[inv.currency] || ""}{inv.unitPrice.toLocaleString()}
+                            </td>
+
+                            {/* Qty */}
+                            <td style={tdStyleOverride}>{inv.qty}</td>
+
+                            {/* Currency */}
+                            <td style={{ ...tdStyleOverride, fontWeight: 500 }}>{inv.currency}</td>
+
+                            {/* Invoice Amount */}
+                            <td style={{ ...tdStyleOverride, fontWeight: 600, color: "#1a5490" }}>
+                              {CURRENCY_SYMBOLS[inv.currency] || ""}{inv.amount.toLocaleString()}
+                            </td>
+
+                            {/* Invoice Status */}
+                            <td style={tdStyleOverride}>
+                              <select
+                                value={inv.invoiceStatus}
+                                onChange={(e) => updateInvoiceRowField(inv.rowId, "invoiceStatus", e.target.value)}
+                                style={invInputStyle}
+                              >
+                                <option value="Not Raised">Not Raised</option>
+                                <option value="Raised">Raised</option>
+                              </select>
+                            </td>
+
+                            {/* Invoice Number */}
+                            <td style={tdStyleOverride}>
+                              <code style={{ fontFamily: "monospace", fontSize: 11, background: "rgba(255, 255, 255, 0.6)", padding: "2px 6px", border: "1px solid rgba(0, 0, 0, 0.08)", borderRadius: 4 }}>
+                                {inv.invoiceNumber}
+                              </code>
+                            </td>
+
+                            {/* Payment Status */}
+                            <td style={tdStyleOverride}>
+                              <select
+                                value={inv.paymentStatus}
+                                onChange={(e) => updateInvoiceRowField(inv.rowId, "paymentStatus", e.target.value)}
+                                style={invInputStyle}
+                              >
+                                <option value="Not Received">Not Received</option>
+                                <option value="Received">Received</option>
+                              </select>
+                            </td>
+
+                            {/* Date of Payment Received */}
+                            <td style={tdStyleOverride}>
+                              <input
+                                type="date"
+                                value={inv.paymentDate}
+                                onChange={(e) => updateInvoiceRowField(inv.rowId, "paymentDate", e.target.value)}
+                                style={invInputStyle}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* PO Details (conditional) */}
           {poStatus === "PO Received" && (
