@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
-import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown } from "lucide-react";
+import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
@@ -1052,6 +1052,10 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
   // Reactive leadership assignments from store (Dhanshree overrides)
   const leadershipAssignment = useDhStore((s) => s.leadershipAssignments[project.id] ?? null);
 
+  const client = useMemo(() => {
+    return allClients().find((c) => c.id === project.clientId);
+  }, [project.clientId]);
+
   const ems: Person[] = useMemo(() => {
     if (leadershipAssignment?.emIds?.length) return leadershipAssignment.emIds.map(getPerson).filter(Boolean) as Person[];
     return getProjectEMs(project);
@@ -1183,8 +1187,45 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
         )}
       </div>
       {isDhanshree && (
-        <aside className="space-y-3 rounded-lg border border-border bg-accent/30 p-4">
-          <ExtensionRequestCard project={project} />
+        <aside className="space-y-3">
+          {client && (
+            <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border pb-2">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" /> Client Information
+              </h3>
+              <div className="space-y-2 text-xs">
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Client Name</span>
+                  <Link to="/clients/$clientId" params={{ clientId: client.id }} className="font-semibold text-primary hover:underline block truncate">
+                    {client.name}
+                  </Link>
+                </div>
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Contact Person</span>
+                  <span className="font-medium text-foreground block truncate">{client.contactName ?? client.contact.split("@")[0]}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Email</span>
+                  <span className="font-medium text-foreground block truncate">{client.contact}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Phone</span>
+                  <span className="font-medium text-foreground block">{client.contactPhone ?? "—"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Designation</span>
+                  <span className="font-medium text-foreground block truncate">{client.contactDesignation ?? "—"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Contact Type</span>
+                  <span className="font-semibold text-primary block">{client.contactType ?? "—"}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="rounded-lg border border-border bg-accent/30 p-4">
+            <ExtensionRequestCard project={project} />
+          </div>
         </aside>
       )}
     </div>

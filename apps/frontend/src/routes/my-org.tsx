@@ -11,7 +11,6 @@ import {
   X,
   Code2,
   ClipboardList,
-  Headphones,
   type LucideIcon,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -87,13 +86,6 @@ const seedCategories: OrgCategory[] = [
     iconName: "FileText",
     accentColor: "green",
   },
-  {
-    id: "help-desk",
-    name: "Help Desk",
-    description: "Help desk resources, FAQs, and support guides for employees.",
-    iconName: "Headphones",
-    accentColor: "amber",
-  },
 ];
 
 const seedDocuments: OrgDocument[] = [
@@ -113,11 +105,6 @@ const seedDocuments: OrgDocument[] = [
   { id: "doc-011", name: "Remote Work Policy.pdf", categoryId: "policy-docs", size: 614400, fileType: "pdf", lastUpdated: "2026-03-10", uploadedBy: "Vikrant Malhotra" },
   { id: "doc-012", name: "Data Privacy and GDPR Guidelines.pdf", categoryId: "policy-docs", size: 2097152, fileType: "pdf", lastUpdated: "2026-02-14", uploadedBy: "Anita Desai" },
   { id: "doc-013", name: "Leave and Attendance Policy.pdf", categoryId: "policy-docs", size: 819200, fileType: "pdf", lastUpdated: "2026-04-01", uploadedBy: "Anita Desai" },
-  // ── Help Desk ──
-  { id: "doc-014", name: "New Employee IT Setup Guide.pdf", categoryId: "help-desk", size: 1310720, fileType: "pdf", lastUpdated: "2026-05-15", uploadedBy: "Vikram Shah" },
-  { id: "doc-015", name: "VPN Access Troubleshooting Guide.docx", categoryId: "help-desk", size: 491520, fileType: "docx", lastUpdated: "2026-04-28", uploadedBy: "Vikram Shah" },
-  { id: "doc-016", name: "Helpdesk Ticket Escalation Process.pdf", categoryId: "help-desk", size: 368640, fileType: "pdf", lastUpdated: "2026-06-08", uploadedBy: "Rahul Gupta" },
-  { id: "doc-017", name: "Software Access Request Form.docx", categoryId: "help-desk", size: 245760, fileType: "docx", lastUpdated: "2026-05-02", uploadedBy: "Riya Kapoor" },
 ];
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -172,7 +159,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Code2,
   ClipboardList,
   FileText,
-  Headphones,
 };
 
 const ACCENT = {

@@ -1294,6 +1294,10 @@ export const dhStore = {
       subVentures: input.companyName?.trim()
         ? [...(input.subVentures ?? []), input.companyName.trim()]
         : (input.subVentures ?? []),
+      contactName: input.contactName,
+      contactPhone: input.contactPhone,
+      contactDesignation: input.contactDesignation,
+      contactType: input.contactType,
     };
     state.extraClients.push(c);
     emit();

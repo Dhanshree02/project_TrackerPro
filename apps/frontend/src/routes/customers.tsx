@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { LayoutGrid, List, Search, ArrowRight, X, Building2, Plus, ChevronRight, Check } from "lucide-react";
+import { LayoutGrid, List, Search, ArrowRight, X, Building2, Plus, ChevronRight, Check, User, Mail, Phone, ShieldCheck, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { AppShell } from "@/components/app-shell";
@@ -152,7 +152,7 @@ function CustomersPage() {
 }
 
 // ---------- New Client onboarding (stepper) ----------
-interface ContactEntry { name: string; email: string; phone: string; designation: string; }
+interface ContactEntry { name: string; email: string; phone: string; designation: string; contactType: string; }
 interface NewClientState {
   clientName: string; companyName: string; customerId: string;
   companyOwner: string; engagementManager: string; phoneNumber: string; city: string; country: string;
@@ -195,7 +195,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
     createdAt: new Date().toISOString(),
     createdBy: user?.name ?? "Unknown",
     kycFile: null,
-    contacts: [{ name: "", email: "", phone: "", designation: "" }],
+    contacts: [{ name: "", email: "", phone: "", designation: "", contactType: "" }],
     notes: "",
   }));
 
@@ -208,7 +208,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
     setS((p) =>
       p.contacts.length >= MAX_CONTACTS
         ? p
-        : { ...p, contacts: [...p.contacts, { name: "", email: "", phone: "", designation: "" }] }
+        : { ...p, contacts: [...p.contacts, { name: "", email: "", phone: "", designation: "", contactType: "" }] }
     );
 
   const removeContact = (idx: number) =>
@@ -243,6 +243,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       if (!c.email.trim())       return `Contact Email${n} is required`;
       if (!c.phone.trim())       return `Contact Phone${n} is required`;
       if (!c.designation.trim()) return `Designation${n} is required`;
+      if (!c.contactType.trim()) return `Contact Type${n} is required`;
     }
     if (!s.kycFile) return "KYC Document is required";
     return null;
@@ -285,6 +286,10 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           contact: s.contacts[0]?.email ?? "",
           engagementManager: s.engagementManager,
           companyName: s.companyName,
+          contactName: s.contacts[0]?.name ?? "",
+          contactPhone: s.contacts[0]?.phone ?? "",
+          contactDesignation: s.contacts[0]?.designation ?? "",
+          contactType: s.contacts[0]?.contactType ?? "",
         });
         toast.success("Client onboarded", { description: `${s.clientName} added to your directory.` });
       }
@@ -373,7 +378,6 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                             setSelectedExisting(c);
                             setTkSearch(c.name);
                             setTkDropOpen(false);
-                            // Auto-fill from existing client
                             setS((p) => ({
                               ...p,
                               clientName: c.name,
@@ -385,6 +389,15 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                               country: (c as any).country ?? p.country,
                               industry: c.industry ?? p.industry,
                               businessType: (c as any).businessType ?? p.businessType,
+                              contacts: [
+                                {
+                                  name: c.contactName ?? "",
+                                  email: c.contact ?? "",
+                                  phone: c.contactPhone ?? "",
+                                  designation: c.contactDesignation ?? "",
+                                  contactType: c.contactType ?? "",
+                                }
+                              ],
                             }));
                           }}
                         >
@@ -626,6 +639,14 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                 <Field label="Designation" required>
                   <input className={inputCls} placeholder="eg cisco/spoc etc." value={ct.designation} onChange={(e) => updateContact(idx, "designation", e.target.value)} />
                 </Field>
+                <Field label="Contact Type" required>
+                  <select className={inputCls} value={ct.contactType} onChange={(e) => updateContact(idx, "contactType", e.target.value)}>
+                    <option value="">Select contact type</option>
+                    {["Accounts", "Procurement", "Technical SPOC", "Legal"].map((o) => (
+                      <option key={o}>{o}</option>
+                    ))}
+                  </select>
+                </Field>
               </div>
               <div className="mt-3 flex items-center gap-2">
                 <button
@@ -721,6 +742,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                 <Row label="Email" v={ct.email} />
                 <Row label="Phone" v={ct.phone || "—"} />
                 <Row label="Designation" v={ct.designation || "—"} />
+                <Row label="Contact Type" v={ct.contactType || "—"} />
               </dl>
             ))}
           </div>
@@ -763,6 +785,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
 }
 
 function CustomerDrawer({ client, onClose }: { client: Client; onClose: () => void }) {
+  const { isDhanshree } = useRoleContext();
   const projects = allProjects();
   const projs = projects.filter((p) => p.clientId === client.id);
   const active = projs.filter((p) => p.status !== "completed");
@@ -778,6 +801,35 @@ function CustomerDrawer({ client, onClose }: { client: Client; onClose: () => vo
           </div>
           <button onClick={onClose} className="rounded-md p-2 hover:bg-accent" aria-label="Close"><X className="h-4 w-4" /></button>
         </header>
+
+        {isDhanshree && (
+          <section className="border-b border-border p-4 bg-muted/15">
+            <h3 className="mb-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Contact Person Details</h3>
+            <div className="grid gap-3 sm:grid-cols-2 text-xs">
+              <div className="rounded-lg border border-border bg-card p-2.5 space-y-1">
+                <span className="text-muted-foreground font-medium block">Contact Person</span>
+                <span className="font-semibold text-foreground flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-muted-foreground" />{client.contactName ?? client.contact.split("@")[0]}</span>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-2.5 space-y-1">
+                <span className="text-muted-foreground font-medium block">Email</span>
+                <span className="font-semibold text-foreground flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-muted-foreground" />{client.contact}</span>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-2.5 space-y-1">
+                <span className="text-muted-foreground font-medium block">Phone</span>
+                <span className="font-semibold text-foreground flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{client.contactPhone ?? "—"}</span>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-2.5 space-y-1">
+                <span className="text-muted-foreground font-medium block">Designation</span>
+                <span className="font-semibold text-foreground flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />{client.contactDesignation ?? "—"}</span>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-2.5 sm:col-span-2 space-y-1">
+                <span className="text-muted-foreground font-medium block">Contact Type</span>
+                <span className="font-bold text-primary flex items-center gap-1.5"><Tag className="h-3.5 w-3.5 text-primary/75" />{client.contactType ?? "—"}</span>
+              </div>
+            </div>
+          </section>
+        )}
+
         <Section title="Active Projects" projs={active} empty="No active projects" />
         <Section title="Completed Projects" projs={completed} empty="No completed projects" />
       </div>
