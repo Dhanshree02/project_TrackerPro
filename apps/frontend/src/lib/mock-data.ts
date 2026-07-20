@@ -142,6 +142,14 @@ export interface Project {
 }
 
 
+export interface ClientContact {
+  name: string;
+  email: string;
+  phone?: string;
+  designation?: string;
+  contactType?: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -153,6 +161,11 @@ export interface Client {
   engagementManager?: string;
   companyName?: string;
   subVentures?: string[]; // list of sub-ventures / end-customer divisions
+  contactName?: string;
+  contactPhone?: string;
+  contactDesignation?: string;
+  contactType?: string;
+  contacts?: ClientContact[]; // full list of SPOC persons
 }
 
 export interface IssueComment {
@@ -249,61 +262,75 @@ export const clients: Client[] = [
     contact: "ops@northwind.com", clientType: "OLD", previousPmIds: ["u3", "u4"],
     engagementManager: "Rahul Sharma", companyName: "Northwind Financial Services",
     subVentures: ["Northwind Retail Banking", "Northwind Corporate Banking", "Northwind Digital Payments", "Northwind Treasury Services", "Northwind Wealth Management"],
+    contactName: "Rahul Sharma", contactPhone: "+91 98765 43210", contactDesignation: "IT Manager", contactType: "Technical SPOC",
+    contacts: [
+      { name: "Rahul Sharma",  email: "ops@northwind.com",       phone: "+91 98765 43210", designation: "IT Manager",              contactType: "Technical SPOC"  },
+      { name: "Priya Mehta",   email: "priya.m@northwind.com",   phone: "+91 91234 56789", designation: "VP – Digital Banking",     contactType: "Business SPOC"   },
+    ],
   },
   {
     id: "c2", name: "Helix Pharma", industry: "Healthcare", logo: "HP",
     contact: "it@helix.com", clientType: "OLD", previousPmIds: ["u3", "u4", "u5"],
     engagementManager: "Pradeep Singh", companyName: "Helix Life Sciences",
     subVentures: ["Helix Clinical Research", "Helix Biotech Division", "Helix Manufacturing", "Helix Global Healthcare", "Helix Medical Devices"],
+    contactName: "Sanjay Sen", contactPhone: "+91 98765 43211", contactDesignation: "Procurement Head", contactType: "Procurement"
   },
   {
     id: "c3", name: "Orbit Retail", industry: "Retail", logo: "OR",
     contact: "tech@orbit.com", clientType: "OLD", previousPmIds: ["u3"],
     engagementManager: "Riya Kapoor", companyName: "Orbit Commerce Pvt Ltd",
     subVentures: ["Orbit E-Commerce", "Orbit Hypermarket", "Orbit Fashion", "Orbit Supply Chain", "Orbit Digital Commerce"],
+    contactName: "Aditi Rao", contactPhone: "+91 98765 43212", contactDesignation: "CFO", contactType: "Accounts"
   },
   {
     id: "c4", name: "Zenith Logistics", industry: "Logistics", logo: "ZL",
     contact: "pm@zenith.com", clientType: "NEW", previousPmIds: [],
     engagementManager: "Rahul Sharma", companyName: "Zenith Supply Chain",
     subVentures: ["Zenith Freight Services", "Zenith Warehouse Operations", "Zenith International Logistics", "Zenith Fleet Management", "Zenith Express Delivery"],
+    contactName: "Vikram Malhotra", contactPhone: "+91 98765 43213", contactDesignation: "Legal Counsel", contactType: "Legal"
   },
   {
     id: "c5", name: "Lumen Energy", industry: "Energy", logo: "LE",
     contact: "digital@lumen.com", clientType: "OLD", previousPmIds: ["u4", "u5"],
     engagementManager: "Pradeep Singh", companyName: "Lumen Power Solutions",
     subVentures: ["Lumen Renewable Energy", "Lumen Power Distribution", "Lumen Smart Grid", "Lumen Solar Division", "Lumen Energy Consulting"],
+    contactName: "Arjun Mehta", contactPhone: "+91 98765 43214", contactDesignation: "Operations Manager", contactType: "Technical SPOC"
   },
   {
     id: "c6", name: "CloudSync AI", industry: "Technology", logo: "CA",
     contact: "contact@cloudsync.com", clientType: "NEW", previousPmIds: [],
     engagementManager: "Riya Kapoor", companyName: "CloudSync Technologies",
     subVentures: ["CloudSync AI Platform", "CloudSync Cloud Infrastructure", "CloudSync Data Engineering", "CloudSync Machine Learning", "CloudSync Enterprise Solutions"],
+    contactName: "Neha Gupta", contactPhone: "+91 98765 43215", contactDesignation: "IT Lead", contactType: "Technical SPOC"
   },
   {
     id: "c7", name: "FinTech Global", industry: "Finance", logo: "FG",
     contact: "dev@fintechglobal.com", clientType: "OLD", previousPmIds: ["u3", "u4"],
     engagementManager: "Rahul Sharma", companyName: "FinTech Global Ltd",
     subVentures: ["FinTech Digital Banking", "FinTech Payment Solutions", "FinTech Lending", "FinTech Investment Services", "FinTech Risk & Compliance"],
+    contactName: "Siddharth Shah", contactPhone: "+91 98765 43216", contactDesignation: "Finance VP", contactType: "Accounts"
   },
   {
     id: "c8", name: "MediCare Plus", industry: "Healthcare", logo: "MP",
     contact: "tech@medicareplus.com", clientType: "NEW", previousPmIds: [],
     engagementManager: "Pradeep Singh", companyName: "MediCare Health Solutions",
     subVentures: ["MediCare Hospital Systems", "MediCare Telemedicine", "MediCare Diagnostics", "MediCare Health Analytics", "MediCare Patient Services"],
+    contactName: "Priyanka Joshi", contactPhone: "+91 98765 43217", contactDesignation: "Procurement Mgr", contactType: "Procurement"
   },
   {
     id: "c9", name: "EcoGreen Solutions", industry: "Environment", logo: "EG",
     contact: "projects@ecogreen.com", clientType: "OLD", previousPmIds: ["u5"],
     engagementManager: "Riya Kapoor", companyName: "EcoGreen Sustainability",
     subVentures: ["EcoGreen Waste Management", "EcoGreen Sustainability Consulting", "EcoGreen Renewable Projects", "EcoGreen Water Management", "EcoGreen Carbon Solutions"],
+    contactName: "Rohan Varma", contactPhone: "+91 98765 43218", contactDesignation: "Legal Head", contactType: "Legal"
   },
   {
     id: "c10", name: "AutoDrive Systems", industry: "Automotive", logo: "AD",
     contact: "engineering@autodrive.com", clientType: "OLD", previousPmIds: ["u3", "u4", "u5"],
     engagementManager: "Rahul Sharma", companyName: "AutoDrive Technologies",
     subVentures: ["AutoDrive Connected Vehicles", "AutoDrive Autonomous Systems", "AutoDrive EV Solutions", "AutoDrive Manufacturing", "AutoDrive Smart Mobility"],
-  },
+    contactName: "Kabir Sen", contactPhone: "+91 98765 43219", contactDesignation: "Engineering SPOC", contactType: "Technical SPOC"
+  }
 ];
 
 // Senior PM (u1) is assigned c1, c2, c3. EM (u2) is assigned c2, c4, c5. PMO (u11) sees everything.

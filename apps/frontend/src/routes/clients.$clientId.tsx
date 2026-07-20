@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ChevronRight, Mail, Briefcase } from "lucide-react";
+import { ChevronRight, Mail, Briefcase, User, Phone, ShieldCheck, Tag } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { clients } from "@/lib/mock-data";
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/clients/$clientId")({
 
 function ClientDetail() {
   const { client } = Route.useLoaderData();
-  const { assignedProjects } = useRoleContext();
+  const { assignedProjects, isDhanshree } = useRoleContext();
   const projs = assignedProjects.filter((p) => p.clientId === client.id);
   
   const completedProjs = projs.filter((p) => p.status === "completed");
@@ -45,10 +45,30 @@ function ClientDetail() {
           </div>
           <h2 className="mt-3 text-lg font-semibold">{client.name}</h2>
           <p className="text-sm text-muted-foreground">{client.industry}</p>
-          <div className="mt-4 space-y-2 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Mail className="h-4 w-4" /> {client.contact}
-            </div>
+          <div className="mt-4 space-y-2.5 text-sm border-t border-border pt-4">
+            {isDhanshree ? (
+              <>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" /> <span className="truncate"><strong>Contact:</strong> {client.contactName ?? client.contact.split("@")[0]}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" /> <span className="truncate"><strong>Email:</strong> {client.contact}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" /> <span><strong>Phone:</strong> {client.contactPhone ?? "—"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-muted-foreground shrink-0" /> <span><strong>Designation:</strong> {client.contactDesignation ?? "—"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Tag className="h-4 w-4 text-primary shrink-0" /> <span className="text-primary font-medium"><strong>Type:</strong> {client.contactType ?? "—"}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Mail className="h-4 w-4" /> {client.contact}
+              </div>
+            )}
             <div className="flex items-center gap-2 text-muted-foreground">
               <Briefcase className="h-4 w-4" /> {projs.length} projects
             </div>
