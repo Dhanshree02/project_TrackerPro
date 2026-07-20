@@ -20,6 +20,19 @@ import {
 
 import { type Billability, type ResourceType, getProjectEMs, getProjectPMs } from "@/lib/dh-helpers";
 
+export const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
+  "Penetration Testing": "Scope",
+  "Vulnerability Assessment": "Scope",
+  "Red Team & Adversary Simulation": "Resource",
+  "Cloud Security": "Resource",
+  "Code & Application Security": "Scope",
+  "Compliance & Audit": "Resource",
+  "Social Engineering & Awareness": "Scope",
+  "Forensics & Incident Response": "Resource",
+  "Network & Infrastructure": "Scope",
+  "Threat Intelligence & Modeling": "Resource",
+};
+
 // ---------- Types ----------
 export type IssueCategory =
   | "Technical Related Issues"
@@ -476,6 +489,7 @@ interface DhState {
   exitedResources: ExitedResource[];
   invoices: DhInvoice[];
   notifications: DhNotification[];
+  treeTaskStates: Record<string, Record<string, { actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] }>>;
 }
 
 // ---------- Singleton ----------
@@ -1171,7 +1185,8 @@ const state: DhState = {
         { action: "Notification acknowledged - Remarks: \"Validation verified.\"", date: new Date(Date.now() - 86400000 * 10 + 3600000).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 10 + 3600000).toTimeString().slice(0, 8), by: "Dhanshree" }
       ]
     }
-  ]
+  ],
+  treeTaskStates: {},
 };
 
 state.notifications.forEach((n, idx) => {
@@ -1452,14 +1467,17 @@ export const dhStore = {
 
     // Initialize prerequisite record — seed services from WBS so the
     // Service-wise Prerequisite Tracking table shows real service names
-    const prereqServices: DhServicePrereq[] = input.wbsDetails?.services?.map((svc: any, i: number) => ({
-      serviceId: svc.id ?? `svc-${i}`,
-      serviceName: svc.serviceName ?? svc.department ?? `Service ${i + 1}`,
-      collectionStatus: "Pending To Collect" as const,
-      validationStatus: "Pending To Validate" as const,
-      billingStatus: "Advance Pending" as const,
-      isReady: false,
-    })) ?? [];
+    const prereqServices: DhServicePrereq[] = input.wbsDetails?.services?.map((svc: any, i: number) => {
+      const isResourceDept = DEPT_GROUPS[svc.department] === "Resource";
+      return {
+        serviceId: svc.id ?? `svc-${i}`,
+        serviceName: svc.serviceName ?? svc.department ?? `Service ${i + 1}`,
+        collectionStatus: (isResourceDept ? "NA" : "Pending To Collect") as any,
+        validationStatus: (isResourceDept ? "NA" : "Pending To Validate") as any,
+        billingStatus: "Advance Pending" as const,
+        isReady: false,
+      };
+    }) ?? [];
 
     state.prereqs[id] = {
       projectId: id,
@@ -2930,6 +2948,76 @@ export const dhStore = {
       });
       emit();
     }
+  },
+
+  // ── Tree Task State (hierarchical task tree) ──────────────────────────────
+  getTreeTaskState(projectId: string, taskId: string): { actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] } {
+    return state.treeTaskStates[projectId]?.[taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Ready to Start", assigneeIds: [] };
+  },
+  updateTreeTaskState(projectId: string, taskId: string, patch: Partial<{ actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] }>) {
+    if (!state.treeTaskStates[projectId]) state.treeTaskStates[projectId] = {};
+    const prev = state.treeTaskStates[projectId][taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Ready to Start", assigneeIds: [] };
+    state.treeTaskStates[projectId][taskId] = { ...prev, ...patch };
+    // Replace top-level reference so snapshot sees new object
+    state.treeTaskStates = { ...state.treeTaskStates };
+    emit();
+  },
+  getTreeTaskAssignees(projectId: string, taskId: string): string[] {
+    return state.treeTaskStates[projectId]?.[taskId]?.assigneeIds ?? [];
+  },
+  getTreeTaskAssignment(projectId: string, taskId: string): TaskAssignmentState {
+    let existing = state.taskAssignments[taskId];
+    if (existing) return existing;
+    const newState: TaskAssignmentState = {
+      taskId,
+      assigneeIds: [],
+      history: []
+    };
+    state.taskAssignments[taskId] = newState;
+    emit();
+    return newState;
+  },
+  assignResourcesToTreeTask(projectId: string, taskId: string, selectedIds: string[], updatedBy: string = "Dhanshree") {
+    const current = this.getTreeTaskAssignment(projectId, taskId);
+    const prevIds = current.assigneeIds;
+    const added = selectedIds.filter(id => !prevIds.includes(id));
+    const removed = prevIds.filter(id => !selectedIds.includes(id));
+    const now = new Date().toISOString();
+    const shadowTeamList = state.shadowTeams[projectId] ?? [];
+    added.forEach(id => {
+      const p = getPerson(id);
+      const isShadow = shadowTeamList.includes(id);
+      current.history.push({
+        id: uid("h"),
+        taskId,
+        action: "Assign",
+        resourceId: id,
+        resourceName: p.name,
+        teamType: isShadow ? "Shadow Team" : "Project Team",
+        timestamp: now,
+        updatedBy
+      });
+    });
+    removed.forEach(id => {
+      const p = getPerson(id);
+      const isShadow = shadowTeamList.includes(id);
+      current.history.push({
+        id: uid("h"),
+        taskId,
+        action: "Unassign",
+        resourceId: id,
+        resourceName: p.name,
+        teamType: isShadow ? "Shadow Team" : "Project Team",
+        timestamp: now,
+        updatedBy
+      });
+    });
+    current.assigneeIds = selectedIds;
+    if (!state.treeTaskStates[projectId]) state.treeTaskStates[projectId] = {};
+    const prev = state.treeTaskStates[projectId][taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Ready to Start", assigneeIds: [] };
+    state.treeTaskStates[projectId][taskId] = { ...prev, assigneeIds: selectedIds };
+    state.treeTaskStates = { ...state.treeTaskStates };
+    emit();
   },
 };
 
