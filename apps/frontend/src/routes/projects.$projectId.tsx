@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
-import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2 } from "lucide-react";
+import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
@@ -21,6 +21,19 @@ function formatDate(date: Date): string {
   const d = String(date.getDate()).padStart(2, '0');
   return `${m}/${d}/${y}`;
 }
+
+const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
+  "Penetration Testing": "Scope",
+  "Vulnerability Assessment": "Scope",
+  "Red Team & Adversary Simulation": "Resource",
+  "Cloud Security": "Resource",
+  "Code & Application Security": "Scope",
+  "Compliance & Audit": "Resource",
+  "Social Engineering & Awareness": "Scope",
+  "Forensics & Incident Response": "Resource",
+  "Network & Infrastructure": "Scope",
+  "Threat Intelligence & Modeling": "Resource",
+};
 
 // ---------- Date Range Picker — two small inline calendars ----------
 function DateRangePicker({
@@ -288,8 +301,18 @@ function ProjectDetail() {
     else if (salesStatus === "Approval") salesSub = "WBS Approval In Progress";
 
     // --- PMO ---
-    const allCollected = prereq?.services?.every(s => s.collectionStatus === "Collected") ?? false;
-    const allValidated = prereq?.services?.every(s => s.validationStatus === "Validated") ?? false;
+    const allCollected = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => {
+      const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === s.serviceId);
+      const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+      return isResourceDept || s.collectionStatus === "Collected";
+    }) ?? false);
+
+    const allValidated = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => {
+      const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === s.serviceId);
+      const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+      return isResourceDept || s.validationStatus === "Validated";
+    }) ?? false);
+
     const allBillingOk = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => s.billingStatus === "Advance Received" || s.billingStatus === "Advance Not Required") ?? false);
     const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
     const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
@@ -320,7 +343,7 @@ function ProjectDetail() {
     }
 
     return { Sales: salesSub, PMO: pmoSub, Delivery: deliverySub, Accounts: acctSub };
-  }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
+  }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status, project.contractType]);
 
   // ── subStagesMap: expandable sub-stage checklist (Dhanshree only) ──────────
   const subStagesMap = useMemo<Record<string, SubStageItem[]>>(() => {
@@ -362,8 +385,16 @@ function ProjectDetail() {
     // ---- PMO sub-stages: assignment + prerequisite workflow ----
     const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
     const hasPM  = (prereq?.assignedPmIds?.length  ?? 0) > 0;
-    const allCollected = prereq?.services?.every(s => s.collectionStatus === "Collected") ?? false;
-    const allValidated = prereq?.services?.every(s => s.validationStatus === "Validated") ?? false;
+    const allCollected = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => {
+      const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === s.serviceId);
+      const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+      return isResourceDept || s.collectionStatus === "Collected";
+    }) ?? false);
+    const allValidated = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => {
+      const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === s.serviceId);
+      const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+      return isResourceDept || s.validationStatus === "Validated";
+    }) ?? false);
     const allBillingOk = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => s.billingStatus === "Advance Received" || s.billingStatus === "Advance Not Required") ?? false);
     const isReadyToStart = prereq?.isProjectReadyToStart ?? false;
 
@@ -1756,50 +1787,287 @@ function AvatarStack({ names }: { names: string[] }) {
   );
 }
 
-const TASK_STAGES = ["Ready to Start", "Ongoing", "Completed", "On Hold (Internal)", "On Hold (Client End)", "After Release"] as const;
-type TaskStage = typeof TASK_STAGES[number];
+const TREE_TASK_STAGES = ["Ready to Start", "Ongoing", "Completed", "On Hold", "Cancelled"] as const;
+type TreeTaskStage = typeof TREE_TASK_STAGES[number];
 
-function stageCls(s: TaskStage) {
+function treeStageCls(s: TreeTaskStage) {
   return ({
-    "Ready to Start":      "border-primary/30 bg-primary/10 text-primary",
-    "Ongoing":             "border-blue-300 bg-blue-50 text-blue-700",
-    "Completed":           "border-success/30 bg-success/10 text-success",
-    "On Hold (Internal)":  "border-warning/40 bg-warning/15 text-warning-foreground",
-    "On Hold (Client End)":"border-orange-300 bg-orange-50 text-orange-700",
-    "After Release":       "border-purple-200 bg-purple-50 text-purple-700",
-  } as Record<TaskStage, string>)[s] ?? "border-border bg-muted text-muted-foreground";
+    "Ready to Start": "border-primary/30 bg-primary/10 text-primary",
+    "Ongoing": "border-blue-300 bg-blue-50 text-blue-700",
+    "Completed": "border-success/30 bg-success/10 text-success",
+    "On Hold": "border-warning/40 bg-warning/15 text-warning-foreground",
+    "Cancelled": "border-destructive/30 bg-destructive/10 text-destructive",
+  } as Record<TreeTaskStage, string>)[s] ?? "border-border bg-muted text-muted-foreground";
 }
+
+function getTasksFromServiceModel(serviceModel: string): { suffix: string; label: string }[] {
+  const norm = (serviceModel || "").trim().toUpperCase();
+  if (norm === "NA" || norm === "N/A") {
+    return [{ suffix: "01", label: "NA" }];
+  }
+  if (norm.includes("INITIAL + 1")) {
+    return [
+      { suffix: "01", label: "Initial Test" },
+      { suffix: "02", label: "Retest 1" },
+    ];
+  }
+  if (norm.includes("INITIAL + 2")) {
+    return [
+      { suffix: "01", label: "Initial Test" },
+      { suffix: "02", label: "Retest 1" },
+      { suffix: "03", label: "Retest 2" },
+    ];
+  }
+  if (norm.includes("INITIAL + 3")) {
+    return [
+      { suffix: "01", label: "Initial Test" },
+      { suffix: "02", label: "Retest 1" },
+      { suffix: "03", label: "Retest 2" },
+      { suffix: "04", label: "Retest 3" },
+    ];
+  }
+  return [{ suffix: "01", label: "Initial Test" }];
+}
+
+function computeAggregateStage(stages: TreeTaskStage[]): TreeTaskStage {
+  if (stages.length === 0) return "Ready to Start";
+  if (stages.every(s => s === "Completed")) return "Completed";
+  if (stages.every(s => s === "Ready to Start")) return "Ready to Start";
+  if (stages.every(s => s === "On Hold")) return "On Hold";
+  if (stages.every(s => s === "Cancelled")) return "Cancelled";
+
+  if (stages.includes("Ongoing")) return "Ongoing";
+  if (stages.includes("On Hold")) return "On Hold";
+  if (stages.includes("Ready to Start")) return "Ready to Start";
+  if (stages.includes("Cancelled")) return "Cancelled";
+  return "Completed";
+}
+
+interface TreeTask {
+  id: string;
+  taskId: string;
+  serviceModel: string;
+  actualStartDate: string;
+  actualEndDate: string;
+  stage: TreeTaskStage;
+  assigneeIds: string[];
+  estHoursPerTask: number;
+}
+
+interface APFolder {
+  id: string;
+  label: string;
+  tasks: TreeTask[];
+}
+
+interface QuarterFolder {
+  id: string;
+  label: string;
+  aps: APFolder[];
+}
+
+interface ServiceFolder {
+  serviceId: string;
+  serviceName: string;
+  wbsStartDate: string;
+  wbsEndDate: string;
+  estimatedHours: number;
+  quarters: QuarterFolder[] | null;
+  aps: APFolder[] | null;
+}
+
+function buildServiceTree(project: Project, store: any): ServiceFolder[] {
+  if (!project.wbsDetails?.services) return [];
+
+  return project.wbsDetails.services.map((svc) => {
+    const qty = svc.qty || 1;
+    const freq = (svc.frequency || "Once").toLowerCase();
+    const serviceModel = svc.serviceModel || "Initial Test";
+    const estHours = svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : svc.duration * 8) ?? 0;
+
+    const taskSpecs = getTasksFromServiceModel(serviceModel);
+
+    const apList: string[] = [];
+    for (let i = 1; i <= qty; i++) {
+      apList.push(`AP${i}`);
+    }
+
+    let numQuarters = 0;
+    if (freq.includes("half")) {
+      numQuarters = 2;
+    } else if (freq.includes("year")) {
+      numQuarters = 4;
+    }
+
+    const totalTasksCount = (numQuarters || 1) * qty * taskSpecs.length;
+    const estHoursPerTask = totalTasksCount > 0 ? estHours / totalTasksCount : 0;
+
+    const buildTasks = (quarterNum: number | null, apName: string): TreeTask[] => {
+      return taskSpecs.map((spec) => {
+        const qPart = quarterNum !== null ? `q${quarterNum}-` : "";
+        const taskId = `${project.id}-${svc.id}-${qPart}${apName.toLowerCase()}-t${spec.suffix}`;
+
+        const liveState = store.getTreeTaskState(project.id, taskId);
+
+        return {
+          id: taskId,
+          taskId: `Task ${spec.suffix}`,
+          serviceModel: spec.label,
+          actualStartDate: liveState.actualStartDate,
+          actualEndDate: liveState.actualEndDate,
+          stage: liveState.stage as TreeTaskStage,
+          assigneeIds: liveState.assigneeIds,
+          estHoursPerTask,
+        };
+      });
+    };
+
+    if (numQuarters > 0) {
+      const quarters: QuarterFolder[] = [];
+      for (let q = 1; q <= numQuarters; q++) {
+        const aps: APFolder[] = apList.map((apName) => {
+          const apId = `${project.id}-${svc.id}-q${q}-${apName.toLowerCase()}`;
+          return {
+            id: apId,
+            label: apName,
+            tasks: buildTasks(q, apName),
+          };
+        });
+        quarters.push({
+          id: `${project.id}-${svc.id}-q${q}`,
+          label: `Quarter ${q}`,
+          aps,
+        });
+      }
+      return {
+        serviceId: svc.id,
+        serviceName: svc.serviceName || svc.department,
+        wbsStartDate: svc.startDate,
+        wbsEndDate: svc.endDate,
+        estimatedHours: estHours,
+        quarters,
+        aps: null,
+      };
+    } else {
+      const aps: APFolder[] = apList.map((apName) => {
+        const apId = `${project.id}-${svc.id}-${apName.toLowerCase()}`;
+        return {
+          id: apId,
+          label: apName,
+          tasks: buildTasks(null, apName),
+        };
+      });
+      return {
+        serviceId: svc.id,
+        serviceName: svc.serviceName || svc.department,
+        wbsStartDate: svc.startDate,
+        wbsEndDate: svc.endDate,
+        estimatedHours: estHours,
+        quarters: null,
+        aps,
+      };
+    }
+  });
+}
+
+const expandedNodesMap = new Map<string, Set<string>>();
 
 function DhTasksTab({ project }: { project: Project }) {
   const snapshot = useDhStore((s) => s);
   const prereq = snapshot.prereqs[project.id];
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
 
-  const visibleTasks = useMemo(() => {
-    if (!prereq) return project.tasks;
-    return project.tasks.filter((t) => {
-      const svc = prereq.services?.find((s) => s.serviceId === t.serviceId);
-      if (!svc) return true;
-      return svc.isReady;
-    });
-  }, [project.tasks, prereq]);
+  const tree = useMemo(() => {
+    return buildServiceTree(project, dhStore);
+  }, [project, snapshot.treeTaskStates]);
 
-  const [assignFor, setAssignFor] = useState<Task | null>(null);
-  // Subscribe to taskAssignments so the table re-renders when assignments change
-  const liveAssignments = useDhStore((s) => s.taskAssignments);
-  // Local editable state per task: actualStartDate, utilizedHours, stage
-  const [actuals, setActuals] = useState<Record<string, { actualStartDate: string; actualEndDate: string; utilizedHours: string; stage: TaskStage }>>(() => {
-    const m: Record<string, { actualStartDate: string; actualEndDate: string; utilizedHours: string; stage: TaskStage }> = {};
-    project.tasks.forEach((t) => {
-      m[t.id] = {
-        actualStartDate: t.actualStartDate ?? "",
-        actualEndDate: t.actualEndDate ?? "",
-        utilizedHours: t.utilizedHours != null ? String(t.utilizedHours) : "",
-        stage: (t.stage as TaskStage) ?? "Ready to Start",
-      };
+  const visibleTree = useMemo(() => {
+    if (!prereq) return [];
+    return tree.filter((svcFolder) => {
+      const pSvc = prereq.services?.find((s) => s.serviceId === svcFolder.serviceId);
+      return pSvc ? pSvc.isReady : false;
     });
-    return m;
+  }, [tree, prereq]);
+
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
+    const existing = expandedNodesMap.get(project.id);
+    if (existing) return existing;
+    return new Set<string>();
   });
+
+  const updateExpanded = (newSet: Set<string>) => {
+    setExpandedNodes(newSet);
+    expandedNodesMap.set(project.id, newSet);
+  };
+
+  const toggleNode = (nodeId: string) => {
+    const newSet = new Set(expandedNodes);
+    if (newSet.has(nodeId)) {
+      newSet.delete(nodeId);
+    } else {
+      newSet.add(nodeId);
+    }
+    updateExpanded(newSet);
+  };
+
+  const handleExpandAll = () => {
+    const newSet = new Set<string>();
+    visibleTree.forEach(svc => {
+      newSet.add(`svc-${svc.serviceId}`);
+      if (svc.quarters) {
+        svc.quarters.forEach(q => {
+          newSet.add(q.id);
+          q.aps.forEach(ap => {
+            newSet.add(ap.id);
+          });
+        });
+      } else if (svc.aps) {
+        svc.aps.forEach(ap => {
+          newSet.add(ap.id);
+        });
+      }
+    });
+    updateExpanded(newSet);
+  };
+
+  const handleCollapseAll = () => {
+    updateExpanded(new Set<string>());
+  };
+
+  type TreeRow = 
+    | { type: "service"; id: string; service: ServiceFolder; depth: number }
+    | { type: "quarter"; id: string; quarter: QuarterFolder; depth: number }
+    | { type: "ap"; id: string; ap: APFolder; depth: number };
+
+  const flattenedRows = useMemo(() => {
+    const rows: TreeRow[] = [];
+    visibleTree.forEach((svc) => {
+      const svcId = `svc-${svc.serviceId}`;
+      rows.push({ type: "service", id: svcId, service: svc, depth: 0 });
+
+      if (expandedNodes.has(svcId)) {
+        if (svc.quarters) {
+          svc.quarters.forEach((q) => {
+            rows.push({ type: "quarter", id: q.id, quarter: q, depth: 1 });
+
+            if (expandedNodes.has(q.id)) {
+              q.aps.forEach((ap) => {
+                rows.push({ type: "ap", id: ap.id, ap, depth: 2 });
+              });
+            }
+          });
+        } else if (svc.aps) {
+          svc.aps.forEach((ap) => {
+            rows.push({ type: "ap", id: ap.id, ap, depth: 1 });
+          });
+        }
+      }
+    });
+    return rows;
+  }, [visibleTree, expandedNodes]);
+
+  const [assignFor, setAssignFor] = useState<TreeTask | null>(null);
+  const liveAssignments = useDhStore((s) => s.taskAssignments);
 
   const teamPool = useMemo(() => {
     const ids = Array.from(new Set([project.pmId, project.tlId, ...project.teamIds, ...shadowTeamIds]));
@@ -1809,165 +2077,352 @@ function DhTasksTab({ project }: { project: Project }) {
     });
   }, [project, shadowTeamIds]);
 
-  function commitActuals(taskId: string) {
-    const a = actuals[taskId];
-    if (!a) return;
-    dhStore.updateTaskActuals(project.id, taskId, {
-      actualStartDate: a.actualStartDate || undefined,
-      utilizedHours: a.utilizedHours ? Number(a.utilizedHours) : undefined,
-      stage: a.stage,
-      actualEndDate: a.actualEndDate || undefined,
-    });
-  }
-
-  // Derive actualEndDate from actualStartDate + estimatedHours (skip weekends)
-  function deriveActualEndDate(taskId: string, estHours: number): string {
-    const a = actuals[taskId];
-    if (!a?.actualStartDate) return "—";
-    const days = Math.ceil(estHours / 8);
-    return addWorkingDaysFromDate(a.actualStartDate, days);
-  }
+  const getDescendantTasks = (row: TreeRow): TreeTask[] => {
+    if (row.type === "ap") return row.ap.tasks;
+    if (row.type === "quarter") return row.quarter.aps.flatMap(ap => ap.tasks);
+    const svc = row.service;
+    return svc.quarters 
+      ? svc.quarters.flatMap(q => q.aps.flatMap(ap => ap.tasks))
+      : (svc.aps ? svc.aps.flatMap(ap => ap.tasks) : []);
+  };
 
   return (
     <>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExpandAll}
+            className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronsDown className="h-3.5 w-3.5" /> Expand All
+          </button>
+          <button
+            onClick={handleCollapseAll}
+            className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronsUp className="h-3.5 w-3.5" /> Collapse All
+          </button>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Showing {visibleTree.length} active service tree(s)
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-center text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="sticky top-0 bg-muted/90 backdrop-blur-sm text-center text-xs uppercase tracking-wide text-muted-foreground z-10 border-b border-border">
             <tr>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Service ID</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Service Name</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">WBS Start Date</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">WBS End Date</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Est. Hours</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Actual Start Date</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Actual End Date</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Utilized Hours</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Stage</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Assigned Resources</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap text-right">Actions</th>
+              <th className="px-4 py-3 text-left font-medium whitespace-nowrap min-w-[280px]">Name &amp; Hierarchy</th>
+              <th className="px-3 py-3 font-medium whitespace-nowrap">Service ID</th>
+              <th className="px-3 py-3 font-medium whitespace-nowrap">Start Date</th>
+              <th className="px-3 py-3 font-medium whitespace-nowrap">End Date</th>
+              <th className="px-3 py-3 font-medium whitespace-nowrap">Hours (Utilized / Est.)</th>
+              <th className="px-3 py-3 font-medium whitespace-nowrap">Progress</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
-            {project.tasks.length === 0 ? (
+          <tbody className="divide-y divide-border/40">
+            {project.wbsDetails?.services?.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                  No services — create this project via Assign WBS to populate tasks.
+                <td colSpan={6} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  No services onboarding details found — create WBS first.
                 </td>
               </tr>
-            ) : visibleTasks.length === 0 ? (
+            ) : visibleTree.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                  No active services. Mark services as Ready in the Prerequisites tab to populate tasks.
+                <td colSpan={6} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  No active services. Start services from the Prerequisites tab to populate tasks.
                 </td>
               </tr>
             ) : (
-              visibleTasks.map((t) => {
-                const estHrs = t.estimatedHours ?? 0;
-                const a = actuals[t.id] ?? { actualStartDate: "", actualEndDate: "", utilizedHours: "", stage: "Ready to Start" as TaskStage };
-                // Use liveAssignments from store for reactivity — falls back to getTaskAssignment for seed data
-                const liveIds = (liveAssignments[t.id]?.assigneeIds ?? dhStore.getTaskAssignment(project.id, t.id).assigneeIds)
-                  .filter(Boolean); // remove any empty/falsy ids
-                const assigneeNames = liveIds.map((id) => getPerson(id).name).filter(Boolean);
-                const resourceCount = Math.max(1, liveIds.length);
-                // Actual End Date: use manual override if set, else auto-calc
-                const autoEnd = deriveActualEndDate(t.id, estHrs);
-                const displayActualEnd = a.actualEndDate || autoEnd;
-                // Utilized Hours = estHrs / resourceCount, formatted as Xhr Ymin
-                const utilizedDecimal = estHrs > 0 ? estHrs / resourceCount : 0;
-                const utilizedHrs = Math.floor(utilizedDecimal);
-                const utilizedMin = Math.round((utilizedDecimal - utilizedHrs) * 60);
-                const utilizedDisplay = estHrs > 0
-                  ? utilizedMin > 0 ? `${utilizedHrs} hr ${utilizedMin} min` : `${utilizedHrs} hr`
-                  : "—";
+              flattenedRows.map((row) => {
+                const descendantTasks = getDescendantTasks(row);
+                
+                const totalEstimatedHours = row.type === "service" ? row.service.estimatedHours : 0;
+                const totalUtilizedHours = descendantTasks.reduce((sum, t) => {
+                  return sum + (t.stage === "Completed" ? t.estHoursPerTask : 0);
+                }, 0);
 
-                return (
-                  <tr key={t.id} className="hover:bg-accent/30">
-                    {/* Service ID */}
-                    <td className="px-3 py-2.5 text-center align-middle font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                      {t.serviceId ?? t.id.slice(-6).toUpperCase()}
-                    </td>
-                    {/* Service Name */}
-                    <td className="px-3 py-2.5 text-center align-middle font-medium max-w-[180px] truncate" title={t.title}>
-                      {t.title}
-                    </td>
-                    {/* WBS Start Date */}
-                    <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                      {t.wbsStartDate ? new Date(t.wbsStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-                    </td>
-                    {/* WBS End Date */}
-                    <td className="px-3 py-2.5 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                      {t.wbsEndDate ? new Date(t.wbsEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-                    </td>
-                    {/* Estimated Hours */}
-                    <td className="px-3 py-2.5 text-center align-middle tabular-nums text-muted-foreground">
-                      {estHrs > 0 ? `${estHrs} hrs` : "—"}
-                    </td>
-                    {/* Actual Start Date — PM editable */}
-                    <td className="px-3 py-2.5 text-center align-middle">
-                      <input
-                        type="date"
-                        value={a.actualStartDate}
-                        onChange={(e) => {
-                          const newStart = e.target.value;
-                          // Auto-fill actualEndDate from new start date + estHrs (skip weekends)
-                          const autoEndDate = newStart && estHrs > 0 ? addWorkingDaysFromDate(newStart, Math.ceil(estHrs / 8)) : "";
-                          setActuals((prev) => ({
-                            ...prev,
-                            [t.id]: { ...prev[t.id], actualStartDate: newStart, actualEndDate: autoEndDate }
-                          }));
-                        }}
-                        onBlur={() => commitActuals(t.id)}
-                        className="h-7 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      />
-                    </td>
-                    {/* Actual End Date — editable, pre-filled from auto-calc, user can override */}
-                    <td className="px-3 py-2.5 text-center align-middle">
-                      <input
-                        type="date"
-                        value={a.actualEndDate || autoEnd}
-                        onChange={(e) => {
-                          setActuals((prev) => ({ ...prev, [t.id]: { ...prev[t.id], actualEndDate: e.target.value } }));
-                        }}
-                        onBlur={() => commitActuals(t.id)}
-                        className="h-7 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      />
-                    </td>
-                    {/* Utilized Hours — auto-calculated (Est. Hours ÷ resource count), read-only */}
-                    <td className="px-3 py-2.5 text-center align-middle">
-                      <span className="inline-flex items-center justify-center h-7 rounded-md border border-border bg-muted px-2 text-xs text-muted-foreground whitespace-nowrap cursor-not-allowed select-none">
-                        {utilizedDisplay}
-                      </span>
-                    </td>
-                    {/* Stage — editable select */}
-                    <td className="px-3 py-2.5 text-center align-middle">
-                      <select
-                        value={a.stage}
-                        onChange={(e) => {
-                          const v = e.target.value as TaskStage;
-                          setActuals((prev) => ({ ...prev, [t.id]: { ...prev[t.id], stage: v } }));
-                          dhStore.updateTaskActuals(project.id, t.id, { stage: v });
-                          toast.success("Stage updated", { description: `${t.title} → ${v}` });
-                        }}
-                        className={cn("h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring", stageCls(a.stage))}
-                      >
-                        {TASK_STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </td>
-                    {/* Assigned Resources — avatar stack (display only, hover for names) */}
-                    <td className="px-3 py-2.5 text-center align-middle">
-                      <div className="flex justify-center">
-                        <AvatarStack names={assigneeNames} />
-                      </div>
-                    </td>
-                    {/* Actions */}
-                    <td className="px-3 py-2.5 text-center align-middle">
-                      <button onClick={() => setAssignFor(t)}
-                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] hover:bg-accent">
-                        <UserPlus className="h-3 w-3" /> Assign
-                      </button>
-                    </td>
-                  </tr>
-                );
+                const isExpanded = expandedNodes.has(row.id);
+                const depthPadding = row.depth * 28;
+
+                if (row.type === "service") {
+                  const svc = row.service;
+                  
+                  const nonCancelledTasks = descendantTasks.filter(t => t.stage !== "Cancelled");
+                  const totalTasksCount = nonCancelledTasks.length;
+                  let progress = 0;
+                  if (totalTasksCount > 0) {
+                    const sumWeights = nonCancelledTasks.reduce((sum, t) => {
+                      if (t.stage === "Completed") return sum + 1;
+                      if (t.stage === "Ongoing") return sum + 0.5;
+                      return sum;
+                    }, 0);
+                    progress = Math.round((sumWeights / totalTasksCount) * 100);
+                  }
+
+                  return (
+                    <tr key={row.id} className="hover:bg-accent/5 font-semibold bg-muted/20 border-b border-border/40">
+                      <td className="px-4 py-3 align-middle text-left whitespace-nowrap" style={{ paddingLeft: `${depthPadding + 16}px` }}>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleNode(row.id)}
+                            className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <ChevronRight className={cn("h-3.5 w-3.5 transform transition-transform", isExpanded && "rotate-90")} />
+                          </button>
+                          {isExpanded ? (
+                            <FolderOpen className="h-4 w-4 text-blue-500 fill-blue-50/20" />
+                          ) : (
+                            <Folder className="h-4 w-4 text-blue-500 fill-blue-50/20" />
+                          )}
+                          <span className="text-foreground">{svc.serviceName}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-center align-middle font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                        {svc.serviceId}
+                      </td>
+                      <td className="px-3 py-3 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
+                        {svc.wbsStartDate ? new Date(svc.wbsStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                      </td>
+                      <td className="px-3 py-3 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
+                        {svc.wbsEndDate ? new Date(svc.wbsEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                      </td>
+                      <td className="px-3 py-3 text-center align-middle tabular-nums text-muted-foreground">
+                        {totalUtilizedHours.toFixed(1)} / {totalEstimatedHours.toFixed(1)} hrs
+                      </td>
+                      <td className="px-3 py-3 text-center align-middle">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-16 bg-muted-foreground/20 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-primary h-full rounded-full" style={{ width: `${progress}%` }}></div>
+                          </div>
+                          <span className="font-mono text-xs font-semibold text-foreground/80">{progress}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                if (row.type === "quarter") {
+                  const q = row.quarter;
+                  return (
+                    <tr key={row.id} className="hover:bg-accent/5 text-foreground/80 font-medium border-b border-border/20 py-1">
+                      <td className="px-4 py-1.5 align-middle text-left whitespace-nowrap" style={{ paddingLeft: `${depthPadding + 16}px` }}>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleNode(row.id)}
+                            className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <ChevronRight className={cn("h-3.5 w-3.5 transform transition-transform", isExpanded && "rotate-90")} />
+                          </button>
+                          {isExpanded ? (
+                            <FolderOpen className="h-4 w-4 text-orange-500 fill-orange-50/20" />
+                          ) : (
+                            <Folder className="h-4 w-4 text-orange-500 fill-orange-50/20" />
+                          )}
+                          <span className="text-foreground/90">{q.label}</span>
+                        </div>
+                      </td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                  );
+                }
+
+                if (row.type === "ap") {
+                  const ap = row.ap;
+                  return (
+                    <React.Fragment key={row.id}>
+                      <tr className="hover:bg-accent/5 text-foreground/80 font-medium border-b border-border/20 py-1">
+                        <td className="px-4 py-1.5 align-middle text-left whitespace-nowrap" style={{ paddingLeft: `${depthPadding + 16}px` }}>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleNode(row.id)}
+                              className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <ChevronRight className={cn("h-3.5 w-3.5 transform transition-transform", isExpanded && "rotate-90")} />
+                            </button>
+                            {isExpanded ? (
+                              <FolderOpen className="h-4 w-4 text-emerald-600 fill-emerald-50/20" />
+                            ) : (
+                              <Folder className="h-4 w-4 text-emerald-600 fill-emerald-50/20" />
+                            )}
+                            <span className="text-foreground/90">{ap.label}</span>
+                          </div>
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                      
+                      {isExpanded && (
+                        <tr key={`${row.id}-tasks-container`}>
+                          <td colSpan={6} className="bg-transparent pb-4 pt-1.5 pr-4" style={{ paddingLeft: `${depthPadding + 44}px` }}>
+                            <div className="w-full overflow-hidden">
+                              <table className="w-full text-sm text-left border-none bg-transparent">
+                                <thead className="bg-transparent text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/40 z-10">
+                                  <tr>
+                                    <th className="px-3 py-2 font-semibold">Task ID</th>
+                                    <th className="px-3 py-2 font-semibold">Service Model</th>
+                                    <th className="px-3 py-2 font-semibold">Actual Start</th>
+                                    <th className="px-3 py-2 font-semibold">Actual End</th>
+                                    <th className="px-3 py-2 font-semibold">Stage</th>
+                                    <th className="px-3 py-2 font-semibold">Assigned Resources</th>
+                                    <th className="px-3 py-2 font-semibold">Actions</th>
+                                    <th className="px-3 py-2 font-semibold text-right">Start</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border/20">
+                                  {ap.tasks.map((t) => {
+                                    const liveIds = (liveAssignments[t.id]?.assigneeIds ?? dhStore.getTreeTaskAssignees(project.id, t.id))
+                                      .filter(Boolean);
+                                    const assigneeNames = liveIds.map((id) => getPerson(id).name).filter(Boolean);
+                                    const isStarted = t.stage !== "Ready to Start" || !!t.actualStartDate;
+
+                                    return (
+                                      <tr key={t.id} className="hover:bg-accent/10 transition-colors">
+                                        <td className="px-3 py-1.5 align-middle font-medium text-xs whitespace-nowrap text-foreground/90">
+                                          <div className="flex items-center gap-1.5 h-8">
+                                            <FileText className="h-3.5 w-3.5 text-slate-400" />
+                                            <span>{t.taskId}</span>
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-1.5 align-middle text-xs text-muted-foreground max-w-[160px] truncate">
+                                          <div className="flex items-center h-8" title={t.serviceModel}>
+                                            {t.serviceModel}
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-1.5 align-middle">
+                                          <div className="flex items-center h-8">
+                                            <input
+                                              type="date"
+                                              value={t.actualStartDate}
+                                              onChange={(e) => {
+                                                const newStart = e.target.value;
+                                                const estHrs = t.estHoursPerTask || 0;
+                                                const autoEndDate = newStart && estHrs > 0 ? addWorkingDaysFromDate(newStart, Math.ceil(estHrs / 8)) : "";
+                                                dhStore.updateTreeTaskState(project.id, t.id, {
+                                                  actualStartDate: newStart,
+                                                  actualEndDate: autoEndDate,
+                                                  ...(t.stage === "Ready to Start" && newStart ? { stage: "Ongoing" } : {})
+                                                });
+                                              }}
+                                              className="h-7 w-28 rounded-md border border-input bg-card px-2 text-[11px] outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                            />
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-1.5 align-middle">
+                                          <div className="flex items-center h-8">
+                                            <input
+                                              type="date"
+                                              value={t.actualEndDate}
+                                              onChange={(e) => {
+                                                dhStore.updateTreeTaskState(project.id, t.id, {
+                                                  actualEndDate: e.target.value,
+                                                });
+                                              }}
+                                              className="h-7 w-28 rounded-md border border-input bg-card px-2 text-[11px] outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                            />
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-1.5 align-middle">
+                                          <div className="flex items-center h-8">
+                                            {!isStarted ? (
+                                              <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium shadow-sm", treeStageCls("Ready to Start"))}>
+                                                Ready to Start
+                                              </span>
+                                            ) : (
+                                              <select
+                                                value={t.stage}
+                                                onChange={(e) => {
+                                                  const v = e.target.value as TreeTaskStage;
+                                                  dhStore.updateTreeTaskState(project.id, t.id, { stage: v });
+                                                  toast.success("Stage updated", { description: `${t.taskId} → ${v}` });
+                                                }}
+                                                className={cn("h-7 rounded-full border px-2 text-[10px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring", treeStageCls(t.stage))}
+                                              >
+                                                {TREE_TASK_STAGES.filter(s => s !== "Ready to Start").map((s) => (
+                                                  <option key={s} value={s}>{s}</option>
+                                                ))}
+                                              </select>
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-1.5 align-middle">
+                                          <div className="flex items-center h-8">
+                                            <AvatarStack names={assigneeNames} />
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-1.5 align-middle">
+                                          <div className="flex items-center h-8">
+                                            <button
+                                              onClick={() => setAssignFor(t)}
+                                              className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[10px] hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                            >
+                                              <UserPlus className="h-3.5 w-3.5" /> Assign
+                                            </button>
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-1.5 align-middle text-right">
+                                          <div className="flex items-center justify-end h-8">
+                                            <button
+                                              disabled={isStarted || liveIds.length === 0}
+                                              title={
+                                                isStarted
+                                                  ? "Task has already started"
+                                                  : liveIds.length === 0
+                                                  ? "Assign resources first to start task"
+                                                  : "Click to start task"
+                                              }
+                                              onClick={() => {
+                                                const today = new Date().toISOString().slice(0, 10);
+                                                dhStore.updateTreeTaskState(project.id, t.id, {
+                                                  actualStartDate: today,
+                                                  stage: "Ongoing"
+                                                  });
+                                                toast.success("Task started", { description: `${t.taskId} (${t.serviceModel})` });
+                                              }}
+                                              className={cn(
+                                                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold shadow-sm transition-all",
+                                                isStarted
+                                                  ? "bg-emerald-600 text-white border border-emerald-600 cursor-not-allowed opacity-90"
+                                                  : liveIds.length === 0
+                                                  ? "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
+                                                  : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                                              )}
+                                            >
+                                              {isStarted ? (
+                                                <>
+                                                  <Check className="h-2.5 w-2.5 text-white" />
+                                                  <span>Started</span>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Play className="h-2.5 w-2.5" />
+                                                  <span>Start</span>
+                                                </>
+                                              )}
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                }
+
+                return null;
               })
             )}
           </tbody>
@@ -1975,12 +2430,15 @@ function DhTasksTab({ project }: { project: Project }) {
       </div>
 
       {assignFor && (
-        <AssignTaskModal task={assignFor} pool={teamPool} project={project}
-          selected={liveAssignments[assignFor.id]?.assigneeIds ?? dhStore.getTaskAssignment(project.id, assignFor.id).assigneeIds}
+        <AssignTaskModal
+          task={{ id: assignFor.id, title: `${assignFor.taskId} - ${assignFor.serviceModel}` }}
+          pool={teamPool}
+          project={project}
+          selected={liveAssignments[assignFor.id]?.assigneeIds ?? dhStore.getTreeTaskAssignees(project.id, assignFor.id)}
           onClose={() => setAssignFor(null)}
           onSave={(ids) => {
-            dhStore.assignResourcesToTask(project.id, assignFor.id, ids);
-            toast.success("Assignments updated", { description: `${ids.length} member${ids.length === 1 ? "" : "s"} on ${assignFor.title}` });
+            dhStore.assignResourcesToTreeTask(project.id, assignFor.id, ids);
+            toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
             setAssignFor(null);
           }}
         />
@@ -1989,12 +2447,15 @@ function DhTasksTab({ project }: { project: Project }) {
   );
 }
 
-function AssignTaskModal({ project, task, pool, selected, onClose, onSave }: { project: Project; task: Task; pool: { person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[]; selected: string[]; onClose: () => void; onSave: (ids: string[]) => void }) {
+function AssignTaskModal({ project, task, pool, selected, onClose, onSave }: { project: Project; task: Task | { id: string; title: string }; pool: { person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[]; selected: string[]; onClose: () => void; onSave: (ids: string[]) => void }) {
   const [sel, setSel] = useState<string[]>(selected);
   const [q, setQ] = useState("");
 
+  const isTreeTask = !project.tasks.some((t) => t.id === task.id);
   // Load assignment history persistently
-  const assignment = dhStore.getTaskAssignment(project.id, task.id);
+  const assignment = isTreeTask
+    ? dhStore.getTreeTaskAssignment(project.id, task.id)
+    : dhStore.getTaskAssignment(project.id, task.id);
   const history = assignment.history;
 
   const toggle = (id: string) => setSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
@@ -3983,8 +4444,17 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
   const servicesList = prereq.services || [];
 
   // Auto-calculated Project Level statuses
-  const allCollected = servicesList.length > 0 && servicesList.every(s => s.collectionStatus === "Collected");
-  const allValidated = servicesList.length > 0 && servicesList.every(s => s.validationStatus === "Validated");
+  const allCollected = servicesList.length > 0 && servicesList.every(s => {
+    const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === s.serviceId);
+    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+    return isResourceDept || s.collectionStatus === "Collected";
+  });
+
+  const allValidated = servicesList.length > 0 && servicesList.every(s => {
+    const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === s.serviceId);
+    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+    return isResourceDept || s.validationStatus === "Validated";
+  });
 
   const projectCollectionStatus = allCollected ? "Completed" : "Pending";
   const projectValidationStatus = allValidated ? "Validated" : "Pending";
@@ -4277,8 +4747,11 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {servicesList.map((svc) => {
-                    const isCollected = svc.collectionStatus === "Collected";
-                    const isValidated = svc.validationStatus === "Validated";
+                    const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === svc.serviceId);
+                    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+
+                    const isCollected = isResourceDept ? true : svc.collectionStatus === "Collected";
+                    const isValidated = isResourceDept ? true : svc.validationStatus === "Validated";
                     const isBillingOk = svc.billingStatus === "Advance Received" || svc.billingStatus === "Advance Not Required";
                     const canStart = isCollected && isValidated && isBillingOk;
                     const isReady = svc.isReady ?? false;
@@ -4291,35 +4764,50 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                         <td className="px-3 py-2.5 text-center align-middle font-semibold text-gray-800">{svc.serviceName}</td>
                         <td className="px-3 py-2.5 text-center align-middle">
                           <select
-                            value={svc.collectionStatus}
+                            value={isResourceDept ? "NA" : svc.collectionStatus}
+                            disabled={isResourceDept}
                             onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
                             className={cn(
                               "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                              svc.collectionStatus === "Collected"
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                              isResourceDept
+                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                : svc.collectionStatus === "Collected"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                             )}
                           >
-                            <option value="Pending To Collect">Pending To Collect</option>
-                            <option value="Collected">Collected</option>
+                            {isResourceDept ? (
+                              <option value="NA">NA</option>
+                            ) : (
+                              <>
+                                <option value="Pending To Collect">Pending To Collect</option>
+                                <option value="Collected">Collected</option>
+                              </>
+                            )}
                           </select>
                         </td>
                         <td className="px-3 py-2.5 text-center align-middle">
                           <select
-                            value={svc.validationStatus}
-                            disabled={!isCollected}
+                            value={isResourceDept ? "NA" : svc.validationStatus}
+                            disabled={isResourceDept || !isCollected}
                             onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
                             className={cn(
                               "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                              !isCollected
+                              (isResourceDept || !isCollected)
                                 ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                                 : svc.validationStatus === "Validated"
                                   ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
                                   : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                             )}
                           >
-                            <option value="Pending To Validate">Pending To Validate</option>
-                            <option value="Validated">Validated</option>
+                            {isResourceDept ? (
+                              <option value="NA">NA</option>
+                            ) : (
+                              <>
+                                <option value="Pending To Validate">Pending To Validate</option>
+                                <option value="Validated">Validated</option>
+                              </>
+                            )}
                           </select>
                         </td>
                         <td className="px-3 py-2.5 text-center align-middle">
@@ -4359,7 +4847,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                                   ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
                                   : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
                               )}
-                              title={!canStart ? "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first" : "Mark this service as Ready to Start"}
+                              title={!canStart ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Mark this service as Ready to Start"}
                             >
                               Ready
                             </button>
