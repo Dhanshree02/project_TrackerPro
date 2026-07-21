@@ -1227,7 +1227,7 @@ const state: DhState = {
       dueDate: "2026-08-30",
       employeeId: "u7",
       assignedById: "u1",
-      status: "Ready to Start",
+      status: "Not Started",
       elapsedTime: 0,
       timerRunning: false
     },
@@ -1241,7 +1241,7 @@ const state: DhState = {
       dueDate: "2026-08-30",
       employeeId: "u7",
       assignedById: "u1",
-      status: "Ready to Start",
+      status: "Not Started",
       elapsedTime: 0,
       timerRunning: false
     },
@@ -1255,7 +1255,7 @@ const state: DhState = {
       dueDate: "2026-08-30",
       employeeId: "u14",
       assignedById: "u1",
-      status: "Ready to Start",
+      status: "Not Started",
       elapsedTime: 0,
       timerRunning: false
     }

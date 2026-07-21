@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { LayoutGrid, List, Search, ArrowRight, X, Building2, Plus, ChevronRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { isValidPhoneNumber, parsePhoneNumber } from "libphonenumber-js";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { type Client } from "@/lib/mock-data";
@@ -221,22 +220,14 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       contacts: p.contacts.map((c, i) => (i === idx ? { ...c, [field]: val } : c)),
     }));
 
-  // Validates a phone number using Google's libphonenumber-js.
-  // Rejects fake numbers (0000000000), wrong digit counts, impossible area codes, etc.
+  // Validates a phone number.
+  // Rejects fake numbers (0000000000), wrong digit counts, impossible formats.
   const isValidPhone = (val: string): boolean => {
     const cleaned = val.trim();
     if (!cleaned) return false;
-    try {
-      // If starts with +, validate internationally; otherwise try common locales
-      if (cleaned.startsWith("+")) {
-        return isValidPhoneNumber(cleaned);
-      }
-      // Try parsing as-is for international formats without + prefix
-      const parsed = parsePhoneNumber(cleaned, "IN"); // default to IN; still validates globally
-      return parsed.isValid();
-    } catch {
-      return false;
-    }
+    const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{6,15}$/;
+    const digitsOnly = cleaned.replace(/\D/g, "");
+    return phoneRegex.test(cleaned) && digitsOnly.length >= 7 && !/^(.)\1+$/.test(digitsOnly);
   };
 
   // Returns the first missing required field label, or null if all valid
