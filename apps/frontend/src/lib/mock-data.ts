@@ -78,6 +78,9 @@ export interface WbsInvoice {
   amount: number;
   invoiceDate: string;
   remarks: string;
+  serviceId?: string;
+  serviceName?: string;
+  resourceLevel?: string;
 }
 
 export interface WBSDetails {
@@ -96,6 +99,7 @@ export interface WBSDetails {
     contactName?: string;
     contactNumber?: string;
     contactEmail?: string;
+    poFileName?: string;
     invoices: WbsInvoice[];
   };
 }

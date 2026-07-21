@@ -291,6 +291,9 @@ export interface DhInvoice {
   raisedBy?: string;
   raisedDate?: string;
   paymentReceivedBy?: string;
+  serviceId?: string;
+  serviceName?: string;
+  resourceLevel?: string;
 }
 
 export interface DhAuditTrailEntry {
@@ -1442,6 +1445,32 @@ export const dhStore = {
       subVenture: input.subVenture,
     };
     state.extraProjects.push(p);
+
+    // Populate state.invoices with the project's invoices if they exist
+    if (input.wbsDetails?.accounts?.invoices) {
+      input.wbsDetails.accounts.invoices.forEach((inv: any, idx: number) => {
+        state.invoices.push({
+          id: inv.id || `${id}-inv-${idx}`,
+          projectId: id,
+          milestone: inv.milestone,
+          invoiceTargetDate: inv.targetDate || inv.invoiceDate || "",
+          unitPrice: inv.unitPrice || 0,
+          qty: inv.qty || 1,
+          currency: inv.currency || input.currency || "INR",
+          invoiceAmount: inv.amount || 0,
+          invoiceStatus: (inv.invoiceStatus === "Raised" ? "Raised" : "Not Raised"),
+          invoiceNumber: inv.invoiceNumber || "",
+          paymentStatus: (inv.paymentStatus === "Received" ? "Received" : "Not Received"),
+          paymentReceivedDate: inv.paymentDate || "",
+          raisedBy: inv.invoiceStatus === "Raised" ? "Dhanshree" : undefined,
+          raisedDate: inv.invoiceStatus === "Raised" ? (inv.targetDate || inv.invoiceDate) : undefined,
+          paymentReceivedBy: inv.paymentStatus === "Received" ? "Accounts" : undefined,
+          serviceId: inv.serviceId,
+          serviceName: inv.serviceName,
+          resourceLevel: inv.resourceLevel,
+        });
+      });
+    }
 
     // Initialize stage tracker
     // "Create WBS" always sets sales stage to "Assigned" — the WBS has been
