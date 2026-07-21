@@ -557,7 +557,16 @@ function ProjectDetail() {
             <OverviewTab project={project} pm={pm} tl={tl} team={team} isDhanshree={isDhanshree} />
           )}
 
-          {tab === "WBS" && <WbsTab project={project} />}
+          {tab === "WBS" && (
+            <WbsTab
+              project={project}
+              onRaiseInvoice={(invoiceId) => {
+                setRaiseInvoiceId(invoiceId);
+                setInvoiceNumberInput("");
+                setRaiseModalOpen(true);
+              }}
+            />
+          )}
 
           {tab === "Health" && <HealthTab project={project} />}
 
@@ -588,6 +597,7 @@ function ProjectDetail() {
                     <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                       <tr>
                         <th className="px-3 py-2 font-medium">Milestone / Period</th>
+                        <th className="px-3 py-2 font-medium">Resource Level</th>
                         <th className="px-3 py-2 font-medium">Invoice Target Date</th>
                         <th className="px-3 py-2 font-medium">Unit Price</th>
                         <th className="px-3 py-2 font-medium">Qty</th>
@@ -607,6 +617,7 @@ function ProjectDetail() {
                         return (
                           <tr key={inv.id} className="hover:bg-accent/30">
                             <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
+                            <td className="px-3 py-2.5 text-center font-medium">{inv.resourceLevel || "—"}</td>
                             <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.invoiceTargetDate}</td>
                             <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
                             <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
@@ -781,10 +792,13 @@ const LEGACY_WBS_SERVICES = [
   { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure', name: 'Network Security Assessment', qty: 1, desc: 'Infrastructure review and segmentation validation', freq: 'Once', delivery: 'Offsite', loc: '', svc: 'Initial + 3 Re-test', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Nmap, Wireshark', start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
 ];
 
-function WbsTab({ project }: { project: Project }) {
+function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project: Project; onRaiseInvoice: (invoiceId: string) => void; onNavigateToHealthAlerts?: () => void }) {
+  const snapshotInvoices = useDhStore((s) => s.invoices);
+  const { user, isDhanshree } = useRoleContext();
+
   if (project.wbsDetails) {
     const wbsDetails = project.wbsDetails;
-    const totalServices = wbsDetails.services.reduce((acc, curr) => acc + curr.total, 0);
+    const totalServices = wbsDetails.services.reduce((acc: number, curr: any) => acc + curr.total, 0);
     const tax = totalServices * 0.18;
     const grandTotal = totalServices + tax;
 
@@ -822,6 +836,7 @@ function WbsTab({ project }: { project: Project }) {
                   <th className="px-3 py-2 font-medium">Service ID</th>
                   <th className="px-3 py-2 font-medium">Service Name</th>
                   <th className="px-3 py-2 font-medium">Description</th>
+                  <th className="px-3 py-2 font-medium">Resource Level</th>
                   <th className="px-3 py-2 font-medium">Qty</th>
                   <th className="px-3 py-2 font-medium">Frequency</th>
                   <th className="px-3 py-2 font-medium">Service Model</th>
@@ -839,12 +854,13 @@ function WbsTab({ project }: { project: Project }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {wbsDetails.services.map((svc) => (
+                {wbsDetails.services.map((svc: any) => (
                   <tr key={svc.id} className="hover:bg-accent/30">
                     <td className="px-3 py-2">{svc.department}</td>
                     <td className="px-3 py-2 font-mono text-muted-foreground">{svc.id}</td>
                     <td className="px-3 py-2 font-medium">{svc.serviceName}</td>
                     <td className="px-3 py-2 max-w-[140px] truncate cursor-default" title={svc.description}>{svc.description}</td>
+                    <td className="px-3 py-2 text-center font-medium">{svc.resourceLevel || "—"}</td>
                     <td className="px-3 py-2 text-center">{svc.qty}</td>
                     <td className="px-3 py-2">{svc.frequency ?? "—"}</td>
                     <td className="px-3 py-2">{svc.serviceModel ?? "—"}</td>
@@ -898,19 +914,61 @@ function WbsTab({ project }: { project: Project }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {wbsDetails.accounts.invoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-accent/30">
-                    <td className="px-3 py-2 font-medium">{inv.milestone}</td>
-                    <td className="px-3 py-2">{inv.invoiceDate}</td>
-                    <td className="px-3 py-2">{inv.remarks}</td>
-                    <td className="px-3 py-2 font-medium">{wbsDetails.currency} {inv.amount.toLocaleString()}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                        Raise Invoice
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {wbsDetails.accounts.invoices.map((inv: any) => {
+                  const liveInv = snapshotInvoices.find(
+                    (li) => li.projectId === project.id && (li.id === inv.id || li.milestone === inv.milestone)
+                  );
+                  const isPaid = liveInv?.paymentStatus === "Received";
+                  const isRaised = liveInv?.invoiceStatus === "Raised";
+                  const displayInvoiceNo = liveInv?.invoiceNumber || inv.remarks || "-";
+                  const displayDate = liveInv?.invoiceTargetDate || inv.invoiceDate;
+
+                  return (
+                    <tr key={inv.id} className="hover:bg-accent/30">
+                      <td className="px-3 py-2 font-medium">{inv.milestone}</td>
+                      <td className="px-3 py-2">{displayDate}</td>
+                      <td className="px-3 py-2 font-mono text-xs">{displayInvoiceNo}</td>
+                      <td className="px-3 py-2 font-medium">{wbsDetails.currency} {inv.amount.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right">
+                        {isPaid ? (
+                          <span className="inline-flex rounded-full bg-success/10 border border-success/30 px-2 py-0.5 text-[11px] font-medium text-success">
+                            Paid
+                          </span>
+                        ) : isRaised ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="inline-flex rounded-full bg-blue-100 border border-blue-200 px-2 py-0.5 text-[11px] font-medium text-blue-800">
+                              Raised
+                            </span>
+                            {isDhanshree && liveInv && (
+                              <button
+                                onClick={() => {
+                                  dhStore.updatePaymentStatus(project.id, liveInv.id, "Received", user.id, user.name);
+                                  toast.success("Payment marked as Received");
+                                }}
+                                className="inline-flex items-center gap-1 rounded bg-success px-2 py-0.5 text-[10px] font-semibold text-success-foreground hover:bg-success/90 cursor-pointer"
+                              >
+                                Mark Paid
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          isDhanshree && liveInv ? (
+                            <button
+                              onClick={() => onRaiseInvoice(liveInv.id)}
+                              className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                            >
+                              Raise Invoice
+                            </button>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+                              Not Raised
+                            </span>
+                          )
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {wbsDetails.accounts.invoices.length === 0 && (
                   <tr><td colSpan={5} className="px-3 py-6 text-center text-sm text-muted-foreground">No invoices scheduled.</td></tr>
                 )}
@@ -918,6 +976,8 @@ function WbsTab({ project }: { project: Project }) {
             </table>
           </div>
         </div>
+
+        <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
       </div>
     );
   }
@@ -1077,6 +1137,9 @@ function WbsTab({ project }: { project: Project }) {
           </table>
         </div>
       </div>
+
+      {/* Prerequisite Collection Status Section */}
+      <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
     </div>
   );
 }
@@ -1800,8 +1863,8 @@ function AvatarStack({ assignees }: { assignees: AvatarStackAssignee[] }) {
                 </div>
                 <span className={cn(
                   "text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0",
-                  a.started 
-                    ? "bg-green-500/10 border-green-500/20 text-green-600" 
+                  a.started
+                    ? "bg-green-500/10 border-green-500/20 text-green-600"
                     : "bg-muted border-border text-muted-foreground"
                 )}>
                   {a.started ? "Started" : "Not Started"}
@@ -1912,7 +1975,7 @@ function buildServiceTree(project: Project, store: any): ServiceFolder[] {
     const qty = svc.qty || 1;
     const freq = (svc.frequency || "Once").toLowerCase();
     const serviceModel = svc.serviceModel || "Initial Test";
-    const estHours = svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : svc.duration * 8) ?? 0;
+    const estHours = svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : svc.duration * 8);
 
     const taskSpecs = getTasksFromServiceModel(serviceModel);
 
@@ -2759,7 +2822,7 @@ function DhTeamTab({ project }: { project: Project }) {
 
   // Access-blocked guard AFTER all hooks
   const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
-  const hasPM  = (prereq?.assignedPmIds?.length  ?? 0) > 0;
+  const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
   const isAssigned = hasPM && hasSPM;
 
   if (prereq && !isAssigned) {
@@ -4526,7 +4589,7 @@ function getClientInfo(clientId: string) {
   };
 }
 
-function WbsPrerequisiteSection({ project }: { project: Project }) {
+function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project: Project; onNavigateToHealthAlerts?: () => void }) {
   const snapshot = useDhStore((s) => s);
   const prereqs = snapshot.prereqs;
   const { user } = useRoleContext();
@@ -4610,7 +4673,8 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
       if (tlObj) list.push(tlObj);
     }
     // Add EM
-    const emName = project.engagementManager || clientInfo?.engagementManager || "Riya Kapoor";
+    const client = allClients().find((c) => c.id === project.clientId);
+    const emName = project.engagementManager || client?.engagementManager || "Riya Kapoor";
     const emObj = people.find((p) => p.name === emName || p.role === "Engagement Manager");
     if (emObj && !list.some(p => p.id === emObj.id)) list.push(emObj);
 
@@ -4971,7 +5035,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                           {activeEsc ? (
                             <button
                               onClick={() => {
-                                setHealthTab("Alerts");
+                                onNavigateToHealthAlerts?.();
                                 window.location.hash = "#health-alerts";
                                 toast.info("Active escalation details are available in Health → Alerts");
                               }}
