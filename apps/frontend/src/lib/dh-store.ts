@@ -428,6 +428,24 @@ export interface TaskAssignmentState {
   history: TaskAssignmentHistoryEntry[];
 }
 
+export interface DhBucketTask {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  projectId: string;
+  projectName: string;
+  priority: "low" | "medium" | "high" | "critical";
+  dueDate: string;
+  employeeId: string;
+  assignedById: string;
+  status: "Not Started" | "Ongoing" | "Paused" | "Completed";
+  startedAt?: string;
+  completedAt?: string;
+  elapsedTime: number; // in seconds
+  timerRunning: boolean;
+  lastStartedAt?: string;
+}
+
 // ---------- WBS Draft ----------
 export interface WbsDraft {
   id: string;
@@ -483,6 +501,7 @@ interface DhState {
   shadowTeamDetails: Record<string, Record<string, { duration: string; billability: Billability; resourceType: ResourceType }>>;
   projectTeamDetails: Record<string, Record<string, { duration: string; billability: Billability; resourceType: ResourceType }>>;
   projectTeamAdditions: Record<string, string[]>;
+  projectTeamRemovals: Record<string, string[]>;
   leadershipChangeRequests: LeadershipChangeRequest[];
   leadershipAssignments: Record<string, { emIds: string[]; spmIds: string[]; pmIds: string[]; tlIds: string[] }>;
   timesheets: DhTimesheet[];
@@ -493,6 +512,7 @@ interface DhState {
   invoices: DhInvoice[];
   notifications: DhNotification[];
   treeTaskStates: Record<string, Record<string, { actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] }>>;
+  bucketTasks: DhBucketTask[];
 }
 
 // ---------- Singleton ----------
@@ -840,6 +860,7 @@ const state: DhState = {
   },
   projectTeamDetails: {},
   projectTeamAdditions: {},
+  projectTeamRemovals: {},
   leadershipChangeRequests: [],
   leadershipAssignments: {},
   timesheets: baseTimesheets.map(t => ({
@@ -1189,7 +1210,56 @@ const state: DhState = {
       ]
     }
   ],
-  treeTaskStates: {},
+  treeTaskStates: {
+    p1: {
+      "p1-svc1-ap1-t01": { actualStartDate: "", actualEndDate: "", stage: "Assigned", assigneeIds: ["u7", "u14"] },
+      "p1-svc1-ap1-t02": { actualStartDate: "", actualEndDate: "", stage: "Assigned", assigneeIds: ["u7"] }
+    }
+  },
+  bucketTasks: [
+    {
+      id: "p1-svc1-ap1-t01-u7",
+      taskId: "p1-svc1-ap1-t01",
+      taskTitle: "Core Banking Modernization - Initial Test",
+      projectId: "p1",
+      projectName: "Core Banking Modernization",
+      priority: "high",
+      dueDate: "2026-08-30",
+      employeeId: "u7",
+      assignedById: "u1",
+      status: "Ready to Start",
+      elapsedTime: 0,
+      timerRunning: false
+    },
+    {
+      id: "p1-svc1-ap1-t02-u7",
+      taskId: "p1-svc1-ap1-t02",
+      taskTitle: "Core Banking Modernization - Retest 1",
+      projectId: "p1",
+      projectName: "Core Banking Modernization",
+      priority: "medium",
+      dueDate: "2026-08-30",
+      employeeId: "u7",
+      assignedById: "u1",
+      status: "Ready to Start",
+      elapsedTime: 0,
+      timerRunning: false
+    },
+    {
+      id: "p1-svc1-ap1-t01-u14",
+      taskId: "p1-svc1-ap1-t01",
+      taskTitle: "Core Banking Modernization - Initial Test",
+      projectId: "p1",
+      projectName: "Core Banking Modernization",
+      priority: "critical",
+      dueDate: "2026-08-30",
+      employeeId: "u14",
+      assignedById: "u1",
+      status: "Ready to Start",
+      elapsedTime: 0,
+      timerRunning: false
+    }
+  ],
 };
 
 state.notifications.forEach((n, idx) => {
@@ -2151,6 +2221,29 @@ export const dhStore = {
     emit();
   },
 
+  removeProjectTeamMember(projectId: string, memberId: string) {
+    if (!state.projectTeamRemovals[projectId]) {
+      state.projectTeamRemovals[projectId] = [];
+    }
+    if (!state.projectTeamRemovals[projectId].includes(memberId)) {
+      state.projectTeamRemovals[projectId].push(memberId);
+    }
+    if (state.projectTeamAdditions[projectId]) {
+      state.projectTeamAdditions[projectId] = state.projectTeamAdditions[projectId].filter(id => id !== memberId);
+    }
+    if (state.projectTeamDetails[projectId]) {
+      delete state.projectTeamDetails[projectId][memberId];
+    }
+    emit();
+  },
+
+  restoreProjectTeamMember(projectId: string, memberId: string) {
+    if (state.projectTeamRemovals[projectId]) {
+      state.projectTeamRemovals[projectId] = state.projectTeamRemovals[projectId].filter(id => id !== memberId);
+    }
+    emit();
+  },
+
   acknowledgeInterview(interviewId: string, alertId: string, actionTaken: string, remarks: string, authorId: string, authorName: string) {
     const iv = state.interviews.find((x) => x.id === interviewId);
     if (!iv) return;
@@ -2982,11 +3075,11 @@ export const dhStore = {
 
   // ── Tree Task State (hierarchical task tree) ──────────────────────────────
   getTreeTaskState(projectId: string, taskId: string): { actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] } {
-    return state.treeTaskStates[projectId]?.[taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Ready to Start", assigneeIds: [] };
+    return state.treeTaskStates[projectId]?.[taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Not Started", assigneeIds: [] };
   },
   updateTreeTaskState(projectId: string, taskId: string, patch: Partial<{ actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] }>) {
     if (!state.treeTaskStates[projectId]) state.treeTaskStates[projectId] = {};
-    const prev = state.treeTaskStates[projectId][taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Ready to Start", assigneeIds: [] };
+    const prev = state.treeTaskStates[projectId][taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Not Started", assigneeIds: [] };
     state.treeTaskStates[projectId][taskId] = { ...prev, ...patch };
     // Replace top-level reference so snapshot sees new object
     state.treeTaskStates = { ...state.treeTaskStates };
@@ -3007,13 +3100,22 @@ export const dhStore = {
     emit();
     return newState;
   },
-  assignResourcesToTreeTask(projectId: string, taskId: string, selectedIds: string[], updatedBy: string = "Dhanshree") {
+  assignResourcesToTreeTask(
+    projectId: string,
+    taskId: string,
+    selectedIds: string[],
+    taskTitle?: string,
+    dueDate?: string,
+    priority?: "low" | "medium" | "high" | "critical",
+    updatedBy: string = "u14"
+  ) {
     const current = this.getTreeTaskAssignment(projectId, taskId);
     const prevIds = current.assigneeIds;
     const added = selectedIds.filter(id => !prevIds.includes(id));
     const removed = prevIds.filter(id => !selectedIds.includes(id));
     const now = new Date().toISOString();
     const shadowTeamList = state.shadowTeams[projectId] ?? [];
+    
     added.forEach(id => {
       const p = getPerson(id);
       const isShadow = shadowTeamList.includes(id);
@@ -3043,10 +3145,138 @@ export const dhStore = {
       });
     });
     current.assigneeIds = selectedIds;
+    
     if (!state.treeTaskStates[projectId]) state.treeTaskStates[projectId] = {};
-    const prev = state.treeTaskStates[projectId][taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Ready to Start", assigneeIds: [] };
-    state.treeTaskStates[projectId][taskId] = { ...prev, assigneeIds: selectedIds };
+    const prev = state.treeTaskStates[projectId][taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Not Started", assigneeIds: [] };
+    
+    let newStage = prev.stage;
+    if (selectedIds.length > 0) {
+      if (prev.stage === "Not Started" || !prev.stage) {
+        newStage = "Assigned";
+      }
+    } else {
+      if (prev.stage === "Assigned") {
+        newStage = "Not Started";
+      }
+    }
+    
+    state.treeTaskStates[projectId][taskId] = { ...prev, assigneeIds: selectedIds, stage: newStage };
     state.treeTaskStates = { ...state.treeTaskStates };
+
+    // Update bucket tasks
+    const proj = allProjects().find(p => p.id === projectId);
+    const projectName = proj?.name || "Project";
+    
+    if (!state.bucketTasks) state.bucketTasks = [];
+    
+    // Remove bucket tasks for unassigned resources
+    state.bucketTasks = state.bucketTasks.filter(bt => {
+      if (bt.taskId === taskId) {
+        return selectedIds.includes(bt.employeeId);
+      }
+      return true;
+    });
+
+    // Add new bucket tasks for assigned resources
+    selectedIds.forEach(empId => {
+      const bucketTaskId = `${taskId}-${empId}`;
+      const exists = state.bucketTasks.some(bt => bt.id === bucketTaskId);
+      if (!exists) {
+        state.bucketTasks.push({
+          id: bucketTaskId,
+          taskId,
+          taskTitle: taskTitle || "Execute Task",
+          projectId,
+          projectName,
+          priority: priority || "medium",
+          dueDate: dueDate || proj?.endDate || new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+          employeeId: empId,
+          assignedById: updatedBy,
+          status: "Not Started",
+          elapsedTime: 0,
+          timerRunning: false
+        });
+      }
+    });
+
+    emit();
+  },
+
+  startBucketTask(bucketTaskId: string) {
+    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    if (!bt) return;
+    const now = new Date().toISOString();
+    bt.status = "Ongoing";
+    bt.timerRunning = true;
+    bt.lastStartedAt = now;
+    if (!bt.startedAt) {
+      bt.startedAt = now;
+    }
+
+    // Sync back to project treeTaskState
+    const treeState = state.treeTaskStates[bt.projectId]?.[bt.taskId];
+    if (treeState) {
+      if (treeState.stage === "Not Started" || treeState.stage === "Assigned") {
+        treeState.stage = "Ongoing";
+        if (!treeState.actualStartDate) {
+          treeState.actualStartDate = now.slice(0, 10);
+        }
+        state.treeTaskStates = { ...state.treeTaskStates };
+      }
+    }
+    emit();
+  },
+
+  pauseBucketTask(bucketTaskId: string) {
+    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    if (!bt) return;
+    if (bt.timerRunning && bt.lastStartedAt) {
+      const elapsed = Math.floor((Date.now() - new Date(bt.lastStartedAt).getTime()) / 1000);
+      bt.elapsedTime += Math.max(0, elapsed);
+    }
+    bt.status = "Paused";
+    bt.timerRunning = false;
+    bt.lastStartedAt = undefined;
+    emit();
+  },
+
+  resumeBucketTask(bucketTaskId: string) {
+    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    if (!bt) return;
+    const now = new Date().toISOString();
+    bt.status = "Ongoing";
+    bt.timerRunning = true;
+    bt.lastStartedAt = now;
+    emit();
+  },
+
+  completeBucketTask(bucketTaskId: string) {
+    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    if (!bt) return;
+    const now = new Date().toISOString();
+    if (bt.timerRunning && bt.lastStartedAt) {
+      const elapsed = Math.floor((Date.now() - new Date(bt.lastStartedAt).getTime()) / 1000);
+      bt.elapsedTime += Math.max(0, elapsed);
+    }
+    bt.status = "Completed";
+    bt.timerRunning = false;
+    bt.lastStartedAt = undefined;
+    bt.completedAt = now;
+
+    // Check other bucket tasks for the same tree task
+    const siblingTasks = state.bucketTasks.filter(x => x.taskId === bt.taskId);
+    const allCompleted = siblingTasks.every(x => x.status === "Completed");
+
+    const treeState = state.treeTaskStates[bt.projectId]?.[bt.taskId];
+    if (treeState) {
+      if (allCompleted) {
+        treeState.stage = "Completed";
+        treeState.actualEndDate = now.slice(0, 10);
+      } else {
+        treeState.stage = "Ongoing";
+      }
+      state.treeTaskStates = { ...state.treeTaskStates };
+    }
     emit();
   },
 };
