@@ -22,6 +22,13 @@ function formatDate(date: Date): string {
   return `${m}/${d}/${y}`;
 }
 
+function formatDateString(dateStr: string | undefined | null): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
   "Penetration Testing": "Scope",
   "Vulnerability Assessment": "Scope",
@@ -2214,10 +2221,10 @@ function DhTasksTab({ project }: { project: Project }) {
                         {svc.serviceId}
                       </td>
                       <td className="px-3 py-3 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                        {svc.wbsStartDate ? new Date(svc.wbsStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                        {formatDateString(svc.wbsStartDate)}
                       </td>
                       <td className="px-3 py-3 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                        {svc.wbsEndDate ? new Date(svc.wbsEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                        {formatDateString(svc.wbsEndDate)}
                       </td>
                       <td className="px-3 py-3 text-center align-middle tabular-nums text-muted-foreground">
                         {totalUtilizedHours.toFixed(1)} / {totalEstimatedHours.toFixed(1)} hrs
@@ -2317,10 +2324,10 @@ function DhTasksTab({ project }: { project: Project }) {
                           {svc.serviceId}
                         </td>
                         <td className="px-3 py-2 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                          {apStartDate ? new Date(apStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                          {formatDateString(apStartDate)}
                         </td>
                         <td className="px-3 py-2 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                          {apEndDate ? new Date(apEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                          {formatDateString(apEndDate)}
                         </td>
                         <td className="px-3 py-2 text-center align-middle tabular-nums text-muted-foreground">
                           {apUtilizedHours.toFixed(1)} / {apEstimatedHours.toFixed(1)} hrs
@@ -2450,63 +2457,6 @@ function DhTasksTab({ project }: { project: Project }) {
                                                 ))}
                                               </select>
                                             )}
-                                          </div>
-                                        </td>
-                                        <td className="px-3 py-1.5 align-middle">
-                                          <div className="flex items-center h-8">
-                                            <AvatarStack names={assigneeNames} />
-                                          </div>
-                                        </td>
-                                        <td className="px-3 py-1.5 align-middle">
-                                          <div className="flex items-center h-8">
-                                            <button
-                                              onClick={() => setAssignFor(t)}
-                                              className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[10px] hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                                            >
-                                              <UserPlus className="h-3.5 w-3.5" /> Assign
-                                            </button>
-                                          </div>
-                                        </td>
-                                        <td className="px-3 py-1.5 align-middle text-right">
-                                          <div className="flex items-center justify-end h-8">
-                                            <button
-                                              disabled={isStarted || liveIds.length === 0}
-                                              title={
-                                                isStarted
-                                                  ? "Task has already started"
-                                                  : liveIds.length === 0
-                                                    ? "Assign resources first to start task"
-                                                    : "Click to start task"
-                                              }
-                                              onClick={() => {
-                                                const today = new Date().toISOString().slice(0, 10);
-                                                dhStore.updateTreeTaskState(project.id, t.id, {
-                                                  actualStartDate: today,
-                                                  stage: "Ongoing"
-                                                });
-                                                toast.success("Task started", { description: `${t.taskId} (${t.serviceModel})` });
-                                              }}
-                                              className={cn(
-                                                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold shadow-sm transition-all",
-                                                isStarted
-                                                  ? "bg-emerald-600 text-white border border-emerald-600 cursor-not-allowed opacity-90"
-                                                  : liveIds.length === 0
-                                                    ? "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
-                                                    : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                                              )}
-                                            >
-                                              {isStarted ? (
-                                                <>
-                                                  <Check className="h-2.5 w-2.5 text-white" />
-                                                  <span>Started</span>
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <Play className="h-2.5 w-2.5" />
-                                                  <span>Start</span>
-                                                </>
-                                              )}
-                                            </button>
                                           </div>
                                         </td>
                                       </tr>
