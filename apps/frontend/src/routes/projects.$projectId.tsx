@@ -48,10 +48,10 @@ function DateRangePicker({
     if (!value) return { from: undefined, to: undefined };
     const parts = value.split(" → ");
     const from = parts[0] ? new Date(parts[0]) : undefined;
-    const to   = parts[1] ? new Date(parts[1]) : undefined;
+    const to = parts[1] ? new Date(parts[1]) : undefined;
     return {
       from: from && !isNaN(from.getTime()) ? from : undefined,
-      to:   to   && !isNaN(to.getTime())   ? to   : undefined,
+      to: to && !isNaN(to.getTime()) ? to : undefined,
     };
   }, [value]);
 
@@ -61,7 +61,7 @@ function DateRangePicker({
   // Format date as dd-mm-yyyy for the text inputs
   const toInputFmt = (d: Date | undefined) => {
     if (!d) return "";
-    return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()}`;
+    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
   };
 
   const parseInputFmt = (s: string): Date | undefined => {
@@ -72,7 +72,7 @@ function DateRangePicker({
   };
 
   const [fromInput, setFromInput] = useState(toInputFmt(parsedRange.from));
-  const [toInput,   setToInput]   = useState(toInputFmt(parsedRange.to));
+  const [toInput, setToInput] = useState(toInputFmt(parsedRange.to));
 
   const commit = (from: Date | undefined, to: Date | undefined) => {
     if (from && to) onChange(`${formatDate(from)} → ${formatDate(to)}`);
@@ -260,13 +260,13 @@ function ProjectDetail() {
   const team = project.teamIds.map(getPerson);
 
   const poFileName = useMemo(() => {
-    return project.wbsDetails?.accounts?.poFileName || 
-      (project.wbsDetails?.accounts?.poStatus === "PO Received" || 
-       project.wbsDetails?.accounts?.poStatus === "PO Validated" ||
-       project.wbsDetails?.accounts?.poStatus === "PO Raised" || 
-       (project.id === "p1")
-         ? "PO_Northwind_p1.pdf"
-         : "");
+    return project.wbsDetails?.accounts?.poFileName ||
+      (project.wbsDetails?.accounts?.poStatus === "PO Received" ||
+        project.wbsDetails?.accounts?.poStatus === "PO Validated" ||
+        project.wbsDetails?.accounts?.poStatus === "PO Raised" ||
+        (project.id === "p1")
+        ? "PO_Northwind_p1.pdf"
+        : "");
   }, [project]);
 
   const handleDownloadPO = () => {
@@ -384,7 +384,7 @@ function ProjectDetail() {
 
     // ---- PMO sub-stages: assignment + prerequisite workflow ----
     const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
-    const hasPM  = (prereq?.assignedPmIds?.length  ?? 0) > 0;
+    const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
     const allCollected = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => {
       const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === s.serviceId);
       const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
@@ -401,11 +401,11 @@ function ProjectDetail() {
     // Each step unlocks the next in sequence.
     const pmoSteps = [
       { label: "Senior Project Manager Assigned", done: hasSPM },
-      { label: "Project Manager Assigned",        done: hasPM && hasSPM },
-      { label: "Prerequisite Collected",           done: allCollected && hasPM },
-      { label: "Prerequisite Validated",           done: allValidated && allCollected && hasPM },
-      { label: "Billing Validation",              done: allBillingOk && allValidated && allCollected && hasPM },
-      { label: "Ready To Start",                  done: isReadyToStart },
+      { label: "Project Manager Assigned", done: hasPM && hasSPM },
+      { label: "Prerequisite Collected", done: allCollected && hasPM },
+      { label: "Prerequisite Validated", done: allValidated && allCollected && hasPM },
+      { label: "Billing Validation", done: allBillingOk && allValidated && allCollected && hasPM },
+      { label: "Ready To Start", done: isReadyToStart },
     ];
 
     // Find first step not done → it is "active"
@@ -472,36 +472,48 @@ function ProjectDetail() {
     let accountsSubStages: SubStageItem[];
     if (poNotRequired) {
       accountsSubStages = [
-        { label: "PO Pending",      status: "completed" as const },
-        { label: "PO Not Required", status: "active"    as const },
-        { label: "PO Received",     status: "pending"   as const },
-        { label: "Invoice Raised",  status: invoiceRaised ? "completed" as const : "pending" as const },
+        { label: "PO Pending", status: "completed" as const },
+        { label: "PO Not Required", status: "active" as const },
+        { label: "PO Received", status: "pending" as const },
+        { label: "Invoice Raised", status: invoiceRaised ? "completed" as const : "pending" as const },
       ];
     } else {
       accountsSubStages = [
-        { label: "PO Pending",      status: poPending   ? "active"    as const : "completed" as const },
-        { label: "PO Received",     status: poReceived  ? "completed" as const : "pending"   as const },
-        { label: "PO Not Required", status: "pending"   as const },
-        { label: "Invoice Raised",  status: invoiceRaised ? "completed" as const : poReceived ? "active" as const : "pending" as const },
+        { label: "PO Pending", status: poPending ? "active" as const : "completed" as const },
+        { label: "PO Received", status: poReceived ? "completed" as const : "pending" as const },
+        { label: "PO Not Required", status: "pending" as const },
+        { label: "Invoice Raised", status: invoiceRaised ? "completed" as const : poReceived ? "active" as const : "pending" as const },
       ];
     }
 
     return {
-      Sales:    salesSubStages,
-      PMO:      pmoSubStages,
+      Sales: salesSubStages,
+      PMO: pmoSubStages,
       Delivery: deliverySubStages,
       Accounts: accountsSubStages,
     };
   }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
 
   return (
-    <AppShell title={project.name} subtitle={`${client.name}${project.subVenture ? ` (${project.subVenture})` : ""} · ${project.description}`}>
+    <AppShell title={project.name} subtitle={
+      <span>
+        <Link
+          to="/customer-detail/$clientId"
+          params={{ clientId: client.id }}
+          className="font-medium text-primary hover:underline"
+        >
+          {client.name}
+        </Link>
+        {project.subVenture ? ` (${project.subVenture})` : ""}
+        {` · ${project.description}`}
+      </span>
+    }>
+
+      {/* Breadcrumb path */}
       <nav className="mb-3 flex items-center gap-1 text-xs text-muted-foreground">
-        <Link to="/clients" className="hover:text-foreground">Clients</Link>
-        <ChevronRight className="h-3 w-3" />
-        <Link to="/clients/$clientId" params={{ clientId: client.id }} className="hover:text-foreground">{client.name}</Link>
-        <ChevronRight className="h-3 w-3" />
-        <span className="text-foreground">{project.name}</span>
+        <Link to="/projects" className="hover:text-foreground transition-colors">Projects</Link>
+        <ChevronRight className="h-3 w-3 shrink-0" />
+        <span className="text-foreground font-medium truncate">{project.name}</span>
       </nav>
 
       {/* Project Stages Tracker - Dhanshree Role Only */}
@@ -761,12 +773,12 @@ function ProjectDetail() {
 // Legacy demo service list shown in the WBS tab for seeded projects that
 // have no wbsDetails (also feeds the Scope Cancellation dropdown).
 const LEGACY_WBS_SERVICES = [
-  { id: 1, taskId: 'WBS-01', dept: 'Penetration Testing',         name: 'External Network Penetration Testing',        qty: 1, desc: 'External network penetration test for internet-facing assets', freq: 'Once', delivery: 'Onsite',  loc: 'Andheri', svc: 'Initial Test',        format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Nmap, Metasploit',        start: '01 Feb 2026', end: '05 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
-  { id: 2, taskId: 'WBS-02', dept: 'Vulnerability Assessment',     name: 'Web Application Vulnerability Assessment',    qty: 2, desc: 'Security review for web apps and APIs',                    freq: 'Once', delivery: 'Offsite', loc: '',        svc: 'Initial + 1 Re-test', format: 'Excel + PDF', billing: 'Ad-Hoc', tools: 'OWASP ZAP, Burp Suite',  start: '06 Feb 2026', end: '10 Feb 2026', durDays: 4, durHrs: 32, totalDays: 8, totalHrs: 64 },
-  { id: 3, taskId: 'WBS-03', dept: 'Cloud Security',               name: 'AWS Cloud Security Assessment',               qty: 1, desc: 'Cloud misconfiguration and control review',               freq: 'Once', delivery: 'Hybrid',  loc: '',        svc: 'Initial Test',        format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'AWS Config, Security Hub', start: '11 Feb 2026', end: '16 Feb 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
-  { id: 4, taskId: 'WBS-04', dept: 'Code & Application Security',  name: 'Static Application Security Testing (SAST)', qty: 1, desc: 'Source code review and vulnerability analysis',          freq: 'Once', delivery: 'Onsite',  loc: 'Malad',   svc: 'Initial + 2 Re-test', format: 'PDF + XLSX',  billing: 'Ad-Hoc', tools: 'SonarQube, Semgrep',      start: '17 Feb 2026', end: '21 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
-  { id: 5, taskId: 'WBS-05', dept: 'Compliance & Audit',           name: 'ISO 27001 Assessment',                        qty: 1, desc: 'Compliance gap assessment and audit checklist',          freq: 'Once', delivery: 'Onsite',  loc: 'Bandra',  svc: 'Initial + 1 Re-test', format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Checklist, Audit Toolkit', start: '22 Feb 2026', end: '01 Mar 2026', durDays: 8, durHrs: 64, totalDays: 8, totalHrs: 64 },
-  { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure',     name: 'Network Security Assessment',                 qty: 1, desc: 'Infrastructure review and segmentation validation',      freq: 'Once', delivery: 'Offsite', loc: '',        svc: 'Initial + 3 Re-test', format: 'PDF Report',  billing: 'Ad-Hoc', tools: 'Nmap, Wireshark',          start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+  { id: 1, taskId: 'WBS-01', dept: 'Penetration Testing', name: 'External Network Penetration Testing', qty: 1, desc: 'External network penetration test for internet-facing assets', freq: 'Once', delivery: 'Onsite', loc: 'Andheri', svc: 'Initial Test', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Nmap, Metasploit', start: '01 Feb 2026', end: '05 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+  { id: 2, taskId: 'WBS-02', dept: 'Vulnerability Assessment', name: 'Web Application Vulnerability Assessment', qty: 2, desc: 'Security review for web apps and APIs', freq: 'Once', delivery: 'Offsite', loc: '', svc: 'Initial + 1 Re-test', format: 'Excel + PDF', billing: 'Ad-Hoc', tools: 'OWASP ZAP, Burp Suite', start: '06 Feb 2026', end: '10 Feb 2026', durDays: 4, durHrs: 32, totalDays: 8, totalHrs: 64 },
+  { id: 3, taskId: 'WBS-03', dept: 'Cloud Security', name: 'AWS Cloud Security Assessment', qty: 1, desc: 'Cloud misconfiguration and control review', freq: 'Once', delivery: 'Hybrid', loc: '', svc: 'Initial Test', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'AWS Config, Security Hub', start: '11 Feb 2026', end: '16 Feb 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+  { id: 4, taskId: 'WBS-04', dept: 'Code & Application Security', name: 'Static Application Security Testing (SAST)', qty: 1, desc: 'Source code review and vulnerability analysis', freq: 'Once', delivery: 'Onsite', loc: 'Malad', svc: 'Initial + 2 Re-test', format: 'PDF + XLSX', billing: 'Ad-Hoc', tools: 'SonarQube, Semgrep', start: '17 Feb 2026', end: '21 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+  { id: 5, taskId: 'WBS-05', dept: 'Compliance & Audit', name: 'ISO 27001 Assessment', qty: 1, desc: 'Compliance gap assessment and audit checklist', freq: 'Once', delivery: 'Onsite', loc: 'Bandra', svc: 'Initial + 1 Re-test', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Checklist, Audit Toolkit', start: '22 Feb 2026', end: '01 Mar 2026', durDays: 8, durHrs: 64, totalDays: 8, totalHrs: 64 },
+  { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure', name: 'Network Security Assessment', qty: 1, desc: 'Infrastructure review and segmentation validation', freq: 'Once', delivery: 'Offsite', loc: '', svc: 'Initial + 3 Re-test', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Nmap, Wireshark', start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
 ];
 
 function WbsTab({ project }: { project: Project }) {
@@ -1529,21 +1541,21 @@ function ChangeLeaderPanel({
             {assignedIds.length === 0
               ? <span className="text-xs italic text-muted-foreground">No one assigned</span>
               : assignedIds.map((id) => {
-                  const p = getPerson(id);
-                  return (
-                    <span key={id} className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                      <Avatar name={p.name} size={14} />
-                      {p.name}
-                      <button
-                        onClick={() => toggle(id)}
-                        className="ml-0.5 rounded-full hover:bg-destructive/20 hover:text-destructive"
-                        title="Remove"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  );
-                })
+                const p = getPerson(id);
+                return (
+                  <span key={id} className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                    <Avatar name={p.name} size={14} />
+                    {p.name}
+                    <button
+                      onClick={() => toggle(id)}
+                      className="ml-0.5 rounded-full hover:bg-destructive/20 hover:text-destructive"
+                      title="Remove"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                );
+              })
             }
           </div>
         </div>
@@ -2034,7 +2046,7 @@ function DhTasksTab({ project }: { project: Project }) {
     updateExpanded(new Set<string>());
   };
 
-  type TreeRow = 
+  type TreeRow =
     | { type: "service"; id: string; service: ServiceFolder; depth: number }
     | { type: "quarter"; id: string; quarter: QuarterFolder; depth: number }
     | { type: "ap"; id: string; ap: APFolder; depth: number };
@@ -2081,7 +2093,7 @@ function DhTasksTab({ project }: { project: Project }) {
     if (row.type === "ap") return row.ap.tasks;
     if (row.type === "quarter") return row.quarter.aps.flatMap(ap => ap.tasks);
     const svc = row.service;
-    return svc.quarters 
+    return svc.quarters
       ? svc.quarters.flatMap(q => q.aps.flatMap(ap => ap.tasks))
       : (svc.aps ? svc.aps.flatMap(ap => ap.tasks) : []);
   };
@@ -2136,7 +2148,7 @@ function DhTasksTab({ project }: { project: Project }) {
             ) : (
               flattenedRows.map((row) => {
                 const descendantTasks = getDescendantTasks(row);
-                
+
                 const totalEstimatedHours = row.type === "service" ? row.service.estimatedHours : 0;
                 const totalUtilizedHours = descendantTasks.reduce((sum, t) => {
                   return sum + (t.stage === "Completed" ? t.estHoursPerTask : 0);
@@ -2147,7 +2159,7 @@ function DhTasksTab({ project }: { project: Project }) {
 
                 if (row.type === "service") {
                   const svc = row.service;
-                  
+
                   const nonCancelledTasks = descendantTasks.filter(t => t.stage !== "Cancelled");
                   const totalTasksCount = nonCancelledTasks.length;
                   let progress = 0;
@@ -2258,7 +2270,7 @@ function DhTasksTab({ project }: { project: Project }) {
                         <td></td>
                         <td></td>
                       </tr>
-                      
+
                       {isExpanded && (
                         <tr key={`${row.id}-tasks-container`}>
                           <td colSpan={6} className="bg-transparent pb-4 pt-1.5 pr-4" style={{ paddingLeft: `${depthPadding + 44}px` }}>
@@ -2375,15 +2387,15 @@ function DhTasksTab({ project }: { project: Project }) {
                                                 isStarted
                                                   ? "Task has already started"
                                                   : liveIds.length === 0
-                                                  ? "Assign resources first to start task"
-                                                  : "Click to start task"
+                                                    ? "Assign resources first to start task"
+                                                    : "Click to start task"
                                               }
                                               onClick={() => {
                                                 const today = new Date().toISOString().slice(0, 10);
                                                 dhStore.updateTreeTaskState(project.id, t.id, {
                                                   actualStartDate: today,
                                                   stage: "Ongoing"
-                                                  });
+                                                });
                                                 toast.success("Task started", { description: `${t.taskId} (${t.serviceModel})` });
                                               }}
                                               className={cn(
@@ -2391,8 +2403,8 @@ function DhTasksTab({ project }: { project: Project }) {
                                                 isStarted
                                                   ? "bg-emerald-600 text-white border border-emerald-600 cursor-not-allowed opacity-90"
                                                   : liveIds.length === 0
-                                                  ? "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
-                                                  : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                                                    ? "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
+                                                    : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
                                               )}
                                             >
                                               {isStarted ? (
@@ -4485,7 +4497,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
 
   const stakeholders = useMemo(() => {
     const list: Person[] = [];
-    
+
     // Add PM
     if (project.pmId) {
       const pmObj = getPerson(project.pmId);
@@ -4500,7 +4512,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
     const emName = project.engagementManager || clientInfo?.engagementManager || "Riya Kapoor";
     const emObj = people.find((p) => p.name === emName || p.role === "Engagement Manager");
     if (emObj && !list.some(p => p.id === emObj.id)) list.push(emObj);
-    
+
     // Add HOD (Anita Desai)
     const hodObj = people.find(p => p.role === "HOD" || p.name === "Anita Desai");
     if (hodObj && !list.some(p => p.id === hodObj.id)) list.push(hodObj);
@@ -4830,28 +4842,28 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                         </td>
                         <td className="px-3 py-2.5 text-center align-middle">
                           <div className="flex items-center justify-center">
-                          {isReady ? (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
-                              ✓ Started
-                            </span>
-                          ) : (
-                            <button
-                              disabled={!canStart}
-                              onClick={() => {
-                                dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
-                                toast.success("Service marked as Ready to Start", { description: svc.serviceName });
-                              }}
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
-                                canStart
-                                  ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
-                                  : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
-                              )}
-                              title={!canStart ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Mark this service as Ready to Start"}
-                            >
-                              Ready
-                            </button>
-                          )}
+                            {isReady ? (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
+                                ✓ Started
+                              </span>
+                            ) : (
+                              <button
+                                disabled={!canStart}
+                                onClick={() => {
+                                  dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
+                                  toast.success("Service marked as Ready to Start", { description: svc.serviceName });
+                                }}
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
+                                  canStart
+                                    ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
+                                    : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
+                                )}
+                                title={!canStart ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Mark this service as Ready to Start"}
+                              >
+                                Ready
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td className="px-3 py-2.5 text-center align-middle">
@@ -4865,7 +4877,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
                               className={cn(
                                 "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold text-white hover:opacity-90 transition-opacity",
                                 activeEsc.priority === "Critical" ? "bg-red-600 border-red-700" :
-                                activeEsc.priority === "High" ? "bg-amber-600 border-amber-700" : "bg-blue-600 border-blue-700"
+                                  activeEsc.priority === "High" ? "bg-amber-600 border-amber-700" : "bg-blue-600 border-blue-700"
                               )}
                               title="Click to view details in Health tab"
                             >
@@ -4890,10 +4902,10 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
               </table>
             </div>
           </div>
- 
+
         </div>
       </div>
- 
+
       {/* Raise Escalation Modal */}
       {escalationModalOpen && escalationModalSvc && (
         <Modal title="Raise WBS Escalation" onClose={() => setEscalationModalOpen(false)}>
@@ -5162,13 +5174,14 @@ function WbsAssignmentModal({
     }
 
     // Merge with existing assignments — keep the other role's assignments intact
-    const finalPMs  = mode === "pm"  ? selectedPMs  : prereq.assignedPmIds;
+    const finalPMs = mode === "pm" ? selectedPMs : prereq.assignedPmIds;
     const finalSPMs = mode === "spm" ? selectedSPMs : prereq.assignedSpmIds;
 
     dhStore.assignPMs(project.id, finalPMs, finalSPMs);
     toast.success(
       mode === "pm" ? "PM Assigned" : "Senior PM Assigned",
-      { description: mode === "pm"
+      {
+        description: mode === "pm"
           ? `${selectedPMs.length} PM(s) assigned successfully.`
           : `${selectedSPMs.length} SPM(s) assigned successfully.`
       }

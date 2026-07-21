@@ -1,7 +1,8 @@
+import { type ReactNode } from "react";
 import { Search, Bell } from "lucide-react";
 import { useRoleContext, roleLabels } from "@/lib/role-context";
 
-export function AppTopbar({ title, subtitle }: { title: string; subtitle?: string }) {
+export function AppTopbar({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
   const { role, user, assignedIssues, pendingTimesheets } = useRoleContext();
   const notifCount =
     assignedIssues.filter((i) => i.status === "open").length + pendingTimesheets.length;

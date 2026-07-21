@@ -11,6 +11,9 @@ import {
   X,
   Code2,
   ClipboardList,
+  Trash2,
+  AlertTriangle,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -20,7 +23,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/my-org")({
   head: () => ({
     meta: [
-      { title: "My Org — Pulse PMO" },
+      { title: "Repository — Pulse PMO" },
       {
         name: "description",
         content:
@@ -60,6 +63,15 @@ interface OrgDocument {
   /** ISO date string YYYY-MM-DD */
   lastUpdated: string;
   uploadedBy: string;
+}
+
+interface LogEntry {
+  id: string;
+  action: "Uploaded" | "Deleted";
+  documentName: string;
+  category: string;
+  by: string;
+  at: string; // ISO timestamp
 }
 
 // ─── Seed Data ────────────────────────────────────────────────────────────────
@@ -122,6 +134,11 @@ function formatLastUpdated(iso: string): string {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function formatTimestamp(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 function filterDocuments(
   documents: OrgDocument[],
   categoryId: string | null,
@@ -180,7 +197,7 @@ const FILE_TYPE_COLORS: Record<string, string> = {
   csv:  "text-teal-600",
 };
 
-const COL_HEADERS = ["File Name", "Category", "Size", "Last Updated", "Uploaded By"];
+const COL_HEADERS = ["File Name", "Category", "Size", "Last Updated", "Uploaded By", ""];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -318,7 +335,164 @@ function CategorySidebar({
   );
 }
 
-function DocumentRow({ document, categories }: { document: OrgDocument; categories: OrgCategory[] }) {
+// ── Delete confirmation dialog ──
+function DeleteConfirmDialog({
+  document,
+  onConfirm,
+  onCancel,
+}: {
+  document: OrgDocument;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={onCancel} />
+      <div
+        className="relative w-full max-w-md rounded-xl border border-destructive/30 bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground">Delete Document?</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This action cannot be undone. The document will be permanently removed from the repository.
+            </p>
+          </div>
+          <button
+            onClick={onCancel}
+            className="ml-auto shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Document info */}
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3">
+          <FileText className="h-4 w-4 shrink-0 text-destructive/70" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-foreground">{document.name}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {formatFileSize(document.size)} · Uploaded by {document.uploadedBy}
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-5 flex items-center justify-end gap-2 border-t border-border pt-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="inline-flex items-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground shadow-sm transition-all hover:bg-destructive/90"
+          >
+            <Trash2 className="h-4 w-4" />
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── View Log Modal ──
+function ViewLogModal({
+  logs,
+  categories,
+  onClose,
+}: {
+  logs: LogEntry[];
+  categories: OrgCategory[];
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
+      <div
+        className="relative flex w-full max-w-2xl flex-col rounded-xl border border-border bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+        style={{ maxHeight: "80vh" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-base font-semibold text-foreground">Activity Log</h2>
+            <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              {logs.length} {logs.length === 1 ? "entry" : "entries"}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Log list */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {logs.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">No activity yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {logs.map((entry) => {
+                const cat = categories.find((c) => c.id === entry.category);
+                const isDelete = entry.action === "Deleted";
+                return (
+                  <li
+                    key={entry.id}
+                    className="flex items-start gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-xs"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        isDelete
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-success/10 text-success"
+                      )}
+                    >
+                      {entry.action}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-foreground">{entry.documentName}</p>
+                      <p className="mt-0.5 text-muted-foreground">
+                        {cat?.name ?? entry.category} · by {entry.by}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-muted-foreground">
+                      {formatTimestamp(entry.at)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DocumentRow({
+  document,
+  categories,
+  onDeleteClick,
+}: {
+  document: OrgDocument;
+  categories: OrgCategory[];
+  onDeleteClick: (doc: OrgDocument) => void;
+}) {
   const category = categories.find((c) => c.id === document.categoryId);
   const iconColor = FILE_TYPE_COLORS[document.fileType.toLowerCase()] ?? "text-muted-foreground";
 
@@ -348,6 +522,17 @@ function DocumentRow({ document, categories }: { document: OrgDocument; categori
       <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
         {document.uploadedBy}
       </td>
+      {/* Delete action */}
+      <td className="whitespace-nowrap px-4 py-3 text-right">
+        <button
+          type="button"
+          title="Delete document"
+          onClick={() => onDeleteClick(document)}
+          className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </td>
     </tr>
   );
 }
@@ -359,6 +544,7 @@ function DocumentTable({
   page,
   totalPages,
   onPageChange,
+  onDeleteClick,
 }: {
   documents: OrgDocument[];
   categories: OrgCategory[];
@@ -366,6 +552,7 @@ function DocumentTable({
   page: number;
   totalPages: number;
   onPageChange: (p: number) => void;
+  onDeleteClick: (doc: OrgDocument) => void;
 }) {
   const from = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const to = Math.min(page * PAGE_SIZE, totalCount);
@@ -391,7 +578,12 @@ function DocumentTable({
             </tr>
           ) : (
             documents.map((doc) => (
-              <DocumentRow key={doc.id} document={doc} categories={categories} />
+              <DocumentRow
+                key={doc.id}
+                document={doc}
+                categories={categories}
+                onDeleteClick={onDeleteClick}
+              />
             ))
           )}
         </tbody>
@@ -518,11 +710,18 @@ function UploadAssignmentModal({
 function MyOrgPage() {
   const categories = [...seedCategories];
   const [documents, setDocuments] = useState<OrgDocument[]>([...seedDocuments]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
 
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+
+  // Delete confirmation state
+  const [pendingDeleteDoc, setPendingDeleteDoc] = useState<OrgDocument | null>(null);
+
+  // View log state
+  const [showLog, setShowLog] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -546,8 +745,42 @@ function MyOrgPage() {
       uploadedBy: "Admin",
     };
     setDocuments((prev) => [newDoc, ...prev]);
+    const cat = categories.find((c) => c.id === categoryId);
+    setLogs((prev) => [
+      {
+        id: `log-${Date.now()}`,
+        action: "Uploaded",
+        documentName: uploadedFile.name,
+        category: categoryId,
+        by: "Admin",
+        at: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
     setUploadedFile(null);
     setActiveCategoryId(categoryId);
+    setPage(1);
+  };
+
+  const handleDeleteClick = (doc: OrgDocument) => {
+    setPendingDeleteDoc(doc);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!pendingDeleteDoc) return;
+    setDocuments((prev) => prev.filter((d) => d.id !== pendingDeleteDoc.id));
+    setLogs((prev) => [
+      {
+        id: `log-${Date.now()}`,
+        action: "Deleted",
+        documentName: pendingDeleteDoc.name,
+        category: pendingDeleteDoc.categoryId,
+        by: "Admin",
+        at: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
+    setPendingDeleteDoc(null);
     setPage(1);
   };
 
@@ -567,7 +800,7 @@ function MyOrgPage() {
   const pagedDocs = filteredDocs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <AppShell title="My Org" subtitle="Organization documents, SOPs & policies">
+    <AppShell title="Repository" subtitle="Organization documents, SOPs & policies">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -582,13 +815,29 @@ function MyOrgPage() {
         <p className="text-xs text-muted-foreground">
           Manage organizational documents, SOPs, and policy resources.
         </p>
-        <button
-          onClick={handleUploadClick}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
-        >
-          <Upload className="h-4 w-4" />
-          Upload Document
-        </button>
+        <div className="flex items-center gap-2">
+          {/* View Log button */}
+          <button
+            onClick={() => setShowLog(true)}
+            className="inline-flex items-center gap-2 rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-accent"
+          >
+            <ScrollText className="h-4 w-4" />
+            View Log
+            {logs.length > 0 && (
+              <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                {logs.length}
+              </span>
+            )}
+          </button>
+          {/* Upload Document button */}
+          <button
+            onClick={handleUploadClick}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+          >
+            <Upload className="h-4 w-4" />
+            Upload Document
+          </button>
+        </div>
       </div>
 
       {/* Category cards */}
@@ -621,6 +870,7 @@ function MyOrgPage() {
           page={currentPage}
           totalPages={totalPages}
           onPageChange={setPage}
+          onDeleteClick={handleDeleteClick}
         />
       </div>
 
@@ -631,6 +881,24 @@ function MyOrgPage() {
           categories={categories}
           onAssign={handleAssignCategory}
           onCancel={() => setUploadedFile(null)}
+        />
+      )}
+
+      {/* Delete confirmation modal (step 2) */}
+      {pendingDeleteDoc && (
+        <DeleteConfirmDialog
+          document={pendingDeleteDoc}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setPendingDeleteDoc(null)}
+        />
+      )}
+
+      {/* Activity log modal */}
+      {showLog && (
+        <ViewLogModal
+          logs={logs}
+          categories={categories}
+          onClose={() => setShowLog(false)}
         />
       )}
     </AppShell>
