@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Search, Filter, Plus, Send, Trash2, Clock, MessageSquare, Copy, X, CheckCircle2, XCircle, RotateCcw, AlertTriangle, AlertCircle, Calendar, DollarSign, Check, ExternalLink, ShieldAlert, ListFilter, User, Paperclip, Bell, Archive } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
@@ -65,84 +65,207 @@ function ActionCentrePage() {
 }
 
 // ---------- Bucket List ----------
-type BucketRow = {
-  taskId: string;
-  taskTitle: string;
-  projectId: string;
-  projectName: string;
-  priority: "low" | "medium" | "high" | "critical";
-  dueDate: string;
-  status: TaskStatus;
-  assignedById: string;
-};
+import { type DhBucketTask } from "@/lib/dh-store";
+
+function BucketListRow({ r }: { r: DhBucketTask }) {
+  const by = getPerson(r.assignedById);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!r.timerRunning) return;
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [r.timerRunning]);
+
+  let workingTimeSeconds = r.elapsedTime;
+  if (r.timerRunning && r.lastStartedAt) {
+    const elapsedSinceStart = Math.floor((now - new Date(r.lastStartedAt).getTime()) / 1000);
+    workingTimeSeconds += Math.max(0, elapsedSinceStart);
+  }
+
+  const formatTimer = (totalSecs: number) => {
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    return [h, m, s].map((v) => String(v).padStart(2, "0")).join(":");
+  };
+
+  const handleStart = () => {
+    dhStore.startBucketTask(r.id);
+    toast.success("Timer started", { description: r.taskTitle });
+  };
+
+  const handlePause = () => {
+    dhStore.pauseBucketTask(r.id);
+    toast.info("Timer paused", { description: r.taskTitle });
+  };
+
+  const handleResume = () => {
+    dhStore.resumeBucketTask(r.id);
+    toast.success("Timer resumed", { description: r.taskTitle });
+  };
+
+  const handleComplete = () => {
+    dhStore.completeBucketTask(r.id);
+    toast.success("Task completed!", { description: r.taskTitle });
+  };
+
+  return (
+    <tr className="hover:bg-accent/30 border-b border-border">
+      <td className="px-3 py-2.5">
+        <Link to="/projects/$projectId" params={{ projectId: r.projectId }} hash={r.taskId}
+          className="font-semibold text-gray-800 hover:text-primary transition-colors">{r.taskTitle}</Link>
+      </td>
+      <td className="px-3 py-2.5 text-muted-foreground font-medium">{r.projectName}</td>
+      <td className="px-3 py-2.5">
+        <PriorityPill priority={r.priority} />
+      </td>
+      <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground font-medium">
+        {new Date(r.dueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+      </td>
+      <td className="px-3 py-2.5">
+        <span className={cn(
+          "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold capitalize shadow-2xs",
+          r.status === "Not Started" && "bg-slate-50 text-slate-700 border-slate-200",
+          r.status === "Ongoing" && "bg-blue-50 text-blue-700 border-blue-200 animate-pulse",
+          r.status === "Paused" && "bg-amber-50 text-amber-700 border-amber-200",
+          r.status === "Completed" && "bg-green-50 text-green-700 border-green-200"
+        )}>
+          {r.status === "Ongoing" && <Clock className="h-3 w-3 animate-spin text-blue-600" />}
+          {r.status}
+        </span>
+      </td>
+      <td className="px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <Avatar name={by.name} size={24} />
+          <span className="text-xs font-semibold text-gray-700">{by.name}</span>
+        </div>
+      </td>
+      <td className="px-3 py-2.5">
+        <div className="flex flex-col gap-1.5 min-w-[210px] bg-muted/20 p-2 rounded-lg border border-border/80">
+          {(r.status === "Ongoing" || r.status === "Paused" || r.status === "Completed") && (
+            <div className="text-[10px] text-muted-foreground flex flex-col gap-0.5 font-medium">
+              {r.startedAt && (
+                <div>
+                  <span className="font-semibold text-gray-500">Started:</span> {new Date(r.startedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                </div>
+              )}
+              <div className="flex items-center justify-between font-mono font-bold text-gray-800 border-t border-border/50 mt-1 pt-1">
+                <span>Working Time:</span>
+                <span className={cn("text-xs font-bold", r.timerRunning ? "text-blue-600 animate-pulse" : "text-gray-600")}>
+                  {formatTimer(workingTimeSeconds)}
+                </span>
+              </div>
+              {r.status === "Completed" && r.completedAt && (
+                <div className="text-success font-semibold border-t border-border/50 mt-1 pt-1">
+                  Completed: {new Date(r.completedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-1.5">
+            {r.status === "Not Started" && (
+              <button
+                onClick={handleStart}
+                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm"
+              >
+                <Clock className="h-3.5 w-3.5" /> Start Task
+              </button>
+            )}
+            {r.status === "Ongoing" && (
+              <>
+                <button
+                  onClick={handlePause}
+                  className="inline-flex items-center justify-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-2xs"
+                >
+                  Pause
+                </button>
+                <button
+                  onClick={handleComplete}
+                  className="inline-flex items-center justify-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 transition-all shadow-sm"
+                >
+                  Complete
+                </button>
+              </>
+            )}
+            {r.status === "Paused" && (
+              <>
+                <button
+                  onClick={handleResume}
+                  className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs"
+                >
+                  Resume
+                </button>
+                <button
+                  onClick={handleComplete}
+                  className="inline-flex items-center justify-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 transition-all shadow-sm"
+                >
+                  Complete
+                </button>
+              </>
+            )}
+            {r.status === "Completed" && (
+              <span className="text-xs font-bold text-success flex items-center gap-1 py-1">
+                <CheckCircle2 className="h-4.5 w-4.5 text-success" /> Task Completed
+              </span>
+            )}
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 function BucketList() {
   const { user } = useRoleContext();
+  const [viewUserId, setViewUserId] = useState(user.id);
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | TaskStatus>("all");
-  const [priorityFilter, setPriorityFilter] = useState<"all" | BucketRow["priority"]>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "todo" | "in_progress" | "review" | "done">("all");
+  const [priorityFilter, setPriorityFilter] = useState<"all" | "low" | "medium" | "high" | "critical">("all");
   const store = useDhStore((s) => s);
-  const projectsList = allProjects();
+  
+  const bucketTasks = store.bucketTasks || [];
 
-  const rows: BucketRow[] = useMemo(() => {
-    const out: BucketRow[] = [];
-    const prios: BucketRow["priority"][] = ["high", "medium", "critical", "low", "medium", "high"];
-
-    // Existing base bucket tasks logic:
-    projectsList.slice(0, 5).forEach((p, pi) => {
-      p.tasks.slice(0, 3).forEach((t, ti) => {
-        out.push({
-          taskId: t.id,
-          taskTitle: t.title,
-          projectId: p.id,
-          projectName: p.name,
-          priority: prios[(pi + ti) % prios.length],
-          dueDate: t.dueDate,
-          status: t.status,
-          assignedById: p.pmId,
-        });
-      });
-    });
-
-    // Dynamic tasks for Ready To Start projects assigned to the current PM/SPM:
-    projectsList.forEach((p) => {
-      const prereq = store.prereqs[p.id];
-      if (prereq && prereq.isProjectReadyToStart) {
-        const isAssignedPm = prereq.assignedPmIds?.includes(user.id);
-        const isAssignedSpm = prereq.assignedSpmIds?.includes(user.id);
-        if (isAssignedPm || isAssignedSpm) {
-          p.tasks.forEach((t) => {
-            // Avoid duplicates
-            if (!out.some(x => x.taskId === t.id)) {
-              out.push({
-                taskId: t.id,
-                taskTitle: t.title,
-                projectId: p.id,
-                projectName: p.name,
-                priority: "medium", // default
-                dueDate: t.dueDate,
-                status: t.status,
-                assignedById: p.pmId || "u14", // Dhanshree / System
-              });
-            }
-          });
-        }
-      }
-    });
-
-    return out;
-  }, [projectsList, store.prereqs, user.id]);
+  const rows = useMemo(() => {
+    return bucketTasks.filter((bt) => bt.employeeId === viewUserId);
+  }, [bucketTasks, viewUserId]);
 
   const filtered = rows.filter((r) => {
-    if (statusFilter !== "all" && r.status !== statusFilter) return false;
+    if (statusFilter !== "all") {
+      if (statusFilter === "todo" && r.status !== "Not Started") return false;
+      if (statusFilter === "in_progress" && r.status !== "Ongoing" && r.status !== "Paused") return false;
+      if (statusFilter === "done" && r.status !== "Completed") return false;
+      if (statusFilter === "review") return false;
+    }
     if (priorityFilter !== "all" && r.priority !== priorityFilter) return false;
     if (!q.trim()) return true;
     return [r.taskTitle, r.projectName].some((v) => v.toLowerCase().includes(q.toLowerCase()));
   });
 
+  const selectedPerson = getPerson(viewUserId) || user;
+
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm">
-      <header className="flex flex-wrap items-center gap-2 border-b border-border p-3">
+      <header className="flex flex-wrap items-center gap-3 border-b border-border p-3">
+        {/* View As Selector for Tester */}
+        <div className="flex items-center gap-2 mr-2">
+          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">Viewing As:</span>
+          <select
+            value={viewUserId}
+            onChange={(e) => setViewUserId(e.target.value)}
+            className="h-9 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring border-border cursor-pointer hover:bg-accent/30"
+          >
+            {people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.role})
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -153,61 +276,47 @@ function BucketList() {
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-xs">
           <Filter className="ml-1 h-3.5 w-3.5 text-muted-foreground" />
-          {(["all", "todo", "in_progress", "review", "done"] as const).map((s) => (
+          {(["all", "todo", "in_progress", "done"] as const).map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)}
-              className={cn("rounded-md px-2.5 py-1 capitalize",
-                statusFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-              {s === "all" ? "All status" : s.replace("_", " ")}
+              className={cn("rounded-md px-2.5 py-1 capitalize font-medium",
+                statusFilter === s ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground")}>
+              {s === "all" ? "All status" : s === "todo" ? "To Do" : s === "in_progress" ? "In Progress" : "Done"}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-xs">
           {(["all", "low", "medium", "high", "critical"] as const).map((p) => (
             <button key={p} onClick={() => setPriorityFilter(p)}
-              className={cn("rounded-md px-2.5 py-1 capitalize",
-                priorityFilter === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+              className={cn("rounded-md px-2.5 py-1 capitalize font-medium",
+                priorityFilter === p ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground")}>
               {p === "all" ? "All priority" : p}
             </button>
           ))}
         </div>
-        <span className="ml-auto text-xs text-muted-foreground">
-          Assigned to {user.name} · {filtered.length} tasks
+        <span className="ml-auto text-xs text-muted-foreground font-semibold">
+          Assigned to {selectedPerson.name} · {filtered.length} tasks
         </span>
       </header>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
             <tr>
-              <th className="px-3 py-2 font-medium">Task</th>
-              <th className="px-3 py-2 font-medium">Project</th>
-              <th className="px-3 py-2 font-medium">Priority</th>
-              <th className="px-3 py-2 font-medium">Due Date</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Assigned By</th>
+              <th className="px-3 py-2 font-bold">Task</th>
+              <th className="px-3 py-2 font-bold">Project</th>
+              <th className="px-3 py-2 font-bold">Priority</th>
+              <th className="px-3 py-2 font-bold">Due Date</th>
+              <th className="px-3 py-2 font-bold">Status</th>
+              <th className="px-3 py-2 font-bold">Assigned By</th>
+              <th className="px-3 py-2 font-bold">Actions & Timer</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((r) => {
-              const by = getPerson(r.assignedById);
-              return (
-                <tr key={r.taskId} className="hover:bg-accent/30">
-                  <td className="px-3 py-2.5">
-                    <Link to="/projects/$projectId" params={{ projectId: r.projectId }} hash={r.taskId}
-                      className="font-medium hover:text-primary">{r.taskTitle}</Link>
-                  </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{r.projectName}</td>
-                  <td className="px-3 py-2.5"><PriorityPill priority={r.priority} /></td>
-                  <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">{new Date(r.dueDate).toLocaleDateString()}</td>
-                  <td className="px-3 py-2.5"><TaskStatusPill status={r.status} /></td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2"><Avatar name={by.name} size={24} /><span className="text-xs">{by.name}</span></div>
-                  </td>
-                </tr>
-              );
-            })}
+            {filtered.map((r) => (
+              <BucketListRow key={r.id} r={r} />
+            ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-10 text-center text-sm text-muted-foreground">No tasks match your filters</td></tr>
+              <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">No tasks match your filters</td></tr>
             )}
           </tbody>
         </table>

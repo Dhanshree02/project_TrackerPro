@@ -253,7 +253,7 @@ export const people: Person[] = [
   { id: "u14", name: "Dhanshree", role: "Dhanshree", avatar: "DS", email: "dhanshree@acme.co" },
 ];
 
-export const getPerson = (id: string) => people.find((p) => p.id === id)!;
+export const getPerson = (id: string) => people.find((p) => p.id === id) || { id: id || "unknown", name: id || "Unknown User", role: "User", avatar: "?", email: "" };
 
 // ---------- Clients ----------
 export const clients: Client[] = [
