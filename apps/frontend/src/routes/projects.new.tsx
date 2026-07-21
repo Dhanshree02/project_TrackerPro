@@ -9,7 +9,7 @@ import { useRoleContext } from "@/lib/role-context";
 import { allClients, allProjects, dhStore, useDhStore, buildProjectDisplayId, buildWbsId } from "@/lib/dh-store";
 
 export const Route = createFileRoute("/projects/new")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { draftId?: string } => ({
     draftId: typeof search.draftId === "string" ? search.draftId : undefined,
   }),
   head: () => ({
@@ -149,6 +149,7 @@ interface ServiceRow {
   name: string;
   qty: number;
   description: string;
+  resourceLevel: string;  // Resource Level — dropdown (L1/L2/Senior)
   frequency: string;
   location: string;       // Delivery Model — dropdown (Onsite/Offsite/Hybrid)
   locationText: string;   // Project Side — free text
@@ -210,6 +211,27 @@ function WbsNewProjectPage() {
     const dd = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${dd}`;
   }
+
+  // Add N calendar months to a YYYY-MM-DD string, returns YYYY-MM-DD
+  function addCalendarMonths(startIso: string, months: number): string {
+    const d = new Date(startIso);
+    d.setMonth(d.getMonth() + months);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  }
+
+  // Compute end date from a row based on its frequency and duration
+  function computeEndDate(row: { startDate: string; frequency: string; totalDays: number }): string {
+    if (!row.startDate) return "";
+    if (row.frequency === "Half yearly") return addCalendarMonths(row.startDate, 6);
+    if (row.frequency === "Yearly") return addCalendarMonths(row.startDate, 12);
+    // Once (or any other) — use working days from totalDays
+    if (row.totalDays > 0) return addWorkingDays(row.startDate, row.totalDays);
+    return "";
+  }
+
   const todayIso = new Date().toISOString().slice(0, 10);
 
   // ── Header fields ──
@@ -274,6 +296,9 @@ function WbsNewProjectPage() {
   // ── Section B ──
   const [billingModel, setBillingModel] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
+  const [customPayments, setCustomPayments] = useState<{ label: string; pct: number }[]>([
+    { label: "First Payment", pct: 100 },
+  ]);
   const [currency, setCurrency] = useState("INR");
   const [poStatus, setPoStatus] = useState("");
   const [poNumber, setPoNumber] = useState("");
@@ -408,26 +433,30 @@ function WbsNewProjectPage() {
         if (!svc) return;
         const existing = serviceRows.find((r) => r.rowId === svcId);
         if (existing) {
-          if (DEPT_GROUPS[dept] === "Resource" && existing.serviceModel !== "NA") {
-            existing.serviceModel = "NA";
+          const updatedExisting = { ...existing };
+          if (DEPT_GROUPS[dept] === "Resource" && updatedExisting.serviceModel !== "NA") {
+            updatedExisting.serviceModel = "NA";
           }
-          if (projectType === "Ad-Hoc" && existing.frequency !== "Once") {
-            existing.frequency = "Once";
+          if (projectType === "Ad-Hoc" && updatedExisting.frequency !== "Once") {
+            updatedExisting.frequency = "Once";
+            updatedExisting.endDate = computeEndDate(updatedExisting);
           }
-          rows.push(existing);
+          rows.push(updatedExisting);
         }
         else {
           const isResource = DEPT_GROUPS[dept] === "Resource";
-          rows.push({
+          const newRow = {
             rowId: svcId, taskId: `WBS-${String(rowNum + 1).padStart(2, "0")}`,
-            dept, name: svc.name, qty: 1, description: "", frequency: projectType === "Ad-Hoc" ? "Once" : "",
+            dept, name: svc.name, qty: 1, description: "", resourceLevel: "", frequency: projectType === "Ad-Hoc" ? "Once" : "",
             location: "", locationText: "", serviceModel: isResource ? "NA" : "",
             deliveryModel: "Remote", billingModel: "",
             deliveryFormat: "", tools: svc.tool,
             startDate: todayIso, endDate: "",
             durationDays: svc.days, durationHrs: svc.days * 8,
             totalDays: svc.days, totalHrs: svc.days * 8, unitPrice: svc.unitPrice, total: svc.unitPrice,
-          });
+          };
+          newRow.endDate = computeEndDate(newRow);
+          rows.push(newRow);
         }
         rowNum++;
       });
@@ -461,21 +490,23 @@ function WbsNewProjectPage() {
         if (field === "qty" || field === "unitPrice") {
           updated.total = Number(updated.qty) * Number(updated.unitPrice);
         }
-        // Recalculate totalDays and totalHrs when qty, durationDays or durationHrs changes
+        // Recalculate totalDays and totalHrs when qty or durationDays/Hrs changes
         if (field === "qty" || field === "durationDays") {
           updated.totalDays = Number(updated.qty) * Number(updated.durationDays);
         }
         if (field === "qty" || field === "durationHrs") {
           updated.totalHrs = Number(updated.qty) * Number(updated.durationHrs);
         }
-        // Recalculate WBS End Date whenever startDate or totalDays change
-        if (field === "startDate" || field === "qty" || field === "durationDays") {
-          const days = field === "durationDays"
-            ? Number(updated.qty) * Number(value)
-            : updated.totalDays;
-          if (updated.startDate && days > 0) {
-            updated.endDate = addWorkingDays(updated.startDate, days);
-          }
+        // Auto-compute WBS End Date whenever startDate, duration, qty, or frequency changes
+        if (field === "startDate" || field === "qty" || field === "durationDays" || field === "frequency") {
+          // If durationDays just changed, recalc totalDays first so computeEndDate uses the new value
+          const totalDaysForCalc =
+            field === "durationDays"
+              ? Number(updated.qty) * Number(value)
+              : updated.totalDays;
+          const rowForCalc = { ...updated, totalDays: totalDaysForCalc };
+          const newEnd = computeEndDate(rowForCalc);
+          if (newEnd) updated.endDate = newEnd;
         }
         return updated;
       })
@@ -513,6 +544,8 @@ function WbsNewProjectPage() {
     setBillingModel(model);
     // Payment Terms is only editable when Custom — always clear it on any change
     setPaymentTerms("");
+    // Reset custom payments back to default when switching billing model
+    setCustomPayments([{ label: "First Payment", pct: 100 }]);
   }
 
   // Helper to update specific fields on an invoice row
@@ -619,6 +652,16 @@ function WbsNewProjectPage() {
           nextRows.push(getOrCreateRow(s.rowId, s.name, m.milestone, s.unitPrice, s.qty, currency, amount));
         });
       });
+    } else if (billingModel === "Custom") {
+      serviceRows.forEach((s) => {
+        const ordinals = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth"];
+        customPayments.forEach((cp, idx) => {
+          const baseLabel = cp.label.trim() || `${ordinals[idx] ?? `Payment ${idx + 1}`} Payment`;
+          const milestone = `${baseLabel} (${Number(cp.pct) || 0}%)`;
+          const amount = Math.round((s.unitPrice * s.qty * (Number(cp.pct) || 0)) / 100);
+          nextRows.push(getOrCreateRow(s.rowId, s.name, milestone, s.unitPrice, s.qty, currency, amount));
+        });
+      });
     } else if (billingModel === "Monthly Arrears" || billingModel === "Monthly Advance") {
       serviceRows.forEach((s) => {
         const periods = getMonthlyPeriods(s.frequency);
@@ -638,7 +681,7 @@ function WbsNewProjectPage() {
     }
 
     setInvoiceRows(nextRows);
-  }, [billingModel, currency, servicesDependency]);
+  }, [billingModel, currency, servicesDependency, JSON.stringify(customPayments)]);
 
   // Filter departments based on Contract Type
   const allowedDepts = Object.keys(DEPT_SERVICES).filter((dept) => {
@@ -673,7 +716,7 @@ function WbsNewProjectPage() {
       currency, taxPercent,
       services: serviceRows.map((r) => ({
         id: r.rowId, department: r.dept, serviceName: r.name,
-        qty: r.qty, description: r.description, frequency: r.frequency,
+        qty: r.qty, description: r.description, resourceLevel: r.resourceLevel, frequency: r.frequency,
         location: r.location, locationText: r.locationText, serviceModel: r.serviceModel,
         deliveryModel: r.deliveryModel,
         // propagate the Section B billing model to every service row
@@ -687,23 +730,27 @@ function WbsNewProjectPage() {
         poStatus, poNumber, poDate, billingModel, paymentTerms, targetDate,
         contactName, contactNumber, contactEmail,
         poFileName: poFile ? poFile.name : "",
-        invoices: invoiceRows.map((inv) => ({
-          id: inv.rowId,
-          serviceId: inv.serviceId,
-          serviceName: inv.serviceName,
-          milestone: inv.milestone,
-          targetDate: inv.targetDate,
-          invoiceDate: inv.targetDate, // compatibility
-          unitPrice: inv.unitPrice,
-          qty: inv.qty,
-          currency: inv.currency,
-          amount: inv.amount,
-          invoiceStatus: inv.invoiceStatus,
-          invoiceNumber: inv.invoiceNumber,
-          paymentStatus: inv.paymentStatus,
-          paymentDate: inv.paymentDate,
-          remarks: inv.invoiceNumber, // compatibility
-        })),
+        invoices: invoiceRows.map((inv) => {
+          const svcRow = serviceRows.find((s) => s.rowId === inv.serviceId);
+          return {
+            id: inv.rowId,
+            serviceId: inv.serviceId,
+            serviceName: inv.serviceName,
+            milestone: inv.milestone,
+            targetDate: inv.targetDate,
+            invoiceDate: inv.targetDate, // compatibility
+            unitPrice: inv.unitPrice,
+            qty: inv.qty,
+            currency: inv.currency,
+            amount: inv.amount,
+            invoiceStatus: inv.invoiceStatus,
+            invoiceNumber: inv.invoiceNumber,
+            paymentStatus: inv.paymentStatus,
+            paymentDate: inv.paymentDate,
+            remarks: inv.invoiceNumber, // compatibility
+            resourceLevel: svcRow?.resourceLevel || "",
+          };
+        }),
       },
     };
   }
@@ -744,6 +791,7 @@ function WbsNewProjectPage() {
     setContractType("");
     setBillingModel("");
     setPaymentTerms("");
+    setCustomPayments([{ label: "First Payment", pct: 100 }]);
     setCurrency("INR");
     setTaxPercent(18);
     setPoStatus("");
@@ -767,7 +815,16 @@ function WbsNewProjectPage() {
     if (!projectName.trim()) { toast.error("Project Name is required"); return; }
     if (!selectedClientId) { toast.error("Please select a client"); return; }
     if (serviceRows.length === 0) { toast.error("Please add at least one service"); return; }
-    if (billingModel === "Custom" && !paymentTerms.trim()) { toast.error("Payment Terms is required when Billing Model is Custom"); return; }
+    if (billingModel === "Custom") {
+      const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
+      if (total !== 100) {
+        toast.error(`Custom payment terms must total 100% (currently ${total}%)`);
+        return;
+      }
+      // Serialize custom payments into paymentTerms string
+      const serialized = customPayments.map((p, i) => `${p.pct}% ${p.label || `Payment ${i + 1}`}`).join(" + ");
+      setPaymentTerms(serialized);
+    }
     const err = validateServiceRows();
     if (err) { toast.error(err); return; }
 
@@ -871,53 +928,54 @@ function WbsNewProjectPage() {
                     {filteredByWbs.length === 0 ? (
                       <div style={{ padding: "12px 14px", fontSize: 12, color: "#6b7280" }}>No projects with WBS ID match</div>
                     ) : filteredByWbs.map((p) => {
-                      const c = clients.find((c) => c.id === p.clientId);
+                      const pAny = p as any;
+                      const c = clients.find((c) => c.id === pAny.clientId);
                       return (
                         <div
-                          key={p.id}
+                          key={pAny.id}
                           onMouseDown={() => {
                             setRenewalProject(p);
-                            setWbsSearch(p.wbsId ?? p.id);
+                            setWbsSearch(pAny.wbsId ?? pAny.id);
                             
                             // Auto-fill all project metadata
-                            setProjectName(p.name);
-                            setSelectedClientId(p.clientId);
+                            setProjectName(pAny.name);
+                            setSelectedClientId(pAny.clientId);
                             setClientSearch(c?.name ?? "");
-                            setEngagementManager(p.engagementManager ?? c?.engagementManager ?? "");
-                            setSalesPerson(p.salesPerson ?? "");
-                            setProjectType(p.projectType ?? "");
-                            setContractType(p.contractType ?? "");
+                            setEngagementManager(pAny.engagementManager ?? c?.engagementManager ?? "");
+                            setSalesPerson(pAny.salesPerson ?? "");
+                            setProjectType(pAny.projectType ?? "");
+                            setContractType(pAny.contractType ?? "");
                             
-                            if (p.subVenture) {
-                              setSelectedSubVenture(p.subVenture);
-                              setSvSearch(p.subVenture);
+                            // Section B values
+                            const bModel = pAny.wbsDetails?.accounts?.billingModel ?? pAny.billingModel ?? "";
+                            setBillingModel(bModel);
+                            setPaymentTerms(pAny.wbsDetails?.accounts?.paymentTerms ?? pAny.paymentTerms ?? "");
+                            setCurrency(pAny.currency ?? "INR");
+                            setTaxPercent(pAny.taxPercent ?? 18);
+                            setPoStatus(pAny.wbsDetails?.accounts?.poStatus ?? pAny.poStatus ?? "");
+                            setPoNumber(pAny.wbsDetails?.accounts?.poNumber ?? pAny.poNumber ?? "");
+                            setPoDate(pAny.wbsDetails?.accounts?.poDate ?? pAny.poDate ?? "");
+                            setTargetDate(pAny.wbsDetails?.accounts?.targetDate ?? pAny.targetDate ?? "");
+                            setContactName(pAny.wbsDetails?.accounts?.contactName ?? pAny.contactName ?? "");
+                            setContactNumber(pAny.wbsDetails?.accounts?.contactNumber ?? pAny.contactNumber ?? "");
+                            setContactEmail(pAny.wbsDetails?.accounts?.contactEmail ?? pAny.contactEmail ?? "");
+                            setSectionAComments(pAny.sectionAComments ?? pAny.description ?? "");
+                            setSectionBComments(pAny.sectionBComments ?? "");
+
+                            if (pAny.subVenture) {
+                              setSelectedSubVenture(pAny.subVenture);
+                              setSvSearch(pAny.subVenture);
                             } else {
                               setSelectedSubVenture("");
                               setSvSearch("");
                             }
 
-                            // Section B values
-                            const bModel = p.wbsDetails?.accounts?.billingModel ?? p.billingModel ?? "";
-                            setBillingModel(bModel);
-                            setPaymentTerms(p.wbsDetails?.accounts?.paymentTerms ?? p.paymentTerms ?? "");
-                            setCurrency(p.currency ?? "INR");
-                            setTaxPercent(p.taxPercent ?? 18);
-                            setPoStatus(p.wbsDetails?.accounts?.poStatus ?? p.poStatus ?? "");
-                            setPoNumber(p.wbsDetails?.accounts?.poNumber ?? p.poNumber ?? "");
-                            setPoDate(p.wbsDetails?.accounts?.poDate ?? p.poDate ?? "");
-                            setTargetDate(p.wbsDetails?.accounts?.targetDate ?? p.targetDate ?? "");
-                            setContactName(p.wbsDetails?.accounts?.contactName ?? p.contactName ?? "");
-                            setContactNumber(p.wbsDetails?.accounts?.contactNumber ?? p.contactNumber ?? "");
-                            setContactEmail(p.wbsDetails?.accounts?.contactEmail ?? p.contactEmail ?? "");
-                            setSectionAComments(p.sectionAComments ?? p.description ?? "");
-                            setSectionBComments(p.sectionBComments ?? "");
-
                             // Load services
                             let servicesList: any[] = [];
-                            if (p.wbsDetails?.services) {
-                              servicesList = p.wbsDetails.services;
-                            } else if (p.tasks && p.tasks.length > 0) {
-                              servicesList = p.tasks.map((task: any, idx: number) => {
+                            if (pAny.wbsDetails?.services) {
+                              servicesList = pAny.wbsDetails.services;
+                            } else if (pAny.tasks && pAny.tasks.length > 0) {
+                              servicesList = pAny.tasks.map((task: any, idx: number) => {
                                 let deptName = "Cyber Security";
                                 for (const [dept, svcs] of Object.entries(DEPT_SERVICES)) {
                                   if (svcs.some((s: any) => s.id === task.serviceId || s.name === task.title)) {
@@ -931,6 +989,7 @@ function WbsNewProjectPage() {
                                   serviceName: task.title,
                                   qty: 1,
                                   description: "",
+                                  resourceLevel: "",
                                   frequency: "Once",
                                   location: "Offshore",
                                   locationText: "",
@@ -939,8 +998,8 @@ function WbsNewProjectPage() {
                                   finalDeliveryFormat: "Report",
                                   billingModel: "Fixed Bid",
                                   tools: "",
-                                  startDate: task.wbsStartDate || p.startDate,
-                                  endDate: task.wbsEndDate || task.dueDate || p.endDate,
+                                  startDate: task.wbsStartDate || pAny.startDate,
+                                  endDate: task.wbsEndDate || task.dueDate || pAny.endDate,
                                   duration: task.estimatedHours ? Math.ceil(task.estimatedHours / 8) : 5,
                                   totalDays: task.estimatedHours ? Math.ceil(task.estimatedHours / 8) : 5,
                                   totalHrs: task.estimatedHours || 40,
@@ -958,6 +1017,7 @@ function WbsNewProjectPage() {
                                 name: svc.serviceName,
                                 description: svc.description || "",
                                 qty: svc.qty || 1,
+                                resourceLevel: svc.resourceLevel || "",
                                 frequency: svc.frequency || "",
                                 serviceModel: svc.serviceModel || "",
                                 location: svc.location || "",
@@ -991,8 +1051,8 @@ function WbsNewProjectPage() {
                             }
 
                             // Load invoices
-                            if (p.wbsDetails?.accounts?.invoices) {
-                              const restoredInvoices = p.wbsDetails.accounts.invoices.map((inv: any) => ({
+                            if (pAny.wbsDetails?.accounts?.invoices) {
+                              const restoredInvoices = pAny.wbsDetails.accounts.invoices.map((inv: any) => ({
                                 rowId: inv.id,
                                 serviceId: inv.serviceId || "",
                                 serviceName: inv.serviceName || "",
@@ -1000,7 +1060,7 @@ function WbsNewProjectPage() {
                                 targetDate: inv.targetDate || inv.invoiceDate || "",
                                 unitPrice: inv.unitPrice || inv.amount || 0,
                                 qty: inv.qty || 1,
-                                currency: inv.currency || p.currency || "INR",
+                                currency: inv.currency || pAny.currency || "INR",
                                 amount: inv.amount,
                                 invoiceStatus: inv.invoiceStatus || "Not Raised",
                                 invoiceNumber: inv.invoiceNumber || inv.remarks || "",
@@ -1016,12 +1076,11 @@ function WbsNewProjectPage() {
 
                             setWbsDropOpen(false);
                           }}
-                          style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid #f3f4f6", background: renewalProject?.id === p.id ? "#eff6ff" : "transparent" }}
+                          style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid #f3f4f6", background: renewalProject?.id === pAny.id ? "#eff6ff" : "transparent" }}
                         >
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                              <span style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>{p.name}</span>
-                              <span style={{ fontSize: 11, color: "#6b7280" }}>{c?.name}{p.subVenture ? ` · ${p.subVenture}` : ""} · {p.wbsId}</span>
+                              <span style={{ fontSize: 11, color: "#6b7280" }}>{c?.name}{pAny.subVenture ? ` · ${pAny.subVenture}` : ""} · {pAny.wbsId}</span>
                             </div>
                             <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 12, background: "#dbeafe", color: "#1e40af", flexShrink: 0 }}>Renewal</span>
                           </div>
@@ -1233,7 +1292,7 @@ function WbsNewProjectPage() {
                 onChange={(e) => {
                   const val = e.target.value;
                   setContractType(val);
-                  if (val === "Resource Based" || val === "Resource + Scope Based") {
+                  if (val === "Resource Based") {
                     setProjectType("Long Term");
                   } else {
                     setProjectType("");
@@ -1246,7 +1305,6 @@ function WbsNewProjectPage() {
                 <option value="">Select Contract Type</option>
                 <option value="Resource Based">Resource Based</option>
                 <option value="Scope Based">Scope Based</option>
-                <option value="Resource + Scope Based">Resource + Scope Based</option>
               </select>
             </FormGroup>
             <FormGroup label="Sales Person" required>
@@ -1263,28 +1321,34 @@ function WbsNewProjectPage() {
             <FormGroup label="Project Type" required>
               <select
                 value={projectType}
-                disabled={contractType === "Resource Based" || contractType === "Resource + Scope Based" || !contractType}
+                disabled={contractType === "Resource Based" || !contractType}
                 onChange={(e) => {
                   const val = e.target.value;
                   setProjectType(val);
                   setBillingModel("");
                   setPaymentTerms("");
                   if (val === "Ad-Hoc") {
-                    setServiceRows((prev) => prev.map((r) => ({ ...r, frequency: "Once" })));
+                    setServiceRows((prev) =>
+                      prev.map((r) => {
+                        const updated = { ...r, frequency: "Once" };
+                        updated.endDate = computeEndDate(updated);
+                        return updated;
+                      })
+                    );
                   }
                 }}
-                style={inputStyle(contractType === "Resource Based" || contractType === "Resource + Scope Based" || !contractType)}
+                style={inputStyle(contractType === "Resource Based" || !contractType)}
                 title={!contractType ? "Select a Contract Type first" : ""}
               >
                 {!contractType ? (
                   <option value="">Select Contract Type first</option>
-                ) : (contractType === "Resource Based" || contractType === "Resource + Scope Based") ? (
-                  <option value="Long Term">Long Term (6 months plus)</option>
+                ) : contractType === "Resource Based" ? (
+                  <option value="Long Term">Long Term</option>
                 ) : (
                   <>
                     <option value="">Select Project Type</option>
                     <option value="Ad-Hoc">Ad-Hoc</option>
-                    <option value="Long Term">Long Term (6 months plus)</option>
+                    <option value="Long Term">Long Term</option>
                   </>
                 )}
               </select>
@@ -1332,11 +1396,12 @@ function WbsNewProjectPage() {
                   <th style={{ ...thStyle, minWidth: 100 }}>Service ID</th>
                   <th style={{ ...thStyle, minWidth: 200 }}>Service Name</th>
                   <th style={{ ...thStyle, minWidth: 180 }}>Description</th>
+                  <th style={{ ...thStyle, minWidth: 110 }}>Resource Level</th>
                   <th style={{ ...thStyle, minWidth: 60 }}>Qty</th>
                   <th style={{ ...thStyle, minWidth: 120 }}>Frequency</th>
                   <th style={{ ...thStyle, minWidth: 160 }}>Service Model</th>
                   <th style={{ ...thStyle, minWidth: 110 }}>Delivery Model</th>
-                  <th style={{ ...thStyle, minWidth: 140 }}>Delivey Site</th>
+                  <th style={{ ...thStyle, minWidth: 140 }}>Delivery Site</th>
                   <th style={{ ...thStyle, minWidth: 140 }}>Final Delivery Format</th>
                   <th style={{ ...thStyle, minWidth: 160 }}>Tools</th>
                   <th style={{ ...thStyle, minWidth: 140 }}>WBS Start Date</th>
@@ -1369,6 +1434,14 @@ function WbsNewProjectPage() {
                       <td style={tdStyle}><input type="text" value={r.taskId} onChange={(e) => updateRow(r.rowId, "taskId", e.target.value)} style={{ ...req(r.taskId), minWidth: 100 }} /></td>
                       <td style={tdStyle}><input type="text" value={r.name} onChange={(e) => updateRow(r.rowId, "name", e.target.value)} style={{ ...req(r.name), minWidth: 200 }} /></td>
                       <td style={tdStyle}><input type="text" value={r.description} onChange={(e) => updateRow(r.rowId, "description", e.target.value)} style={{ ...tblInputStyle, minWidth: 180 }} /></td>
+                      <td style={tdStyle}>
+                        <select value={r.resourceLevel} onChange={(e) => updateRow(r.rowId, "resourceLevel", e.target.value)} style={{ ...tblInputStyle, minWidth: 110 }}>
+                          <option value="">— Select —</option>
+                          <option value="L1">L1</option>
+                          <option value="L2">L2</option>
+                          <option value="Senior">Senior</option>
+                        </select>
+                      </td>
                       <td style={tdStyle}><input type="number" value={r.qty} min={1} onChange={(e) => updateRow(r.rowId, "qty", Number(e.target.value))} style={{ ...tblInputStyle, minWidth: 60 }} /></td>
                       <td style={tdStyle}>
                         {projectType === "Ad-Hoc" ? (
@@ -1445,7 +1518,15 @@ function WbsNewProjectPage() {
                           }}
                         />
                       </td>
-                      <td style={tdStyle}><input type="text" value={r.deliveryFormat} onChange={(e) => updateRow(r.rowId, "deliveryFormat", e.target.value)} placeholder="e.g. PDF, EXCEL, etc." style={{ ...req(r.deliveryFormat), minWidth: 140 }} /></td>
+                      <td style={tdStyle}>
+                        <select value={r.deliveryFormat} onChange={(e) => updateRow(r.rowId, "deliveryFormat", e.target.value)} style={{ ...reqSel(r.deliveryFormat), minWidth: 140 }}>
+                          <option value="">— Select —</option>
+                          <option value=".pdf">.pdf</option>
+                          <option value=".xls/.csv">.xls/.csv</option>
+                          <option value="Squad1">Squad1</option>
+                          <option value="Other Toolbase">Other Toolbase</option>
+                        </select>
+                      </td>
                       <td style={tdStyle}><input type="text" value={r.tools} onChange={(e) => updateRow(r.rowId, "tools", e.target.value)} style={{ ...req(r.tools), minWidth: 160 }} /></td>
                       <td style={tdStyle}><input type="date" value={r.startDate} onChange={(e) => updateRow(r.rowId, "startDate", e.target.value)} style={{ ...req(r.startDate), minWidth: 140 }} /></td>
                       <td style={tdStyle}><input type="date" value={r.endDate} onChange={(e) => updateRow(r.rowId, "endDate", e.target.value)} style={{ ...req(r.endDate), minWidth: 140 }} title="WBS End Date" /></td>
@@ -1522,16 +1603,65 @@ function WbsNewProjectPage() {
             </FormGroup>
             <FormGroup label={`Payment Terms${billingModel === "Custom" ? " *" : ""}`}>
               {billingModel === "Custom" ? (
-                <input
-                  type="text"
-                  value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
-                  placeholder="Enter custom payment terms…"
-                  style={{
-                    ...inputStyle(false),
-                    border: !paymentTerms.trim() ? "1.5px solid #ef4444" : undefined,
-                  }}
-                />
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {customPayments.map((cp, idx) => {
+                    const ordinals = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth"];
+                    const defaultLabel = `${ordinals[idx] ?? `Payment ${idx + 1}`} Payment`;
+                    return (
+                      <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input
+                          type="text"
+                          value={cp.label}
+                          placeholder={defaultLabel}
+                          onChange={(e) => setCustomPayments(prev => prev.map((p, i) => i === idx ? { ...p, label: e.target.value } : p))}
+                          style={{ ...inputStyle(false), flex: 1, fontSize: 12 }}
+                        />
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                          <input
+                            type="number"
+                            value={cp.pct}
+                            min={0}
+                            max={100}
+                            onChange={(e) => setCustomPayments(prev => prev.map((p, i) => i === idx ? { ...p, pct: Number(e.target.value) } : p))}
+                            className="no-spinner"
+                            style={{ width: 64, padding: "8px 6px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, textAlign: "right" }}
+                          />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>%</span>
+                        </div>
+                        {customPayments.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomPayments(prev => prev.filter((_, i) => i !== idx))}
+                            style={{ background: "#fee2e2", border: "1px solid #fca5a5", color: "#dc2626", borderRadius: 4, padding: "4px 8px", cursor: "pointer", fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+                            title="Remove payment"
+                          >×</button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {/* Running total + add button */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const ordinals = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth"];
+                        const nextIdx = customPayments.length;
+                        const label = `${ordinals[nextIdx] ?? `Payment ${nextIdx + 1}`} Payment`;
+                        setCustomPayments(prev => [...prev, { label, pct: 0 }]);
+                      }}
+                      style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", borderRadius: 4, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+                    >+ Add Payment</button>
+                    {(() => {
+                      const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
+                      const isValid = total === 100;
+                      return (
+                        <span style={{ fontSize: 12, fontWeight: 700, color: isValid ? "#16a34a" : "#dc2626" }}>
+                          Total: {total}% {isValid ? "✓" : `— needs ${100 - total > 0 ? "+" : ""}${100 - total}% more`}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
               ) : (
                 <input
                   type="text"
