@@ -9,7 +9,7 @@ export function AppShell({
   children,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   children: ReactNode;
 }) {
   const [showScrollTop, setShowScrollTop] = useState(false);

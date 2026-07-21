@@ -45,7 +45,7 @@ const dhActionCentre: Item = { to: "/action-centre", label: "Action Centre", ico
 const dhProjects: Item = { to: "/projects", label: "Projects", icon: FolderKanban };
 const dhReports: Item = { to: "/dh-reports", label: "Reports", icon: BarChart3 };
 const dhCustomers: Item = { to: "/customers", label: "Customers", icon: Building2 };
-const dhMyOrg: Item = { to: "/my-org", label: "My Org", icon: Building };
+const dhMyOrg: Item = { to: "/my-org", label: "Repository", icon: Building };
 const dhMyTeam: Item = {
   label: "My Team",
   icon: Users,
@@ -138,9 +138,17 @@ export function AppSidebar() {
   };
 
   return (
-    <aside className={cn("hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300",
+    <aside className={cn("relative hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300",
       isCollapsed ? "w-16" : "w-60"
     )}>
+      {/* Floating toggle button — sits half on sidebar, half on body */}
+      <button
+        onClick={toggleCollapse}
+        className="absolute right-0 top-1/2 z-50 flex h-7 w-7 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground shadow-md hover:bg-primary/80 hover:border-primary/80 transition-all duration-200"
+        title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+      >
+        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+      </button>
       <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4 justify-between">
         <div className="flex items-center gap-2 overflow-hidden">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
@@ -249,22 +257,12 @@ export function AppSidebar() {
           );
         })}
       </nav>
-      <div className="border-t border-sidebar-border p-2 flex items-center justify-between">
+      <div className="border-t border-sidebar-border p-2">
         {!isCollapsed && (
           <div className="text-[11px] text-muted-foreground truncate max-w-[150px] animate-in fade-in duration-300">
             {isDhanshree ? "v1.0 · Workspace" : isBO ? "v1.0 · Executive oversight" : isHOD ? "v1.0 · Department oversight" : isPMO ? "v1.0 · Governance + allocation" : "v1.0 · Read-only tracking"}
           </div>
         )}
-        <button
-          onClick={toggleCollapse}
-          className={cn(
-            "rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200",
-            isCollapsed && "mx-auto"
-          )}
-          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
       </div>
     </aside>
   );
