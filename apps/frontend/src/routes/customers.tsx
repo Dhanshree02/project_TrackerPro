@@ -249,6 +249,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       const c = s.contacts[i];
       const n = s.contacts.length > 1 ? ` (Contact ${i + 1})` : "";
       if (!c.name.trim()) return `Contact Name${n} is required`;
+      if (!c.contactType?.trim()) return `Contact Type${n} is required`;
       if (!c.email.trim()) return `Contact Email${n} is required`;
       if (!c.phone.trim()) return `Contact Phone${n} is required`;
       if (!isValidPhone(c.phone)) return `Contact Phone${n} — please enter a real, valid phone number (e.g. +91 98765 432XXX)`;
@@ -278,13 +279,16 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
   const submit = () => {
     setSubmitting(true);
     setTimeout(() => {
+      const validContacts = s.contacts.filter((c) => c.name.trim() && c.email.trim());
+      const primary = validContacts[0] ?? s.contacts[0];
+
       if (selectedExisting) {
         if (svAlreadyExists) {
           // Sub-venture already exists — nothing to add, just acknowledge
           toast.info("Sub-venture already exists", { description: `${s.companyName} is already under ${selectedExisting.name}.` });
         } else {
           // Adding a new sub-venture to an existing TK customer
-          dhStore.addSubVenture(selectedExisting.id, s.companyName.trim());
+          dhStore.addSubVenture(selectedExisting.id, s.companyName.trim(), validContacts);
           toast.success("Sub-venture added", { description: `${s.companyName} added under ${selectedExisting.name}.` });
         }
       } else {
@@ -292,7 +296,12 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
         dhStore.addClient({
           name: s.clientName || s.companyName,
           industry: s.industry || "Other",
-          contact: s.contacts[0]?.email ?? "",
+          contact: primary?.email ?? "",
+          contactName: primary?.name ?? "",
+          contactPhone: primary?.phone ?? "",
+          contactDesignation: primary?.designation ?? "",
+          contactType: primary?.contactType || "Primary",
+          contacts: validContacts.length > 0 ? validContacts : undefined,
           engagementManager: s.engagementManager,
           companyName: s.companyName,
         });
@@ -661,6 +670,18 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                     }}
                   />
                 </Field>
+                <Field label="Contact Type" required>
+                  <select
+                    className={inputCls}
+                    value={ct.contactType}
+                    onChange={(e) => updateContact(idx, "contactType", e.target.value)}
+                  >
+                    <option value="">Select contact type</option>
+                    {["Accounts", "Procurement", "Technical", "Legal"].map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </Field>
                 <Field label="Email" required>
                   <input type="email" className={inputCls} value={ct.email} onChange={(e) => updateContact(idx, "email", e.target.value)} />
                 </Field>
@@ -776,6 +797,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
             {s.contacts.map((ct, idx) => (
               <dl key={idx} className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-border bg-card px-3 py-2 text-xs">
                 <Row label="Name" v={ct.name} />
+                <Row label="Contact Type" v={ct.contactType || "—"} />
                 <Row label="Email" v={ct.email} />
                 <Row label="Phone" v={ct.phone || "—"} />
                 <Row label="Designation" v={ct.designation || "—"} />
