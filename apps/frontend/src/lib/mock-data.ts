@@ -366,7 +366,7 @@ export const invoices: { projectId: string; unitPrice: number; qty: number; curr
   { projectId: "p3", unitPrice: 60000, qty: 4, currency: "USD", invoiceAmount: 240000, status: "overdue", paymentStatus: "overdue", raisedOn: "2026-03-25" },
   { projectId: "p4", unitPrice: 30000, qty: 3, currency: "USD", invoiceAmount: 90000, status: "pending", paymentStatus: "pending", raisedOn: "2026-05-01" },
   { projectId: "p5", unitPrice: 70000, qty: 3, currency: "USD", invoiceAmount: 210000, status: "raised", paymentStatus: "pending", raisedOn: "2026-04-28" },
-  { projectId: "p6", unitPrice: 70000, qty: 4, currency: "USD", invoiceAmount: 280000, status: "paid", paymentStatus: "completed", raisedOn: "2026-03-30", paymentReceivedDate: "2026-04-10" },
+  { projectId: "p6", unitPrice: 70000, qty: 4, currency: "USD", invoiceAmount: 280000, status: "raised", paymentStatus: "pending", raisedOn: "2026-03-30", paymentReceivedDate: "" },
   { projectId: "p7", unitPrice: 35000, qty: 4, currency: "USD", invoiceAmount: 140000, status: "pending", paymentStatus: "pending", raisedOn: "2026-05-05" },
   { projectId: "p8", unitPrice: 62000, qty: 5, currency: "USD", invoiceAmount: 310000, status: "raised", paymentStatus: "pending", raisedOn: "2026-04-22" },
   { projectId: "p9", unitPrice: 52000, qty: 5, currency: "USD", invoiceAmount: 260000, status: "raised", paymentStatus: "pending", raisedOn: "2026-04-30" },
@@ -521,7 +521,7 @@ export const projects: Project[] = [
   },
   {
     id: "p6", name: "POS Migration", clientId: "c3", wbsId: "IN-2024-25-C003-P002",
-    status: "completed", health: "green", progress: 100,
+    status: "ongoing", health: "green", progress: 65,
     pmId: "u4", tlId: "u5", teamIds: ["u8", "u9"],
     startDate: "2025-09-01", endDate: "2026-03-30",
     budget: 280000, spent: 265000,

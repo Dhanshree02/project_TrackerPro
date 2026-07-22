@@ -39,8 +39,9 @@ function ProjectsPage() {
 
   const visible = useMemo(() => {
     return projects.filter((p) => {
-      if (tab === "Active Projects" && p.status !== "ongoing") return false;
-      if (tab === "Archived Projects" && p.status !== "completed") return false;
+      const isArchived = p.status === "completed" || p.status === "archived" || (p.status as any) === "Archived";
+      if (tab === "Active Projects" && isArchived) return false;
+      if (tab === "Archived Projects" && !isArchived) return false;
       if (!q.trim()) return true;
       const c = clients.find((c) => c.id === p.clientId);
       return [p.name, c?.name ?? "", p.description].some((v) => v.toLowerCase().includes(q.toLowerCase()));

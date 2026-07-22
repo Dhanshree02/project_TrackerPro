@@ -3014,6 +3014,26 @@ export const dhStore = {
     emit();
   },
 
+  archiveProject(projectId: string, updatedBy: string = "u14", updatedByName: string = "Dhanshree") {
+    const bp = baseProjects.find((p) => p.id === projectId);
+    if (bp) {
+      bp.status = "completed" as any;
+    }
+    const ep = state.extraProjects.find((p) => p.id === projectId);
+    if (ep) {
+      ep.status = "completed" as any;
+    }
+    if (state.projectStages[projectId]) {
+      const stg = state.projectStages[projectId].stages;
+      stg.sales.isCompleted = true;
+      stg.pmo.isCompleted = true;
+      stg.delivery.isCompleted = true;
+      stg.accounts.isCompleted = true;
+      stg.accounts.currentStatus = "Payment Received";
+    }
+    emit();
+  },
+
   addNotification(input: {
     type: string;
     title: string;
