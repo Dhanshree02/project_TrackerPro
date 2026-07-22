@@ -1521,9 +1521,9 @@ function WbsNewProjectPage() {
                       <td style={tdStyle}>
                         <select value={r.deliveryFormat} onChange={(e) => updateRow(r.rowId, "deliveryFormat", e.target.value)} style={{ ...reqSel(r.deliveryFormat), minWidth: 140 }}>
                           <option value="">— Select —</option>
-                          <option value=".pdf">.pdf</option>
-                          <option value=".xls/.csv">.xls/.csv</option>
-                          <option value="Squad1">Squad1</option>
+                          <option value="PDF">PDF</option>
+                          <option value="Excel">Excel</option>
+                          <option value="Squad 1">Squad 1</option>
                           <option value="Other Toolbase">Other Toolbase</option>
                         </select>
                       </td>

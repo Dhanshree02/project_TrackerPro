@@ -1393,22 +1393,36 @@ export const dhStore = {
     return c;
   },
 
-  // Add a new sub-venture name to an existing client's subVentures list
-  addSubVenture(clientId: string, subVentureName: string) {
+  // Add a new sub-venture name to an existing client's subVentures list (and append new SPOC contacts if provided)
+  addSubVenture(clientId: string, subVentureName: string, newContacts?: any[]) {
     const trimmed = subVentureName.trim();
-    if (!trimmed) return;
+    const validContacts = newContacts ? newContacts.filter(c => c.name?.trim() && c.email?.trim()) : [];
+
     // For extra clients created at runtime, mutate directly
     const extra = state.extraClients.find((c) => c.id === clientId);
     if (extra) {
-      extra.subVentures = [...(extra.subVentures ?? []), trimmed];
+      if (trimmed && !extra.subVentures?.includes(trimmed)) {
+        extra.subVentures = [...(extra.subVentures ?? []), trimmed];
+      }
+      if (validContacts.length > 0) {
+        extra.contacts = [...(extra.contacts ?? []), ...validContacts];
+      }
       emit();
       return;
     }
-    // For base clients, store additions in subVentureOverrides — no duplicate client entries
-    state.subVentureOverrides[clientId] = [
-      ...(state.subVentureOverrides[clientId] ?? []),
-      trimmed,
-    ];
+    // For base clients, store additions in subVentureOverrides and append contacts
+    if (trimmed) {
+      state.subVentureOverrides[clientId] = [
+        ...(state.subVentureOverrides[clientId] ?? []),
+        trimmed,
+      ];
+    }
+    if (validContacts.length > 0) {
+      const base = baseClients.find(c => c.id === clientId);
+      if (base) {
+        base.contacts = [...(base.contacts ?? []), ...validContacts];
+      }
+    }
     emit();
   },
   // ── WBS Drafts ──

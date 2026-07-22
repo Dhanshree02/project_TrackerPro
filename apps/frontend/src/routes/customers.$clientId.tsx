@@ -189,11 +189,6 @@ function CustomerDetailPage() {
                 { label: "Client ID", value: fmtClientId(client.id), mono: true },
                 { label: "Client Name", value: client.name },
                 { label: "Industry", value: client.industry },
-                { label: "Contact Person", value: client.contactName ?? client.contact.split("@")[0] },
-                { label: "Email", value: client.contact },
-                { label: "Phone", value: client.contactPhone ?? "—" },
-                { label: "Designation", value: client.contactDesignation ?? "—" },
-                { label: "Contact Type", value: client.contactType ?? "—" },
                 { label: "Client Type", value: client.clientType === "NEW" ? "New Client" : "Existing Client" },
                 { label: "Client Since", value: clientSinceDate },
                 { label: "Status", value: "Active" },
@@ -204,6 +199,41 @@ function CustomerDetailPage() {
                 </div>
               ))}
             </dl>
+
+            {/* SPOC Contacts List */}
+            <div className="border-t border-border p-4 space-y-2.5">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-primary" /> SPOC Contacts ({((client.contacts && client.contacts.length > 0) ? client.contacts : [1]).length})
+              </h3>
+              <div className="space-y-2">
+                {((client.contacts && client.contacts.length > 0)
+                  ? client.contacts
+                  : [{
+                      name: client.contactName ?? client.contact.split("@")[0],
+                      email: client.contact,
+                      phone: client.contactPhone ?? "—",
+                      designation: client.contactDesignation ?? "—",
+                      contactType: client.contactType ?? "Primary",
+                    }]
+                ).map((spoc, idx) => (
+                  <div key={idx} className="rounded-lg border border-border bg-muted/20 p-2.5 text-xs space-y-1">
+                    <div className="flex items-center justify-between font-semibold text-foreground">
+                      <span>{spoc.name}</span>
+                      {spoc.contactType && (
+                        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                          {spoc.contactType}
+                        </span>
+                      )}
+                    </div>
+                    {spoc.designation && <div className="text-[11px] text-muted-foreground font-medium">{spoc.designation}</div>}
+                    <div className="flex flex-col gap-0.5 pt-1 border-t border-border/50 font-mono text-[11px] text-muted-foreground">
+                      {spoc.email && spoc.email !== "—" && <div className="truncate">✉ {spoc.email}</div>}
+                      {spoc.phone && spoc.phone !== "—" && <div>📞 {spoc.phone}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Health Summary */}

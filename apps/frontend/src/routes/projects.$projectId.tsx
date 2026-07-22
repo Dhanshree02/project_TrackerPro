@@ -4674,7 +4674,16 @@ function getClientInfo(clientId: string) {
   return {
     name: client.name,
     type: client.clientType || "NEW",
-    previousPmIds: client.previousPmIds || []
+    previousPmIds: client.previousPmIds || [],
+    contacts: (client.contacts && client.contacts.length > 0)
+      ? client.contacts
+      : [{
+          name: client.contactName || client.contact?.split("@")[0] || "Primary Contact",
+          email: client.contact || "—",
+          phone: (client as any).contactPhone || "—",
+          designation: (client as any).contactDesignation || "—",
+          contactType: (client as any).contactType || "Primary",
+        }]
   };
 }
 
@@ -4845,6 +4854,34 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
                 </span>
               </div>
             </div>
+
+            {/* SPOC Contact Persons */}
+            {clientInfo?.contacts && clientInfo.contacts.length > 0 && (
+              <div className="space-y-2 pt-3 border-t border-border">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                  Customer SPOC Contacts ({clientInfo.contacts.length})
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {clientInfo.contacts.map((spoc: any, idx: number) => (
+                    <div key={idx} className="rounded-md border border-border bg-muted/20 p-2.5 text-xs space-y-1">
+                      <div className="flex items-center justify-between font-semibold text-gray-800">
+                        <span className="truncate">{spoc.name}</span>
+                        {spoc.contactType && (
+                          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary shrink-0">
+                            {spoc.contactType}
+                          </span>
+                        )}
+                      </div>
+                      {spoc.designation && <div className="text-[10px] text-muted-foreground font-medium">{spoc.designation}</div>}
+                      <div className="text-[11px] text-muted-foreground flex flex-col gap-0.5 pt-1 border-t border-border/40 font-mono">
+                        {spoc.email && spoc.email !== "—" && <div className="truncate">✉ {spoc.email}</div>}
+                        {spoc.phone && spoc.phone !== "—" && <div>📞 {spoc.phone}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Previously Assigned Project Managers display */}
             {clientInfo?.type === "OLD" && (
