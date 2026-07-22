@@ -22,6 +22,13 @@ function formatDate(date: Date): string {
   return `${m}/${d}/${y}`;
 }
 
+function formatDateString(dateStr: string | undefined | null): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
   "Penetration Testing": "Scope",
   "Vulnerability Assessment": "Scope",
@@ -2432,10 +2439,10 @@ function DhTasksTab({ project }: { project: Project }) {
                         {svc.serviceId}
                       </td>
                       <td className="px-3 py-3 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                        {svc.wbsStartDate ? new Date(svc.wbsStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                        {formatDateString(svc.wbsStartDate)}
                       </td>
                       <td className="px-3 py-3 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                        {svc.wbsEndDate ? new Date(svc.wbsEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                        {formatDateString(svc.wbsEndDate)}
                       </td>
                       <td className="px-3 py-3 text-center align-middle tabular-nums text-muted-foreground">
                         {totalUtilizedHours.toFixed(1)} / {totalEstimatedHours.toFixed(1)} hrs
@@ -2515,7 +2522,7 @@ function DhTasksTab({ project }: { project: Project }) {
                   return (
                     <React.Fragment key={row.id}>
                       <tr className="hover:bg-accent/5 text-foreground/80 font-medium border-b border-border/20 py-1 bg-muted/5">
-                        <td className="px-4 py-2 align-middle text-left whitespace-nowrap" style={{ paddingLeft: `${depthPadding + 16}px` }}>
+                        <td colSpan={4} className="px-4 py-2 align-middle text-left whitespace-nowrap" style={{ paddingLeft: `${depthPadding + 16}px` }}>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => toggleNode(row.id)}
@@ -2531,26 +2538,10 @@ function DhTasksTab({ project }: { project: Project }) {
                             <span className="text-foreground/90">{ap.label}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-center align-middle font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                          {svc.serviceId}
-                        </td>
-                        <td className="px-3 py-2 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                          {apStartDate ? new Date(apStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
-                          {apEndDate ? new Date(apEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-center align-middle tabular-nums text-muted-foreground">
+                        <td className="px-3 py-2 text-center align-middle tabular-nums text-muted-foreground whitespace-nowrap">
                           {apUtilizedHours.toFixed(1)} / {apEstimatedHours.toFixed(1)} hrs
                         </td>
-                        <td className="px-3 py-2 text-center align-middle">
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="w-16 bg-muted-foreground/20 rounded-full h-1.5 overflow-hidden">
-                              <div className="bg-emerald-600 h-full rounded-full" style={{ width: `${progress}%` }}></div>
-                            </div>
-                            <span className="font-mono text-xs font-semibold text-foreground/80">{progress}%</span>
-                          </div>
-                        </td>
+                        <td></td>
                       </tr>
 
                       {isExpanded && (
@@ -2560,13 +2551,13 @@ function DhTasksTab({ project }: { project: Project }) {
                               <table className="w-full text-sm text-left border-none bg-transparent">
                                 <thead className="bg-transparent text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/40 z-10">
                                   <tr>
-                                    <th className="px-3 py-2 font-semibold">Task ID</th>
-                                    <th className="px-3 py-2 font-semibold">Service Model</th>
-                                    <th className="px-3 py-2 font-semibold">Actual Start</th>
-                                    <th className="px-3 py-2 font-semibold">Actual End</th>
-                                    <th className="px-3 py-2 font-semibold">Assigned Resources</th>
-                                    <th className="px-3 py-2 font-semibold">Actions</th>
-                                    <th className="px-3 py-2 font-semibold">Stage</th>
+                                    <th className="px-3 py-2 font-semibold text-center align-middle">Task ID</th>
+                                    <th className="px-3 py-2 font-semibold text-center align-middle">Service Model</th>
+                                    <th className="px-3 py-2 font-semibold text-center align-middle">Actual Start</th>
+                                    <th className="px-3 py-2 font-semibold text-center align-middle">Actual End</th>
+                                    <th className="px-3 py-2 font-semibold text-center align-middle">Assigned Resources</th>
+                                    <th className="px-3 py-2 font-semibold text-center align-middle">Actions</th>
+                                    <th className="px-3 py-2 font-semibold text-center align-middle">Stage</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/20">
@@ -2588,19 +2579,19 @@ function DhTasksTab({ project }: { project: Project }) {
 
                                     return (
                                       <tr key={t.id} className="hover:bg-accent/10 transition-colors">
-                                        <td className="px-3 py-1.5 align-middle font-medium text-xs whitespace-nowrap text-foreground/90">
-                                          <div className="flex items-center gap-1.5 h-8">
-                                            <FileText className="h-3.5 w-3.5 text-slate-400" />
+                                        <td className="px-3 py-2 align-middle text-center font-medium text-xs whitespace-nowrap text-foreground/90">
+                                          <div className="flex items-center justify-center gap-1.5 h-8">
+                                            <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                             <span>{t.taskId}</span>
                                           </div>
                                         </td>
-                                        <td className="px-3 py-1.5 align-middle text-xs text-muted-foreground max-w-[160px] truncate">
-                                          <div className="flex items-center h-8" title={t.serviceModel}>
+                                        <td className="px-3 py-2 align-middle text-center text-xs text-muted-foreground max-w-[160px] truncate">
+                                          <div className="flex items-center justify-center h-8 truncate" title={t.serviceModel}>
                                             {t.serviceModel}
                                           </div>
                                         </td>
-                                        <td className="px-3 py-1.5 align-middle">
-                                          <div className="flex items-center h-8">
+                                        <td className="px-3 py-2 align-middle text-center">
+                                          <div className="flex items-center justify-center h-8">
                                             <input
                                               type="date"
                                               value={t.actualStartDate}
@@ -2614,12 +2605,12 @@ function DhTasksTab({ project }: { project: Project }) {
                                                   ...(t.stage === "Not Started" && newStart ? { stage: "Ongoing" } : {})
                                                 });
                                               }}
-                                              className="h-7 w-28 rounded-md border border-input bg-card px-2 text-[11px] outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                              className="h-7 w-28 rounded-md border border-input bg-card px-2 text-[11px] text-center outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                             />
                                           </div>
                                         </td>
-                                        <td className="px-3 py-1.5 align-middle">
-                                          <div className="flex items-center h-8">
+                                        <td className="px-3 py-2 align-middle text-center">
+                                          <div className="flex items-center justify-center h-8">
                                             <input
                                               type="date"
                                               value={t.actualEndDate}
@@ -2628,29 +2619,29 @@ function DhTasksTab({ project }: { project: Project }) {
                                                   actualEndDate: e.target.value,
                                                 });
                                               }}
-                                              className="h-7 w-28 rounded-md border border-input bg-card px-2 text-[11px] outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                              className="h-7 w-28 rounded-md border border-input bg-card px-2 text-[11px] text-center outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                             />
                                           </div>
                                         </td>
-                                        <td className="px-3 py-1.5 align-middle">
-                                          <div className="flex items-center h-8">
+                                        <td className="px-3 py-2 align-middle text-center">
+                                          <div className="flex items-center justify-center h-8">
                                             <AvatarStack assignees={assignees} />
                                           </div>
                                         </td>
-                                        <td className="px-3 py-1.5 align-middle">
-                                          <div className="flex items-center h-8">
+                                        <td className="px-3 py-2 align-middle text-center">
+                                          <div className="flex items-center justify-center h-8">
                                             <button
                                               onClick={() => setAssignFor(t)}
-                                              className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[10px] hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                              className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
                                             >
                                               <UserPlus className="h-3.5 w-3.5" /> Assign
                                             </button>
                                           </div>
                                         </td>
-                                        <td className="px-3 py-1.5 align-middle">
-                                          <div className="flex items-center h-8">
+                                        <td className="px-3 py-2 align-middle text-center">
+                                          <div className="flex items-center justify-center h-8">
                                             {!isStarted ? (
-                                              <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium shadow-sm", treeStageCls(t.stage as any))}>
+                                              <span className={cn("inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium shadow-sm", treeStageCls(t.stage as any))}>
                                                 {t.stage || "Not Started"}
                                               </span>
                                             ) : (
@@ -2661,70 +2652,13 @@ function DhTasksTab({ project }: { project: Project }) {
                                                   dhStore.updateTreeTaskState(project.id, t.id, { stage: v });
                                                   toast.success("Stage updated", { description: `${t.taskId} → ${v}` });
                                                 }}
-                                                className={cn("h-7 rounded-full border px-2 text-[10px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring", treeStageCls(t.stage))}
+                                                className={cn("h-7 rounded-full border px-2 text-[10px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring text-center", treeStageCls(t.stage))}
                                               >
                                                 {TREE_TASK_STAGES.filter(s => s !== "Not Started").map((s) => (
                                                   <option key={s} value={s}>{s}</option>
                                                 ))}
                                               </select>
                                             )}
-                                          </div>
-                                        </td>
-                                        <td className="px-3 py-1.5 align-middle">
-                                          <div className="flex items-center h-8">
-                                            <AvatarStack names={assigneeNames} />
-                                          </div>
-                                        </td>
-                                        <td className="px-3 py-1.5 align-middle">
-                                          <div className="flex items-center h-8">
-                                            <button
-                                              onClick={() => setAssignFor(t)}
-                                              className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[10px] hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                                            >
-                                              <UserPlus className="h-3.5 w-3.5" /> Assign
-                                            </button>
-                                          </div>
-                                        </td>
-                                        <td className="px-3 py-1.5 align-middle text-right">
-                                          <div className="flex items-center justify-end h-8">
-                                            <button
-                                              disabled={isStarted || liveIds.length === 0}
-                                              title={
-                                                isStarted
-                                                  ? "Task has already started"
-                                                  : liveIds.length === 0
-                                                    ? "Assign resources first to start task"
-                                                    : "Click to start task"
-                                              }
-                                              onClick={() => {
-                                                const today = new Date().toISOString().slice(0, 10);
-                                                dhStore.updateTreeTaskState(project.id, t.id, {
-                                                  actualStartDate: today,
-                                                  stage: "Ongoing"
-                                                });
-                                                toast.success("Task started", { description: `${t.taskId} (${t.serviceModel})` });
-                                              }}
-                                              className={cn(
-                                                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold shadow-sm transition-all",
-                                                isStarted
-                                                  ? "bg-emerald-600 text-white border border-emerald-600 cursor-not-allowed opacity-90"
-                                                  : liveIds.length === 0
-                                                    ? "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
-                                                    : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                                              )}
-                                            >
-                                              {isStarted ? (
-                                                <>
-                                                  <Check className="h-2.5 w-2.5 text-white" />
-                                                  <span>Started</span>
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <Play className="h-2.5 w-2.5" />
-                                                  <span>Start</span>
-                                                </>
-                                              )}
-                                            </button>
                                           </div>
                                         </td>
                                       </tr>

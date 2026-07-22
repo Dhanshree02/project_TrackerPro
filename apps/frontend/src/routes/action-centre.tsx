@@ -107,6 +107,11 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
     toast.success("Timer resumed", { description: r.taskTitle });
   };
 
+  const handleStop = () => {
+    dhStore.stopBucketTask(r.id);
+    toast.warning("Timer stopped", { description: r.taskTitle });
+  };
+
   const handleComplete = () => {
     dhStore.completeBucketTask(r.id);
     toast.success("Task completed!", { description: r.taskTitle });
@@ -131,6 +136,7 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
           r.status === "Not Started" && "bg-slate-50 text-slate-700 border-slate-200",
           r.status === "Ongoing" && "bg-blue-50 text-blue-700 border-blue-200 animate-pulse",
           r.status === "Paused" && "bg-amber-50 text-amber-700 border-amber-200",
+          r.status === "Stopped" && "bg-rose-50 text-rose-700 border-rose-200",
           r.status === "Completed" && "bg-green-50 text-green-700 border-green-200"
         )}>
           {r.status === "Ongoing" && <Clock className="h-3 w-3 animate-spin text-blue-600" />}
@@ -145,7 +151,7 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
       </td>
       <td className="px-3 py-2.5">
         <div className="flex flex-col gap-1.5 min-w-[210px] bg-muted/20 p-2 rounded-lg border border-border/80">
-          {(r.status === "Ongoing" || r.status === "Paused" || r.status === "Completed") && (
+          {(r.status === "Ongoing" || r.status === "Paused" || r.status === "Stopped" || r.status === "Completed") && (
             <div className="text-[10px] text-muted-foreground flex flex-col gap-0.5 font-medium">
               {r.startedAt && (
                 <div>
@@ -158,6 +164,11 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
                   {formatTimer(workingTimeSeconds)}
                 </span>
               </div>
+              {r.status === "Stopped" && (
+                <div className="text-rose-600 font-semibold border-t border-border/50 mt-1 pt-1 flex items-center gap-1">
+                  Timer Frozen
+                </div>
+              )}
               {r.status === "Completed" && r.completedAt && (
                 <div className="text-success font-semibold border-t border-border/50 mt-1 pt-1">
                   Completed: {new Date(r.completedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
@@ -170,7 +181,7 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
             {r.status === "Not Started" && (
               <button
                 onClick={handleStart}
-                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm"
+                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm cursor-pointer"
               >
                 <Clock className="h-3.5 w-3.5" /> Start Task
               </button>
@@ -179,15 +190,15 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
               <>
                 <button
                   onClick={handlePause}
-                  className="inline-flex items-center justify-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-2xs"
+                  className="inline-flex items-center justify-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-2xs cursor-pointer"
                 >
                   Pause
                 </button>
                 <button
-                  onClick={handleComplete}
-                  className="inline-flex items-center justify-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 transition-all shadow-sm"
+                  onClick={handleStop}
+                  className="inline-flex items-center justify-center gap-1 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
                 >
-                  Complete
+                  Stop
                 </button>
               </>
             )}
@@ -195,15 +206,31 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
               <>
                 <button
                   onClick={handleResume}
-                  className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs"
+                  className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
                 >
                   Resume
                 </button>
                 <button
-                  onClick={handleComplete}
-                  className="inline-flex items-center justify-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 transition-all shadow-sm"
+                  onClick={handleStop}
+                  className="inline-flex items-center justify-center gap-1 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
                 >
-                  Complete
+                  Stop
+                </button>
+              </>
+            )}
+            {r.status === "Stopped" && (
+              <>
+                <button
+                  onClick={handleResume}
+                  className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
+                >
+                  Resume
+                </button>
+                <button
+                  disabled
+                  className="inline-flex items-center justify-center gap-1 rounded-md bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground border border-border cursor-not-allowed"
+                >
+                  Stopped
                 </button>
               </>
             )}

@@ -1227,7 +1227,7 @@ const state: DhState = {
       dueDate: "2026-08-30",
       employeeId: "u7",
       assignedById: "u1",
-      status: "Ready to Start",
+      status: "Not Started",
       elapsedTime: 0,
       timerRunning: false
     },
@@ -1241,7 +1241,7 @@ const state: DhState = {
       dueDate: "2026-08-30",
       employeeId: "u7",
       assignedById: "u1",
-      status: "Ready to Start",
+      status: "Not Started",
       elapsedTime: 0,
       timerRunning: false
     },
@@ -1255,7 +1255,7 @@ const state: DhState = {
       dueDate: "2026-08-30",
       employeeId: "u14",
       assignedById: "u1",
-      status: "Ready to Start",
+      status: "Not Started",
       elapsedTime: 0,
       timerRunning: false
     }
@@ -3255,6 +3255,19 @@ export const dhStore = {
       bt.elapsedTime += Math.max(0, elapsed);
     }
     bt.status = "Paused";
+    bt.timerRunning = false;
+    bt.lastStartedAt = undefined;
+    emit();
+  },
+
+  stopBucketTask(bucketTaskId: string) {
+    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    if (!bt) return;
+    if (bt.timerRunning && bt.lastStartedAt) {
+      const elapsed = Math.floor((Date.now() - new Date(bt.lastStartedAt).getTime()) / 1000);
+      bt.elapsedTime += Math.max(0, elapsed);
+    }
+    bt.status = "Stopped";
     bt.timerRunning = false;
     bt.lastStartedAt = undefined;
     emit();
