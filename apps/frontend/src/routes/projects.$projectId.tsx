@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
-import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp } from "lucide-react";
+import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
@@ -261,6 +261,66 @@ function ProjectDetail() {
     }
     return "Overview";
   });
+
+  const [closureErrorModalOpen, setClosureErrorModalOpen] = useState(false);
+  const [closureErrors, setClosureErrors] = useState<{
+    stages: string[];
+    invoices: { id: string; milestone?: string; invoiceNumber?: string; paymentStatus: string }[];
+    noInvoices: boolean;
+  }>({ stages: [], invoices: [], noInvoices: false });
+
+  const handleProjectClosure = () => {
+    if (project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived") {
+      toast.info("Project is already closed / archived.");
+      return;
+    }
+
+    // 1. Check if all 4 project stages are completed
+    const stageList = getStagesList(project.id);
+    const incompleteStages: string[] = [];
+    stageList.forEach((stg) => {
+      const isDone =
+        stg.isCompleted ||
+        stg.currentStatus === "Completed" ||
+        stg.currentStatus === "Payment Received" ||
+        stg.currentStatus === "Certification Released" ||
+        stg.currentStatus === "WBS Approval Completed" ||
+        stg.currentStatus === "Project Allocation Completed";
+      if (!isDone) {
+        incompleteStages.push(stg.stageName);
+      }
+    });
+
+    // 2. Check invoices payment status
+    const projInvoices = isDhanshree
+      ? snapshotInvoices.filter((i) => i.projectId === project.id)
+      : invoices.filter((i) => i.projectId === project.id);
+
+    const pendingInvoices = projInvoices.filter(
+      (inv) => inv.paymentStatus !== "Received" && inv.paymentStatus !== "completed"
+    );
+
+    const noInvoices = projInvoices.length === 0;
+
+    if (incompleteStages.length > 0 || pendingInvoices.length > 0 || noInvoices) {
+      setClosureErrors({
+        stages: incompleteStages,
+        invoices: pendingInvoices.map((inv) => ({
+          id: inv.id,
+          milestone: (inv as any).milestone,
+          invoiceNumber: (inv as any).invoiceNumber,
+          paymentStatus: inv.paymentStatus,
+        })),
+        noInvoices,
+      });
+      setClosureErrorModalOpen(true);
+    } else {
+      dhStore.archiveProject(project.id, user.id, user.name);
+      toast.success("Project Closure Successful!", {
+        description: `Project "${project.name}" has been transferred to Archived Projects.`,
+      });
+    }
+  };
 
   const pm = getPerson(project.pmId);
   const tl = getPerson(project.tlId);
@@ -735,10 +795,105 @@ function ProjectDetail() {
                   </table>
                 </div>
               )}
+
+              {/* Project Closure Section */}
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm mt-4">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Project closure requires all 4 project stages to be completed and all invoice payments to be received.</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleProjectClosure}
+                  disabled={project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold shadow-sm transition-all",
+                    project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"
+                      ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer"
+                  )}
+                >
+                  <Archive className="h-4 w-4" />
+                  {project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived" ? "Project Archived" : "Project Closure"}
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {closureErrorModalOpen && (
+        <Modal
+          title="Project Closure Restricted"
+          onClose={() => setClosureErrorModalOpen(false)}
+        >
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3.5 text-xs text-destructive">
+              <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm">Cannot Close Project</p>
+                <p className="mt-0.5 text-muted-foreground text-xs">
+                  This project cannot be transferred to Archived Projects until all conditions below are satisfied:
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              {closureErrors.stages.length > 0 && (
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="font-semibold text-destructive flex items-center gap-1.5">
+                    <X className="h-4 w-4" /> Incomplete Project Stages ({closureErrors.stages.length})
+                  </p>
+                  <ul className="mt-2 list-disc list-inside space-y-1 text-muted-foreground pl-1">
+                    {closureErrors.stages.map((stg) => (
+                      <li key={stg}>
+                        <span className="font-medium text-foreground">{stg} Stage</span> is not completed yet.
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {closureErrors.invoices.length > 0 && (
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="font-semibold text-destructive flex items-center gap-1.5">
+                    <X className="h-4 w-4" /> Pending Invoice Payments ({closureErrors.invoices.length})
+                  </p>
+                  <ul className="mt-2 list-disc list-inside space-y-1 text-muted-foreground pl-1">
+                    {closureErrors.invoices.map((inv) => (
+                      <li key={inv.id}>
+                        <span className="font-medium text-foreground">{inv.milestone || inv.invoiceNumber || "Invoice"}</span> — Payment status is currently <span className="font-semibold text-warning-foreground">"{inv.paymentStatus}"</span> (Required: "Received").
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {closureErrors.noInvoices && (
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="font-semibold text-destructive flex items-center gap-1.5">
+                    <X className="h-4 w-4" /> No Invoices Found
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    At least one invoice must be created and marked as "Received" before closing the project.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setClosureErrorModalOpen(false)}
+                className="rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 cursor-pointer"
+              >
+                Understood, Go Back
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {raiseModalOpen && (
         <Modal
