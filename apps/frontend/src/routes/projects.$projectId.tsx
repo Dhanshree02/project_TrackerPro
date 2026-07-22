@@ -986,7 +986,7 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
           </div>
         </div>
 
-        <WbsPrerequisiteSection project={project} />
+        <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
 
         <div>
           <h3 className="mb-3 text-sm font-semibold">Services & Deliverables from WBS</h3>
@@ -1139,7 +1139,6 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
           </div>
         </div>
 
-        <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
       </div>
     );
   }
@@ -1176,7 +1175,7 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
       </div>
 
       {/* PMO Intake & Prerequisite Workflow */}
-      <WbsPrerequisiteSection project={project} />
+      <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
 
       {/* Services Table */}
       <div>
@@ -1300,8 +1299,6 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
         </div>
       </div>
 
-      {/* Prerequisite Collection Status Section */}
-      <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
     </div>
   );
 }
