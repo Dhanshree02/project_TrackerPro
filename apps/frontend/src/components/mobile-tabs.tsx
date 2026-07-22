@@ -42,9 +42,8 @@ export function MobileTabs() {
         label: "Resources",
         icon: Users,
         subItems: [
-          { to: "/dh-employee-directory", label: "Employee Directory" },
-          { to: "/dh-exit-summary", label: "Employee Exit Summary" },
-          { to: "/dh-org-tree", label: "Organization Tree" },
+          { to: "/dh-employee-directory", label: "Directory & Pool" },
+          { to: "/dh-exit-summary", label: "Exit Summary" },
         ],
       },
       { to: "/dh-settings", label: "Settings", icon: Settings },

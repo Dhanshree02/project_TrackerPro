@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/dh-exit-summary")({
   head: () => ({
     meta: [
-      { title: "Employee Exit Summary — Pulse PMO" },
+      { title: "Exit Summary — Pulse PMO" },
       { name: "description", content: "Offboarding analytics, clearances tracking and exit logs." },
     ],
   }),
@@ -67,7 +67,7 @@ function ExitSummaryPage() {
   };
 
   return (
-    <AppShell title="Employee Exit Summary" subtitle="Track employee offboardings, clearance tasks, and exit feedback.">
+    <AppShell title="Exit Summary" subtitle="Track employee offboardings, clearance tasks, and exit feedback.">
       {/* Metrics Banner */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs flex items-center gap-4">

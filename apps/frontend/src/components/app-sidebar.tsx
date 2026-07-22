@@ -60,9 +60,8 @@ const dhResourcesDropdown: Item = {
   label: "Resources",
   icon: Users,
   subItems: [
-    { to: "/dh-employee-directory", label: "Employee Directory" },
-    { to: "/dh-exit-summary", label: "Employee Exit Summary" },
-    { to: "/dh-org-tree", label: "Organization Tree" },
+    { to: "/dh-employee-directory", label: "Directory & Pool" },
+    { to: "/dh-exit-summary", label: "Exit Summary" },
   ],
 };
 
@@ -123,7 +122,7 @@ export function AppSidebar() {
 
   useEffect(() => {
     // Auto-open Resources if we are in any of the resource sub-routes
-    const resourceRoutes = ["/dh-employee-directory", "/dh-resource-pool", "/dh-exit-summary", "/dh-org-tree"];
+    const resourceRoutes = ["/dh-employee-directory", "/dh-resource-pool", "/dh-exit-summary"];
     if (resourceRoutes.some(route => pathname.startsWith(route))) {
       setOpenDropdowns(prev => ({ ...prev, Resources: true }));
     }

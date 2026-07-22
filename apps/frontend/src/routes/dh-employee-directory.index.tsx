@@ -22,8 +22,8 @@ export const Route = createFileRoute("/dh-employee-directory/")({
   }),
   head: () => ({
     meta: [
-      { title: "Employee Directory — Pulse PMO" },
-      { name: "description", content: "Browse and manage the full employee directory." },
+      { title: "Directory & Pool — Pulse PMO" },
+      { name: "description", content: "Browse and manage the full employee directory & resource pool." },
     ],
   }),
   component: EmployeeDirectoryPage,
@@ -773,7 +773,7 @@ function EmployeeDirectoryPage() {
     setPage(1);
   }, [q, dept, desig, status, allocStatus, empStatus, tab]);
 
-  const title = tab === "directory" ? "Employee Directory" : "Resource Pool";
+  const title = tab === "directory" ? "Directory & Pool" : "Resource Pool";
   const subtitle = tab === "directory"
     ? `${activeRows.length} of ${employees.length} employees`
     : `${activeRows.length} of ${employees.length} resources active`;
@@ -879,7 +879,6 @@ function EmployeeDirectoryPage() {
                 {[
                   "Employee ID",
                   "Name",
-                  "Email",
                   "Department",
                   "Designation",
                   "Reporting Manager",
@@ -914,9 +913,6 @@ function EmployeeDirectoryPage() {
                       <span className="font-medium">{e.firstName} {e.lastName}</span>
                     </Link>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
-                    {e.email}
-                  </td>
                   <td className="whitespace-nowrap px-3 py-2.5">{e.department}</td>
                   <td className="whitespace-nowrap px-3 py-2.5">{e.designation}</td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
@@ -940,7 +936,7 @@ function EmployeeDirectoryPage() {
               ))}
               {pageRows.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={10} className="px-3 py-10 text-center text-sm text-muted-foreground">
                     No employees match your filters
                   </td>
                 </tr>

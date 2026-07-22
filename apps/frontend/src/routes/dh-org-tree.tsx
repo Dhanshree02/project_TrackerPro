@@ -7,13 +7,7 @@ import { Avatar } from "@/components/pills";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dh-org-tree")({
-  head: () => ({
-    meta: [
-      { title: "Organization Tree/Hierarchy — Pulse PMO" },
-      { name: "description", content: "Visual organizational directory and reporting structures." },
-    ],
-  }),
-  component: OrgTreePage,
+  component: () => <Navigate to="/dh-employee-directory" />,
 });
 
 interface OrgNode {
