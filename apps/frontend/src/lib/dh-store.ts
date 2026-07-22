@@ -3260,6 +3260,19 @@ export const dhStore = {
     emit();
   },
 
+  stopBucketTask(bucketTaskId: string) {
+    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    if (!bt) return;
+    if (bt.timerRunning && bt.lastStartedAt) {
+      const elapsed = Math.floor((Date.now() - new Date(bt.lastStartedAt).getTime()) / 1000);
+      bt.elapsedTime += Math.max(0, elapsed);
+    }
+    bt.status = "Stopped";
+    bt.timerRunning = false;
+    bt.lastStartedAt = undefined;
+    emit();
+  },
+
   resumeBucketTask(bucketTaskId: string) {
     const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
     if (!bt) return;
