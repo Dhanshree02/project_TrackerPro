@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { LayoutGrid, List, Search, ArrowRight, Calendar, Plus, X, ChevronRight, Check, Trash2, Calculator, FileText, Clock, User } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -8,6 +8,7 @@ import { allClients, allProjects, dhStore, useDhStore, type WbsDraft } from "@/l
 import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar } from "@/components/pills";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/dh-helpers";
 import { cn } from "@/lib/utils";
+import { useDraggable } from "@/hooks/use-draggable";
 
 export const Route = createFileRoute("/projects/")({
   head: () => ({
@@ -722,12 +723,40 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function Modal({ title, children, onClose, wide, fullScreen }: { title: string; children: React.ReactNode; onClose: () => void; wide?: boolean; fullScreen?: boolean }) {
+export function Modal({ title, children, onClose, wide, fullScreen, draggable }: { title: string; children: React.ReactNode; onClose: () => void; wide?: boolean; fullScreen?: boolean; draggable?: boolean }) {
+  const { containerRef, handleRef } = useDraggable();
+
   return (
-    <div className={cn("fixed inset-0 z-50 flex items-center justify-center", fullScreen ? "bg-background p-0" : "bg-black/40 p-4")} onClick={!fullScreen ? onClose : undefined}>
-      <div className={cn("overflow-y-auto bg-card flex flex-col", fullScreen ? "w-full h-full rounded-none shadow-none" : "max-h-[90vh] w-full rounded-xl shadow-xl", !fullScreen && wide ? "max-w-3xl" : !fullScreen ? "max-w-lg" : "")}
-        onClick={(e) => e.stopPropagation()}>
-        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-5 py-4">
+    <div
+      className={cn("fixed inset-0 z-50 flex items-center justify-center", fullScreen ? "bg-background p-0" : "bg-black/40 p-4")}
+      onClick={!fullScreen && !draggable ? onClose : undefined}
+    >
+      <div
+        ref={draggable ? containerRef : undefined}
+        className={cn(
+          "overflow-y-auto bg-card flex flex-col",
+          fullScreen ? "w-full h-full rounded-none shadow-none" : "max-h-[90vh] w-full rounded-xl shadow-xl",
+          !fullScreen && wide ? "max-w-3xl" : !fullScreen ? "max-w-lg" : "",
+        )}
+        style={draggable ? { willChange: "transform", touchAction: "none" } : undefined}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header
+          ref={draggable ? (handleRef as React.RefObject<HTMLElement>) : undefined}
+          className={cn(
+            "sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-5 py-4",
+            draggable && "select-none"
+          )}
+        >
+          {draggable && (
+            <span className="mr-1 text-muted-foreground/50 shrink-0" title="Drag to move">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <circle cx="5" cy="4" r="1.4"/><circle cx="11" cy="4" r="1.4"/>
+                <circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/>
+                <circle cx="5" cy="12" r="1.4"/><circle cx="11" cy="12" r="1.4"/>
+              </svg>
+            </span>
+          )}
           <h2 className="flex-1 text-lg font-semibold">{title}</h2>
           <button onClick={onClose} className="rounded-md p-1.5 hover:bg-accent" aria-label="Close"><X className="h-5 w-5" /></button>
         </header>

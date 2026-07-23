@@ -216,7 +216,7 @@ export const Route = createFileRoute("/projects/$projectId")({
   component: ProjectDetail,
 });
 
-const tabs = ["Overview", "WBS", "Tasks", "Team", "Health", "Invoices"] as const;
+const tabs = ["Overview", "WBS", "Team", "Tasks", "Health", "Invoices"] as const;
 type Tab = (typeof tabs)[number];
 
 function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
@@ -1751,7 +1751,7 @@ function ChangeLeaderPanel({
   };
 
   return (
-    <Modal title={`Change Leader — ${role}`} onClose={onClose}>
+    <Modal title={`Change Leader — ${role}`} onClose={onClose} draggable>
       <div className="space-y-3">
 
         {/* Currently assigned chips */}
@@ -2723,7 +2723,7 @@ function AssignTaskModal({ project, task, pool, selected, onClose, onSave }: { p
   const visible = pool.filter(({ person: p }) => !q.trim() || p.name.toLowerCase().includes(q.toLowerCase()));
 
   return (
-    <Modal title={`Assign — ${task.title}`} onClose={onClose}>
+    <Modal title={`Assign — ${task.title}`} onClose={onClose} draggable>
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">Resources from Project Team and Shadow Team can be assigned. Select one or more.</p>
         <div className="relative">
@@ -3322,7 +3322,7 @@ function AddTeamMemberModal({
   };
 
   return (
-    <Modal title="Add Team Member" onClose={onClose} wide={false}>
+    <Modal title="Add Team Member" onClose={onClose} wide={false} draggable>
       <div className="space-y-4">
         <Field label="Resource" required>
           <select
@@ -3611,7 +3611,7 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
       )}
 
       {showRaiseModal && (
-        <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)}>
+        <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
           <div className="space-y-3">
             <Field label="Issue Title">
               <input value={formData.title} onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))} placeholder="Brief summary..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
@@ -3835,7 +3835,7 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
 
       {/* Escalation Review Details Modal */}
       {selectedEsc && (
-        <Modal title={`Escalation Review Details — ${selectedEsc.alertId || "ALT-GEN"}`} onClose={() => setSelectedEscId(null)} wide>
+        <Modal title={`Escalation Review Details — ${selectedEsc.alertId || "ALT-GEN"}`} onClose={() => setSelectedEscId(null)} wide draggable>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {/* Left side details */}
             <div className="md:col-span-2 space-y-4">
@@ -4026,7 +4026,7 @@ function HealthAppreciationPanel({ appreciations, project }: { appreciations: Dh
       )}
 
       {showAppreciateModal && (
-        <Modal title="Give Appreciation" onClose={() => setShowAppreciateModal(false)}>
+        <Modal title="Give Appreciation" onClose={() => setShowAppreciateModal(false)} draggable>
           <div className="space-y-3">
             <Field label="Resource">
               <select value={formData.toUserId} onChange={(e) => setFormData((s) => ({ ...s, toUserId: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -4237,7 +4237,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
 
       {/* Log Requirement Modal */}
       {showModal && (
-        <Modal title="Log Additional Client Requirement" onClose={() => setShowModal(false)}>
+        <Modal title="Log Additional Client Requirement" onClose={() => setShowModal(false)} draggable>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Client Name"><input value={client} onChange={(e) => setClient(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
@@ -4544,7 +4544,7 @@ function InterviewSchedulingPanel({ interviews, project, isEM }: { interviews: D
       )}
 
       {showModal && (
-        <Modal title="Schedule Interview" onClose={() => setShowModal(false)}>
+        <Modal title="Schedule Interview" onClose={() => setShowModal(false)} draggable>
           <div className="space-y-3">
             <Field label="Resource">
               <select value={formData.resourceId} onChange={(e) => setFormData((s) => ({ ...s, resourceId: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -5196,7 +5196,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
 
       {/* Raise Escalation Modal */}
       {escalationModalOpen && escalationModalSvc && (
-        <Modal title="Raise WBS Escalation" onClose={() => setEscalationModalOpen(false)}>
+        <Modal title="Raise WBS Escalation" onClose={() => setEscalationModalOpen(false)} draggable>
           <div className="space-y-4 text-xs">
             {/* Read-Only Project Info */}
             <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
@@ -5480,7 +5480,7 @@ function WbsAssignmentModal({
   const title = mode === "pm" ? "Assign Project Manager" : "Assign Senior Project Manager";
 
   return (
-    <Modal title={title} onClose={onClose}>
+    <Modal title={title} onClose={onClose} draggable>
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">
           {mode === "pm"

@@ -1640,27 +1640,39 @@ function WbsNewProjectPage() {
                     );
                   })}
                   {/* Running total + add button */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const ordinals = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth"];
-                        const nextIdx = customPayments.length;
-                        const label = `${ordinals[nextIdx] ?? `Payment ${nextIdx + 1}`} Payment`;
-                        setCustomPayments(prev => [...prev, { label, pct: 0 }]);
-                      }}
-                      style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", borderRadius: 4, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
-                    >+ Add Payment</button>
-                    {(() => {
-                      const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
-                      const isValid = total === 100;
-                      return (
+                  {(() => {
+                    const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
+                    const isValid = total === 100;
+                    const isFull = total >= 100;
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                        <button
+                          type="button"
+                          disabled={isFull}
+                          onClick={() => {
+                            const ordinals = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth"];
+                            const nextIdx = customPayments.length;
+                            const label = `${ordinals[nextIdx] ?? `Payment ${nextIdx + 1}`} Payment`;
+                            setCustomPayments(prev => [...prev, { label, pct: 0 }]);
+                          }}
+                          style={{
+                            background: isFull ? "#f3f4f6" : "#eff6ff",
+                            border: isFull ? "1px solid #e5e7eb" : "1px solid #bfdbfe",
+                            color: isFull ? "#9ca3af" : "#1d4ed8",
+                            borderRadius: 4,
+                            padding: "5px 12px",
+                            cursor: isFull ? "not-allowed" : "pointer",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            opacity: isFull ? 0.6 : 1,
+                          }}
+                        >+ Add Payment</button>
                         <span style={{ fontSize: 12, fontWeight: 700, color: isValid ? "#16a34a" : "#dc2626" }}>
                           Total: {total}% {isValid ? "✓" : `— needs ${100 - total > 0 ? "+" : ""}${100 - total}% more`}
                         </span>
-                      );
-                    })()}
-                  </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <input
@@ -1699,11 +1711,11 @@ function WbsNewProjectPage() {
             </FormGroup>
           </div>
 
-          {/* Invoice Details Section */}
+          {/* Invoice Scheduling Section */}
           {billingModel && invoiceRows.length > 0 && (
             <div style={{ marginTop: 24, marginBottom: 24 }}>
               <label style={{ fontWeight: 600, fontSize: 14, display: "block", marginBottom: 10, color: "#1a5490" }}>
-                Invoice Details
+                Invoice Scheduling
               </label>
               <div style={{ overflowX: "auto", maxHeight: "400px", border: "1px solid #e5e7eb", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>

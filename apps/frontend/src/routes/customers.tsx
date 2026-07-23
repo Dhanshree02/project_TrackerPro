@@ -313,7 +313,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="New Customer Onboarding" onClose={onClose} wide>
+    <Modal title="New Customer Onboarding" onClose={onClose} wide draggable>
       {/* Stepper */}
       <div className="mb-5 flex items-center gap-2 text-xs">
         {["Company", "Contact", "Review"].map((label, i) => {

@@ -499,7 +499,7 @@ function ApprovalsTab() {
       </div>
 
       {selectedApproval && (
-        <Modal title={`Review Request — ${selectedApproval.id}`} onClose={() => setSelectedAppId(null)} wide>
+        <Modal title={`Review Request — ${selectedApproval.id}`} onClose={() => setSelectedAppId(null)} wide draggable>
           <div className="space-y-4">
             <div className="bg-muted/30 border border-border rounded-lg p-3 text-xs leading-relaxed grid grid-cols-2 md:grid-cols-4 gap-3">
               <div><span className="text-muted-foreground">Project Link</span><p className="font-medium text-primary hover:underline"><Link to="/projects/$projectId" params={{ projectId: selectedApproval.projectId }}>{selectedApproval.projectName}</Link></p></div>
@@ -834,7 +834,7 @@ function AlertsTab() {
 
       {/* Alert Details Modal */}
       {selectedAlert && (
-        <Modal title={selectedAlert.kind === "Escalation" ? `Escalation Review Details — ${selectedAlert.alertId || "ALT-GEN"}` : `Governance Alert Details — ${selectedAlert.alertId || "ALT-GEN"}`} onClose={() => setSelectedAlertId(null)} wide>
+        <Modal title={selectedAlert.kind === "Escalation" ? `Escalation Review Details — ${selectedAlert.alertId || "ALT-GEN"}` : `Governance Alert Details — ${selectedAlert.alertId || "ALT-GEN"}`} onClose={() => setSelectedAlertId(null)} wide draggable>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {/* Left side details */}
             <div className="md:col-span-2 space-y-4">

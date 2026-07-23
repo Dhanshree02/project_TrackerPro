@@ -758,8 +758,6 @@ const tabs = [
   { id: "skills", label: "Skills & Qualifications" },
   { id: "kpi", label: "KPI & Performance" },
   { id: "finance", label: "Financial & Compliance" },
-  { id: "docs", label: "Documents" },
-  { id: "calendar", label: "Calendar" },
 ] as const;
 
 // ── Main page ──────────────────────────────────────
@@ -1104,41 +1102,7 @@ function EmployeeProfilePage() {
             </div>
           )}
 
-          {/* ── Documents ───── */}
-          {tab === "docs" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                {[
-                  { n: "Offer Letter.pdf", v: "Verified" },
-                  { n: "PAN Card.pdf", v: "Verified" },
-                  { n: "Aadhaar.pdf", v: "Verified" },
-                  { n: "Resume.pdf", v: "Verified" },
-                  { n: "Education Certs.zip", v: "Pending" },
-                  { n: "Experience Letter.pdf", v: "Pending" },
-                ].map((d) => (
-                  <div key={d.n} className="rounded-lg border border-border bg-card p-4">
-                    <div className="flex h-20 items-center justify-center rounded-md bg-muted/40 text-muted-foreground">
-                      <FileText className="h-8 w-8" />
-                    </div>
-                    <div className="mt-3 truncate text-sm font-medium">{d.n}</div>
-                    <div className="mt-1"><EmpStatusBadge status={d.v} /></div>
-                  </div>
-                ))}
-                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-4 text-center">
-                  <svg className="mb-2 h-6 w-6 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                  <div className="text-sm font-medium">Upload Document</div>
-                  <div className="text-xs text-muted-foreground">PDF, JPG up to 10 MB</div>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* ── Calendar ────── */}
-          {tab === "calendar" && (
-            <EmployeeCalendar emp={emp} onUpdateEmp={handleSaveProfile} />
-          )}
         </div>
       </div>
 
