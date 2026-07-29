@@ -143,7 +143,7 @@ function Dashboard() {
               <h2 className="text-sm font-semibold">Assigned projects</h2>
               <p className="text-xs text-muted-foreground">Health, status and progress</p>
             </div>
-            <Link to="/clients" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+            <Link to="/customers" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
               View all <ArrowRight className="h-3 w-3" />
             </Link>
           </header>

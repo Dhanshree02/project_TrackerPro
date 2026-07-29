@@ -565,7 +565,7 @@ function ProjectDetail() {
     <AppShell title={project.name} subtitle={
       <span>
         <Link
-          to="/customer-detail/$clientId"
+          to="/customers/$clientId"
           params={{ clientId: client.id }}
           className="font-medium text-primary hover:underline"
         >
@@ -1461,7 +1461,7 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
               <div className="space-y-2 text-xs">
                 <div>
                   <span className="text-muted-foreground font-medium block mb-0.5">Client Name</span>
-                  <Link to="/clients/$clientId" params={{ clientId: client.id }} className="font-semibold text-primary hover:underline block truncate">
+                  <Link to="/customers/$clientId" params={{ clientId: client.id }} className="font-semibold text-primary hover:underline block truncate">
                     {client.name}
                   </Link>
                 </div>

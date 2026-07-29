@@ -32,7 +32,7 @@ type Item = {
 };
 
 const dashboardItem: Item = { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true };
-const clientsItem: Item = { to: "/clients", label: "Clients & Projects", icon: Briefcase };
+const clientsItem: Item = { to: "/customers", label: "Customers", icon: Building2 };
 const portfolioItem: Item = { to: "/portfolio", label: "Portfolio", icon: Layers };
 const wbsItem: Item = { to: "/wbs-allocation", label: "WBS Allocation", icon: Inbox };
 const resourcesItem: Item = { to: "/resources", label: "Resources", icon: Users };
