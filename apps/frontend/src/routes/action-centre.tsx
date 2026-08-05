@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { Search, Filter, Plus, Send, Trash2, Clock, MessageSquare, Copy, X, CheckCircle2, XCircle, RotateCcw, AlertTriangle, AlertCircle, Calendar, DollarSign, Check, ExternalLink, ShieldAlert, ListFilter, User, Paperclip, Bell, Archive } from "lucide-react";
+import { Search, Filter, Plus, Send, Trash2, Clock, MessageSquare, Copy, X, CheckCircle2, XCircle, RotateCcw, AlertTriangle, AlertCircle, Calendar, DollarSign, Check, ExternalLink, ShieldAlert, ListFilter, User, Paperclip, Bell, Archive, ChevronDown } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { getPerson, people, type TaskStatus, type CellCommentData, type CellCommentMessage } from "@/lib/mock-data";
@@ -9,6 +9,7 @@ import { useDhStore, dhStore, allProjects, allClients, type DhAlert, type DhInte
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "./projects.index";
+import { Select } from "@/components/form-row";
 
 export const Route = createFileRoute("/action-centre")({
   head: () => ({
@@ -276,52 +277,58 @@ function BucketList() {
 
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm">
-      <header className="flex flex-wrap items-center gap-3 border-b border-border p-3">
+      <header className="flex flex-wrap items-center gap-2.5 border-b border-border p-3">
         {/* View As Selector for Tester */}
-        <div className="flex items-center gap-2 mr-2">
-          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">Viewing As:</span>
-          <select
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Viewing As:</span>
+          <Select
             value={viewUserId}
             onChange={(e) => setViewUserId(e.target.value)}
-            className="h-9 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring border-border cursor-pointer hover:bg-accent/30"
+            containerClassName="w-auto"
           >
             {people.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} ({p.role})
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
-        <div className="relative max-w-xs flex-1">
+        {/* Search Bar */}
+        <div className="relative w-60 max-w-xs">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q} onChange={(e) => setQ(e.target.value)}
             placeholder="Search task or project…"
-            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-xs">
-          <Filter className="ml-1 h-3.5 w-3.5 text-muted-foreground" />
+
+        {/* Status Filter Bar */}
+        <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 mx-1" />
           {(["all", "todo", "in_progress", "done"] as const).map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)}
-              className={cn("rounded-md px-2.5 py-1 capitalize font-medium",
-                statusFilter === s ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground")}>
+              className={cn("h-7 rounded-sm px-2.5 py-0.5 capitalize text-xs font-medium transition-colors cursor-pointer",
+                statusFilter === s ? "bg-primary text-primary-foreground font-semibold shadow-2xs" : "text-muted-foreground hover:text-foreground hover:bg-accent/40")}>
               {s === "all" ? "All status" : s === "todo" ? "To Do" : s === "in_progress" ? "In Progress" : "Done"}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-xs">
+
+        {/* Priority Filter Bar */}
+        <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
           {(["all", "low", "medium", "high", "critical"] as const).map((p) => (
             <button key={p} onClick={() => setPriorityFilter(p)}
-              className={cn("rounded-md px-2.5 py-1 capitalize font-medium",
-                priorityFilter === p ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground")}>
+              className={cn("h-7 rounded-sm px-2.5 py-0.5 capitalize text-xs font-medium transition-colors cursor-pointer",
+                priorityFilter === p ? "bg-primary text-primary-foreground font-semibold shadow-2xs" : "text-muted-foreground hover:text-foreground hover:bg-accent/40")}>
               {p === "all" ? "All priority" : p}
             </button>
           ))}
         </div>
-        <span className="ml-auto text-xs text-muted-foreground font-semibold">
-          Assigned to {selectedPerson.name} · {filtered.length} tasks
+
+        <span className="ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">
+          Assigned to <strong className="text-foreground font-semibold">{selectedPerson.name}</strong> · {filtered.length} tasks
         </span>
       </header>
 
@@ -373,7 +380,7 @@ function ApprovalsTab() {
     "SPM Assignment Approval",
     "Project Ready To Start Approval",
     "Resource Allocation Approval",
-    "Client Requirement Approval",
+    "Customer Requirement Approval",
     "Timeline Extension Approval"
   ];
 
@@ -700,7 +707,7 @@ function AlertsTab() {
     "Technical Issue",
     "Dependency Blocker",
     "Escalation",
-    "Client Concern",
+    "Customer Concern",
     "Budget Concern",
     "Schedule Delay",
     "Quality Concern",
@@ -734,9 +741,9 @@ function AlertsTab() {
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Client</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Customer</span>
               <select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
-                <option value="all">All Clients</option>
+                <option value="all">All Customers</option>
                 {clientsList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
@@ -760,7 +767,7 @@ function AlertsTab() {
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
                 <option value="all">All Statuses</option>
-                {(["Open", "Acknowledged", "In Progress", "Waiting for Client", "Resolved", "Closed"] as const).map((s) => (
+                {(["Open", "Acknowledged", "In Progress", "Waiting for Customer", "Resolved", "Closed"] as const).map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
@@ -780,7 +787,7 @@ function AlertsTab() {
                   <th className="px-3 py-2 font-medium">Alert ID</th>
                   <th className="px-3 py-2 font-medium">Alert Title</th>
                   <th className="px-3 py-2 font-medium">Project Name</th>
-                  <th className="px-3 py-2 font-medium">Client Name</th>
+                  <th className="px-3 py-2 font-medium">Customer Name</th>
                   <th className="px-3 py-2 font-medium">Alert Type</th>
                   <th className="px-3 py-2 font-medium">Priority</th>
                   <th className="px-3 py-2 font-medium">Raised By</th>
@@ -812,7 +819,7 @@ function AlertsTab() {
                           alert.status === "Open" ? "bg-orange-50 text-orange-700 border-orange-200" :
                             alert.status === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-200" :
                               alert.status === "Resolved" || alert.status === "Closed" ? "bg-green-50 text-green-700 border-green-200" :
-                                alert.status === "Waiting for Client" ? "bg-purple-50 text-purple-700 border-purple-200" :
+                                alert.status === "Waiting for Customer" ? "bg-purple-50 text-purple-700 border-purple-200" :
                                   "bg-muted text-muted-foreground border-border"
                         )}>
                           {alert.status}
@@ -997,12 +1004,12 @@ function AlertsTab() {
                       selectedStatus === "Resolved" || selectedStatus === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
                         selectedStatus === "Open" ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100" :
                           selectedStatus === "In Progress" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-                            selectedStatus === "Waiting for Client" ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100" :
+                            selectedStatus === "Waiting for Customer" ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100" :
                               "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                     )}
                   >
                     {selectedAlert.kind === "Escalation"
-                      ? (["Open", "Acknowledged", "In Progress", "Waiting for Client", "Resolved", "Closed"] as const).map((s) => (
+                      ? (["Open", "Acknowledged", "In Progress", "Waiting for Customer", "Resolved", "Closed"] as const).map((s) => (
                           <option key={s} value={s}>{s}</option>
                         ))
                       : (["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
@@ -1709,9 +1716,9 @@ const NOTIFICATION_TYPES = [
   "Appreciation Received",
   "Issue Raised",
   "Issue Resolved",
-  "Client Interview Selected",
-  "Client Interview Rejected",
-  "Additional Client Requirement",
+  "Customer Interview Selected",
+  "Customer Interview Rejected",
+  "Additional Customer Requirement",
   "Approval Request",
   "Timesheet Approved",
   "Timesheet Rejected",

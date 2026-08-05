@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { useRoleContext } from "@/lib/role-context";
 import { getPerson, projects, type Project, type Person, type Client } from "@/lib/mock-data";
 import { useDhStore, dhStore, type DhProjectPrereq } from "@/lib/dh-store";
-import { Modal, Field } from "@/routes/projects.index";
+import { Modal } from "@/routes/projects.index";
+import { Field } from "@/components/form-row";
 import { Avatar, StatusPill } from "@/components/pills";
 import { cn } from "@/lib/utils";
 
@@ -82,23 +83,23 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
       <div className="space-y-4 border-t border-border pt-5">
         <h3 className="text-sm font-semibold">Prerequisite & Assignment Workflow</h3>
 
-        {/* STEP 1: CLIENT PROFILE INFORMATION */}
+        {/* STEP 1: CUSTOMER PROFILE INFORMATION */}
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
-            <h4 className="text-sm font-semibold">Client Profile Information</h4>
+            <h4 className="text-sm font-semibold">Customer Profile Information</h4>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Client ID</span>
+              <span className="text-xs text-muted-foreground">Customer ID</span>
               <span className="text-sm font-medium">{project.clientId}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Client Name</span>
+              <span className="text-xs text-muted-foreground">Customer Name</span>
               <span className="text-sm font-medium">{clientInfo?.name}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Client Type</span>
+              <span className="text-xs text-muted-foreground">Customer Type</span>
               <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", clientInfo?.type === "NEW" ? "border-green-200/50 bg-green-50/50 text-green-700" : "border-blue-200/50 bg-blue-50/50 text-blue-700")}>
                 {clientInfo?.type === "NEW" ? "🆕 NEW" : "🔄 OLD"}
               </span>
@@ -207,7 +208,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
               }}
               className="w-full h-8 rounded-md border border-input bg-card px-2 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {(["Initiated", "Waiting For Client Response", "Received"] as const).map((s) => (
+              {(["Initiated", "Waiting For Customer Response", "Received"] as const).map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
@@ -215,7 +216,7 @@ function WbsPrerequisiteSection({ project }: { project: Project }) {
             </select>
             <p className="text-[11px] text-muted-foreground mt-2">
               {prereq.collection === "Initiated" && "⚠️ Validation & assignment disabled until status = Received"}
-              {prereq.collection === "Waiting For Client Response" && "⏳ Awaiting client input. Validation & assignment disabled until status = Received"}
+              {prereq.collection === "Waiting For Customer Response" && "⏳ Awaiting customer input. Validation & assignment disabled until status = Received"}
               {prereq.collection === "Received" && "✓ Validation section enabled"}
             </p>
           </div>

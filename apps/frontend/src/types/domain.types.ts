@@ -41,7 +41,7 @@ export type AlertKind =
   | "Approval"
   | "Dependency";
 
-export type AlertStatus = "Open" | "In Progress" | "Resolved" | "Closed" | "Acknowledged" | "Waiting for Client";
+export type AlertStatus = "Open" | "In Progress" | "Resolved" | "Closed" | "Acknowledged" | "Waiting for Customer";
 
 export interface DhAlert {
   id: string;
@@ -63,7 +63,7 @@ export interface DhAlert {
     | "Technical Issue"
     | "Dependency Blocker"
     | "Escalation"
-    | "Client Concern"
+    | "Customer Concern"
     | "Budget Concern"
     | "Schedule Delay"
     | "Quality Concern"
@@ -109,7 +109,7 @@ export interface DhCentralApproval {
     | "SPM Assignment Approval"
     | "Project Ready To Start Approval"
     | "Resource Allocation Approval"
-    | "Client Requirement Approval"
+    | "Customer Requirement Approval"
     | "Timeline Extension Approval"
     | "Leadership Change Approval";
   requestedBy: string;
@@ -180,7 +180,7 @@ export interface DhAppreciation {
   toUserId: string;
   toName: string;
   fromName: string;
-  badge: "Star Performer" | "Team Player" | "Innovator" | "Client Champion";
+  badge: "Star Performer" | "Team Player" | "Innovator" | "Customer Champion";
   note: string;
   at: string;
 }
@@ -227,7 +227,7 @@ export interface DhAdditionalRequirement {
 }
 
 export type PrereqStatus = "Validation Pending" | "Validated";
-export type PrereqCollectionStatus = "Initiated" | "Waiting For Client Response" | "Received";
+export type PrereqCollectionStatus = "Initiated" | "Waiting For Customer Response" | "Received";
 
 export interface DhServicePrereq {
   serviceId: string;

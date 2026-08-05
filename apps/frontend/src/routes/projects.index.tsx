@@ -8,6 +8,7 @@ import { allClients, allProjects, dhStore, useDhStore, type WbsDraft } from "@/l
 import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar } from "@/components/pills";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/dh-helpers";
 import { cn } from "@/lib/utils";
+import { Field, HorizontalField } from "@/components/form-row";
 import { useDraggable } from "@/hooks/use-draggable";
 
 export const Route = createFileRoute("/projects/")({
@@ -27,7 +28,20 @@ function ProjectsPage() {
   const { isDhanshree } = useRoleContext();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("Active Projects");
-  const [view, setView] = useState<"card" | "list">("card");
+  const [view, setViewState] = useState<"card" | "list">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("projects-view-mode");
+      if (saved === "card" || saved === "list") return saved;
+    }
+    return "card";
+  });
+
+  const setView = (v: "card" | "list") => {
+    setViewState(v);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("projects-view-mode", v);
+    }
+  };
   const [q, setQ] = useState("");
   const [draftsOpen, setDraftsOpen] = useState(false);
 
@@ -66,7 +80,7 @@ function ProjectsPage() {
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="Search project or client…"
+            placeholder="Search project or customer…"
             className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -113,42 +127,44 @@ function ProjectsPage() {
             const pms = getProjectPMs(p);
             const tls = getProjectTLs(p);
             return (
-              <article key={p.id} className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
-                <header className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-sm font-semibold text-primary-foreground">
-                    {client.logo}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <span className="font-mono">{p.id.toUpperCase()}</span>
-                      <span>•</span>
-                      <span>{client.name}</span>
+              <article
+                key={p.id}
+                onClick={() => navigate({ to: "/projects/$projectId", params: { projectId: p.id } })}
+                className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/50 hover:shadow-md cursor-pointer"
+              >
+                <div>
+                  <header className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-sm font-semibold text-primary-foreground group-hover:scale-105 transition-transform">
+                      {client.logo}
                     </div>
-                    <div className="truncate text-sm font-semibold">{p.name}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span className="font-mono">{p.id.toUpperCase()}</span>
+                        <span>•</span>
+                        <span>{client.name}</span>
+                      </div>
+                      <div className="truncate text-sm font-semibold group-hover:text-primary transition-colors">{p.name}</div>
+                    </div>
+                  </header>
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    <HealthPill status={p.health} />
+                    <StatusPill status={p.status} />
+                    <PriorityPill priority={priorities[i % priorities.length]} />
                   </div>
-                </header>
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <HealthPill status={p.health} />
-                  <StatusPill status={p.status} />
-                  <PriorityPill priority={priorities[i % priorities.length]} />
-                </div>
-                <div className="mt-3">
-                  <div className="mb-1 flex justify-between text-[11px] tabular-nums text-muted-foreground">
-                    <span>Progress</span><span>{p.progress}%</span>
+                  <div className="mt-3">
+                    <div className="mb-1 flex justify-between text-[11px] tabular-nums text-muted-foreground">
+                      <span>Progress</span><span>{p.progress}%</span>
+                    </div>
+                    <ProgressBar value={p.progress} />
                   </div>
-                  <ProgressBar value={p.progress} />
+                  <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                    <div><dt className="text-muted-foreground">Start</dt><dd className="font-medium tabular-nums">{new Date(p.startDate).toLocaleDateString()}</dd></div>
+                    <div><dt className="text-muted-foreground">End</dt><dd className="font-medium tabular-nums">{new Date(p.endDate).toLocaleDateString()}</dd></div>
+                    <div className="col-span-2"><dt className="text-muted-foreground">Engagement Mgr</dt><dd><PeopleSummary list={ems} /></dd></div>
+                    <div className="col-span-2"><dt className="text-muted-foreground">Project Mgr</dt><dd><PeopleSummary list={pms} /></dd></div>
+                    <div className="col-span-2"><dt className="text-muted-foreground">Team Lead</dt><dd><PeopleSummary list={tls} /></dd></div>
+                  </dl>
                 </div>
-                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-                  <div><dt className="text-muted-foreground">Start</dt><dd className="font-medium tabular-nums">{new Date(p.startDate).toLocaleDateString()}</dd></div>
-                  <div><dt className="text-muted-foreground">End</dt><dd className="font-medium tabular-nums">{new Date(p.endDate).toLocaleDateString()}</dd></div>
-                  <div className="col-span-2"><dt className="text-muted-foreground">Engagement Mgr</dt><dd><PeopleSummary list={ems} /></dd></div>
-                  <div className="col-span-2"><dt className="text-muted-foreground">Project Mgr</dt><dd><PeopleSummary list={pms} /></dd></div>
-                  <div className="col-span-2"><dt className="text-muted-foreground">Team Lead</dt><dd><PeopleSummary list={tls} /></dd></div>
-                </dl>
-                <Link to="/projects/$projectId" params={{ projectId: p.id }}
-                  className="mt-4 inline-flex items-center justify-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                  Open Project <ArrowRight className="h-3 w-3" />
-                </Link>
               </article>
             );
           })}
@@ -163,14 +179,13 @@ function ProjectsPage() {
               <tr>
                 <th className="px-3 py-2 font-medium">Project ID</th>
                 <th className="px-3 py-2 font-medium">Project</th>
-                <th className="px-3 py-2 font-medium">Client</th>
+                <th className="px-3 py-2 font-medium">Customer</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Progress</th>
                 <th className="px-3 py-2 font-medium">Start</th>
                 <th className="px-3 py-2 font-medium">End</th>
                 <th className="px-3 py-2 font-medium">Engagement Mgr</th>
                 <th className="px-3 py-2 font-medium">Project Mgr</th>
-                <th className="px-3 py-2 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -179,9 +194,13 @@ function ProjectsPage() {
                 const ems = getProjectEMs(p);
                 const pms = getProjectPMs(p);
                 return (
-                  <tr key={p.id} className="hover:bg-accent/30">
-                    <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{p.id.toUpperCase()}</td>
-                    <td className="px-3 py-2.5 font-medium">{p.name}</td>
+                  <tr
+                    key={p.id}
+                    onClick={() => navigate({ to: "/projects/$projectId", params: { projectId: p.id } })}
+                    className="hover:bg-accent/50 cursor-pointer transition-colors group"
+                  >
+                    <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground group-hover:text-primary font-medium transition-colors">{p.id.toUpperCase()}</td>
+                    <td className="px-3 py-2.5 font-medium group-hover:text-primary transition-colors">{p.name}</td>
                     <td className="px-3 py-2.5 text-muted-foreground">{client.name}</td>
                     <td className="px-3 py-2.5"><StatusPill status={p.status} /></td>
                     <td className="px-3 py-2.5">
@@ -194,17 +213,11 @@ function ProjectsPage() {
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">{new Date(p.endDate).toLocaleDateString()}</td>
                     <td className="px-3 py-2.5"><PeopleSummary list={ems} /></td>
                     <td className="px-3 py-2.5"><PeopleSummary list={pms} /></td>
-                    <td className="px-3 py-2.5 text-right">
-                      <Link to="/projects/$projectId" params={{ projectId: p.id }}
-                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent">
-                        Open <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    </td>
                   </tr>
                 );
               })}
               {visible.length === 0 && (
-                <tr><td colSpan={10} className="px-3 py-10 text-center text-sm text-muted-foreground">No projects in this view</td></tr>
+                <tr><td colSpan={9} className="px-3 py-10 text-center text-sm text-muted-foreground">No projects in this view</td></tr>
               )}
             </tbody>
           </table>
@@ -493,19 +506,19 @@ function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
         <div className="grid gap-6 md:grid-cols-2">
           {/* Client Details */}
           <section className="space-y-4 rounded-lg border border-border bg-card p-5">
-            <h3 className="text-sm font-semibold border-b border-border pb-2">Client Details</h3>
+            <h3 className="text-sm font-semibold border-b border-border pb-2">Customer Details</h3>
             <div className="flex gap-2 mb-4">
               {(["existing", "new"] as ClientMode[]).map((m) => (
                 <button key={m} onClick={() => setS((p) => ({ ...p, clientMode: m }))} className={cn("flex-1 rounded-md border p-2 text-center text-xs font-medium", s.clientMode === m ? "border-primary bg-primary/10 text-primary" : "border-border bg-muted/50 hover:bg-accent/30")}>
-                  {m === "existing" ? "Existing Client" : "Add New Client"}
+                  {m === "existing" ? "Existing Customer" : "Add New Customer"}
                 </button>
               ))}
             </div>
             {s.clientMode === "existing" ? (
-              <Field label="Select Client" required><select value={s.existingClientId} onChange={(e) => setS(p => ({ ...p, existingClientId: e.target.value }))} className={inputCls}>{clients.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.industry}</option>)}</select></Field>
+              <Field label="Select Customer" required><select value={s.existingClientId} onChange={(e) => setS(p => ({ ...p, existingClientId: e.target.value }))} className={inputCls}>{clients.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.industry}</option>)}</select></Field>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Client Name" required><input className={inputCls} value={s.newClient.name} onChange={(e) => setS(p => ({...p, newClient: {...p.newClient, name: e.target.value}}))} /></Field>
+                <Field label="Customer Name" required><input className={inputCls} value={s.newClient.name} onChange={(e) => setS(p => ({...p, newClient: {...p.newClient, name: e.target.value}}))} /></Field>
                 <Field label="Industry"><input className={inputCls} value={s.newClient.industry} onChange={(e) => setS(p => ({...p, newClient: {...p.newClient, industry: e.target.value}}))} /></Field>
                 <Field label="Contact Person"><input className={inputCls} value={s.newClient.contact} onChange={(e) => setS(p => ({...p, newClient: {...p.newClient, contact: e.target.value}}))} /></Field>
                 <Field label="Email"><input type="email" className={inputCls} value={s.newClient.email} onChange={(e) => setS(p => ({...p, newClient: {...p.newClient, email: e.target.value}}))} /></Field>
@@ -693,26 +706,6 @@ function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
 
 
 const inputCls = "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
-export function Field({ label, required, children, className }: { label: string; required?: boolean; children: React.ReactNode; className?: string }) {
-  return (
-    <label className={cn("block", className)}>
-      <span className="mb-1 block text-xs font-medium text-muted-foreground">
-        {label}{required && <span className="text-destructive"> *</span>}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-export function HorizontalField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-muted-foreground font-medium w-1/3">{label}</span>
-      <div className="w-2/3">{children}</div>
-    </div>
-  );
-}
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (

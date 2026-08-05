@@ -79,7 +79,7 @@ function Dashboard() {
   return (
     <AppShell
       title={`Welcome back, ${user.name.split(" ")[0]}`}
-      subtitle={`${roleLabels[role]} · ${assignedProjects.length} projects across ${new Set(assignedProjects.map((p) => p.clientId)).size} clients${isBO ? " · executive overview" : isPMO ? " · governance + allocation view" : ""}`}
+      subtitle={`${roleLabels[role]} · ${assignedProjects.length} projects across ${new Set(assignedProjects.map((p) => p.clientId)).size} customers${isBO ? " · executive overview" : isPMO ? " · governance + allocation view" : ""}`}
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Ongoing" value={ongoing} sub={`${completed} completed · ${onHold} on hold`} icon={Briefcase} tone="info" />

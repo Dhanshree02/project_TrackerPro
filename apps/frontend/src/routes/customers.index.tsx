@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LayoutGrid, List, Search, ArrowRight, X, Building2, Plus, ChevronRight, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -7,7 +7,8 @@ import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { type Client } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
-import { Modal, Field } from "@/routes/projects.index";
+import { Modal } from "@/routes/projects.index";
+import { Field } from "@/components/form-row";
 import { dhStore, useDhStore, allClients, allProjects } from "@/lib/dh-store";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,22 @@ export const Route = createFileRoute("/customers/")({
 
 function CustomersPage() {
   const { isDhanshree, assignedClients, assignedProjects } = useRoleContext();
-  const [view, setView] = useState<"card" | "list">("card");
+  const navigate = useNavigate();
+  const [view, setViewState] = useState<"card" | "list">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("customers-view-mode");
+      if (saved === "card" || saved === "list") return saved;
+    }
+    return "card";
+  });
+
+  const setView = (v: "card" | "list") => {
+    setViewState(v);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("customers-view-mode", v);
+    }
+  };
+
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [openNew, setOpenNew] = useState(false);
@@ -49,7 +65,7 @@ function CustomersPage() {
   const open = openId ? clients.find((c) => c.id === openId) : null;
 
   return (
-    <AppShell title="Customers" subtitle="Client directory with active and completed engagements">
+    <AppShell title="Customers" subtitle="Customer directory with active and completed engagements">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -80,24 +96,26 @@ function CustomersPage() {
       {view === "card" ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map(({ client: c, total, active }) => (
-            <article key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
-              <header className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-base font-semibold text-primary-foreground">
-                  {c.logo}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold">{c.name}</div>
-                  <div className="text-xs text-muted-foreground">{c.industry}</div>
-                </div>
-              </header>
-              <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div><dt className="text-muted-foreground">Projects</dt><dd className="font-semibold tabular-nums">{total}</dd></div>
-                <div><dt className="text-muted-foreground">Active</dt><dd className="font-semibold tabular-nums text-info">{active}</dd></div>
-              </dl>
-              <Link to="/customers/$clientId" params={{ clientId: c.id }}
-                className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                View Details <ArrowRight className="h-3 w-3" />
-              </Link>
+            <article
+              key={c.id}
+              onClick={() => navigate({ to: "/customers/$clientId", params: { clientId: c.id } })}
+              className="group rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/50 hover:shadow-md cursor-pointer flex flex-col justify-between"
+            >
+              <div>
+                <header className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-base font-semibold text-primary-foreground group-hover:scale-105 transition-transform">
+                    {c.logo}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold group-hover:text-primary transition-colors">{c.name}</div>
+                    <div className="text-xs text-muted-foreground">{c.industry}</div>
+                  </div>
+                </header>
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div><dt className="text-muted-foreground">Projects</dt><dd className="font-semibold tabular-nums">{total}</dd></div>
+                  <div><dt className="text-muted-foreground">Active</dt><dd className="font-semibold tabular-nums text-info">{active}</dd></div>
+                </dl>
+              </div>
             </article>
           ))}
         </div>
@@ -106,22 +124,25 @@ function CustomersPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium">Client</th>
+                <th className="px-3 py-2 font-medium">Customer</th>
                 <th className="px-3 py-2 font-medium">Industry</th>
                 <th className="px-3 py-2 font-medium">Total</th>
                 <th className="px-3 py-2 font-medium">Active</th>
                 <th className="px-3 py-2 font-medium">Completed</th>
                 <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map(({ client: c, total, active, completed }) => (
-                <tr key={c.id} className="hover:bg-accent/30">
+                <tr
+                  key={c.id}
+                  onClick={() => navigate({ to: "/customers/$clientId", params: { clientId: c.id } })}
+                  className="hover:bg-accent/50 cursor-pointer transition-colors group"
+                >
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2">
                       <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground">{c.logo}</span>
-                      <span className="font-medium">{c.name}</span>
+                      <span className="font-medium group-hover:text-primary transition-colors">{c.name}</span>
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">{c.industry}</td>
@@ -130,11 +151,6 @@ function CustomersPage() {
                   <td className="px-3 py-2.5 tabular-nums text-success">{completed}</td>
                   <td className="px-3 py-2.5">
                     <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">Active</span>
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <Link to="/customers/$clientId" params={{ clientId: c.id }} className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent">
-                      Open <ArrowRight className="h-3 w-3" />
-                    </Link>
                   </td>
                 </tr>
               ))}
@@ -303,7 +319,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           engagementManager: s.engagementManager,
           companyName: s.companyName,
         });
-        toast.success("Client onboarded", { description: `${s.clientName} added to your directory.` });
+        toast.success("Customer onboarded", { description: `${s.clientName} added to your directory.` });
       }
       setSubmitting(false);
       onClose();

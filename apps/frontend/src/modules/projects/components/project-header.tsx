@@ -41,7 +41,7 @@ export function ProjectHeader({ project, client, stages, activeStageId, onSelect
               <HealthPill health={project.health} />
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Client: <Link to="/customers/$clientId" params={{ clientId: client.id }} className="font-semibold text-primary hover:underline">{client.name}</Link> · Industry: {client.industry}
+              Customer: <Link to="/customers/$clientId" params={{ clientId: client.id }} className="font-semibold text-primary hover:underline">{client.name}</Link> · Industry: {client.industry}
             </p>
           </div>
         </div>

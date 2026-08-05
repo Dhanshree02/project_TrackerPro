@@ -9,7 +9,8 @@ import { projects, clients, getPerson, people, invoices, type WBSNode, type Proj
 import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar } from "@/components/pills";
 import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType, people as dhPeople } from "@/lib/dh-helpers";
 import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/dh-store";
-import { Modal, Field } from "@/routes/projects.index";
+import { Modal } from "@/routes/projects.index";
+import { Field } from "@/components/form-row";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
@@ -946,12 +947,12 @@ function ProjectDetail() {
 // Legacy demo service list shown in the WBS tab for seeded projects that
 // have no wbsDetails (also feeds the Scope Cancellation dropdown).
 const LEGACY_WBS_SERVICES = [
-  { id: 1, taskId: 'WBS-01', dept: 'Penetration Testing', name: 'External Network Penetration Testing', qty: 1, desc: 'External network penetration test for internet-facing assets', freq: 'Once', delivery: 'Onsite', loc: 'Andheri', svc: 'Initial Test', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Nmap, Metasploit', start: '01 Feb 2026', end: '05 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
-  { id: 2, taskId: 'WBS-02', dept: 'Vulnerability Assessment', name: 'Web Application Vulnerability Assessment', qty: 2, desc: 'Security review for web apps and APIs', freq: 'Once', delivery: 'Offsite', loc: '', svc: 'Initial + 1 Re-test', format: 'Excel + PDF', billing: 'Ad-Hoc', tools: 'OWASP ZAP, Burp Suite', start: '06 Feb 2026', end: '10 Feb 2026', durDays: 4, durHrs: 32, totalDays: 8, totalHrs: 64 },
-  { id: 3, taskId: 'WBS-03', dept: 'Cloud Security', name: 'AWS Cloud Security Assessment', qty: 1, desc: 'Cloud misconfiguration and control review', freq: 'Once', delivery: 'Hybrid', loc: '', svc: 'Initial Test', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'AWS Config, Security Hub', start: '11 Feb 2026', end: '16 Feb 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
-  { id: 4, taskId: 'WBS-04', dept: 'Code & Application Security', name: 'Static Application Security Testing (SAST)', qty: 1, desc: 'Source code review and vulnerability analysis', freq: 'Once', delivery: 'Onsite', loc: 'Malad', svc: 'Initial + 2 Re-test', format: 'PDF + XLSX', billing: 'Ad-Hoc', tools: 'SonarQube, Semgrep', start: '17 Feb 2026', end: '21 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
-  { id: 5, taskId: 'WBS-05', dept: 'Compliance & Audit', name: 'ISO 27001 Assessment', qty: 1, desc: 'Compliance gap assessment and audit checklist', freq: 'Once', delivery: 'Onsite', loc: 'Bandra', svc: 'Initial + 1 Re-test', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Checklist, Audit Toolkit', start: '22 Feb 2026', end: '01 Mar 2026', durDays: 8, durHrs: 64, totalDays: 8, totalHrs: 64 },
-  { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure', name: 'Network Security Assessment', qty: 1, desc: 'Infrastructure review and segmentation validation', freq: 'Once', delivery: 'Offsite', loc: '', svc: 'Initial + 3 Re-test', format: 'PDF Report', billing: 'Ad-Hoc', tools: 'Nmap, Wireshark', start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+  { id: 1, taskId: 'WBS-01', dept: 'Penetration Testing', name: 'External Network Penetration Testing', qty: 1, desc: 'External network penetration test for internet-facing assets', freq: 'Once', delivery: 'Onsite', loc: 'Andheri', svc: 'Initial Test', format: 'PDF Report', billing: 'Short term (Ad-hoc)', tools: 'Nmap, Metasploit', start: '01 Feb 2026', end: '05 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+  { id: 2, taskId: 'WBS-02', dept: 'Vulnerability Assessment', name: 'Web Application Vulnerability Assessment', qty: 2, desc: 'Security review for web apps and APIs', freq: 'Once', delivery: 'Offsite', loc: '', svc: 'Initial + 1 Re-test', format: 'Excel + PDF', billing: 'Short term (Ad-hoc)', tools: 'OWASP ZAP, Burp Suite', start: '06 Feb 2026', end: '10 Feb 2026', durDays: 4, durHrs: 32, totalDays: 8, totalHrs: 64 },
+  { id: 3, taskId: 'WBS-03', dept: 'Cloud Security', name: 'AWS Cloud Security Assessment', qty: 1, desc: 'Cloud misconfiguration and control review', freq: 'Once', delivery: 'Hybrid', loc: '', svc: 'Initial Test', format: 'PDF Report', billing: 'Short term (Ad-hoc)', tools: 'AWS Config, Security Hub', start: '11 Feb 2026', end: '16 Feb 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
+  { id: 4, taskId: 'WBS-04', dept: 'Code & Application Security', name: 'Static Application Security Testing (SAST)', qty: 1, desc: 'Source code review and vulnerability analysis', freq: 'Once', delivery: 'Onsite', loc: 'Malad', svc: 'Initial + 2 Re-test', format: 'PDF + XLSX', billing: 'Short term (Ad-hoc)', tools: 'SonarQube, Semgrep', start: '17 Feb 2026', end: '21 Feb 2026', durDays: 5, durHrs: 40, totalDays: 5, totalHrs: 40 },
+  { id: 5, taskId: 'WBS-05', dept: 'Compliance & Audit', name: 'ISO 27001 Assessment', qty: 1, desc: 'Compliance gap assessment and audit checklist', freq: 'Once', delivery: 'Onsite', loc: 'Bandra', svc: 'Initial + 1 Re-test', format: 'PDF Report', billing: 'Short term (Ad-hoc)', tools: 'Checklist, Audit Toolkit', start: '22 Feb 2026', end: '01 Mar 2026', durDays: 8, durHrs: 64, totalDays: 8, totalHrs: 64 },
+  { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure', name: 'Network Security Assessment', qty: 1, desc: 'Infrastructure review and segmentation validation', freq: 'Once', delivery: 'Offsite', loc: '', svc: 'Initial + 3 Re-test', format: 'PDF Report', billing: 'Short term (Ad-hoc)', tools: 'Nmap, Wireshark', start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
 ];
 
 function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project: Project; onRaiseInvoice: (invoiceId: string) => void; onNavigateToHealthAlerts?: () => void }) {
@@ -1166,7 +1167,7 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
           <div className="space-y-2">
-            <InfoRow label="Project Type" value="Ad-Hoc" />
+            <InfoRow label="Project Type" value="Short term (Ad-hoc)" />
             <InfoRow label="Billing Model" value="70% Advance + 30% on Delivery" />
             <InfoRow label="Total Amount" value="---------" muted />
             <InfoRow label="Currency" value="---------" muted />
@@ -1456,11 +1457,11 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
           {client && (
             <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border pb-2">
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground" /> Client Information
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" /> Customer Information
               </h3>
               <div className="space-y-2 text-xs">
                 <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Client Name</span>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Customer Name</span>
                   <Link to="/customers/$clientId" params={{ clientId: client.id }} className="font-semibold text-primary hover:underline block truncate">
                     {client.name}
                   </Link>
@@ -3510,8 +3511,8 @@ function HealthTab({ project }: { project: Project }) {
 
   // Dhanshree: Escalations tab restored for WBS Escalation workflow
   const tabsList = isDhanshree
-    ? (["Issues", "Alerts", "Escalations", "Appreciation", "Client Engagement"] as const)
-    : (["Issues", "Alerts", "Escalations", "Appreciation", "Client Communication"] as const);
+    ? (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Engagement"] as const)
+    : (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Communication"] as const);
 
   return (
     <div className="space-y-4">
@@ -3535,17 +3536,17 @@ function HealthTab({ project }: { project: Project }) {
       {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} />}
       {healthTab === "Appreciation" && <HealthAppreciationPanel appreciations={projectAppreciations} project={project} />}
 
-      {isDhanshree && healthTab === "Client Engagement" && (
+      {isDhanshree && healthTab === "Customer Engagement" && (
         <DhClientEngagementTab project={project} clientName={client.name} />
       )}
 
-      {!isDhanshree && healthTab === "Client Communication" && canAccessClientComm && (
+      {!isDhanshree && healthTab === "Customer Communication" && canAccessClientComm && (
         <ClientCommTab project={project} />
       )}
 
-      {!isDhanshree && healthTab === "Client Communication" && !canAccessClientComm && (
+      {!isDhanshree && healthTab === "Customer Communication" && !canAccessClientComm && (
         <div className="rounded-lg border border-border bg-muted/20 p-8 text-center">
-          <p className="text-sm text-muted-foreground">You don't have access to Client Communication</p>
+          <p className="text-sm text-muted-foreground">You don't have access to Customer Communication</p>
         </div>
       )}
     </div>
@@ -3737,7 +3738,7 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
     const total = escalations.length;
     const open = escalations.filter(e => e.status === "Open").length;
     const inProgress = escalations.filter(e => e.status === "In Progress").length;
-    const waitingForClient = escalations.filter(e => e.status === "Waiting for Client").length;
+    const waitingForClient = escalations.filter(e => e.status === "Waiting for Customer").length;
     const resolved = escalations.filter(e => e.status === "Resolved" || e.status === "Closed").length;
     const critical = escalations.filter(e => e.severity === "Critical").length;
     return { total, open, inProgress, waitingForClient, resolved, critical };
@@ -3762,7 +3763,7 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
           <span className="text-lg font-extrabold text-blue-600 mt-1">{summary.inProgress}</span>
         </div>
         <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Waiting Client</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Waiting Customer</span>
           <span className="text-lg font-extrabold text-purple-700 mt-1">{summary.waitingForClient}</span>
         </div>
         <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
@@ -3794,7 +3795,7 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
           <tbody className="divide-y divide-border">
             {escalations.map((esc) => {
               const severityTone = esc.severity === "Critical" ? "bg-red-50 text-red-700 border-red-200" : esc.severity === "High" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-blue-50 text-blue-700 border-blue-200";
-              const statusTone = esc.status === "Resolved" || esc.status === "Closed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : esc.status === "Waiting for Client" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-orange-50 text-orange-700 border-orange-200";
+              const statusTone = esc.status === "Resolved" || esc.status === "Closed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : esc.status === "Waiting for Customer" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-orange-50 text-orange-700 border-orange-200";
               return (
                 <tr key={esc.id} className="hover:bg-accent/30">
                   <td className="px-3 py-2.5 font-mono font-bold text-gray-800">{esc.alertId || "ALT-GEN"}</td>
@@ -3845,7 +3846,7 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
                   <span className="font-semibold text-gray-800">{project.name}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Client</span>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Customer</span>
                   <span className="font-semibold text-gray-800">{clientInfo?.name || "—"}</span>
                 </div>
                 <div>
@@ -3935,11 +3936,11 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
                       selectedStatus === "Resolved" || selectedStatus === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
                         selectedStatus === "Open" ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100" :
                           selectedStatus === "In Progress" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-                            selectedStatus === "Waiting for Client" ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100" :
+                            selectedStatus === "Waiting for Customer" ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100" :
                               "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                     )}
                   >
-                    {(["Open", "Acknowledged", "In Progress", "Waiting for Client", "Resolved", "Closed"] as const).map((s) => (
+                    {(["Open", "Acknowledged", "In Progress", "Waiting for Customer", "Resolved", "Closed"] as const).map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
@@ -4035,7 +4036,7 @@ function HealthAppreciationPanel({ appreciations, project }: { appreciations: Dh
             </Field>
             <Field label="Badge">
               <select value={formData.badge} onChange={(e) => setFormData((s) => ({ ...s, badge: e.target.value as any }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {(["Star Performer", "Team Player", "Innovator", "Client Champion"] as const).map((b) => <option key={b} value={b}>{b}</option>)}
+                {(["Star Performer", "Team Player", "Innovator", "Customer Champion"] as const).map((b) => <option key={b} value={b}>{b}</option>)}
               </select>
             </Field>
             <Field label="Message">
@@ -4075,7 +4076,7 @@ function HealthAppreciationPanel({ appreciations, project }: { appreciations: Dh
 function DhClientEngagementTab({ project, clientName }: { project: Project; clientName: string }) {
   const store = useDhStore((s) => s);
   const { user } = useRoleContext();
-  const [commTab, setCommTab] = useState<"Interview Scheduling" | "Additional Client Requirement">("Interview Scheduling");
+  const [commTab, setCommTab] = useState<"Interview Scheduling" | "Additional Customer Requirement">("Interview Scheduling");
 
   const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
   const projectRequirements = store.requirements.filter((r) => r.projectId === project.id);
@@ -4084,7 +4085,7 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
   return (
     <div className="space-y-4">
       <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1 text-sm shadow-sm">
-        {(["Interview Scheduling", "Additional Client Requirement"] as const).map((t) => (
+        {(["Interview Scheduling", "Additional Customer Requirement"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setCommTab(t)}
@@ -4101,7 +4102,7 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
       {commTab === "Interview Scheduling" && (
         <InterviewSchedulingPanel interviews={projectInterviews} project={project} isEM={isEM} />
       )}
-      {commTab === "Additional Client Requirement" && (
+      {commTab === "Additional Customer Requirement" && (
         <AdditionalRequirementsPanel requirements={projectRequirements} project={project} clientName={clientName} />
       )}
     </div>
@@ -4237,10 +4238,10 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
 
       {/* Log Requirement Modal */}
       {showModal && (
-        <Modal title="Log Additional Client Requirement" onClose={() => setShowModal(false)} draggable>
+        <Modal title="Log Additional Customer Requirement" onClose={() => setShowModal(false)} draggable>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Client Name"><input value={client} onChange={(e) => setClient(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
+              <Field label="Customer Name"><input value={client} onChange={(e) => setClient(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
               <Field label="Project Name"><input value={projName} onChange={(e) => setProjName(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
             </div>
 
@@ -4300,7 +4301,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
               </Field>
             </div>
 
-            <Field label="Requested By"><input value={requestedBy} onChange={(e) => setRequestedBy(e.target.value)} placeholder="Client contact..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <Field label="Requested By"><input value={requestedBy} onChange={(e) => setRequestedBy(e.target.value)} placeholder="Customer contact..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
 
             <Field label="Attachment File Name (optional)">
               <div className="flex gap-2">
@@ -4393,7 +4394,7 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
             </div>
           </div>
 
-          <Info icon={Calendar} label="Client" value={req.clientName} />
+          <Info icon={Calendar} label="Customer" value={req.clientName} />
           <Info icon={Briefcase} label="Project" value={req.projectName} />
           <Info icon={Users} label="Requested By" value={req.requestedBy} />
           <Info icon={Calendar} label="Date" value={new Date(req.requestedDate).toLocaleDateString()} />
@@ -4507,7 +4508,7 @@ function ClientCommTab({ project }: { project: Project }) {
 
 function InterviewSchedulingPanel({ interviews, project, isEM }: { interviews: DhInterview[]; project: Project; isEM: boolean }) {
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ resourceId: project.teamIds[0] || "u5", client: "Client", date: new Date().toISOString().slice(0, 10), round: "Technical Round 1", interviewer: "Architect" });
+  const [formData, setFormData] = useState({ resourceId: project.teamIds[0] || "u5", client: "Customer", date: new Date().toISOString().slice(0, 10), round: "Technical Round 1", interviewer: "Architect" });
 
   const teamPool = useMemo(() => project.teamIds.map(getPerson), [project]);
 
@@ -4551,7 +4552,7 @@ function InterviewSchedulingPanel({ interviews, project, isEM }: { interviews: D
                 {teamPool.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </Field>
-            <Field label="Client"><input value={formData.client} onChange={(e) => setFormData((s) => ({ ...s, client: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <Field label="Customer"><input value={formData.client} onChange={(e) => setFormData((s) => ({ ...s, client: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
             <Field label="Date"><input type="date" value={formData.date} onChange={(e) => setFormData((s) => ({ ...s, date: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
             <Field label="Round"><input value={formData.round} onChange={(e) => setFormData((s) => ({ ...s, round: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
             <Field label="Interviewer"><input value={formData.interviewer} onChange={(e) => setFormData((s) => ({ ...s, interviewer: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
@@ -4830,20 +4831,20 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
           <div className="md:col-span-2 rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm">
             <div className="flex items-center gap-2 border-b border-border pb-2">
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
-              <h4 className="text-sm font-bold text-gray-800">Client Profile Information</h4>
+              <h4 className="text-sm font-bold text-gray-800">Customer Profile Information</h4>
             </div>
 
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Client ID</span>
+                <span className="text-muted-foreground">Customer ID</span>
                 <span className="font-semibold text-gray-800">{project.clientId}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Client Name</span>
+                <span className="text-muted-foreground">Customer Name</span>
                 <span className="font-semibold text-gray-800">{clientInfo?.name}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Client Type</span>
+                <span className="text-muted-foreground">Customer Type</span>
                 <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
                   clientInfo?.type === "NEW" ? "border-green-200/50 bg-green-50/50 text-green-700" : "border-blue-200/50 bg-blue-50/50 text-blue-700"
                 )}>
@@ -5209,7 +5210,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
                 <span className="font-semibold text-gray-800">{project.name}</span>
               </div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Client Name</span>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Customer Name</span>
                 <span className="font-semibold text-gray-800">{clientInfo?.name || "—"}</span>
               </div>
               <div>
@@ -5228,7 +5229,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
                   className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
                 >
                   <option value="Prerequisite Pending">Prerequisite Pending</option>
-                  <option value="Client Dependency">Client Dependency</option>
+                  <option value="Customer Dependency">Customer Dependency</option>
                   <option value="Billing Issue">Billing Issue</option>
                   <option value="Technical Blocker">Technical Blocker</option>
                   <option value="Resource Blocker">Resource Blocker</option>
@@ -5260,7 +5261,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
               <label className="font-bold text-gray-700">Subject <span className="text-destructive">*</span></label>
               <input
                 type="text"
-                placeholder="e.g. Client has not provided production access"
+                placeholder="e.g. Customer has not provided production access"
                 value={escSubject}
                 onChange={(e) => setEscSubject(e.target.value)}
                 className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"

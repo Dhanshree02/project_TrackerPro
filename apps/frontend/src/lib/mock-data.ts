@@ -930,7 +930,7 @@ export const issues: Issue[] = [
   {
     id: "i3", clientId: "c4", projectId: "p7",
     type: "scope_change", priority: "medium", status: "open",
-    description: "Client wants to add iOS driver app — not in original SOW.",
+    description: "Customer wants to add iOS driver app — not in original SOW.",
     raisedById: "u3", raisedByRole: "PM",
     assignedToId: "u2", assignedToRole: "EM",
     createdAt: "2026-05-07T11:30:00Z", updatedAt: "2026-05-08T09:00:00Z",
@@ -944,7 +944,7 @@ export const issues: Issue[] = [
   {
     id: "i4", clientId: "c1", projectId: "p2",
     type: "client_issue", priority: "medium", status: "resolved",
-    description: "Client security review flagged 3 medium issues in mobile auth flow.",
+    description: "Customer security review flagged 3 medium issues in mobile auth flow.",
     raisedById: "u5", raisedByRole: "TL",
     assignedToId: "u3", assignedToRole: "PM",
     createdAt: "2026-04-20T08:00:00Z", updatedAt: "2026-04-29T17:00:00Z",
@@ -1021,7 +1021,7 @@ export const timesheets: Timesheet[] = [
     id: "ts6", userId: "u2", userRole: "EM", weekStart: "2026-05-04",
     status: "submitted", totalHours: 41, submittedAt: "2026-05-09T20:30:00Z",
     entries: [
-      { taskId: "p3-t5", projectId: "p3", hours: [4, 4, 5, 4, 4, 0, 0], note: "Client steerco for vendor escalation" },
+      { taskId: "p3-t5", projectId: "p3", hours: [4, 4, 5, 4, 4, 0, 0], note: "Customer steerco for vendor escalation" },
       { taskId: "p7-t5", projectId: "p7", hours: [3, 3, 3, 3, 3, 0, 0] },
       { taskId: "p9-t5", projectId: "p9", hours: [1, 1, 1, 1, 1, 0, 0] },
     ],
@@ -1041,7 +1041,7 @@ export const issueTypeLabels: Record<IssueType, string> = {
   resource_shortage: "Resource Shortage",
   delay: "Delay",
   escalation: "Escalation",
-  client_issue: "Client Issue",
+  client_issue: "Customer Issue",
   internal_blocker: "Internal Blocker",
 };
 
@@ -1111,7 +1111,7 @@ export interface WbsRequest {
 
 export const personWorkload: PersonWorkload[] = [
   { personId: "u1", activeProjects: 4, utilization: 85, availableFrom: "2026-06-15", skills: ["BFSI", "Programme", "Cloud"], onBench: false },
-  { personId: "u2", activeProjects: 3, utilization: 70, availableFrom: "2026-05-25", skills: ["Healthcare", "Retail", "Client mgmt"], onBench: false },
+  { personId: "u2", activeProjects: 3, utilization: 70, availableFrom: "2026-05-25", skills: ["Healthcare", "Retail", "Customer mgmt"], onBench: false },
   { personId: "u3", activeProjects: 4, utilization: 92, availableFrom: "2026-07-01", skills: ["Java", "Kafka", "Banking"], onBench: false },
   { personId: "u4", activeProjects: 3, utilization: 78, availableFrom: "2026-06-05", skills: ["Pharma", "Data", "Analytics"], onBench: false },
 ];

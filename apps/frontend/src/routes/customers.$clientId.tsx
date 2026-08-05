@@ -33,10 +33,10 @@ export const Route = createFileRoute("/customers/$clientId")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData?.client.name ?? "Client"} — Customers — Pulse PMO` },
+      { title: `${loaderData?.client.name ?? "Customer"} — Customers — Pulse PMO` },
       {
         name: "description",
-        content: `360° client view and project history for ${loaderData?.client.name ?? "client"}.`,
+        content: `360° customer view and project history for ${loaderData?.client.name ?? "customer"}.`,
       },
     ],
   }),
@@ -263,16 +263,16 @@ function CustomerDetailPage() {
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5" /> Client Information
+                <Building2 className="h-3.5 w-3.5" /> Customer Information
               </h2>
             </div>
             <dl className="divide-y divide-border">
               {[
-                { label: "Client ID",           value: fmtClientId(client.id), mono: true },
-                { label: "Client Name",          value: client.name },
+                { label: "Customer ID",           value: fmtClientId(client.id), mono: true },
+                { label: "Customer Name",          value: client.name },
                 { label: "Industry",             value: client.industry },
-                { label: "Client Type",          value: client.clientType === "NEW" ? "New Client" : "Existing Client" },
-                { label: "Client Since",         value: clientSinceDate },
+                { label: "Customer Type",          value: client.clientType === "NEW" ? "New Customer" : "Existing Customer" },
+                { label: "Customer Since",         value: clientSinceDate },
                 { label: "First Project",        value: firstProjectName },
                 { label: "First Project ID",     value: firstProjectId, mono: true },
               ].map(({ label, value, mono }) => (

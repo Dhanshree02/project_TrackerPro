@@ -75,7 +75,7 @@ export type AlertKind =
   | "Approval"
   | "Dependency";
 
-export type AlertStatus = "Open" | "In Progress" | "Resolved" | "Closed" | "Acknowledged" | "Waiting for Client";
+export type AlertStatus = "Open" | "In Progress" | "Resolved" | "Closed" | "Acknowledged" | "Waiting for Customer";
 
 export interface DhAlert {
   id: string;
@@ -98,7 +98,7 @@ export interface DhAlert {
   | "Technical Issue"
   | "Dependency Blocker"
   | "Escalation"
-  | "Client Concern"
+  | "Customer Concern"
   | "Budget Concern"
   | "Schedule Delay"
   | "Quality Concern"
@@ -145,7 +145,7 @@ export interface DhCentralApproval {
   | "SPM Assignment Approval"
   | "Project Ready To Start Approval"
   | "Resource Allocation Approval"
-  | "Client Requirement Approval"
+  | "Customer Requirement Approval"
   | "Timeline Extension Approval"
   | "Leadership Change Approval";
   requestedBy: string;
@@ -217,7 +217,7 @@ export interface DhAppreciation {
   toUserId: string;
   toName: string;
   fromName: string;
-  badge: "Star Performer" | "Team Player" | "Innovator" | "Client Champion";
+  badge: "Star Performer" | "Team Player" | "Innovator" | "Customer Champion";
   note: string;
   at: string;
 }
@@ -264,7 +264,7 @@ export interface DhAdditionalRequirement {
 }
 
 export type PrereqStatus = "Validation Pending" | "Validated";
-export type PrereqCollectionStatus = "Initiated" | "Waiting For Client Response" | "Received";
+export type PrereqCollectionStatus = "Initiated" | "Waiting For Customer Response" | "Received";
 
 export interface DhServicePrereq {
   serviceId: string;
@@ -560,7 +560,7 @@ const state: DhState = {
     {
       id: "ALT-ESC-001",
       alertId: "ESC-001",
-      title: "Client production environment access pending",
+      title: "Customer production environment access pending",
       kind: "Escalation",
       projectId: "p1",
       raisedByName: "Dhanshree",
@@ -571,7 +571,7 @@ const state: DhState = {
       comments: [
         { id: "cm-esc1", authorId: "u14", authorName: "Dhanshree", text: "We need the credentials immediately to begin the WBS verification.", at: new Date(Date.now() - 86400000 * 2).toISOString() }
       ],
-      description: "Prerequisites for testing cannot continue as the client has not shared the OAuth production credentials.",
+      description: "Prerequisites for testing cannot continue as the customer has not shared the OAuth production credentials.",
       alertType: "Escalation",
       owner: "Dhanshree",
       resolutionOwner: "Vikram Shah",
@@ -717,7 +717,7 @@ const state: DhState = {
       interviewDate: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
       interviewTime: "10:00 AM",
       interviewRound: "Technical Round 1",
-      interviewer: "Client Architect",
+      interviewer: "Customer Architect",
       notes: "Backend engineer for payments service",
       status: "Pending",
       history: [],
@@ -727,7 +727,7 @@ const state: DhState = {
   prereqs: {
     p1: { projectId: "p1", validation: "Validated", collection: "Received", assignedPmIds: ["u3"], assignedSpmIds: ["u1"], isProjectReadyToStart: true, acknowledgedByPmIds: ["u3"], acknowledgedBySpmIds: ["u1"], services: getSeededServices(true), auditTrail: [] },
     p2: { projectId: "p2", validation: "Validated", collection: "Received", assignedPmIds: ["u3"], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
-    p3: { projectId: "p3", validation: "Validation Pending", collection: "Waiting For Client Response", assignedPmIds: [], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
+    p3: { projectId: "p3", validation: "Validation Pending", collection: "Waiting For Customer Response", assignedPmIds: [], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
     p4: { projectId: "p4", validation: "Validation Pending", collection: "Initiated", assignedPmIds: [], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
     p5: { projectId: "p5", validation: "Validated", collection: "Received", assignedPmIds: ["u3"], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
     p6: { projectId: "p6", validation: "Validated", collection: "Received", assignedPmIds: ["u4"], assignedSpmIds: ["u1"], isProjectReadyToStart: true, acknowledgedByPmIds: ["u4"], acknowledgedBySpmIds: ["u1"], services: getSeededServices(true), auditTrail: [] },
@@ -1029,8 +1029,8 @@ const state: DhState = {
     },
     {
       id: "notif3",
-      title: "Arjun Singh selected for Northwind Client Interview",
-      type: "Client Interview Selected",
+      title: "Arjun Singh selected for Northwind Customer Interview",
+      type: "Customer Interview Selected",
       relatedProject: "Core Banking Modernization",
       raisedBy: "Riya Kapoor",
       createdAt: new Date(Date.now() - 86400000).toISOString(),
@@ -1813,11 +1813,11 @@ export const dhStore = {
       createdAt: req.createdAt,
       comments: [],
       description: req.description,
-      alertType: "Client Concern",
+      alertType: "Customer Concern",
       owner: req.requestedBy,
       serviceName: req.scopeCancellationService,
       history: [
-        { status: "Open", at: req.createdAt, updatedBy: req.requestedBy, details: `Additional client requirement logged for ${req.projectName}` }
+        { status: "Open", at: req.createdAt, updatedBy: req.requestedBy, details: `Additional customer requirement logged for ${req.projectName}` }
       ],
     });
     emit();
@@ -2001,7 +2001,7 @@ export const dhStore = {
     } else if (validation === "Validation Pending" && collection === "Received") {
       newStatus = "Validation";
       shouldUpdate = pmoStage.currentStatus !== newStatus;
-    } else if (collection === "Initiated" || collection === "Waiting For Client Response") {
+    } else if (collection === "Initiated" || collection === "Waiting For Customer Response") {
       newStatus = "Prerequisite Collection";
       shouldUpdate = pmoStage.currentStatus !== newStatus;
     } else {

@@ -247,7 +247,7 @@ function WbsAllocationPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search WBS, project, client…"
+            placeholder="Search WBS, project, customer…"
             className="form-input h-9 w-64 pl-8"
           />
         </div>

@@ -90,7 +90,7 @@ const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
 };
 
 const BILLING_MODELS: Record<string, string[]> = {
-  "Ad-Hoc": ["100% Advance", "70% Advance + 30% on Delivery", "50% Advance + 50% on Delivery", "Custom"],
+  "Short term (Ad-hoc)": ["100% Advance", "70% Advance + 30% on Delivery", "50% Advance + 50% on Delivery", "Custom"],
   "Long Term": ["Monthly Arrears", "Monthly Advance", "Quarterly Arrears", "Quarterly Advance"],
 };
 
@@ -362,7 +362,7 @@ function WbsNewProjectPage() {
         if (DEPT_GROUPS[r.dept] === "Resource") {
           updated.serviceModel = "NA";
         }
-        if (snap.projectType === "Ad-Hoc") {
+        if (snap.projectType === "Short term (Ad-hoc)") {
           updated.frequency = "Once";
         }
         return updated;
@@ -437,7 +437,7 @@ function WbsNewProjectPage() {
           if (DEPT_GROUPS[dept] === "Resource" && updatedExisting.serviceModel !== "NA") {
             updatedExisting.serviceModel = "NA";
           }
-          if (projectType === "Ad-Hoc" && updatedExisting.frequency !== "Once") {
+          if (projectType === "Short term (Ad-hoc)" && updatedExisting.frequency !== "Once") {
             updatedExisting.frequency = "Once";
             updatedExisting.endDate = computeEndDate(updatedExisting);
           }
@@ -447,7 +447,7 @@ function WbsNewProjectPage() {
           const isResource = DEPT_GROUPS[dept] === "Resource";
           const newRow = {
             rowId: svcId, taskId: `WBS-${String(rowNum + 1).padStart(2, "0")}`,
-            dept, name: svc.name, qty: 1, description: "", resourceLevel: "", frequency: projectType === "Ad-Hoc" ? "Once" : "",
+            dept, name: svc.name, qty: 1, description: "", resourceLevel: "", frequency: projectType === "Short term (Ad-hoc)" ? "Once" : "",
             location: "", locationText: "", serviceModel: isResource ? "NA" : "",
             deliveryModel: "Remote", billingModel: "",
             deliveryFormat: "", tools: svc.tool,
@@ -757,7 +757,7 @@ function WbsNewProjectPage() {
 
   function handleSaveDraft() {
     if (!projectName.trim()) { toast.error("Project Name is required"); return; }
-    if (!selectedClientId) { toast.error("Please select a client"); return; }
+    if (!selectedClientId) { toast.error("Please select a customer"); return; }
     const clientName = clients.find((c) => c.id === selectedClientId)?.name ?? selectedClientId;
     dhStore.saveDraft({
       projectName,
@@ -813,7 +813,7 @@ function WbsNewProjectPage() {
 
   function handleAssignWbs() {
     if (!projectName.trim()) { toast.error("Project Name is required"); return; }
-    if (!selectedClientId) { toast.error("Please select a client"); return; }
+    if (!selectedClientId) { toast.error("Please select a customer"); return; }
     if (serviceRows.length === 0) { toast.error("Please add at least one service"); return; }
     if (billingModel === "Custom") {
       const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
@@ -1116,7 +1116,7 @@ function WbsNewProjectPage() {
                     <input
                       type="text"
                       value={clientSearch}
-                      placeholder="Search and select a client…"
+                      placeholder="Search and select a customer…"
                       onFocus={() => setClientDropOpen(true)}
                       onChange={(e) => { setClientSearch(e.target.value); setClientDropOpen(true); }}
                       onBlur={() => setTimeout(() => {
@@ -1137,7 +1137,7 @@ function WbsNewProjectPage() {
                           setEngagementManager("");
                         }}
                         style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", cursor: "pointer", fontSize: 14, lineHeight: 1 }}
-                        title="Clear client"
+                        title="Clear customer"
                       >×</span>
                     )}
                     {!selectedClientId && (
@@ -1146,7 +1146,7 @@ function WbsNewProjectPage() {
                     {clientDropOpen && (
                       <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #d1d5db", borderRadius: 6, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", zIndex: 300, maxHeight: 240, overflowY: "auto" }}>
                         {filteredClients.length === 0 ? (
-                          <div style={{ padding: "10px 12px", fontSize: 12, color: "#6b7280" }}>No clients match</div>
+                          <div style={{ padding: "10px 12px", fontSize: 12, color: "#6b7280" }}>No customers match</div>
                         ) : filteredClients.map((c) => (
                           <div
                             key={c.id}
@@ -1254,7 +1254,7 @@ function WbsNewProjectPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13, flexShrink: 0, alignSelf: "center" }}>
               <div style={{ display: "flex", gap: 20 }}>
                 <div>
-                  <div style={{ color: "#6b7280", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Client ID</div>
+                  <div style={{ color: "#6b7280", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Customer ID</div>
                   <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
                     {selectedClient ? (selectedClient.id.startsWith("C") ? selectedClient.id : "C" + String(clients.findIndex((c) => c.id === selectedClientId) + 1).padStart(3, "0")) : "—"}
                   </div>
@@ -1327,7 +1327,7 @@ function WbsNewProjectPage() {
                   setProjectType(val);
                   setBillingModel("");
                   setPaymentTerms("");
-                  if (val === "Ad-Hoc") {
+                  if (val === "Short term (Ad-hoc)") {
                     setServiceRows((prev) =>
                       prev.map((r) => {
                         const updated = { ...r, frequency: "Once" };
@@ -1347,7 +1347,7 @@ function WbsNewProjectPage() {
                 ) : (
                   <>
                     <option value="">Select Project Type</option>
-                    <option value="Ad-Hoc">Ad-Hoc</option>
+                    <option value="Short term (Ad-hoc)">Short term (Ad-hoc)</option>
                     <option value="Long Term">Long Term</option>
                   </>
                 )}
@@ -1444,7 +1444,7 @@ function WbsNewProjectPage() {
                       </td>
                       <td style={tdStyle}><input type="number" value={r.qty} min={1} onChange={(e) => updateRow(r.rowId, "qty", Number(e.target.value))} style={{ ...tblInputStyle, minWidth: 60 }} /></td>
                       <td style={tdStyle}>
-                        {projectType === "Ad-Hoc" ? (
+                        {projectType === "Short term (Ad-hoc)" ? (
                           <input
                             type="text"
                             value="Once"

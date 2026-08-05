@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { projects, clients, invoices } from "@/lib/mock-data";
 import { ProgressBar } from "@/components/pills";
+import { Kpi } from "@/components/kpi-card";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dh-reports")({
@@ -55,16 +56,7 @@ function DhReportsPage() {
   );
 }
 
-function Kpi({ label, value, sub, tone = "default" }: { label: string; value: string | number; sub?: string; tone?: "default" | "success" | "warn" | "danger" }) {
-  const toneCls = { default: "text-foreground", success: "text-success", warn: "text-warning-foreground", danger: "text-destructive" }[tone];
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={cn("mt-2 text-2xl font-semibold tabular-nums", toneCls)}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
-    </div>
-  );
-}
+
 
 // ---------- Sales ----------
 function SalesReports() {
@@ -92,7 +84,7 @@ function SalesReports() {
         <Kpi label="Pipeline value" value={`₹${(pipeline / 1000000).toFixed(2)}M`} sub="Open opportunity value" />
         <Kpi label="Booked revenue" value={`₹${(totalRevenue / 1000000).toFixed(2)}M`} sub="Total invoiced" tone="success" />
         <Kpi label="Collected" value={`₹${(paid / 1000000).toFixed(2)}M`} tone="success" sub={`${Math.round((paid / totalRevenue) * 100)}% of invoiced`} />
-        <Kpi label="Active clients" value={clients.length} sub="Across all industries" />
+        <Kpi label="Active customers" value={clients.length} sub="Across all industries" />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -117,7 +109,7 @@ function SalesReports() {
           <h3 className="mb-3 text-sm font-semibold">Revenue by client</h3>
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr><th className="py-1.5 font-medium">Client</th><th className="py-1.5 font-medium">Projects</th><th className="py-1.5 text-right font-medium">Revenue</th></tr>
+              <tr><th className="py-1.5 font-medium">Customer</th><th className="py-1.5 font-medium">Projects</th><th className="py-1.5 text-right font-medium">Revenue</th></tr>
             </thead>
             <tbody className="divide-y divide-border">
               {byClient.map((r) => (
@@ -158,7 +150,7 @@ function WbsTracker() {
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">Project</th>
-              <th className="px-3 py-2 font-medium">Client</th>
+              <th className="px-3 py-2 font-medium">Customer</th>
               <th className="px-3 py-2 font-medium">Tasks</th>
               <th className="px-3 py-2 font-medium">Milestone</th>
               <th className="px-3 py-2 font-medium">Completion</th>
@@ -231,7 +223,7 @@ function POTracker() {
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">PO Number</th>
-              <th className="px-3 py-2 font-medium">Client</th>
+              <th className="px-3 py-2 font-medium">Customer</th>
               <th className="px-3 py-2 font-medium">Project</th>
               <th className="px-3 py-2 font-medium">Amount</th>
               <th className="px-3 py-2 font-medium">Status</th>
@@ -294,7 +286,7 @@ function InvoiceTracker() {
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">Invoice</th>
-              <th className="px-3 py-2 font-medium">Client</th>
+              <th className="px-3 py-2 font-medium">Customer</th>
               <th className="px-3 py-2 font-medium">Project</th>
               <th className="px-3 py-2 font-medium">Amount</th>
               <th className="px-3 py-2 font-medium">Paid</th>

@@ -73,14 +73,14 @@ export type DhTaskStatus =
   | "Ongoing"
   | "Completed"
   | "On Hold Internally"
-  | "On Hold Client"
+  | "On Hold Customer"
   | "After Release";
 
 export const DH_TASK_STATUSES: DhTaskStatus[] = [
   "Ongoing",
   "Completed",
   "On Hold Internally",
-  "On Hold Client",
+  "On Hold Customer",
   "After Release",
 ];
 

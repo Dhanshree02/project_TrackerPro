@@ -8,6 +8,7 @@ import {
   benchResourceIds, getPerson, issueTypeLabels, projectStatusLabels,
 } from "@/lib/mock-data";
 import { HealthPill, StatusPill, PriorityPill, IssueStatusPill, ProgressBar } from "@/components/pills";
+import { KPI } from "@/components/kpi-card";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/reports")({
@@ -24,7 +25,7 @@ type Tab = "delivery" | "client" | "resource" | "escalation" | "health" | "reven
 
 const baseTabs: { id: Tab; label: string; icon: typeof BarChart3 }[] = [
   { id: "delivery", label: "Delivery", icon: Briefcase },
-  { id: "client", label: "Client", icon: Users },
+  { id: "client", label: "Customer", icon: Users },
   { id: "resource", label: "Resource", icon: Users },
   { id: "escalation", label: "Escalation", icon: AlertTriangle },
   { id: "health", label: "Project Health", icon: Activity },
@@ -41,7 +42,7 @@ function ReportsPage() {
   const tabs = isBO ? [...baseTabs, ...execTabs] : baseTabs;
 
   return (
-    <AppShell title="Reports" subtitle="Department-wide reporting · delivery, client, resource and governance">
+    <AppShell title="Reports" subtitle="Department-wide reporting · delivery, customer, resource and governance">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-xs">
           {tabs.map((t) => (
@@ -85,15 +86,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function KPI({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums">{value}</div>
-      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
-    </div>
-  );
-}
+
 
 function DeliveryReport() {
   const onTime = projects.filter((p) => p.health === "green" && p.status !== "on_hold").length;
@@ -165,15 +158,15 @@ function ClientReport() {
   return (
     <div className="grid gap-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KPI label="Active clients" value={clients.length} />
+        <KPI label="Active customers" value={clients.length} />
         <KPI label="Active projects" value={projects.filter((p) => p.status === "ongoing").length} />
         <KPI label="Revenue (paid)" value={`$${(totalRevenue / 1000).toFixed(0)}K`} />
         <KPI label="Overdue invoices" value={`$${(rows.reduce((s, r) => s + r.overdue, 0) / 1000).toFixed(0)}K`} />
       </div>
-      <Section title="Client portfolio">
+      <Section title="Customer portfolio">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <tr><th className="py-2">Client</th><th>Projects</th><th>Active</th><th>Critical</th><th>Paid</th><th>Overdue</th></tr>
+            <tr><th className="py-2">Customer</th><th>Projects</th><th>Active</th><th>Critical</th><th>Paid</th><th>Overdue</th></tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => (
@@ -313,7 +306,7 @@ function HealthReport() {
       <Section title="Project health detail">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <tr><th className="py-2">Project</th><th>Client</th><th>Owner</th><th>Health</th><th>Progress</th><th>Spend</th></tr>
+            <tr><th className="py-2">Project</th><th>Customer</th><th>Owner</th><th>Health</th><th>Progress</th><th>Spend</th></tr>
           </thead>
           <tbody className="divide-y divide-border">
             {projects.map((p) => {
@@ -364,7 +357,7 @@ function RevenueReport() {
       <Section title="Revenue by client">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <tr><th className="py-2">Client</th><th>Paid</th><th>Raised</th><th>Pending</th><th>Overdue</th><th>Total</th></tr>
+            <tr><th className="py-2">Customer</th><th>Paid</th><th>Raised</th><th>Pending</th><th>Overdue</th><th>Total</th></tr>
           </thead>
           <tbody className="divide-y divide-border">
             {byClient.map((r) => (
@@ -410,7 +403,7 @@ function ProfitabilityReport() {
       <Section title="Project profitability">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <tr><th className="py-2">Project</th><th>Client</th><th>Revenue</th><th>Spend</th><th>Margin</th><th>Margin %</th><th>Burn</th></tr>
+            <tr><th className="py-2">Project</th><th>Customer</th><th>Revenue</th><th>Spend</th><th>Margin</th><th>Margin %</th><th>Burn</th></tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => (
