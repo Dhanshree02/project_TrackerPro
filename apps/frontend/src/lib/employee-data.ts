@@ -179,7 +179,7 @@ export const employees: Employee[] = Array.from({ length: 48 }, (_, i) => {
   const category = pick(categories);
   const assetId = pick([
     `TK-${1000 + Math.floor(r() * 9000)}`,
-    `Client-${1000 + Math.floor(r() * 9000)}`,
+    `Customer-${1000 + Math.floor(r() * 9000)}`,
     "None",
     "None"
   ]);

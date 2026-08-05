@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { getPerson } from "@/lib/mock-data";
 import { Avatar } from "@/components/pills";
+import { FormRow } from "@/components/form-row";
 import { cn } from "@/lib/utils";
 import { useDhStore, dhStore, type RequirementStatus, type DhPriority, type DhComment, type DhAdditionalRequirement } from "@/lib/dh-store";
 
@@ -61,7 +62,7 @@ function AdditionalRequirementsPage() {
   const selected = requirements.find((req) => req.id === selectedId) ?? filtered[0] ?? null;
 
   return (
-    <AppShell title="Client Engagement" subtitle="Additional Client Requirements">
+    <AppShell title="Customer Engagement" subtitle="Additional Customer Requirements">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -209,7 +210,7 @@ function RequirementDetail({
         <p className="mt-1 text-sm text-muted-foreground">{requirement.description}</p>
         <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
           <Field label="Requirement ID" value={requirement.requirementId} />
-          <Field label="Client" value={requirement.clientName} />
+          <Field label="Customer" value={requirement.clientName} />
           <Field label="Project" value={requirement.projectName} />
           <Field label="Requested By" value={requirement.requestedBy} />
           <Field label="Requested Date" value={new Date(requirement.requestedDate).toLocaleDateString()} />
@@ -326,7 +327,7 @@ function NewRequirementDialog({
           <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">×</button>
         </header>
         <div className="grid gap-3 p-5 text-sm">
-          <FormRow label="Client Name">
+          <FormRow label="Customer Name">
             <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} className="form-input" />
           </FormRow>
           <FormRow label="Project Name">
@@ -349,7 +350,7 @@ function NewRequirementDialog({
             </FormRow>
           </div>
           <FormRow label="Requested By">
-            <input type="text" value={requestedBy} onChange={(e) => setRequestedBy(e.target.value)} placeholder="Client/PM name" className="form-input" />
+            <input type="text" value={requestedBy} onChange={(e) => setRequestedBy(e.target.value)} placeholder="Customer/PM name" className="form-input" />
           </FormRow>
         </div>
         <footer className="flex items-center justify-end gap-2 border-t border-border bg-muted/30 px-5 py-3">
@@ -380,11 +381,4 @@ function NewRequirementDialog({
   );
 }
 
-function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
-      {children}
-    </label>
-  );
-}
+

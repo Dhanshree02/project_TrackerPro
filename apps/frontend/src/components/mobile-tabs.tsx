@@ -20,7 +20,7 @@ type Item = {
 
 const baseItems: Item[] = [
   { to: "/", label: "Home", icon: LayoutDashboard, exact: true },
-  { to: "/clients", label: "Clients", icon: Briefcase },
+  { to: "/customers", label: "Customers", icon: Building2 },
 ];
 const tail: Item[] = [
   { to: "/health", label: "Health", icon: Activity },
@@ -37,7 +37,7 @@ export function MobileTabs() {
       { to: "/", label: "Home", icon: LayoutDashboard, exact: true },
       { to: "/action-centre", label: "Action", icon: ListChecks },
       { to: "/projects", label: "Projects", icon: FolderKanban },
-      { to: "/customers", label: "Clients", icon: Building2 },
+      { to: "/customers", label: "Customers", icon: Building2 },
       {
         label: "Resources",
         icon: Users,
@@ -52,7 +52,7 @@ export function MobileTabs() {
       ? [
         { to: "/", label: "Home", icon: LayoutDashboard, exact: true },
         { to: "/portfolio", label: "Portfolio", icon: Layers },
-        { to: "/clients", label: "Clients", icon: Briefcase },
+        { to: "/customers", label: "Customers", icon: Building2 },
         { to: "/health", label: "Health", icon: Activity },
         { to: "/reports", label: "Reports", icon: BarChart3 },
       ]

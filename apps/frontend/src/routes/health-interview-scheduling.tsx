@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { getPerson, people } from "@/lib/mock-data";
 import { Avatar, PriorityPill } from "@/components/pills";
+import { FormRow } from "@/components/form-row";
 import { cn } from "@/lib/utils";
 import { useDhStore, dhStore, type InterviewStatus, type DhInterview } from "@/lib/dh-store";
 
@@ -47,7 +48,7 @@ function InterviewSchedulingPage() {
   const selected = interviews.find((iv) => iv.id === selectedId) ?? filtered[0] ?? null;
 
   return (
-    <AppShell title="Client Engagement" subtitle="Interview Scheduling">
+    <AppShell title="Customer Engagement" subtitle="Interview Scheduling">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -189,7 +190,7 @@ function InterviewDetail({
         <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
           <Field label="Resource" value={resource.name} />
           <Field label="Employee ID" value={interview.employeeId} />
-          <Field label="Client" value={interview.clientName} />
+          <Field label="Customer" value={interview.clientName} />
           <Field label="Project" value={interview.projectName} />
           <Field label="Interview Date" value={new Date(interview.interviewDate).toLocaleDateString()} />
           <Field label="Time" value={interview.interviewTime} />
@@ -305,7 +306,7 @@ function NewInterviewDialog({
               <input type="text" value={resourceId} readOnly className="form-input bg-muted/50" placeholder="Auto-filled" />
             </FormRow>
           )}
-          <FormRow label="Client Name">
+          <FormRow label="Customer Name">
             <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} className="form-input" />
           </FormRow>
           <FormRow label="Project Name">
@@ -360,11 +361,4 @@ function NewInterviewDialog({
   );
 }
 
-function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
-      {children}
-    </label>
-  );
-}
+

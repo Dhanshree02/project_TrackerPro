@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WbsPrerequisiteNewRouteImport } from './routes/wbs-prerequisite-new'
 import { Route as WbsAllocationRouteImport } from './routes/wbs-allocation'
 import { Route as TimesheetRouteImport } from './routes/timesheet'
 import { Route as ResourcesRouteImport } from './routes/resources'
@@ -35,20 +34,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as MyTeamIndexRouteImport } from './routes/my-team.index'
 import { Route as DhEmployeeDirectoryIndexRouteImport } from './routes/dh-employee-directory.index'
-import { Route as ClientsIndexRouteImport } from './routes/clients.index'
+import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 import { Route as MyTeamTimesheetsRouteImport } from './routes/my-team.timesheets'
 import { Route as DhEmployeeDirectoryIdRouteImport } from './routes/dh-employee-directory.$id'
 import { Route as CustomersClientIdRouteImport } from './routes/customers.$clientId'
-import { Route as CustomerDetailClientIdRouteImport } from './routes/customer-detail.$clientId'
-import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 
-const WbsPrerequisiteNewRoute = WbsPrerequisiteNewRouteImport.update({
-  id: '/wbs-prerequisite-new',
-  path: '/wbs-prerequisite-new',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WbsAllocationRoute = WbsAllocationRouteImport.update({
   id: '/wbs-allocation',
   path: '/wbs-allocation',
@@ -177,10 +169,10 @@ const DhEmployeeDirectoryIndexRoute =
     path: '/',
     getParentRoute: () => DhEmployeeDirectoryRoute,
   } as any)
-const ClientsIndexRoute = ClientsIndexRouteImport.update({
-  id: '/clients/',
-  path: '/clients/',
-  getParentRoute: () => rootRouteImport,
+const CustomersIndexRoute = CustomersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CustomersRoute,
 } as any)
 const ProjectsNewRoute = ProjectsNewRouteImport.update({
   id: '/projects/new',
@@ -207,16 +199,6 @@ const CustomersClientIdRoute = CustomersClientIdRouteImport.update({
   path: '/$clientId',
   getParentRoute: () => CustomersRoute,
 } as any)
-const CustomerDetailClientIdRoute = CustomerDetailClientIdRouteImport.update({
-  id: '/customer-detail/$clientId',
-  path: '/customer-detail/$clientId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
-  id: '/clients/$clientId',
-  path: '/clients/$clientId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -241,15 +223,12 @@ export interface FileRoutesByFullPath {
   '/resources': typeof ResourcesRoute
   '/timesheet': typeof TimesheetRoute
   '/wbs-allocation': typeof WbsAllocationRoute
-  '/wbs-prerequisite-new': typeof WbsPrerequisiteNewRoute
-  '/clients/$clientId': typeof ClientsClientIdRoute
-  '/customer-detail/$clientId': typeof CustomerDetailClientIdRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
   '/dh-employee-directory/$id': typeof DhEmployeeDirectoryIdRoute
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
-  '/clients/': typeof ClientsIndexRoute
+  '/customers/': typeof CustomersIndexRoute
   '/dh-employee-directory/': typeof DhEmployeeDirectoryIndexRoute
   '/my-team/': typeof MyTeamIndexRoute
   '/projects/': typeof ProjectsIndexRoute
@@ -259,7 +238,6 @@ export interface FileRoutesByTo {
   '/action-centre': typeof ActionCentreRoute
   '/allocation': typeof AllocationRoute
   '/approvals': typeof ApprovalsRoute
-  '/customers': typeof CustomersRouteWithChildren
   '/dh-exit-summary': typeof DhExitSummaryRoute
   '/dh-org-tree': typeof DhOrgTreeRoute
   '/dh-reports': typeof DhReportsRoute
@@ -275,15 +253,12 @@ export interface FileRoutesByTo {
   '/resources': typeof ResourcesRoute
   '/timesheet': typeof TimesheetRoute
   '/wbs-allocation': typeof WbsAllocationRoute
-  '/wbs-prerequisite-new': typeof WbsPrerequisiteNewRoute
-  '/clients/$clientId': typeof ClientsClientIdRoute
-  '/customer-detail/$clientId': typeof CustomerDetailClientIdRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
   '/dh-employee-directory/$id': typeof DhEmployeeDirectoryIdRoute
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
-  '/clients': typeof ClientsIndexRoute
+  '/customers': typeof CustomersIndexRoute
   '/dh-employee-directory': typeof DhEmployeeDirectoryIndexRoute
   '/my-team': typeof MyTeamIndexRoute
   '/projects': typeof ProjectsIndexRoute
@@ -312,15 +287,12 @@ export interface FileRoutesById {
   '/resources': typeof ResourcesRoute
   '/timesheet': typeof TimesheetRoute
   '/wbs-allocation': typeof WbsAllocationRoute
-  '/wbs-prerequisite-new': typeof WbsPrerequisiteNewRoute
-  '/clients/$clientId': typeof ClientsClientIdRoute
-  '/customer-detail/$clientId': typeof CustomerDetailClientIdRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
   '/dh-employee-directory/$id': typeof DhEmployeeDirectoryIdRoute
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
-  '/clients/': typeof ClientsIndexRoute
+  '/customers/': typeof CustomersIndexRoute
   '/dh-employee-directory/': typeof DhEmployeeDirectoryIndexRoute
   '/my-team/': typeof MyTeamIndexRoute
   '/projects/': typeof ProjectsIndexRoute
@@ -350,15 +322,12 @@ export interface FileRouteTypes {
     | '/resources'
     | '/timesheet'
     | '/wbs-allocation'
-    | '/wbs-prerequisite-new'
-    | '/clients/$clientId'
-    | '/customer-detail/$clientId'
     | '/customers/$clientId'
     | '/dh-employee-directory/$id'
     | '/my-team/timesheets'
     | '/projects/$projectId'
     | '/projects/new'
-    | '/clients/'
+    | '/customers/'
     | '/dh-employee-directory/'
     | '/my-team/'
     | '/projects/'
@@ -368,7 +337,6 @@ export interface FileRouteTypes {
     | '/action-centre'
     | '/allocation'
     | '/approvals'
-    | '/customers'
     | '/dh-exit-summary'
     | '/dh-org-tree'
     | '/dh-reports'
@@ -384,15 +352,12 @@ export interface FileRouteTypes {
     | '/resources'
     | '/timesheet'
     | '/wbs-allocation'
-    | '/wbs-prerequisite-new'
-    | '/clients/$clientId'
-    | '/customer-detail/$clientId'
     | '/customers/$clientId'
     | '/dh-employee-directory/$id'
     | '/my-team/timesheets'
     | '/projects/$projectId'
     | '/projects/new'
-    | '/clients'
+    | '/customers'
     | '/dh-employee-directory'
     | '/my-team'
     | '/projects'
@@ -420,15 +385,12 @@ export interface FileRouteTypes {
     | '/resources'
     | '/timesheet'
     | '/wbs-allocation'
-    | '/wbs-prerequisite-new'
-    | '/clients/$clientId'
-    | '/customer-detail/$clientId'
     | '/customers/$clientId'
     | '/dh-employee-directory/$id'
     | '/my-team/timesheets'
     | '/projects/$projectId'
     | '/projects/new'
-    | '/clients/'
+    | '/customers/'
     | '/dh-employee-directory/'
     | '/my-team/'
     | '/projects/'
@@ -457,24 +419,13 @@ export interface RootRouteChildren {
   ResourcesRoute: typeof ResourcesRoute
   TimesheetRoute: typeof TimesheetRoute
   WbsAllocationRoute: typeof WbsAllocationRoute
-  WbsPrerequisiteNewRoute: typeof WbsPrerequisiteNewRoute
-  ClientsClientIdRoute: typeof ClientsClientIdRoute
-  CustomerDetailClientIdRoute: typeof CustomerDetailClientIdRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
-  ClientsIndexRoute: typeof ClientsIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/wbs-prerequisite-new': {
-      id: '/wbs-prerequisite-new'
-      path: '/wbs-prerequisite-new'
-      fullPath: '/wbs-prerequisite-new'
-      preLoaderRoute: typeof WbsPrerequisiteNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/wbs-allocation': {
       id: '/wbs-allocation'
       path: '/wbs-allocation'
@@ -650,12 +601,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DhEmployeeDirectoryIndexRouteImport
       parentRoute: typeof DhEmployeeDirectoryRoute
     }
-    '/clients/': {
-      id: '/clients/'
-      path: '/clients'
-      fullPath: '/clients/'
-      preLoaderRoute: typeof ClientsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/customers/': {
+      id: '/customers/'
+      path: '/'
+      fullPath: '/customers/'
+      preLoaderRoute: typeof CustomersIndexRouteImport
+      parentRoute: typeof CustomersRoute
     }
     '/projects/new': {
       id: '/projects/new'
@@ -692,29 +643,17 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomersClientIdRouteImport
       parentRoute: typeof CustomersRoute
     }
-    '/customer-detail/$clientId': {
-      id: '/customer-detail/$clientId'
-      path: '/customer-detail/$clientId'
-      fullPath: '/customer-detail/$clientId'
-      preLoaderRoute: typeof CustomerDetailClientIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/clients/$clientId': {
-      id: '/clients/$clientId'
-      path: '/clients/$clientId'
-      fullPath: '/clients/$clientId'
-      preLoaderRoute: typeof ClientsClientIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 interface CustomersRouteChildren {
   CustomersClientIdRoute: typeof CustomersClientIdRoute
+  CustomersIndexRoute: typeof CustomersIndexRoute
 }
 
 const CustomersRouteChildren: CustomersRouteChildren = {
   CustomersClientIdRoute: CustomersClientIdRoute,
+  CustomersIndexRoute: CustomersIndexRoute,
 }
 
 const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
@@ -770,12 +709,8 @@ const rootRouteChildren: RootRouteChildren = {
   ResourcesRoute: ResourcesRoute,
   TimesheetRoute: TimesheetRoute,
   WbsAllocationRoute: WbsAllocationRoute,
-  WbsPrerequisiteNewRoute: WbsPrerequisiteNewRoute,
-  ClientsClientIdRoute: ClientsClientIdRoute,
-  CustomerDetailClientIdRoute: CustomerDetailClientIdRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   ProjectsNewRoute: ProjectsNewRoute,
-  ClientsIndexRoute: ClientsIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
 }
 export const routeTree = rootRouteImport

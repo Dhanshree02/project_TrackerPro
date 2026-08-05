@@ -769,7 +769,7 @@ function EmployeeProfilePage() {
   const [offOpen, setOffOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [localAssetId, setLocalAssetId] = useState(loaderEmp.assetId);
-  const [assetTypeInput, setAssetTypeInput] = useState<"TK" | "Client">("TK");
+  const [assetTypeInput, setAssetTypeInput] = useState<"TK" | "Customer">("TK");
   const [assetIdInput, setAssetIdInput] = useState("");
 
   if (!isDhanshree) return <Navigate to="/" />;
@@ -921,11 +921,11 @@ function EmployeeProfilePage() {
                       <div className="flex items-center gap-1.5 mt-1">
                         <select
                           value={assetTypeInput}
-                          onChange={(e) => setAssetTypeInput(e.target.value as "TK" | "Client")}
+                          onChange={(e) => setAssetTypeInput(e.target.value as "TK" | "Customer")}
                           className="h-8 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
                         >
                           <option value="TK">TK Asset</option>
-                          <option value="Client">Client Asset</option>
+                          <option value="Customer">Customer Asset</option>
                         </select>
                         <input
                           type="text"
@@ -937,7 +937,7 @@ function EmployeeProfilePage() {
                         <button
                           onClick={() => {
                             if (assetIdInput.trim()) {
-                              setLocalAssetId(`${assetTypeInput === "TK" ? "TK" : "Client"}-${assetIdInput.trim()}`);
+                              setLocalAssetId(`${assetTypeInput === "TK" ? "TK" : "Customer"}-${assetIdInput.trim()}`);
                             }
                           }}
                           className="rounded bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90"
@@ -1533,7 +1533,7 @@ function EmployeeCalendar({
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="E.g., Doctor appointment, client alignment, holiday list update..."
+                  placeholder="E.g., Doctor appointment, customer alignment, holiday list update..."
                   className="w-full rounded-md border border-input bg-card p-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring h-20"
                 />
               </label>

@@ -15,6 +15,7 @@ import {
   type IssueComment,
 } from "@/lib/mock-data";
 import { PriorityPill, IssueStatusPill, Avatar } from "@/components/pills";
+import { FormRow } from "@/components/form-row";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/health")({
@@ -237,7 +238,7 @@ function IssueDetail({
         </div>
         <h2 className="mt-2 text-lg font-semibold">{issue.description}</h2>
         <div className="mt-3 grid gap-3 text-xs sm:grid-cols-4">
-          <Field label="Client" value={clientName} />
+          <Field label="Customer" value={clientName} />
           <Field label="Project" value={projectName} />
           <Field label="Raised by" value={`${raiser.name} · ${issue.raisedByRole}`} />
           <Field label="Assigned to" value={`${assignee.name} · ${issue.assignedToRole}`} />
@@ -362,7 +363,7 @@ function NewIssueDialog({
           <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">×</button>
         </header>
         <div className="grid gap-3 p-5 text-sm">
-          <FormRow label="Client">
+          <FormRow label="Customer">
             <select value={clientId} onChange={(e) => { setClientId(e.target.value); const np = assignedProjects.find((p) => p.clientId === e.target.value); setProjectId(np?.id ?? ""); }} className="form-input">
               {assignedClients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -414,14 +415,7 @@ function NewIssueDialog({
   );
 }
 
-function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
-      {children}
-    </label>
-  );
-}
+
 
 function UserTagPicker({
   value, onChange, excludeIds = [],
