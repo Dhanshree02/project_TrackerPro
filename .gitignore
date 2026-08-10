@@ -18,6 +18,7 @@ apps/frontend/.vinxi/
 apps/frontend/.tanstack/**
 apps/frontend/.nitro/
 apps/frontend/.wrangler/
+apps/frontend/src/routeTree.gen.ts
 
 # Legacy root-level (safety net during migration)
 node_modules/
