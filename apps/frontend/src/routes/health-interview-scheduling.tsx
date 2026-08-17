@@ -33,8 +33,6 @@ function InterviewSchedulingPage() {
   const [showForm, setShowForm] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState<typeof interviews[0] | null>(null);
 
-  if (!isDhanshree) return <Navigate to="/" />;
-
   const filtered = useMemo(() => {
     return interviews.filter((iv) => {
       if (statusFilter !== "all" && iv.status !== statusFilter) return false;
@@ -44,6 +42,8 @@ function InterviewSchedulingPage() {
       );
     });
   }, [interviews, statusFilter, q]);
+
+  if (!isDhanshree) return <Navigate to="/" />;
 
   const selected = interviews.find((iv) => iv.id === selectedId) ?? filtered[0] ?? null;
 

@@ -1,8 +1,8 @@
 # Backend Master Plan
 
-> **Status:** Design Phase  
-> **Date:** 2026-06-16  
-> **Target Stack:** FastAPI + PostgreSQL + SQLAlchemy + Alembic
+> **Status:** ⚠️ Superseded — implementation now uses **ASP.NET Core 10 + EF Core 10 + PostgreSQL**.  
+> **Current plan:** [[31_Backend_Plan_DotNet]] (approved). The auth/RBAC strategy, module table and deployment ideas below still apply.  
+> **Date:** 2026-06-16 (stack updated 2026-08-07)
 
 ---
 
@@ -10,15 +10,15 @@
 
 | Layer | Technology | Version | Rationale |
 |-------|-----------|---------|-----------|
-| **Framework** | FastAPI | 0.115+ | Async, auto-docs (OpenAPI), Pydantic validation, Python ecosystem |
+| **Framework** | ASP.NET Core (controllers) | 10 | Enterprise standard, strong typing, first-party JWT/EF integration |
 | **Database** | PostgreSQL | 16+ | JSONB support, arrays, full-text search, enterprise-grade |
-| **ORM** | SQLAlchemy | 2.0+ | Mature, async support, migration integration |
-| **Migrations** | Alembic | 1.13+ | Auto-generate from model changes |
-| **Auth** | python-jose + passlib | Latest | JWT creation/verification + password hashing |
-| **Validation** | Pydantic v2 | 2.x | Request/response schemas, FastAPI native |
-| **Task Queue** | Celery + Redis | Latest | Background jobs (emails, reports, notifications) |
-| **Email** | FastAPI-Mail | Latest | SMTP-based notification delivery |
-| **Testing** | pytest + httpx | Latest | Async test client for FastAPI |
+| **ORM** | EF Core + Npgsql | 10 | Mature, migrations via `dotnet ef`, LINQ |
+| **Migrations** | EF Core Migrations | 10 | Auto-generate from model changes |
+| **Auth** | JWT Bearer + BCrypt.Net | 10.x | Token issuance + password hashing |
+| **Validation** | FluentValidation | 12.x | Request/response schemas |
+| **Task Queue** | Hangfire / BackgroundService (future) | — | Background jobs (emails, reports, notifications) |
+| **Email** | MailKit (future) | — | SMTP-based notification delivery |
+| **Testing** | xUnit + WebApplicationFactory | Latest | Unit + integration tests |
 | **Containerization** | Docker + docker-compose | Latest | Local dev + deployment consistency |
 
 ---

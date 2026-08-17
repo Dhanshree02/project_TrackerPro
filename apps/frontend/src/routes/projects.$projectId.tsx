@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, notFound } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
 import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive } from "lucide-react";
 import { toast } from "sonner";
@@ -235,7 +235,7 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
 
 function ProjectDetail() {
   const { project: loaderProject, client: loaderClient } = Route.useLoaderData() as { project: Project; client: Client };
-  const { user, isDhanshree } = useRoleContext();
+  const { user, isDhanshree, isEmployee, isProjectManager, employeeProjectIds } = useRoleContext();
 
   // Subscribe to store so runtime-created projects stay live/reactive
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
@@ -253,14 +253,26 @@ function ProjectDetail() {
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
   const [invoiceNumberInput, setInvoiceNumberInput] = useState("");
+  // Employees only get Team / Tasks / Health — every other submodule is hidden.
+  // Project Managers get everything except Invoices.
+  const visibleTabs: Tab[] = isEmployee
+    ? ["Team", "Tasks", "Health"]
+    : isProjectManager
+      ? tabs.filter((t) => t !== "Invoices")
+      : [...tabs];
+
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window !== "undefined") {
       const h = window.location.hash;
       if (h === "#health" || h.startsWith("#health-")) {
         return "Health";
       }
+      // Deep link from the Action Centre bucket list — land on the task list.
+      if (isEmployee && h) {
+        return "Tasks";
+      }
     }
-    return "Overview";
+    return isEmployee ? "Team" : "Overview";
   });
 
   const [closureErrorModalOpen, setClosureErrorModalOpen] = useState(false);
@@ -306,8 +318,8 @@ function ProjectDetail() {
     if (incompleteStages.length > 0 || pendingInvoices.length > 0 || noInvoices) {
       setClosureErrors({
         stages: incompleteStages,
-        invoices: pendingInvoices.map((inv) => ({
-          id: inv.id,
+        invoices: pendingInvoices.map((inv, idx) => ({
+          id: (inv as { id?: string }).id ?? `mock-inv-${idx}`,
           milestone: (inv as any).milestone,
           invoiceNumber: (inv as any).invoiceNumber,
           paymentStatus: inv.paymentStatus,
@@ -562,6 +574,11 @@ function ProjectDetail() {
     };
   }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
 
+  // Employees cannot open projects they are not involved in.
+  if (isEmployee && employeeProjectIds && !employeeProjectIds.has(project.id)) {
+    return <Navigate to="/access-denied" />;
+  }
+
   return (
     <AppShell title={project.name} subtitle={
       <span>
@@ -584,14 +601,18 @@ function ProjectDetail() {
         <span className="text-foreground font-medium truncate">{project.name}</span>
       </nav>
 
-      {/* Project Stages Tracker - Dhanshree Role Only */}
-      {isDhanshree && (
+      {/* Project Stages Tracker - Admin + Project Manager */}
+      {(isDhanshree || isProjectManager) && (
         <div className="mb-3 rounded-lg border border-border bg-card shadow-sm">
           <div className="border-b border-border px-4 py-3">
             <h2 className="text-xs font-semibold text-gray-900">Project Stages Tracker</h2>
             <p className="text-[11px] text-gray-600 mt-0.5">Track project progression through Sales → PMO → Delivery → Accounts</p>
           </div>
-          <StageTracker stages={stages} subStatusMap={subStatusMap} subStagesMap={subStagesMap} />
+          {isDhanshree ? (
+            <StageTracker stages={stages} subStatusMap={subStatusMap} subStagesMap={subStagesMap} />
+          ) : (
+            <StageTracker stages={stages} />
+          )}
         </div>
       )}
 
@@ -599,7 +620,7 @@ function ProjectDetail() {
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <HealthPill status={project.health} />
           <StatusPill status={project.status} />
-          {!isDhanshree && (
+          {!isDhanshree && !isProjectManager && (
             <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
               <Lock className="h-3 w-3" /> View only · {user.role}
             </span>
@@ -611,7 +632,7 @@ function ProjectDetail() {
         </div>
 
         <div className="flex gap-1 overflow-x-auto border-b border-border px-2">
-          {tabs.map((t) => (
+          {visibleTabs.map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={cn("border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
                 tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
@@ -622,7 +643,14 @@ function ProjectDetail() {
 
         <div className="p-5">
           {tab === "Overview" && (
-            <OverviewTab project={project} pm={pm} tl={tl} team={team} isDhanshree={isDhanshree} />
+            <OverviewTab
+              project={project}
+              pm={pm}
+              tl={tl}
+              team={team}
+              isDhanshree={isDhanshree}
+              isProjectManager={isProjectManager}
+            />
           )}
 
           {tab === "WBS" && (
@@ -638,9 +666,19 @@ function ProjectDetail() {
 
           {tab === "Health" && <HealthTab project={project} />}
 
-          {tab === "Tasks" && (isDhanshree ? <DhTasksTab project={project} /> : <DefaultTasksTab project={project} />)}
+          {tab === "Tasks" &&
+            (isDhanshree || isProjectManager ? (
+              <DhTasksTab project={project} />
+            ) : (
+              <DefaultTasksTab project={project} />
+            ))}
 
-          {tab === "Team" && (isDhanshree ? <DhTeamTab project={project} /> : <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />)}
+          {tab === "Team" &&
+            (isDhanshree || isProjectManager ? (
+              <DhTeamTab project={project} />
+            ) : (
+              <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />
+            ))}
 
           {tab === "Invoices" && (
             <div className="space-y-4">
@@ -957,7 +995,7 @@ const LEGACY_WBS_SERVICES = [
 
 function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project: Project; onRaiseInvoice: (invoiceId: string) => void; onNavigateToHealthAlerts?: () => void }) {
   const snapshotInvoices = useDhStore((s) => s.invoices);
-  const { user, isDhanshree } = useRoleContext();
+  const { user, isDhanshree, isProjectManager } = useRoleContext();
 
   if (project.wbsDetails) {
     const wbsDetails = project.wbsDetails;
@@ -981,13 +1019,17 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
             <div className="space-y-2">
               <InfoRow label="Billing Model" value={wbsDetails.accounts.billingModel} />
               <InfoRow label="Payment Terms" value={wbsDetails.accounts.paymentTerms} />
-              <InfoRow label="Total Services Value" value={`${wbsDetails.currency} ${totalServices.toLocaleString()}`} />
+              {!isProjectManager && (
+                <InfoRow label="Total Services Value" value={`${wbsDetails.currency} ${totalServices.toLocaleString()}`} />
+              )}
               <InfoRow label="Currency" value={wbsDetails.currency} />
             </div>
           </div>
         </div>
 
-        <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+        {!isProjectManager && (
+          <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+        )}
 
         <div>
           <h3 className="mb-3 text-sm font-semibold">Services & Deliverables from WBS</h3>
@@ -1048,97 +1090,101 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3 rounded-lg border border-border bg-muted/20 p-4">
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-1">Total Services</div>
-            <div className="text-lg font-semibold">{wbsDetails.currency} {totalServices.toLocaleString()}</div>
+        {!isProjectManager && (
+          <div className="grid gap-4 md:grid-cols-3 rounded-lg border border-border bg-muted/20 p-4">
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">Total Services</div>
+              <div className="text-lg font-semibold">{wbsDetails.currency} {totalServices.toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">Tax (18%)</div>
+              <div className="text-lg font-semibold">{wbsDetails.currency} {tax.toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">Grand Total</div>
+              <div className="text-lg font-semibold">{wbsDetails.currency} {grandTotal.toLocaleString()}</div>
+            </div>
           </div>
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-1">Tax (18%)</div>
-            <div className="text-lg font-semibold">{wbsDetails.currency} {tax.toLocaleString()}</div>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-1">Grand Total</div>
-            <div className="text-lg font-semibold">{wbsDetails.currency} {grandTotal.toLocaleString()}</div>
-          </div>
-        </div>
+        )}
 
-        <div>
-          <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Milestone/Period</th>
-                  <th className="px-3 py-2 font-medium">Invoice Date</th>
-                  <th className="px-3 py-2 font-medium">Remarks</th>
-                  <th className="px-3 py-2 font-medium">Amount</th>
-                  <th className="px-3 py-2 font-medium text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {wbsDetails.accounts.invoices.map((inv: any) => {
-                  const liveInv = snapshotInvoices.find(
-                    (li) => li.projectId === project.id && (li.id === inv.id || li.milestone === inv.milestone)
-                  );
-                  const isPaid = liveInv?.paymentStatus === "Received";
-                  const isRaised = liveInv?.invoiceStatus === "Raised";
-                  const displayInvoiceNo = liveInv?.invoiceNumber || inv.remarks || "-";
-                  const displayDate = liveInv?.invoiceTargetDate || inv.invoiceDate;
+        {!isProjectManager && (
+          <div>
+            <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Milestone/Period</th>
+                    <th className="px-3 py-2 font-medium">Invoice Date</th>
+                    <th className="px-3 py-2 font-medium">Remarks</th>
+                    <th className="px-3 py-2 font-medium">Amount</th>
+                    <th className="px-3 py-2 font-medium text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {wbsDetails.accounts.invoices.map((inv: any) => {
+                    const liveInv = snapshotInvoices.find(
+                      (li) => li.projectId === project.id && (li.id === inv.id || li.milestone === inv.milestone)
+                    );
+                    const isPaid = liveInv?.paymentStatus === "Received";
+                    const isRaised = liveInv?.invoiceStatus === "Raised";
+                    const displayInvoiceNo = liveInv?.invoiceNumber || inv.remarks || "-";
+                    const displayDate = liveInv?.invoiceTargetDate || inv.invoiceDate;
 
-                  return (
-                    <tr key={inv.id} className="hover:bg-accent/30">
-                      <td className="px-3 py-2 font-medium">{inv.milestone}</td>
-                      <td className="px-3 py-2">{displayDate}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{displayInvoiceNo}</td>
-                      <td className="px-3 py-2 font-medium">{wbsDetails.currency} {inv.amount.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right">
-                        {isPaid ? (
-                          <span className="inline-flex rounded-full bg-success/10 border border-success/30 px-2 py-0.5 text-[11px] font-medium text-success">
-                            Paid
-                          </span>
-                        ) : isRaised ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="inline-flex rounded-full bg-blue-100 border border-blue-200 px-2 py-0.5 text-[11px] font-medium text-blue-800">
-                              Raised
+                    return (
+                      <tr key={inv.id} className="hover:bg-accent/30">
+                        <td className="px-3 py-2 font-medium">{inv.milestone}</td>
+                        <td className="px-3 py-2">{displayDate}</td>
+                        <td className="px-3 py-2 font-mono text-xs">{displayInvoiceNo}</td>
+                        <td className="px-3 py-2 font-medium">{wbsDetails.currency} {inv.amount.toLocaleString()}</td>
+                        <td className="px-3 py-2 text-right">
+                          {isPaid ? (
+                            <span className="inline-flex rounded-full bg-success/10 border border-success/30 px-2 py-0.5 text-[11px] font-medium text-success">
+                              Paid
                             </span>
-                            {isDhanshree && liveInv && (
-                              <button
-                                onClick={() => {
-                                  dhStore.updatePaymentStatus(project.id, liveInv.id, "Received", user.id, user.name);
-                                  toast.success("Payment marked as Received");
-                                }}
-                                className="inline-flex items-center gap-1 rounded bg-success px-2 py-0.5 text-[10px] font-semibold text-success-foreground hover:bg-success/90 cursor-pointer"
-                              >
-                                Mark Paid
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          isDhanshree && liveInv ? (
-                            <button
-                              onClick={() => onRaiseInvoice(liveInv.id)}
-                              className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                            >
-                              Raise Invoice
-                            </button>
+                          ) : isRaised ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="inline-flex rounded-full bg-blue-100 border border-blue-200 px-2 py-0.5 text-[11px] font-medium text-blue-800">
+                                Raised
+                              </span>
+                              {isDhanshree && liveInv && (
+                                <button
+                                  onClick={() => {
+                                    dhStore.updatePaymentStatus(project.id, liveInv.id, "Received", user.id, user.name);
+                                    toast.success("Payment marked as Received");
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded bg-success px-2 py-0.5 text-[10px] font-semibold text-success-foreground hover:bg-success/90 cursor-pointer"
+                                >
+                                  Mark Paid
+                                </button>
+                              )}
+                            </div>
                           ) : (
-                            <span className="inline-flex rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-                              Not Raised
-                            </span>
-                          )
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {wbsDetails.accounts.invoices.length === 0 && (
-                  <tr><td colSpan={5} className="px-3 py-6 text-center text-sm text-muted-foreground">No invoices scheduled.</td></tr>
-                )}
-              </tbody>
-            </table>
+                            isDhanshree && liveInv ? (
+                              <button
+                                onClick={() => onRaiseInvoice(liveInv.id)}
+                                className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                              >
+                                Raise Invoice
+                              </button>
+                            ) : (
+                              <span className="inline-flex rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+                                Not Raised
+                              </span>
+                            )
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {wbsDetails.accounts.invoices.length === 0 && (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-sm text-muted-foreground">No invoices scheduled.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     );
@@ -1175,8 +1221,10 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
         </div>
       </div>
 
-      {/* PMO Intake & Prerequisite Workflow */}
-      <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+      {/* PMO Intake & Prerequisite Workflow — hidden for Project Managers */}
+      {!isProjectManager && (
+        <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+      )}
 
       {/* Services Table */}
       <div>
@@ -1255,50 +1303,52 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
         </div>
       </div>
 
-      {/* Invoice Schedule */}
-      <div>
-        <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 font-medium">#</th>
-                <th className="px-3 py-2 font-medium">Milestone/Period</th>
-                <th className="px-3 py-2 font-medium">Invoice Target Date</th>
-                <th className="px-3 py-2 font-medium">Duration/Days</th>
-                <th className="px-3 py-2 font-medium">Billing Model</th>
-                <th className="px-3 py-2 font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              <tr className="hover:bg-accent/30">
-                <td className="px-3 py-2">1</td>
-                <td className="px-3 py-2 font-medium">Advance 70%</td>
-                <td className="px-3 py-2">02 Feb 2026</td>
-                <td className="px-3 py-2">20 days</td>
-                <td className="px-3 py-2">70% Advance</td>
-                <td className="px-3 py-2">
-                  <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                    Invoice should be raised
-                  </button>
-                </td>
-              </tr>
-              <tr className="hover:bg-accent/30">
-                <td className="px-3 py-2">2</td>
-                <td className="px-3 py-2 font-medium">Final Delivery 30%</td>
-                <td className="px-3 py-2">01 Sep 2026</td>
-                <td className="px-3 py-2">15 days</td>
-                <td className="px-3 py-2">30% on Delivery</td>
-                <td className="px-3 py-2">
-                  <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                    Invoice should be raised
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      {/* Invoice Schedule — hidden for Project Managers */}
+      {!isProjectManager && (
+        <div>
+          <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-medium">#</th>
+                  <th className="px-3 py-2 font-medium">Milestone/Period</th>
+                  <th className="px-3 py-2 font-medium">Invoice Target Date</th>
+                  <th className="px-3 py-2 font-medium">Duration/Days</th>
+                  <th className="px-3 py-2 font-medium">Billing Model</th>
+                  <th className="px-3 py-2 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                <tr className="hover:bg-accent/30">
+                  <td className="px-3 py-2">1</td>
+                  <td className="px-3 py-2 font-medium">Advance 70%</td>
+                  <td className="px-3 py-2">02 Feb 2026</td>
+                  <td className="px-3 py-2">20 days</td>
+                  <td className="px-3 py-2">70% Advance</td>
+                  <td className="px-3 py-2">
+                    <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                      Invoice should be raised
+                    </button>
+                  </td>
+                </tr>
+                <tr className="hover:bg-accent/30">
+                  <td className="px-3 py-2">2</td>
+                  <td className="px-3 py-2 font-medium">Final Delivery 30%</td>
+                  <td className="px-3 py-2">01 Sep 2026</td>
+                  <td className="px-3 py-2">15 days</td>
+                  <td className="px-3 py-2">30% on Delivery</td>
+                  <td className="px-3 py-2">
+                    <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                      Invoice should be raised
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );
@@ -1314,7 +1364,21 @@ function InfoRow({ label, value, muted }: { label: string; value: string; muted?
 }
 
 // ---------- Overview ----------
-function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project; pm: Person; tl: Person; team: Person[]; isDhanshree: boolean }) {
+function OverviewTab({
+  project,
+  pm,
+  tl,
+  team,
+  isDhanshree,
+  isProjectManager = false,
+}: {
+  project: Project;
+  pm: Person;
+  tl: Person;
+  team: Person[];
+  isDhanshree: boolean;
+  isProjectManager?: boolean;
+}) {
   // Reactive leadership assignments from store (Dhanshree overrides)
   const leadershipAssignment = useDhStore((s) => s.leadershipAssignments[project.id] ?? null);
 
@@ -1362,9 +1426,11 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
         <div className="grid gap-3 sm:grid-cols-3">
           <Info icon={Calendar} label="Start" value={formatDate(new Date(project.startDate))} />
           <Info icon={Calendar} label="End" value={formatDate(new Date(project.endDate))} />
-          <Info icon={Wallet} label="Budget" value={`${currency} ${(project.budget / 1000).toFixed(0)}k`} sub={`Spent ${currency} ${(project.spent / 1000).toFixed(0)}k`} />
+          {!isProjectManager && (
+            <Info icon={Wallet} label="Budget" value={`${currency} ${(project.budget / 1000).toFixed(0)}k`} sub={`Spent ${currency} ${(project.spent / 1000).toFixed(0)}k`} />
+          )}
         </div>
-        {project.budget > 0 && (
+        {!isProjectManager && project.budget > 0 && (
           <div>
             <h3 className="mb-2 text-sm font-semibold">Budget burn</h3>
             <ProgressBar value={(project.spent / project.budget) * 100} />
@@ -1409,7 +1475,7 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
                 <InfoRow label="WBS Status" value={project.wbsSubStatus ?? project.wbsStatus} />
               )}
             </div>
-            {totalServices > 0 && (
+            {!isProjectManager && totalServices > 0 && (
               <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
                 <div>
                   <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Services Subtotal</div>
@@ -1448,6 +1514,11 @@ function OverviewTab({ project, pm, tl, team, isDhanshree }: { project: Project;
           <div className="grid gap-3 sm:grid-cols-3 items-stretch">
             <LeadershipBlock title="Senior Project Managers" role="Senior Project Manager" people={spms} project={project} />
             <LeadershipBlock title="Project Managers" role="Project Manager" people={pms} unassigned={isNewWbsProject} project={project} />
+            <LeadershipBlock title="Team Leads" role="Team Lead" people={tls} unassigned={isNewWbsProject} project={project} />
+          </div>
+        )}
+        {isProjectManager && (
+          <div className="grid gap-3 sm:grid-cols-3 items-stretch">
             <LeadershipBlock title="Team Leads" role="Team Lead" people={tls} unassigned={isNewWbsProject} project={project} />
           </div>
         )}
@@ -3463,17 +3534,20 @@ function PersonRow({ label, person, unassigned }: { label: string; person: Perso
 // ---------- Health Tab ----------
 function HealthTab({ project }: { project: Project }) {
   const store = useDhStore((s) => s);
-  const { user, isDhanshree } = useRoleContext();
+  const { user, isDhanshree, isProjectManager } = useRoleContext();
+  const isEmployee = user.role === "Employee";
   const [healthTab, setHealthTab] = useState<string>(() => {
+    let initial: string = "Issues";
     if (typeof window !== "undefined") {
       const h = window.location.hash;
-      if (h === "#health-alerts") return "Alerts";
-      if (h === "#health-issues") return "Issues";
+      if (h === "#health-alerts") initial = "Alerts";
+      else if (h === "#health-issues") initial = "Issues";
       // Escalations tab removed for Dhanshree — fall back to Issues
-      if (h === "#health-escalations") return isDhanshree ? "Issues" : "Escalations";
-      if (h === "#health-appreciations") return "Appreciation";
+      else if (h === "#health-escalations") initial = isDhanshree ? "Issues" : "Escalations";
+      else if (h === "#health-appreciations") initial = "Appreciation";
     }
-    return "Issues";
+    const employeeTabs = ["Issues", "Alerts", "Appreciation"];
+    return isEmployee && !employeeTabs.includes(initial) ? "Issues" : initial;
   });
 
   const projectIssues = store.issues.filter((i) => i.projectId === project.id);
@@ -3503,16 +3577,27 @@ function HealthTab({ project }: { project: Project }) {
   }, [store.escalations, store.alerts, project.id]);
   const projectAppreciations = store.appreciations.filter((a) => a.projectId === project.id);
 
-  const canRaiseIssue = user.role === "Team Member" || user.role === "Team Lead" || user.role === "Dhanshree";
+  const canRaiseIssue =
+    isEmployee ||
+    isProjectManager ||
+    user.role === "Team Member" ||
+    user.role === "Team Lead" ||
+    user.role === "Dhanshree";
 
   // Check if user has access to Client Communication
   const canAccessClientComm = ["Dhanshree", "PMO", "Project Manager", "Engagement Manager", "Senior Project Manager", "Head of Delivery", "Business Operations"].includes(user.role);
   const client = clients.find((c) => c.id === project.clientId)!;
 
-  // Dhanshree: Escalations tab restored for WBS Escalation workflow
-  const tabsList = isDhanshree
-    ? (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Engagement"] as const)
-    : (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Communication"] as const);
+  // Employee: Health shows only Issues / Alerts / Appreciation — all view-only
+  // apart from raising an issue and writing an appreciation.
+  // Project Manager: full Health except customer engagement / communication.
+  const tabsList = isEmployee
+    ? (["Issues", "Alerts", "Appreciation"] as const)
+    : isDhanshree
+      ? (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Engagement"] as const)
+      : isProjectManager
+        ? (["Issues", "Alerts", "Escalations", "Appreciation"] as const)
+        : (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Communication"] as const);
 
   return (
     <div className="space-y-4">
@@ -3997,7 +4082,13 @@ function HealthAppreciationPanel({ appreciations, project }: { appreciations: Dh
   const { user } = useRoleContext();
   const [showAppreciateModal, setShowAppreciateModal] = useState(false);
   const [formData, setFormData] = useState({ toUserId: project.teamIds[0] || "u5", badge: "Star Performer" as const, note: "" });
-  const canAppreciate = user.role === "Project Manager" || user.role === "Senior Project Manager" || user.role === "Team Lead" || user.role === "Engagement Manager" || user.role === "Dhanshree";
+  const canAppreciate =
+    user.role === "Employee" ||
+    user.role === "Project Manager" ||
+    user.role === "Senior Project Manager" ||
+    user.role === "Team Lead" ||
+    user.role === "Engagement Manager" ||
+    user.role === "Dhanshree";
 
   const teamPool = useMemo(() => {
     const ids = [project.pmId, project.tlId, ...project.teamIds];

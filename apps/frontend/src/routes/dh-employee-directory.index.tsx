@@ -1,6 +1,17 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Search, Plus, Download, ChevronLeft, ChevronRight, X, Users, Activity, Eye, UserPlus } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Users,
+  Activity,
+  Eye,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
@@ -18,12 +29,18 @@ import { Modal } from "@/routes/projects.index";
 
 export const Route = createFileRoute("/dh-employee-directory/")({
   validateSearch: (search: Record<string, unknown>): { tab?: "directory" | "pool" } => ({
-    tab: (search.tab === "directory" || search.tab === "pool") ? (search.tab as "directory" | "pool") : undefined,
+    tab:
+      search.tab === "directory" || search.tab === "pool"
+        ? (search.tab as "directory" | "pool")
+        : undefined,
   }),
   head: () => ({
     meta: [
       { title: "Directory & Pool — Pulse PMO" },
-      { name: "description", content: "Browse and manage the full employee directory & resource pool." },
+      {
+        name: "description",
+        content: "Browse and manage the full employee directory & resource pool.",
+      },
     ],
   }),
   component: EmployeeDirectoryPage,
@@ -37,15 +54,19 @@ type AllocationStatus = "Occupied" | "OnLeave" | "Free" | "Trainee";
 // ── Allocation helper functions ─────────────────────
 function getAllocationStatus(e: any): AllocationStatus {
   if (e.status === "On Leave") return "OnLeave";
-  if (e.category.includes("Intern") || e.designation.toLowerCase().includes("intern")) return "Trainee";
+  if (e.category.includes("Intern") || e.designation.toLowerCase().includes("intern"))
+    return "Trainee";
 
-  const person = people.find((p) =>
-    p.name.toLowerCase() === `${e.firstName} ${e.lastName}`.toLowerCase() ||
-    p.name.toLowerCase().includes(e.firstName.toLowerCase())
+  const person = people.find(
+    (p) =>
+      p.name.toLowerCase() === `${e.firstName} ${e.lastName}`.toLowerCase() ||
+      p.name.toLowerCase().includes(e.firstName.toLowerCase()),
   );
 
   if (person) {
-    const hasProject = projects.some((p) => p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id));
+    const hasProject = projects.some(
+      (p) => p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id),
+    );
     if (hasProject) return "Occupied";
   }
 
@@ -53,12 +74,15 @@ function getAllocationStatus(e: any): AllocationStatus {
 }
 
 function getAllocationType(e: any): "Dedicated" | "Shared" {
-  const person = people.find((p) =>
-    p.name.toLowerCase() === `${e.firstName} ${e.lastName}`.toLowerCase() ||
-    p.name.toLowerCase().includes(e.firstName.toLowerCase())
+  const person = people.find(
+    (p) =>
+      p.name.toLowerCase() === `${e.firstName} ${e.lastName}`.toLowerCase() ||
+      p.name.toLowerCase().includes(e.firstName.toLowerCase()),
   );
   if (person) {
-    const assignedProjs = projects.filter((p) => p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id));
+    const assignedProjs = projects.filter(
+      (p) => p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id),
+    );
     if (assignedProjs.length === 1) return "Dedicated";
     if (assignedProjs.length > 1) return "Shared";
   }
@@ -71,19 +95,22 @@ function getAllocationDuration(e: any): string {
   if (status === "OnLeave") return "—";
   if (status === "Trainee") return "3 Months (Probation)";
 
-  const person = people.find((p) =>
-    p.name.toLowerCase() === `${e.firstName} ${e.lastName}`.toLowerCase() ||
-    p.name.toLowerCase().includes(e.firstName.toLowerCase())
+  const person = people.find(
+    (p) =>
+      p.name.toLowerCase() === `${e.firstName} ${e.lastName}`.toLowerCase() ||
+      p.name.toLowerCase().includes(e.firstName.toLowerCase()),
   );
 
   if (person) {
-    const proj = projects.find((p) => p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id));
+    const proj = projects.find(
+      (p) => p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id),
+    );
     if (proj) {
       if (!proj.startDate || !proj.endDate) return "Indefinite";
       const formatDate = (dateStr: string) => {
         const d = new Date(dateStr);
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
         const year = d.getFullYear();
         return `${day}/${month}/${year}`;
       };
@@ -95,7 +122,18 @@ function getAllocationDuration(e: any): string {
 }
 
 function getLocalLocation(e: any): string {
-  const locationsList = ["Borivali", "Virar", "Vasai", "Bandra", "Andheri", "Dombivali", "Thane", "Kurla", "Goregaon", "Malad"];
+  const locationsList = [
+    "Borivali",
+    "Virar",
+    "Vasai",
+    "Bandra",
+    "Andheri",
+    "Dombivali",
+    "Thane",
+    "Kurla",
+    "Goregaon",
+    "Malad",
+  ];
   const idx = parseInt(e.id.replace("EMP-", "")) || 0;
   return locationsList[idx % locationsList.length];
 }
@@ -120,7 +158,7 @@ function AllocationStatusBadge({ status }: { status: AllocationStatus }) {
     <span
       className={cn(
         "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide shadow-xs",
-        map[status]
+        map[status],
       )}
     >
       {labels[status]}
@@ -193,16 +231,20 @@ function ResourceTasksModal({
   employee,
   onClose,
 }: {
-  employee: typeof employees[number];
+  employee: (typeof employees)[number];
   onClose: () => void;
 }) {
   const person = useMemo(() => {
-    return people.find((p) => p.name.toLowerCase() === `${employee.firstName} ${employee.lastName}`.toLowerCase());
+    return people.find(
+      (p) => p.name.toLowerCase() === `${employee.firstName} ${employee.lastName}`.toLowerCase(),
+    );
   }, [employee]);
 
   const assignedProjs = useMemo(() => {
     if (person) {
-      return projects.filter((p) => p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id));
+      return projects.filter(
+        (p) => p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id),
+      );
     }
     // Fallback: assign 1-2 projects deterministically based on employee ID index to make it feel populated
     const idx = parseInt(employee.id.replace("EMP-", "")) || 0;
@@ -217,18 +259,28 @@ function ResourceTasksModal({
   const availability = 100 - utilization;
 
   return (
-    <Modal title={`${employee.firstName} ${employee.lastName} — Workload & Tasks`} onClose={onClose} wide>
+    <Modal
+      title={`${employee.firstName} ${employee.lastName} — Workload & Tasks`}
+      onClose={onClose}
+      wide
+    >
       <div className="grid gap-6 md:grid-cols-3">
         {/* Resource info column */}
         <div className="space-y-4">
           <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/25 p-3">
             <Avatar name={`${employee.firstName} ${employee.lastName}`} size={42} />
             <div>
-              <div className="text-sm font-semibold">{employee.firstName} {employee.lastName}</div>
-              <div className="text-[11px] text-muted-foreground">{employee.department} · {employee.designation}</div>
+              <div className="text-sm font-semibold">
+                {employee.firstName} {employee.lastName}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {employee.department} · {employee.designation}
+              </div>
               <div className="text-[11px] text-muted-foreground font-mono">{employee.id}</div>
               {isOnLeave && (
-                <span className="mt-1 inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-600 dark:text-amber-400">On Leave</span>
+                <span className="mt-1 inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-600 dark:text-amber-400">
+                  On Leave
+                </span>
               )}
             </div>
           </div>
@@ -237,10 +289,15 @@ function ResourceTasksModal({
           <MetricRow label="Availability" value={`${availability}%`} bar={availability} />
 
           <div>
-            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Skills</div>
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Skills
+            </div>
             <div className="flex flex-wrap gap-1">
               {employee.skills.map((s) => (
-                <span key={s} className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground/80">
+                <span
+                  key={s}
+                  className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground/80"
+                >
                   {s}
                 </span>
               ))}
@@ -258,7 +315,10 @@ function ResourceTasksModal({
               <li className="text-sm text-muted-foreground">No active project assignments.</li>
             )}
             {assignedProjs.map((p) => (
-              <li key={p.id} className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 text-xs">
+              <li
+                key={p.id}
+                className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 text-xs"
+              >
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-foreground text-sm">{p.name}</span>
                   <span className="text-[10px] uppercase font-semibold text-muted-foreground bg-muted border border-border px-2 py-0.5 rounded-full">
@@ -288,7 +348,7 @@ function RequestAllocationModal({
   employee,
   onClose,
 }: {
-  employee: typeof employees[number];
+  employee: (typeof employees)[number];
   onClose: () => void;
 }) {
   const [startDate, setStartDate] = useState("");
@@ -305,10 +365,13 @@ function RequestAllocationModal({
   // Filter people for mentions
   const filteredPeople = useMemo(() => {
     if (mentionQuery === null) return [];
-    return people.filter(p =>
-      p.name.toLowerCase().includes(mentionQuery.toLowerCase()) &&
-      !taggedPeople.some(tp => tp.id === p.id)
-    ).slice(0, 5); // limit to 5 results
+    return people
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(mentionQuery.toLowerCase()) &&
+          !taggedPeople.some((tp) => tp.id === p.id),
+      )
+      .slice(0, 5); // limit to 5 results
   }, [mentionQuery, taggedPeople]);
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -317,13 +380,13 @@ function RequestAllocationModal({
 
     const selectionStart = e.target.selectionStart;
     const beforeCursor = value.slice(0, selectionStart);
-    
+
     // Check if user is typing a mention (word starting with @)
     const match = beforeCursor.match(/@(\w*)$/);
     if (match) {
       setMentionQuery(match[1]);
       setShowDropdown(true);
-      
+
       // Calculate coordinates for the suggestions dropdown
       if (textareaRef.current) {
         const textLines = beforeCursor.split("\n");
@@ -331,7 +394,7 @@ function RequestAllocationModal({
         const currentCol = textLines[textLines.length - 1].length;
         setDropdownPosition({
           top: currentLine * 20 + 35,
-          left: Math.min(250, currentCol * 8 + 10)
+          left: Math.min(250, currentCol * 8 + 10),
         });
       }
     } else {
@@ -340,7 +403,7 @@ function RequestAllocationModal({
     }
   };
 
-  const handleSelectPerson = (person: typeof people[number]) => {
+  const handleSelectPerson = (person: (typeof people)[number]) => {
     if (!textareaRef.current) return;
     const value = comment;
     const selectionStart = textareaRef.current.selectionStart;
@@ -350,10 +413,10 @@ function RequestAllocationModal({
     // Replace the @query with the person's name
     const newBeforeCursor = beforeCursor.replace(/@(\w*)$/, `@${person.name} `);
     const newValue = newBeforeCursor + afterCursor;
-    
+
     setComment(newValue);
-    setTaggedPeople(prev => {
-      if (prev.some(p => p.id === person.id)) return prev;
+    setTaggedPeople((prev) => {
+      if (prev.some((p) => p.id === person.id)) return prev;
       return [...prev, person];
     });
     setShowDropdown(false);
@@ -373,10 +436,10 @@ function RequestAllocationModal({
     if (showDropdown && filteredPeople.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setMentionIndex(prev => (prev + 1) % filteredPeople.length);
+        setMentionIndex((prev) => (prev + 1) % filteredPeople.length);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setMentionIndex(prev => (prev - 1 + filteredPeople.length) % filteredPeople.length);
+        setMentionIndex((prev) => (prev - 1 + filteredPeople.length) % filteredPeople.length);
       } else if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
         const selected = filteredPeople[mentionIndex >= 0 ? mentionIndex : 0];
@@ -392,7 +455,7 @@ function RequestAllocationModal({
   };
 
   const handleRemoveTag = (personId: string) => {
-    setTaggedPeople(prev => prev.filter(p => p.id !== personId));
+    setTaggedPeople((prev) => prev.filter((p) => p.id !== personId));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -406,7 +469,9 @@ function RequestAllocationModal({
       return;
     }
 
-    toast.success(`Allocation request for ${employee.firstName} ${employee.lastName} sent to ${employee.reportingManager}!`);
+    toast.success(
+      `Allocation request for ${employee.firstName} ${employee.lastName} sent to ${employee.reportingManager}!`,
+    );
     onClose();
   };
 
@@ -416,7 +481,7 @@ function RequestAllocationModal({
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
 
       {/* Modal Content */}
-      <div 
+      <div
         className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
@@ -427,7 +492,10 @@ function RequestAllocationModal({
               Request allocation of {employee.firstName} {employee.lastName} (ID: {employee.id})
             </p>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-accent transition-colors">
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground hover:bg-accent transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -435,9 +503,15 @@ function RequestAllocationModal({
         {/* Reporting Manager Display Header */}
         <div className="my-4 rounded-lg bg-primary/5 border border-primary/10 p-3.5 flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-primary/80">Routing To:</div>
-            <div className="mt-0.5 text-sm font-semibold text-foreground">{employee.reportingManager}</div>
-            <div className="text-[11px] text-muted-foreground font-medium">Reporting Manager Action Center</div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-primary/80">
+              Routing To:
+            </div>
+            <div className="mt-0.5 text-sm font-semibold text-foreground">
+              {employee.reportingManager}
+            </div>
+            <div className="text-[11px] text-muted-foreground font-medium">
+              Reporting Manager Action Center
+            </div>
           </div>
           <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             Auto-Routed
@@ -447,7 +521,9 @@ function RequestAllocationModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-muted-foreground">Start Date</span>
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                Start Date
+              </span>
               <input
                 type="date"
                 value={startDate}
@@ -485,7 +561,7 @@ function RequestAllocationModal({
 
             {/* Live @ Mentions Dropdown */}
             {showDropdown && filteredPeople.length > 0 && (
-              <div 
+              <div
                 className="absolute z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-lg overflow-hidden py-1"
                 style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
               >
@@ -497,7 +573,8 @@ function RequestAllocationModal({
                     onMouseEnter={() => setMentionIndex(idx)}
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-accent hover:text-accent-foreground",
-                      (mentionIndex === idx || (mentionIndex === -1 && idx === 0)) && "bg-accent text-accent-foreground"
+                      (mentionIndex === idx || (mentionIndex === -1 && idx === 0)) &&
+                        "bg-accent text-accent-foreground",
                     )}
                   >
                     <Avatar name={p.name} size={20} />
@@ -511,17 +588,19 @@ function RequestAllocationModal({
           {/* Tagged people badges */}
           {taggedPeople.length > 0 && (
             <div>
-              <span className="block text-xs font-medium text-muted-foreground mb-1.5">Tagged CC's ({taggedPeople.length}):</span>
+              <span className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Tagged CC's ({taggedPeople.length}):
+              </span>
               <div className="flex flex-wrap gap-1.5">
-                {taggedPeople.map(p => (
-                  <span 
-                    key={p.id} 
+                {taggedPeople.map((p) => (
+                  <span
+                    key={p.id}
                     className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs text-primary font-medium shadow-xs"
                   >
                     <Avatar name={p.name} size={16} />
                     <span>{p.name}</span>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => handleRemoveTag(p.id)}
                       className="ml-1 rounded-full p-0.5 hover:bg-primary/10 text-primary/70 hover:text-primary transition-colors"
                     >
@@ -559,7 +638,9 @@ function OnboardingPanel({ open, onClose }: { open: boolean; onClose: () => void
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   if (!open) return null;
@@ -567,7 +648,15 @@ function OnboardingPanel({ open, onClose }: { open: boolean; onClose: () => void
   const inputCls =
     "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-  function FormField({ label, type = "text", placeholder = "" }: { label: string; type?: string; placeholder?: string }) {
+  function FormField({
+    label,
+    type = "text",
+    placeholder = "",
+  }: {
+    label: string;
+    type?: string;
+    placeholder?: string;
+  }) {
     return (
       <label className="block">
         <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
@@ -581,7 +670,9 @@ function OnboardingPanel({ open, onClose }: { open: boolean; onClose: () => void
         <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
         <select className={inputCls}>
           <option value="">Select…</option>
-          {options.map((o) => <option key={o}>{o}</option>)}
+          {options.map((o) => (
+            <option key={o}>{o}</option>
+          ))}
         </select>
       </label>
     );
@@ -612,9 +703,14 @@ function OnboardingPanel({ open, onClose }: { open: boolean; onClose: () => void
         <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
           <div>
             <h2 className="text-base font-semibold">Onboard New Employee</h2>
-            <p className="text-xs text-muted-foreground">Fill in employee details to create their profile.</p>
+            <p className="text-xs text-muted-foreground">
+              Fill in employee details to create their profile.
+            </p>
           </div>
-          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-accent">
+          <button
+            onClick={onClose}
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -622,14 +718,19 @@ function OnboardingPanel({ open, onClose }: { open: boolean; onClose: () => void
         {/* scrollable body */}
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
           <FormSection title="1. Personal Information">
-            <FormField label="First Name" /><FormField label="Last Name" />
-            <FormField label="Email ID" type="email" /><FormField label="Personal Email" type="email" />
-            <FormField label="Mobile Number" /><FormField label="Alternate Contact Number" />
+            <FormField label="First Name" />
+            <FormField label="Last Name" />
+            <FormField label="Email ID" type="email" />
+            <FormField label="Personal Email" type="email" />
+            <FormField label="Mobile Number" />
+            <FormField label="Alternate Contact Number" />
             <FormSelect label="Gender" options={["Male", "Female", "Other"]} />
             <FormField label="Date of Birth" type="date" />
             <FormSelect label="Marital Status" options={["Single", "Married", "Other"]} />
             <FormField label="Nationality" />
-            <div className="md:col-span-2"><FormField label="Address" /></div>
+            <div className="md:col-span-2">
+              <FormField label="Address" />
+            </div>
           </FormSection>
 
           <FormSection title="2. Organization Assignment">
@@ -637,20 +738,61 @@ function OnboardingPanel({ open, onClose }: { open: boolean; onClose: () => void
             <FormSelect label="Department" options={departments} />
             <FormField label="Designation" />
             <FormField label="Role" />
-            <FormSelect label="Reporting Manager" options={["Rakesh Menon", "Sunita Verma", "David Thomas"]} />
-            <FormSelect label="Business Unit" options={["Cloud Platform", "Consumer Apps", "Enterprise"]} />
+            <FormSelect
+              label="Reporting Manager"
+              options={["Rakesh Menon", "Sunita Verma", "David Thomas"]}
+            />
+            <FormSelect
+              label="Business Unit"
+              options={["Cloud Platform", "Consumer Apps", "Enterprise"]}
+            />
             <FormField label="Team" />
             <FormSelect label="Project Site" options={["Onsite", "Offsite"]} />
-            <FormSelect label="Work Location" options={["Andheri Office", "Dombivali Office", "Bengaluru", "Hyderabad", "Pune", "Mumbai", "Remote"]} />
-            <FormSelect label="Office Branch" options={["HQ Tower", "Tech Park East", "Tech Park West"]} />
+            <FormSelect
+              label="Work Location"
+              options={[
+                "Andheri Office",
+                "Dombivali Office",
+                "Bengaluru",
+                "Hyderabad",
+                "Pune",
+                "Mumbai",
+                "Remote",
+              ]}
+            />
+            <FormSelect
+              label="Office Branch"
+              options={["HQ Tower", "Tech Park East", "Tech Park West"]}
+            />
           </FormSection>
 
           <FormSection title="3. Employment Information">
             <FormField label="Date of Joining" type="date" />
-            <FormSelect label="Category" options={["Permanent - Bond", "Permanent - Without Bond", "Contract-based", "Intern - Paid", "Intern - Unpaid"]} />
+            <FormSelect
+              label="Category"
+              options={[
+                "Permanent - Bond",
+                "Permanent - Without Bond",
+                "Contract-based",
+                "Intern - Paid",
+                "Intern - Unpaid",
+              ]}
+            />
             <FormField label="Asset ID" placeholder="TK-4029" />
-            <FormSelect label="Employment Status" options={["Active - Probation", "Active", "Resignation - Under Review", "Resignation - Accepted", "Inactive - After Onboarding"]} />
-            <FormSelect label="Exit Type" options={["NA", "Resign", "Absconded", "Terminated", "Suspension"]} />
+            <FormSelect
+              label="Employment Status"
+              options={[
+                "Active - Probation",
+                "Active",
+                "Resignation - Under Review",
+                "Resignation - Accepted",
+                "Inactive - After Onboarding",
+              ]}
+            />
+            <FormSelect
+              label="Exit Type"
+              options={["NA", "Resign", "Absconded", "Terminated", "Suspension"]}
+            />
             <FormField label="Exit Comment" placeholder="Reason for resignation/termination" />
             <FormField label="Probation Period" placeholder="6 months" />
             <FormField label="Notice Period" placeholder="90 days" />
@@ -677,7 +819,14 @@ function OnboardingPanel({ open, onClose }: { open: boolean; onClose: () => void
           <section className="rounded-lg border border-border bg-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-foreground">6. Document Uploads</h3>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-              {["Resume", "PAN Card", "Aadhaar Card", "Offer Letter", "Education Certs", "Experience Letters"].map((d) => (
+              {[
+                "Resume",
+                "PAN Card",
+                "Aadhaar Card",
+                "Offer Letter",
+                "Education Certs",
+                "Experience Letters",
+              ].map((d) => (
                 <UploadSlot key={d} label={d} />
               ))}
             </div>
@@ -686,9 +835,18 @@ function OnboardingPanel({ open, onClose }: { open: boolean; onClose: () => void
 
         {/* footer */}
         <div className="flex items-center justify-end gap-2 border-t border-border bg-card px-6 py-4">
-          <button onClick={onClose} className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent">Cancel</button>
-          <button className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent">Save Draft</button>
-          <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Create Employee</button>
+          <button
+            onClick={onClose}
+            className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
+          >
+            Cancel
+          </button>
+          <button className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent">
+            Save Draft
+          </button>
+          <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            Create Employee
+          </button>
         </div>
       </div>
     </div>
@@ -697,14 +855,14 @@ function OnboardingPanel({ open, onClose }: { open: boolean; onClose: () => void
 
 // ── Main page ────────────────────────────────────
 function EmployeeDirectoryPage() {
-  const { isDhanshree } = useRoleContext();
+  const { isDhanshree, isHr } = useRoleContext();
   const { tab: searchTab } = Route.useSearch();
   const tab = searchTab || "directory";
   const navigate = useNavigate({ from: Route.fullPath });
 
   const [q, setQ] = useState("");
   const [dept, setDept] = useState("");
-  
+
   // Directory-specific filters
   const [desig, setDesig] = useState("");
   const [status, setStatus] = useState("");
@@ -717,10 +875,8 @@ function EmployeeDirectoryPage() {
   const [onboardOpen, setOnboardOpen] = useState(false);
 
   // Pool modal states
-  const [selectedEmployee, setSelectedEmployee] = useState<typeof employees[number] | null>(null);
-  const [allocReqEmployee, setAllocReqEmployee] = useState<typeof employees[number] | null>(null);
-
-  if (!isDhanshree) return <Navigate to="/" />;
+  const [selectedEmployee, setSelectedEmployee] = useState<(typeof employees)[number] | null>(null);
+  const [allocReqEmployee, setAllocReqEmployee] = useState<(typeof employees)[number] | null>(null);
 
   const setTab = (newTab: "directory" | "pool") => {
     navigate({ search: (prev) => ({ ...prev, tab: newTab }) });
@@ -773,10 +929,15 @@ function EmployeeDirectoryPage() {
     setPage(1);
   }, [q, dept, desig, status, allocStatus, empStatus, tab]);
 
+  // Admin and HR both manage the full employee directory (HR uses it for
+  // onboarding); every other role is redirected.
+  if (!isDhanshree && !isHr) return <Navigate to="/" />;
+
   const title = tab === "directory" ? "Directory & Pool" : "Resource Pool";
-  const subtitle = tab === "directory"
-    ? `${activeRows.length} of ${employees.length} employees`
-    : `${activeRows.length} of ${employees.length} resources active`;
+  const subtitle =
+    tab === "directory"
+      ? `${activeRows.length} of ${employees.length} employees`
+      : `${activeRows.length} of ${employees.length} resources active`;
 
   return (
     <AppShell title={title} subtitle={subtitle}>
@@ -793,18 +954,33 @@ function EmployeeDirectoryPage() {
               className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
-          
+
           <div className="w-36 shrink-0">
-            <FilterSelect value={dept} onChange={setDept} placeholder="All Departments" options={departments} />
+            <FilterSelect
+              value={dept}
+              onChange={setDept}
+              placeholder="All Departments"
+              options={departments}
+            />
           </div>
 
           {tab === "directory" ? (
             <>
               <div className="w-36 shrink-0">
-                <FilterSelect value={desig} onChange={setDesig} placeholder="All Designations" options={designationsList} />
+                <FilterSelect
+                  value={desig}
+                  onChange={setDesig}
+                  placeholder="All Designations"
+                  options={designationsList}
+                />
               </div>
               <div className="w-36 shrink-0">
-                <FilterSelect value={status} onChange={setStatus} placeholder="All Status" options={employeeStatuses} />
+                <FilterSelect
+                  value={status}
+                  onChange={setStatus}
+                  placeholder="All Status"
+                  options={employeeStatuses}
+                />
               </div>
             </>
           ) : (
@@ -839,7 +1015,7 @@ function EmployeeDirectoryPage() {
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-colors",
                 tab === "directory"
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Users className="h-3.5 w-3.5" />
@@ -852,7 +1028,7 @@ function EmployeeDirectoryPage() {
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-colors",
                 tab === "pool"
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Activity className="h-3.5 w-3.5" />
@@ -896,10 +1072,7 @@ function EmployeeDirectoryPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {pageRows.map((e) => (
-                <tr
-                  key={e.id}
-                  className="cursor-pointer transition-colors hover:bg-accent/30"
-                >
+                <tr key={e.id} className="cursor-pointer transition-colors hover:bg-accent/30">
                   <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted-foreground">
                     {e.id}
                   </td>
@@ -910,7 +1083,9 @@ function EmployeeDirectoryPage() {
                       className="flex items-center gap-2"
                     >
                       <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                      <span className="font-medium">{e.firstName} {e.lastName}</span>
+                      <span className="font-medium">
+                        {e.firstName} {e.lastName}
+                      </span>
                     </Link>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5">{e.department}</td>
@@ -958,7 +1133,9 @@ function EmployeeDirectoryPage() {
               >
                 <ChevronLeft className="h-3 w-3" /> Previous
               </button>
-              <span className="px-2 tabular-nums">{currentPage} / {totalPages}</span>
+              <span className="px-2 tabular-nums">
+                {currentPage} / {totalPages}
+              </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
@@ -986,7 +1163,13 @@ function EmployeeDirectoryPage() {
                   "Project Site",
                   "Tasks",
                 ].map((h) => (
-                  <th key={h} className={cn("whitespace-nowrap px-4 py-3 font-medium", h === "Tasks" ? "text-right" : "text-left")}>
+                  <th
+                    key={h}
+                    className={cn(
+                      "whitespace-nowrap px-4 py-3 font-medium",
+                      h === "Tasks" ? "text-right" : "text-left",
+                    )}
+                  >
                     {h}
                   </th>
                 ))}
@@ -996,10 +1179,7 @@ function EmployeeDirectoryPage() {
               {pageRows.map((e) => {
                 const statusVal = getAllocationStatus(e);
                 return (
-                  <tr
-                    key={e.id}
-                    className="cursor-pointer transition-colors hover:bg-accent/30"
-                  >
+                  <tr key={e.id} className="cursor-pointer transition-colors hover:bg-accent/30">
                     <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground/90">
                       {e.department}
                     </td>
@@ -1010,7 +1190,9 @@ function EmployeeDirectoryPage() {
                         className="flex items-center gap-2.5 hover:text-primary transition-colors"
                       >
                         <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                        <span className="font-semibold">{e.firstName} {e.lastName}</span>
+                        <span className="font-semibold">
+                          {e.firstName} {e.lastName}
+                        </span>
                       </Link>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
@@ -1020,12 +1202,14 @@ function EmployeeDirectoryPage() {
                       <AllocationStatusBadge status={statusVal} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span className={cn(
-                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide shadow-xs",
-                        getAllocationType(e) === "Dedicated"
-                          ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-                          : "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400"
-                      )}>
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide shadow-xs",
+                          getAllocationType(e) === "Dedicated"
+                            ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                            : "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
+                        )}
+                      >
                         {getAllocationType(e)}
                       </span>
                     </td>
@@ -1039,12 +1223,14 @@ function EmployeeDirectoryPage() {
                       {e.workLocation}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span className={cn(
-                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                        e.projectSite === "Onsite"
-                          ? "border-info/30 bg-info/10 text-info"
-                          : "border-muted-foreground/30 bg-muted text-muted-foreground"
-                      )}>
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                          e.projectSite === "Onsite"
+                            ? "border-info/30 bg-info/10 text-info"
+                            : "border-muted-foreground/30 bg-muted text-muted-foreground",
+                        )}
+                      >
                         {e.projectSite}
                       </span>
                     </td>
@@ -1096,7 +1282,9 @@ function EmployeeDirectoryPage() {
               >
                 <ChevronLeft className="h-3.5 w-3.5" /> Previous
               </button>
-              <span className="px-2 tabular-nums font-medium">{currentPage} / {totalPages}</span>
+              <span className="px-2 tabular-nums font-medium">
+                {currentPage} / {totalPages}
+              </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
@@ -1114,10 +1302,7 @@ function EmployeeDirectoryPage() {
 
       {/* Interactive Workload Tasks Modal */}
       {selectedEmployee && (
-        <ResourceTasksModal
-          employee={selectedEmployee}
-          onClose={() => setSelectedEmployee(null)}
-        />
+        <ResourceTasksModal employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} />
       )}
 
       {/* Allocation Request Modal */}

@@ -1,8 +1,9 @@
 # Backend Architecture Draft
 
-> **Status:** 🔲 Not yet implemented  
-> **Stack:** FastAPI, PostgreSQL, SQLAlchemy, Alembic  
-> **Last Updated:** 2026-06-16
+> **Status:** ⚠️ Superseded by [[31_Backend_Plan_DotNet]] — stack changed to **ASP.NET Core 10 + EF Core 10 + PostgreSQL**  
+> **Last Updated:** 2026-08-07  
+>
+> The layer concepts and key services below still apply; the concrete structure now lives in `apps/backend/` and [[31_Backend_Plan_DotNet]].
 
 ---
 
@@ -10,7 +11,7 @@
 
 ```
 ┌─────────────────────────────────┐
-│ FastAPI Application             │
+│ ASP.NET Core Web API            │
 ├─────────────────────────────────┤
 │ Middleware Layer                │
 │ ├── CORS                       │
@@ -39,10 +40,10 @@
 │ ├── AllocationEngine           │
 │ └── HealthCalculator           │
 ├─────────────────────────────────┤
-│ Data Access Layer (SQLAlchemy) │
+│ Data Access Layer (EF Core)    │
 │ ├── Models                     │
 │ ├── Repositories               │
-│ └── Migrations (Alembic)       │
+│ └── Migrations (EF Core)       │
 ├─────────────────────────────────┤
 │ PostgreSQL Database            │
 └─────────────────────────────────┘

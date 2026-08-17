@@ -1,8 +1,8 @@
 # Backend Development Phases
 
-> **Date:** 2026-06-16  
+> **Date:** 2026-06-16 (stack updated 2026-08-07)  
 > **Estimated Total Duration:** 16-20 weeks  
-> **Stack:** FastAPI + PostgreSQL + SQLAlchemy + Alembic
+> **Stack:** ASP.NET Core 10 + PostgreSQL 16 + EF Core 10 (see [[31_Backend_Plan_DotNet]])
 
 ---
 
@@ -16,8 +16,8 @@
 - Replace frontend role switcher with login flow
 
 ### Dependencies
-- PostgreSQL database running (local or Docker)
-- Python environment with FastAPI installed
+- PostgreSQL database running (local install or Docker)
+- .NET SDK 10 + `dotnet-ef` tool (`dotnet tool install --global dotnet-ef`)
 
 ### Database Changes
 ```sql
@@ -72,7 +72,7 @@ CREATE TABLE refresh_tokens (
 
 ### Estimated Complexity: 🟡 Medium
 - Well-documented patterns available
-- FastAPI has excellent auth examples
+- ASP.NET Core has excellent auth examples (Microsoft docs, JwtBearer + EF Identity patterns)
 - Most complex part: mapping existing 6 roles to permission sets
 
 ### Frontend Integration

@@ -1,7 +1,33 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Navigate, useRouterState } from "@tanstack/react-router";
 import { AppSidebar } from "./app-sidebar";
 import { AppTopbar } from "./app-topbar";
 import { MobileTabs } from "./mobile-tabs";
+import { useAuth } from "@/lib/auth-context";
+import { usePermissions } from "@/lib/permissions";
+import { useRoleContext } from "@/lib/role-context";
+import { NAV_ITEMS, filterNavItems, resolveRoutePermission } from "@/lib/navigation";
+
+function AuthGate() {
+  const { status } = useAuth();
+
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span className="text-xs text-muted-foreground">Signing you in…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "anon") {
+    return <Navigate to="/login" />;
+  }
+
+  return null;
+}
 
 export function AppShell({
   title,
@@ -12,6 +38,8 @@ export function AppShell({
   subtitle?: ReactNode;
   children: ReactNode;
 }) {
+  const { status, user } = useAuth();
+  const { isHr } = useRoleContext();
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
@@ -19,6 +47,35 @@ export function AppShell({
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { hasPermission, hasAny } = usePermissions();
+
+  // Every AppShell page requires an authenticated session.
+  // NOTE: must stay after all hooks (Rules of Hooks).
+  if (status !== "authed") return <AuthGate />;
+
+  // Enforce the temporary-password flow: no module is usable until the
+  // MustChangePassword flag is cleared.
+  if (user?.mustChangePassword) return <Navigate to="/change-password" />;
+
+  // Users without dashboard access (e.g. HR) land on their first permitted
+  // module after login instead of hitting the 403 page on the root route.
+  if (pathname === "/" && !hasPermission("dashboard.view")) {
+    const items = filterNavItems(NAV_ITEMS, hasPermission, hasAny, false, isHr);
+    const landing = items
+      .map((i) => i.to ?? i.subItems?.[0]?.to)
+      .find((to): to is string => Boolean(to));
+    if (landing) return <Navigate to={landing} replace />;
+  }
+
+  // Route-level RBAC guard: direct URL access to a module the user has no
+  // permission for shows the 403 page instead of rendering the module.
+  const required = resolveRoutePermission(pathname);
+  if (required !== null) {
+    const keys = Array.isArray(required) ? required : [required];
+    if (!hasAny(...keys)) return <Navigate to="/access-denied" replace />;
+  }
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -56,7 +113,16 @@ export function AppShell({
           transition: "opacity 0.3s ease, transform 0.3s ease",
         }}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="18 15 12 9 6 15" />
         </svg>
       </button>

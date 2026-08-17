@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="PMS.API.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/PMS.IntegrationTests/PMS.IntegrationTests.csproj" />
+    <Project Path="tests/PMS.UnitTests/PMS.UnitTests.csproj" />
+  </Folder>
+</Solution>

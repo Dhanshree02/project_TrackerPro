@@ -85,8 +85,6 @@ function WbsAllocationPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [showWbs, setShowWbs] = useState(true);
 
-  if (!isPMO) return <Navigate to="/" />;
-
   const filtered = requests.filter((r) => {
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
     if (search) {
@@ -99,6 +97,29 @@ function WbsAllocationPage() {
 
   const selected = requests.find((r) => r.id === selectedId) ?? filtered[0] ?? requests[0];
   const client = clients.find((c) => c.id === selected.clientId)!;
+
+  // candidates per role with fit scores
+  const candidatesByRole = useMemo(() => {
+    const result: Record<AllocationRoleSlot, { person: typeof people[number]; w: typeof personWorkload[number]; score: number }[]> = {
+      spm: [], em: [], pm: [],
+    };
+    (Object.keys(result) as AllocationRoleSlot[]).forEach((role) => {
+      const personRole = ROLE_TO_PERSON_ROLE[role];
+      const items = people
+        .filter((p) => p.role === personRole)
+        .map((p) => {
+          const w = personWorkload.find((x) => x.personId === p.id) ?? {
+            personId: p.id, activeProjects: 0, utilization: 0, availableFrom: new Date().toISOString(), skills: [], onBench: true,
+          };
+          return { person: p, w, score: fitScore(p.id, selected) };
+        })
+        .sort((a, b) => b.score - a.score);
+      result[role] = items;
+    });
+    return result;
+  }, [selected]);
+
+  if (!isPMO) return <Navigate to="/" />;
 
   function pushAudit(reqId: string, action: string) {
     const entry: WbsAllocationAuditEntry = {
@@ -210,27 +231,6 @@ function WbsAllocationPage() {
     );
     setConfirmOpen(false);
   }
-
-  // candidates per role with fit scores
-  const candidatesByRole = useMemo(() => {
-    const result: Record<AllocationRoleSlot, { person: typeof people[number]; w: typeof personWorkload[number]; score: number }[]> = {
-      spm: [], em: [], pm: [],
-    };
-    (Object.keys(result) as AllocationRoleSlot[]).forEach((role) => {
-      const personRole = ROLE_TO_PERSON_ROLE[role];
-      const items = people
-        .filter((p) => p.role === personRole)
-        .map((p) => {
-          const w = personWorkload.find((x) => x.personId === p.id) ?? {
-            personId: p.id, activeProjects: 0, utilization: 0, availableFrom: new Date().toISOString(), skills: [], onBench: true,
-          };
-          return { person: p, w, score: fitScore(p.id, selected) };
-        })
-        .sort((a, b) => b.score - a.score);
-      result[role] = items;
-    });
-    return result;
-  }, [selected]);
 
   const allFilled = selected.slots.every((s) => !!s.personId);
   const counts = STATUS_FILTERS.reduce<Record<string, number>>((acc, s) => {

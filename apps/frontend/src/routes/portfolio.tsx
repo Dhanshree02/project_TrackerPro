@@ -23,8 +23,6 @@ function PortfolioPage() {
   const [status, setStatus] = useState<"all" | ProjectStatus>("all");
   const [health, setHealth] = useState<"all" | HealthStatus>("all");
 
-  if (!isHOD && !isBO) return <Navigate to="/" />;
-
   const filtered = useMemo(
     () => assignedProjects.filter((p) => {
       if (status !== "all" && p.status !== status) return false;
@@ -35,6 +33,8 @@ function PortfolioPage() {
     }),
     [assignedProjects, status, health, q],
   );
+
+  if (!isHOD && !isBO) return <Navigate to="/" />;
 
   const stats = {
     total: assignedProjects.length,

@@ -146,7 +146,7 @@ Component.setState() → dh-store.ts → emit() → Re-render
 
 ### Planned (With Backend)
 ```
-Component → React Query → fetch() → FastAPI → PostgreSQL
+Component → React Query → fetch() → ASP.NET Core API → PostgreSQL
               ↓ cache                    ↓ response
            Component → UI          JWT + RBAC check
 ```

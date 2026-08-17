@@ -63,7 +63,7 @@
 
 ## Database Status
 
-- **Schema version:** [Alembic revision or "Not started"]
+- **Schema version:** [EF Core migration name or "Not started"]
 - **Migrations pending:** [Yes/No, details]
 - **Seed data status:** [Seeded/Not seeded]
 

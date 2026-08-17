@@ -9,7 +9,9 @@ import {
   projects as baseProjects,
   timesheets as baseTimesheets,
   invoices as baseInvoices,
+  clientLogo,
   type Client,
+  type ClientSubVenture,
   type Project,
   getPerson,
   type TimesheetStatus,
@@ -18,7 +20,12 @@ import {
   type CellCommentMessage,
 } from "@/lib/mock-data";
 
-import { type Billability, type ResourceType, getProjectEMs, getProjectPMs } from "@/lib/dh-helpers";
+import {
+  type Billability,
+  type ResourceType,
+  getProjectEMs,
+  getProjectPMs,
+} from "@/lib/dh-helpers";
 
 export const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
   "Penetration Testing": "Scope",
@@ -75,7 +82,13 @@ export type AlertKind =
   | "Approval"
   | "Dependency";
 
-export type AlertStatus = "Open" | "In Progress" | "Resolved" | "Closed" | "Acknowledged" | "Waiting for Customer";
+export type AlertStatus =
+  | "Open"
+  | "In Progress"
+  | "Resolved"
+  | "Closed"
+  | "Acknowledged"
+  | "Waiting for Customer";
 
 export interface DhAlert {
   id: string;
@@ -93,16 +106,16 @@ export interface DhAlert {
   alertId?: string;
   description?: string;
   alertType?:
-  | "Project Risk"
-  | "Resource Risk"
-  | "Technical Issue"
-  | "Dependency Blocker"
-  | "Escalation"
-  | "Customer Concern"
-  | "Budget Concern"
-  | "Schedule Delay"
-  | "Quality Concern"
-  | "Governance Alert";
+    | "Project Risk"
+    | "Resource Risk"
+    | "Technical Issue"
+    | "Dependency Blocker"
+    | "Escalation"
+    | "Customer Concern"
+    | "Budget Concern"
+    | "Schedule Delay"
+    | "Quality Concern"
+    | "Governance Alert";
   owner?: string;
   resolutionOwner?: string;
   escalationOwner?: string;
@@ -139,15 +152,15 @@ export interface DhCentralApproval {
   projectId: string;
   projectName: string;
   requestType:
-  | "WBS Approval"
-  | "Budget Approval"
-  | "PM Assignment Approval"
-  | "SPM Assignment Approval"
-  | "Project Ready To Start Approval"
-  | "Resource Allocation Approval"
-  | "Customer Requirement Approval"
-  | "Timeline Extension Approval"
-  | "Leadership Change Approval";
+    | "WBS Approval"
+    | "Budget Approval"
+    | "PM Assignment Approval"
+    | "SPM Assignment Approval"
+    | "Project Ready To Start Approval"
+    | "Resource Allocation Approval"
+    | "Customer Requirement Approval"
+    | "Timeline Extension Approval"
+    | "Leadership Change Approval";
   requestedBy: string;
   requestedById: string;
   requestedDate: string;
@@ -164,7 +177,11 @@ export interface DhCentralApproval {
 }
 
 // ---------- Leadership Change Request ----------
-export type LeadershipRole = "Engagement Manager" | "Senior Project Manager" | "Project Manager" | "Team Lead";
+export type LeadershipRole =
+  | "Engagement Manager"
+  | "Senior Project Manager"
+  | "Project Manager"
+  | "Team Lead";
 
 export interface LeadershipChangeRequest {
   id: string;
@@ -298,7 +315,12 @@ export interface DhInvoice {
 
 export interface DhAuditTrailEntry {
   id: string;
-  fieldChanged: "Collection Status" | "Validation Status" | "Billing Status" | "Ready To Start" | "Extension Request";
+  fieldChanged:
+    | "Collection Status"
+    | "Validation Status"
+    | "Billing Status"
+    | "Ready To Start"
+    | "Extension Request";
   updatedBy: string;
   updatedByName: string;
   date: string;
@@ -323,28 +345,117 @@ export interface DhProjectPrereq {
 export function getSeededServices(isReady: boolean): DhServicePrereq[] {
   if (isReady) {
     return [
-      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
-      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
-      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
-      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
-      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Received", isReady: true },
+      {
+        serviceId: "s1",
+        serviceName: "Application Testing",
+        collectionStatus: "Collected",
+        validationStatus: "Validated",
+        billingStatus: "Advance Received",
+        isReady: true,
+      },
+      {
+        serviceId: "s2",
+        serviceName: "SOC",
+        collectionStatus: "Collected",
+        validationStatus: "Validated",
+        billingStatus: "Advance Received",
+        isReady: true,
+      },
+      {
+        serviceId: "s3",
+        serviceName: "Infrastructure",
+        collectionStatus: "Collected",
+        validationStatus: "Validated",
+        billingStatus: "Advance Received",
+        isReady: true,
+      },
+      {
+        serviceId: "s4",
+        serviceName: "Development",
+        collectionStatus: "Collected",
+        validationStatus: "Validated",
+        billingStatus: "Advance Received",
+        isReady: true,
+      },
+      {
+        serviceId: "s5",
+        serviceName: "Migration",
+        collectionStatus: "Collected",
+        validationStatus: "Validated",
+        billingStatus: "Advance Received",
+        isReady: true,
+      },
     ];
   } else {
     return [
-      { serviceId: "s1", serviceName: "Application Testing", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending", isReady: false },
-      { serviceId: "s2", serviceName: "SOC", collectionStatus: "Collected", validationStatus: "Pending To Validate", billingStatus: "Advance Pending", isReady: false },
-      { serviceId: "s3", serviceName: "Infrastructure", collectionStatus: "Pending To Collect", validationStatus: "Pending To Validate", billingStatus: "Advance Pending", isReady: false },
-      { serviceId: "s4", serviceName: "Development", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending", isReady: false },
-      { serviceId: "s5", serviceName: "Migration", collectionStatus: "Collected", validationStatus: "Validated", billingStatus: "Advance Pending", isReady: false },
+      {
+        serviceId: "s1",
+        serviceName: "Application Testing",
+        collectionStatus: "Collected",
+        validationStatus: "Validated",
+        billingStatus: "Advance Pending",
+        isReady: false,
+      },
+      {
+        serviceId: "s2",
+        serviceName: "SOC",
+        collectionStatus: "Collected",
+        validationStatus: "Pending To Validate",
+        billingStatus: "Advance Pending",
+        isReady: false,
+      },
+      {
+        serviceId: "s3",
+        serviceName: "Infrastructure",
+        collectionStatus: "Pending To Collect",
+        validationStatus: "Pending To Validate",
+        billingStatus: "Advance Pending",
+        isReady: false,
+      },
+      {
+        serviceId: "s4",
+        serviceName: "Development",
+        collectionStatus: "Collected",
+        validationStatus: "Validated",
+        billingStatus: "Advance Pending",
+        isReady: false,
+      },
+      {
+        serviceId: "s5",
+        serviceName: "Migration",
+        collectionStatus: "Collected",
+        validationStatus: "Validated",
+        billingStatus: "Advance Pending",
+        isReady: false,
+      },
     ];
   }
 }
 
 // ---------- Project Stages Tracker (Dhanshree Role Only) ----------
-export type SalesStatus = "Pending" | "Assigned" | "Approval";
-export type PMOStatus = "Prerequisite Collection" | "Validation" | "Ready To Start Project";
-export type DeliveryStatus = "Ongoing" | "Completed" | "Cancelled" | "On Hold Internally" | "On Hold Externally" | "After Release";
-export type AccountsStatus = "PO Pending" | "PO Received" | "PO Raised" | "Invoice Not Raised" | "Invoice Raised" | "Payment Pending" | "Payment Received" | "PO Not Raised";
+export type SalesStatus = "Pending" | "Assigned" | "Approval" | "WBS Approval Completed";
+export type PMOStatus =
+  | "Prerequisite Collection"
+  | "Validation"
+  | "Ready To Start Project"
+  | "Project Allocation Completed";
+export type DeliveryStatus =
+  | "Ongoing"
+  | "Completed"
+  | "Cancelled"
+  | "On Hold Internally"
+  | "On Hold Externally"
+  | "After Release"
+  | "Certification Released";
+export type AccountsStatus =
+  | "PO Pending"
+  | "PO Received"
+  | "PO Raised"
+  | "Invoice Not Raised"
+  | "Invoice Raised"
+  | "Payment Pending"
+  | "Payment Received"
+  | "PO Not Raised";
 export type PoStatus = "PO Pending" | "PO Received" | "PO Validated";
 export type PaymentStatus = "Payment Pending" | "Payment Received";
 
@@ -438,7 +549,7 @@ export interface DhBucketTask {
   dueDate: string;
   employeeId: string;
   assignedById: string;
-  status: "Not Started" | "Ongoing" | "Paused" | "Completed";
+  status: "Not Started" | "Ongoing" | "Paused" | "Completed" | "Stopped";
   startedAt?: string;
   completedAt?: string;
   elapsedTime: number; // in seconds
@@ -453,8 +564,8 @@ export interface WbsDraft {
   clientId: string;
   clientName: string;
   salesPerson: string;
-  savedBy: string;       // user name who saved the draft
-  savedAt: string;       // ISO timestamp
+  savedBy: string; // user name who saved the draft
+  savedAt: string; // ISO timestamp
   // Full form state for restoration
   formSnapshot: Record<string, unknown>;
 }
@@ -486,7 +597,7 @@ export interface DhNotification {
 interface DhState {
   extraClients: Client[];
   extraProjects: Project[];
-  subVentureOverrides: Record<string, string[]>;
+  subVentureOverrides: Record<string, ClientSubVenture[]>;
   wbsDrafts: WbsDraft[];
   issues: DhIssue[];
   alerts: DhAlert[];
@@ -498,12 +609,21 @@ interface DhState {
   projectStages: Record<string, ProjectStagesTracker>;
   taskAssignments: Record<string, TaskAssignmentState>;
   shadowTeams: Record<string, string[]>;
-  shadowTeamDetails: Record<string, Record<string, { duration: string; billability: Billability; resourceType: ResourceType }>>;
-  projectTeamDetails: Record<string, Record<string, { duration: string; billability: Billability; resourceType: ResourceType }>>;
+  shadowTeamDetails: Record<
+    string,
+    Record<string, { duration: string; billability: Billability; resourceType: ResourceType }>
+  >;
+  projectTeamDetails: Record<
+    string,
+    Record<string, { duration: string; billability: Billability; resourceType: ResourceType }>
+  >;
   projectTeamAdditions: Record<string, string[]>;
   projectTeamRemovals: Record<string, string[]>;
   leadershipChangeRequests: LeadershipChangeRequest[];
-  leadershipAssignments: Record<string, { emIds: string[]; spmIds: string[]; pmIds: string[]; tlIds: string[] }>;
+  leadershipAssignments: Record<
+    string,
+    { emIds: string[]; spmIds: string[]; pmIds: string[]; tlIds: string[] }
+  >;
   timesheets: DhTimesheet[];
   approvals: DhCentralApproval[];
   onboardedResources: OnboardedResource[];
@@ -511,7 +631,13 @@ interface DhState {
   exitedResources: ExitedResource[];
   invoices: DhInvoice[];
   notifications: DhNotification[];
-  treeTaskStates: Record<string, Record<string, { actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] }>>;
+  treeTaskStates: Record<
+    string,
+    Record<
+      string,
+      { actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] }
+    >
+  >;
   bucketTasks: DhBucketTask[];
 }
 
@@ -526,19 +652,74 @@ const state: DhState = {
   subVentureOverrides: {},
   wbsDrafts: [],
   onboardedResources: [
-    { employeeId: "EMP-0021", name: "Priya Sharma", department: "Engineering", subDepartment: "Frontend", joiningDate: "2026-05-12", designation: "Software Engineer", currentProject: "Core Banking Modernization", status: "Probation" },
-    { employeeId: "EMP-0022", name: "Rohan Mehta", department: "QA", subDepartment: "Automation", joiningDate: "2026-05-20", designation: "QA Engineer", currentProject: "Mobile Banking App v3", status: "Probation" },
-    { employeeId: "EMP-0023", name: "Sneha Iyer", department: "Engineering", subDepartment: "Backend", joiningDate: "2026-04-30", designation: "Senior Software Engineer", currentProject: "Clinical Data Platform", status: "Active" },
-    { employeeId: "EMP-0024", name: "Karthik Bose", department: "DevOps", subDepartment: "Infrastructure", joiningDate: "2026-06-01", designation: "DevOps Engineer", status: "Probation" },
+    {
+      employeeId: "EMP-0021",
+      name: "Priya Sharma",
+      department: "Engineering",
+      subDepartment: "Frontend",
+      joiningDate: "2026-05-12",
+      designation: "Software Engineer",
+      currentProject: "Core Banking Modernization",
+      status: "Probation",
+    },
+    {
+      employeeId: "EMP-0022",
+      name: "Rohan Mehta",
+      department: "QA",
+      subDepartment: "Automation",
+      joiningDate: "2026-05-20",
+      designation: "QA Engineer",
+      currentProject: "Mobile Banking App v3",
+      status: "Probation",
+    },
+    {
+      employeeId: "EMP-0023",
+      name: "Sneha Iyer",
+      department: "Engineering",
+      subDepartment: "Backend",
+      joiningDate: "2026-04-30",
+      designation: "Senior Software Engineer",
+      currentProject: "Clinical Data Platform",
+      status: "Active",
+    },
+    {
+      employeeId: "EMP-0024",
+      name: "Karthik Bose",
+      department: "DevOps",
+      subDepartment: "Infrastructure",
+      joiningDate: "2026-06-01",
+      designation: "DevOps Engineer",
+      status: "Probation",
+    },
   ],
   offboardingResources: [
-    { employeeId: "EMP-0008", name: "Rahul Sharma", department: "Engineering", subDepartment: "Backend", resignationDate: "2026-05-10", lastWorkingDate: "2026-06-10", resignationStatus: "Accepted" },
-    { employeeId: "EMP-0012", name: "Anjali Nair", department: "QA", subDepartment: "Manual Testing", resignationDate: "2026-05-25", resignationStatus: "Pending" },
-    { employeeId: "EMP-0015", name: "Vivek Tiwari", department: "Engineering", subDepartment: "Frontend", resignationDate: "2026-04-18", resignationStatus: "Retain" },
+    {
+      employeeId: "EMP-0008",
+      name: "Rahul Sharma",
+      department: "Engineering",
+      subDepartment: "Backend",
+      resignationDate: "2026-05-10",
+      lastWorkingDate: "2026-06-10",
+      resignationStatus: "Accepted",
+    },
+    {
+      employeeId: "EMP-0012",
+      name: "Anjali Nair",
+      department: "QA",
+      subDepartment: "Manual Testing",
+      resignationDate: "2026-05-25",
+      resignationStatus: "Pending",
+    },
+    {
+      employeeId: "EMP-0015",
+      name: "Vivek Tiwari",
+      department: "Engineering",
+      subDepartment: "Frontend",
+      resignationDate: "2026-04-18",
+      resignationStatus: "Retain",
+    },
   ],
-  exitedResources: [
-    { employeeId: "EMP-0003", personId: "u15" },
-  ],
+  exitedResources: [{ employeeId: "EMP-0003", personId: "u15" }],
   issues: [
     {
       id: "dhi1",
@@ -553,7 +734,9 @@ const state: DhState = {
       status: "Open",
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
       comments: [],
-      audit: [{ id: "ax1", text: "Raised issue", at: new Date(Date.now() - 86400000 * 2).toISOString() }],
+      audit: [
+        { id: "ax1", text: "Raised issue", at: new Date(Date.now() - 86400000 * 2).toISOString() },
+      ],
     },
   ],
   alerts: [
@@ -569,9 +752,16 @@ const state: DhState = {
       status: "Open",
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
       comments: [
-        { id: "cm-esc1", authorId: "u14", authorName: "Dhanshree", text: "We need the credentials immediately to begin the WBS verification.", at: new Date(Date.now() - 86400000 * 2).toISOString() }
+        {
+          id: "cm-esc1",
+          authorId: "u14",
+          authorName: "Dhanshree",
+          text: "We need the credentials immediately to begin the WBS verification.",
+          at: new Date(Date.now() - 86400000 * 2).toISOString(),
+        },
       ],
-      description: "Prerequisites for testing cannot continue as the customer has not shared the OAuth production credentials.",
+      description:
+        "Prerequisites for testing cannot continue as the customer has not shared the OAuth production credentials.",
       alertType: "Escalation",
       owner: "Dhanshree",
       resolutionOwner: "Vikram Shah",
@@ -583,8 +773,13 @@ const state: DhState = {
       escalatedTo: ["Vikram Shah", "Aarav Mehta", "Anita Desai"],
       expectedResolutionDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
       history: [
-        { status: "Open", at: new Date(Date.now() - 86400000 * 2).toISOString(), updatedBy: "Dhanshree", details: "Escalation raised from WBS prerequisite collection." }
-      ]
+        {
+          status: "Open",
+          at: new Date(Date.now() - 86400000 * 2).toISOString(),
+          updatedBy: "Dhanshree",
+          details: "Escalation raised from WBS prerequisite collection.",
+        },
+      ],
     },
     {
       id: "ALT-001",
@@ -598,9 +793,16 @@ const state: DhState = {
       status: "Open",
       createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
       comments: [
-        { id: "cm-alt1", authorId: "u5", authorName: "Nikhil Rao", text: "CPU spikes to 98% during payments reconciliation runs.", at: new Date(Date.now() - 86400000 * 1).toISOString() }
+        {
+          id: "cm-alt1",
+          authorId: "u5",
+          authorName: "Nikhil Rao",
+          text: "CPU spikes to 98% during payments reconciliation runs.",
+          at: new Date(Date.now() - 86400000 * 1).toISOString(),
+        },
       ],
-      description: "CPU utilization spikes to 98% during payments reconciliation runs on Kafka cluster.",
+      description:
+        "CPU utilization spikes to 98% during payments reconciliation runs on Kafka cluster.",
       alertType: "Technical Issue",
       owner: "Nikhil Rao",
       resolutionOwner: "Vikram Shah",
@@ -608,8 +810,13 @@ const state: DhState = {
       resolutionDetails: "Tuning JVM heap size and buffer allocations is under analysis.",
       attachments: ["db_reconcile_spikes.log", "heap_dump.png"],
       history: [
-        { status: "Open", at: new Date(Date.now() - 86400000 * 1).toISOString(), updatedBy: "Nikhil Rao", details: "Alert raised dynamically." }
-      ]
+        {
+          status: "Open",
+          at: new Date(Date.now() - 86400000 * 1).toISOString(),
+          updatedBy: "Nikhil Rao",
+          details: "Alert raised dynamically.",
+        },
+      ],
     },
     {
       id: "ALT-002",
@@ -623,16 +830,26 @@ const state: DhState = {
       status: "In Progress",
       createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
       comments: [],
-      description: "iOS lead is on unplanned medical leave for 2 weeks, pausing biometric auth implementation.",
+      description:
+        "iOS lead is on unplanned medical leave for 2 weeks, pausing biometric auth implementation.",
       alertType: "Resource Risk",
       owner: "Vikram Shah",
       resolutionOwner: "Riya Kapoor",
       escalationOwner: "Anita Desai",
       attachments: [],
       history: [
-        { status: "Open", at: new Date(Date.now() - 86400000 * 3).toISOString(), updatedBy: "Vikram Shah" },
-        { status: "In Progress", at: new Date(Date.now() - 86400000 * 2).toISOString(), updatedBy: "Riya Kapoor", details: "Assigning standby engineer on bench." }
-      ]
+        {
+          status: "Open",
+          at: new Date(Date.now() - 86400000 * 3).toISOString(),
+          updatedBy: "Vikram Shah",
+        },
+        {
+          status: "In Progress",
+          at: new Date(Date.now() - 86400000 * 2).toISOString(),
+          updatedBy: "Riya Kapoor",
+          details: "Assigning standby engineer on bench.",
+        },
+      ],
     },
     {
       id: "ALT-003",
@@ -646,15 +863,20 @@ const state: DhState = {
       status: "Open",
       createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
       comments: [],
-      description: "Integration endpoints for sandbox environment have not been delivered by vendor.",
+      description:
+        "Integration endpoints for sandbox environment have not been delivered by vendor.",
       alertType: "Dependency Blocker",
       owner: "Sana Iyer",
       resolutionOwner: "Riya Kapoor",
       escalationOwner: "Anita Desai",
       attachments: [],
       history: [
-        { status: "Open", at: new Date(Date.now() - 86400000 * 4).toISOString(), updatedBy: "Sana Iyer" }
-      ]
+        {
+          status: "Open",
+          at: new Date(Date.now() - 86400000 * 4).toISOString(),
+          updatedBy: "Sana Iyer",
+        },
+      ],
     },
     {
       id: "ALT-004",
@@ -668,16 +890,21 @@ const state: DhState = {
       status: "Open",
       createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
       comments: [],
-      description: "Snowflake query costs have exceeded the monthly threshold by 35% due to unoptimized queries.",
+      description:
+        "Snowflake query costs have exceeded the monthly threshold by 35% due to unoptimized queries.",
       alertType: "Budget Concern",
       owner: "Vikram Shah",
       resolutionOwner: "Vikram Shah",
       escalationOwner: "Rahul Gupta",
       attachments: [],
       history: [
-        { status: "Open", at: new Date(Date.now() - 86400000 * 5).toISOString(), updatedBy: "Vikram Shah" }
-      ]
-    }
+        {
+          status: "Open",
+          at: new Date(Date.now() - 86400000 * 5).toISOString(),
+          updatedBy: "Vikram Shah",
+        },
+      ],
+    },
   ],
   escalations: [
     {
@@ -725,43 +952,218 @@ const state: DhState = {
   ],
   requirements: [],
   prereqs: {
-    p1: { projectId: "p1", validation: "Validated", collection: "Received", assignedPmIds: ["u3"], assignedSpmIds: ["u1"], isProjectReadyToStart: true, acknowledgedByPmIds: ["u3"], acknowledgedBySpmIds: ["u1"], services: getSeededServices(true), auditTrail: [] },
-    p2: { projectId: "p2", validation: "Validated", collection: "Received", assignedPmIds: ["u3"], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
-    p3: { projectId: "p3", validation: "Validation Pending", collection: "Waiting For Customer Response", assignedPmIds: [], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
-    p4: { projectId: "p4", validation: "Validation Pending", collection: "Initiated", assignedPmIds: [], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
-    p5: { projectId: "p5", validation: "Validated", collection: "Received", assignedPmIds: ["u3"], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
-    p6: { projectId: "p6", validation: "Validated", collection: "Received", assignedPmIds: ["u4"], assignedSpmIds: ["u1"], isProjectReadyToStart: true, acknowledgedByPmIds: ["u4"], acknowledgedBySpmIds: ["u1"], services: getSeededServices(true), auditTrail: [] },
-    p7: { projectId: "p7", validation: "Validation Pending", collection: "Initiated", assignedPmIds: [], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
-    p8: { projectId: "p8", validation: "Validated", collection: "Received", assignedPmIds: ["u4"], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
-    p9: { projectId: "p9", validation: "Validation Pending", collection: "Initiated", assignedPmIds: [], assignedSpmIds: [], isProjectReadyToStart: false, acknowledgedByPmIds: [], acknowledgedBySpmIds: [], services: getSeededServices(false), auditTrail: [] },
+    p1: {
+      projectId: "p1",
+      validation: "Validated",
+      collection: "Received",
+      assignedPmIds: ["u3"],
+      assignedSpmIds: ["u1"],
+      isProjectReadyToStart: true,
+      acknowledgedByPmIds: ["u3"],
+      acknowledgedBySpmIds: ["u1"],
+      services: getSeededServices(true),
+      auditTrail: [],
+    },
+    p2: {
+      projectId: "p2",
+      validation: "Validated",
+      collection: "Received",
+      assignedPmIds: ["u3"],
+      assignedSpmIds: [],
+      isProjectReadyToStart: false,
+      acknowledgedByPmIds: [],
+      acknowledgedBySpmIds: [],
+      services: getSeededServices(false),
+      auditTrail: [],
+    },
+    p3: {
+      projectId: "p3",
+      validation: "Validation Pending",
+      collection: "Waiting For Customer Response",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+      isProjectReadyToStart: false,
+      acknowledgedByPmIds: [],
+      acknowledgedBySpmIds: [],
+      services: getSeededServices(false),
+      auditTrail: [],
+    },
+    p4: {
+      projectId: "p4",
+      validation: "Validation Pending",
+      collection: "Initiated",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+      isProjectReadyToStart: false,
+      acknowledgedByPmIds: [],
+      acknowledgedBySpmIds: [],
+      services: getSeededServices(false),
+      auditTrail: [],
+    },
+    p5: {
+      projectId: "p5",
+      validation: "Validated",
+      collection: "Received",
+      assignedPmIds: ["u3"],
+      assignedSpmIds: [],
+      isProjectReadyToStart: false,
+      acknowledgedByPmIds: [],
+      acknowledgedBySpmIds: [],
+      services: getSeededServices(false),
+      auditTrail: [],
+    },
+    p6: {
+      projectId: "p6",
+      validation: "Validated",
+      collection: "Received",
+      assignedPmIds: ["u4"],
+      assignedSpmIds: ["u1"],
+      isProjectReadyToStart: true,
+      acknowledgedByPmIds: ["u4"],
+      acknowledgedBySpmIds: ["u1"],
+      services: getSeededServices(true),
+      auditTrail: [],
+    },
+    p7: {
+      projectId: "p7",
+      validation: "Validation Pending",
+      collection: "Initiated",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+      isProjectReadyToStart: false,
+      acknowledgedByPmIds: [],
+      acknowledgedBySpmIds: [],
+      services: getSeededServices(false),
+      auditTrail: [],
+    },
+    p8: {
+      projectId: "p8",
+      validation: "Validated",
+      collection: "Received",
+      assignedPmIds: ["u4"],
+      assignedSpmIds: [],
+      isProjectReadyToStart: false,
+      acknowledgedByPmIds: [],
+      acknowledgedBySpmIds: [],
+      services: getSeededServices(false),
+      auditTrail: [],
+    },
+    p9: {
+      projectId: "p9",
+      validation: "Validation Pending",
+      collection: "Initiated",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+      isProjectReadyToStart: false,
+      acknowledgedByPmIds: [],
+      acknowledgedBySpmIds: [],
+      services: getSeededServices(false),
+      auditTrail: [],
+    },
   },
   projectStages: {
     p1: {
       projectId: "p1",
       stages: {
         sales: {
-          stageName: "Sales", currentStatus: "Approval", isCompleted: true, isActive: false, history: [
-            { id: "sh1", timestamp: new Date(Date.now() - 86400000 * 30).toISOString(), action: "Project created", updatedBy: "u11", updatedByName: "Dhanshree", newStatus: "Pending" },
-            { id: "sh2", timestamp: new Date(Date.now() - 86400000 * 28).toISOString(), action: "Sales assigned", updatedBy: "u11", updatedByName: "Dhanshree", previousStatus: "Pending", newStatus: "Assigned" },
-            { id: "sh3", timestamp: new Date(Date.now() - 86400000 * 25).toISOString(), action: "Approval submitted", updatedBy: "u1", updatedByName: "Sana", previousStatus: "Assigned", newStatus: "Approval" },
-          ]
+          stageName: "Sales",
+          currentStatus: "Approval",
+          isCompleted: true,
+          isActive: false,
+          history: [
+            {
+              id: "sh1",
+              timestamp: new Date(Date.now() - 86400000 * 30).toISOString(),
+              action: "Project created",
+              updatedBy: "u11",
+              updatedByName: "Dhanshree",
+              newStatus: "Pending",
+            },
+            {
+              id: "sh2",
+              timestamp: new Date(Date.now() - 86400000 * 28).toISOString(),
+              action: "Sales assigned",
+              updatedBy: "u11",
+              updatedByName: "Dhanshree",
+              previousStatus: "Pending",
+              newStatus: "Assigned",
+            },
+            {
+              id: "sh3",
+              timestamp: new Date(Date.now() - 86400000 * 25).toISOString(),
+              action: "Approval submitted",
+              updatedBy: "u1",
+              updatedByName: "Sana",
+              previousStatus: "Assigned",
+              newStatus: "Approval",
+            },
+          ],
         },
         pmo: {
-          stageName: "PMO", currentStatus: "Ready To Start Project", isCompleted: true, isActive: false, history: [
-            { id: "sh4", timestamp: new Date(Date.now() - 86400000 * 24).toISOString(), action: "Prerequisite collection started", updatedBy: "u3", updatedByName: "Vikram Shah", newStatus: "Prerequisite Collection" },
-            { id: "sh5", timestamp: new Date(Date.now() - 86400000 * 15).toISOString(), action: "Validation in progress", updatedBy: "u8", updatedByName: "Engagement Manager", previousStatus: "Prerequisite Collection", newStatus: "Validation" },
-            { id: "sh6", timestamp: new Date(Date.now() - 86400000 * 7).toISOString(), action: "PM/SPM assigned", updatedBy: "u11", updatedByName: "Dhanshree", previousStatus: "Validation", newStatus: "Ready To Start Project" },
-          ]
+          stageName: "PMO",
+          currentStatus: "Ready To Start Project",
+          isCompleted: true,
+          isActive: false,
+          history: [
+            {
+              id: "sh4",
+              timestamp: new Date(Date.now() - 86400000 * 24).toISOString(),
+              action: "Prerequisite collection started",
+              updatedBy: "u3",
+              updatedByName: "Vikram Shah",
+              newStatus: "Prerequisite Collection",
+            },
+            {
+              id: "sh5",
+              timestamp: new Date(Date.now() - 86400000 * 15).toISOString(),
+              action: "Validation in progress",
+              updatedBy: "u8",
+              updatedByName: "Engagement Manager",
+              previousStatus: "Prerequisite Collection",
+              newStatus: "Validation",
+            },
+            {
+              id: "sh6",
+              timestamp: new Date(Date.now() - 86400000 * 7).toISOString(),
+              action: "PM/SPM assigned",
+              updatedBy: "u11",
+              updatedByName: "Dhanshree",
+              previousStatus: "Validation",
+              newStatus: "Ready To Start Project",
+            },
+          ],
         },
         delivery: {
-          stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: true, history: [
-            { id: "sh7", timestamp: new Date(Date.now() - 86400000 * 6).toISOString(), action: "Delivery started", updatedBy: "u3", updatedByName: "Vikram Shah", newStatus: "Ongoing" },
-          ]
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: true,
+          history: [
+            {
+              id: "sh7",
+              timestamp: new Date(Date.now() - 86400000 * 6).toISOString(),
+              action: "Delivery started",
+              updatedBy: "u3",
+              updatedByName: "Vikram Shah",
+              newStatus: "Ongoing",
+            },
+          ],
         },
         accounts: {
-          stageName: "Accounts", currentStatus: "PO Raised", isCompleted: false, isActive: false, history: [
-            { id: "sh8", timestamp: new Date(Date.now() - 86400000 * 8).toISOString(), action: "PO raised by client", updatedBy: "u15", updatedByName: "Accounts", newStatus: "PO Raised" },
-          ]
+          stageName: "Accounts",
+          currentStatus: "PO Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [
+            {
+              id: "sh8",
+              timestamp: new Date(Date.now() - 86400000 * 8).toISOString(),
+              action: "PO raised by client",
+              updatedBy: "u15",
+              updatedByName: "Accounts",
+              newStatus: "PO Raised",
+            },
+          ],
         },
       },
       accountsDetail: { poStatus: "PO Received", paymentStatus: "Payment Pending" },
@@ -769,74 +1171,266 @@ const state: DhState = {
     p2: {
       projectId: "p2",
       stages: {
-        sales: { stageName: "Sales", currentStatus: "Approval", isCompleted: true, isActive: false, history: [] },
-        pmo: { stageName: "PMO", currentStatus: "Ready To Start Project", isCompleted: true, isActive: false, history: [] },
-        delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: true, history: [] },
-        accounts: { stageName: "Accounts", currentStatus: "Invoice Raised", isCompleted: false, isActive: false, history: [] },
+        sales: {
+          stageName: "Sales",
+          currentStatus: "Approval",
+          isCompleted: true,
+          isActive: false,
+          history: [],
+        },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Ready To Start Project",
+          isCompleted: true,
+          isActive: false,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "Invoice Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
       },
       accountsDetail: { poStatus: "PO Validated", paymentStatus: "Payment Received" },
     },
     p3: {
       projectId: "p3",
       stages: {
-        sales: { stageName: "Sales", currentStatus: "Assigned", isCompleted: false, isActive: true, history: [] },
-        pmo: { stageName: "PMO", currentStatus: "Prerequisite Collection", isCompleted: false, isActive: true, history: [] },
-        delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-        accounts: { stageName: "Accounts", currentStatus: "PO Not Raised", isCompleted: false, isActive: false, history: [] },
+        sales: {
+          stageName: "Sales",
+          currentStatus: "Assigned",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Prerequisite Collection",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "PO Not Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
       },
     },
     p4: {
       projectId: "p4",
       stages: {
-        sales: { stageName: "Sales", currentStatus: "Pending", isCompleted: false, isActive: true, history: [] },
-        pmo: { stageName: "PMO", currentStatus: "Prerequisite Collection", isCompleted: false, isActive: false, history: [] },
-        delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-        accounts: { stageName: "Accounts", currentStatus: "PO Not Raised", isCompleted: false, isActive: false, history: [] },
+        sales: {
+          stageName: "Sales",
+          currentStatus: "Pending",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Prerequisite Collection",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "PO Not Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
       },
     },
     p5: {
       projectId: "p5",
       stages: {
-        sales: { stageName: "Sales", currentStatus: "Approval", isCompleted: true, isActive: false, history: [] },
-        pmo: { stageName: "PMO", currentStatus: "Validation", isCompleted: false, isActive: true, history: [] },
-        delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-        accounts: { stageName: "Accounts", currentStatus: "Invoice Not Raised", isCompleted: false, isActive: false, history: [] },
+        sales: {
+          stageName: "Sales",
+          currentStatus: "Approval",
+          isCompleted: true,
+          isActive: false,
+          history: [],
+        },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Validation",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "Invoice Not Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
       },
     },
     p6: {
       projectId: "p6",
       stages: {
-        sales: { stageName: "Sales", currentStatus: "Approval", isCompleted: true, isActive: false, history: [] },
-        pmo: { stageName: "PMO", currentStatus: "Ready To Start Project", isCompleted: true, isActive: false, history: [] },
-        delivery: { stageName: "Delivery", currentStatus: "Completed", isCompleted: true, isActive: false, history: [] },
-        accounts: { stageName: "Accounts", currentStatus: "Invoice Raised", isCompleted: false, isActive: true, history: [] },
+        sales: {
+          stageName: "Sales",
+          currentStatus: "Approval",
+          isCompleted: true,
+          isActive: false,
+          history: [],
+        },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Ready To Start Project",
+          isCompleted: true,
+          isActive: false,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Completed",
+          isCompleted: true,
+          isActive: false,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "Invoice Raised",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
       },
     },
     p7: {
       projectId: "p7",
       stages: {
-        sales: { stageName: "Sales", currentStatus: "Assigned", isCompleted: false, isActive: true, history: [] },
-        pmo: { stageName: "PMO", currentStatus: "Prerequisite Collection", isCompleted: false, isActive: true, history: [] },
-        delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-        accounts: { stageName: "Accounts", currentStatus: "PO Not Raised", isCompleted: false, isActive: false, history: [] },
+        sales: {
+          stageName: "Sales",
+          currentStatus: "Assigned",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Prerequisite Collection",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "PO Not Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
       },
     },
     p8: {
       projectId: "p8",
       stages: {
-        sales: { stageName: "Sales", currentStatus: "Approval", isCompleted: true, isActive: false, history: [] },
-        pmo: { stageName: "PMO", currentStatus: "Validation", isCompleted: false, isActive: true, history: [] },
-        delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-        accounts: { stageName: "Accounts", currentStatus: "PO Raised", isCompleted: false, isActive: false, history: [] },
+        sales: {
+          stageName: "Sales",
+          currentStatus: "Approval",
+          isCompleted: true,
+          isActive: false,
+          history: [],
+        },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Validation",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "PO Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
       },
     },
     p9: {
       projectId: "p9",
       stages: {
-        sales: { stageName: "Sales", currentStatus: "Pending", isCompleted: false, isActive: true, history: [] },
-        pmo: { stageName: "PMO", currentStatus: "Prerequisite Collection", isCompleted: false, isActive: true, history: [] },
-        delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-        accounts: { stageName: "Accounts", currentStatus: "PO Not Raised", isCompleted: false, isActive: false, history: [] },
+        sales: {
+          stageName: "Sales",
+          currentStatus: "Pending",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Prerequisite Collection",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "PO Not Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
       },
     },
   },
@@ -848,44 +1442,68 @@ const state: DhState = {
   },
   shadowTeamDetails: {
     p1: {
-      u9: { duration: "02/01/2026 → 08/30/2026", billability: "Non-Billable", resourceType: "Shared Resource" }
+      u9: {
+        duration: "02/01/2026 → 08/30/2026",
+        billability: "Non-Billable",
+        resourceType: "Shared Resource",
+      },
     },
     p3: {
-      u6: { duration: "03/01/2026 → 09/15/2026", billability: "Non-Billable", resourceType: "Shared Resource" },
-      u10: { duration: "03/01/2026 → 09/15/2026", billability: "Non-Billable", resourceType: "Shared Resource" }
+      u6: {
+        duration: "03/01/2026 → 09/15/2026",
+        billability: "Non-Billable",
+        resourceType: "Shared Resource",
+      },
+      u10: {
+        duration: "03/01/2026 → 09/15/2026",
+        billability: "Non-Billable",
+        resourceType: "Shared Resource",
+      },
     },
     p5: {
-      u5: { duration: "01/20/2026 → 08/10/2026", billability: "Non-Billable", resourceType: "Shared Resource" }
-    }
+      u5: {
+        duration: "01/20/2026 → 08/10/2026",
+        billability: "Non-Billable",
+        resourceType: "Shared Resource",
+      },
+    },
   },
   projectTeamDetails: {},
   projectTeamAdditions: {},
   projectTeamRemovals: {},
   leadershipChangeRequests: [],
   leadershipAssignments: {},
-  timesheets: baseTimesheets.map(t => ({
+  timesheets: baseTimesheets.map((t) => ({
     ...t,
-    comments: t.rejectionReason ? [{
-      id: `init-c-${t.id}`,
-      authorId: "u11", // PMO
-      authorName: "Rahul Gupta",
-      text: t.rejectionReason,
-      at: t.submittedAt || new Date().toISOString()
-    }] : [],
+    comments: t.rejectionReason
+      ? [
+          {
+            id: `init-c-${t.id}`,
+            authorId: "u11", // PMO
+            authorName: "Rahul Gupta",
+            text: t.rejectionReason,
+            at: t.submittedAt || new Date().toISOString(),
+          },
+        ]
+      : [],
     history: [
       {
         status: "submitted",
         at: t.submittedAt || new Date().toISOString(),
         updatedBy: getPerson(t.userId)?.name || "Employee",
-        comment: "Initial submission"
+        comment: "Initial submission",
       },
-      ...(t.status === "approved" || t.status === "rejected" ? [{
-        status: t.status,
-        at: new Date().toISOString(),
-        updatedBy: "Rahul Gupta",
-        comment: t.rejectionReason || "Approved"
-      }] : [])
-    ]
+      ...(t.status === "approved" || t.status === "rejected"
+        ? [
+            {
+              status: t.status,
+              at: new Date().toISOString(),
+              updatedBy: "Rahul Gupta",
+              comment: t.rejectionReason || "Approved",
+            },
+          ]
+        : []),
+    ],
   })),
   approvals: [
     {
@@ -897,9 +1515,10 @@ const state: DhState = {
       requestedById: "u1",
       requestedDate: "2026-05-28",
       status: "Pending",
-      description: "Approve WBS revision for Open Banking API Gateway integration. Estimated budget is $1,200,000.",
+      description:
+        "Approve WBS revision for Open Banking API Gateway integration. Estimated budget is $1,200,000.",
       comments: [],
-      history: []
+      history: [],
     },
     {
       id: "APP-002",
@@ -910,9 +1529,10 @@ const state: DhState = {
       requestedById: "u3",
       requestedDate: "2026-05-29",
       status: "Pending",
-      description: "Requesting additional budget allocation of $150,000 for infrastructure scaling under the Core Banking project.",
+      description:
+        "Requesting additional budget allocation of $150,000 for infrastructure scaling under the Core Banking project.",
       comments: [],
-      history: []
+      history: [],
     },
     {
       id: "APP-003",
@@ -923,9 +1543,10 @@ const state: DhState = {
       requestedById: "u4",
       requestedDate: "2026-05-30",
       status: "Pending",
-      description: "Allocate Arjun Singh (Engineer) to Clinical Data Platform. Required for API development.",
+      description:
+        "Allocate Arjun Singh (Engineer) to Clinical Data Platform. Required for API development.",
       comments: [],
-      history: []
+      history: [],
     },
     {
       id: "APP-004",
@@ -936,9 +1557,10 @@ const state: DhState = {
       requestedById: "u3",
       requestedDate: "2026-05-30",
       status: "Pending",
-      description: "All validation pre-requisites are met for Mobile Banking App v3. Requesting project kick-off approval.",
+      description:
+        "All validation pre-requisites are met for Mobile Banking App v3. Requesting project kick-off approval.",
       comments: [],
-      history: []
+      history: [],
     },
     {
       id: "APP-005",
@@ -951,8 +1573,8 @@ const state: DhState = {
       status: "Pending",
       description: "Assign Vikram Shah as Project Manager for the Core Banking project.",
       comments: [],
-      history: []
-    }
+      history: [],
+    },
   ],
   invoices: baseInvoices.map((inv, idx) => {
     let invStatus: "Not Raised" | "Raised" = "Not Raised";
@@ -986,16 +1608,20 @@ const state: DhState = {
       currency: inv.currency,
       invoiceAmount: inv.invoiceAmount,
       invoiceStatus: invStatus,
-      invoiceNumber: invStatus === "Raised" ? `INV-2026-${String(idx + 1).padStart(3, '0')}` : "",
+      invoiceNumber: invStatus === "Raised" ? `INV-2026-${String(idx + 1).padStart(3, "0")}` : "",
       paymentStatus: payStatus,
-      paymentReceivedDate: inv.paymentReceivedDate ? new Date(inv.paymentReceivedDate).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }).replace(/ /g, '-') : "",
+      paymentReceivedDate: inv.paymentReceivedDate
+        ? new Date(inv.paymentReceivedDate)
+            .toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+            .replace(/ /g, "-")
+        : "",
       raisedBy: invStatus === "Raised" ? "Dhanshree" : undefined,
       raisedDate: invStatus === "Raised" ? inv.raisedOn : undefined,
-      paymentReceivedBy: payStatus === "Received" ? "Accounts" : undefined
+      paymentReceivedBy: payStatus === "Received" ? "Accounts" : undefined,
     };
   }),
   notifications: [
@@ -1011,7 +1637,14 @@ const state: DhState = {
       unread: true,
       createdBy: "Vikram Shah",
       createdDate: new Date(Date.now() - 3600000 * 2).toISOString().slice(0, 10),
-      history: [{ action: "Notification created", date: new Date(Date.now() - 3600000 * 2).toISOString().slice(0, 10), time: new Date(Date.now() - 3600000 * 2).toTimeString().slice(0, 8), by: "Vikram Shah" }]
+      history: [
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 3600000 * 2).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 3600000 * 2).toTimeString().slice(0, 8),
+          by: "Vikram Shah",
+        },
+      ],
     },
     {
       id: "notif2",
@@ -1025,7 +1658,14 @@ const state: DhState = {
       unread: true,
       createdBy: "Nikhil Rao",
       createdDate: new Date(Date.now() - 3600000 * 4).toISOString().slice(0, 10),
-      history: [{ action: "Notification created", date: new Date(Date.now() - 3600000 * 4).toISOString().slice(0, 10), time: new Date(Date.now() - 3600000 * 4).toTimeString().slice(0, 8), by: "Nikhil Rao" }]
+      history: [
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 3600000 * 4).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 3600000 * 4).toTimeString().slice(0, 8),
+          by: "Nikhil Rao",
+        },
+      ],
     },
     {
       id: "notif3",
@@ -1039,7 +1679,14 @@ const state: DhState = {
       unread: true,
       createdBy: "Riya Kapoor",
       createdDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
-      history: [{ action: "Notification created", date: new Date(Date.now() - 86400000).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000).toTimeString().slice(0, 8), by: "Riya Kapoor" }]
+      history: [
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000).toTimeString().slice(0, 8),
+          by: "Riya Kapoor",
+        },
+      ],
     },
     {
       id: "notif4",
@@ -1053,7 +1700,14 @@ const state: DhState = {
       unread: true,
       createdBy: "Rahul Gupta",
       createdDate: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10),
-      history: [{ action: "Notification created", date: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 2).toTimeString().slice(0, 8), by: "Rahul Gupta" }]
+      history: [
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 2).toTimeString().slice(0, 8),
+          by: "Rahul Gupta",
+        },
+      ],
     },
     {
       id: "notif5",
@@ -1067,7 +1721,14 @@ const state: DhState = {
       unread: true,
       createdBy: "Rahul Gupta",
       createdDate: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10),
-      history: [{ action: "Notification created", date: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 3).toTimeString().slice(0, 8), by: "Rahul Gupta" }]
+      history: [
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 3).toTimeString().slice(0, 8),
+          by: "Rahul Gupta",
+        },
+      ],
     },
     {
       id: "notif6",
@@ -1085,9 +1746,19 @@ const state: DhState = {
       createdBy: "Dhanshree",
       createdDate: new Date(Date.now() - 86400000 * 4).toISOString().slice(0, 10),
       history: [
-        { action: "Notification created", date: new Date(Date.now() - 86400000 * 4).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 4).toTimeString().slice(0, 8), by: "Dhanshree" },
-        { action: "Notification acknowledged - Remarks: \"WBS checked.\"", date: new Date(Date.now() - 86400000 * 4 + 3600000).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 4 + 3600000).toTimeString().slice(0, 8), by: "Dhanshree" }
-      ]
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000 * 4).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 4).toTimeString().slice(0, 8),
+          by: "Dhanshree",
+        },
+        {
+          action: 'Notification acknowledged - Remarks: "WBS checked."',
+          date: new Date(Date.now() - 86400000 * 4 + 3600000).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 4 + 3600000).toTimeString().slice(0, 8),
+          by: "Dhanshree",
+        },
+      ],
     },
     {
       id: "notif7",
@@ -1105,9 +1776,19 @@ const state: DhState = {
       createdBy: "Rakesh Menon",
       createdDate: new Date(Date.now() - 86400000 * 5).toISOString().slice(0, 10),
       history: [
-        { action: "Notification created", date: new Date(Date.now() - 86400000 * 5).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 5).toTimeString().slice(0, 8), by: "Rakesh Menon" },
-        { action: "Notification acknowledged - Remarks: \"Project initialized.\"", date: new Date(Date.now() - 86400000 * 5 + 3600000).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 5 + 3600000).toTimeString().slice(0, 8), by: "Dhanshree" }
-      ]
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000 * 5).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 5).toTimeString().slice(0, 8),
+          by: "Rakesh Menon",
+        },
+        {
+          action: 'Notification acknowledged - Remarks: "Project initialized."',
+          date: new Date(Date.now() - 86400000 * 5 + 3600000).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 5 + 3600000).toTimeString().slice(0, 8),
+          by: "Dhanshree",
+        },
+      ],
     },
     {
       id: "notif8",
@@ -1125,9 +1806,19 @@ const state: DhState = {
       createdBy: "Sana Iyer",
       createdDate: new Date(Date.now() - 86400000 * 6).toISOString().slice(0, 10),
       history: [
-        { action: "Notification created", date: new Date(Date.now() - 86400000 * 6).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 6).toTimeString().slice(0, 8), by: "Sana Iyer" },
-        { action: "Notification acknowledged - Remarks: \"Allocation approved.\"", date: new Date(Date.now() - 86400000 * 6 + 3600000).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 6 + 3600000).toTimeString().slice(0, 8), by: "Dhanshree" }
-      ]
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000 * 6).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 6).toTimeString().slice(0, 8),
+          by: "Sana Iyer",
+        },
+        {
+          action: 'Notification acknowledged - Remarks: "Allocation approved."',
+          date: new Date(Date.now() - 86400000 * 6 + 3600000).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 6 + 3600000).toTimeString().slice(0, 8),
+          by: "Dhanshree",
+        },
+      ],
     },
     {
       id: "notif9",
@@ -1145,9 +1836,19 @@ const state: DhState = {
       createdBy: "Vikram Shah",
       createdDate: new Date(Date.now() - 86400000 * 7).toISOString().slice(0, 10),
       history: [
-        { action: "Notification created", date: new Date(Date.now() - 86400000 * 7).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 7).toTimeString().slice(0, 8), by: "Vikram Shah" },
-        { action: "Notification acknowledged - Remarks: \"Well done!\"", date: new Date(Date.now() - 86400000 * 7 + 3600000).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 7 + 3600000).toTimeString().slice(0, 8), by: "Dhanshree" }
-      ]
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000 * 7).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 7).toTimeString().slice(0, 8),
+          by: "Vikram Shah",
+        },
+        {
+          action: 'Notification acknowledged - Remarks: "Well done!"',
+          date: new Date(Date.now() - 86400000 * 7 + 3600000).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 7 + 3600000).toTimeString().slice(0, 8),
+          by: "Dhanshree",
+        },
+      ],
     },
     {
       id: "notif10",
@@ -1165,9 +1866,19 @@ const state: DhState = {
       createdBy: "Nikhil Rao",
       createdDate: new Date(Date.now() - 86400000 * 8).toISOString().slice(0, 10),
       history: [
-        { action: "Notification created", date: new Date(Date.now() - 86400000 * 8).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 8).toTimeString().slice(0, 8), by: "Nikhil Rao" },
-        { action: "Notification acknowledged - Remarks: \"Issue closed.\"", date: new Date(Date.now() - 86400000 * 8 + 3600000).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 8 + 3600000).toTimeString().slice(0, 8), by: "Dhanshree" }
-      ]
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000 * 8).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 8).toTimeString().slice(0, 8),
+          by: "Nikhil Rao",
+        },
+        {
+          action: 'Notification acknowledged - Remarks: "Issue closed."',
+          date: new Date(Date.now() - 86400000 * 8 + 3600000).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 8 + 3600000).toTimeString().slice(0, 8),
+          by: "Dhanshree",
+        },
+      ],
     },
     {
       id: "notif11",
@@ -1185,9 +1896,19 @@ const state: DhState = {
       createdBy: "Rahul Gupta",
       createdDate: new Date(Date.now() - 86400000 * 9).toISOString().slice(0, 10),
       history: [
-        { action: "Notification created", date: new Date(Date.now() - 86400000 * 9).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 9).toTimeString().slice(0, 8), by: "Rahul Gupta" },
-        { action: "Notification acknowledged - Remarks: \"Approved by PMO.\"", date: new Date(Date.now() - 86400000 * 9 + 3600000).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 9 + 3600000).toTimeString().slice(0, 8), by: "Dhanshree" }
-      ]
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000 * 9).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 9).toTimeString().slice(0, 8),
+          by: "Rahul Gupta",
+        },
+        {
+          action: 'Notification acknowledged - Remarks: "Approved by PMO."',
+          date: new Date(Date.now() - 86400000 * 9 + 3600000).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 9 + 3600000).toTimeString().slice(0, 8),
+          by: "Dhanshree",
+        },
+      ],
     },
     {
       id: "notif12",
@@ -1205,16 +1926,36 @@ const state: DhState = {
       createdBy: "Sana Iyer",
       createdDate: new Date(Date.now() - 86400000 * 10).toISOString().slice(0, 10),
       history: [
-        { action: "Notification created", date: new Date(Date.now() - 86400000 * 10).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 10).toTimeString().slice(0, 8), by: "Sana Iyer" },
-        { action: "Notification acknowledged - Remarks: \"Validation verified.\"", date: new Date(Date.now() - 86400000 * 10 + 3600000).toISOString().slice(0, 10), time: new Date(Date.now() - 86400000 * 10 + 3600000).toTimeString().slice(0, 8), by: "Dhanshree" }
-      ]
-    }
+        {
+          action: "Notification created",
+          date: new Date(Date.now() - 86400000 * 10).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 10).toTimeString().slice(0, 8),
+          by: "Sana Iyer",
+        },
+        {
+          action: 'Notification acknowledged - Remarks: "Validation verified."',
+          date: new Date(Date.now() - 86400000 * 10 + 3600000).toISOString().slice(0, 10),
+          time: new Date(Date.now() - 86400000 * 10 + 3600000).toTimeString().slice(0, 8),
+          by: "Dhanshree",
+        },
+      ],
+    },
   ],
   treeTaskStates: {
     p1: {
-      "p1-svc1-ap1-t01": { actualStartDate: "", actualEndDate: "", stage: "Assigned", assigneeIds: ["u7", "u14"] },
-      "p1-svc1-ap1-t02": { actualStartDate: "", actualEndDate: "", stage: "Assigned", assigneeIds: ["u7"] }
-    }
+      "p1-svc1-ap1-t01": {
+        actualStartDate: "",
+        actualEndDate: "",
+        stage: "Assigned",
+        assigneeIds: ["u7", "u14"],
+      },
+      "p1-svc1-ap1-t02": {
+        actualStartDate: "",
+        actualEndDate: "",
+        stage: "Assigned",
+        assigneeIds: ["u7"],
+      },
+    },
   },
   bucketTasks: [
     {
@@ -1229,7 +1970,7 @@ const state: DhState = {
       assignedById: "u1",
       status: "Not Started",
       elapsedTime: 0,
-      timerRunning: false
+      timerRunning: false,
     },
     {
       id: "p1-svc1-ap1-t02-u7",
@@ -1243,7 +1984,7 @@ const state: DhState = {
       assignedById: "u1",
       status: "Not Started",
       elapsedTime: 0,
-      timerRunning: false
+      timerRunning: false,
     },
     {
       id: "p1-svc1-ap1-t01-u14",
@@ -1257,14 +1998,14 @@ const state: DhState = {
       assignedById: "u1",
       status: "Not Started",
       elapsedTime: 0,
-      timerRunning: false
-    }
+      timerRunning: false,
+    },
   ],
 };
 
 state.notifications.forEach((n, idx) => {
   const num = state.notifications.length - idx;
-  n.id = `NTF-${String(num).padStart(3, '0')}`;
+  n.id = `NTF-${String(num).padStart(3, "0")}`;
 });
 
 // Initialise snapshot after state definition
@@ -1369,7 +2110,8 @@ export function buildProjectDisplayId(): string {
 export const dhStore = {
   addClient(input: Omit<Client, "id" | "logo"> & { logo?: string }) {
     const id = getNextClientSeqId();
-    const logo = (input.logo ?? input.name.slice(0, 2)).toUpperCase();
+    // Logo is always derived from the client name: first + last letter.
+    const logo = (clientLogo(input.name) || input.logo || "•").toUpperCase();
     const c: Client = {
       id,
       name: input.name,
@@ -1377,11 +2119,8 @@ export const dhStore = {
       contact: input.contact,
       logo,
       engagementManager: input.engagementManager,
-      companyName: input.companyName,
-      // If a sub-venture name was provided during onboarding, seed subVentures with it
-      subVentures: input.companyName?.trim()
-        ? [...(input.subVentures ?? []), input.companyName.trim()]
-        : (input.subVentures ?? []),
+      // Sub-ventures (with their own contacts) come through in the payload already.
+      subVentures: input.subVentures ?? [],
       contactName: input.contactName,
       contactPhone: input.contactPhone,
       contactDesignation: input.contactDesignation,
@@ -1393,16 +2132,26 @@ export const dhStore = {
     return c;
   },
 
-  // Add a new sub-venture name to an existing client's subVentures list (and append new SPOC contacts if provided)
+  // Add a new sub-venture (with its own SPOC contacts) to an existing client.
   addSubVenture(clientId: string, subVentureName: string, newContacts?: any[]) {
     const trimmed = subVentureName.trim();
-    const validContacts = newContacts ? newContacts.filter(c => c.name?.trim() && c.email?.trim()) : [];
+    const validContacts = newContacts
+      ? newContacts.filter((c) => c.name?.trim() && c.email?.trim())
+      : [];
+    if (!trimmed) {
+      emit();
+      return;
+    }
+    const subVenture: ClientSubVenture = {
+      name: trimmed,
+      contacts: validContacts.length > 0 ? validContacts : undefined,
+    };
 
     // For extra clients created at runtime, mutate directly
     const extra = state.extraClients.find((c) => c.id === clientId);
     if (extra) {
-      if (trimmed && !extra.subVentures?.includes(trimmed)) {
-        extra.subVentures = [...(extra.subVentures ?? []), trimmed];
+      if (!extra.subVentures?.some((sv) => sv.name === trimmed)) {
+        extra.subVentures = [...(extra.subVentures ?? []), subVenture];
       }
       if (validContacts.length > 0) {
         extra.contacts = [...(extra.contacts ?? []), ...validContacts];
@@ -1411,14 +2160,14 @@ export const dhStore = {
       return;
     }
     // For base clients, store additions in subVentureOverrides and append contacts
-    if (trimmed) {
+    if (!state.subVentureOverrides[clientId]?.some((sv) => sv.name === trimmed)) {
       state.subVentureOverrides[clientId] = [
         ...(state.subVentureOverrides[clientId] ?? []),
-        trimmed,
+        subVenture,
       ];
     }
     if (validContacts.length > 0) {
-      const base = baseClients.find(c => c.id === clientId);
+      const base = baseClients.find((c) => c.id === clientId);
       if (base) {
         base.contacts = [...(base.contacts ?? []), ...validContacts];
       }
@@ -1430,7 +2179,7 @@ export const dhStore = {
     const id = uid("draft");
     // If a draft for the same projectName + clientId exists, overwrite it
     const idx = state.wbsDrafts.findIndex(
-      (d) => d.projectName === draft.projectName && d.clientId === draft.clientId
+      (d) => d.projectName === draft.projectName && d.clientId === draft.clientId,
     );
     const entry: WbsDraft = { ...draft, id };
     if (idx >= 0) state.wbsDrafts[idx] = entry;
@@ -1451,7 +2200,14 @@ export const dhStore = {
     endDate: string;
     budget: number;
     wbsDetails?: any;
-    wbsStatus?: "draft" | "approval_pending" | "ph_approved" | "accounts_approved" | "approved" | "started" | "assigned";
+    wbsStatus?:
+      | "draft"
+      | "approval_pending"
+      | "ph_approved"
+      | "accounts_approved"
+      | "approved"
+      | "started"
+      | "assigned";
     wbsSubStatus?: string;
     engagementManager?: string;
     salesPerson?: string;
@@ -1542,12 +2298,13 @@ export const dhStore = {
           qty: inv.qty || 1,
           currency: inv.currency || input.currency || "INR",
           invoiceAmount: inv.amount || 0,
-          invoiceStatus: (inv.invoiceStatus === "Raised" ? "Raised" : "Not Raised"),
+          invoiceStatus: inv.invoiceStatus === "Raised" ? "Raised" : "Not Raised",
           invoiceNumber: inv.invoiceNumber || "",
-          paymentStatus: (inv.paymentStatus === "Received" ? "Received" : "Not Received"),
+          paymentStatus: inv.paymentStatus === "Received" ? "Received" : "Not Received",
           paymentReceivedDate: inv.paymentDate || "",
           raisedBy: inv.invoiceStatus === "Raised" ? "Dhanshree" : undefined,
-          raisedDate: inv.invoiceStatus === "Raised" ? (inv.targetDate || inv.invoiceDate) : undefined,
+          raisedDate:
+            inv.invoiceStatus === "Raised" ? inv.targetDate || inv.invoiceDate : undefined,
           paymentReceivedBy: inv.paymentStatus === "Received" ? "Accounts" : undefined,
           serviceId: inv.serviceId,
           serviceName: inv.serviceName,
@@ -1571,27 +2328,55 @@ export const dhStore = {
           currentStatus: initialSalesStatus,
           isCompleted: initialSalesStatus === "Assigned",
           isActive: true,
-          history: [{ id: uid("sh"), timestamp: now, action: "WBS created via WBS Form", updatedBy: "u14", updatedByName: "Dhanshree", newStatus: initialSalesStatus }],
+          history: [
+            {
+              id: uid("sh"),
+              timestamp: now,
+              action: "WBS created via WBS Form",
+              updatedBy: "u14",
+              updatedByName: "Dhanshree",
+              newStatus: initialSalesStatus,
+            },
+          ],
         },
-        pmo: { stageName: "PMO", currentStatus: "Prerequisite Collection", isCompleted: false, isActive: false, history: [] },
-        delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-        accounts: { stageName: "Accounts", currentStatus: "PO Not Raised", isCompleted: false, isActive: false, history: [] },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Prerequisite Collection",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "PO Not Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
       },
     };
 
     // Initialize prerequisite record — seed services from WBS so the
     // Service-wise Prerequisite Tracking table shows real service names
-    const prereqServices: DhServicePrereq[] = input.wbsDetails?.services?.map((svc: any, i: number) => {
-      const isResourceDept = DEPT_GROUPS[svc.department] === "Resource";
-      return {
-        serviceId: svc.id ?? `svc-${i}`,
-        serviceName: svc.serviceName ?? svc.department ?? `Service ${i + 1}`,
-        collectionStatus: (isResourceDept ? "NA" : "Pending To Collect") as any,
-        validationStatus: (isResourceDept ? "NA" : "Pending To Validate") as any,
-        billingStatus: "Advance Pending" as const,
-        isReady: false,
-      };
-    }) ?? [];
+    const prereqServices: DhServicePrereq[] =
+      input.wbsDetails?.services?.map((svc: any, i: number) => {
+        const isResourceDept = DEPT_GROUPS[svc.department] === "Resource";
+        return {
+          serviceId: svc.id ?? `svc-${i}`,
+          serviceName: svc.serviceName ?? svc.department ?? `Service ${i + 1}`,
+          collectionStatus: (isResourceDept ? "NA" : "Pending To Collect") as any,
+          validationStatus: (isResourceDept ? "NA" : "Pending To Validate") as any,
+          billingStatus: "Advance Pending" as const,
+          isReady: false,
+        };
+      }) ?? [];
 
     state.prereqs[id] = {
       projectId: id,
@@ -1624,11 +2409,18 @@ export const dhStore = {
     return p;
   },
 
-  raiseIssue(input: Omit<DhIssue, "id" | "createdAt" | "comments" | "audit" | "status"> & { status?: DhIssueStatus }) {
+  raiseIssue(
+    input: Omit<DhIssue, "id" | "createdAt" | "comments" | "audit" | "status"> & {
+      status?: DhIssueStatus;
+    },
+  ) {
     const id = uid("dhi");
     const now = new Date().toISOString();
     const issue: DhIssue = {
-      ...input, id, createdAt: now, status: input.status ?? "Open",
+      ...input,
+      id,
+      createdAt: now,
+      status: input.status ?? "Open",
       comments: [],
       audit: [{ id: uid("a"), text: `Issue raised by ${input.raisedByName}`, at: now }],
     };
@@ -1654,7 +2446,11 @@ export const dhStore = {
     const i = state.issues.find((x) => x.id === id);
     if (!i) return;
     i.status = status;
-    i.audit.push({ id: uid("a"), text: `Status → ${status} by ${actorName}`, at: new Date().toISOString() });
+    i.audit.push({
+      id: uid("a"),
+      text: `Status → ${status} by ${actorName}`,
+      at: new Date().toISOString(),
+    });
     const alert = state.alerts.find((a) => a.refId === id);
     if (alert) alert.status = status === "Resolved" ? "Resolved" : "Acknowledged";
     emit();
@@ -1669,15 +2465,31 @@ export const dhStore = {
     if (al) al.comments.push(cm);
     emit();
   },
-  addEscalation(input: Omit<DhEscalation, "id" | "createdAt" | "comments" | "status"> & { status?: DhEscalation["status"] }) {
-    const e: DhEscalation = { ...input, id: uid("esc"), createdAt: new Date().toISOString(), comments: [], status: input.status ?? "Open" };
+  addEscalation(
+    input: Omit<DhEscalation, "id" | "createdAt" | "comments" | "status"> & {
+      status?: DhEscalation["status"];
+    },
+  ) {
+    const e: DhEscalation = {
+      ...input,
+      id: uid("esc"),
+      createdAt: new Date().toISOString(),
+      comments: [],
+      status: input.status ?? "Open",
+    };
     state.escalations.unshift(e);
     state.alerts.unshift({
-      id: uid("al"), title: input.title, kind: "Escalation",
-      projectId: input.projectId, raisedByName: input.ownerName,
+      id: uid("al"),
+      title: input.title,
+      kind: "Escalation",
+      projectId: input.projectId,
+      raisedByName: input.ownerName,
       audienceUserIds: ["u1", "u3", "u4", "u11", "u12"],
-      priority: input.severity, status: "Open",
-      refId: e.id, createdAt: e.createdAt, comments: [],
+      priority: input.severity,
+      status: "Open",
+      refId: e.id,
+      createdAt: e.createdAt,
+      comments: [],
     });
     emit();
     return e;
@@ -1694,7 +2506,7 @@ export const dhStore = {
     expectedResolutionDate?: string;
     attachments?: string[];
   }) {
-    const alertId = `ESC-${String(state.alerts.length + 1).padStart(3, '0')}`;
+    const alertId = `ESC-${String(state.alerts.length + 1).padStart(3, "0")}`;
     const id = uid("al");
     const now = new Date().toISOString();
     const alert: DhAlert = {
@@ -1718,8 +2530,13 @@ export const dhStore = {
       escalatedTo: input.escalatedTo,
       expectedResolutionDate: input.expectedResolutionDate,
       history: [
-        { status: "Open", at: now, updatedBy: input.raisedByName, details: `Escalation raised for service ${input.serviceName}` }
-      ]
+        {
+          status: "Open",
+          at: now,
+          updatedBy: input.raisedByName,
+          details: `Escalation raised for service ${input.serviceName}`,
+        },
+      ],
     };
     state.alerts.unshift(alert);
     emit();
@@ -1732,7 +2549,11 @@ export const dhStore = {
     return a;
   },
   addInterview(input: Omit<DhInterview, "id" | "history">) {
-    const iv: DhInterview = { ...input, id: uid("iv"), history: [{ status: input.status, at: new Date().toISOString(), updatedBy: "system" }] };
+    const iv: DhInterview = {
+      ...input,
+      id: uid("iv"),
+      history: [{ status: input.status, at: new Date().toISOString(), updatedBy: "system" }],
+    };
     state.interviews.unshift(iv);
     // Notify resource via alert
     state.alerts.unshift({
@@ -1760,9 +2581,9 @@ export const dhStore = {
     const now = new Date().toISOString();
     if (status === "Selected" || status === "Rejected" || status === "Postponed") {
       const kindMap = {
-        "Selected": "Interview Selected",
-        "Rejected": "Interview Rejected",
-        "Postponed": "Interview Rejected",
+        Selected: "Interview Selected",
+        Rejected: "Interview Rejected",
+        Postponed: "Interview Rejected",
       };
       state.alerts.unshift({
         id: uid("al"),
@@ -1786,19 +2607,38 @@ export const dhStore = {
     iv.resourceResponse = { text, at: new Date().toISOString() };
     emit();
   },
-  addRequirement(input: Omit<DhAdditionalRequirement, "id" | "history" | "createdAt" | "requirementId">) {
-    const req: DhAdditionalRequirement = { ...input, id: uid("req"), requirementId: `REQ-${Date.now()}`, history: [{ status: input.status, at: new Date().toISOString(), updatedBy: "system", updatedByName: "System" }], createdAt: new Date().toISOString() };
+  addRequirement(
+    input: Omit<DhAdditionalRequirement, "id" | "history" | "createdAt" | "requirementId">,
+  ) {
+    const req: DhAdditionalRequirement = {
+      ...input,
+      id: uid("req"),
+      requirementId: `REQ-${Date.now()}`,
+      history: [
+        {
+          status: input.status,
+          at: new Date().toISOString(),
+          updatedBy: "system",
+          updatedByName: "System",
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    };
     state.requirements.unshift(req);
     // Alert the people associated with this project (PM, TL, team, shadow team,
     // prereq-assigned PM/SPMs). Audience-based authorization is applied later.
     const proj = findProject(req.projectId);
     const prereq = state.prereqs[req.projectId];
-    const audienceUserIds = Array.from(new Set([
-      ...(proj ? [proj.pmId, proj.tlId, ...proj.teamIds, ...(proj.shadowTeamIds ?? [])] : []),
-      ...(prereq?.assignedPmIds ?? []),
-      ...(prereq?.assignedSpmIds ?? []),
-      "u14", // Dhanshree — delivery operations
-    ].filter(Boolean)));
+    const audienceUserIds = Array.from(
+      new Set(
+        [
+          ...(proj ? [proj.pmId, proj.tlId, ...proj.teamIds, ...(proj.shadowTeamIds ?? [])] : []),
+          ...(prereq?.assignedPmIds ?? []),
+          ...(prereq?.assignedSpmIds ?? []),
+          "u14", // Dhanshree — delivery operations
+        ].filter(Boolean),
+      ),
+    );
     state.alerts.unshift({
       id: uid("al"),
       alertId: `REQ-AL-${String(state.alerts.length + 1).padStart(3, "0")}`,
@@ -1817,13 +2657,23 @@ export const dhStore = {
       owner: req.requestedBy,
       serviceName: req.scopeCancellationService,
       history: [
-        { status: "Open", at: req.createdAt, updatedBy: req.requestedBy, details: `Additional customer requirement logged for ${req.projectName}` }
+        {
+          status: "Open",
+          at: req.createdAt,
+          updatedBy: req.requestedBy,
+          details: `Additional customer requirement logged for ${req.projectName}`,
+        },
       ],
     });
     emit();
     return req;
   },
-  updateRequirementStatus(id: string, status: RequirementStatus, updatedBy: string, updatedByName: string) {
+  updateRequirementStatus(
+    id: string,
+    status: RequirementStatus,
+    updatedBy: string,
+    updatedByName: string,
+  ) {
     const req = state.requirements.find((x) => x.id === id);
     if (!req) return;
     req.status = status;
@@ -1838,13 +2688,25 @@ export const dhStore = {
     emit();
   },
   setPrereqValidation(projectId: string, s: PrereqStatus) {
-    const p = state.prereqs[projectId] ?? { projectId, validation: "Validation Pending", collection: "NA", assignedPmIds: [], assignedSpmIds: [] };
+    const p = state.prereqs[projectId] ?? {
+      projectId,
+      validation: "Validation Pending",
+      collection: "NA",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+    };
     p.validation = s;
     state.prereqs[projectId] = p;
     emit();
   },
   setPrereqCollection(projectId: string, s: PrereqCollectionStatus) {
-    const p = state.prereqs[projectId] ?? { projectId, validation: "Validation Pending", collection: "NA", assignedPmIds: [], assignedSpmIds: [] };
+    const p = state.prereqs[projectId] ?? {
+      projectId,
+      validation: "Validation Pending",
+      collection: "NA",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+    };
     p.collection = s;
     state.prereqs[projectId] = p;
     emit();
@@ -1874,7 +2736,12 @@ export const dhStore = {
     }
     emit();
   },
-  setProjectReadyToStart(projectId: string, isReady: boolean, updatedBy: string = "u14", updatedByName: string = "Dhanshree") {
+  setProjectReadyToStart(
+    projectId: string,
+    isReady: boolean,
+    updatedBy: string = "u14",
+    updatedByName: string = "Dhanshree",
+  ) {
     const p = state.prereqs[projectId];
     if (!p) return;
     p.isProjectReadyToStart = isReady;
@@ -1893,19 +2760,27 @@ export const dhStore = {
       date: dateStr,
       time: timeStr,
       oldStatus: "Pending",
-      newStatus: isReady ? "Ready To Start" : "Pending"
+      newStatus: isReady ? "Ready To Start" : "Pending",
     });
 
     if (isReady) {
-      const proj = allProjects().find(x => x.id === projectId);
+      const proj = allProjects().find((x) => x.id === projectId);
       // Automatically send notifications (alerts) to PMs, SPMs, EM, HOD, PMO
-      const targetAudience = Array.from(new Set([
-        ...(p.assignedPmIds || []),
-        ...(p.assignedSpmIds || []),
-        "u1", "u2", "u3", "u4", "u11", "u12", "u14" // PMs, EM, HOD, PMO, Dhanshree
-      ]));
+      const targetAudience = Array.from(
+        new Set([
+          ...(p.assignedPmIds || []),
+          ...(p.assignedSpmIds || []),
+          "u1",
+          "u2",
+          "u3",
+          "u4",
+          "u11",
+          "u12",
+          "u14", // PMs, EM, HOD, PMO, Dhanshree
+        ]),
+      );
 
-      targetAudience.forEach(id => {
+      targetAudience.forEach((id) => {
         state.alerts.unshift({
           id: uid("al"),
           alertId: uid("ALT"),
@@ -1924,27 +2799,64 @@ export const dhStore = {
           resolutionOwner: getPerson(id)?.name || "Team Member",
           escalationOwner: "Anita Desai",
           attachments: [],
-          history: [{ status: "Open", at: now.toISOString(), updatedBy: updatedByName }]
+          history: [{ status: "Open", at: now.toISOString(), updatedBy: updatedByName }],
         });
       });
 
       // Update delivery stage status to Ready To Start in project stages tracker
-      this.updatePMOStage(projectId, "Ready To Start Project", "Project marked ready to start", updatedBy, updatedByName);
+      this.updatePMOStage(
+        projectId,
+        "Ready To Start Project",
+        "Project marked ready to start",
+        updatedBy,
+        updatedByName,
+      );
     }
 
     emit();
   },
   // Project Stages Tracker - Stage Update Methods (Dhanshree Role Only)
-  updateStage(projectId: string, stageName: "sales" | "pmo" | "delivery" | "accounts", newStatus: string, action: string, updatedBy: string, updatedByName: string) {
+  updateStage(
+    projectId: string,
+    stageName: "sales" | "pmo" | "delivery" | "accounts",
+    newStatus: string,
+    action: string,
+    updatedBy: string,
+    updatedByName: string,
+  ) {
     let tracker = state.projectStages[projectId];
     if (!tracker) {
       tracker = {
         projectId,
         stages: {
-          sales: { stageName: "Sales", currentStatus: "Pending", isCompleted: false, isActive: true, history: [] },
-          pmo: { stageName: "PMO", currentStatus: "Prerequisite Collection", isCompleted: false, isActive: false, history: [] },
-          delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-          accounts: { stageName: "Accounts", currentStatus: "PO Not Raised", isCompleted: false, isActive: false, history: [] },
+          sales: {
+            stageName: "Sales",
+            currentStatus: "Pending",
+            isCompleted: false,
+            isActive: true,
+            history: [],
+          },
+          pmo: {
+            stageName: "PMO",
+            currentStatus: "Prerequisite Collection",
+            isCompleted: false,
+            isActive: false,
+            history: [],
+          },
+          delivery: {
+            stageName: "Delivery",
+            currentStatus: "Ongoing",
+            isCompleted: false,
+            isActive: false,
+            history: [],
+          },
+          accounts: {
+            stageName: "Accounts",
+            currentStatus: "PO Not Raised",
+            isCompleted: false,
+            isActive: false,
+            history: [],
+          },
         },
       };
       state.projectStages[projectId] = tracker;
@@ -1963,28 +2875,81 @@ export const dhStore = {
     stage.currentStatus = newStatus as any;
     emit();
   },
-  updateSalesStage(projectId: string, newStatus: SalesStatus, action: string, updatedBy: string, updatedByName: string) {
+  updateSalesStage(
+    projectId: string,
+    newStatus: SalesStatus,
+    action: string,
+    updatedBy: string,
+    updatedByName: string,
+  ) {
     this.updateStage(projectId, "sales", newStatus, action, updatedBy, updatedByName);
   },
-  updatePMOStage(projectId: string, newStatus: PMOStatus, action: string, updatedBy: string, updatedByName: string) {
+  updatePMOStage(
+    projectId: string,
+    newStatus: PMOStatus,
+    action: string,
+    updatedBy: string,
+    updatedByName: string,
+  ) {
     this.updateStage(projectId, "pmo", newStatus, action, updatedBy, updatedByName);
   },
-  updateDeliveryStage(projectId: string, newStatus: DeliveryStatus, action: string, updatedBy: string, updatedByName: string) {
+  updateDeliveryStage(
+    projectId: string,
+    newStatus: DeliveryStatus,
+    action: string,
+    updatedBy: string,
+    updatedByName: string,
+  ) {
     this.updateStage(projectId, "delivery", newStatus, action, updatedBy, updatedByName);
   },
-  updateAccountsStage(projectId: string, newStatus: AccountsStatus, action: string, updatedBy: string, updatedByName: string) {
+  updateAccountsStage(
+    projectId: string,
+    newStatus: AccountsStatus,
+    action: string,
+    updatedBy: string,
+    updatedByName: string,
+  ) {
     this.updateStage(projectId, "accounts", newStatus, action, updatedBy, updatedByName);
   },
   // Auto-update PMO stage based on prerequisite changes
-  syncPMOStageWithPrereqs(projectId: string, collection: PrereqCollectionStatus, validation: PrereqStatus, isReadyToStart?: boolean) {
+  syncPMOStageWithPrereqs(
+    projectId: string,
+    collection: PrereqCollectionStatus,
+    validation: PrereqStatus,
+    isReadyToStart?: boolean,
+  ) {
     if (!state.projectStages[projectId]) {
       state.projectStages[projectId] = {
         projectId,
         stages: {
-          sales: { stageName: "Sales", currentStatus: "Pending", isCompleted: false, isActive: true, history: [] },
-          pmo: { stageName: "PMO", currentStatus: "Prerequisite Collection", isCompleted: false, isActive: false, history: [] },
-          delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-          accounts: { stageName: "Accounts", currentStatus: "PO Not Raised", isCompleted: false, isActive: false, history: [] },
+          sales: {
+            stageName: "Sales",
+            currentStatus: "Pending",
+            isCompleted: false,
+            isActive: true,
+            history: [],
+          },
+          pmo: {
+            stageName: "PMO",
+            currentStatus: "Prerequisite Collection",
+            isCompleted: false,
+            isActive: false,
+            history: [],
+          },
+          delivery: {
+            stageName: "Delivery",
+            currentStatus: "Ongoing",
+            isCompleted: false,
+            isActive: false,
+            history: [],
+          },
+          accounts: {
+            stageName: "Accounts",
+            currentStatus: "PO Not Raised",
+            isCompleted: false,
+            isActive: false,
+            history: [],
+          },
         },
       };
     }
@@ -2052,7 +3017,7 @@ export const dhStore = {
     const newState: TaskAssignmentState = {
       taskId,
       assigneeIds: initialAssignees,
-      history: initialAssignees.map(id => {
+      history: initialAssignees.map((id) => {
         const p = getPerson(id);
         return {
           id: `h-${Date.now()}-${Math.random()}`,
@@ -2064,7 +3029,7 @@ export const dhStore = {
           timestamp: new Date().toISOString(),
           updatedBy: "Dhanshree",
         };
-      })
+      }),
     };
     state.taskAssignments[taskId] = newState;
     // emit so useDhStore subscribers (liveAssignments) see the seeded data immediately
@@ -2072,18 +3037,23 @@ export const dhStore = {
     return newState;
   },
 
-  assignResourcesToTask(projectId: string, taskId: string, selectedIds: string[], updatedBy: string = "Dhanshree") {
+  assignResourcesToTask(
+    projectId: string,
+    taskId: string,
+    selectedIds: string[],
+    updatedBy: string = "Dhanshree",
+  ) {
     const current = this.getTaskAssignment(projectId, taskId);
     const prevIds = current.assigneeIds;
 
     // Find added and removed resources
-    const added = selectedIds.filter(id => !prevIds.includes(id));
-    const removed = prevIds.filter(id => !selectedIds.includes(id));
+    const added = selectedIds.filter((id) => !prevIds.includes(id));
+    const removed = prevIds.filter((id) => !selectedIds.includes(id));
 
     const now = new Date().toISOString();
     const shadowTeamList = state.shadowTeams[projectId] ?? [];
 
-    added.forEach(id => {
+    added.forEach((id) => {
       const p = getPerson(id);
       const isShadow = shadowTeamList.includes(id);
       current.history.push({
@@ -2094,11 +3064,11 @@ export const dhStore = {
         resourceName: p.name,
         teamType: isShadow ? "Shadow Team" : "Project Team",
         timestamp: now,
-        updatedBy
+        updatedBy,
       });
     });
 
-    removed.forEach(id => {
+    removed.forEach((id) => {
       const p = getPerson(id);
       const isShadow = shadowTeamList.includes(id);
       current.history.push({
@@ -2109,7 +3079,7 @@ export const dhStore = {
         resourceName: p.name,
         teamType: isShadow ? "Shadow Team" : "Project Team",
         timestamp: now,
-        updatedBy
+        updatedBy,
       });
     });
 
@@ -2118,12 +3088,22 @@ export const dhStore = {
   },
 
   // Update PM-editable actuals on a task; auto-calculates actualEndDate skipping weekends
-  updateTaskActuals(projectId: string, taskId: string, patch: {
-    actualStartDate?: string;
-    actualEndDate?: string;
-    utilizedHours?: number;
-    stage?: "Ready to Start" | "Ongoing" | "Completed" | "On Hold (Internal)" | "On Hold (Client End)" | "After Release";
-  }) {
+  updateTaskActuals(
+    projectId: string,
+    taskId: string,
+    patch: {
+      actualStartDate?: string;
+      actualEndDate?: string;
+      utilizedHours?: number;
+      stage?:
+        | "Ready to Start"
+        | "Ongoing"
+        | "Completed"
+        | "On Hold (Internal)"
+        | "On Hold (Client End)"
+        | "After Release";
+    },
+  ) {
     const proj = state.extraProjects.find((p) => p.id === projectId);
     if (!proj) return;
     const task = proj.tasks.find((t) => t.id === taskId);
@@ -2152,7 +3132,13 @@ export const dhStore = {
     emit();
   },
 
-  addShadowMember(projectId: string, memberId: string, duration: string, billability: Billability, resourceType: ResourceType) {
+  addShadowMember(
+    projectId: string,
+    memberId: string,
+    duration: string,
+    billability: Billability,
+    resourceType: ResourceType,
+  ) {
     // Always force shadow team values
     const fixedBillability: Billability = "Non-Billable";
     const fixedResourceType: ResourceType = "Shared Resource";
@@ -2178,14 +3164,25 @@ export const dhStore = {
     const newDetails = { ...existingDetails };
     delete newDetails[memberId];
 
-    state.shadowTeams = { ...state.shadowTeams, [projectId]: existingIds.filter(id => id !== memberId) };
+    state.shadowTeams = {
+      ...state.shadowTeams,
+      [projectId]: existingIds.filter((id) => id !== memberId),
+    };
     state.shadowTeamDetails = { ...state.shadowTeamDetails, [projectId]: newDetails };
     emit();
   },
 
-  updateShadowMember(projectId: string, memberId: string, patch: Partial<{ duration: string; billability: Billability; resourceType: ResourceType }>) {
+  updateShadowMember(
+    projectId: string,
+    memberId: string,
+    patch: Partial<{ duration: string; billability: Billability; resourceType: ResourceType }>,
+  ) {
     const existingDetails = state.shadowTeamDetails[projectId] ?? {};
-    const existing = existingDetails[memberId] ?? { duration: "", billability: "Non-Billable" as Billability, resourceType: "Shared Resource" as ResourceType };
+    const existing = existingDetails[memberId] ?? {
+      duration: "",
+      billability: "Non-Billable" as Billability,
+      resourceType: "Shared Resource" as ResourceType,
+    };
     // Always enforce fixed values for shadow team
     const newDetails = {
       ...existingDetails,
@@ -2200,7 +3197,11 @@ export const dhStore = {
     emit();
   },
 
-  updateProjectTeamMember(projectId: string, memberId: string, patch: Partial<{ duration: string; billability: Billability; resourceType: ResourceType }>) {
+  updateProjectTeamMember(
+    projectId: string,
+    memberId: string,
+    patch: Partial<{ duration: string; billability: Billability; resourceType: ResourceType }>,
+  ) {
     if (!state.projectTeamDetails[projectId]) {
       state.projectTeamDetails[projectId] = {};
     }
@@ -2211,7 +3212,13 @@ export const dhStore = {
     emit();
   },
 
-  addProjectTeamMember(projectId: string, memberId: string, duration: string, billability: Billability, resourceType: ResourceType) {
+  addProjectTeamMember(
+    projectId: string,
+    memberId: string,
+    duration: string,
+    billability: Billability,
+    resourceType: ResourceType,
+  ) {
     if (!state.projectTeamAdditions[projectId]) {
       state.projectTeamAdditions[projectId] = [];
     }
@@ -2227,7 +3234,9 @@ export const dhStore = {
 
   removeProjectTeamAddition(projectId: string, memberId: string) {
     if (state.projectTeamAdditions[projectId]) {
-      state.projectTeamAdditions[projectId] = state.projectTeamAdditions[projectId].filter(id => id !== memberId);
+      state.projectTeamAdditions[projectId] = state.projectTeamAdditions[projectId].filter(
+        (id) => id !== memberId,
+      );
     }
     if (state.projectTeamDetails[projectId]) {
       delete state.projectTeamDetails[projectId][memberId];
@@ -2243,7 +3252,9 @@ export const dhStore = {
       state.projectTeamRemovals[projectId].push(memberId);
     }
     if (state.projectTeamAdditions[projectId]) {
-      state.projectTeamAdditions[projectId] = state.projectTeamAdditions[projectId].filter(id => id !== memberId);
+      state.projectTeamAdditions[projectId] = state.projectTeamAdditions[projectId].filter(
+        (id) => id !== memberId,
+      );
     }
     if (state.projectTeamDetails[projectId]) {
       delete state.projectTeamDetails[projectId][memberId];
@@ -2253,12 +3264,21 @@ export const dhStore = {
 
   restoreProjectTeamMember(projectId: string, memberId: string) {
     if (state.projectTeamRemovals[projectId]) {
-      state.projectTeamRemovals[projectId] = state.projectTeamRemovals[projectId].filter(id => id !== memberId);
+      state.projectTeamRemovals[projectId] = state.projectTeamRemovals[projectId].filter(
+        (id) => id !== memberId,
+      );
     }
     emit();
   },
 
-  acknowledgeInterview(interviewId: string, alertId: string, actionTaken: string, remarks: string, authorId: string, authorName: string) {
+  acknowledgeInterview(
+    interviewId: string,
+    alertId: string,
+    actionTaken: string,
+    remarks: string,
+    authorId: string,
+    authorName: string,
+  ) {
     const iv = state.interviews.find((x) => x.id === interviewId);
     if (!iv) return;
 
@@ -2283,7 +3303,7 @@ export const dhStore = {
     }
 
     // Update alert status
-    const alert = state.alerts.find(a => a.id === alertId);
+    const alert = state.alerts.find((a) => a.id === alertId);
     if (alert) {
       alert.status = "Acknowledged";
       if (remarks.trim()) {
@@ -2292,14 +3312,20 @@ export const dhStore = {
           authorId,
           authorName,
           text: `[${actionTaken}]: ${remarks.trim()}`,
-          at: now
+          at: now,
         });
       }
     }
     emit();
   },
 
-  updateTimesheetStatus(id: string, status: TimesheetStatus, comment: string, updatedBy: string, updatedById: string) {
+  updateTimesheetStatus(
+    id: string,
+    status: TimesheetStatus,
+    comment: string,
+    updatedBy: string,
+    updatedById: string,
+  ) {
     const ts = state.timesheets.find((x) => x.id === id);
     if (!ts) return;
     ts.status = status;
@@ -2309,14 +3335,14 @@ export const dhStore = {
       authorId: updatedById,
       authorName: updatedBy,
       text: comment.trim(),
-      at: now
+      at: now,
     };
     ts.comments.push(cm);
     ts.history.push({
       status,
       at: now,
       updatedBy,
-      comment: comment.trim()
+      comment: comment.trim(),
     });
 
     // Notify employee via a DhAlert
@@ -2339,16 +3365,22 @@ export const dhStore = {
       resolutionOwner: getPerson(ts.userId)?.name || "Employee",
       escalationOwner: "Anita Desai",
       attachments: [],
-      history: [
-        { status: "Open", at: now, updatedBy }
-      ]
+      history: [{ status: "Open", at: now, updatedBy }],
     });
     emit();
   },
 
-  submitMyTimesheet(userId: string, userRole: any, weekStart: string, entries: TimesheetEntry[], totalHours: number) {
+  submitMyTimesheet(
+    userId: string,
+    userRole: any,
+    weekStart: string,
+    entries: TimesheetEntry[],
+    totalHours: number,
+  ) {
     // Check if there is already a timesheet for this week for this user
-    const existingIdx = state.timesheets.findIndex((x) => x.userId === userId && x.weekStart === weekStart);
+    const existingIdx = state.timesheets.findIndex(
+      (x) => x.userId === userId && x.weekStart === weekStart,
+    );
     const now = new Date().toISOString();
 
     if (existingIdx >= 0) {
@@ -2362,7 +3394,7 @@ export const dhStore = {
         status: "submitted",
         at: now,
         updatedBy: getPerson(userId)?.name || "Employee",
-        comment: "Timesheet resubmitted"
+        comment: "Timesheet resubmitted",
       });
     } else {
       const id = uid("ts");
@@ -2376,19 +3408,29 @@ export const dhStore = {
         totalHours,
         submittedAt: now,
         comments: [],
-        history: [{
-          status: "submitted",
-          at: now,
-          updatedBy: getPerson(userId)?.name || "Employee",
-          comment: "Timesheet submitted"
-        }]
+        history: [
+          {
+            status: "submitted",
+            at: now,
+            updatedBy: getPerson(userId)?.name || "Employee",
+            comment: "Timesheet submitted",
+          },
+        ],
       };
       state.timesheets.unshift(ts);
     }
     emit();
   },
 
-  addCellComment(timesheetId: string, projectId: string, taskId: string, dayIndex: number, text: string, type: "comment" | "response" | "clarification_request", author: string) {
+  addCellComment(
+    timesheetId: string,
+    projectId: string,
+    taskId: string,
+    dayIndex: number,
+    text: string,
+    type: "comment" | "response" | "clarification_request",
+    author: string,
+  ) {
     const ts = state.timesheets.find((x) => x.id === timesheetId);
     if (!ts) return;
     const entry = ts.entries.find((e) => e.projectId === projectId && e.taskId === taskId);
@@ -2401,14 +3443,17 @@ export const dhStore = {
       const legacyNote = entry.notes?.[dayIndex] || (dayIndex === 0 ? entry.note : undefined);
       entry.cellComments[dayIndex] = {
         status: "new",
-        history: legacyNote && legacyNote.trim() ? [
-          {
-            author: getPerson(ts.userId)?.name || "Employee",
-            text: legacyNote,
-            type: "comment",
-            createdAt: ts.submittedAt || new Date().toISOString()
-          }
-        ] : []
+        history:
+          legacyNote && legacyNote.trim()
+            ? [
+                {
+                  author: getPerson(ts.userId)?.name || "Employee",
+                  text: legacyNote,
+                  type: "comment",
+                  createdAt: ts.submittedAt || new Date().toISOString(),
+                },
+              ]
+            : [],
       };
     }
 
@@ -2417,7 +3462,7 @@ export const dhStore = {
       author,
       text,
       type,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     });
 
     if (type === "clarification_request") {
@@ -2450,9 +3495,9 @@ export const dhStore = {
               author: getPerson(ts.userId)?.name || "Employee",
               text: legacyNote,
               type: "comment",
-              createdAt: ts.submittedAt || new Date().toISOString()
-            }
-          ]
+              createdAt: ts.submittedAt || new Date().toISOString(),
+            },
+          ],
         };
         emit();
       }
@@ -2465,7 +3510,13 @@ export const dhStore = {
     }
   },
 
-  updateCentralApprovalStatus(id: string, status: DhCentralApproval["status"], comment: string, updatedBy: string, updatedById: string) {
+  updateCentralApprovalStatus(
+    id: string,
+    status: DhCentralApproval["status"],
+    comment: string,
+    updatedBy: string,
+    updatedById: string,
+  ) {
     const app = state.approvals.find((x) => x.id === id);
     if (!app) return;
     app.status = status;
@@ -2475,19 +3526,21 @@ export const dhStore = {
       authorId: updatedById,
       authorName: updatedBy,
       text: comment.trim(),
-      at: now
+      at: now,
     };
     app.comments.push(cm);
     app.history.push({
       status,
       at: now,
       updatedBy,
-      comment: comment.trim()
+      comment: comment.trim(),
     });
 
     // Timeline Update Logic: If it is an extension request, and it is approved, automatically update the project's endDate!
     if (id.startsWith("APP-EXT-") && status === "Approved") {
-      const proj = state.extraProjects.find(p => p.id === app.projectId) || baseProjects.find(p => p.id === app.projectId);
+      const proj =
+        state.extraProjects.find((p) => p.id === app.projectId) ||
+        baseProjects.find((p) => p.id === app.projectId);
       if (proj) {
         // Parse requested new end date from description: "Timeline Extension: Requesting extension of X days. New End Date: YYYY-MM-DD. Reason: ..."
         const match = app.description.match(/New End Date:\s*([^\s\.]+)/);
@@ -2508,7 +3561,7 @@ export const dhStore = {
               date: currentDate.toISOString().slice(0, 10),
               time: currentDate.toTimeString().slice(0, 8),
               oldStatus: oldEndDate,
-              newStatus: proj.endDate
+              newStatus: proj.endDate,
             });
           }
         }
@@ -2535,9 +3588,7 @@ export const dhStore = {
       resolutionOwner: app.requestedBy,
       escalationOwner: "Anita Desai",
       attachments: [],
-      history: [
-        { status: "Open", at: now, updatedBy }
-      ]
+      history: [{ status: "Open", at: now, updatedBy }],
     });
     emit();
   },
@@ -2548,7 +3599,7 @@ export const dhStore = {
     field: "collectionStatus" | "validationStatus" | "billingStatus",
     value: string,
     updatedById: string,
-    updatedByName: string
+    updatedByName: string,
   ) {
     const p = state.prereqs[projectId];
     if (!p) return;
@@ -2559,7 +3610,7 @@ export const dhStore = {
       p.services = [];
     }
 
-    const svc = p.services.find(s => s.serviceId === serviceId);
+    const svc = p.services.find((s) => s.serviceId === serviceId);
     if (!svc) return;
 
     const oldVal = svc[field];
@@ -2578,18 +3629,23 @@ export const dhStore = {
     if (!p.auditTrail) p.auditTrail = [];
     p.auditTrail.unshift({
       id: uid("aud"),
-      fieldChanged: field === "collectionStatus" ? "Collection Status" : field === "validationStatus" ? "Validation Status" : "Billing Status",
+      fieldChanged:
+        field === "collectionStatus"
+          ? "Collection Status"
+          : field === "validationStatus"
+            ? "Validation Status"
+            : "Billing Status",
       updatedBy: updatedById,
       updatedByName,
       date: dateStr,
       time: timeStr,
       oldStatus: oldVal ?? "Advance Pending",
-      newStatus: value
+      newStatus: value,
     });
 
     // Auto-calculate project level prerequisite validation and collection status
-    const allCollected = p.services.every(s => s.collectionStatus === "Collected");
-    const allValidated = p.services.every(s => s.validationStatus === "Validated");
+    const allCollected = p.services.every((s) => s.collectionStatus === "Collected");
+    const allValidated = p.services.every((s) => s.validationStatus === "Validated");
 
     p.collection = allCollected ? "Received" : "Initiated";
     p.validation = allValidated ? "Validated" : "Validation Pending";
@@ -2601,7 +3657,7 @@ export const dhStore = {
     const p = state.prereqs[projectId];
     if (!p) return;
     if (!p.services) p.services = [];
-    const svc = p.services.find(s => s.serviceId === serviceId);
+    const svc = p.services.find((s) => s.serviceId === serviceId);
     if (!svc) return;
     svc.isReady = isReady;
     emit();
@@ -2614,9 +3670,9 @@ export const dhStore = {
     reason: string,
     taggedApproverIds: string[],
     requestedByName: string,
-    requestedById: string
+    requestedById: string,
   ) {
-    const proj = allProjects().find(p => p.id === projectId);
+    const proj = allProjects().find((p) => p.id === projectId);
     if (!proj) return;
 
     const appId = `APP-EXT-${Date.now()}`;
@@ -2637,11 +3693,11 @@ export const dhStore = {
       status: "Pending",
       description: `Timeline Extension: Requesting extension of ${extensionDays} days. New End Date: ${newEndDate}. Reason: ${reason.trim()}`,
       comments: [],
-      history: []
+      history: [],
     });
 
     // Send notifications (alerts) to all tagged approvers
-    taggedApproverIds.forEach(id => {
+    taggedApproverIds.forEach((id) => {
       state.alerts.unshift({
         id: uid("al"),
         alertId: uid("ALT"),
@@ -2661,7 +3717,7 @@ export const dhStore = {
         resolutionOwner: getPerson(id)?.name || "Supervisor",
         escalationOwner: "Anita Desai",
         attachments: [],
-        history: [{ status: "Open", at: now.toISOString(), updatedBy: requestedByName }]
+        history: [{ status: "Open", at: now.toISOString(), updatedBy: requestedByName }],
       });
     });
 
@@ -2677,7 +3733,7 @@ export const dhStore = {
         date: dateStr,
         time: timeStr,
         oldStatus: proj.endDate,
-        newStatus: newEndDate
+        newStatus: newEndDate,
       });
     }
 
@@ -2686,17 +3742,22 @@ export const dhStore = {
   },
 
   updateLeadershipAssignment(projectId: string, role: LeadershipRole, ids: string[]) {
-    const existing = state.leadershipAssignments[projectId] ?? { emIds: [], spmIds: [], pmIds: [], tlIds: [] };
+    const existing = state.leadershipAssignments[projectId] ?? {
+      emIds: [],
+      spmIds: [],
+      pmIds: [],
+      tlIds: [],
+    };
     // Replace the entire projectId entry with a new object so shallow-copy snapshot
     // gets a new reference and useSyncExternalStore triggers re-renders correctly.
     state.leadershipAssignments = {
       ...state.leadershipAssignments,
       [projectId]: {
         ...existing,
-        ...(role === "Engagement Manager"     ? { emIds:  ids } : {}),
+        ...(role === "Engagement Manager" ? { emIds: ids } : {}),
         ...(role === "Senior Project Manager" ? { spmIds: ids } : {}),
-        ...(role === "Project Manager"        ? { pmIds:  ids } : {}),
-        ...(role === "Team Lead"              ? { tlIds:  ids } : {}),
+        ...(role === "Project Manager" ? { pmIds: ids } : {}),
+        ...(role === "Team Lead" ? { tlIds: ids } : {}),
       },
     };
     emit();
@@ -2717,7 +3778,7 @@ export const dhStore = {
     requestedBy: string;
     requestedById: string;
   }) {
-    const proj = allProjects().find(p => p.id === input.projectId);
+    const proj = allProjects().find((p) => p.id === input.projectId);
     if (!proj) return;
 
     const now = new Date();
@@ -2761,20 +3822,22 @@ export const dhStore = {
       requestedDate: dateStr,
       status: "Pending",
       approvalId: appId,
-      auditHistory: [{
-        previousLeaderNames: input.currentLeaderNames,
-        newLeaderNames: input.newLeaderNames,
-        changedBy: input.requestedBy,
-        effectiveDate: input.effectiveDate,
-        changeReason: input.changeReason,
-        status: "Pending",
-      }],
+      auditHistory: [
+        {
+          previousLeaderNames: input.currentLeaderNames,
+          newLeaderNames: input.newLeaderNames,
+          changedBy: input.requestedBy,
+          effectiveDate: input.effectiveDate,
+          changeReason: input.changeReason,
+          status: "Pending",
+        },
+      ],
       createdAt: now.toISOString(),
     };
     state.leadershipChangeRequests.unshift(lcr);
 
     // Notify tagged people via alerts
-    input.notifyPersonIds.forEach(id => {
+    input.notifyPersonIds.forEach((id) => {
       state.alerts.unshift({
         id: uid("al"),
         alertId: uid("ALT"),
@@ -2801,7 +3864,7 @@ export const dhStore = {
     // Add notification
     const count = state.notifications.length + 1;
     state.notifications.unshift({
-      id: `NTF-${String(count).padStart(3, '0')}`,
+      id: `NTF-${String(count).padStart(3, "0")}`,
       title: `Leadership Change Request submitted — ${input.role}: ${proj.name}`,
       type: "Leadership Change",
       relatedProject: proj.name,
@@ -2812,7 +3875,14 @@ export const dhStore = {
       unread: true,
       createdBy: input.requestedBy,
       createdDate: dateStr,
-      history: [{ action: "Leadership change request submitted", date: dateStr, time: timeStr, by: input.requestedBy }],
+      history: [
+        {
+          action: "Leadership change request submitted",
+          date: dateStr,
+          time: timeStr,
+          by: input.requestedBy,
+        },
+      ],
     });
 
     emit();
@@ -2826,7 +3896,19 @@ export const dhStore = {
     emit();
   },
 
-  updateGovernanceAlert(id: string, patch: Partial<{ status: AlertStatus; owner: string; resolutionOwner: string; escalationOwner: string; resolutionDetails: string }>, commentText?: string, actorId?: string, actorName?: string) {
+  updateGovernanceAlert(
+    id: string,
+    patch: Partial<{
+      status: AlertStatus;
+      owner: string;
+      resolutionOwner: string;
+      escalationOwner: string;
+      resolutionDetails: string;
+    }>,
+    commentText?: string,
+    actorId?: string,
+    actorName?: string,
+  ) {
     const al = state.alerts.find((x) => x.id === id);
     if (!al) return;
 
@@ -2838,7 +3920,7 @@ export const dhStore = {
         status: patch.status,
         at: now,
         updatedBy: actorName || "System",
-        details: `Status transitioned from ${al.status} to ${patch.status}`
+        details: `Status transitioned from ${al.status} to ${patch.status}`,
       });
       al.status = patch.status;
     }
@@ -2854,7 +3936,7 @@ export const dhStore = {
         authorId: actorId,
         authorName: actorName,
         text: commentText.trim(),
-        at: now
+        at: now,
       });
     }
 
@@ -2864,52 +3946,73 @@ export const dhStore = {
   updateAccountsDetail(projectId: string, patch: Partial<AccountsDetail>) {
     let tracker = state.projectStages[projectId];
     if (!tracker) return;
-    tracker.accountsDetail = { ...(tracker.accountsDetail ?? { poStatus: "PO Pending", paymentStatus: "Payment Pending" }), ...patch };
+    tracker.accountsDetail = {
+      ...(tracker.accountsDetail ?? { poStatus: "PO Pending", paymentStatus: "Payment Pending" }),
+      ...patch,
+    };
     emit();
   },
 
   updateOffboardingStatus(employeeId: string, patch: Partial<OffboardingResource>) {
-    const idx = state.offboardingResources.findIndex(r => r.employeeId === employeeId);
+    const idx = state.offboardingResources.findIndex((r) => r.employeeId === employeeId);
     if (idx < 0) return;
     state.offboardingResources[idx] = { ...state.offboardingResources[idx], ...patch };
     emit();
   },
 
-  raiseInvoice(projectId: string, invoiceId: string, invoiceNumber: string, updatedBy: string = "u14", updatedByName: string = "Dhanshree") {
+  raiseInvoice(
+    projectId: string,
+    invoiceId: string,
+    invoiceNumber: string,
+    updatedBy: string = "u14",
+    updatedByName: string = "Dhanshree",
+  ) {
     const inv = state.invoices.find((i) => i.id === invoiceId);
     if (!inv) return;
 
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10);
 
-    state.invoices = state.invoices.map(i => i.id === invoiceId ? {
-      ...i,
-      invoiceStatus: "Raised",
-      invoiceNumber: invoiceNumber,
-      raisedBy: updatedByName,
-      raisedDate: dateStr,
-      paymentStatus: "Not Received",
-      paymentReceivedDate: ""
-    } : i);
+    state.invoices = state.invoices.map((i) =>
+      i.id === invoiceId
+        ? {
+            ...i,
+            invoiceStatus: "Raised",
+            invoiceNumber: invoiceNumber,
+            raisedBy: updatedByName,
+            raisedDate: dateStr,
+            paymentStatus: "Not Received",
+            paymentReceivedDate: "",
+          }
+        : i,
+    );
 
-    this.updateAccountsStage(projectId, "Invoice Raised", `Invoice raised: ${invoiceNumber}`, updatedBy, updatedByName);
+    this.updateAccountsStage(
+      projectId,
+      "Invoice Raised",
+      `Invoice raised: ${invoiceNumber}`,
+      updatedBy,
+      updatedByName,
+    );
 
-    const proj = allProjects().find(x => x.id === projectId);
+    const proj = allProjects().find((x) => x.id === projectId);
     const prereq = state.prereqs[projectId];
 
-    const ems = proj ? getProjectEMs(proj).map(x => x.id) : [];
-    const pms = proj ? getProjectPMs(proj).map(x => x.id) : [];
+    const ems = proj ? getProjectEMs(proj).map((x) => x.id) : [];
+    const pms = proj ? getProjectPMs(proj).map((x) => x.id) : [];
     const spms = prereq?.assignedSpmIds || [];
 
-    const audience = Array.from(new Set([
-      "u15", // Accounts Team
-      "u12", // HOD
-      ...pms,
-      ...spms,
-      ...ems
-    ]));
+    const audience = Array.from(
+      new Set([
+        "u15", // Accounts Team
+        "u12", // HOD
+        ...pms,
+        ...spms,
+        ...ems,
+      ]),
+    );
 
-    audience.forEach(userId => {
+    audience.forEach((userId) => {
       const newAlert = {
         id: uid("al"),
         alertId: uid("ALT"),
@@ -2928,7 +4031,7 @@ export const dhStore = {
         resolutionOwner: getPerson(userId)?.name || "Team Member",
         escalationOwner: "Anita Desai",
         attachments: [],
-        history: [{ status: "Open" as any, at: now.toISOString(), updatedBy: updatedByName }]
+        history: [{ status: "Open" as any, at: now.toISOString(), updatedBy: updatedByName }],
       };
       state.alerts = [newAlert, ...state.alerts];
     });
@@ -2936,7 +4039,13 @@ export const dhStore = {
     emit();
   },
 
-  updatePaymentStatus(projectId: string, invoiceId: string, paymentStatus: "Not Received" | "Received", updatedBy: string = "u15", updatedByName: string = "Accounts Team") {
+  updatePaymentStatus(
+    projectId: string,
+    invoiceId: string,
+    paymentStatus: "Not Received" | "Received",
+    updatedBy: string = "u15",
+    updatedByName: string = "Accounts Team",
+  ) {
     const inv = state.invoices.find((i) => i.id === invoiceId);
     if (!inv) return;
 
@@ -2946,41 +4055,66 @@ export const dhStore = {
     let paymentReceivedBy: string | undefined = undefined;
 
     if (paymentStatus === "Received") {
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const d = String(now.getDate()).padStart(2, '0');
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const d = String(now.getDate()).padStart(2, "0");
       const m = months[now.getMonth()];
       const y = now.getFullYear();
       paymentReceivedDate = `${d}-${m}-${y}`;
       paymentReceivedBy = updatedByName;
     }
 
-    state.invoices = state.invoices.map(i => i.id === invoiceId ? {
-      ...i,
-      paymentStatus,
-      paymentReceivedDate,
-      paymentReceivedBy
-    } : i);
+    state.invoices = state.invoices.map((i) =>
+      i.id === invoiceId
+        ? {
+            ...i,
+            paymentStatus,
+            paymentReceivedDate,
+            paymentReceivedBy,
+          }
+        : i,
+    );
 
-    const updatedInv = state.invoices.find(i => i.id === invoiceId)!;
+    const updatedInv = state.invoices.find((i) => i.id === invoiceId)!;
 
     if (paymentStatus === "Received") {
-      this.updateAccountsStage(projectId, "Payment Received", `Payment received captured automatically for invoice ${updatedInv.invoiceNumber}`, updatedBy, updatedByName);
+      this.updateAccountsStage(
+        projectId,
+        "Payment Received",
+        `Payment received captured automatically for invoice ${updatedInv.invoiceNumber}`,
+        updatedBy,
+        updatedByName,
+      );
 
-      const proj = allProjects().find(x => x.id === projectId);
+      const proj = allProjects().find((x) => x.id === projectId);
       const prereq = state.prereqs[projectId];
 
-      const ems = proj ? getProjectEMs(proj).map(x => x.id) : [];
-      const pms = proj ? getProjectPMs(proj).map(x => x.id) : [];
+      const ems = proj ? getProjectEMs(proj).map((x) => x.id) : [];
+      const pms = proj ? getProjectPMs(proj).map((x) => x.id) : [];
       const spms = prereq?.assignedSpmIds || [];
 
-      const audience = Array.from(new Set([
-        "u12", // HOD
-        ...pms,
-        ...spms,
-        ...ems
-      ]));
+      const audience = Array.from(
+        new Set([
+          "u12", // HOD
+          ...pms,
+          ...spms,
+          ...ems,
+        ]),
+      );
 
-      audience.forEach(userId => {
+      audience.forEach((userId) => {
         const newAlert = {
           id: uid("al"),
           alertId: uid("ALT"),
@@ -2999,36 +4133,61 @@ export const dhStore = {
           resolutionOwner: getPerson(userId)?.name || "Team Member",
           escalationOwner: "Anita Desai",
           attachments: [],
-          history: [{ status: "Open" as any, at: now.toISOString(), updatedBy: updatedByName }]
+          history: [{ status: "Open" as any, at: now.toISOString(), updatedBy: updatedByName }],
         };
         state.alerts = [newAlert, ...state.alerts];
       });
     } else {
-      this.updateAccountsStage(projectId, "Payment Pending", `Payment status reset to pending for invoice ${updatedInv.invoiceNumber}`, updatedBy, updatedByName);
+      this.updateAccountsStage(
+        projectId,
+        "Payment Pending",
+        `Payment status reset to pending for invoice ${updatedInv.invoiceNumber}`,
+        updatedBy,
+        updatedByName,
+      );
     }
 
     emit();
   },
 
-  cancelInvoice(projectId: string, invoiceId: string, updatedBy: string = "u14", updatedByName: string = "Dhanshree") {
+  cancelInvoice(
+    projectId: string,
+    invoiceId: string,
+    updatedBy: string = "u14",
+    updatedByName: string = "Dhanshree",
+  ) {
     const inv = state.invoices.find((i) => i.id === invoiceId);
     if (!inv) return;
 
-    state.invoices = state.invoices.map(i => i.id === invoiceId ? {
-      ...i,
-      invoiceStatus: "Not Raised",
-      invoiceNumber: "",
-      raisedBy: undefined,
-      raisedDate: undefined,
-      paymentStatus: "Not Received",
-      paymentReceivedDate: ""
-    } : i);
+    state.invoices = state.invoices.map((i) =>
+      i.id === invoiceId
+        ? {
+            ...i,
+            invoiceStatus: "Not Raised",
+            invoiceNumber: "",
+            raisedBy: undefined,
+            raisedDate: undefined,
+            paymentStatus: "Not Received",
+            paymentReceivedDate: "",
+          }
+        : i,
+    );
 
-    this.updateAccountsStage(projectId, "Invoice Not Raised", `Invoice reset to not raised`, updatedBy, updatedByName);
+    this.updateAccountsStage(
+      projectId,
+      "Invoice Not Raised",
+      `Invoice reset to not raised`,
+      updatedBy,
+      updatedByName,
+    );
     emit();
   },
 
-  archiveProject(projectId: string, updatedBy: string = "u14", updatedByName: string = "Dhanshree") {
+  archiveProject(
+    projectId: string,
+    updatedBy: string = "u14",
+    updatedByName: string = "Dhanshree",
+  ) {
     const bp = baseProjects.find((p) => p.id === projectId);
     if (bp) {
       bp.status = "completed" as any;
@@ -3060,14 +4219,23 @@ export const dhStore = {
     const dateStr = now.toISOString().slice(0, 10);
     const timeStr = now.toTimeString().slice(0, 8);
     const count = state.notifications.length + 1;
-    const id = `NTF-${String(count).padStart(3, '0')}`;
+    const id = `NTF-${String(count).padStart(3, "0")}`;
     const notif: DhNotification = {
-      id, title: input.title, type: input.type,
-      relatedProject: input.relatedProject, relatedTask: input.relatedTask,
-      raisedBy: input.raisedBy, createdAt: now.toISOString(),
-      status: "Pending", priority: input.priority, unread: true,
-      createdBy: input.raisedBy, createdDate: dateStr,
-      history: [{ action: "Notification created", date: dateStr, time: timeStr, by: input.raisedBy }]
+      id,
+      title: input.title,
+      type: input.type,
+      relatedProject: input.relatedProject,
+      relatedTask: input.relatedTask,
+      raisedBy: input.raisedBy,
+      createdAt: now.toISOString(),
+      status: "Pending",
+      priority: input.priority,
+      unread: true,
+      createdBy: input.raisedBy,
+      createdDate: dateStr,
+      history: [
+        { action: "Notification created", date: dateStr, time: timeStr, by: input.raisedBy },
+      ],
     };
     state.notifications.unshift(notif);
     emit();
@@ -3087,7 +4255,9 @@ export const dhStore = {
     notif.acknowledgedTime = timeStr;
     notif.history.push({
       action: `Notification acknowledged - Remarks: "${comment.trim()}"`,
-      date: dateStr, time: timeStr, by: userName
+      date: dateStr,
+      time: timeStr,
+      by: userName,
     });
     emit();
   },
@@ -3101,19 +4271,43 @@ export const dhStore = {
         action: "Notification marked as read",
         date: new Date().toISOString().slice(0, 10),
         time: new Date().toTimeString().slice(0, 8),
-        by: "System"
+        by: "System",
       });
       emit();
     }
   },
 
   // ── Tree Task State (hierarchical task tree) ──────────────────────────────
-  getTreeTaskState(projectId: string, taskId: string): { actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] } {
-    return state.treeTaskStates[projectId]?.[taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Not Started", assigneeIds: [] };
+  getTreeTaskState(
+    projectId: string,
+    taskId: string,
+  ): { actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] } {
+    return (
+      state.treeTaskStates[projectId]?.[taskId] ?? {
+        actualStartDate: "",
+        actualEndDate: "",
+        stage: "Not Started",
+        assigneeIds: [],
+      }
+    );
   },
-  updateTreeTaskState(projectId: string, taskId: string, patch: Partial<{ actualStartDate: string; actualEndDate: string; stage: string; assigneeIds: string[] }>) {
+  updateTreeTaskState(
+    projectId: string,
+    taskId: string,
+    patch: Partial<{
+      actualStartDate: string;
+      actualEndDate: string;
+      stage: string;
+      assigneeIds: string[];
+    }>,
+  ) {
     if (!state.treeTaskStates[projectId]) state.treeTaskStates[projectId] = {};
-    const prev = state.treeTaskStates[projectId][taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Not Started", assigneeIds: [] };
+    const prev = state.treeTaskStates[projectId][taskId] ?? {
+      actualStartDate: "",
+      actualEndDate: "",
+      stage: "Not Started",
+      assigneeIds: [],
+    };
     state.treeTaskStates[projectId][taskId] = { ...prev, ...patch };
     // Replace top-level reference so snapshot sees new object
     state.treeTaskStates = { ...state.treeTaskStates };
@@ -3128,7 +4322,7 @@ export const dhStore = {
     const newState: TaskAssignmentState = {
       taskId,
       assigneeIds: [],
-      history: []
+      history: [],
     };
     state.taskAssignments[taskId] = newState;
     emit();
@@ -3141,16 +4335,16 @@ export const dhStore = {
     taskTitle?: string,
     dueDate?: string,
     priority?: "low" | "medium" | "high" | "critical",
-    updatedBy: string = "u14"
+    updatedBy: string = "u14",
   ) {
     const current = this.getTreeTaskAssignment(projectId, taskId);
     const prevIds = current.assigneeIds;
-    const added = selectedIds.filter(id => !prevIds.includes(id));
-    const removed = prevIds.filter(id => !selectedIds.includes(id));
+    const added = selectedIds.filter((id) => !prevIds.includes(id));
+    const removed = prevIds.filter((id) => !selectedIds.includes(id));
     const now = new Date().toISOString();
     const shadowTeamList = state.shadowTeams[projectId] ?? [];
-    
-    added.forEach(id => {
+
+    added.forEach((id) => {
       const p = getPerson(id);
       const isShadow = shadowTeamList.includes(id);
       current.history.push({
@@ -3161,10 +4355,10 @@ export const dhStore = {
         resourceName: p.name,
         teamType: isShadow ? "Shadow Team" : "Project Team",
         timestamp: now,
-        updatedBy
+        updatedBy,
       });
     });
-    removed.forEach(id => {
+    removed.forEach((id) => {
       const p = getPerson(id);
       const isShadow = shadowTeamList.includes(id);
       current.history.push({
@@ -3175,14 +4369,19 @@ export const dhStore = {
         resourceName: p.name,
         teamType: isShadow ? "Shadow Team" : "Project Team",
         timestamp: now,
-        updatedBy
+        updatedBy,
       });
     });
     current.assigneeIds = selectedIds;
-    
+
     if (!state.treeTaskStates[projectId]) state.treeTaskStates[projectId] = {};
-    const prev = state.treeTaskStates[projectId][taskId] ?? { actualStartDate: "", actualEndDate: "", stage: "Not Started", assigneeIds: [] };
-    
+    const prev = state.treeTaskStates[projectId][taskId] ?? {
+      actualStartDate: "",
+      actualEndDate: "",
+      stage: "Not Started",
+      assigneeIds: [],
+    };
+
     let newStage = prev.stage;
     if (selectedIds.length > 0) {
       if (prev.stage === "Not Started" || !prev.stage) {
@@ -3193,18 +4392,22 @@ export const dhStore = {
         newStage = "Not Started";
       }
     }
-    
-    state.treeTaskStates[projectId][taskId] = { ...prev, assigneeIds: selectedIds, stage: newStage };
+
+    state.treeTaskStates[projectId][taskId] = {
+      ...prev,
+      assigneeIds: selectedIds,
+      stage: newStage,
+    };
     state.treeTaskStates = { ...state.treeTaskStates };
 
     // Update bucket tasks
-    const proj = allProjects().find(p => p.id === projectId);
+    const proj = allProjects().find((p) => p.id === projectId);
     const projectName = proj?.name || "Project";
-    
+
     if (!state.bucketTasks) state.bucketTasks = [];
-    
+
     // Remove bucket tasks for unassigned resources
-    state.bucketTasks = state.bucketTasks.filter(bt => {
+    state.bucketTasks = state.bucketTasks.filter((bt) => {
       if (bt.taskId === taskId) {
         return selectedIds.includes(bt.employeeId);
       }
@@ -3212,9 +4415,9 @@ export const dhStore = {
     });
 
     // Add new bucket tasks for assigned resources
-    selectedIds.forEach(empId => {
+    selectedIds.forEach((empId) => {
       const bucketTaskId = `${taskId}-${empId}`;
-      const exists = state.bucketTasks.some(bt => bt.id === bucketTaskId);
+      const exists = state.bucketTasks.some((bt) => bt.id === bucketTaskId);
       if (!exists) {
         state.bucketTasks.push({
           id: bucketTaskId,
@@ -3223,12 +4426,15 @@ export const dhStore = {
           projectId,
           projectName,
           priority: priority || "medium",
-          dueDate: dueDate || proj?.endDate || new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+          dueDate:
+            dueDate ||
+            proj?.endDate ||
+            new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
           employeeId: empId,
           assignedById: updatedBy,
           status: "Not Started",
           elapsedTime: 0,
-          timerRunning: false
+          timerRunning: false,
         });
       }
     });
@@ -3237,7 +4443,7 @@ export const dhStore = {
   },
 
   startBucketTask(bucketTaskId: string) {
-    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    const bt = state.bucketTasks.find((x) => x.id === bucketTaskId);
     if (!bt) return;
     const now = new Date().toISOString();
     bt.status = "Ongoing";
@@ -3262,7 +4468,7 @@ export const dhStore = {
   },
 
   pauseBucketTask(bucketTaskId: string) {
-    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    const bt = state.bucketTasks.find((x) => x.id === bucketTaskId);
     if (!bt) return;
     if (bt.timerRunning && bt.lastStartedAt) {
       const elapsed = Math.floor((Date.now() - new Date(bt.lastStartedAt).getTime()) / 1000);
@@ -3275,7 +4481,7 @@ export const dhStore = {
   },
 
   stopBucketTask(bucketTaskId: string) {
-    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    const bt = state.bucketTasks.find((x) => x.id === bucketTaskId);
     if (!bt) return;
     if (bt.timerRunning && bt.lastStartedAt) {
       const elapsed = Math.floor((Date.now() - new Date(bt.lastStartedAt).getTime()) / 1000);
@@ -3288,7 +4494,7 @@ export const dhStore = {
   },
 
   resumeBucketTask(bucketTaskId: string) {
-    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    const bt = state.bucketTasks.find((x) => x.id === bucketTaskId);
     if (!bt) return;
     const now = new Date().toISOString();
     bt.status = "Ongoing";
@@ -3298,7 +4504,7 @@ export const dhStore = {
   },
 
   completeBucketTask(bucketTaskId: string) {
-    const bt = state.bucketTasks.find(x => x.id === bucketTaskId);
+    const bt = state.bucketTasks.find((x) => x.id === bucketTaskId);
     if (!bt) return;
     const now = new Date().toISOString();
     if (bt.timerRunning && bt.lastStartedAt) {
@@ -3311,8 +4517,8 @@ export const dhStore = {
     bt.completedAt = now;
 
     // Check other bucket tasks for the same tree task
-    const siblingTasks = state.bucketTasks.filter(x => x.taskId === bt.taskId);
-    const allCompleted = siblingTasks.every(x => x.status === "Completed");
+    const siblingTasks = state.bucketTasks.filter((x) => x.taskId === bt.taskId);
+    const allCompleted = siblingTasks.every((x) => x.status === "Completed");
 
     const treeState = state.treeTaskStates[bt.projectId]?.[bt.taskId];
     if (treeState) {
@@ -3348,20 +4554,56 @@ export function canAssignPMs(projectId: string): boolean {
   return p.collection === "Received" && p.validation === "Validated";
 }
 export function getPrereq(projectId: string): DhProjectPrereq {
-  return state.prereqs[projectId] ?? { projectId, validation: "Validation Pending", collection: "NA", assignedPmIds: [], assignedSpmIds: [], acknowledgedByPmIds: [], acknowledgedBySpmIds: [] };
+  return (
+    state.prereqs[projectId] ?? {
+      projectId,
+      validation: "Validation Pending",
+      collection: "NA",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+      acknowledgedByPmIds: [],
+      acknowledgedBySpmIds: [],
+    }
+  );
 }
 
 // Project Stages Tracker - Helper functions
 export function getProjectStages(projectId: string): ProjectStagesTracker {
-  return state.projectStages[projectId] ?? {
-    projectId,
-    stages: {
-      sales: { stageName: "Sales", currentStatus: "Pending", isCompleted: false, isActive: true, history: [] },
-      pmo: { stageName: "PMO", currentStatus: "Prerequisite Collection", isCompleted: false, isActive: false, history: [] },
-      delivery: { stageName: "Delivery", currentStatus: "Ongoing", isCompleted: false, isActive: false, history: [] },
-      accounts: { stageName: "Accounts", currentStatus: "PO Not Raised", isCompleted: false, isActive: false, history: [] },
-    },
-  };
+  return (
+    state.projectStages[projectId] ?? {
+      projectId,
+      stages: {
+        sales: {
+          stageName: "Sales",
+          currentStatus: "Pending",
+          isCompleted: false,
+          isActive: true,
+          history: [],
+        },
+        pmo: {
+          stageName: "PMO",
+          currentStatus: "Prerequisite Collection",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        delivery: {
+          stageName: "Delivery",
+          currentStatus: "Ongoing",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+        accounts: {
+          stageName: "Accounts",
+          currentStatus: "PO Not Raised",
+          isCompleted: false,
+          isActive: false,
+          history: [],
+        },
+      },
+    }
+  );
 }
 export function getStagesList(projectId: string): ProjectStageData[] {
   const tracker = getProjectStages(projectId);

@@ -1,20 +1,40 @@
-import { createFileRoute, Link, notFound, Navigate, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import {
-  ChevronRight, ChevronDown, Mail, Building2, ExternalLink, Phone,
-  TrendingUp, AlertTriangle, CheckCircle2, PauseCircle, Layers,
-  User, Activity, Pencil, Check, X,
+  ChevronRight,
+  ChevronDown,
+  Mail,
+  Building2,
+  ExternalLink,
+  Phone,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle2,
+  PauseCircle,
+  Layers,
+  User,
+  Activity,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
+import { fetchClient, mapApiClient } from "@/lib/api/clients";
 import { allClients, allProjects, useDhStore } from "@/lib/dh-store";
-import { getPerson, people } from "@/lib/mock-data";
+import { type Client, getPerson, people } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 // Small inline avatar bubble (initials)
 function AvatarBubble({ name, size = 22 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
   return (
     <span
       style={{ width: size, height: size, fontSize: size * 0.38 }}
@@ -26,17 +46,30 @@ function AvatarBubble({ name, size = 22 }: { name: string; size?: number }) {
 }
 
 export const Route = createFileRoute("/customers/$clientId")({
-  loader: ({ params }) => {
-    const client = allClients().find((c) => c.id === params.clientId);
-    if (!client) throw notFound();
-    return { client };
+  loader: async ({ params }) => {
+    // Mock / dh-store clients resolve instantly (this path also runs during SSR).
+    const cached = allClients().find((c) => c.id === params.clientId);
+    if (cached) return { client: cached };
+
+    // API-backed clients carry GUID ids and live in the backend — the session
+    // token is client-side only, so fetch here when navigating in the browser.
+    // For hard loads / refreshes the component re-fetches as a fallback.
+    if (typeof window !== "undefined") {
+      try {
+        const api = await fetchClient(params.clientId);
+        if (api) return { client: mapApiClient(api) };
+      } catch {
+        // backend offline or genuine 404 — the component renders not-found
+      }
+    }
+    return { client: undefined };
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData?.client.name ?? "Customer"} — Customers — Pulse PMO` },
+      { title: `${loaderData?.client?.name ?? "Customer"} — Customers — Pulse PMO` },
       {
         name: "description",
-        content: `360° customer view and project history for ${loaderData?.client.name ?? "customer"}.`,
+        content: `360° customer view and project history for ${loaderData?.client?.name ?? "customer"}.`,
       },
     ],
   }),
@@ -50,8 +83,10 @@ const fmtProjectId = (id: string) => `PR-${id.replace(/\D/g, "").padStart(6, "0"
 type FilterTab = "all" | "new" | "ongoing" | "completed" | "archived" | "on_hold";
 
 function CustomerDetailPage() {
-  const { client } = Route.useLoaderData();
+  const { client: routeClient } = Route.useLoaderData();
+  const { clientId } = Route.useParams();
   const { isDhanshree } = useRoleContext();
+  const { hasPermission } = usePermissions();
   const navigate = useNavigate();
 
   // Live subscription to store — any client/project addition triggers re-render
@@ -61,27 +96,93 @@ function CustomerDetailPage() {
   const [selectedSpoc, setSelectedSpoc] = useState<number | null>(null);
   const [svFilter, setSvFilter] = useState<string>("all");
 
+  // API-backed clients (GUID ids) aren't in the dh-store — resolve lazily on the
+  // client so hard loads / refreshes work even when the loader couldn't fetch.
+  const [client, setClient] = useState<Client | undefined>(routeClient);
+  // Start loading when the loader couldn't resolve the client (API-backed ids)
+  // so hard loads show a spinner instead of a flash of "not found".
+  const [clientLoading, setClientLoading] = useState(!routeClient);
+  useEffect(() => {
+    if (routeClient) {
+      setClient(routeClient);
+      return;
+    }
+    let cancelled = false;
+    setClientLoading(true);
+    fetchClient(clientId)
+      .then((api) => {
+        if (!cancelled) setClient(api ? mapApiClient(api) : undefined);
+      })
+      .catch(() => {
+        if (!cancelled) setClient(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setClientLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [routeClient, clientId]);
+
   // EM state — initialised from client.engagementManager or derived from projects
   const defaultEM = useMemo(() => {
-    if (client.engagementManager) return client.engagementManager;
+    if (client?.engagementManager) return client.engagementManager;
     // fallback: derive from first project EM field
-    const proj = allProjects().find((p) => p.clientId === client.id && p.engagementManager);
+    const proj = allProjects().find((p) => p.clientId === client?.id && p.engagementManager);
     return proj?.engagementManager ?? "—";
   }, [client]);
   const [emName, setEmName] = useState<string>(defaultEM);
+  // Late-loaded API clients arrive after mount — sync the EM chip once.
+  useEffect(() => {
+    if (client?.engagementManager && emName === "—") setEmName(client.engagementManager);
+  }, [client?.engagementManager, emName]);
   const [showEMPicker, setShowEMPicker] = useState(false);
   const [emSearch, setEmSearch] = useState("");
 
   // EM pool — people with EM or Senior PM role
-  const emPool = useMemo(() =>
-    people.filter((p) => ["Engagement Manager", "Senior PM", "Business Owner"].includes(p.role)),
-    []
+  const emPool = useMemo(
+    () =>
+      people.filter((p) => ["Engagement Manager", "Senior PM", "Business Owner"].includes(p.role)),
+    [],
   );
 
-  if (!isDhanshree) return <Navigate to="/customers" />;
-
   // Re-compute whenever extraCount changes (reactive to new clients/projects)
-  const allProj = useMemo(() => allProjects().filter((p) => p.clientId === client.id), [client.id, extraCount]);
+  const allProj = useMemo(
+    () => allProjects().filter((p) => p.clientId === client?.id),
+    [client?.id, extraCount],
+  );
+
+  if (!isDhanshree && !hasPermission("customers.view")) return <Navigate to="/customers" />;
+
+  // Loading / not-found states (after all hooks).
+  if (clientLoading) {
+    return (
+      <AppShell title="Customer" subtitle="Loading customer…">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-12 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading customer details…</p>
+        </div>
+      </AppShell>
+    );
+  }
+  if (!client) {
+    return (
+      <AppShell title="Customer not found" subtitle="We couldn't find this customer">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-12 text-center">
+          <Building2 className="h-8 w-8 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            This customer doesn't exist or is no longer available.
+          </p>
+          <Link
+            to="/customers"
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Back to Customers
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
 
   // Categorise
   const ongoingProjs = allProj.filter((p) => p.status === "ongoing" && p.progress > 0);
@@ -93,34 +194,56 @@ function CustomerDetailPage() {
   const activeCompleted = completedProjs.filter((p) => p.progress >= 80);
 
   // At-risk = ongoing with health red/amber
-  const atRiskCount = allProj.filter((p) => p.status === "ongoing" && (p.health === "red" || p.health === "amber")).length;
+  const atRiskCount = allProj.filter(
+    (p) => p.status === "ongoing" && (p.health === "red" || p.health === "amber"),
+  ).length;
 
   // Client since = earliest project startDate
-  const allDates = allProj.map((p) => p.startDate).filter(Boolean).sort();
+  const allDates = allProj
+    .map((p) => p.startDate)
+    .filter(Boolean)
+    .sort();
   const clientSinceDate = allDates[0] ? new Date(allDates[0]).toLocaleDateString() : "—";
   const firstProject = allProj.find((p) => p.startDate === allDates[0]);
   const firstProjectName = firstProject?.name ?? "—";
-  const firstProjectId   = firstProject ? fmtProjectId(firstProject.id) : "—";
+  const firstProjectId = firstProject ? fmtProjectId(firstProject.id) : "—";
 
   // Build SPOC list — prefer the stored contacts array, fall back to single legacy fields
-  const spocs = (client.contacts && client.contacts.length > 0)
-    ? client.contacts.map((c) => ({
-        name:        c.name,
-        email:       c.email,
-        phone:       c.phone       ?? "—",
-        designation: c.designation ?? "—",
-        type:        c.contactType ?? "Primary",
-      }))
-    : [{
-        name:        client.contactName ?? client.contact.split("@")[0],
-        email:       client.contact,
-        phone:       (client as any).contactPhone        ?? "—",
-        designation: (client as any).contactDesignation  ?? "—",
-        type:        (client as any).contactType         ?? "Primary",
-      }];
+  const spocs =
+    client.contacts && client.contacts.length > 0
+      ? client.contacts.map((c) => ({
+          name: c.name,
+          email: c.email,
+          phone: c.phone ?? "—",
+          designation: c.designation ?? "—",
+          type: c.contactType ?? "Primary",
+        }))
+      : [
+          {
+            name: client.contactName ?? client.contact.split("@")[0],
+            email: client.contact,
+            phone: client.contactPhone ?? "—",
+            designation: client.contactDesignation ?? "—",
+            type: client.contactType ?? "Primary",
+          },
+        ];
 
   // Sub-venture list from client
   const subVentures = client.subVentures ?? [];
+
+  // When the sub-venture filter is active, show that sub-venture's own SPOC contacts;
+  // otherwise show the client-level SPOCs.
+  const activeSubVenture =
+    svFilter !== "all" ? subVentures.find((sv) => sv.name === svFilter) : undefined;
+  const displaySpocs = activeSubVenture
+    ? (activeSubVenture.contacts ?? []).map((c) => ({
+        name: c.name,
+        email: c.email,
+        phone: c.phone ?? "—",
+        designation: c.designation ?? "—",
+        type: c.contactType ?? "Primary",
+      }))
+    : spocs;
 
   // Filter pool: status tab + sub-venture
   const poolByTab: Record<FilterTab, typeof allProj> = {
@@ -131,15 +254,18 @@ function CustomerDetailPage() {
     archived: archivedProjs,
     on_hold: onHoldProjs,
   };
-  const pool = poolByTab[filter].filter(
-    (p) => svFilter === "all" || p.subVenture === svFilter
-  );
+  const pool = poolByTab[filter].filter((p) => svFilter === "all" || p.subVenture === svFilter);
 
   return (
-    <AppShell title={client.name} subtitle={`${fmtClientId(client.id)} · ${client.industry} · 360° Client View`}>
+    <AppShell
+      title={client.name}
+      subtitle={`${fmtClientId(client.id)} · ${client.industry} · 360° Client View`}
+    >
       {/* Breadcrumb */}
       <nav className="mb-4 flex items-center gap-1 text-xs text-muted-foreground">
-        <Link to="/customers" className="hover:text-foreground">Customers</Link>
+        <Link to="/customers" className="hover:text-foreground">
+          Customers
+        </Link>
         <ChevronRight className="h-3 w-3" />
         <span className="text-foreground font-medium">{client.name}</span>
       </nav>
@@ -156,25 +282,32 @@ function CustomerDetailPage() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-base font-bold text-foreground">{client.name}</h1>
-              <span className={cn(
-                "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                client.clientType === "NEW"
-                  ? "border-primary/30 bg-primary/10 text-primary"
-                  : "border-success/30 bg-success/10 text-success"
-              )}>
+              <span
+                className={cn(
+                  "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                  client.clientType === "NEW"
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : "border-success/30 bg-success/10 text-success",
+                )}
+              >
                 {client.clientType === "NEW" ? "New Client" : "Existing Client"}
               </span>
-              <span className="inline-flex rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">Active</span>
+              <span className="inline-flex rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
+                Active
+              </span>
 
               {/* EM Name + Change button */}
-              {isDhanshree && (
+              {(isDhanshree || hasPermission("customers.edit")) && (
                 <div className="relative flex items-center gap-1.5">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-info/30 bg-info/10 px-2.5 py-0.5 text-[11px] font-semibold text-info">
                     <User className="h-3 w-3" />
                     {emName !== "—" ? emName : "No EM assigned"}
                   </span>
                   <button
-                    onClick={() => { setShowEMPicker((v) => !v); setEmSearch(""); }}
+                    onClick={() => {
+                      setShowEMPicker((v) => !v);
+                      setEmSearch("");
+                    }}
                     className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                   >
                     <Pencil className="h-2.5 w-2.5" /> Change EM
@@ -191,14 +324,21 @@ function CustomerDetailPage() {
                       />
                       <ul className="max-h-40 overflow-y-auto divide-y divide-border">
                         {emPool
-                          .filter((p) => !emSearch.trim() || p.name.toLowerCase().includes(emSearch.toLowerCase()))
+                          .filter(
+                            (p) =>
+                              !emSearch.trim() ||
+                              p.name.toLowerCase().includes(emSearch.toLowerCase()),
+                          )
                           .map((p) => (
                             <li key={p.id}>
                               <button
-                                onClick={() => { setEmName(p.name); setShowEMPicker(false); }}
+                                onClick={() => {
+                                  setEmName(p.name);
+                                  setShowEMPicker(false);
+                                }}
                                 className={cn(
                                   "flex w-full items-center gap-2 px-2 py-1.5 text-xs text-left hover:bg-accent/40 rounded-sm",
-                                  emName === p.name && "bg-primary/5"
+                                  emName === p.name && "bg-primary/5",
                                 )}
                               >
                                 <AvatarBubble name={p.name} size={20} />
@@ -206,13 +346,20 @@ function CustomerDetailPage() {
                                   <div className="font-medium truncate">{p.name}</div>
                                   <div className="text-[10px] text-muted-foreground">{p.role}</div>
                                 </div>
-                                {emName === p.name && <Check className="h-3 w-3 text-primary shrink-0" />}
+                                {emName === p.name && (
+                                  <Check className="h-3 w-3 text-primary shrink-0" />
+                                )}
                               </button>
                             </li>
-                          ))
-                        }
-                        {emPool.filter((p) => !emSearch.trim() || p.name.toLowerCase().includes(emSearch.toLowerCase())).length === 0 && (
-                          <li className="px-2 py-3 text-center text-xs text-muted-foreground">No match</li>
+                          ))}
+                        {emPool.filter(
+                          (p) =>
+                            !emSearch.trim() ||
+                            p.name.toLowerCase().includes(emSearch.toLowerCase()),
+                        ).length === 0 && (
+                          <li className="px-2 py-3 text-center text-xs text-muted-foreground">
+                            No match
+                          </li>
                         )}
                       </ul>
                     </div>
@@ -221,34 +368,79 @@ function CustomerDetailPage() {
               )}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span className="font-mono font-semibold text-foreground">{fmtClientId(client.id)}</span>
+              <span className="font-mono font-semibold text-foreground">
+                {fmtClientId(client.id)}
+              </span>
               <span>·</span>
               <span>{client.industry}</span>
               <span>·</span>
-              <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{client.contact}</span>
+              <span className="flex items-center gap-1">
+                <Mail className="h-3 w-3" />
+                {client.contact}
+              </span>
             </div>
           </div>
 
           {/* Clickable stat cards — act as filter buttons */}
           <div className="flex flex-wrap gap-2">
-            {([
-              { id: "all"       as FilterTab, label: "Total",     value: allProj.length,                        color: "text-foreground",         ring: "ring-border" },
-              { id: "new"       as FilterTab, label: "New",       value: newProjs.length,                       color: "text-primary",            ring: "ring-primary" },
-              { id: "ongoing"   as FilterTab, label: "Ongoing",   value: ongoingProjs.length + newProjs.length, color: "text-info",               ring: "ring-info" },
-              { id: "completed" as FilterTab, label: "Completed", value: activeCompleted.length,                color: "text-success",            ring: "ring-success" },
-              { id: "on_hold"   as FilterTab, label: "On Hold",   value: onHoldProjs.length,                   color: "text-warning-foreground", ring: "ring-warning" },
-              { id: "archived"  as FilterTab, label: "Archived",  value: archivedProjs.length,                 color: "text-muted-foreground",   ring: "ring-muted-foreground" },
-            ] as { id: FilterTab; label: string; value: number; color: string; ring: string }[]).map(({ id, label, value, color, ring }) => (
+            {(
+              [
+                {
+                  id: "all" as FilterTab,
+                  label: "Total",
+                  value: allProj.length,
+                  color: "text-foreground",
+                  ring: "ring-border",
+                },
+                {
+                  id: "new" as FilterTab,
+                  label: "New",
+                  value: newProjs.length,
+                  color: "text-primary",
+                  ring: "ring-primary",
+                },
+                {
+                  id: "ongoing" as FilterTab,
+                  label: "Ongoing",
+                  value: ongoingProjs.length + newProjs.length,
+                  color: "text-info",
+                  ring: "ring-info",
+                },
+                {
+                  id: "completed" as FilterTab,
+                  label: "Completed",
+                  value: activeCompleted.length,
+                  color: "text-success",
+                  ring: "ring-success",
+                },
+                {
+                  id: "on_hold" as FilterTab,
+                  label: "On Hold",
+                  value: onHoldProjs.length,
+                  color: "text-warning-foreground",
+                  ring: "ring-warning",
+                },
+                {
+                  id: "archived" as FilterTab,
+                  label: "Archived",
+                  value: archivedProjs.length,
+                  color: "text-muted-foreground",
+                  ring: "ring-muted-foreground",
+                },
+              ] as { id: FilterTab; label: string; value: number; color: string; ring: string }[]
+            ).map(({ id, label, value, color, ring }) => (
               <button
                 key={id}
                 onClick={() => setFilter(id)}
                 className={cn(
                   "rounded-lg border bg-muted/30 px-4 py-2 text-center min-w-[72px] transition-all hover:bg-muted/60",
-                  filter === id ? `border-transparent ring-2 ${ring} bg-muted/50` : "border-border"
+                  filter === id ? `border-transparent ring-2 ${ring} bg-muted/50` : "border-border",
                 )}
               >
                 <div className={cn("text-xl font-bold tabular-nums", color)}>{value}</div>
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">{label}</div>
+                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
+                  {label}
+                </div>
               </button>
             ))}
           </div>
@@ -258,7 +450,6 @@ function CustomerDetailPage() {
       <div className="grid gap-4 xl:grid-cols-4">
         {/* ── LEFT SIDEBAR ── */}
         <aside className="xl:col-span-1 space-y-3">
-
           {/* Client Information — 7 fields */}
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
@@ -268,17 +459,31 @@ function CustomerDetailPage() {
             </div>
             <dl className="divide-y divide-border">
               {[
-                { label: "Customer ID",           value: fmtClientId(client.id), mono: true },
-                { label: "Customer Name",          value: client.name },
-                { label: "Industry",             value: client.industry },
-                { label: "Customer Type",          value: client.clientType === "NEW" ? "New Customer" : "Existing Customer" },
-                { label: "Customer Since",         value: clientSinceDate },
-                { label: "First Project",        value: firstProjectName },
-                { label: "First Project ID",     value: firstProjectId, mono: true },
+                { label: "Customer ID", value: fmtClientId(client.id), mono: true },
+                { label: "Customer Name", value: client.name },
+                { label: "Industry", value: client.industry },
+                {
+                  label: "Customer Type",
+                  value: client.clientType === "NEW" ? "New Customer" : "Existing Customer",
+                },
+                { label: "Customer Since", value: clientSinceDate },
+                { label: "First Project", value: firstProjectName },
+                { label: "First Project ID", value: firstProjectId, mono: true },
+                { label: "City", value: client.city || "—" },
+                { label: "Country", value: client.country || "—" },
+                { label: "Business Type", value: client.businessType || "—" },
+                { label: "KYC Document", value: client.kycDocumentName || "—" },
               ].map(({ label, value, mono }) => (
                 <div key={label} className="grid grid-cols-2 gap-2 px-4 py-2.5 text-xs">
                   <dt className="text-muted-foreground font-medium">{label}</dt>
-                  <dd className={cn("font-medium truncate text-right", mono && "font-mono text-foreground")}>{value}</dd>
+                  <dd
+                    className={cn(
+                      "font-medium truncate text-right",
+                      mono && "font-mono text-foreground",
+                    )}
+                  >
+                    {value}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -293,12 +498,35 @@ function CustomerDetailPage() {
             </div>
             <div className="p-4 space-y-2">
               {[
-                { label: "Active Projects", value: ongoingProjs.length + newProjs.length, icon: TrendingUp,    color: "text-info" },
-                { label: "At Risk",         value: atRiskCount,                           icon: AlertTriangle, color: atRiskCount > 0 ? "text-destructive" : "text-muted-foreground" },
-                { label: "Completed",       value: activeCompleted.length,                icon: CheckCircle2,  color: "text-success" },
-                { label: "On Hold",         value: onHoldProjs.length,                   icon: PauseCircle,   color: "text-warning-foreground" },
+                {
+                  label: "Active Projects",
+                  value: ongoingProjs.length + newProjs.length,
+                  icon: TrendingUp,
+                  color: "text-info",
+                },
+                {
+                  label: "At Risk",
+                  value: atRiskCount,
+                  icon: AlertTriangle,
+                  color: atRiskCount > 0 ? "text-destructive" : "text-muted-foreground",
+                },
+                {
+                  label: "Completed",
+                  value: activeCompleted.length,
+                  icon: CheckCircle2,
+                  color: "text-success",
+                },
+                {
+                  label: "On Hold",
+                  value: onHoldProjs.length,
+                  icon: PauseCircle,
+                  color: "text-warning-foreground",
+                },
               ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2">
+                <div
+                  key={label}
+                  className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2"
+                >
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Icon className={cn("h-3.5 w-3.5", color)} />
                     {label}
@@ -308,43 +536,63 @@ function CustomerDetailPage() {
               ))}
             </div>
           </div>
-        </aside>
 
+          {/* Notes — shown only when the customer has notes on file */}
+          {client.notes && (
+            <div className="rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-4 py-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5" /> Notes
+                </h2>
+              </div>
+              <p className="p-4 text-xs text-muted-foreground whitespace-pre-wrap">
+                {client.notes}
+              </p>
+            </div>
+          )}
+        </aside>
 
         {/* ── MAIN PROJECTS SECTION ── */}
         <section className="xl:col-span-3 space-y-3">
-
           {/* ── SPOC Contacts + Sub-venture filter — side by side ── */}
           <div className="flex gap-3 items-stretch">
-
-            {/* SPOC Contacts */}
+            {/* SPOC Contacts — follows the sub-venture filter */}
             <div className="flex-1 rounded-xl border border-border bg-card shadow-sm min-w-0">
               <div className="border-b border-border px-4 py-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5" /> SPOC Contacts
+                  <User className="h-3.5 w-3.5" />
+                  {activeSubVenture ? `SPOC Contacts — ${activeSubVenture.name}` : "SPOC Contacts"}
                 </h3>
               </div>
               <div className="p-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {spocs.map((spoc, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedSpoc(selectedSpoc === i ? null : i)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-all",
-                        selectedSpoc === i
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                      )}
-                    >
-                      <User className="h-3 w-3" />
-                      SPOC {i + 1} — {spoc.name}
-                    </button>
-                  ))}
-                </div>
+                {displaySpocs.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {displaySpocs.map((spoc, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedSpoc(selectedSpoc === i ? null : i)}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-all",
+                          selectedSpoc === i
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60",
+                        )}
+                      >
+                        <User className="h-3 w-3" />
+                        SPOC {i + 1} — {spoc.name}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {activeSubVenture
+                      ? "No SPOC contacts for this sub-venture yet."
+                      : "No SPOC contacts on file."}
+                  </p>
+                )}
 
                 {/* SPOC detail card */}
-                {selectedSpoc !== null && spocs[selectedSpoc] && (
+                {selectedSpoc !== null && displaySpocs[selectedSpoc] && (
                   <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs relative">
                     <button
                       onClick={() => setSelectedSpoc(null)}
@@ -353,20 +601,25 @@ function CustomerDetailPage() {
                       <X className="h-3 w-3" />
                     </button>
                     <div className="flex items-center gap-2 mb-2">
-                      <AvatarBubble name={spocs[selectedSpoc].name} size={28} />
+                      <AvatarBubble name={displaySpocs[selectedSpoc].name} size={28} />
                       <div>
-                        <div className="font-semibold text-foreground">{spocs[selectedSpoc].name}</div>
-                        <div className="text-[10px] text-muted-foreground">{spocs[selectedSpoc].designation} · {spocs[selectedSpoc].type}</div>
+                        <div className="font-semibold text-foreground">
+                          {displaySpocs[selectedSpoc].name}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {displaySpocs[selectedSpoc].designation} ·{" "}
+                          {displaySpocs[selectedSpoc].type}
+                        </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Mail className="h-3 w-3" />
-                        <span className="truncate">{spocs[selectedSpoc].email}</span>
+                        <span className="truncate">{displaySpocs[selectedSpoc].email}</span>
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Phone className="h-3 w-3" />
-                        <span>{spocs[selectedSpoc].phone}</span>
+                        <span>{displaySpocs[selectedSpoc].phone}</span>
                       </div>
                     </div>
                   </div>
@@ -386,12 +639,17 @@ function CustomerDetailPage() {
                   <div className="relative">
                     <select
                       value={svFilter}
-                      onChange={(e) => setSvFilter(e.target.value)}
+                      onChange={(e) => {
+                        setSvFilter(e.target.value);
+                        setSelectedSpoc(null);
+                      }}
                       className="h-8 w-full rounded-md border border-border bg-card pr-7 pl-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring appearance-none"
                     >
                       <option value="all">All Sub-ventures</option>
                       {subVentures.map((sv) => (
-                        <option key={sv} value={sv}>{sv}</option>
+                        <option key={sv.name} value={sv.name}>
+                          {sv.name}
+                        </option>
                       ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -399,10 +657,14 @@ function CustomerDetailPage() {
                   {svFilter !== "all" && (
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-muted-foreground truncate max-w-[160px]">
-                        <span className="font-medium text-foreground">{pool.length}</span> project{pool.length !== 1 ? "s" : ""}
+                        <span className="font-medium text-foreground">{pool.length}</span> project
+                        {pool.length !== 1 ? "s" : ""}
                       </span>
                       <button
-                        onClick={() => setSvFilter("all")}
+                        onClick={() => {
+                          setSvFilter("all");
+                          setSelectedSpoc(null);
+                        }}
                         className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                       >
                         <X className="h-2.5 w-2.5" /> Clear
@@ -417,9 +679,11 @@ function CustomerDetailPage() {
             <header className="flex items-center justify-between border-b border-border px-5 py-3">
               <div>
                 <h3 className="text-sm font-semibold">
-                  {filter === "all" ? "All Projects" :
-                   filter === "on_hold" ? "On Hold Projects" :
-                   `${filter.charAt(0).toUpperCase() + filter.slice(1)} Projects`}
+                  {filter === "all"
+                    ? "All Projects"
+                    : filter === "on_hold"
+                      ? "On Hold Projects"
+                      : `${filter.charAt(0).toUpperCase() + filter.slice(1)} Projects`}
                 </h3>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {pool.length} project{pool.length !== 1 ? "s" : ""}
@@ -451,29 +715,44 @@ function CustomerDetailPage() {
                   <tbody className="divide-y divide-border">
                     {pool.map((p) => {
                       const pm = getPerson(p.pmId);
-                      const category = p.status === "completed"
-                        ? (p.progress >= 80 ? "Completed" : "Archived")
-                        : p.status === "ongoing"
-                          ? (p.progress === 0 ? "New" : "Ongoing")
-                          : "On Hold";
+                      const category =
+                        p.status === "completed"
+                          ? p.progress >= 80
+                            ? "Completed"
+                            : "Archived"
+                          : p.status === "ongoing"
+                            ? p.progress === 0
+                              ? "New"
+                              : "Ongoing"
+                            : "On Hold";
 
                       return (
                         <tr
                           key={p.id}
                           className="hover:bg-accent/30 transition-colors cursor-pointer"
-                          onClick={() => navigate({ to: "/projects/$projectId", params: { projectId: p.id } })}
+                          onClick={() =>
+                            navigate({ to: "/projects/$projectId", params: { projectId: p.id } })
+                          }
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-xs text-muted-foreground">{fmtProjectId(p.id)}</span>
-                              <span className={cn(
-                                "rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase",
-                                category === "New" ? "border-primary/30 bg-primary/10 text-primary" :
-                                  category === "Ongoing" ? "border-info/30 bg-info/10 text-info" :
-                                    category === "Completed" ? "border-success/30 bg-success/10 text-success" :
-                                      category === "On Hold" ? "border-warning/30 bg-warning/10 text-warning-foreground" :
-                                        "border-muted-foreground/30 bg-muted text-muted-foreground"
-                              )}>
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {fmtProjectId(p.id)}
+                              </span>
+                              <span
+                                className={cn(
+                                  "rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase",
+                                  category === "New"
+                                    ? "border-primary/30 bg-primary/10 text-primary"
+                                    : category === "Ongoing"
+                                      ? "border-info/30 bg-info/10 text-info"
+                                      : category === "Completed"
+                                        ? "border-success/30 bg-success/10 text-success"
+                                        : category === "On Hold"
+                                          ? "border-warning/30 bg-warning/10 text-warning-foreground"
+                                          : "border-muted-foreground/30 bg-muted text-muted-foreground",
+                                )}
+                              >
                                 {category}
                               </span>
                             </div>
@@ -483,7 +762,9 @@ function CustomerDetailPage() {
                               <HealthPill status={p.health} />
                               <div className="min-w-0">
                                 <div className="truncate font-medium text-sm">{p.name}</div>
-                                <div className="truncate text-[11px] text-muted-foreground">{p.description}</div>
+                                <div className="truncate text-[11px] text-muted-foreground">
+                                  {p.description}
+                                </div>
                               </div>
                             </div>
                           </td>

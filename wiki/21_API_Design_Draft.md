@@ -1,8 +1,8 @@
 # API Design Draft
 
-> **Status:** 🔲 Not yet implemented  
-> **Framework:** FastAPI  
-> **Last Updated:** 2026-06-16
+> **Status:** 🔲 Design reference (endpoints implemented per-module in `apps/backend`)  
+> **Framework:** ASP.NET Core 10 (controllers)  
+> **Last Updated:** 2026-08-07 — stack updated to .NET
 
 ---
 

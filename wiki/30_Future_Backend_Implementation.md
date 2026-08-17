@@ -42,27 +42,21 @@ The `mock-data.ts` file should be used to generate database seed scripts:
 
 ---
 
-## Backend Quick Start (When Ready)
+## Backend Quick Start (.NET)
 
 ```bash
-# 1. Create Python environment
-python -m venv venv
-venv\Scripts\activate  # Windows
+# 1. Start PostgreSQL (local install or docker compose up -d)
+# 2. Set the connection string (see apps/backend/README.md — appsettings.json or user-secrets)
 
-# 2. Install dependencies
-pip install fastapi uvicorn sqlalchemy alembic psycopg2-binary python-jose passlib
+cd apps/backend
+# 3. Create the initial migration
+dotnet ef migrations add InitialIdentity --project PMS.API.csproj
 
-# 3. Initialize Alembic
-alembic init alembic
+# 4. Apply migration (creates the trackerpro database if it does not exist)
+dotnet ef database update --project PMS.API.csproj
 
-# 4. Create first migration
-alembic revision --autogenerate -m "initial schema"
-
-# 5. Apply migration
-alembic upgrade head
-
-# 6. Run server
-uvicorn app.main:app --reload
+# 5. Run server
+dotnet run --project PMS.API.csproj
 ```
 
 ---

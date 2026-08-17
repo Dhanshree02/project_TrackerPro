@@ -38,7 +38,7 @@ export function ProjectHeader({ project, client, stages, activeStageId, onSelect
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl font-bold tracking-tight text-foreground">{project.name}</h1>
               <StatusPill status={project.status} />
-              <HealthPill health={project.health} />
+              <HealthPill status={project.health} />
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               Customer: <Link to="/customers/$clientId" params={{ clientId: client.id }} className="font-semibold text-primary hover:underline">{client.name}</Link> · Industry: {client.industry}
@@ -63,7 +63,7 @@ export function ProjectHeader({ project, client, stages, activeStageId, onSelect
           <div className="min-w-[120px]">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Overall Progress</span>
             <div className="mt-1">
-              <ProgressBar progress={project.progress} />
+              <ProgressBar value={project.progress} />
             </div>
           </div>
         </div>

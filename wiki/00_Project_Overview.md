@@ -64,9 +64,10 @@ Compass consolidates all these workflows into a single platform with role-based 
 - **Routing:** File-based routing via TanStack Router
 - **Build:** Vite 7, deployed to Cloudflare Workers (Wrangler config present)
 
-### Backend (Not Yet Implemented)
-- **Planned Stack:** FastAPI, PostgreSQL, SQLAlchemy, Alembic, JWT, RBAC
-- See [[22_Backend_Architecture_Draft]] and [[20_Database_Design_Draft]]
+### Backend (Scaffold Complete — Modules in Progress)
+- **Stack:** ASP.NET Core 10 (C#), PostgreSQL 16, EF Core 10, JWT + BCrypt, RBAC, Serilog
+- **Solution:** `apps/backend/PMS.slnx` — see [[31_Backend_Plan_DotNet]]
+- Domain design still in [[20_Database_Design_Draft]] and [[21_API_Design_Draft]]
 
 ---
 

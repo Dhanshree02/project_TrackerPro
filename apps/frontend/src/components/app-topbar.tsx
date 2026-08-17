@@ -1,9 +1,14 @@
 import { type ReactNode } from "react";
-import { Search, Bell } from "lucide-react";
-import { useRoleContext, roleLabels } from "@/lib/role-context";
+import { Search, Bell, LogOut } from "lucide-react";
+import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
+import { useAuth } from "@/lib/auth-context";
 
 export function AppTopbar({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
   const { role, user, assignedIssues, pendingTimesheets } = useRoleContext();
+  const { user: authUser, logout } = useAuth();
+  const roleLabel = authUser?.role
+    ? (backendRoleLabels[authUser.role] ?? roleLabels[role])
+    : roleLabels[role];
   const notifCount =
     assignedIssues.filter((i) => i.status === "open").length + pendingTimesheets.length;
 
@@ -11,9 +16,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-base font-semibold leading-tight">{title}</h1>
-        {subtitle && (
-          <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
-        )}
+        {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
 
       <div className="hidden lg:flex relative w-64">
@@ -43,8 +46,16 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
         </div>
         <div className="hidden md:flex flex-col leading-tight">
           <span className="text-sm font-medium">{user.name}</span>
-          <span className="text-[11px] text-muted-foreground">{roleLabels[role]}</span>
+          <span className="text-[11px] text-muted-foreground">{roleLabel}</span>
         </div>
+        <button
+          onClick={() => void logout()}
+          title="Sign out"
+          aria-label="Sign out"
+          className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
       </div>
     </header>
   );

@@ -1,0 +1,362 @@
+namespace PMS.API.Shared.Constants;
+
+/// <summary>
+/// Baseline permission sets for every system role, derived from the RBAC
+/// role → module → submodule → action matrix. Used by the seeder (new roles)
+/// and by the Settings "Reset" action. System roles are the only roles that
+/// have a baseline; custom roles are never touched.
+/// </summary>
+public static class RoleBaselines
+{
+    public static IReadOnlyList<string> For(string roleKey) =>
+        Map.TryGetValue(roleKey, out var keys) ? keys : [];
+
+    /// <summary>True when the role key has a known baseline.</summary>
+    public static bool HasBaseline(string roleKey) => Map.ContainsKey(roleKey);
+
+    private static string[] Dot(params string[] keys) => keys;
+
+    private static readonly Dictionary<string, string[]> Map = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // ---- Super admins: full access to everything ----
+        ["Admin"] = AllKeys(),
+        ["Dhanshree"] = AllKeys(),
+
+        // ---- PMO: view-oriented governance ----
+        ["Pmo"] =
+        [
+            "dashboard.view",
+            "action-center.view",
+            "projects.view",
+            "projects.overview.view",
+            "projects.budget.view",
+            "reports.view",
+            "reports.export",
+            "resources.view",
+            "resources.directory.view",
+            "customers.view",
+            "repository.view",
+            "my-team.dashboard.view",
+            "approvals.view",
+            "wbs.view",
+            "wbs.allocate",
+            Permissions.ClientsRead,
+            Permissions.ProjectsRead,
+            Permissions.WbsRead,
+            Permissions.WbsAllocate,
+            Permissions.TimesheetsMonitor,
+            Permissions.IssuesManage,
+            Permissions.ResourcesRead,
+            Permissions.ReportsRead,
+            Permissions.ApprovalsManage,
+        ],
+
+        // ---- HOD: department oversight ----
+        ["Hod"] =
+        [
+            "dashboard.view",
+            "action-center.view",
+            "projects.view",
+            "projects.overview.view",
+            "projects.health.view",
+            "projects.health.manage",
+            "projects.health-issues.view",
+            "projects.alerts.view",
+            "projects.escalation.view",
+            "reports.view",
+            "reports.export",
+            "resources.view",
+            "resources.directory.view",
+            "resources.kpi.view",
+            "customers.view",
+            "customers.approve",
+            "repository.view",
+            "my-team.dashboard.view",
+            "my-team.timesheet-approval.view",
+            "my-team.timesheet-approval.approve",
+            "my-team.timesheet-approval.reject",
+            "approvals.view",
+            "approvals.approve",
+            "approvals.reject",
+            Permissions.ClientsRead,
+            Permissions.ClientsApprove,
+            Permissions.ProjectsRead,
+            Permissions.ProjectsClose,
+            Permissions.IssuesManage,
+            Permissions.TimesheetsApprove,
+            Permissions.ApprovalsManage,
+            Permissions.ReportsRead,
+        ],
+
+        // ---- Business Owner: executive oversight ----
+        ["BusinessOwner"] =
+        [
+            "dashboard.view",
+            "action-center.view",
+            "projects.view",
+            "projects.overview.view",
+            "projects.health.view",
+            "projects.health-issues.view",
+            "reports.view",
+            "reports.export",
+            "resources.view",
+            "resources.directory.view",
+            "resources.kpi.view",
+            "customers.view",
+            "repository.view",
+            "my-team.dashboard.view",
+            "portfolio.view",
+            Permissions.ClientsRead,
+            Permissions.ProjectsRead,
+            Permissions.ReportsRead,
+        ],
+
+        // ---- Senior Project Manager ----
+        ["SeniorPm"] =
+        [
+            "dashboard.view",
+            "action-center.view",
+            "projects.view",
+            "projects.overview.view",
+            "projects.overview.edit",
+            "projects.budget.view",
+            "projects.team.view",
+            "projects.team.assign",
+            "projects.task.view",
+            "projects.task.create",
+            "projects.task.edit",
+            "projects.task.assign",
+            "projects.task.update-status",
+            "projects.health.view",
+            "projects.health.raise-issue",
+            "projects.health.edit-issue",
+            "projects.health.resolve-issue",
+            "projects.health.comment",
+            "projects.health-issues.view",
+            "projects.health-issues.create",
+            "projects.health-issues.edit",
+            "projects.health-issues.resolve",
+            "projects.alerts.view",
+            "projects.alerts.create",
+            "projects.alerts.resolve",
+            "projects.escalation.view",
+            "projects.escalation.create",
+            "projects.escalation.resolve",
+            "projects.communication.view",
+            "projects.communication.create",
+            "resources.view",
+            "resources.directory.view",
+            "resources.kpi.view",
+            "customers.view",
+            "repository.view",
+            "my-team.dashboard.view",
+            "my-team.timesheet-approval.view",
+            "my-team.timesheet-approval.approve",
+            "my-team.timesheet-approval.reject",
+            Permissions.ClientsRead,
+            Permissions.ProjectsRead,
+            Permissions.ProjectsWrite,
+            Permissions.ProjectsClose,
+            Permissions.IssuesRaise,
+            Permissions.IssuesManage,
+            Permissions.TimesheetsApprove,
+        ],
+
+        // ---- Engagement Manager ----
+        ["EngagementManager"] =
+        [
+            "dashboard.view",
+            "action-center.view",
+            "projects.view",
+            "projects.overview.view",
+            "projects.overview.edit",
+            "projects.budget.view",
+            "projects.team.view",
+            "projects.team.assign",
+            "projects.task.view",
+            "projects.task.create",
+            "projects.task.edit",
+            "projects.task.assign",
+            "projects.task.update-status",
+            "projects.health.view",
+            "projects.health.raise-issue",
+            "projects.health.edit-issue",
+            "projects.health.resolve-issue",
+            "projects.health.comment",
+            "projects.health-issues.view",
+            "projects.health-issues.create",
+            "projects.health-issues.edit",
+            "projects.health-issues.resolve",
+            "projects.alerts.view",
+            "projects.alerts.create",
+            "projects.alerts.resolve",
+            "projects.escalation.view",
+            "projects.escalation.create",
+            "projects.escalation.resolve",
+            "projects.communication.view",
+            "projects.communication.create",
+            "resources.view",
+            "resources.directory.view",
+            "resources.kpi.view",
+            "customers.view",
+            "repository.view",
+            "my-team.dashboard.view",
+            "my-team.timesheet-approval.view",
+            "my-team.timesheet-approval.approve",
+            "my-team.timesheet-approval.reject",
+            Permissions.ClientsRead,
+            Permissions.ProjectsRead,
+            Permissions.ProjectsWrite,
+            Permissions.IssuesRaise,
+            Permissions.IssuesManage,
+            Permissions.TimesheetsApprove,
+        ],
+
+        // ---- Project Manager ----
+        ["ProjectManager"] =
+        [
+            "dashboard.view",
+            "action-center.view",
+            "projects.view",
+            "projects.overview.view",
+            "projects.overview.edit",
+            "projects.budget.view",
+            "projects.team.view",
+            "projects.task.view",
+            "projects.task.create",
+            "projects.task.edit",
+            "projects.task.assign",
+            "projects.task.update-status",
+            "projects.health.view",
+            "projects.health.raise-issue",
+            "projects.health.edit-issue",
+            "projects.health.resolve-issue",
+            "projects.health-issues.view",
+            "projects.health-issues.create",
+            "projects.health-issues.edit",
+            "projects.health-issues.resolve",
+            "projects.alerts.view",
+            "projects.alerts.create",
+            "projects.alerts.resolve",
+            "projects.escalation.view",
+            "projects.escalation.create",
+            "projects.escalation.resolve",
+            "projects.communication.view",
+            "projects.communication.create",
+            "resources.view",
+            "resources.directory.view",
+            "resources.kpi.view",
+            "customers.view",
+            "repository.view",
+            "my-team.dashboard.view",
+            "my-team.timesheet-approval.view",
+            "my-team.timesheet-approval.approve",
+            "my-team.timesheet-approval.reject",
+            "my-team.my-timesheet.view",
+            "my-team.my-timesheet.submit",
+            "my-team.my-timesheet.edit",
+            Permissions.ProjectsRead,
+            Permissions.ProjectsWrite,
+            Permissions.IssuesRaise,
+            Permissions.TimesheetsSubmit,
+            Permissions.TimesheetsApprove,
+        ],
+
+        // ---- Employee: assigned work only ----
+        ["Employee"] =
+        [
+            "dashboard.view",
+            "action-center.view",
+            "projects.view",
+            "projects.assigned-projects.view",
+            "projects.task.view",
+            "projects.task.update-status",
+            "resources.view",
+            "resources.directory.view",
+            "repository.view",
+            "my-team.dashboard.view",
+            "my-team.my-timesheet.view",
+            "my-team.my-timesheet.submit",
+            "my-team.my-timesheet.edit",
+            Permissions.TimesheetsSubmit,
+            Permissions.IssuesRaise,
+        ],
+
+        // ---- HR ----
+        // HR sees only Resources + Repository (no dashboard) per the role
+        // matrix: HR-authorized resource/directory information only.
+        ["Hr"] =
+        [
+            "resources.view",
+            "resources.directory.view",
+            "resources.manage",
+            "repository.view",
+            Permissions.ResourcesManage,
+        ],
+
+        // ---- Accounts & Finance ----
+        ["Accounts"] =
+        [
+            "dashboard.view",
+            "projects.view",
+            "projects.overview.view",
+            "projects.health.view",
+            "projects.invoice-schedule.view",
+            "projects.invoice-schedule.manage",
+            "reports.view",
+            "reports.export",
+            "reports.finance.view",
+            "resources.view",
+            "resources.directory.view",
+            "resources.kpi.view",
+            "customers.view",
+            "repository.view",
+            Permissions.ClientsRead,
+            Permissions.InvoicesRaise,
+            Permissions.InvoicesPayment,
+            Permissions.ReportsRead,
+        ],
+
+        // ---- Sales & Business Development ----
+        ["Sales"] =
+        [
+            "dashboard.view",
+            "projects.view",
+            "projects.create",
+            "projects.overview.view",
+            "projects.overview.edit",
+            "projects.health.view",
+            "resources.view",
+            "resources.directory.view",
+            "resources.kpi.view",
+            "customers.view",
+            "customers.create",
+            "customers.edit",
+            "customers.assign",
+            "repository.view",
+            "my-team.dashboard.view",
+            "my-team.my-timesheet.view",
+            "my-team.my-timesheet.submit",
+            Permissions.ClientsWrite,
+            Permissions.ProjectsWrite,
+            Permissions.WbsRead,
+            Permissions.TimesheetsSubmit,
+        ],
+
+        // ---- Team Lead ----
+        ["TeamLead"] =
+        [
+            "dashboard.view",
+            "projects.view",
+            "projects.task.view",
+            "projects.task.update-status",
+            "my-team.dashboard.view",
+            "my-team.my-timesheet.view",
+            "my-team.my-timesheet.submit",
+            Permissions.IssuesRaise,
+            Permissions.TimesheetsSubmit,
+        ],
+    };
+
+    private static string[] AllKeys() => [.. PermissionCatalog.AllKeys()];
+}

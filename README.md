@@ -8,7 +8,7 @@ Enterprise-grade **Project Management, Resource Allocation, Finance, Governance,
 project-compass/
 ├── apps/
 │   ├── frontend/    → React 19 + TanStack Start application
-│   └── backend/     → FastAPI + PostgreSQL (coming soon)
+│   └── backend/     → ASP.NET Core 10 + PostgreSQL 16
 ├── wiki/            → Obsidian knowledge base (source of truth, flat vault)
 ├── scripts/         → Automation & migration scripts
 └── tools/           → Developer tooling
@@ -42,7 +42,7 @@ The `wiki/` directory is a flat Obsidian vault. Start with:
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 19, TypeScript, TanStack Start/Router, Tailwind CSS, shadcn/ui |
-| Backend (planned) | FastAPI, PostgreSQL, SQLAlchemy, Alembic |
+| Backend (in progress) | ASP.NET Core 10, PostgreSQL 16, EF Core 10, JWT, RBAC |
 | Documentation | Obsidian Markdown Wiki |
 
 ## Status

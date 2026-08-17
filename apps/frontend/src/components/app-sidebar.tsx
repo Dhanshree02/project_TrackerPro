@@ -1,74 +1,17 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import {
-  LayoutDashboard,
-  Briefcase,
-  Activity,
-  CheckCircle2,
-  Users,
-  Inbox,
-  BarChart3,
-  Layers,
-  ListChecks,
-  FolderKanban,
-  Building2,
-  Building,
-  ContactRound,
-  Settings,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRoleContext } from "@/lib/role-context";
-
-type SubItem = { to: string; search?: Record<string, any>; label: string };
-type Item = {
-  to?: string;
-  label: string;
-  icon: typeof LayoutDashboard;
-  exact?: boolean;
-  subItems?: SubItem[];
-};
-
-const dashboardItem: Item = { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true };
-const clientsItem: Item = { to: "/customers", label: "Customers", icon: Building2 };
-const portfolioItem: Item = { to: "/portfolio", label: "Portfolio", icon: Layers };
-const wbsItem: Item = { to: "/wbs-allocation", label: "WBS Allocation", icon: Inbox };
-const resourcesItem: Item = { to: "/resources", label: "Resources", icon: Users };
-const healthItem: Item = { to: "/health", label: "Health & Governance", icon: Activity };
-const approvalsItem: Item = { to: "/approvals", label: "Approvals", icon: CheckCircle2 };
-const reportsItem: Item = { to: "/reports", label: "Reports", icon: BarChart3 };
-
-// Dhanshree-specific items
-const dhActionCentre: Item = { to: "/action-centre", label: "Action Centre", icon: ListChecks };
-const dhProjects: Item = { to: "/projects", label: "Projects", icon: FolderKanban };
-const dhReports: Item = { to: "/dh-reports", label: "Reports", icon: BarChart3 };
-const dhCustomers: Item = { to: "/customers", label: "Customers", icon: Building2 };
-const dhMyOrg: Item = { to: "/my-org", label: "Repository", icon: Building };
-const dhMyTeam: Item = {
-  label: "My Team",
-  icon: Users,
-  subItems: [
-    { to: "/my-team/", label: "Team Dashboard" },
-    { to: "/my-team/timesheets", label: "Timesheets" },
-  ],
-};
-const dhSettings: Item = { to: "/dh-settings", label: "Settings", icon: Settings };
-
-const dhResourcesDropdown: Item = {
-  label: "Resources",
-  icon: Users,
-  subItems: [
-    { to: "/dh-employee-directory", label: "Directory & Pool" },
-    { to: "/dh-exit-summary", label: "Exit Summary" },
-  ],
-};
+import { usePermissions } from "@/lib/permissions";
+import { NAV_ITEMS, DH_NAV_ITEMS, filterNavItems, type NavItem } from "@/lib/navigation";
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const search = useRouterState({ select: (s) => s.location.search }) as any;
-  const { assignedIssues, pendingTimesheets, isPMO, isHOD, isBO, isDhanshree } = useRoleContext();
+  const { assignedIssues, pendingTimesheets, isPMO, isHOD, isBO, isDhanshree, isEmployee, isHr } =
+    useRoleContext();
+  const { hasPermission, hasAny } = usePermissions();
   const openIssues = assignedIssues.filter((i) => i.status === "open").length;
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -86,15 +29,15 @@ export function AppSidebar() {
     });
   };
 
-  const items: Item[] = isDhanshree
-    ? [dashboardItem, dhActionCentre, dhProjects, dhReports, dhResourcesDropdown, dhCustomers, dhMyOrg, dhMyTeam, dhSettings]
-    : isBO
-      ? [dashboardItem, portfolioItem, clientsItem, resourcesItem, healthItem, reportsItem]
-      : isHOD
-        ? [dashboardItem, portfolioItem, resourcesItem, healthItem, approvalsItem, reportsItem]
-        : isPMO
-          ? [dashboardItem, clientsItem, wbsItem, resourcesItem, healthItem, approvalsItem]
-          : [dashboardItem, clientsItem, healthItem, approvalsItem];
+  // Navigation is permission-driven: only modules the signed-in user may access
+  // are rendered. Dhanshree/Admin keep the super-admin workspace layout.
+  const items: NavItem[] = filterNavItems(
+    isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
+    hasPermission,
+    hasAny,
+    isEmployee,
+    isHr,
+  );
 
   const isActive = (to?: string, exact?: boolean, subSearch?: Record<string, any>) => {
     if (!to) return false;
@@ -105,7 +48,7 @@ export function AppSidebar() {
 
     const pathMatch = exact
       ? normPath === normTo
-      : (normPath === normTo || normPath.startsWith(normTo + "/"));
+      : normPath === normTo || normPath.startsWith(normTo + "/");
 
     if (!pathMatch) return false;
 
@@ -123,23 +66,26 @@ export function AppSidebar() {
   useEffect(() => {
     // Auto-open Resources if we are in any of the resource sub-routes
     const resourceRoutes = ["/dh-employee-directory", "/dh-resource-pool", "/dh-exit-summary"];
-    if (resourceRoutes.some(route => pathname.startsWith(route))) {
-      setOpenDropdowns(prev => ({ ...prev, Resources: true }));
+    if (resourceRoutes.some((route) => pathname.startsWith(route))) {
+      setOpenDropdowns((prev) => ({ ...prev, Resources: true }));
     }
     // Auto-open My Team if we are in any of its sub-routes
     if (pathname.startsWith("/my-team")) {
-      setOpenDropdowns(prev => ({ ...prev, "My Team": true }));
+      setOpenDropdowns((prev) => ({ ...prev, "My Team": true }));
     }
   }, [pathname]);
 
   const toggleDropdown = (label: string) => {
-    setOpenDropdowns(prev => ({ ...prev, [label]: !prev[label] }));
+    setOpenDropdowns((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
   return (
-    <aside className={cn("relative hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300 z-40",
-      isCollapsed ? "w-16" : "w-60"
-    )}>
+    <aside
+      className={cn(
+        "relative hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300 z-40",
+        isCollapsed ? "w-16" : "w-60",
+      )}
+    >
       {/* Floating toggle button — sits half on sidebar, half on body */}
       <button
         onClick={toggleCollapse}
@@ -163,11 +109,13 @@ export function AppSidebar() {
           )}
         </div>
       </div>
-      <nav className={cn("flex-1 p-2 space-y-1", isCollapsed ? "overflow-visible" : "overflow-y-auto")}>
+      <nav
+        className={cn("flex-1 p-2 space-y-1", isCollapsed ? "overflow-visible" : "overflow-y-auto")}
+      >
         {items.map((it) => {
           if (it.subItems) {
             const isExpanded = openDropdowns[it.label] ?? false;
-            const isParentActive = it.subItems.some(sub => isActive(sub.to, true, sub.search));
+            const isParentActive = it.subItems.some((sub) => isActive(sub.to, true, sub.search));
 
             return (
               <div key={it.label} className="relative group/sidebar-item flex flex-col gap-1">
@@ -191,7 +139,7 @@ export function AppSidebar() {
                     <ChevronDown
                       className={cn(
                         "h-4 w-4 shrink-0 transition-transform duration-200 text-muted-foreground",
-                        isExpanded && "rotate-180"
+                        isExpanded && "rotate-180",
                       )}
                     />
                   )}
@@ -216,7 +164,7 @@ export function AppSidebar() {
                               "flex items-center justify-between rounded-md px-3 py-2 text-xs transition-colors",
                               subActive
                                 ? "bg-primary/10 text-primary font-semibold"
-                                : "text-foreground/80 hover:bg-accent hover:text-accent-foreground"
+                                : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
                             )}
                           >
                             <span>{sub.label}</span>
@@ -257,9 +205,11 @@ export function AppSidebar() {
 
           const active = isActive(it.to, it.exact);
           const badge =
-            it.to === "/health" ? openIssues :
-              it.to === "/approvals" ? pendingTimesheets.length :
-                0;
+            it.to === "/health"
+              ? openIssues
+              : it.to === "/approvals"
+                ? pendingTimesheets.length
+                : 0;
 
           return (
             <div key={it.to} className="relative group/sidebar-item">
@@ -295,7 +245,15 @@ export function AppSidebar() {
       <div className="border-t border-sidebar-border p-2">
         {!isCollapsed && (
           <div className="text-[11px] text-muted-foreground truncate max-w-[150px] animate-in fade-in duration-300">
-            {isDhanshree ? "v1.0 · Workspace" : isBO ? "v1.0 · Executive oversight" : isHOD ? "v1.0 · Department oversight" : isPMO ? "v1.0 · Governance + allocation" : "v1.0 · Read-only tracking"}
+            {isDhanshree
+              ? "v1.0 · Workspace"
+              : isBO
+                ? "v1.0 · Executive oversight"
+                : isHOD
+                  ? "v1.0 · Department oversight"
+                  : isPMO
+                    ? "v1.0 · Governance + allocation"
+                    : "v1.0 · Role-based access"}
           </div>
         )}
       </div>

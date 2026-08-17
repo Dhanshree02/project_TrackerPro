@@ -1,5 +1,7 @@
 # Repository Analysis
 
+> ⚠️ **Stack update (2026-08-07):** the FastAPI backend scaffold referenced in this analysis was replaced by the .NET solution in `apps/backend/` — see [[31_Backend_Plan_DotNet]].
+>
 > **Analyzed by:** Principal Software Architect  
 > **Date:** 2026-06-16  
 > **Scope:** Complete repository scan of Project Compass (Pulse PMO)

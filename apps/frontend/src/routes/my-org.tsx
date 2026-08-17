@@ -11,6 +11,7 @@ import {
   X,
   Code2,
   ClipboardList,
+  Download,
   Trash2,
   AlertTriangle,
   ScrollText,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/my-org")({
@@ -26,8 +28,7 @@ export const Route = createFileRoute("/my-org")({
       { title: "Repository — Pulse PMO" },
       {
         name: "description",
-        content:
-          "Organization documents, Standard Operating Procedures, and policy resources.",
+        content: "Organization documents, Standard Operating Procedures, and policy resources.",
       },
     ],
   }),
@@ -36,7 +37,8 @@ export const Route = createFileRoute("/my-org")({
 
 function MyOrgRoute() {
   const { isDhanshree } = useRoleContext();
-  if (!isDhanshree) return <Navigate to="/" />;
+  const { hasPermission } = usePermissions();
+  if (!isDhanshree && !hasPermission("repository.view")) return <Navigate to="/" />;
   return <MyOrgPage />;
 }
 
@@ -94,7 +96,8 @@ const seedCategories: OrgCategory[] = [
   {
     id: "policy-docs",
     name: "IMP Templates",
-    description: "Important templates, company-wide policies, guidelines, and compliance documents.",
+    description:
+      "Important templates, company-wide policies, guidelines, and compliance documents.",
     iconName: "FileText",
     accentColor: "green",
   },
@@ -102,21 +105,125 @@ const seedCategories: OrgCategory[] = [
 
 const seedDocuments: OrgDocument[] = [
   // ── Tech. SOPs ──
-  { id: "doc-001", name: "API Gateway Configuration Guide.pdf", categoryId: "tech-sops", size: 2457600, fileType: "pdf", lastUpdated: "2026-06-10", uploadedBy: "Rahul Gupta" },
-  { id: "doc-002", name: "CI-CD Pipeline Setup Procedures.docx", categoryId: "tech-sops", size: 1048576, fileType: "docx", lastUpdated: "2026-05-22", uploadedBy: "Vikram Shah" },
-  { id: "doc-003", name: "Database Backup and Recovery SOP.pdf", categoryId: "tech-sops", size: 3145728, fileType: "pdf", lastUpdated: "2026-04-15", uploadedBy: "Aarav Mehta" },
-  { id: "doc-004", name: "Security Incident Response Plan.pdf", categoryId: "tech-sops", size: 1572864, fileType: "pdf", lastUpdated: "2026-06-01", uploadedBy: "Rahul Gupta" },
+  {
+    id: "doc-001",
+    name: "API Gateway Configuration Guide.pdf",
+    categoryId: "tech-sops",
+    size: 2457600,
+    fileType: "pdf",
+    lastUpdated: "2026-06-10",
+    uploadedBy: "Rahul Gupta",
+  },
+  {
+    id: "doc-002",
+    name: "CI-CD Pipeline Setup Procedures.docx",
+    categoryId: "tech-sops",
+    size: 1048576,
+    fileType: "docx",
+    lastUpdated: "2026-05-22",
+    uploadedBy: "Vikram Shah",
+  },
+  {
+    id: "doc-003",
+    name: "Database Backup and Recovery SOP.pdf",
+    categoryId: "tech-sops",
+    size: 3145728,
+    fileType: "pdf",
+    lastUpdated: "2026-04-15",
+    uploadedBy: "Aarav Mehta",
+  },
+  {
+    id: "doc-004",
+    name: "Security Incident Response Plan.pdf",
+    categoryId: "tech-sops",
+    size: 1572864,
+    fileType: "pdf",
+    lastUpdated: "2026-06-01",
+    uploadedBy: "Rahul Gupta",
+  },
   // ── PMS. SOPs ──
-  { id: "doc-005", name: "Project Onboarding Checklist.pdf", categoryId: "pms-sops", size: 524288, fileType: "pdf", lastUpdated: "2026-06-12", uploadedBy: "Riya Kapoor" },
-  { id: "doc-006", name: "WBS Creation Guidelines.docx", categoryId: "pms-sops", size: 786432, fileType: "docx", lastUpdated: "2026-05-30", uploadedBy: "Aarav Mehta" },
-  { id: "doc-007", name: "Timesheet Submission Process.pdf", categoryId: "pms-sops", size: 409600, fileType: "pdf", lastUpdated: "2026-04-20", uploadedBy: "Riya Kapoor" },
-  { id: "doc-008", name: "Resource Allocation SOP.pdf", categoryId: "pms-sops", size: 655360, fileType: "pdf", lastUpdated: "2026-06-05", uploadedBy: "Rahul Gupta" },
-  { id: "doc-009", name: "Change Request Management Process.docx", categoryId: "pms-sops", size: 327680, fileType: "docx", lastUpdated: "2026-05-18", uploadedBy: "Aarav Mehta" },
+  {
+    id: "doc-005",
+    name: "Project Onboarding Checklist.pdf",
+    categoryId: "pms-sops",
+    size: 524288,
+    fileType: "pdf",
+    lastUpdated: "2026-06-12",
+    uploadedBy: "Riya Kapoor",
+  },
+  {
+    id: "doc-006",
+    name: "WBS Creation Guidelines.docx",
+    categoryId: "pms-sops",
+    size: 786432,
+    fileType: "docx",
+    lastUpdated: "2026-05-30",
+    uploadedBy: "Aarav Mehta",
+  },
+  {
+    id: "doc-007",
+    name: "Timesheet Submission Process.pdf",
+    categoryId: "pms-sops",
+    size: 409600,
+    fileType: "pdf",
+    lastUpdated: "2026-04-20",
+    uploadedBy: "Riya Kapoor",
+  },
+  {
+    id: "doc-008",
+    name: "Resource Allocation SOP.pdf",
+    categoryId: "pms-sops",
+    size: 655360,
+    fileType: "pdf",
+    lastUpdated: "2026-06-05",
+    uploadedBy: "Rahul Gupta",
+  },
+  {
+    id: "doc-009",
+    name: "Change Request Management Process.docx",
+    categoryId: "pms-sops",
+    size: 327680,
+    fileType: "docx",
+    lastUpdated: "2026-05-18",
+    uploadedBy: "Aarav Mehta",
+  },
   // ── IMP Templates ──
-  { id: "doc-010", name: "Code of Conduct 2026.pdf", categoryId: "policy-docs", size: 1048576, fileType: "pdf", lastUpdated: "2026-01-05", uploadedBy: "Vikrant Malhotra" },
-  { id: "doc-011", name: "Remote Work Policy.pdf", categoryId: "policy-docs", size: 614400, fileType: "pdf", lastUpdated: "2026-03-10", uploadedBy: "Vikrant Malhotra" },
-  { id: "doc-012", name: "Data Privacy and GDPR Guidelines.pdf", categoryId: "policy-docs", size: 2097152, fileType: "pdf", lastUpdated: "2026-02-14", uploadedBy: "Anita Desai" },
-  { id: "doc-013", name: "Leave and Attendance Policy.pdf", categoryId: "policy-docs", size: 819200, fileType: "pdf", lastUpdated: "2026-04-01", uploadedBy: "Anita Desai" },
+  {
+    id: "doc-010",
+    name: "Code of Conduct 2026.pdf",
+    categoryId: "policy-docs",
+    size: 1048576,
+    fileType: "pdf",
+    lastUpdated: "2026-01-05",
+    uploadedBy: "Vikrant Malhotra",
+  },
+  {
+    id: "doc-011",
+    name: "Remote Work Policy.pdf",
+    categoryId: "policy-docs",
+    size: 614400,
+    fileType: "pdf",
+    lastUpdated: "2026-03-10",
+    uploadedBy: "Vikrant Malhotra",
+  },
+  {
+    id: "doc-012",
+    name: "Data Privacy and GDPR Guidelines.pdf",
+    categoryId: "policy-docs",
+    size: 2097152,
+    fileType: "pdf",
+    lastUpdated: "2026-02-14",
+    uploadedBy: "Anita Desai",
+  },
+  {
+    id: "doc-013",
+    name: "Leave and Attendance Policy.pdf",
+    categoryId: "policy-docs",
+    size: 819200,
+    fileType: "pdf",
+    lastUpdated: "2026-04-01",
+    uploadedBy: "Anita Desai",
+  },
 ];
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -136,7 +243,13 @@ function formatLastUpdated(iso: string): string {
 
 function formatTimestamp(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function filterDocuments(
@@ -168,6 +281,22 @@ function getFileExtension(filename: string): string {
   return filename.split(".").pop()?.toLowerCase() ?? "unknown";
 }
 
+function downloadDocument(doc: OrgDocument): void {
+  // Demo download: creates a real file with the document's metadata.
+  const blob = new Blob(
+    [
+      `${doc.name}\n\nSimulated download of "${doc.name}" (${formatFileSize(doc.size)}).\nUploaded by ${doc.uploadedBy} · Last updated ${formatLastUpdated(doc.lastUpdated)}.`,
+    ],
+    { type: "text/plain" },
+  );
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = doc.name.replace(/\.[^.]+$/, "") + ".txt";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
@@ -179,22 +308,42 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 const ACCENT = {
-  blue:   { bg: "bg-blue-500/10",    border: "border-blue-500/20",    icon: "text-blue-600 dark:text-blue-400",       count: "text-blue-700 dark:text-blue-300" },
-  purple: { bg: "bg-purple-500/10",  border: "border-purple-500/20",  icon: "text-purple-600 dark:text-purple-400",   count: "text-purple-700 dark:text-purple-300" },
-  green:  { bg: "bg-emerald-500/10", border: "border-emerald-500/20", icon: "text-emerald-600 dark:text-emerald-400", count: "text-emerald-700 dark:text-emerald-300" },
-  amber:  { bg: "bg-amber-500/10",   border: "border-amber-500/20",   icon: "text-amber-600 dark:text-amber-400",     count: "text-amber-700 dark:text-amber-300" },
+  blue: {
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/20",
+    icon: "text-blue-600 dark:text-blue-400",
+    count: "text-blue-700 dark:text-blue-300",
+  },
+  purple: {
+    bg: "bg-purple-500/10",
+    border: "border-purple-500/20",
+    icon: "text-purple-600 dark:text-purple-400",
+    count: "text-purple-700 dark:text-purple-300",
+  },
+  green: {
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+    icon: "text-emerald-600 dark:text-emerald-400",
+    count: "text-emerald-700 dark:text-emerald-300",
+  },
+  amber: {
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/20",
+    icon: "text-amber-600 dark:text-amber-400",
+    count: "text-amber-700 dark:text-amber-300",
+  },
 } as const;
 
 const FILE_TYPE_COLORS: Record<string, string> = {
-  pdf:  "text-red-500",
+  pdf: "text-red-500",
   docx: "text-blue-500",
-  doc:  "text-blue-500",
+  doc: "text-blue-500",
   xlsx: "text-emerald-600",
-  xls:  "text-emerald-600",
+  xls: "text-emerald-600",
   pptx: "text-orange-500",
-  ppt:  "text-orange-500",
-  txt:  "text-muted-foreground",
-  csv:  "text-teal-600",
+  ppt: "text-orange-500",
+  txt: "text-muted-foreground",
+  csv: "text-teal-600",
 };
 
 const COL_HEADERS = ["File Name", "Category", "Size", "Last Updated", "Uploaded By", ""];
@@ -222,9 +371,7 @@ function CategoryCard({
       onClick={onClick}
       className={cn(
         "flex flex-col gap-2 rounded-xl border p-4 text-left transition-all hover:shadow-sm",
-        isActive
-          ? `${accent.bg} ${accent.border}`
-          : "border-border bg-card hover:bg-accent/30",
+        isActive ? `${accent.bg} ${accent.border}` : "border-border bg-card hover:bg-accent/30",
       )}
     >
       <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", accent.bg)}>
@@ -232,7 +379,9 @@ function CategoryCard({
       </div>
       <div>
         <p className="text-sm font-semibold leading-tight text-foreground">{category.name}</p>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{category.description}</p>
+        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+          {category.description}
+        </p>
       </div>
       {!hideCount && (
         <p className={cn("text-xs font-medium", accent.count)}>
@@ -360,7 +509,8 @@ function DeleteConfirmDialog({
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-foreground">Delete Document?</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              This action cannot be undone. The document will be permanently removed from the repository.
+              This action cannot be undone. The document will be permanently removed from the
+              repository.
             </p>
           </div>
           <button
@@ -459,7 +609,7 @@ function ViewLogModal({
                         "mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                         isDelete
                           ? "bg-destructive/10 text-destructive"
-                          : "bg-success/10 text-success"
+                          : "bg-success/10 text-success",
                       )}
                     >
                       {entry.action}
@@ -487,10 +637,12 @@ function ViewLogModal({
 function DocumentRow({
   document,
   categories,
+  canDelete,
   onDeleteClick,
 }: {
   document: OrgDocument;
   categories: OrgCategory[];
+  canDelete: (doc: OrgDocument) => boolean;
   onDeleteClick: (doc: OrgDocument) => void;
 }) {
   const category = categories.find((c) => c.id === document.categoryId);
@@ -522,16 +674,28 @@ function DocumentRow({
       <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
         {document.uploadedBy}
       </td>
-      {/* Delete action */}
+      {/* Actions: download (after Uploaded By column) + delete */}
       <td className="whitespace-nowrap px-4 py-3 text-right">
-        <button
-          type="button"
-          title="Delete document"
-          onClick={() => onDeleteClick(document)}
-          className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <div className="inline-flex items-center justify-end gap-0.5">
+          <button
+            type="button"
+            title="Download document"
+            onClick={() => downloadDocument(document)}
+            className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+          {canDelete(document) && (
+            <button
+              type="button"
+              title="Delete document"
+              onClick={() => onDeleteClick(document)}
+              className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -543,6 +707,7 @@ function DocumentTable({
   totalCount,
   page,
   totalPages,
+  canDelete,
   onPageChange,
   onDeleteClick,
 }: {
@@ -551,6 +716,7 @@ function DocumentTable({
   totalCount: number;
   page: number;
   totalPages: number;
+  canDelete: (doc: OrgDocument) => boolean;
   onPageChange: (p: number) => void;
   onDeleteClick: (doc: OrgDocument) => void;
 }) {
@@ -572,7 +738,10 @@ function DocumentTable({
         <tbody className="divide-y divide-border">
           {documents.length === 0 ? (
             <tr>
-              <td colSpan={COL_HEADERS.length} className="px-4 py-12 text-center text-sm text-muted-foreground">
+              <td
+                colSpan={COL_HEADERS.length}
+                className="px-4 py-12 text-center text-sm text-muted-foreground"
+              >
                 No documents found.
               </td>
             </tr>
@@ -582,6 +751,7 @@ function DocumentTable({
                 key={doc.id}
                 document={doc}
                 categories={categories}
+                canDelete={canDelete}
                 onDeleteClick={onDeleteClick}
               />
             ))
@@ -604,7 +774,9 @@ function DocumentTable({
           >
             <ChevronLeft className="h-3.5 w-3.5" /> Previous
           </button>
-          <span className="px-2 font-medium tabular-nums">{page} / {totalPages}</span>
+          <span className="px-2 font-medium tabular-nums">
+            {page} / {totalPages}
+          </span>
           <button
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages}
@@ -708,6 +880,10 @@ function UploadAssignmentModal({
 // ─── Page Component ───────────────────────────────────────────────────────────
 
 function MyOrgPage() {
+  const { isEmployee, isHr, isDhanshree, user } = useRoleContext();
+  // Employees and HR get the read-only repository view: no View Log / Upload
+  // Document, and download-only row actions (delete stays admin/owner-gated).
+  const isReadOnlyViewer = isEmployee || isHr;
   const categories = [...seedCategories];
   const [documents, setDocuments] = useState<OrgDocument[]>([...seedDocuments]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -742,7 +918,7 @@ function MyOrgPage() {
       size: uploadedFile.size,
       fileType: getFileExtension(uploadedFile.name),
       lastUpdated: getTodayISO(),
-      uploadedBy: "Admin",
+      uploadedBy: user.name,
     };
     setDocuments((prev) => [newDoc, ...prev]);
     const cat = categories.find((c) => c.id === categoryId);
@@ -752,7 +928,7 @@ function MyOrgPage() {
         action: "Uploaded",
         documentName: uploadedFile.name,
         category: categoryId,
-        by: "Admin",
+        by: user.name,
         at: new Date().toISOString(),
       },
       ...prev,
@@ -765,6 +941,10 @@ function MyOrgPage() {
   const handleDeleteClick = (doc: OrgDocument) => {
     setPendingDeleteDoc(doc);
   };
+
+  // Only the admin/super-admin, or the person who uploaded the document, may
+  // delete it. Everyone else (including Employees) never sees the delete button.
+  const canDeleteDoc = (doc: OrgDocument) => isDhanshree || doc.uploadedBy === user.name;
 
   const handleConfirmDelete = () => {
     if (!pendingDeleteDoc) return;
@@ -816,27 +996,31 @@ function MyOrgPage() {
           Manage organizational documents, SOPs, and policy resources.
         </p>
         <div className="flex items-center gap-2">
-          {/* View Log button */}
-          <button
-            onClick={() => setShowLog(true)}
-            className="inline-flex items-center gap-2 rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-accent"
-          >
-            <ScrollText className="h-4 w-4" />
-            View Log
-            {logs.length > 0 && (
-              <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                {logs.length}
-              </span>
-            )}
-          </button>
-          {/* Upload Document button */}
-          <button
-            onClick={handleUploadClick}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
-          >
-            <Upload className="h-4 w-4" />
-            Upload Document
-          </button>
+          {!isReadOnlyViewer && (
+            <>
+              {/* View Log button */}
+              <button
+                onClick={() => setShowLog(true)}
+                className="inline-flex items-center gap-2 rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-accent"
+              >
+                <ScrollText className="h-4 w-4" />
+                View Log
+                {logs.length > 0 && (
+                  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                    {logs.length}
+                  </span>
+                )}
+              </button>
+              {/* Upload Document button */}
+              <button
+                onClick={handleUploadClick}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+              >
+                <Upload className="h-4 w-4" />
+                Upload Document
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -869,6 +1053,7 @@ function MyOrgPage() {
           totalCount={filteredDocs.length}
           page={currentPage}
           totalPages={totalPages}
+          canDelete={canDeleteDoc}
           onPageChange={setPage}
           onDeleteClick={handleDeleteClick}
         />
@@ -895,11 +1080,7 @@ function MyOrgPage() {
 
       {/* Activity log modal */}
       {showLog && (
-        <ViewLogModal
-          logs={logs}
-          categories={categories}
-          onClose={() => setShowLog(false)}
-        />
+        <ViewLogModal logs={logs} categories={categories} onClose={() => setShowLog(false)} />
       )}
     </AppShell>
   );

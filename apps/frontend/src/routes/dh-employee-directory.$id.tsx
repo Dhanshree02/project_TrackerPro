@@ -16,7 +16,14 @@ import {
 } from "@/lib/employee-data";
 
 const getCostCenter = (e: any) => {
-  const hoDepts = ["Human Resources", "Finance", "Executive Office", "Operations", "Marketing", "Sales"];
+  const hoDepts = [
+    "Human Resources",
+    "Finance",
+    "Executive Office",
+    "Operations",
+    "Marketing",
+    "Sales",
+  ];
   return hoDepts.includes(e.department) ? "HO" : "Delivery Dept";
 };
 
@@ -69,7 +76,9 @@ function EmpStatusBadge({ status }: { status: string }) {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="border-b border-border py-2.5 last:border-0">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-1 text-sm text-foreground">{value ?? "—"}</div>
     </div>
   );
@@ -80,15 +89,26 @@ function Grid({ children }: { children: React.ReactNode }) {
 }
 
 // ── Offboarding modal ──────────────────────────────
-function OffboardingModal({ open, onClose, employee }: { open: boolean; onClose: () => void; employee: Employee }) {
+function OffboardingModal({
+  open,
+  onClose,
+  employee,
+}: {
+  open: boolean;
+  onClose: () => void;
+  employee: Employee;
+}) {
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
   if (!open) return null;
 
-  const inputCls = "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  const inputCls =
+    "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   const checklist = [
     "Manager exit interview scheduled",
@@ -109,14 +129,22 @@ function OffboardingModal({ open, onClose, employee }: { open: boolean; onClose:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col rounded-xl bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="relative flex max-h-[90vh] w-full max-w-3xl flex-col rounded-xl bg-card shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
             <h2 className="text-base font-semibold">Offboard Employee</h2>
-            <p className="text-xs text-muted-foreground">{employee.firstName} {employee.lastName} · {employee.id} · {employee.department}</p>
+            <p className="text-xs text-muted-foreground">
+              {employee.firstName} {employee.lastName} · {employee.id} · {employee.department}
+            </p>
           </div>
-          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-accent">
+          <button
+            onClick={onClose}
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -126,10 +154,30 @@ function OffboardingModal({ open, onClose, employee }: { open: boolean; onClose:
           <section>
             <h3 className="mb-3 text-sm font-semibold">Resignation Details</h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <label className="block"><span className="mb-1 block text-xs font-medium text-muted-foreground">Resignation Date</span><input type="date" className={inputCls} /></label>
-              <label className="block"><span className="mb-1 block text-xs font-medium text-muted-foreground">Last Working Day</span><input type="date" className={inputCls} /></label>
-              <label className="block"><span className="mb-1 block text-xs font-medium text-muted-foreground">Reason for Leaving</span><input placeholder="Better opportunity" className={inputCls} /></label>
-              <label className="block"><span className="mb-1 block text-xs font-medium text-muted-foreground">Notice Period Served</span><input placeholder="60 days" className={inputCls} /></label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Resignation Date
+                </span>
+                <input type="date" className={inputCls} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Last Working Day
+                </span>
+                <input type="date" className={inputCls} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Reason for Leaving
+                </span>
+                <input placeholder="Better opportunity" className={inputCls} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Notice Period Served
+                </span>
+                <input placeholder="60 days" className={inputCls} />
+              </label>
             </div>
           </section>
 
@@ -137,8 +185,15 @@ function OffboardingModal({ open, onClose, employee }: { open: boolean; onClose:
             <h3 className="mb-3 text-sm font-semibold">Exit Checklist</h3>
             <div className="space-y-2 rounded-lg border border-border p-3">
               {checklist.map((c, i) => (
-                <label key={c} className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-accent/30">
-                  <input type="checkbox" defaultChecked={i < 3} className="h-4 w-4 rounded border-input" />
+                <label
+                  key={c}
+                  className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-accent/30"
+                >
+                  <input
+                    type="checkbox"
+                    defaultChecked={i < 3}
+                    className="h-4 w-4 rounded border-input"
+                  />
                   <span>{c}</span>
                 </label>
               ))}
@@ -161,13 +216,20 @@ function OffboardingModal({ open, onClose, employee }: { open: boolean; onClose:
                     <tr key={a} className="hover:bg-accent/30">
                       <td className="px-3 py-2">{a}</td>
                       <td className="px-3 py-2">
-                        <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                          i % 2 ? "border-warning/40 bg-warning/15 text-warning-foreground" : "border-success/30 bg-success/10 text-success"
-                        )}>
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                            i % 2
+                              ? "border-warning/40 bg-warning/15 text-warning-foreground"
+                              : "border-success/30 bg-success/10 text-success",
+                          )}
+                        >
                           {i % 2 ? "Pending" : "Returned"}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-muted-foreground">{i % 2 ? "—" : "2026-05-22"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {i % 2 ? "—" : "2026-05-22"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -195,8 +257,15 @@ function OffboardingModal({ open, onClose, employee }: { open: boolean; onClose:
 
         {/* footer */}
         <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
-          <button onClick={onClose} className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent">Cancel</button>
-          <button className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90">Initiate Offboarding</button>
+          <button
+            onClick={onClose}
+            className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
+          >
+            Cancel
+          </button>
+          <button className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90">
+            Initiate Offboarding
+          </button>
         </div>
       </div>
     </div>
@@ -246,21 +315,30 @@ function EditProfilePanel({
   const handleSkillsChange = (val: string) => {
     setFormData((prev) => ({
       ...prev,
-      skills: val.split(",").map((s) => s.trim()).filter(Boolean),
+      skills: val
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
     }));
   };
 
   const handleLanguagesChange = (val: string) => {
     setFormData((prev) => ({
       ...prev,
-      languages: val.split(",").map((s) => s.trim()).filter(Boolean),
+      languages: val
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
     }));
   };
 
   const handleCertificationsChange = (val: string) => {
     setFormData((prev) => ({
       ...prev,
-      certifications: val.split(",").map((s) => s.trim()).filter(Boolean),
+      certifications: val
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
     }));
   };
 
@@ -302,7 +380,9 @@ function EditProfilePanel({
             <h3 className="mb-4 text-sm font-semibold text-foreground">1. Personal Information</h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">First Name</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  First Name
+                </span>
                 <input
                   type="text"
                   value={formData.firstName}
@@ -312,7 +392,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Last Name</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Last Name
+                </span>
                 <input
                   type="text"
                   value={formData.lastName}
@@ -322,7 +404,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Email ID</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Email ID
+                </span>
                 <input
                   type="email"
                   value={formData.email}
@@ -332,7 +416,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Personal Email</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Personal Email
+                </span>
                 <input
                   type="email"
                   value={formData.personalEmail}
@@ -341,7 +427,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Mobile Number</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Mobile Number
+                </span>
                 <input
                   type="text"
                   value={formData.phone}
@@ -350,7 +438,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Alternate Contact</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Alternate Contact
+                </span>
                 <input
                   type="text"
                   value={formData.altPhone}
@@ -371,7 +461,9 @@ function EditProfilePanel({
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Date of Birth</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Date of Birth
+                </span>
                 <input
                   type="date"
                   value={formData.dob}
@@ -380,7 +472,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Marital Status</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Marital Status
+                </span>
                 <select
                   value={formData.maritalStatus}
                   onChange={(e) => handleChange("maritalStatus", e.target.value)}
@@ -392,7 +486,9 @@ function EditProfilePanel({
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Nationality</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Nationality
+                </span>
                 <input
                   type="text"
                   value={formData.nationality}
@@ -402,7 +498,9 @@ function EditProfilePanel({
               </label>
               <div className="md:col-span-2">
                 <label className="block">
-                  <span className="mb-1 block text-xs font-medium text-muted-foreground">Address</span>
+                  <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Address
+                  </span>
                   <input
                     type="text"
                     value={formData.address}
@@ -416,10 +514,14 @@ function EditProfilePanel({
 
           {/* Section 2: Organization Assignment */}
           <section className="rounded-lg border border-border bg-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-foreground">2. Organization Assignment</h3>
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
+              2. Organization Assignment
+            </h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Employee ID</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Employee ID
+                </span>
                 <input
                   type="text"
                   value={formData.id}
@@ -428,7 +530,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Department</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Department
+                </span>
                 <select
                   value={formData.department}
                   onChange={(e) => handleChange("department", e.target.value)}
@@ -442,7 +546,9 @@ function EditProfilePanel({
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Designation</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Designation
+                </span>
                 <input
                   type="text"
                   value={formData.designation}
@@ -460,7 +566,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Reporting Manager</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Reporting Manager
+                </span>
                 <input
                   type="text"
                   value={formData.reportingManager}
@@ -469,7 +577,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Business Unit</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Business Unit
+                </span>
                 <input
                   type="text"
                   value={formData.businessUnit}
@@ -487,7 +597,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Project Site</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Project Site
+                </span>
                 <select
                   value={formData.projectSite}
                   onChange={(e) => handleChange("projectSite", e.target.value)}
@@ -498,7 +610,9 @@ function EditProfilePanel({
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Work Location</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Work Location
+                </span>
                 <input
                   type="text"
                   value={formData.workLocation}
@@ -507,7 +621,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Office Branch</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Office Branch
+                </span>
                 <input
                   type="text"
                   value={formData.officeBranch}
@@ -520,10 +636,14 @@ function EditProfilePanel({
 
           {/* Section 3: Employment Information */}
           <section className="rounded-lg border border-border bg-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-foreground">3. Employment Information</h3>
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
+              3. Employment Information
+            </h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Date of Joining</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Date of Joining
+                </span>
                 <input
                   type="date"
                   value={formData.joiningDate}
@@ -532,7 +652,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Category</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Category
+                </span>
                 <select
                   value={formData.category}
                   onChange={(e) => handleChange("category", e.target.value)}
@@ -546,7 +668,9 @@ function EditProfilePanel({
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Asset ID</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Asset ID
+                </span>
                 <input
                   type="text"
                   value={formData.assetId}
@@ -555,7 +679,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Employment Status</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Employment Status
+                </span>
                 <select
                   value={formData.status}
                   onChange={(e) => handleChange("status", e.target.value)}
@@ -569,7 +695,9 @@ function EditProfilePanel({
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Confirmation Status</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Confirmation Status
+                </span>
                 <select
                   value={formData.confirmationStatus}
                   onChange={(e) => handleChange("confirmationStatus", e.target.value)}
@@ -583,7 +711,9 @@ function EditProfilePanel({
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Probation Status</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Probation Status
+                </span>
                 <input
                   type="text"
                   value={formData.probationStatus}
@@ -592,7 +722,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Notice Period</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Notice Period
+                </span>
                 <input
                   type="text"
                   value={formData.noticePeriod}
@@ -601,7 +733,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Salary Band</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Salary Band
+                </span>
                 <input
                   type="text"
                   value={formData.salaryBand}
@@ -610,7 +744,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Experience</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Experience
+                </span>
                 <input
                   type="text"
                   value={formData.experience}
@@ -619,7 +755,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Previous Company</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Previous Company
+                </span>
                 <input
                   type="text"
                   value={formData.previousCompany}
@@ -632,10 +770,14 @@ function EditProfilePanel({
 
           {/* Section 4: Skills & Qualifications */}
           <section className="rounded-lg border border-border bg-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-foreground">4. Skills & Qualifications</h3>
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
+              4. Skills & Qualifications
+            </h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Education / Highest Qualification</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Education / Highest Qualification
+                </span>
                 <input
                   type="text"
                   value={formData.education}
@@ -644,7 +786,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Technical Skills (comma separated)</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Technical Skills (comma separated)
+                </span>
                 <input
                   type="text"
                   value={formData.skills.join(", ")}
@@ -653,7 +797,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Languages (comma separated)</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Languages (comma separated)
+                </span>
                 <input
                   type="text"
                   value={formData.languages.join(", ")}
@@ -662,7 +808,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Certifications (comma separated)</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Certifications (comma separated)
+                </span>
                 <input
                   type="text"
                   value={formData.certifications.join(", ")}
@@ -675,10 +823,14 @@ function EditProfilePanel({
 
           {/* Section 5: Compliance & Financial */}
           <section className="rounded-lg border border-border bg-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-foreground">5. Compliance & Financial</h3>
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
+              5. Compliance & Financial
+            </h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">PAN Number</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  PAN Number
+                </span>
                 <input
                   type="text"
                   value={formData.pan}
@@ -687,7 +839,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Bank Account Number</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Bank Account Number
+                </span>
                 <input
                   type="text"
                   value={formData.bankAccount}
@@ -696,7 +850,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">PF/UAN Number</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  PF/UAN Number
+                </span>
                 <input
                   type="text"
                   value={formData.pfUan}
@@ -705,7 +861,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Tax Regime</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Tax Regime
+                </span>
                 <input
                   type="text"
                   value={formData.taxRegime}
@@ -714,7 +872,9 @@ function EditProfilePanel({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Compliance Status</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Compliance Status
+                </span>
                 <select
                   value={formData.complianceStatus}
                   onChange={(e) => handleChange("complianceStatus", e.target.value)}
@@ -762,7 +922,7 @@ const tabs = [
 
 // ── Main page ──────────────────────────────────────
 function EmployeeProfilePage() {
-  const { isDhanshree } = useRoleContext();
+  const { isDhanshree, isHr } = useRoleContext();
   const { emp: loaderEmp } = Route.useLoaderData() as { emp: Employee };
   const [emp, setEmp] = useState<Employee>(loaderEmp);
   const [tab, setTab] = useState<string>("basic");
@@ -772,11 +932,11 @@ function EmployeeProfilePage() {
   const [assetTypeInput, setAssetTypeInput] = useState<"TK" | "Customer">("TK");
   const [assetIdInput, setAssetIdInput] = useState("");
 
-  if (!isDhanshree) return <Navigate to="/" />;
-
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash === "#kpi") setTab("kpi");
   }, []);
+
+  if (!isDhanshree && !isHr) return <Navigate to="/" />;
 
   const handleSaveProfile = (updatedEmp: Employee) => {
     setEmp(updatedEmp);
@@ -784,12 +944,19 @@ function EmployeeProfilePage() {
   };
 
   return (
-    <AppShell title={`${emp.firstName} ${emp.lastName}`} subtitle={`${emp.designation} · ${emp.department}`}>
+    <AppShell
+      title={`${emp.firstName} ${emp.lastName}`}
+      subtitle={`${emp.designation} · ${emp.department}`}
+    >
       {/* Breadcrumb */}
       <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-        <Link to="/dh-employee-directory" className="hover:text-foreground transition-colors">Employee Directory</Link>
+        <Link to="/dh-employee-directory" className="hover:text-foreground transition-colors">
+          Employee Directory
+        </Link>
         <span>/</span>
-        <span className="text-foreground">{emp.firstName} {emp.lastName}</span>
+        <span className="text-foreground">
+          {emp.firstName} {emp.lastName}
+        </span>
       </div>
 
       {/* Profile header */}
@@ -799,7 +966,9 @@ function EmployeeProfilePage() {
             <Avatar name={`${emp.firstName} ${emp.lastName}`} size={52} />
             <div>
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-xl font-semibold tracking-tight">{emp.firstName} {emp.lastName}</h1>
+                <h1 className="text-xl font-semibold tracking-tight">
+                  {emp.firstName} {emp.lastName}
+                </h1>
                 <div className="flex flex-wrap items-center gap-2">
                   <EmpStatusBadge status={emp.status} />
                   {/* <span className={cn(
@@ -813,17 +982,31 @@ function EmployeeProfilePage() {
                   <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
                     {emp.category}
                   </span>
-
                 </div>
               </div>
-              <div className="mt-1 text-sm text-muted-foreground">{emp.designation} · {emp.department}</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {emp.designation} · {emp.department}
+              </div>
               <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
-                <span>ID: <span className="font-mono text-foreground">{emp.id}</span></span>
+                <span>
+                  ID: <span className="font-mono text-foreground">{emp.id}</span>
+                </span>
                 <span>Email: {emp.email}</span>
-                <span>Project Site: <span className="font-medium text-foreground">{emp.projectSite}</span></span>
-                <span>Location: <span className="font-medium text-foreground">{emp.workLocation}</span></span>
-                <span>Reporting Manager: <span className="font-medium text-foreground">{emp.reportingManager}</span></span>
-                <span>Cost Center: <span className="font-medium text-foreground">{getCostCenter(emp)}</span></span>
+                <span>
+                  Project Site:{" "}
+                  <span className="font-medium text-foreground">{emp.projectSite}</span>
+                </span>
+                <span>
+                  Location: <span className="font-medium text-foreground">{emp.workLocation}</span>
+                </span>
+                <span>
+                  Reporting Manager:{" "}
+                  <span className="font-medium text-foreground">{emp.reportingManager}</span>
+                </span>
+                <span>
+                  Cost Center:{" "}
+                  <span className="font-medium text-foreground">{getCostCenter(emp)}</span>
+                </span>
               </div>
             </div>
           </div>
@@ -911,7 +1094,10 @@ function EmployeeProfilePage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <Grid>
                 <Row label="Date of Joining" value={emp.joiningDate} />
-                <Row label="Employment Status" value={<EmpStatusBadge status={emp.confirmationStatus} />} />
+                <Row
+                  label="Employment Status"
+                  value={<EmpStatusBadge status={emp.confirmationStatus} />}
+                />
                 <Row
                   label="Asset ID"
                   value={
@@ -937,7 +1123,9 @@ function EmployeeProfilePage() {
                         <button
                           onClick={() => {
                             if (assetIdInput.trim()) {
-                              setLocalAssetId(`${assetTypeInput === "TK" ? "TK" : "Customer"}-${assetIdInput.trim()}`);
+                              setLocalAssetId(
+                                `${assetTypeInput === "TK" ? "TK" : "Customer"}-${assetIdInput.trim()}`,
+                              );
                             }
                           }}
                           className="rounded bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90"
@@ -973,7 +1161,12 @@ function EmployeeProfilePage() {
                   <h3 className="mb-3 text-sm font-semibold">Technical Skills</h3>
                   <div className="flex flex-wrap gap-2">
                     {emp.skills.map((s) => (
-                      <span key={s} className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium">{s}</span>
+                      <span
+                        key={s}
+                        className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
+                      >
+                        {s}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -981,7 +1174,12 @@ function EmployeeProfilePage() {
                   <h3 className="mb-3 text-sm font-semibold">Functional Skills</h3>
                   <div className="flex flex-wrap gap-2">
                     {["Stakeholder Mgmt", "Roadmapping", "Mentoring"].map((s) => (
-                      <span key={s} className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium">{s}</span>
+                      <span
+                        key={s}
+                        className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
+                      >
+                        {s}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -1000,7 +1198,12 @@ function EmployeeProfilePage() {
                   <h3 className="mb-3 text-sm font-semibold">Languages Known</h3>
                   <div className="flex flex-wrap gap-2">
                     {emp.languages.map((l) => (
-                      <span key={l} className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium">{l}</span>
+                      <span
+                        key={l}
+                        className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
+                      >
+                        {l}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -1012,7 +1215,12 @@ function EmployeeProfilePage() {
                       "Advanced Cloud Architecture · Completed Aug 2024",
                       "Inclusive Hiring · In Progress",
                     ].map((t) => (
-                      <li key={t} className="flex justify-between border-b border-border pb-2 last:border-0 last:pb-0 text-foreground">{t}</li>
+                      <li
+                        key={t}
+                        className="flex justify-between border-b border-border pb-2 last:border-0 last:pb-0 text-foreground"
+                      >
+                        {t}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -1033,7 +1241,9 @@ function EmployeeProfilePage() {
                   { l: "Promotion Readiness", v: emp.promotionReadiness },
                 ].map((k) => (
                   <div key={k.l} className="rounded-lg border border-border bg-card p-4">
-                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{k.l}</div>
+                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {k.l}
+                    </div>
                     <div className="mt-2 text-xl font-semibold">{k.v}</div>
                   </div>
                 ))}
@@ -1045,7 +1255,15 @@ function EmployeeProfilePage() {
                   <svg viewBox="0 0 400 200" className="h-full w-full">
                     {/* grid lines */}
                     {[0, 50, 100, 150, 200].map((y) => (
-                      <line key={y} x1="0" y1={y} x2="400" y2={y} className="stroke-border" strokeWidth="0.5" />
+                      <line
+                        key={y}
+                        x1="0"
+                        y1={y}
+                        x2="400"
+                        y2={y}
+                        className="stroke-border"
+                        strokeWidth="0.5"
+                      />
                     ))}
                     <polyline
                       fill="none"
@@ -1065,7 +1283,9 @@ function EmployeeProfilePage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-lg border border-border bg-card p-5">
                   <h3 className="mb-3 text-sm font-semibold">Manager Feedback</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{emp.managerFeedback}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {emp.managerFeedback}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border bg-card p-5">
                   <h3 className="mb-3 text-sm font-semibold">Performance History</h3>
@@ -1097,12 +1317,13 @@ function EmployeeProfilePage() {
                 <Row label="Salary Band" value={emp.salaryBand} />
                 <Row label="PF/UAN Number" value={emp.pfUan} />
                 <Row label="Tax Regime" value={emp.taxRegime} />
-                <Row label="Compliance Status" value={<EmpStatusBadge status={emp.complianceStatus} />} />
+                <Row
+                  label="Compliance Status"
+                  value={<EmpStatusBadge status={emp.complianceStatus} />}
+                />
               </Grid>
             </div>
           )}
-
-
         </div>
       </div>
 
@@ -1159,8 +1380,18 @@ function EmployeeCalendar({
   const [reqWOffReason, setReqWOffReason] = useState("");
 
   const monthsList = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const handlePrevMonth = () => {
@@ -1225,7 +1456,7 @@ function EmployeeCalendar({
     if (!selectedDate) return;
 
     const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
-    
+
     const newOverrides = { ...(emp.calendarOverrides || {}) };
     newOverrides[dateStr] = {
       type: dayType,
@@ -1239,7 +1470,9 @@ function EmployeeCalendar({
       calendarOverrides: newOverrides,
     });
 
-    toast.success(`Calendar updated for ${monthsList[selectedDate.getMonth()]} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`);
+    toast.success(
+      `Calendar updated for ${monthsList[selectedDate.getMonth()]} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`,
+    );
     setIsDayModalOpen(false);
   };
 
@@ -1247,7 +1480,7 @@ function EmployeeCalendar({
   const handleResetDayOverride = () => {
     if (!selectedDate) return;
     const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
-    
+
     const newOverrides = { ...(emp.calendarOverrides || {}) };
     delete newOverrides[dateStr];
 
@@ -1385,7 +1618,10 @@ function EmployeeCalendar({
         {/* Days of Week Header */}
         <div className="grid grid-cols-7 border border-border bg-muted/30 text-center rounded-t-lg">
           {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((d) => (
-            <div key={d} className="py-3 text-xs font-semibold tracking-wider text-muted-foreground border-r border-border last:border-0">
+            <div
+              key={d}
+              className="py-3 text-xs font-semibold tracking-wider text-muted-foreground border-r border-border last:border-0"
+            >
               {d}
             </div>
           ))}
@@ -1394,8 +1630,9 @@ function EmployeeCalendar({
         {/* Calendar Monthly Grid */}
         <div className="grid grid-cols-7 border-x border-b border-border divide-y divide-border bg-background rounded-b-lg overflow-hidden">
           {daysGrid.map((dayNum, index) => {
-            const colClass = "border-r border-border last:border-r-0 min-h-[100px] p-2 relative flex flex-col justify-between group hover:bg-muted/10 transition-all cursor-pointer";
-            
+            const colClass =
+              "border-r border-border last:border-r-0 min-h-[100px] p-2 relative flex flex-col justify-between group hover:bg-muted/10 transition-all cursor-pointer";
+
             if (dayNum === null) {
               return (
                 <div key={`empty-${index}`} className={cn(colClass, "bg-muted/5 cursor-default")} />
@@ -1418,13 +1655,15 @@ function EmployeeCalendar({
 
                 {/* Day number */}
                 <div className="flex items-center justify-between">
-                  <span className={cn(
-                    "text-xs font-semibold",
-                    isToday ? "text-primary font-bold text-sm" : "text-foreground/80"
-                  )}>
+                  <span
+                    className={cn(
+                      "text-xs font-semibold",
+                      isToday ? "text-primary font-bold text-sm" : "text-foreground/80",
+                    )}
+                  >
                     {dayNum}
                   </span>
-                  
+
                   {/* Status indicator badges */}
                   {dayInfo.type === "Leave" && (
                     <span className="text-[9px] font-bold text-destructive bg-destructive/10 border border-destructive/20 rounded px-1">
@@ -1471,17 +1710,25 @@ function EmployeeCalendar({
       {isDayModalOpen && selectedDate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setIsDayModalOpen(false)} />
-          <div className="relative w-full max-w-md rounded-xl bg-card border border-border p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-4 text-base font-semibold text-foreground">
-              Manage Day Schedule
-            </h3>
+          <div
+            className="relative w-full max-w-md rounded-xl bg-card border border-border p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-4 text-base font-semibold text-foreground">Manage Day Schedule</h3>
             <p className="mb-4 text-xs text-muted-foreground">
-              Configure shift or leave status for <strong>{monthsList[selectedDate.getMonth()]} {selectedDate.getDate()}, {selectedDate.getFullYear()}</strong>.
+              Configure shift or leave status for{" "}
+              <strong>
+                {monthsList[selectedDate.getMonth()]} {selectedDate.getDate()},{" "}
+                {selectedDate.getFullYear()}
+              </strong>
+              .
             </p>
 
             <form onSubmit={handleSaveDayOverride} className="space-y-4">
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Day Status Type</span>
+                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Day Status Type
+                </span>
                 <select
                   value={dayType}
                   onChange={(e) => setDayType(e.target.value as any)}
@@ -1496,7 +1743,9 @@ function EmployeeCalendar({
 
               {dayType === "Working" && (
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Shift Timing</span>
+                  <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Shift Timing
+                  </span>
                   <select
                     value={shiftTiming}
                     onChange={(e) => setShiftTiming(e.target.value)}
@@ -1512,7 +1761,9 @@ function EmployeeCalendar({
 
               {dayType === "Leave" && (
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Leave Type</span>
+                  <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Leave Type
+                  </span>
                   <select
                     value={leaveType}
                     onChange={(e) => setLeaveType(e.target.value)}
@@ -1529,7 +1780,9 @@ function EmployeeCalendar({
               )}
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Remarks / Reason</span>
+                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Remarks / Reason
+                </span>
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -1570,18 +1823,24 @@ function EmployeeCalendar({
       {/* ── Modal: Request Shift Change ── */}
       {isShiftModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsShiftModalOpen(false)} />
-          <div className="relative w-full max-w-md rounded-xl bg-card border border-border p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-4 text-base font-semibold text-foreground">
-              Request Shift Change
-            </h3>
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setIsShiftModalOpen(false)}
+          />
+          <div
+            className="relative w-full max-w-md rounded-xl bg-card border border-border p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-4 text-base font-semibold text-foreground">Request Shift Change</h3>
             <p className="mb-4 text-xs text-muted-foreground">
               Submit a formal request to alter the assigned work shift.
             </p>
 
             <form onSubmit={handleShiftRequestSubmit} className="space-y-4">
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Effective Date</span>
+                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Effective Date
+                </span>
                 <input
                   type="date"
                   value={reqShiftDate}
@@ -1592,7 +1851,9 @@ function EmployeeCalendar({
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Target Work Shift</span>
+                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Target Work Shift
+                </span>
                 <select
                   value={reqShiftNew}
                   onChange={(e) => setReqShiftNew(e.target.value)}
@@ -1606,7 +1867,9 @@ function EmployeeCalendar({
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Reason for Request</span>
+                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Reason for Request
+                </span>
                 <textarea
                   value={reqShiftReason}
                   onChange={(e) => setReqShiftReason(e.target.value)}
@@ -1639,18 +1902,24 @@ function EmployeeCalendar({
       {/* ── Modal: Request Weekly Off ── */}
       {isWeeklyOffModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsWeeklyOffModalOpen(false)} />
-          <div className="relative w-full max-w-md rounded-xl bg-card border border-border p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-4 text-base font-semibold text-foreground">
-              Request Weekly Off
-            </h3>
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setIsWeeklyOffModalOpen(false)}
+          />
+          <div
+            className="relative w-full max-w-md rounded-xl bg-card border border-border p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-4 text-base font-semibold text-foreground">Request Weekly Off</h3>
             <p className="mb-4 text-xs text-muted-foreground">
               Submit a request to change the weekly off day.
             </p>
 
             <form onSubmit={handleWeeklyOffRequestSubmit} className="space-y-4">
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Off Date Requested</span>
+                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Off Date Requested
+                </span>
                 <input
                   type="date"
                   value={reqWOffDate}
@@ -1661,7 +1930,9 @@ function EmployeeCalendar({
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Reason / Description</span>
+                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Reason / Description
+                </span>
                 <textarea
                   value={reqWOffReason}
                   onChange={(e) => setReqWOffReason(e.target.value)}

@@ -47,8 +47,6 @@ function AdditionalRequirementsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(requirements[0]?.id ?? null);
   const [showForm, setShowForm] = useState(false);
 
-  if (!isDhanshree) return <Navigate to="/" />;
-
   const filtered = useMemo(() => {
     return requirements.filter((req) => {
       if (statusFilter !== "all" && req.status !== statusFilter) return false;
@@ -58,6 +56,8 @@ function AdditionalRequirementsPage() {
       );
     });
   }, [requirements, statusFilter, q]);
+
+  if (!isDhanshree) return <Navigate to="/" />;
 
   const selected = requirements.find((req) => req.id === selectedId) ?? filtered[0] ?? null;
 

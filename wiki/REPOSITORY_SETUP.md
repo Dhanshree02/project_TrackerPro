@@ -1,6 +1,8 @@
 # Repository Setup Guide
 
-> **Last Updated:** 2026-06-16  
+> ⚠️ **Stack update (2026-08-07):** backend is now **ASP.NET Core 10 + PostgreSQL 16 + EF Core 10** — see [[31_Backend_Plan_DotNet]] and `apps/backend/README.md`. Python/FastAPI setup steps below are outdated.
+>
+> **Last Updated:** 2026-08-07  
 > **Structure:** Monorepo (`apps/frontend/` + `apps/backend/` + `wiki/`)
 
 ---

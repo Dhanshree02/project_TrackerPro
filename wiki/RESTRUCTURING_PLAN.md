@@ -1,5 +1,7 @@
 # Repository Restructuring Plan
 
+> ⚠️ **Stack update (2026-08-07):** the FastAPI backend structure proposed here was replaced by the .NET solution in `apps/backend/` — see [[31_Backend_Plan_DotNet]]. The frontend restructuring still applies.
+>
 > **Date:** 2026-06-16  
 > **Status:** COMPLETED — Restructured under apps/ directory  
 > **Approach:** Analysis-first, safest migration strategy

@@ -11,11 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WbsAllocationRouteImport } from './routes/wbs-allocation'
 import { Route as TimesheetRouteImport } from './routes/timesheet'
-import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as MyTeamRouteImport } from './routes/my-team'
 import { Route as MyOrgRouteImport } from './routes/my-org'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as HealthInterviewSchedulingRouteImport } from './routes/health-interview-scheduling'
 import { Route as HealthAdditionalRequirementsRouteImport } from './routes/health-additional-requirements'
 import { Route as HealthRouteImport } from './routes/health'
@@ -27,14 +27,18 @@ import { Route as DhOrgTreeRouteImport } from './routes/dh-org-tree'
 import { Route as DhExitSummaryRouteImport } from './routes/dh-exit-summary'
 import { Route as DhEmployeeDirectoryRouteImport } from './routes/dh-employee-directory'
 import { Route as CustomersRouteImport } from './routes/customers'
+import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as AllocationRouteImport } from './routes/allocation'
 import { Route as ActionCentreRouteImport } from './routes/action-centre'
+import { Route as AccessDeniedRouteImport } from './routes/access-denied'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ResourcesIndexRouteImport } from './routes/resources.index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as MyTeamIndexRouteImport } from './routes/my-team.index'
 import { Route as DhEmployeeDirectoryIndexRouteImport } from './routes/dh-employee-directory.index'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
+import { Route as ResourcesEmployeeIdRouteImport } from './routes/resources.$employeeId'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 import { Route as MyTeamTimesheetsRouteImport } from './routes/my-team.timesheets'
@@ -49,11 +53,6 @@ const WbsAllocationRoute = WbsAllocationRouteImport.update({
 const TimesheetRoute = TimesheetRouteImport.update({
   id: '/timesheet',
   path: '/timesheet',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResourcesRoute = ResourcesRouteImport.update({
-  id: '/resources',
-  path: '/resources',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -74,6 +73,11 @@ const MyTeamRoute = MyTeamRouteImport.update({
 const MyOrgRoute = MyOrgRouteImport.update({
   id: '/my-org',
   path: '/my-org',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthInterviewSchedulingRoute =
@@ -133,6 +137,11 @@ const CustomersRoute = CustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChangePasswordRoute = ChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApprovalsRoute = ApprovalsRouteImport.update({
   id: '/approvals',
   path: '/approvals',
@@ -148,9 +157,19 @@ const ActionCentreRoute = ActionCentreRouteImport.update({
   path: '/action-centre',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccessDeniedRoute = AccessDeniedRouteImport.update({
+  id: '/access-denied',
+  path: '/access-denied',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResourcesIndexRoute = ResourcesIndexRouteImport.update({
+  id: '/resources/',
+  path: '/resources/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
@@ -173,6 +192,11 @@ const CustomersIndexRoute = CustomersIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CustomersRoute,
+} as any)
+const ResourcesEmployeeIdRoute = ResourcesEmployeeIdRouteImport.update({
+  id: '/resources/$employeeId',
+  path: '/resources/$employeeId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsNewRoute = ProjectsNewRouteImport.update({
   id: '/projects/new',
@@ -202,9 +226,11 @@ const CustomersClientIdRoute = CustomersClientIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/access-denied': typeof AccessDeniedRoute
   '/action-centre': typeof ActionCentreRoute
   '/allocation': typeof AllocationRoute
   '/approvals': typeof ApprovalsRoute
+  '/change-password': typeof ChangePasswordRoute
   '/customers': typeof CustomersRouteWithChildren
   '/dh-employee-directory': typeof DhEmployeeDirectoryRouteWithChildren
   '/dh-exit-summary': typeof DhExitSummaryRoute
@@ -216,11 +242,11 @@ export interface FileRoutesByFullPath {
   '/health': typeof HealthRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
+  '/login': typeof LoginRoute
   '/my-org': typeof MyOrgRoute
   '/my-team': typeof MyTeamRouteWithChildren
   '/portfolio': typeof PortfolioRoute
   '/reports': typeof ReportsRoute
-  '/resources': typeof ResourcesRoute
   '/timesheet': typeof TimesheetRoute
   '/wbs-allocation': typeof WbsAllocationRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
@@ -228,16 +254,20 @@ export interface FileRoutesByFullPath {
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/resources/$employeeId': typeof ResourcesEmployeeIdRoute
   '/customers/': typeof CustomersIndexRoute
   '/dh-employee-directory/': typeof DhEmployeeDirectoryIndexRoute
   '/my-team/': typeof MyTeamIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/resources/': typeof ResourcesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/access-denied': typeof AccessDeniedRoute
   '/action-centre': typeof ActionCentreRoute
   '/allocation': typeof AllocationRoute
   '/approvals': typeof ApprovalsRoute
+  '/change-password': typeof ChangePasswordRoute
   '/dh-exit-summary': typeof DhExitSummaryRoute
   '/dh-org-tree': typeof DhOrgTreeRoute
   '/dh-reports': typeof DhReportsRoute
@@ -247,10 +277,10 @@ export interface FileRoutesByTo {
   '/health': typeof HealthRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
+  '/login': typeof LoginRoute
   '/my-org': typeof MyOrgRoute
   '/portfolio': typeof PortfolioRoute
   '/reports': typeof ReportsRoute
-  '/resources': typeof ResourcesRoute
   '/timesheet': typeof TimesheetRoute
   '/wbs-allocation': typeof WbsAllocationRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
@@ -258,17 +288,21 @@ export interface FileRoutesByTo {
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/resources/$employeeId': typeof ResourcesEmployeeIdRoute
   '/customers': typeof CustomersIndexRoute
   '/dh-employee-directory': typeof DhEmployeeDirectoryIndexRoute
   '/my-team': typeof MyTeamIndexRoute
   '/projects': typeof ProjectsIndexRoute
+  '/resources': typeof ResourcesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/access-denied': typeof AccessDeniedRoute
   '/action-centre': typeof ActionCentreRoute
   '/allocation': typeof AllocationRoute
   '/approvals': typeof ApprovalsRoute
+  '/change-password': typeof ChangePasswordRoute
   '/customers': typeof CustomersRouteWithChildren
   '/dh-employee-directory': typeof DhEmployeeDirectoryRouteWithChildren
   '/dh-exit-summary': typeof DhExitSummaryRoute
@@ -280,11 +314,11 @@ export interface FileRoutesById {
   '/health': typeof HealthRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
+  '/login': typeof LoginRoute
   '/my-org': typeof MyOrgRoute
   '/my-team': typeof MyTeamRouteWithChildren
   '/portfolio': typeof PortfolioRoute
   '/reports': typeof ReportsRoute
-  '/resources': typeof ResourcesRoute
   '/timesheet': typeof TimesheetRoute
   '/wbs-allocation': typeof WbsAllocationRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
@@ -292,18 +326,22 @@ export interface FileRoutesById {
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/resources/$employeeId': typeof ResourcesEmployeeIdRoute
   '/customers/': typeof CustomersIndexRoute
   '/dh-employee-directory/': typeof DhEmployeeDirectoryIndexRoute
   '/my-team/': typeof MyTeamIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/resources/': typeof ResourcesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/access-denied'
     | '/action-centre'
     | '/allocation'
     | '/approvals'
+    | '/change-password'
     | '/customers'
     | '/dh-employee-directory'
     | '/dh-exit-summary'
@@ -315,11 +353,11 @@ export interface FileRouteTypes {
     | '/health'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
+    | '/login'
     | '/my-org'
     | '/my-team'
     | '/portfolio'
     | '/reports'
-    | '/resources'
     | '/timesheet'
     | '/wbs-allocation'
     | '/customers/$clientId'
@@ -327,16 +365,20 @@ export interface FileRouteTypes {
     | '/my-team/timesheets'
     | '/projects/$projectId'
     | '/projects/new'
+    | '/resources/$employeeId'
     | '/customers/'
     | '/dh-employee-directory/'
     | '/my-team/'
     | '/projects/'
+    | '/resources/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/access-denied'
     | '/action-centre'
     | '/allocation'
     | '/approvals'
+    | '/change-password'
     | '/dh-exit-summary'
     | '/dh-org-tree'
     | '/dh-reports'
@@ -346,10 +388,10 @@ export interface FileRouteTypes {
     | '/health'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
+    | '/login'
     | '/my-org'
     | '/portfolio'
     | '/reports'
-    | '/resources'
     | '/timesheet'
     | '/wbs-allocation'
     | '/customers/$clientId'
@@ -357,16 +399,20 @@ export interface FileRouteTypes {
     | '/my-team/timesheets'
     | '/projects/$projectId'
     | '/projects/new'
+    | '/resources/$employeeId'
     | '/customers'
     | '/dh-employee-directory'
     | '/my-team'
     | '/projects'
+    | '/resources'
   id:
     | '__root__'
     | '/'
+    | '/access-denied'
     | '/action-centre'
     | '/allocation'
     | '/approvals'
+    | '/change-password'
     | '/customers'
     | '/dh-employee-directory'
     | '/dh-exit-summary'
@@ -378,11 +424,11 @@ export interface FileRouteTypes {
     | '/health'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
+    | '/login'
     | '/my-org'
     | '/my-team'
     | '/portfolio'
     | '/reports'
-    | '/resources'
     | '/timesheet'
     | '/wbs-allocation'
     | '/customers/$clientId'
@@ -390,17 +436,21 @@ export interface FileRouteTypes {
     | '/my-team/timesheets'
     | '/projects/$projectId'
     | '/projects/new'
+    | '/resources/$employeeId'
     | '/customers/'
     | '/dh-employee-directory/'
     | '/my-team/'
     | '/projects/'
+    | '/resources/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccessDeniedRoute: typeof AccessDeniedRoute
   ActionCentreRoute: typeof ActionCentreRoute
   AllocationRoute: typeof AllocationRoute
   ApprovalsRoute: typeof ApprovalsRoute
+  ChangePasswordRoute: typeof ChangePasswordRoute
   CustomersRoute: typeof CustomersRouteWithChildren
   DhEmployeeDirectoryRoute: typeof DhEmployeeDirectoryRouteWithChildren
   DhExitSummaryRoute: typeof DhExitSummaryRoute
@@ -412,16 +462,18 @@ export interface RootRouteChildren {
   HealthRoute: typeof HealthRoute
   HealthAdditionalRequirementsRoute: typeof HealthAdditionalRequirementsRoute
   HealthInterviewSchedulingRoute: typeof HealthInterviewSchedulingRoute
+  LoginRoute: typeof LoginRoute
   MyOrgRoute: typeof MyOrgRoute
   MyTeamRoute: typeof MyTeamRouteWithChildren
   PortfolioRoute: typeof PortfolioRoute
   ReportsRoute: typeof ReportsRoute
-  ResourcesRoute: typeof ResourcesRoute
   TimesheetRoute: typeof TimesheetRoute
   WbsAllocationRoute: typeof WbsAllocationRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
+  ResourcesEmployeeIdRoute: typeof ResourcesEmployeeIdRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  ResourcesIndexRoute: typeof ResourcesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -438,13 +490,6 @@ declare module '@tanstack/react-router' {
       path: '/timesheet'
       fullPath: '/timesheet'
       preLoaderRoute: typeof TimesheetRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/resources': {
-      id: '/resources'
-      path: '/resources'
-      fullPath: '/resources'
-      preLoaderRoute: typeof ResourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -473,6 +518,13 @@ declare module '@tanstack/react-router' {
       path: '/my-org'
       fullPath: '/my-org'
       preLoaderRoute: typeof MyOrgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health-interview-scheduling': {
@@ -552,6 +604,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/change-password': {
+      id: '/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof ChangePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/approvals': {
       id: '/approvals'
       path: '/approvals'
@@ -573,11 +632,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ActionCentreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/access-denied': {
+      id: '/access-denied'
+      path: '/access-denied'
+      fullPath: '/access-denied'
+      preLoaderRoute: typeof AccessDeniedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resources/': {
+      id: '/resources/'
+      path: '/resources'
+      fullPath: '/resources/'
+      preLoaderRoute: typeof ResourcesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/': {
@@ -607,6 +680,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/customers/'
       preLoaderRoute: typeof CustomersIndexRouteImport
       parentRoute: typeof CustomersRoute
+    }
+    '/resources/$employeeId': {
+      id: '/resources/$employeeId'
+      path: '/resources/$employeeId'
+      fullPath: '/resources/$employeeId'
+      preLoaderRoute: typeof ResourcesEmployeeIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/projects/new': {
       id: '/projects/new'
@@ -688,9 +768,11 @@ const MyTeamRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccessDeniedRoute: AccessDeniedRoute,
   ActionCentreRoute: ActionCentreRoute,
   AllocationRoute: AllocationRoute,
   ApprovalsRoute: ApprovalsRoute,
+  ChangePasswordRoute: ChangePasswordRoute,
   CustomersRoute: CustomersRouteWithChildren,
   DhEmployeeDirectoryRoute: DhEmployeeDirectoryRouteWithChildren,
   DhExitSummaryRoute: DhExitSummaryRoute,
@@ -702,16 +784,18 @@ const rootRouteChildren: RootRouteChildren = {
   HealthRoute: HealthRoute,
   HealthAdditionalRequirementsRoute: HealthAdditionalRequirementsRoute,
   HealthInterviewSchedulingRoute: HealthInterviewSchedulingRoute,
+  LoginRoute: LoginRoute,
   MyOrgRoute: MyOrgRoute,
   MyTeamRoute: MyTeamRouteWithChildren,
   PortfolioRoute: PortfolioRoute,
   ReportsRoute: ReportsRoute,
-  ResourcesRoute: ResourcesRoute,
   TimesheetRoute: TimesheetRoute,
   WbsAllocationRoute: WbsAllocationRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   ProjectsNewRoute: ProjectsNewRoute,
+  ResourcesEmployeeIdRoute: ResourcesEmployeeIdRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  ResourcesIndexRoute: ResourcesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

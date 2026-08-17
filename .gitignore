@@ -32,13 +32,14 @@ dist-ssr/
 # =========================
 # Backend
 # =========================
-apps/backend/venv/
-apps/backend/__pycache__/
-apps/backend/app/__pycache__/
-apps/backend/**/__pycache__/
-apps/backend/*.pyc
 apps/backend/.env
-apps/backend/*.egg-info/
+apps/backend/**/bin/
+apps/backend/**/obj/
+apps/backend/**/logs/
+apps/backend/.vs/
+apps/backend/.idea/
+*.user
+*.suo
 
 # =========================
 # Environment & Secrets
@@ -66,3 +67,8 @@ apps/backend/*.egg-info/
 # =========================
 Thumbs.db
 Desktop.ini
+
+
+
+
+.freebuff/

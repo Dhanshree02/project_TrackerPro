@@ -32,8 +32,6 @@ function AllocationPage() {
   const [history, setHistory] = useState<AllocationEvent[]>(allocationHistory);
   const [selectedId, setSelectedId] = useState<string>(initialProjects[0].id);
 
-  if (!isPMO) return <Navigate to="/" />;
-
   const selected = projs.find((p) => p.id === selectedId)!;
   const client = clients.find((c) => c.id === selected.clientId)!;
 
@@ -81,6 +79,8 @@ function AllocationPage() {
     () => history.filter((h) => h.projectId === selected.id),
     [history, selected.id],
   );
+
+  if (!isPMO) return <Navigate to="/" />;
 
   return (
     <AppShell title="WBS / Allocation" subtitle="Review WBS and assign ownership across projects">

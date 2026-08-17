@@ -1,6 +1,14 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search, Download, UserMinus, AlertCircle, CheckCircle, Clock, FileText } from "lucide-react";
+import {
+  Search,
+  Download,
+  UserMinus,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  FileText,
+} from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { Avatar } from "@/components/pills";
@@ -30,31 +38,105 @@ interface ExitRecord {
 }
 
 const mockExits: ExitRecord[] = [
-  { id: "EMP-1002", name: "Vikram Mehta", dept: "Design", exitReason: "Better opportunities", joiningDate: "2020-04-12", lastWorkingDate: "2026-07-15", clearanceStatus: "In Progress", clearanceProgress: 60, feedbackScore: 4.2 },
-  { id: "EMP-1005", name: "Pooja Verma", dept: "Marketing", exitReason: "Higher studies", joiningDate: "2021-08-20", lastWorkingDate: "2026-07-01", clearanceStatus: "Pending", clearanceProgress: 20, feedbackScore: 3.8 },
-  { id: "EMP-1010", name: "Arjun Nair", dept: "Engineering", exitReason: "Career transition", joiningDate: "2019-11-05", lastWorkingDate: "2026-06-20", clearanceStatus: "Completed", clearanceProgress: 100, feedbackScore: 4.5 },
-  { id: "EMP-1012", name: "Suresh Rao", dept: "Operations", exitReason: "Personal reasons", joiningDate: "2022-01-15", lastWorkingDate: "2026-08-05", clearanceStatus: "Pending", clearanceProgress: 10, feedbackScore: 4.0 },
-  { id: "EMP-1018", name: "Deepak Das", dept: "Finance", exitReason: "Better opportunities", joiningDate: "2020-09-10", lastWorkingDate: "2026-05-30", clearanceStatus: "Completed", clearanceProgress: 100, feedbackScore: 3.5 },
-  { id: "EMP-1025", name: "Neha Chauhan", dept: "Product", exitReason: "Work-life balance", joiningDate: "2021-05-18", lastWorkingDate: "2026-07-10", clearanceStatus: "In Progress", clearanceProgress: 75, feedbackScore: 4.8 },
-  { id: "EMP-1031", name: "Manoj Deshpande", dept: "Sales", exitReason: "Health reasons", joiningDate: "2023-03-01", lastWorkingDate: "2026-07-28", clearanceStatus: "In Progress", clearanceProgress: 40, feedbackScore: 4.1 },
+  {
+    id: "EMP-1002",
+    name: "Vikram Mehta",
+    dept: "Design",
+    exitReason: "Better opportunities",
+    joiningDate: "2020-04-12",
+    lastWorkingDate: "2026-07-15",
+    clearanceStatus: "In Progress",
+    clearanceProgress: 60,
+    feedbackScore: 4.2,
+  },
+  {
+    id: "EMP-1005",
+    name: "Pooja Verma",
+    dept: "Marketing",
+    exitReason: "Higher studies",
+    joiningDate: "2021-08-20",
+    lastWorkingDate: "2026-07-01",
+    clearanceStatus: "Pending",
+    clearanceProgress: 20,
+    feedbackScore: 3.8,
+  },
+  {
+    id: "EMP-1010",
+    name: "Arjun Nair",
+    dept: "Engineering",
+    exitReason: "Career transition",
+    joiningDate: "2019-11-05",
+    lastWorkingDate: "2026-06-20",
+    clearanceStatus: "Completed",
+    clearanceProgress: 100,
+    feedbackScore: 4.5,
+  },
+  {
+    id: "EMP-1012",
+    name: "Suresh Rao",
+    dept: "Operations",
+    exitReason: "Personal reasons",
+    joiningDate: "2022-01-15",
+    lastWorkingDate: "2026-08-05",
+    clearanceStatus: "Pending",
+    clearanceProgress: 10,
+    feedbackScore: 4.0,
+  },
+  {
+    id: "EMP-1018",
+    name: "Deepak Das",
+    dept: "Finance",
+    exitReason: "Better opportunities",
+    joiningDate: "2020-09-10",
+    lastWorkingDate: "2026-05-30",
+    clearanceStatus: "Completed",
+    clearanceProgress: 100,
+    feedbackScore: 3.5,
+  },
+  {
+    id: "EMP-1025",
+    name: "Neha Chauhan",
+    dept: "Product",
+    exitReason: "Work-life balance",
+    joiningDate: "2021-05-18",
+    lastWorkingDate: "2026-07-10",
+    clearanceStatus: "In Progress",
+    clearanceProgress: 75,
+    feedbackScore: 4.8,
+  },
+  {
+    id: "EMP-1031",
+    name: "Manoj Deshpande",
+    dept: "Sales",
+    exitReason: "Health reasons",
+    joiningDate: "2023-03-01",
+    lastWorkingDate: "2026-07-28",
+    clearanceStatus: "In Progress",
+    clearanceProgress: 40,
+    feedbackScore: 4.1,
+  },
 ];
 
 function ExitSummaryPage() {
-  const { isDhanshree } = useRoleContext();
+  const { isDhanshree, isHr } = useRoleContext();
   const [q, setQ] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  if (!isDhanshree) return <Navigate to="/" />;
-
   const filtered = useMemo(() => {
     return mockExits.filter((e) => {
-      const matchQ = !q || e.name.toLowerCase().includes(q.toLowerCase()) || e.id.toLowerCase().includes(q.toLowerCase()) || e.exitReason.toLowerCase().includes(q.toLowerCase());
+      const matchQ =
+        !q ||
+        e.name.toLowerCase().includes(q.toLowerCase()) ||
+        e.id.toLowerCase().includes(q.toLowerCase()) ||
+        e.exitReason.toLowerCase().includes(q.toLowerCase());
       const matchDept = !deptFilter || e.dept === deptFilter;
       const matchStatus = !statusFilter || e.clearanceStatus === statusFilter;
       return matchQ && matchDept && matchStatus;
     });
   }, [q, deptFilter, statusFilter]);
+
+  if (!isDhanshree && !isHr) return <Navigate to="/" />;
 
   const departments = Array.from(new Set(mockExits.map((e) => e.dept)));
 
@@ -63,11 +145,16 @@ function ExitSummaryPage() {
     completed: mockExits.filter((e) => e.clearanceStatus === "Completed").length,
     inProgress: mockExits.filter((e) => e.clearanceStatus === "In Progress").length,
     pending: mockExits.filter((e) => e.clearanceStatus === "Pending").length,
-    avgFeedback: +(mockExits.reduce((acc, e) => acc + e.feedbackScore, 0) / mockExits.length).toFixed(1),
+    avgFeedback: +(
+      mockExits.reduce((acc, e) => acc + e.feedbackScore, 0) / mockExits.length
+    ).toFixed(1),
   };
 
   return (
-    <AppShell title="Exit Summary" subtitle="Track employee offboardings, clearance tasks, and exit feedback.">
+    <AppShell
+      title="Exit Summary"
+      subtitle="Track employee offboardings, clearance tasks, and exit feedback."
+    >
       {/* Metrics Banner */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs flex items-center gap-4">
@@ -75,7 +162,9 @@ function ExitSummaryPage() {
             <UserMinus className="h-6 w-6" />
           </div>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Exits (Q2)</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Exits (Q2)
+            </div>
             <div className="text-2xl font-bold mt-0.5">{stats.total}</div>
           </div>
         </div>
@@ -85,8 +174,12 @@ function ExitSummaryPage() {
             <CheckCircle className="h-6 w-6" />
           </div>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Completed Clearances</div>
-            <div className="text-2xl font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">{stats.completed}</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Completed Clearances
+            </div>
+            <div className="text-2xl font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">
+              {stats.completed}
+            </div>
           </div>
         </div>
 
@@ -95,8 +188,12 @@ function ExitSummaryPage() {
             <Clock className="h-6 w-6" />
           </div>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Offboardings</div>
-            <div className="text-2xl font-bold mt-0.5 text-amber-600 dark:text-amber-400">{stats.inProgress + stats.pending}</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Active Offboardings
+            </div>
+            <div className="text-2xl font-bold mt-0.5 text-amber-600 dark:text-amber-400">
+              {stats.inProgress + stats.pending}
+            </div>
           </div>
         </div>
 
@@ -105,8 +202,12 @@ function ExitSummaryPage() {
             <FileText className="h-6 w-6" />
           </div>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Avg Exit Rating</div>
-            <div className="text-2xl font-bold mt-0.5 text-blue-600 dark:text-blue-400">{stats.avgFeedback} <span className="text-xs text-muted-foreground">/ 5.0</span></div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Avg Exit Rating
+            </div>
+            <div className="text-2xl font-bold mt-0.5 text-blue-600 dark:text-blue-400">
+              {stats.avgFeedback} <span className="text-xs text-muted-foreground">/ 5.0</span>
+            </div>
           </div>
         </div>
       </div>
@@ -131,7 +232,9 @@ function ExitSummaryPage() {
           >
             <option value="">All Departments</option>
             {departments.map((d) => (
-              <option key={d} value={d}>{d}</option>
+              <option key={d} value={d}>
+                {d}
+              </option>
             ))}
           </select>
           <select
@@ -177,16 +280,22 @@ function ExitSummaryPage() {
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3.5">{e.dept}</td>
-                  <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">{e.exitReason}</td>
-                  <td className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold text-foreground/90">{e.lastWorkingDate}</td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">
+                    {e.exitReason}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold text-foreground/90">
+                    {e.lastWorkingDate}
+                  </td>
 
                   <td className="whitespace-nowrap px-4 py-3.5">
                     <span
                       className={cn(
                         "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                        e.clearanceStatus === "Completed" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
-                          e.clearanceStatus === "In Progress" ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400" :
-                            "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        e.clearanceStatus === "Completed"
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : e.clearanceStatus === "In Progress"
+                            ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
                       )}
                     >
                       {e.clearanceStatus}
@@ -198,7 +307,7 @@ function ExitSummaryPage() {
                         "text-xs px-2.5 py-1 rounded-md border",
                         e.clearanceStatus === "Completed"
                           ? "bg-card text-muted-foreground border-border cursor-not-allowed"
-                          : "bg-primary text-primary-foreground border-transparent hover:bg-primary/90"
+                          : "bg-primary text-primary-foreground border-transparent hover:bg-primary/90",
                       )}
                       disabled={e.clearanceStatus === "Completed"}
                     >

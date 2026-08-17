@@ -22,12 +22,12 @@
 - [x] Obsidian wiki knowledge base
 
 ## Phase 1: Backend Scaffolding
-- [ ] FastAPI project setup with dependency injection
-- [ ] PostgreSQL database with Alembic migrations
-- [ ] User model and seed data (from mock-data people)
-- [ ] JWT authentication (login, refresh, logout)
-- [ ] RBAC middleware with permission guards
-- [ ] Client CRUD API
+- [x] ASP.NET Core solution scaffold (`apps/backend/PMS.slnx`)
+- [x] PostgreSQL connection + EF Core configuration
+- [x] JWT + BCrypt security scaffolding (access + refresh tokens)
+- [x] RBAC permission guards (`[RequirePermission]`)
+- [x] Client CRUD API + role-scoped visibility
+- [ ] Users/roles seed + login flow (auth module phase)
 - [ ] Project CRUD API
 - [ ] Frontend: Replace mock-data imports with React Query API calls
 

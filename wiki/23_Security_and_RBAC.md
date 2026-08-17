@@ -19,8 +19,8 @@
 
 ### Authentication
 - **Strategy:** JWT (JSON Web Tokens)
-- **Flow:** Login → JWT issued → stored in httpOnly cookie → sent with every request
-- **Token refresh:** Sliding window with refresh tokens
+- **Flow:** Login → access token (30 min) + rotating refresh token (7 days, stored hashed)
+- **Token refresh:** Rotation with reuse-detection (revoked-token reuse revokes the family)
 - **Session duration:** 8 hours (configurable)
 
 ### Authorization (RBAC)
@@ -31,29 +31,19 @@
 
 ### Permission Granularity
 
-```python
-PERMISSIONS = {
-    "clients:read": ["pmo", "hod", "bo", "spm", "em", "dhanshree"],
-    "clients:write": ["sales", "dhanshree"],
-    "clients:approve": ["hod"],
-    "projects:read": ["pmo", "hod", "bo", "spm", "em", "pm", "dhanshree"],
-    "projects:write": ["sales", "pm", "dhanshree"],
-    "wbs:allocate": ["pmo"],
-    "timesheets:submit": ["employee", "tl", "pm", "spm", "em"],
-    "timesheets:approve": ["spm", "em", "hod", "dhanshree"],
-    "timesheets:monitor": ["pmo"],
-    "issues:raise": ["tl", "pm", "spm", "em"],
-    "issues:manage": ["pm", "spm", "em", "pmo", "hod"],
-    "invoices:raise": ["accounts", "dhanshree"],
-    "invoices:payment": ["accounts", "dhanshree"],
-    "approvals:manage": ["hod", "dhanshree"],
-    "resources:manage": ["pmo", "hr", "dhanshree"],
-}
+In the .NET implementation these are C# constants in `apps/backend/Shared/Constants/Permissions.cs` and guards are applied with an attribute:
+
+```csharp
+[RequirePermission(Permissions.ClientsRead)]
+[HttpGet]
+public ActionResult<ApiResponse<...>> List() => ...;
 ```
+
+The role → permission mapping lives in the database seeder (`Role.Permissions` JSONB). Roles and their permission sets are documented in [[04_Roles_and_Permissions]] and seeded in `apps/backend/Infrastructure/Persistence/Seeding/DbSeeder.cs`.
 
 ### API Security Measures
 1. Input validation via Pydantic schemas
-2. SQL injection prevention via SQLAlchemy ORM
+2. SQL injection prevention via EF Core (parameterized queries)
 3. XSS prevention via output encoding
 4. CORS policy (restrict to frontend origin)
 5. Rate limiting per IP and per user

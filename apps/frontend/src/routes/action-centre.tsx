@@ -1,11 +1,55 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { Search, Filter, Plus, Send, Trash2, Clock, MessageSquare, Copy, X, CheckCircle2, XCircle, RotateCcw, AlertTriangle, AlertCircle, Calendar, DollarSign, Check, ExternalLink, ShieldAlert, ListFilter, User, Paperclip, Bell, Archive, ChevronDown } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Plus,
+  Send,
+  Trash2,
+  Clock,
+  MessageSquare,
+  Copy,
+  X,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+  AlertTriangle,
+  AlertCircle,
+  Calendar,
+  DollarSign,
+  Check,
+  ExternalLink,
+  ShieldAlert,
+  ListFilter,
+  User,
+  Paperclip,
+  Bell,
+  Archive,
+  ChevronDown,
+} from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
-import { getPerson, people, type TaskStatus, type CellCommentData, type CellCommentMessage } from "@/lib/mock-data";
+import { usePermissions } from "@/lib/permissions";
+import {
+  getPerson,
+  people,
+  type TaskStatus,
+  type CellCommentData,
+  type CellCommentMessage,
+} from "@/lib/mock-data";
 import { TaskStatusPill, TimesheetStatusPill, PriorityPill, Avatar } from "@/components/pills";
-import { useDhStore, dhStore, allProjects, allClients, type DhAlert, type DhInterview, type DhTimesheet, type DhCentralApproval, type AlertStatus, type DhNotification } from "@/lib/dh-store";
+import {
+  useDhStore,
+  dhStore,
+  allProjects,
+  allClients,
+  type DhAlert,
+  type DhInterview,
+  type DhTimesheet,
+  type DhCentralApproval,
+  type AlertStatus,
+  type DhNotification,
+} from "@/lib/dh-store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "./projects.index";
@@ -15,27 +59,39 @@ export const Route = createFileRoute("/action-centre")({
   head: () => ({
     meta: [
       { title: "Action Centre — Pulse PMO" },
-      { name: "description", content: "Bucket list, timesheets, approvals and alerts in one place." },
+      {
+        name: "description",
+        content: "Bucket list, timesheets, approvals and alerts in one place.",
+      },
     ],
   }),
   component: ActionCentrePage,
 });
 
+// Employees only get their Bucket List (assigned tasks) + Notifications.
 const tabs = ["Bucket List", "Approvals", "Alerts", "Notifications"] as const;
 type Tab = (typeof tabs)[number];
 
 function ActionCentrePage() {
-  const { isDhanshree, user } = useRoleContext();
+  const { isDhanshree, user, isEmployee } = useRoleContext();
+  const { hasPermission } = usePermissions();
   const [tab, setTab] = useState<Tab>("Bucket List");
   const store = useDhStore((s) => s);
-  const pendingCount = (store.notifications || []).filter(n => n.status === "Pending").length;
+  const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
 
-  if (!isDhanshree) return <Navigate to="/" />;
+  const visibleTabs: Tab[] = isEmployee
+    ? ["Bucket List", "Notifications"]
+    : ["Bucket List", "Approvals", "Alerts", "Notifications"];
+
+  if (!isDhanshree && !hasPermission("action-center.view")) return <Navigate to="/" />;
 
   return (
-    <AppShell title="Action Centre" subtitle={`${user.name} · tasks, timesheets, approvals and alerts`}>
+    <AppShell
+      title="Action Centre"
+      subtitle={`${user.name} · tasks, timesheets, approvals and alerts`}
+    >
       <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
-        {tabs.map((t) => {
+        {visibleTabs.map((t) => {
           const isNotif = t === "Notifications";
           return (
             <button
@@ -43,7 +99,9 @@ function ActionCentrePage() {
               onClick={() => setTab(t)}
               className={cn(
                 "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
-                tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                tab === t
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <span>{t}</span>
@@ -121,25 +179,37 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
   return (
     <tr className="hover:bg-accent/30 border-b border-border">
       <td className="px-3 py-2.5">
-        <Link to="/projects/$projectId" params={{ projectId: r.projectId }} hash={r.taskId}
-          className="font-semibold text-gray-800 hover:text-primary transition-colors">{r.taskTitle}</Link>
+        <Link
+          to="/projects/$projectId"
+          params={{ projectId: r.projectId }}
+          hash={r.taskId}
+          className="font-semibold text-gray-800 hover:text-primary transition-colors"
+        >
+          {r.taskTitle}
+        </Link>
       </td>
       <td className="px-3 py-2.5 text-muted-foreground font-medium">{r.projectName}</td>
       <td className="px-3 py-2.5">
         <PriorityPill priority={r.priority} />
       </td>
       <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground font-medium">
-        {new Date(r.dueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+        {new Date(r.dueDate).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })}
       </td>
       <td className="px-3 py-2.5">
-        <span className={cn(
-          "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold capitalize shadow-2xs",
-          r.status === "Not Started" && "bg-slate-50 text-slate-700 border-slate-200",
-          r.status === "Ongoing" && "bg-blue-50 text-blue-700 border-blue-200 animate-pulse",
-          r.status === "Paused" && "bg-amber-50 text-amber-700 border-amber-200",
-          r.status === "Stopped" && "bg-rose-50 text-rose-700 border-rose-200",
-          r.status === "Completed" && "bg-green-50 text-green-700 border-green-200"
-        )}>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold capitalize shadow-2xs",
+            r.status === "Not Started" && "bg-slate-50 text-slate-700 border-slate-200",
+            r.status === "Ongoing" && "bg-blue-50 text-blue-700 border-blue-200 animate-pulse",
+            r.status === "Paused" && "bg-amber-50 text-amber-700 border-amber-200",
+            r.status === "Stopped" && "bg-rose-50 text-rose-700 border-rose-200",
+            r.status === "Completed" && "bg-green-50 text-green-700 border-green-200",
+          )}
+        >
           {r.status === "Ongoing" && <Clock className="h-3 w-3 animate-spin text-blue-600" />}
           {r.status}
         </span>
@@ -152,16 +222,30 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
       </td>
       <td className="px-3 py-2.5">
         <div className="flex flex-col gap-1.5 min-w-[210px] bg-muted/20 p-2 rounded-lg border border-border/80">
-          {(r.status === "Ongoing" || r.status === "Paused" || r.status === "Stopped" || r.status === "Completed") && (
+          {(r.status === "Ongoing" ||
+            r.status === "Paused" ||
+            r.status === "Stopped" ||
+            r.status === "Completed") && (
             <div className="text-[10px] text-muted-foreground flex flex-col gap-0.5 font-medium">
               {r.startedAt && (
                 <div>
-                  <span className="font-semibold text-gray-500">Started:</span> {new Date(r.startedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  <span className="font-semibold text-gray-500">Started:</span>{" "}
+                  {new Date(r.startedAt).toLocaleString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </div>
               )}
               <div className="flex items-center justify-between font-mono font-bold text-gray-800 border-t border-border/50 mt-1 pt-1">
                 <span>Working Time:</span>
-                <span className={cn("text-xs font-bold", r.timerRunning ? "text-blue-600 animate-pulse" : "text-gray-600")}>
+                <span
+                  className={cn(
+                    "text-xs font-bold",
+                    r.timerRunning ? "text-blue-600 animate-pulse" : "text-gray-600",
+                  )}
+                >
                   {formatTimer(workingTimeSeconds)}
                 </span>
               </div>
@@ -172,7 +256,13 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
               )}
               {r.status === "Completed" && r.completedAt && (
                 <div className="text-success font-semibold border-t border-border/50 mt-1 pt-1">
-                  Completed: {new Date(r.completedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  Completed:{" "}
+                  {new Date(r.completedAt).toLocaleString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </div>
               )}
             </div>
@@ -248,13 +338,20 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
 }
 
 function BucketList() {
-  const { user } = useRoleContext();
-  const [viewUserId, setViewUserId] = useState(user.id);
+  const { user, isEmployee, employeePersonId } = useRoleContext();
+  // Employees default to (and stay on) their own bucket — assigned tasks only.
+  const [viewUserId, setViewUserId] = useState(
+    isEmployee && employeePersonId ? employeePersonId : user.id,
+  );
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "todo" | "in_progress" | "review" | "done">("all");
-  const [priorityFilter, setPriorityFilter] = useState<"all" | "low" | "medium" | "high" | "critical">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "todo" | "in_progress" | "review" | "done"
+  >("all");
+  const [priorityFilter, setPriorityFilter] = useState<
+    "all" | "low" | "medium" | "high" | "critical"
+  >("all");
   const store = useDhStore((s) => s);
-  
+
   const bucketTasks = store.bucketTasks || [];
 
   const rows = useMemo(() => {
@@ -264,7 +361,8 @@ function BucketList() {
   const filtered = rows.filter((r) => {
     if (statusFilter !== "all") {
       if (statusFilter === "todo" && r.status !== "Not Started") return false;
-      if (statusFilter === "in_progress" && r.status !== "Ongoing" && r.status !== "Paused") return false;
+      if (statusFilter === "in_progress" && r.status !== "Ongoing" && r.status !== "Paused")
+        return false;
       if (statusFilter === "done" && r.status !== "Completed") return false;
       if (statusFilter === "review") return false;
     }
@@ -278,27 +376,32 @@ function BucketList() {
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm">
       <header className="flex flex-wrap items-center gap-2.5 border-b border-border p-3">
-        {/* View As Selector for Tester */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Viewing As:</span>
-          <Select
-            value={viewUserId}
-            onChange={(e) => setViewUserId(e.target.value)}
-            containerClassName="w-auto"
-          >
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.role})
-              </option>
-            ))}
-          </Select>
-        </div>
+        {/* View As Selector for Tester — hidden for Employees (own tasks only) */}
+        {!isEmployee && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+              Viewing As:
+            </span>
+            <Select
+              value={viewUserId}
+              onChange={(e) => setViewUserId(e.target.value)}
+              containerClassName="w-auto"
+            >
+              {people.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.role})
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
 
         {/* Search Bar */}
         <div className="relative w-60 max-w-xs">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
-            value={q} onChange={(e) => setQ(e.target.value)}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
             placeholder="Search task or project…"
             className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
@@ -308,10 +411,23 @@ function BucketList() {
         <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
           <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 mx-1" />
           {(["all", "todo", "in_progress", "done"] as const).map((s) => (
-            <button key={s} onClick={() => setStatusFilter(s)}
-              className={cn("h-7 rounded-sm px-2.5 py-0.5 capitalize text-xs font-medium transition-colors cursor-pointer",
-                statusFilter === s ? "bg-primary text-primary-foreground font-semibold shadow-2xs" : "text-muted-foreground hover:text-foreground hover:bg-accent/40")}>
-              {s === "all" ? "All status" : s === "todo" ? "To Do" : s === "in_progress" ? "In Progress" : "Done"}
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={cn(
+                "h-7 rounded-sm px-2.5 py-0.5 capitalize text-xs font-medium transition-colors cursor-pointer",
+                statusFilter === s
+                  ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/40",
+              )}
+            >
+              {s === "all"
+                ? "All status"
+                : s === "todo"
+                  ? "To Do"
+                  : s === "in_progress"
+                    ? "In Progress"
+                    : "Done"}
             </button>
           ))}
         </div>
@@ -319,16 +435,25 @@ function BucketList() {
         {/* Priority Filter Bar */}
         <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
           {(["all", "low", "medium", "high", "critical"] as const).map((p) => (
-            <button key={p} onClick={() => setPriorityFilter(p)}
-              className={cn("h-7 rounded-sm px-2.5 py-0.5 capitalize text-xs font-medium transition-colors cursor-pointer",
-                priorityFilter === p ? "bg-primary text-primary-foreground font-semibold shadow-2xs" : "text-muted-foreground hover:text-foreground hover:bg-accent/40")}>
+            <button
+              key={p}
+              onClick={() => setPriorityFilter(p)}
+              className={cn(
+                "h-7 rounded-sm px-2.5 py-0.5 capitalize text-xs font-medium transition-colors cursor-pointer",
+                priorityFilter === p
+                  ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/40",
+              )}
+            >
               {p === "all" ? "All priority" : p}
             </button>
           ))}
         </div>
 
         <span className="ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">
-          Assigned to <strong className="text-foreground font-semibold">{selectedPerson.name}</strong> · {filtered.length} tasks
+          Assigned to{" "}
+          <strong className="text-foreground font-semibold">{selectedPerson.name}</strong> ·{" "}
+          {filtered.length} tasks
         </span>
       </header>
 
@@ -350,7 +475,11 @@ function BucketList() {
               <BucketListRow key={r.id} r={r} />
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">No tasks match your filters</td></tr>
+              <tr>
+                <td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  No tasks match your filters
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -370,7 +499,7 @@ function ApprovalsTab() {
   const { user } = useRoleContext();
 
   const selectedApproval = useMemo(() => {
-    return store.approvals.find(a => a.id === selectedAppId);
+    return store.approvals.find((a) => a.id === selectedAppId);
   }, [store.approvals, selectedAppId]);
 
   const approvalTypes = [
@@ -381,7 +510,7 @@ function ApprovalsTab() {
     "Project Ready To Start Approval",
     "Resource Allocation Approval",
     "Customer Requirement Approval",
-    "Timeline Extension Approval"
+    "Timeline Extension Approval",
   ];
 
   const filteredApprovals = useMemo(() => {
@@ -419,26 +548,56 @@ function ApprovalsTab() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase">Project</span>
-            <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+              Project
+            </span>
+            <select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              className="form-input rounded-md border border-border p-1.5 bg-card"
+            >
               <option value="all">All Projects</option>
-              {allProjects().map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase">Request Type</span>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
-              <option value="all">All Request Types</option>
-              {approvalTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase">Status</span>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
-              <option value="all">All Statuses</option>
-              {(["Pending", "Approved", "Rejected", "Hold", "Request Changes"] as const).map((s) => (
-                <option key={s} value={s}>{s}</option>
+              {allProjects().map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
               ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+              Request Type
+            </span>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="form-input rounded-md border border-border p-1.5 bg-card"
+            >
+              <option value="all">All Request Types</option>
+              {approvalTypes.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+              Status
+            </span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="form-input rounded-md border border-border p-1.5 bg-card"
+            >
+              <option value="all">All Statuses</option>
+              {(["Pending", "Approved", "Rejected", "Hold", "Request Changes"] as const).map(
+                (s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ),
+              )}
             </select>
           </div>
         </div>
@@ -462,31 +621,48 @@ function ApprovalsTab() {
               <tr key={app.id} className="hover:bg-accent/30">
                 <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-800">{app.id}</td>
                 <td className="px-3 py-2.5 font-medium text-gray-700">{app.projectName}</td>
-                <td className="px-3 py-2.5 text-xs text-primary font-semibold">{app.requestType}</td>
+                <td className="px-3 py-2.5 text-xs text-primary font-semibold">
+                  {app.requestType}
+                </td>
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <Avatar name={app.requestedBy} size={20} />
                     <span className="text-xs">{app.requestedBy}</span>
                   </div>
                 </td>
-                <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">{new Date(app.requestedDate).toLocaleDateString()}</td>
+                <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
+                  {new Date(app.requestedDate).toLocaleDateString()}
+                </td>
                 <td className="px-3 py-2.5">
-                  <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
-                    app.status === "Approved" ? "bg-success/10 text-success border-success/30" :
-                      app.status === "Rejected" ? "bg-destructive/10 text-destructive border-destructive/30" :
-                        app.status === "Hold" ? "bg-warning/15 text-warning-foreground border-warning/30" :
-                          app.status === "Request Changes" ? "bg-info/10 text-info border-info/30" :
-                            "bg-muted text-muted-foreground border-border"
-                  )}>
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
+                      app.status === "Approved"
+                        ? "bg-success/10 text-success border-success/30"
+                        : app.status === "Rejected"
+                          ? "bg-destructive/10 text-destructive border-destructive/30"
+                          : app.status === "Hold"
+                            ? "bg-warning/15 text-warning-foreground border-warning/30"
+                            : app.status === "Request Changes"
+                              ? "bg-info/10 text-info border-info/30"
+                              : "bg-muted text-muted-foreground border-border",
+                    )}
+                  >
                     {app.status}
                   </span>
                 </td>
                 <td className="px-3 py-2.5 text-right space-x-1 whitespace-nowrap">
-                  <button onClick={() => setSelectedAppId(app.id)} className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary">
+                  <button
+                    onClick={() => setSelectedAppId(app.id)}
+                    className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
+                  >
                     View
                   </button>
                   {app.status !== "Pending" && !app.acknowledgedAt && (
-                    <button onClick={() => handleAcknowledge(app.id)} className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20">
+                    <button
+                      onClick={() => handleAcknowledge(app.id)}
+                      className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20"
+                    >
                       <Check className="h-3 w-3" /> Acknowledge
                     </button>
                   )}
@@ -499,35 +675,76 @@ function ApprovalsTab() {
               </tr>
             ))}
             {filteredApprovals.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">No approvals found</td></tr>
+              <tr>
+                <td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  No approvals found
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
 
       {selectedApproval && (
-        <Modal title={`Review Request — ${selectedApproval.id}`} onClose={() => setSelectedAppId(null)} wide draggable>
+        <Modal
+          title={`Review Request — ${selectedApproval.id}`}
+          onClose={() => setSelectedAppId(null)}
+          wide
+          draggable
+        >
           <div className="space-y-4">
             <div className="bg-muted/30 border border-border rounded-lg p-3 text-xs leading-relaxed grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div><span className="text-muted-foreground">Project Link</span><p className="font-medium text-primary hover:underline"><Link to="/projects/$projectId" params={{ projectId: selectedApproval.projectId }}>{selectedApproval.projectName}</Link></p></div>
-              <div><span className="text-muted-foreground">Requested By</span><p className="font-semibold">{selectedApproval.requestedBy}</p></div>
-              <div><span className="text-muted-foreground">Submitted On</span><p className="font-medium">{selectedApproval.requestedDate}</p></div>
-              <div><span className="text-muted-foreground">Request Type</span><p className="font-bold text-xs text-primary">{selectedApproval.requestType}</p></div>
+              <div>
+                <span className="text-muted-foreground">Project Link</span>
+                <p className="font-medium text-primary hover:underline">
+                  <Link
+                    to="/projects/$projectId"
+                    params={{ projectId: selectedApproval.projectId }}
+                  >
+                    {selectedApproval.projectName}
+                  </Link>
+                </p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Requested By</span>
+                <p className="font-semibold">{selectedApproval.requestedBy}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Submitted On</span>
+                <p className="font-medium">{selectedApproval.requestedDate}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Request Type</span>
+                <p className="font-bold text-xs text-primary">{selectedApproval.requestType}</p>
+              </div>
             </div>
 
             <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
-              <span className="text-xs font-bold text-muted-foreground uppercase">Description & Justification</span>
-              <p className="text-sm text-gray-800 leading-relaxed font-medium">{selectedApproval.description}</p>
+              <span className="text-xs font-bold text-muted-foreground uppercase">
+                Description & Justification
+              </span>
+              <p className="text-sm text-gray-800 leading-relaxed font-medium">
+                {selectedApproval.description}
+              </p>
             </div>
 
             {selectedApproval.comments.length > 0 && (
               <div className="rounded-lg border border-border bg-card p-3 space-y-2">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Discussion & Audit Log History</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Discussion & Audit Log History
+                </span>
                 <div className="space-y-2 max-h-40 overflow-y-auto pl-1">
                   {selectedApproval.history.map((h, idx) => (
-                    <div key={idx} className="text-xs border-l-2 border-primary pl-2 py-0.5 bg-muted/10 rounded-sm">
+                    <div
+                      key={idx}
+                      className="text-xs border-l-2 border-primary pl-2 py-0.5 bg-muted/10 rounded-sm"
+                    >
                       <div className="flex justify-between text-muted-foreground text-[10px]">
-                        <span>Status: <strong className="text-gray-700 font-semibold">{h.status}</strong> by {h.updatedBy}</span>
+                        <span>
+                          Status:{" "}
+                          <strong className="text-gray-700 font-semibold">{h.status}</strong> by{" "}
+                          {h.updatedBy}
+                        </span>
                         <span>{new Date(h.at).toLocaleString()}</span>
                       </div>
                       {h.comment && <p className="text-gray-800 mt-0.5">"{h.comment}"</p>}
@@ -542,7 +759,8 @@ function ApprovalsTab() {
               <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" />
                 <span>
-                  This decision was acknowledged by the requester on <strong>{new Date(selectedApproval.acknowledgedAt).toLocaleString()}</strong>.
+                  This decision was acknowledged by the requester on{" "}
+                  <strong>{new Date(selectedApproval.acknowledgedAt).toLocaleString()}</strong>.
                 </span>
               </div>
             )}
@@ -551,7 +769,8 @@ function ApprovalsTab() {
             {selectedApproval.status === "Pending" && (
               <div className="space-y-2 border-t border-border pt-3">
                 <label className="text-xs font-semibold text-gray-700 block">
-                  Action Comments / Clarifications / Instructions <span className="text-destructive font-bold">*Mandatory</span>
+                  Action Comments / Clarifications / Instructions{" "}
+                  <span className="text-destructive font-bold">*Mandatory</span>
                 </label>
                 <textarea
                   value={appComment}
@@ -564,7 +783,10 @@ function ApprovalsTab() {
             )}
 
             <div className="flex justify-end gap-2 border-t border-border pt-3">
-              <button onClick={() => setSelectedAppId(null)} className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium hover:bg-accent">
+              <button
+                onClick={() => setSelectedAppId(null)}
+                className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium hover:bg-accent"
+              >
                 Close
               </button>
               {selectedApproval.status === "Pending" && (
@@ -610,7 +832,9 @@ function ApprovalsTab() {
 // ---------- Alerts ----------
 function MetricCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className={cn("rounded-lg border p-3 flex flex-col justify-between shadow-xs bg-card", color)}>
+    <div
+      className={cn("rounded-lg border p-3 flex flex-col justify-between shadow-xs bg-card", color)}
+    >
       <span className="text-[10px] font-bold uppercase tracking-wider opacity-85">{label}</span>
       <span className="text-xl font-extrabold tracking-tight mt-1">{value}</span>
     </div>
@@ -642,7 +866,7 @@ function AlertsTab() {
 
   const filtered = useMemo(() => {
     return allAlerts.filter((a) => {
-      const proj = projectsList.find(p => p.id === a.projectId);
+      const proj = projectsList.find((p) => p.id === a.projectId);
       if (projFilter !== "all" && a.projectId !== projFilter) return false;
       if (clientFilter !== "all" && proj?.clientId !== clientFilter) return false;
       if (prioFilter !== "all" && a.priority !== prioFilter) return false;
@@ -654,22 +878,24 @@ function AlertsTab() {
 
   const metrics = useMemo(() => {
     const total = allAlerts.length;
-    const open = allAlerts.filter(a => a.status === "Open").length;
-    const critical = allAlerts.filter(a => a.priority === "Critical").length;
-    const resolved = allAlerts.filter(a => a.status === "Resolved").length;
-    const escalated = allAlerts.filter(a => a.priority === "Critical" || a.status === "Closed").length;
+    const open = allAlerts.filter((a) => a.status === "Open").length;
+    const critical = allAlerts.filter((a) => a.priority === "Critical").length;
+    const resolved = allAlerts.filter((a) => a.status === "Resolved").length;
+    const escalated = allAlerts.filter(
+      (a) => a.priority === "Critical" || a.status === "Closed",
+    ).length;
     return { total, open, critical, resolved, escalated };
   }, [allAlerts]);
 
   const selectedAlert = useMemo(() => {
-    return allAlerts.find(a => a.id === selectedAlertId);
+    return allAlerts.find((a) => a.id === selectedAlertId);
   }, [allAlerts, selectedAlertId]);
 
   // Alerts raised by the Log Requirement flow (add service / scope cancellation)
   const isRequirementAlert = !!selectedAlert?.alertId?.startsWith("REQ-AL-");
 
   const openDetails = (id: string) => {
-    const alert = allAlerts.find(a => a.id === id);
+    const alert = allAlerts.find((a) => a.id === id);
     if (alert) {
       setSelectedAlertId(id);
       setSelectedOwner(alert.owner || "");
@@ -690,11 +916,11 @@ function AlertsTab() {
         owner: selectedOwner,
         resolutionOwner: selectedResOwner,
         escalationOwner: selectedEscOwner,
-        resolutionDetails: resDetails
+        resolutionDetails: resDetails,
       },
       newChatMsg,
       user.id,
-      user.name
+      user.name,
     );
     toast.success("Alert Governance updated persistently!");
     setNewChatMsg("");
@@ -711,18 +937,38 @@ function AlertsTab() {
     "Budget Concern",
     "Schedule Delay",
     "Quality Concern",
-    "Governance Alert"
+    "Governance Alert",
   ];
 
   return (
     <>
       {/* Metrics Dashboard Grid */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-        <MetricCard label="Total Alerts" value={metrics.total} color="bg-blue-50 text-blue-700 border-blue-200" />
-        <MetricCard label="Open Alerts" value={metrics.open} color="bg-orange-50 text-orange-700 border-orange-200" />
-        <MetricCard label="Critical Alerts" value={metrics.critical} color="bg-red-50 text-red-700 border-red-200" />
-        <MetricCard label="Resolved Alerts" value={metrics.resolved} color="bg-green-50 text-green-700 border-green-200" />
-        <MetricCard label="Escalated Alerts" value={metrics.escalated} color="bg-purple-50 text-purple-700 border-purple-200" />
+        <MetricCard
+          label="Total Alerts"
+          value={metrics.total}
+          color="bg-blue-50 text-blue-700 border-blue-200"
+        />
+        <MetricCard
+          label="Open Alerts"
+          value={metrics.open}
+          color="bg-orange-50 text-orange-700 border-orange-200"
+        />
+        <MetricCard
+          label="Critical Alerts"
+          value={metrics.critical}
+          color="bg-red-50 text-red-700 border-red-200"
+        />
+        <MetricCard
+          label="Resolved Alerts"
+          value={metrics.resolved}
+          color="bg-green-50 text-green-700 border-green-200"
+        />
+        <MetricCard
+          label="Escalated Alerts"
+          value={metrics.escalated}
+          color="bg-purple-50 text-purple-700 border-purple-200"
+        />
       </div>
 
       <section className="rounded-xl border border-border bg-card shadow-sm">
@@ -735,40 +981,91 @@ function AlertsTab() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 text-xs">
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Project</span>
-              <select value={projFilter} onChange={(e) => setProjFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
+              <select
+                value={projFilter}
+                onChange={(e) => setProjFilter(e.target.value)}
+                className="form-input rounded-md border border-border p-1.5 bg-card"
+              >
                 <option value="all">All Projects</option>
-                {projectsList.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Customer</span>
-              <select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
-                <option value="all">All Customers</option>
-                {clientsList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Priority</span>
-              <select value={prioFilter} onChange={(e) => setPrioFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
-                <option value="all">All Priorities</option>
-                {(["Low", "Medium", "High", "Critical"] as const).map((pr) => (
-                  <option key={pr} value={pr}>{pr}</option>
+                {projectsList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Alert Type</span>
-              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                Customer
+              </span>
+              <select
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="form-input rounded-md border border-border p-1.5 bg-card"
+              >
+                <option value="all">All Customers</option>
+                {clientsList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                Priority
+              </span>
+              <select
+                value={prioFilter}
+                onChange={(e) => setPrioFilter(e.target.value)}
+                className="form-input rounded-md border border-border p-1.5 bg-card"
+              >
+                <option value="all">All Priorities</option>
+                {(["Low", "Medium", "High", "Critical"] as const).map((pr) => (
+                  <option key={pr} value={pr}>
+                    {pr}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                Alert Type
+              </span>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="form-input rounded-md border border-border p-1.5 bg-card"
+              >
                 <option value="all">All Types</option>
-                {alertTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+                {alertTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-input rounded-md border border-border p-1.5 bg-card">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="form-input rounded-md border border-border p-1.5 bg-card"
+              >
                 <option value="all">All Statuses</option>
-                {(["Open", "Acknowledged", "In Progress", "Waiting for Customer", "Resolved", "Closed"] as const).map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                {(
+                  [
+                    "Open",
+                    "Acknowledged",
+                    "In Progress",
+                    "Waiting for Customer",
+                    "Resolved",
+                    "Closed",
+                  ] as const
+                ).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </select>
             </div>
@@ -777,7 +1074,9 @@ function AlertsTab() {
 
         {filtered.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-sm text-muted-foreground">No governance alerts found matching the active filters.</p>
+            <p className="text-sm text-muted-foreground">
+              No governance alerts found matching the active filters.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -802,31 +1101,51 @@ function AlertsTab() {
                   const client = clientsList.find((c) => c.id === project?.clientId);
                   return (
                     <tr key={alert.id} className="hover:bg-accent/30">
-                      <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-800">{alert.alertId || "ALT-GEN"}</td>
+                      <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-800">
+                        {alert.alertId || "ALT-GEN"}
+                      </td>
                       <td className="px-3 py-2.5 font-medium text-gray-700">{alert.title}</td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-semibold">{project?.name || "—"}</td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground">{client?.name || "—"}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-semibold">
+                        {project?.name || "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                        {client?.name || "—"}
+                      </td>
                       <td className="px-3 py-2.5">
                         <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-gray-700">
                           {alert.alertType || alert.kind}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5"><PriorityPill priority={alert.priority.toLowerCase() as any} /></td>
-                      <td className="px-3 py-2.5 text-xs font-medium">{alert.raisedByName}</td>
-                      <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">{new Date(alert.createdAt).toLocaleDateString()}</td>
                       <td className="px-3 py-2.5">
-                        <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
-                          alert.status === "Open" ? "bg-orange-50 text-orange-700 border-orange-200" :
-                            alert.status === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                              alert.status === "Resolved" || alert.status === "Closed" ? "bg-green-50 text-green-700 border-green-200" :
-                                alert.status === "Waiting for Customer" ? "bg-purple-50 text-purple-700 border-purple-200" :
-                                  "bg-muted text-muted-foreground border-border"
-                        )}>
+                        <PriorityPill priority={alert.priority.toLowerCase() as any} />
+                      </td>
+                      <td className="px-3 py-2.5 text-xs font-medium">{alert.raisedByName}</td>
+                      <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
+                        {new Date(alert.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
+                            alert.status === "Open"
+                              ? "bg-orange-50 text-orange-700 border-orange-200"
+                              : alert.status === "In Progress"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : alert.status === "Resolved" || alert.status === "Closed"
+                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  : alert.status === "Waiting for Customer"
+                                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                                    : "bg-muted text-muted-foreground border-border",
+                          )}
+                        >
                           {alert.status}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right">
-                        <button onClick={() => openDetails(alert.id)} className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary">
+                        <button
+                          onClick={() => openDetails(alert.id)}
+                          className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
+                        >
                           Review details
                         </button>
                       </td>
@@ -841,65 +1160,126 @@ function AlertsTab() {
 
       {/* Alert Details Modal */}
       {selectedAlert && (
-        <Modal title={selectedAlert.kind === "Escalation" ? `Escalation Review Details — ${selectedAlert.alertId || "ALT-GEN"}` : `Governance Alert Details — ${selectedAlert.alertId || "ALT-GEN"}`} onClose={() => setSelectedAlertId(null)} wide draggable>
+        <Modal
+          title={
+            selectedAlert.kind === "Escalation"
+              ? `Escalation Review Details — ${selectedAlert.alertId || "ALT-GEN"}`
+              : `Governance Alert Details — ${selectedAlert.alertId || "ALT-GEN"}`
+          }
+          onClose={() => setSelectedAlertId(null)}
+          wide
+          draggable
+        >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {/* Left side details */}
             <div className="md:col-span-2 space-y-4">
               <div className="rounded-lg border border-border p-3 bg-muted/10 space-y-1">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase">{selectedAlert.kind === "Escalation" ? "Escalation Subject" : "Alert Title"}</span>
+                <span className="font-semibold text-[10px] text-muted-foreground uppercase">
+                  {selectedAlert.kind === "Escalation" ? "Escalation Subject" : "Alert Title"}
+                </span>
                 <p className="text-sm font-bold text-gray-800">{selectedAlert.title}</p>
               </div>
 
               {selectedAlert.kind === "Escalation" && (
                 <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
                   <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Service Name</span>
-                    <span className="font-semibold text-primary">{selectedAlert.serviceName || "—"}</span>
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+                      Service Name
+                    </span>
+                    <span className="font-semibold text-primary">
+                      {selectedAlert.serviceName || "—"}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Escalation Type</span>
-                    <span className="font-semibold text-gray-800">{selectedAlert.escalationType || "—"}</span>
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+                      Escalation Type
+                    </span>
+                    <span className="font-semibold text-gray-800">
+                      {selectedAlert.escalationType || "—"}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Raised By</span>
-                    <span className="font-semibold text-gray-800">{selectedAlert.raisedByName || "—"}</span>
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+                      Raised By
+                    </span>
+                    <span className="font-semibold text-gray-800">
+                      {selectedAlert.raisedByName || "—"}
+                    </span>
                   </div>
                   {selectedAlert.expectedResolutionDate && (
                     <div>
-                      <span className="text-[9px] uppercase font-bold text-muted-foreground block">Expected Resolution Date</span>
-                      <span className="font-semibold text-gray-800">{selectedAlert.expectedResolutionDate}</span>
+                      <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+                        Expected Resolution Date
+                      </span>
+                      <span className="font-semibold text-gray-800">
+                        {selectedAlert.expectedResolutionDate}
+                      </span>
                     </div>
                   )}
                 </div>
               )}
 
               <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">Full Description</span>
-                <p className="text-xs text-gray-700 leading-relaxed font-medium">{selectedAlert.description || "No full description provided."}</p>
+                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                  Full Description
+                </span>
+                <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                  {selectedAlert.description || "No full description provided."}
+                </p>
               </div>
 
               <div className="rounded-lg border border-border p-3 bg-card space-y-3">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">Governance Allocation & Ownership</span>
+                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                  Governance Allocation & Ownership
+                </span>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <div className="flex flex-col gap-1">
                     <span className="text-[10px] font-bold text-muted-foreground">Alert Owner</span>
-                    <select value={selectedOwner} onChange={(e) => setSelectedOwner(e.target.value)} className="form-input rounded-md border border-border p-1 bg-card">
+                    <select
+                      value={selectedOwner}
+                      onChange={(e) => setSelectedOwner(e.target.value)}
+                      className="form-input rounded-md border border-border p-1 bg-card"
+                    >
                       <option value="">Unassigned</option>
-                      {people.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+                      {people.map((p) => (
+                        <option key={p.id} value={p.name}>
+                          {p.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">Resolution Owner</span>
-                    <select value={selectedResOwner} onChange={(e) => setSelectedResOwner(e.target.value)} className="form-input rounded-md border border-border p-1 bg-card">
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                      Resolution Owner
+                    </span>
+                    <select
+                      value={selectedResOwner}
+                      onChange={(e) => setSelectedResOwner(e.target.value)}
+                      className="form-input rounded-md border border-border p-1 bg-card"
+                    >
                       <option value="">Unassigned</option>
-                      {people.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+                      {people.map((p) => (
+                        <option key={p.id} value={p.name}>
+                          {p.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">Escalation Owner</span>
-                    <select value={selectedEscOwner} onChange={(e) => setSelectedEscOwner(e.target.value)} className="form-input rounded-md border border-border p-1 bg-card">
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                      Escalation Owner
+                    </span>
+                    <select
+                      value={selectedEscOwner}
+                      onChange={(e) => setSelectedEscOwner(e.target.value)}
+                      className="form-input rounded-md border border-border p-1 bg-card"
+                    >
                       <option value="">Unassigned</option>
-                      {people.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+                      {people.map((p) => (
+                        <option key={p.id} value={p.name}>
+                          {p.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -907,7 +1287,9 @@ function AlertsTab() {
 
               {/* Resolution Progress */}
               <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">Resolution Timeline Details</span>
+                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                  Resolution Timeline Details
+                </span>
                 <textarea
                   value={resDetails}
                   onChange={(e) => setResDetails(e.target.value)}
@@ -920,12 +1302,25 @@ function AlertsTab() {
               {/* History Timeline Logs */}
               {selectedAlert.history && selectedAlert.history.length > 0 && (
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">Status Transitions Timeline</span>
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                    Status Transitions Timeline
+                  </span>
                   <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
                     {selectedAlert.history.map((h, idx) => (
                       <div key={idx} className="flex gap-2 text-[10px]">
-                        <span className="text-muted-foreground tabular-nums">{new Date(h.at).toLocaleDateString()} {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}:</span>
-                        <span>Status transitioned to <strong className="text-gray-800">{h.status}</strong> by {h.updatedBy} {h.details ? `— "${h.details}"` : ""}</span>
+                        <span className="text-muted-foreground tabular-nums">
+                          {new Date(h.at).toLocaleDateString()}{" "}
+                          {new Date(h.at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          :
+                        </span>
+                        <span>
+                          Status transitioned to{" "}
+                          <strong className="text-gray-800">{h.status}</strong> by {h.updatedBy}{" "}
+                          {h.details ? `— "${h.details}"` : ""}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -937,7 +1332,9 @@ function AlertsTab() {
             <div className="space-y-4 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">Project Link</span>
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                    Project Link
+                  </span>
                   {selectedAlert.projectId ? (
                     <Link
                       to="/projects/$projectId"
@@ -946,7 +1343,8 @@ function AlertsTab() {
                       className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-md px-2.5 py-1.5 font-bold hover:bg-primary/20 text-xs w-full justify-between"
                     >
                       <span>
-                        {projectsList.find(p => p.id === selectedAlert.projectId)?.name || "Go to project"}
+                        {projectsList.find((p) => p.id === selectedAlert.projectId)?.name ||
+                          "Go to project"}
                       </span>
                       <ExternalLink className="h-3 w-3" />
                     </Link>
@@ -956,26 +1354,38 @@ function AlertsTab() {
                 </div>
 
                 <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block">Attachments</span>
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block">
+                    Attachments
+                  </span>
                   {selectedAlert.attachments && selectedAlert.attachments.length > 0 ? (
                     <div className="space-y-1">
                       {selectedAlert.attachments.map((file, idx) => (
-                        <div key={idx} className="flex items-center gap-1.5 text-[10px] text-primary hover:underline cursor-pointer">
+                        <div
+                          key={idx}
+                          className="flex items-center gap-1.5 text-[10px] text-primary hover:underline cursor-pointer"
+                        >
                           <Paperclip className="h-3 w-3 text-muted-foreground" />
                           <span>{file}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-muted-foreground italic text-[10px]">No attachments.</span>
+                    <span className="text-muted-foreground italic text-[10px]">
+                      No attachments.
+                    </span>
                   )}
                 </div>
 
                 {/* Escalated To */}
                 {selectedAlert.kind === "Escalation" && selectedAlert.escalatedTo && (
                   <div className="rounded-lg border border-border p-3 bg-muted/10 space-y-1">
-                    <span className="font-semibold text-[10px] text-muted-foreground uppercase block">Escalated To</span>
-                    <p className="text-xs font-semibold text-primary truncate" title={selectedAlert.escalatedTo.join(", ")}>
+                    <span className="font-semibold text-[10px] text-muted-foreground uppercase block">
+                      Escalated To
+                    </span>
+                    <p
+                      className="text-xs font-semibold text-primary truncate"
+                      title={selectedAlert.escalatedTo.join(", ")}
+                    >
                       {selectedAlert.escalatedTo.join(", ")}
                     </p>
                   </div>
@@ -983,58 +1393,89 @@ function AlertsTab() {
 
                 {/* Status Switcher */}
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block">{isRequirementAlert ? "Status" : "Set Status"}</span>
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block">
+                    {isRequirementAlert ? "Status" : "Set Status"}
+                  </span>
                   {isRequirementAlert ? (
                     // Requirement alerts start as Open; status is updated later by the
                     // assigned manager / higher authority, not from this window.
-                    <div className={cn(
-                      "w-full rounded-md border p-2 text-xs font-bold shadow-xs",
-                      selectedAlert.status === "Resolved" || selectedAlert.status === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
-                        selectedAlert.status === "Open" ? "bg-orange-50 border-orange-200 text-orange-700" :
-                          "bg-gray-50 border-gray-200 text-gray-600"
-                    )}>
+                    <div
+                      className={cn(
+                        "w-full rounded-md border p-2 text-xs font-bold shadow-xs",
+                        selectedAlert.status === "Resolved" || selectedAlert.status === "Closed"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          : selectedAlert.status === "Open"
+                            ? "bg-orange-50 border-orange-200 text-orange-700"
+                            : "bg-gray-50 border-gray-200 text-gray-600",
+                      )}
+                    >
                       {selectedAlert.status}
                     </div>
                   ) : (
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value as any)}
-                    className={cn(
-                      "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                      selectedStatus === "Resolved" || selectedStatus === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
-                        selectedStatus === "Open" ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100" :
-                          selectedStatus === "In Progress" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-                            selectedStatus === "Waiting for Customer" ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100" :
-                              "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                    )}
-                  >
-                    {selectedAlert.kind === "Escalation"
-                      ? (["Open", "Acknowledged", "In Progress", "Waiting for Customer", "Resolved", "Closed"] as const).map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))
-                      : (["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))
-                    }
-                  </select>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value as any)}
+                      className={cn(
+                        "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                        selectedStatus === "Resolved" || selectedStatus === "Closed"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                          : selectedStatus === "Open"
+                            ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                            : selectedStatus === "In Progress"
+                              ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                              : selectedStatus === "Waiting for Customer"
+                                ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                                : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100",
+                      )}
+                    >
+                      {selectedAlert.kind === "Escalation"
+                        ? (
+                            [
+                              "Open",
+                              "Acknowledged",
+                              "In Progress",
+                              "Waiting for Customer",
+                              "Resolved",
+                              "Closed",
+                            ] as const
+                          ).map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))
+                        : (["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                    </select>
                   )}
                 </div>
 
                 {/* Discussion Area Comment box */}
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">Discussion Chat Thread</span>
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                    Discussion Chat Thread
+                  </span>
                   <div className="space-y-2 max-h-36 overflow-y-auto pl-1 pr-0.5 text-[10px] leading-relaxed">
                     {selectedAlert.comments.map((cm) => (
-                      <div key={cm.id} className="bg-muted/30 border border-border p-2 rounded-md space-y-0.5">
+                      <div
+                        key={cm.id}
+                        className="bg-muted/30 border border-border p-2 rounded-md space-y-0.5"
+                      >
                         <div className="flex justify-between font-semibold text-gray-800 text-[9px]">
                           <span>{cm.authorName}</span>
-                          <span className="text-muted-foreground">{new Date(cm.at).toLocaleDateString()}</span>
+                          <span className="text-muted-foreground">
+                            {new Date(cm.at).toLocaleDateString()}
+                          </span>
                         </div>
                         <p className="text-gray-700">{cm.text}</p>
                       </div>
                     ))}
                     {selectedAlert.comments.length === 0 && (
-                      <span className="text-muted-foreground italic text-[10px]">No chat messages yet.</span>
+                      <span className="text-muted-foreground italic text-[10px]">
+                        No chat messages yet.
+                      </span>
                     )}
                   </div>
                   <textarea
@@ -1059,7 +1500,7 @@ function AlertsTab() {
                         "rounded-md border px-3.5 py-1.5 text-xs font-medium transition-colors",
                         approved
                           ? "border-emerald-600 bg-emerald-600 text-white"
-                          : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
                       )}
                     >
                       {approved ? "Approved ✓" : "Approve"}
@@ -1081,7 +1522,7 @@ function AlertsTab() {
                         "rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors",
                         approved
                           ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "border border-border bg-muted text-muted-foreground cursor-not-allowed"
+                          : "border border-border bg-muted text-muted-foreground cursor-not-allowed",
                       )}
                     >
                       Update
@@ -1089,7 +1530,10 @@ function AlertsTab() {
                   </>
                 ) : (
                   <>
-                    <button onClick={() => setSelectedAlertId(null)} className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium hover:bg-accent">
+                    <button
+                      onClick={() => setSelectedAlertId(null)}
+                      className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium hover:bg-accent"
+                    >
                       Cancel
                     </button>
                     <button
@@ -1132,9 +1576,11 @@ function NotificationsTab() {
 
   // Metrics
   const totalCount = notifications.length;
-  const pendingCount = notifications.filter(n => n.status === "Pending").length;
-  const criticalPendingCount = notifications.filter(n => n.status === "Pending" && (n.priority === "Critical" || n.priority === "High")).length;
-  const archivedCount = notifications.filter(n => n.status === "Acknowledged").length;
+  const pendingCount = notifications.filter((n) => n.status === "Pending").length;
+  const criticalPendingCount = notifications.filter(
+    (n) => n.status === "Pending" && (n.priority === "Critical" || n.priority === "High"),
+  ).length;
+  const archivedCount = notifications.filter((n) => n.status === "Acknowledged").length;
 
   // Formatting helpers matching images
   const formatNotifDate = (dateStr: string): string => {
@@ -1142,7 +1588,20 @@ function NotificationsTab() {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
       const day = d.getDate();
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
       const month = months[d.getMonth()];
       const year = d.getFullYear();
       return `${day} ${month} ${year}`;
@@ -1155,8 +1614,8 @@ function NotificationsTab() {
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return "12:00";
-      const hours = String(d.getHours()).padStart(2, '0');
-      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
       return `${hours}:${minutes}`;
     } catch (e) {
       return "12:00";
@@ -1168,13 +1627,23 @@ function NotificationsTab() {
     const t = type.toLowerCase();
     if (t.includes("wbs")) {
       return "bg-orange-50 text-orange-700 border border-orange-200";
-    } else if (t.includes("ready") || t.includes("completed") || t.includes("resolved") || t.includes("approved")) {
+    } else if (
+      t.includes("ready") ||
+      t.includes("completed") ||
+      t.includes("resolved") ||
+      t.includes("approved")
+    ) {
       return "bg-emerald-50 text-emerald-700 border border-emerald-200";
     } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal")) {
       return "bg-red-50 text-red-700 border border-red-200";
     } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval")) {
       return "bg-amber-50 text-amber-700 border border-amber-200";
-    } else if (t.includes("interview") || t.includes("shuffle") || t.includes("allocation") || t.includes("assignment")) {
+    } else if (
+      t.includes("interview") ||
+      t.includes("shuffle") ||
+      t.includes("allocation") ||
+      t.includes("assignment")
+    ) {
       return "bg-sky-50 text-sky-700 border border-sky-200";
     }
     return "bg-gray-50 text-gray-700 border border-gray-200";
@@ -1208,8 +1677,10 @@ function NotificationsTab() {
 
       // 3. Dropdown/Inputs filters
       if (typeFilter !== "all" && n.type !== typeFilter) return false;
-      if (priorityFilter !== "all" && n.priority.toLowerCase() !== priorityFilter.toLowerCase()) return false;
-      if (statusFilter !== "all" && n.status.toLowerCase() !== statusFilter.toLowerCase()) return false;
+      if (priorityFilter !== "all" && n.priority.toLowerCase() !== priorityFilter.toLowerCase())
+        return false;
+      if (statusFilter !== "all" && n.status.toLowerCase() !== statusFilter.toLowerCase())
+        return false;
       if (dateFilter) {
         const notifDate = n.createdAt.slice(0, 10);
         if (notifDate !== dateFilter) return false;
@@ -1220,7 +1691,7 @@ function NotificationsTab() {
   }, [notifications, subTab, searchQuery, typeFilter, priorityFilter, dateFilter, statusFilter]);
 
   const selectedNotification = useMemo(() => {
-    return notifications.find(n => n.id === selectedNotifId);
+    return notifications.find((n) => n.id === selectedNotifId);
   }, [notifications, selectedNotifId]);
 
   const handleOpenDetails = (id: string) => {
@@ -1251,25 +1722,33 @@ function NotificationsTab() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         {/* TOTAL NOTIFICATIONS */}
         <div className="rounded-xl border border-blue-200 bg-blue-50/15 p-4 flex flex-col justify-between shadow-xs">
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Total Notifications</span>
+          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+            Total Notifications
+          </span>
           <span className="text-2xl font-bold text-blue-900 mt-1">{totalCount}</span>
         </div>
 
         {/* PENDING */}
         <div className="rounded-xl border border-amber-250 bg-amber-50/15 p-4 flex flex-col justify-between shadow-xs">
-          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending</span>
+          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+            Pending
+          </span>
           <span className="text-2xl font-bold text-amber-900 mt-1">{pendingCount}</span>
         </div>
 
         {/* CRITICAL PENDING */}
         <div className="rounded-xl border border-red-200 bg-red-50/15 p-4 flex flex-col justify-between shadow-xs">
-          <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Critical Pending</span>
+          <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">
+            Critical Pending
+          </span>
           <span className="text-2xl font-bold text-red-900 mt-1">{criticalPendingCount}</span>
         </div>
 
         {/* ARCHIVED */}
         <div className="rounded-xl border border-emerald-250 bg-emerald-50/15 p-4 flex flex-col justify-between shadow-xs">
-          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Archived</span>
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+            Archived
+          </span>
           <span className="text-2xl font-bold text-emerald-900 mt-1">{archivedCount}</span>
         </div>
       </div>
@@ -1300,7 +1779,9 @@ function NotificationsTab() {
         {/* Filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-[11px] leading-relaxed">
           <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Notification Type</span>
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+              Notification Type
+            </span>
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
@@ -1308,13 +1789,17 @@ function NotificationsTab() {
             >
               <option value="all">All Types</option>
               {NOTIFICATION_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Priority</span>
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+              Priority
+            </span>
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
@@ -1329,7 +1814,9 @@ function NotificationsTab() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Date</span>
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+              Date
+            </span>
             <input
               type="date"
               value={dateFilter}
@@ -1340,7 +1827,9 @@ function NotificationsTab() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Status</span>
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+              Status
+            </span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -1356,7 +1845,7 @@ function NotificationsTab() {
         {/* Sub-tabs line selector */}
         <div className="flex gap-4 border-b border-border pb-1 mt-2">
           {(["Current", "Archived"] as const).map((st) => {
-            const count = notifications.filter(n => {
+            const count = notifications.filter((n) => {
               if (st === "Current") {
                 return n.status === "Pending" || n.unread;
               } else {
@@ -1370,10 +1859,16 @@ function NotificationsTab() {
                 onClick={() => setSubTab(st)}
                 className={cn(
                   "border-b-2 px-4 py-2 text-sm font-medium transition-all -mb-[6px] flex items-center gap-1.5 cursor-pointer",
-                  subTab === st ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                  subTab === st
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
-                {st === "Current" ? <Bell className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+                {st === "Current" ? (
+                  <Bell className="h-3.5 w-3.5" />
+                ) : (
+                  <Archive className="h-3.5 w-3.5" />
+                )}
                 <span>{st}</span>
                 <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                   {count}
@@ -1397,7 +1892,9 @@ function NotificationsTab() {
                 <th className="px-3 py-2 font-medium">Time</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Priority</th>
-                {subTab === "Current" && <th className="px-3 py-2 font-medium text-right">Actions</th>}
+                {subTab === "Current" && (
+                  <th className="px-3 py-2 font-medium text-right">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60 align-middle">
@@ -1427,10 +1924,12 @@ function NotificationsTab() {
 
                     {/* Type Badge */}
                     <td className="px-3 py-2.5 whitespace-nowrap">
-                      <span className={cn(
-                        "inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
-                        getTypeStyles(n.type)
-                      )}>
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                          getTypeStyles(n.type),
+                        )}
+                      >
                         {n.type}
                       </span>
                     </td>
@@ -1465,10 +1964,14 @@ function NotificationsTab() {
 
                     {/* Status Badge */}
                     <td className="px-3 py-2.5 whitespace-nowrap">
-                      <span className={cn(
-                        "inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold capitalize items-center gap-1",
-                        n.status === "Acknowledged" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-orange-50 text-orange-700 border-orange-200"
-                      )}>
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold capitalize items-center gap-1",
+                          n.status === "Acknowledged"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-orange-50 text-orange-700 border-orange-200",
+                        )}
+                      >
                         {n.status === "Acknowledged" ? (
                           <>
                             <Check className="h-2.5 w-2.5" />
@@ -1522,18 +2025,28 @@ function NotificationsTab() {
             {/* Top pill badges and Large Title */}
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
-                <span className={cn(
-                  "inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
-                  getTypeStyles(selectedNotification.type)
-                )}>
+                <span
+                  className={cn(
+                    "inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                    getTypeStyles(selectedNotification.type),
+                  )}
+                >
                   {selectedNotification.type}
                 </span>
                 <PriorityPill priority={selectedNotification.priority.toLowerCase() as any} />
-                <span className={cn(
-                  "inline-flex rounded-full border px-2.5 py-0.5 text-[9px] font-bold capitalize items-center gap-1",
-                  selectedNotification.status === "Acknowledged" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-orange-50 text-orange-700 border-orange-200"
-                )}>
-                  {selectedNotification.status === "Acknowledged" ? <Check className="h-2.5 w-2.5" /> : <Clock className="h-2.5 w-2.5" />}
+                <span
+                  className={cn(
+                    "inline-flex rounded-full border px-2.5 py-0.5 text-[9px] font-bold capitalize items-center gap-1",
+                    selectedNotification.status === "Acknowledged"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-orange-50 text-orange-700 border-orange-200",
+                  )}
+                >
+                  {selectedNotification.status === "Acknowledged" ? (
+                    <Check className="h-2.5 w-2.5" />
+                  ) : (
+                    <Clock className="h-2.5 w-2.5" />
+                  )}
                   {selectedNotification.status}
                 </span>
               </div>
@@ -1545,30 +2058,52 @@ function NotificationsTab() {
             {/* Metadata Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3.5 gap-x-6 border border-border rounded-xl p-4 bg-muted/5">
               <div>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">Related Project</span>
-                <span className="font-semibold text-gray-800">{selectedNotification.relatedProject}</span>
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                  Related Project
+                </span>
+                <span className="font-semibold text-gray-800">
+                  {selectedNotification.relatedProject}
+                </span>
               </div>
               <div>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">Related Task</span>
-                <span className="font-semibold text-gray-800">{selectedNotification.relatedTask || "—"}</span>
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                  Related Task
+                </span>
+                <span className="font-semibold text-gray-800">
+                  {selectedNotification.relatedTask || "—"}
+                </span>
               </div>
               <div>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">Raised By</span>
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                  Raised By
+                </span>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Avatar name={selectedNotification.raisedBy} size={18} />
-                  <span className="font-semibold text-gray-700">{selectedNotification.raisedBy}</span>
+                  <span className="font-semibold text-gray-700">
+                    {selectedNotification.raisedBy}
+                  </span>
                 </div>
               </div>
               <div>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">Date</span>
-                <span className="font-medium text-gray-800">{formatNotifDate(selectedNotification.createdAt)}</span>
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                  Date
+                </span>
+                <span className="font-medium text-gray-800">
+                  {formatNotifDate(selectedNotification.createdAt)}
+                </span>
               </div>
               <div>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">Time</span>
-                <span className="font-medium text-gray-800 font-mono">{formatNotifTime(selectedNotification.createdAt)}</span>
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                  Time
+                </span>
+                <span className="font-medium text-gray-800 font-mono">
+                  {formatNotifTime(selectedNotification.createdAt)}
+                </span>
               </div>
               <div>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">Notification ID</span>
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                  Notification ID
+                </span>
                 <span className="font-bold text-gray-800">{selectedNotification.id}</span>
               </div>
             </div>
@@ -1577,7 +2112,10 @@ function NotificationsTab() {
             {selectedNotification.status === "Pending" && (
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-3.5 text-xs text-orange-800 space-y-0.5">
                 <div className="font-semibold">This notification is awaiting acknowledgement.</div>
-                <div className="text-orange-700">Add your comment and click Acknowledge to confirm you have reviewed this notification.</div>
+                <div className="text-orange-700">
+                  Add your comment and click Acknowledge to confirm you have reviewed this
+                  notification.
+                </div>
               </div>
             )}
 
@@ -1597,7 +2135,7 @@ function NotificationsTab() {
                   rows={3}
                   className={cn(
                     "w-full rounded-lg border p-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-primary focus:border-primary/55 bg-card",
-                    showCommentError ? "border-red-500" : "border-border"
+                    showCommentError ? "border-red-500" : "border-border",
                   )}
                 />
                 {showCommentError && (
@@ -1611,7 +2149,9 @@ function NotificationsTab() {
               <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 text-xs text-emerald-800 space-y-1">
                 <div className="font-semibold">This notification has been acknowledged.</div>
                 <div className="text-emerald-700">
-                  Acknowledged by <strong>{selectedNotification.acknowledgedBy}</strong> on {formatNotifDate(selectedNotification.acknowledgedDate || "")} at {selectedNotification.acknowledgedTime}.
+                  Acknowledged by <strong>{selectedNotification.acknowledgedBy}</strong> on{" "}
+                  {formatNotifDate(selectedNotification.acknowledgedDate || "")} at{" "}
+                  {selectedNotification.acknowledgedTime}.
                 </div>
               </div>
             )}
@@ -1623,31 +2163,55 @@ function NotificationsTab() {
               </span>
               <div className="grid grid-cols-3 gap-4 text-[11px] leading-relaxed">
                 <div>
-                  <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">Created By</span>
-                  <span className="font-semibold text-gray-700">{selectedNotification.createdBy}</span>
+                  <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+                    Created By
+                  </span>
+                  <span className="font-semibold text-gray-700">
+                    {selectedNotification.createdBy}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">Created Date</span>
-                  <span className="font-medium text-gray-755">{formatNotifDate(selectedNotification.createdAt)}</span>
+                  <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+                    Created Date
+                  </span>
+                  <span className="font-medium text-gray-755">
+                    {formatNotifDate(selectedNotification.createdAt)}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">Created Time</span>
-                  <span className="font-medium text-gray-755 font-mono">{formatNotifTime(selectedNotification.createdAt)}</span>
+                  <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+                    Created Time
+                  </span>
+                  <span className="font-medium text-gray-755 font-mono">
+                    {formatNotifTime(selectedNotification.createdAt)}
+                  </span>
                 </div>
 
                 {selectedNotification.status === "Acknowledged" && (
                   <>
                     <div>
-                      <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">Acknowledged By</span>
-                      <span className="font-bold text-emerald-700">{selectedNotification.acknowledgedBy}</span>
+                      <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+                        Acknowledged By
+                      </span>
+                      <span className="font-bold text-emerald-700">
+                        {selectedNotification.acknowledgedBy}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">Acknowledged Date</span>
-                      <span className="font-semibold text-emerald-700">{formatNotifDate(selectedNotification.acknowledgedDate || "")}</span>
+                      <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+                        Acknowledged Date
+                      </span>
+                      <span className="font-semibold text-emerald-700">
+                        {formatNotifDate(selectedNotification.acknowledgedDate || "")}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">Acknowledged Time</span>
-                      <span className="font-semibold text-emerald-700 font-mono">{selectedNotification.acknowledgedTime}</span>
+                      <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+                        Acknowledged Time
+                      </span>
+                      <span className="font-semibold text-emerald-700 font-mono">
+                        {selectedNotification.acknowledgedTime}
+                      </span>
                     </div>
                   </>
                 )}
@@ -1729,5 +2293,5 @@ const NOTIFICATION_TYPES = [
   "Project Completed",
   "Project Cancelled",
   "Scope Change",
-  "Resource Shuffle"
+  "Resource Shuffle",
 ] as const;

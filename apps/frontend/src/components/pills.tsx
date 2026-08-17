@@ -27,8 +27,9 @@ export function StatusPill({ status }: { status: ProjectStatus }) {
     ongoing: "bg-info/10 text-info border-info/30",
     completed: "bg-success/10 text-success border-success/30",
     on_hold: "bg-muted text-muted-foreground border-border",
+    archived: "bg-muted text-muted-foreground border-border",
   };
-  const label = { ongoing: "Ongoing", completed: "Completed", on_hold: "On Hold" }[status];
+  const label = { ongoing: "Ongoing", completed: "Completed", on_hold: "On Hold", archived: "Archived" }[status];
   return <span className={cn(base, map[status])}>{label}</span>;
 }
 

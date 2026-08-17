@@ -7,7 +7,7 @@
 
 ## Architecture Overview
 
-Project Compass currently operates as a **frontend-only SPA** with all business logic and data embedded in the client bundle. The planned architecture transitions to a **3-tier system** with a React frontend, FastAPI backend, and PostgreSQL database.
+Project Compass currently operates as a **frontend-only SPA** with all business logic and data embedded in the client bundle. The planned architecture transitions to a **3-tier system** with a React frontend, ASP.NET Core (C#) backend, and PostgreSQL database.
 
 ### Current Architecture (Frontend-Only)
 
@@ -40,7 +40,7 @@ graph TB
         FE --> RQ
     end
     subgraph "API Layer"
-        API["FastAPI"]
+        API["ASP.NET Core Web API"]
         JWT["JWT Auth Middleware"]
         RBAC["RBAC Guard"]
         API --> JWT --> RBAC
@@ -52,7 +52,7 @@ graph TB
     end
     subgraph "Data Layer"
         PG["PostgreSQL"]
-        ALM["Alembic Migrations"]
+        ALM["EF Core Migrations"]
         PG --> ALM
     end
     RQ -->|"HTTP/REST"| API

@@ -1,5 +1,7 @@
 # Project Recovery Guide
 
+> ⚠️ **Stack update (2026-08-07):** backend is now **ASP.NET Core 10 + PostgreSQL 16** (`apps/backend/`). Python/FastAPI references below are historical.
+>
 > **Purpose:** Enable any new AI assistant or developer to understand the project and start contributing within minutes.  
 > **Last Updated:** 2026-06-16
 

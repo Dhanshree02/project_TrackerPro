@@ -1,5 +1,7 @@
 # AI Handover — 2026-06-16
 
+> ⚠️ **Stack update (2026-08-07):** backend switched to **ASP.NET Core 10 + PostgreSQL 16** — see [[31_Backend_Plan_DotNet]]. FastAPI items in this handover are no longer current.
+
 ---
 
 ## Session Information

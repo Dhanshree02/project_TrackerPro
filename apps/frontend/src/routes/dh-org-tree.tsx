@@ -107,8 +107,6 @@ function OrgTreePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNode, setSelectedNode] = useState<OrgNode | null>(orgData);
 
-  if (!isDhanshree) return <Navigate to="/" />;
-
   // Search logic to find a node in the tree recursively
   const allNodes = useMemo(() => {
     const flatList: OrgNode[] = [];
@@ -131,6 +129,8 @@ function OrgTreePage() {
         n.dept.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery, allNodes]);
+
+  if (!isDhanshree) return <Navigate to="/" />;
 
   // Check if a node is currently matches the search query to highlight it
   const isSearchMatch = (node: OrgNode) => {

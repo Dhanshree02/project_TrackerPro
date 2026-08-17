@@ -1,11 +1,29 @@
-import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { LayoutGrid, List, Search, ArrowRight, X, Building2, Plus, ChevronRight, Check } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  LayoutGrid,
+  List,
+  Search,
+  ArrowRight,
+  X,
+  Building2,
+  Plus,
+  ChevronRight,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
-import { type Client } from "@/lib/mock-data";
+import { type Client, type ClientSubVenture } from "@/lib/mock-data";
+import {
+  createClient,
+  fetchClients,
+  mapApiClient,
+  updateClient,
+  type CreateClientInput,
+} from "@/lib/api/clients";
+import { useAuth } from "@/lib/auth-context";
 import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
 import { Modal } from "@/routes/projects.index";
 import { Field } from "@/components/form-row";
@@ -40,27 +58,69 @@ function CustomersPage() {
     }
   };
 
+  const { user: authUser } = useAuth();
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [openNew, setOpenNew] = useState(false);
 
+  // Live data from the TrackerPro API (when reachable). Falls back to mock data
+  // when the backend is offline so the page never breaks.
+  const [apiClients, setApiClients] = useState<Client[] | null>(null);
+  const refreshApiClients = useCallback(async () => {
+    try {
+      const list = await fetchClients();
+      if (list.length > 0) setApiClients(list.map(mapApiClient));
+    } catch {
+      /* backend offline — keep current list */
+    }
+  }, []);
+  useEffect(() => {
+    void refreshApiClients();
+  }, [refreshApiClients]);
+
+  // Only users holding clients:write may onboard new customers (RBAC).
+  const canCreateClient = authUser ? authUser.permissions.includes("clients:write") : true;
+
   // Subscribe to store so newly created clients/projects appear immediately
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
-  const clients = useMemo(() => isDhanshree ? allClients() : (assignedClients && assignedClients.length > 0 ? assignedClients : allClients()), [isDhanshree, assignedClients, extraCount]);
-  const projects = useMemo(() => isDhanshree ? allProjects() : (assignedProjects && assignedProjects.length > 0 ? assignedProjects : allProjects()), [isDhanshree, assignedProjects, extraCount]);
+  const clients = useMemo(() => {
+    if (apiClients) return apiClients;
+    return isDhanshree
+      ? allClients()
+      : assignedClients && assignedClients.length > 0
+        ? assignedClients
+        : allClients();
+  }, [apiClients, isDhanshree, assignedClients, extraCount]);
+  const projects = useMemo(
+    () =>
+      isDhanshree
+        ? allProjects()
+        : assignedProjects && assignedProjects.length > 0
+          ? assignedProjects
+          : allProjects(),
+    [isDhanshree, assignedProjects, extraCount],
+  );
 
-  const enriched = useMemo(() => clients.map((c) => {
-    const projs = projects.filter((p) => p.clientId === c.id);
-    return {
-      client: c,
-      total: projs.length,
-      active: projs.filter((p) => p.status === "ongoing").length,
-      completed: projs.filter((p) => p.status === "completed").length,
-    };
-  }), [clients, projects]);
+  const enriched = useMemo(() => {
+    // API clients have database ids — map them back to the mock client id (by name)
+    // so project counts still work until the Projects module is API-backed.
+    const mockIdByName = new Map(allClients().map((c) => [c.name.toLowerCase(), c.id]));
+    return clients.map((c) => {
+      const mockId = apiClients ? (mockIdByName.get(c.name.toLowerCase()) ?? c.id) : c.id;
+      const projs = projects.filter((p) => p.clientId === mockId);
+      return {
+        client: c,
+        total: projs.length,
+        active: projs.filter((p) => p.status === "ongoing").length,
+        completed: projs.filter((p) => p.status === "completed").length,
+      };
+    });
+  }, [clients, projects, apiClients]);
 
-  const filtered = enriched.filter(({ client: c }) =>
-    !q.trim() || [c.name, c.industry].some((v) => v.toLowerCase().includes(q.toLowerCase())));
+  const filtered = enriched.filter(
+    ({ client: c }) =>
+      !q.trim() || [c.name, c.industry].some((v) => v.toLowerCase().includes(q.toLowerCase())),
+  );
 
   const open = openId ? clients.find((c) => c.id === openId) : null;
 
@@ -69,27 +129,46 @@ function CustomersPage() {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)}
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
             placeholder="Search customer or industry…"
-            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
         </div>
         <div className="ml-auto flex items-center gap-2">
           <div className="flex gap-1 rounded-lg border border-border bg-card p-1 text-xs shadow-sm">
-            <button onClick={() => setView("card")}
-              className={cn("inline-flex items-center gap-1 rounded-md px-2.5 py-1",
-                view === "card" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <button
+              onClick={() => setView("card")}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2.5 py-1",
+                view === "card"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
               <LayoutGrid className="h-3.5 w-3.5" /> Card
             </button>
-            <button onClick={() => setView("list")}
-              className={cn("inline-flex items-center gap-1 rounded-md px-2.5 py-1",
-                view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <button
+              onClick={() => setView("list")}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2.5 py-1",
+                view === "list"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
               <List className="h-3.5 w-3.5" /> List
             </button>
           </div>
-          <button onClick={() => setOpenNew(true)}
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-            <Plus className="h-3.5 w-3.5" /> New Client
-          </button>
+          {canCreateClient && (
+            <button
+              onClick={() => setOpenNew(true)}
+              className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-3.5 w-3.5" /> New Client
+            </button>
+          )}
         </div>
       </div>
 
@@ -107,13 +186,21 @@ function CustomersPage() {
                     {c.logo}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold group-hover:text-primary transition-colors">{c.name}</div>
+                    <div className="truncate text-sm font-semibold group-hover:text-primary transition-colors">
+                      {c.name}
+                    </div>
                     <div className="text-xs text-muted-foreground">{c.industry}</div>
                   </div>
                 </header>
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div><dt className="text-muted-foreground">Projects</dt><dd className="font-semibold tabular-nums">{total}</dd></div>
-                  <div><dt className="text-muted-foreground">Active</dt><dd className="font-semibold tabular-nums text-info">{active}</dd></div>
+                  <div>
+                    <dt className="text-muted-foreground">Projects</dt>
+                    <dd className="font-semibold tabular-nums">{total}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Active</dt>
+                    <dd className="font-semibold tabular-nums text-info">{active}</dd>
+                  </div>
                 </dl>
               </div>
             </article>
@@ -136,13 +223,19 @@ function CustomersPage() {
               {filtered.map(({ client: c, total, active, completed }) => (
                 <tr
                   key={c.id}
-                  onClick={() => navigate({ to: "/customers/$clientId", params: { clientId: c.id } })}
+                  onClick={() =>
+                    navigate({ to: "/customers/$clientId", params: { clientId: c.id } })
+                  }
                   className="hover:bg-accent/50 cursor-pointer transition-colors group"
                 >
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground">{c.logo}</span>
-                      <span className="font-medium group-hover:text-primary transition-colors">{c.name}</span>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground">
+                        {c.logo}
+                      </span>
+                      <span className="font-medium group-hover:text-primary transition-colors">
+                        {c.name}
+                      </span>
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">{c.industry}</td>
@@ -150,7 +243,9 @@ function CustomersPage() {
                   <td className="px-3 py-2.5 tabular-nums text-info">{active}</td>
                   <td className="px-3 py-2.5 tabular-nums text-success">{completed}</td>
                   <td className="px-3 py-2.5">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">Active</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
+                      Active
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -160,52 +255,102 @@ function CustomersPage() {
       )}
 
       {open && <CustomerDrawer client={open} onClose={() => setOpenId(null)} />}
-      {openNew && <NewClientModal onClose={() => setOpenNew(false)} />}
+      {openNew && (
+        <NewClientModal
+          apiClients={apiClients}
+          onClose={() => setOpenNew(false)}
+          onCreated={() => {
+            setOpenNew(false);
+            void refreshApiClients();
+          }}
+        />
+      )}
     </AppShell>
   );
 }
 
 // ---------- New Client onboarding (stepper) ----------
-interface ContactEntry { name: string; email: string; phone: string; designation: string; }
+interface ContactEntry {
+  name: string;
+  email: string;
+  phone: string;
+  designation: string;
+  contactType?: string;
+}
 interface NewClientState {
-  clientName: string; companyName: string; customerId: string;
-  engagementManager: string; phoneNumber: string; city: string; country: string;
-  industry: string; businessType: string;
-  createdAt: string; createdBy: string;
+  clientName: string;
+  subVentureName: string;
+  customerId: string;
+  engagementManager: string;
+  phoneNumber: string;
+  city: string;
+  country: string;
+  industry: string;
+  businessType: string;
+  createdAt: string;
+  createdBy: string;
   kycFile: File | null;
   contacts: ContactEntry[];
   notes: string;
 }
 
-const inputCls = "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const Row = ({ label, v }: { label: string; v: string }) => (<><dt className="text-muted-foreground">{label}</dt><dd className="font-medium">{v || "—"}</dd></>);
+const inputCls =
+  "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const Row = ({ label, v }: { label: string; v: string }) => (
+  <>
+    <dt className="text-muted-foreground">{label}</dt>
+    <dd className="font-medium">{v || "—"}</dd>
+  </>
+);
 
-function NewClientModal({ onClose }: { onClose: () => void }) {
+function NewClientModal({
+  apiClients,
+  onClose,
+  onCreated,
+}: {
+  apiClients: Client[] | null;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
   const { user } = useRoleContext();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── TK Customer search state ──
-  const existingClients = allClients();
+  // ── TK Customer search state — mock/dh-store + API-backed clients ──
+  // Subscribes to the store so locally-created clients appear immediately.
+  const localClientCount = useDhStore((s) => s.extraClients.length);
+  const existingClients = useMemo(() => {
+    const local = allClients();
+    const seen = new Set(local.map((c) => c.id));
+    return [...local, ...(apiClients ?? []).filter((c) => !seen.has(c.id))];
+    // localClientCount intentionally keeps this memo fresh when the store changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiClients, localClientCount]);
   const [tkSearch, setTkSearch] = useState("");
   const [tkDropOpen, setTkDropOpen] = useState(false);
-  const [selectedExisting, setSelectedExisting] = useState<typeof existingClients[0] | null>(null);
+  const [selectedExisting, setSelectedExisting] = useState<(typeof existingClients)[0] | null>(
+    null,
+  );
 
   // ── Sub-venture search state (only when existing client selected) ──
   const [svSearch, setSvSearch] = useState("");
   const [svDropOpen, setSvDropOpen] = useState(false);
   const [svAlreadyExists, setSvAlreadyExists] = useState(false);
 
-  const filteredTk = existingClients.filter((c) =>
-    tkSearch.trim() === "" ||
-    c.name.toLowerCase().includes(tkSearch.toLowerCase())
+  const filteredTk = existingClients.filter(
+    (c) => tkSearch.trim() === "" || c.name.toLowerCase().includes(tkSearch.toLowerCase()),
   );
 
   const [s, setS] = useState<NewClientState>(() => ({
-    clientName: "", companyName: "",
+    clientName: "",
+    subVentureName: "",
     customerId: "C" + String(allClients().length + 1).padStart(3, "0"),
-    engagementManager: "", phoneNumber: "", city: "", country: "",
-    industry: "", businessType: "",
+    engagementManager: "",
+    phoneNumber: "",
+    city: "",
+    country: "",
+    industry: "",
+    businessType: "",
     createdAt: new Date().toISOString(),
     createdBy: user?.name ?? "Unknown",
     kycFile: null,
@@ -222,7 +367,13 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
     setS((p) =>
       p.contacts.length >= MAX_CONTACTS
         ? p
-        : { ...p, contacts: [...p.contacts, { name: "", email: "", phone: "", designation: "", contactType: "" }] }
+        : {
+            ...p,
+            contacts: [
+              ...p.contacts,
+              { name: "", email: "", phone: "", designation: "", contactType: "" },
+            ],
+          },
     );
 
   const removeContact = (idx: number) =>
@@ -246,12 +397,13 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
 
   // Returns the first missing required field label, or null if all valid
   const getStep1Error = (): string | null => {
-    if (!s.companyName.trim()) return "End Customer / Sub-venture Name is required";
+    if (!s.subVentureName.trim()) return "End Customer / Sub-venture Name is required";
     if (selectedExisting) return null; // existing client — rest auto-filled
     if (!s.clientName.trim()) return "TK Customer / Partner Name is required";
     if (!s.engagementManager.trim()) return "Engagement Manager is required";
     if (!s.phoneNumber.trim()) return "Phone Number is required";
-    if (!isValidPhone(s.phoneNumber)) return "Please enter a real, valid phone number (e.g. +91 98765 432XXX)";
+    if (!isValidPhone(s.phoneNumber))
+      return "Please enter a real, valid phone number (e.g. +91 98765 432XXX)";
     if (!s.city.trim()) return "City is required";
     if (!s.country.trim()) return "Country is required";
     if (!s.industry.trim()) return "Industry is required";
@@ -265,8 +417,11 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       if (!c.name.trim()) return `Contact Name${n} is required`;
       if (!c.contactType?.trim()) return `Contact Type${n} is required`;
       if (!c.email.trim()) return `Contact Email${n} is required`;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email.trim()))
+        return `Contact Email${n} — please enter a valid email address`;
       if (!c.phone.trim()) return `Contact Phone${n} is required`;
-      if (!isValidPhone(c.phone)) return `Contact Phone${n} — please enter a real, valid phone number (e.g. +91 98765 432XXX)`;
+      if (!isValidPhone(c.phone))
+        return `Contact Phone${n} — please enter a real, valid phone number (e.g. +91 98765 432XXX)`;
       if (!c.designation.trim()) return `Designation${n} is required`;
     }
     if (!s.kycFile) return "KYC Document is required";
@@ -279,51 +434,175 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
   const handleNext = () => {
     if (step === 1) {
       const err = getStep1Error();
-      if (err) { toast.error(err); return; }
+      if (err) {
+        toast.error(err);
+        return;
+      }
     }
     if (step === 2) {
       const err = getStep2Error();
-      if (err) { toast.error(err); return; }
+      if (err) {
+        toast.error(err);
+        return;
+      }
     }
     setStep((prev) => prev + 1);
   };
 
   const readOnlyCls = cn(inputCls, "bg-muted text-muted-foreground cursor-not-allowed");
 
-  const submit = () => {
-    setSubmitting(true);
-    setTimeout(() => {
-      const validContacts = s.contacts.filter((c) => c.name.trim() && c.email.trim());
-      const primary = validContacts[0] ?? s.contacts[0];
+  // Backend responded with an error (validation / 403) — a real error to surface.
+  // Requests that never reached the server (offline, network) have no status.
+  const isApiError = (err: unknown): err is Error & { status?: number } =>
+    err instanceof Error && "status" in err;
+  const isSessionError = (err: unknown): boolean =>
+    err instanceof Error && /not authenticated|unauthorized/i.test(err.message);
 
+  // Builds both the API payload and the local-store shape from the form state so
+  // the offline fallback always mirrors what would have been sent to the backend.
+  const buildNewClientPayload = () => {
+    const validContacts = s.contacts.filter((c) => c.name.trim() && c.email.trim());
+    const primary = validContacts[0] ?? s.contacts[0];
+    const name = (s.clientName || s.subVentureName).trim();
+    const subVentureName = s.subVentureName?.trim() || null;
+    // Each sub-venture carries the SPOC contacts entered in this submission, so
+    // different sub-ventures can have different contact numbers.
+    const subVentures: ClientSubVenture[] = subVentureName
+      ? [{ name: subVentureName, contacts: validContacts }]
+      : [];
+    return {
+      api: {
+        name,
+        industry: (s.industry || "Other").trim(),
+        clientType: "NEW" as const,
+        contactEmail: primary?.email?.trim() || null,
+        contactName: primary?.name?.trim() || null,
+        contactPhone: primary?.phone?.trim() || s.phoneNumber?.trim() || null,
+        contactDesignation: primary?.designation?.trim() || null,
+        contactType: primary?.contactType || "Primary",
+        city: s.city?.trim() || null,
+        country: s.country?.trim() || null,
+        businessType: s.businessType?.trim() || null,
+        notes: s.notes?.trim() || null,
+        kycDocumentName: s.kycFile?.name || null,
+        engagementManager: s.engagementManager?.trim() || null,
+        subVentures,
+        contacts: validContacts.map((c) => ({
+          name: c.name.trim(),
+          email: c.email.trim(),
+          phone: c.phone.trim() || null,
+          designation: c.designation.trim() || null,
+          contactType: c.contactType || "Primary",
+        })),
+      } satisfies CreateClientInput,
+      store: {
+        name,
+        industry: s.industry || "Other",
+        contact: primary?.email ?? "",
+        contactName: primary?.name ?? "",
+        contactPhone: primary?.phone ?? "",
+        contactDesignation: primary?.designation ?? "",
+        contactType: primary?.contactType || "Primary",
+        city: s.city,
+        country: s.country,
+        businessType: s.businessType,
+        notes: s.notes,
+        kycDocumentName: s.kycFile?.name || undefined,
+        contacts: validContacts.length > 0 ? validContacts : undefined,
+        engagementManager: s.engagementManager,
+        subVentures,
+      },
+    };
+  };
+
+  const submit = async () => {
+    setSubmitting(true);
+    try {
+      const { api, store } = buildNewClientPayload();
+
+      // ── Existing TK customer → add a sub-venture ──
       if (selectedExisting) {
         if (svAlreadyExists) {
           // Sub-venture already exists — nothing to add, just acknowledge
-          toast.info("Sub-venture already exists", { description: `${s.companyName} is already under ${selectedExisting.name}.` });
-        } else {
-          // Adding a new sub-venture to an existing TK customer
-          dhStore.addSubVenture(selectedExisting.id, s.companyName.trim(), validContacts);
-          toast.success("Sub-venture added", { description: `${s.companyName} added under ${selectedExisting.name}.` });
+          toast.info("Sub-venture already exists", {
+            description: `${s.subVentureName} is already under ${selectedExisting.name}.`,
+          });
+          onCreated();
+          return;
         }
-      } else {
-        // Creating a brand new TK customer
-        dhStore.addClient({
-          name: s.clientName || s.companyName,
-          industry: s.industry || "Other",
-          contact: primary?.email ?? "",
-          contactName: primary?.name ?? "",
-          contactPhone: primary?.phone ?? "",
-          contactDesignation: primary?.designation ?? "",
-          contactType: primary?.contactType || "Primary",
-          contacts: validContacts.length > 0 ? validContacts : undefined,
-          engagementManager: s.engagementManager,
-          companyName: s.companyName,
+
+        const isApiClient = apiClients?.some((c) => c.id === selectedExisting.id) ?? false;
+        if (isApiClient) {
+          // Backend-owned client → persist the new sub-venture (with its contacts)
+          // to the database.
+          try {
+            await updateClient(selectedExisting.id, {
+              subVentures: [
+                ...(selectedExisting.subVentures ?? []),
+                { name: s.subVentureName.trim(), contacts: store.contacts ?? [] },
+              ],
+            });
+            toast.success("Sub-venture added", {
+              description: `${s.subVentureName} added under ${selectedExisting.name} in the database.`,
+            });
+            onCreated();
+            return;
+          } catch (err) {
+            if (isSessionError(err)) {
+              toast.error("Your session has expired. Please sign in again.");
+              return; // keep the modal open so the user can fix it
+            }
+            if (isApiError(err)) {
+              toast.error(err.message || "Failed to save the sub-venture.");
+              return; // keep the modal open so the user can fix it
+            }
+            // Backend unreachable → keep the in-memory behaviour so nothing breaks.
+            dhStore.addSubVenture(selectedExisting.id, s.subVentureName.trim(), store.contacts);
+            toast.warning("Backend unreachable — sub-venture saved locally", {
+              description: `${s.subVentureName} added under ${selectedExisting.name} in your local directory.`,
+            });
+            onCreated();
+            return;
+          }
+        }
+
+        // Local demo client (mock id) → in-memory behaviour as before.
+        dhStore.addSubVenture(selectedExisting.id, s.subVentureName.trim(), store.contacts);
+        toast.success("Sub-venture added", {
+          description: `${s.subVentureName} added under ${selectedExisting.name}.`,
         });
-        toast.success("Customer onboarded", { description: `${s.clientName} added to your directory.` });
+        onCreated();
+        return;
       }
+
+      // ── Brand new TK customer → create it in the database ──
+      try {
+        await createClient(api);
+        toast.success("Customer onboarded", {
+          description: `${api.name} saved to the database.`,
+        });
+      } catch (err) {
+        if (isSessionError(err)) {
+          toast.error("Your session has expired. Please sign in again.");
+          return; // keep the modal open so the user can fix it
+        }
+        if (isApiError(err)) {
+          // Real backend error (validation / permission) — surface it.
+          toast.error(err.message || "Failed to save the client.");
+          return; // keep the modal open so the user can fix it
+        }
+        // Backend offline → fall back to the local directory so onboarding never blocks.
+        dhStore.addClient(store);
+        toast.warning("Backend unreachable — client saved locally", {
+          description: `${store.name} added to your local directory.`,
+        });
+      }
+      onCreated();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong while saving.");
+    } finally {
       setSubmitting(false);
-      onClose();
-    }, 500);
+    }
   };
 
   return (
@@ -336,17 +615,21 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           const done = step > n;
           return (
             <div key={label} className="flex items-center gap-2">
-              <div className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-semibold",
-                done
-                  ? "border-success bg-success text-success-foreground"
-                  : active
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card text-muted-foreground"
-              )}>
+              <div
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-semibold",
+                  done
+                    ? "border-success bg-success text-success-foreground"
+                    : active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground",
+                )}
+              >
                 {done ? <Check className="h-3 w-3" /> : n}
               </div>
-              <span className={cn("font-medium", active ? "text-foreground" : "text-muted-foreground")}>
+              <span
+                className={cn("font-medium", active ? "text-foreground" : "text-muted-foreground")}
+              >
                 {label}
               </span>
               {i < 2 && <ChevronRight className="mx-1 h-3.5 w-3.5 text-muted-foreground" />}
@@ -372,14 +655,27 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                 onFocus={() => setTkDropOpen(true)}
                 onChange={(e) => {
                   // Only allow alphabets, spaces, hyphens, and apostrophes
-                  const filtered = e.target.value.replace(/[^a-zA-Z\s\-']/g, "");
+                  const filtered = e.target.value.replace(/[^a-zA-Z\s-']/g, "");
                   setTkSearch(filtered);
                   setTkDropOpen(true);
                   // If user edits after selecting, deselect
                   if (selectedExisting && filtered !== selectedExisting.name) {
                     setSelectedExisting(null);
-                    setSvSearch(""); setSvDropOpen(false); setSvAlreadyExists(false);
-                    setS((p) => ({ ...p, clientName: filtered, companyName: "", engagementManager: "", phoneNumber: "", city: "", country: "", industry: "", businessType: "", customerId: "C" + String(allClients().length + 1).padStart(3, "0") }));
+                    setSvSearch("");
+                    setSvDropOpen(false);
+                    setSvAlreadyExists(false);
+                    setS((p) => ({
+                      ...p,
+                      clientName: filtered,
+                      subVentureName: "",
+                      engagementManager: "",
+                      phoneNumber: "",
+                      city: "",
+                      country: "",
+                      industry: "",
+                      businessType: "",
+                      customerId: "C" + String(allClients().length + 1).padStart(3, "0"),
+                    }));
                   } else {
                     setS((p) => ({ ...p, clientName: filtered }));
                   }
@@ -390,15 +686,36 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => { setSelectedExisting(null); setTkSearch(""); setS((p) => ({ ...p, clientName: "", engagementManager: "", phoneNumber: "", city: "", country: "", industry: "", businessType: "", customerId: "C" + String(allClients().length + 1).padStart(3, "0") })); setSvSearch(""); setSvDropOpen(false); setSvAlreadyExists(false); }}
+                  onClick={() => {
+                    setSelectedExisting(null);
+                    setTkSearch("");
+                    setS((p) => ({
+                      ...p,
+                      clientName: "",
+                      engagementManager: "",
+                      phoneNumber: "",
+                      city: "",
+                      country: "",
+                      industry: "",
+                      businessType: "",
+                      customerId: "C" + String(allClients().length + 1).padStart(3, "0"),
+                    }));
+                    setSvSearch("");
+                    setSvDropOpen(false);
+                    setSvAlreadyExists(false);
+                  }}
                   title="Clear selection"
-                ><X className="h-3.5 w-3.5" /></button>
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               )}
               {tkDropOpen && (
                 <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
                   {filteredTk.length > 0 && (
                     <>
-                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Existing Customers</div>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Existing Customers
+                      </div>
                       {filteredTk.map((c) => (
                         <button
                           key={c.id}
@@ -413,22 +730,37 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                               clientName: c.name,
                               customerId: c.id,
                               engagementManager: c.engagementManager ?? p.engagementManager,
-                              phoneNumber: (c as any).phoneNumber ?? p.phoneNumber,
-                              city: (c as any).city ?? p.city,
-                              country: (c as any).country ?? p.country,
+                              phoneNumber:
+                                (c as { phoneNumber?: string }).phoneNumber ?? p.phoneNumber,
+                              city: c.city ?? p.city,
+                              country: c.country ?? p.country,
                               industry: c.industry ?? p.industry,
-                              businessType: (c as any).businessType ?? p.businessType,
+                              businessType: c.businessType ?? p.businessType,
                               // Do NOT pre-fill contacts — user should enter fresh SPOC details
-                              contacts: [{ name: "", email: "", phone: "", designation: "", contactType: "" }],
+                              contacts: [
+                                {
+                                  name: "",
+                                  email: "",
+                                  phone: "",
+                                  designation: "",
+                                  contactType: "",
+                                },
+                              ],
                             }));
                           }}
                         >
-                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">{c.logo}</span>
+                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
+                            {c.logo}
+                          </span>
                           <div className="min-w-0 flex-1">
                             <div className="truncate font-medium">{c.name}</div>
-                            <div className="truncate text-[11px] text-muted-foreground">{c.industry} · {c.id}</div>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {c.industry} · {c.id}
+                            </div>
                           </div>
-                          <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">Existing</span>
+                          <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
+                            Existing
+                          </span>
                         </button>
                       ))}
                     </>
@@ -442,12 +774,13 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                         setSvSearch("");
                         setSvDropOpen(false);
                         setSvAlreadyExists(false);
-                        setS((p) => ({ ...p, clientName: tkSearch.trim(), companyName: "" }));
+                        setS((p) => ({ ...p, clientName: tkSearch.trim(), subVentureName: "" }));
                         setTkDropOpen(false);
                       }}
                     >
                       <Plus className="h-3.5 w-3.5" />
-                      Add <span className="font-semibold">"{tkSearch.trim()}"</span> as new TK Customer
+                      Add <span className="font-semibold">"{tkSearch.trim()}"</span> as new TK
+                      Customer
                     </button>
                   )}
                 </div>
@@ -464,8 +797,12 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           {selectedExisting && (
             <div className="rounded-lg border border-info/30 bg-info/5 px-3 py-2.5 text-xs space-y-1">
               <p className="font-semibold text-foreground">{selectedExisting.name}</p>
-              <p className="text-muted-foreground">{selectedExisting.industry} · ID: {selectedExisting.id}</p>
-              {selectedExisting.engagementManager && <p className="text-muted-foreground">EM: {selectedExisting.engagementManager}</p>}
+              <p className="text-muted-foreground">
+                {selectedExisting.industry} · ID: {selectedExisting.id}
+              </p>
+              {selectedExisting.engagementManager && (
+                <p className="text-muted-foreground">EM: {selectedExisting.engagementManager}</p>
+              )}
             </div>
           )}
 
@@ -478,14 +815,17 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
               {/* Existing sub-ventures of this client */}
               {(selectedExisting.subVentures?.length ?? 0) > 0 && (
                 <p className="mb-1.5 text-[11px] text-muted-foreground">
-                  {selectedExisting.subVentures!.length} sub-venture(s) already under {selectedExisting.name}
+                  {selectedExisting.subVentures!.length} sub-venture(s) already under{" "}
+                  {selectedExisting.name}
                 </p>
               )}
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className={cn("h-9 w-full rounded-md border border-input bg-card pl-8 pr-8 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    !s.companyName.trim() && "border-destructive/60")}
+                  className={cn(
+                    "h-9 w-full rounded-md border border-input bg-card pl-8 pr-8 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    !s.subVentureName.trim() && "border-destructive/60",
+                  )}
                   placeholder="Search existing or type new sub-venture name…"
                   value={svSearch}
                   onFocus={() => setSvDropOpen(true)}
@@ -493,42 +833,54 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                     setSvSearch(e.target.value);
                     setSvDropOpen(true);
                     setSvAlreadyExists(false);
-                    setS((p) => ({ ...p, companyName: e.target.value }));
+                    setS((p) => ({ ...p, subVentureName: e.target.value }));
                   }}
                   onBlur={() => setTimeout(() => setSvDropOpen(false), 150)}
                 />
-                {s.companyName && (
+                {s.subVentureName && (
                   <button
                     type="button"
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => { setSvSearch(""); setSvAlreadyExists(false); setS((p) => ({ ...p, companyName: "" })); }}
-                  ><X className="h-3.5 w-3.5" /></button>
+                    onClick={() => {
+                      setSvSearch("");
+                      setSvAlreadyExists(false);
+                      setS((p) => ({ ...p, subVentureName: "" }));
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 )}
                 {svDropOpen && (
                   <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
                     {/* Existing sub-ventures matching search */}
                     {(selectedExisting.subVentures ?? [])
-                      .filter((sv) => !svSearch.trim() || sv.toLowerCase().includes(svSearch.toLowerCase()))
+                      .filter(
+                        (sv) =>
+                          !svSearch.trim() ||
+                          sv.name.toLowerCase().includes(svSearch.toLowerCase()),
+                      )
                       .map((sv) => (
                         <button
-                          key={sv}
+                          key={sv.name}
                           type="button"
                           className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent"
                           onMouseDown={() => {
-                            setSvSearch(sv);
+                            setSvSearch(sv.name);
                             setSvAlreadyExists(true);
                             setSvDropOpen(false);
-                            setS((p) => ({ ...p, companyName: sv }));
+                            setS((p) => ({ ...p, subVentureName: sv.name }));
                           }}
                         >
-                          <span>{sv}</span>
-                          <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning-foreground">Already exists</span>
+                          <span>{sv.name}</span>
+                          <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning-foreground">
+                            Already exists
+                          </span>
                         </button>
                       ))}
                     {/* Create new option when typed name not in list */}
                     {svSearch.trim() &&
                       !(selectedExisting.subVentures ?? []).some(
-                        (sv) => sv.toLowerCase() === svSearch.trim().toLowerCase()
+                        (sv) => sv.name.toLowerCase() === svSearch.trim().toLowerCase(),
                       ) && (
                         <button
                           type="button"
@@ -536,11 +888,12 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                           onMouseDown={() => {
                             setSvAlreadyExists(false);
                             setSvDropOpen(false);
-                            setS((p) => ({ ...p, companyName: svSearch.trim() }));
+                            setS((p) => ({ ...p, subVentureName: svSearch.trim() }));
                           }}
                         >
                           <Plus className="h-3.5 w-3.5" />
-                          Create <span className="font-semibold">"{svSearch.trim()}"</span> as new sub-venture
+                          Create <span className="font-semibold">"{svSearch.trim()}"</span> as new
+                          sub-venture
                         </button>
                       )}
                     {/* Empty state */}
@@ -554,10 +907,11 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
               </div>
               {svAlreadyExists && (
                 <p className="mt-1 text-[11px] text-warning-foreground">
-                  ⚠ This sub-venture already exists under {selectedExisting.name}. Proceeding will not create a duplicate.
+                  ⚠ This sub-venture already exists under {selectedExisting.name}. Proceeding will
+                  not create a duplicate.
                 </p>
               )}
-              {!svAlreadyExists && s.companyName.trim() && (
+              {!svAlreadyExists && s.subVentureName.trim() && (
                 <p className="mt-1 text-[11px] text-success">
                   ✓ New sub-venture will be added under {selectedExisting.name}
                 </p>
@@ -565,7 +919,12 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
             </div>
           ) : (
             <Field label="End Customer Name / Sub-venture Name" required>
-              <input className={inputCls} value={s.companyName} onChange={(e) => u("companyName", e.target.value)} placeholder="Enter sub-venture or end customer name…" />
+              <input
+                className={inputCls}
+                value={s.subVentureName}
+                onChange={(e) => u("subVentureName", e.target.value)}
+                placeholder="Enter sub-venture or end customer name…"
+              />
             </Field>
           )}
 
@@ -579,7 +938,9 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                 <input
                   className={inputCls}
                   value={s.engagementManager}
-                  onChange={(e) => u("engagementManager", e.target.value.replace(/[^a-zA-Z\s\-']/g, ""))}
+                  onChange={(e) =>
+                    u("engagementManager", e.target.value.replace(/[^a-zA-Z\s-']/g, ""))
+                  }
                 />
               </Field>
               <Field label="Phone Number" required>
@@ -591,38 +952,57 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                   value={s.phoneNumber}
                   onChange={(e) => {
                     // Only allow digits, +, spaces, and hyphens
-                    const filtered = e.target.value.replace(/[^\d\s+\-]/g, "");
+                    const filtered = e.target.value.replace(/[^\d\s+-]/g, "");
                     u("phoneNumber", filtered);
                   }}
                 />
                 {s.phoneNumber.trim() && !isValidPhone(s.phoneNumber) && (
-                  <p className="mt-1 text-[11px] text-destructive">Please enter a real, valid phone number (e.g. +91 98765 43XXX)</p>
+                  <p className="mt-1 text-[11px] text-destructive">
+                    Please enter a real, valid phone number (e.g. +91 98765 43XXX)
+                  </p>
                 )}
               </Field>
               <Field label="City" required>
                 <input
                   className={inputCls}
                   value={s.city}
-                  onChange={(e) => u("city", e.target.value.replace(/[^a-zA-Z\s\-']/g, ""))}
+                  onChange={(e) => u("city", e.target.value.replace(/[^a-zA-Z\s-']/g, ""))}
                 />
               </Field>
               <Field label="Country / Region" required>
                 <input
                   className={inputCls}
                   value={s.country}
-                  onChange={(e) => u("country", e.target.value.replace(/[^a-zA-Z\s\-']/g, ""))}
+                  onChange={(e) => u("country", e.target.value.replace(/[^a-zA-Z\s-']/g, ""))}
                 />
               </Field>
               <Field label="Industry" required>
-                <select className={inputCls} value={s.industry} onChange={(e) => u("industry", e.target.value)}>
+                <select
+                  className={inputCls}
+                  value={s.industry}
+                  onChange={(e) => u("industry", e.target.value)}
+                >
                   <option value="">Select industry</option>
-                  {["Banking", "Healthcare", "Retail", "Logistics", "Energy", "Manufacturing", "Telecom", "Media"].map((o) => (
+                  {[
+                    "Banking",
+                    "Healthcare",
+                    "Retail",
+                    "Logistics",
+                    "Energy",
+                    "Manufacturing",
+                    "Telecom",
+                    "Media",
+                  ].map((o) => (
                     <option key={o}>{o}</option>
                   ))}
                 </select>
               </Field>
               <Field label="Business Type">
-                <select className={cn(inputCls, "bg-muted text-muted-foreground cursor-not-allowed")} value={s.businessType} disabled>
+                <select
+                  className={inputCls}
+                  value={s.businessType}
+                  onChange={(e) => u("businessType", e.target.value)}
+                >
                   <option value="">Select business type</option>
                   {["Enterprise", "Mid-Market", "SMB", "Public Sector"].map((o) => (
                     <option key={o}>{o}</option>
@@ -630,7 +1010,11 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                 </select>
               </Field>
               <Field label="Created At">
-                <input className={readOnlyCls} value={format(new Date(s.createdAt), "dd MMM yyyy, HH:mm")} readOnly />
+                <input
+                  className={readOnlyCls}
+                  value={format(new Date(s.createdAt), "dd MMM yyyy, HH:mm")}
+                  readOnly
+                />
               </Field>
               <Field label="Created By">
                 <input className={readOnlyCls} value={s.createdBy} readOnly />
@@ -679,7 +1063,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                     placeholder="Full name"
                     onChange={(e) => {
                       // Only allow alphabets, spaces, hyphens, and apostrophes
-                      const filtered = e.target.value.replace(/[^a-zA-Z\s\-']/g, "");
+                      const filtered = e.target.value.replace(/[^a-zA-Z\s-']/g, "");
                       updateContact(idx, "name", filtered);
                     }}
                   />
@@ -692,12 +1076,19 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                   >
                     <option value="">Select contact type</option>
                     {["Accounts", "Procurement", "Technical", "Legal"].map((o) => (
-                      <option key={o} value={o}>{o}</option>
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
                     ))}
                   </select>
                 </Field>
                 <Field label="Email" required>
-                  <input type="email" className={inputCls} value={ct.email} onChange={(e) => updateContact(idx, "email", e.target.value)} />
+                  <input
+                    type="email"
+                    className={inputCls}
+                    value={ct.email}
+                    onChange={(e) => updateContact(idx, "email", e.target.value)}
+                  />
                 </Field>
                 <Field label="Phone" required>
                   <div>
@@ -709,17 +1100,24 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                       value={ct.phone}
                       onChange={(e) => {
                         // Only allow digits, +, spaces, and hyphens
-                        const filtered = e.target.value.replace(/[^\d\s+\-]/g, "");
+                        const filtered = e.target.value.replace(/[^\d\s+-]/g, "");
                         updateContact(idx, "phone", filtered);
                       }}
                     />
                     {ct.phone.trim() && !isValidPhone(ct.phone) && (
-                      <p className="mt-1 text-[11px] text-destructive">Please enter a real, valid phone number (e.g. +91 98765 43XXX)</p>
+                      <p className="mt-1 text-[11px] text-destructive">
+                        Please enter a real, valid phone number (e.g. +91 98765 43XXX)
+                      </p>
                     )}
                   </div>
                 </Field>
                 <Field label="Designation" required>
-                  <input className={inputCls} placeholder="eg ciso/spoc etc." value={ct.designation} onChange={(e) => updateContact(idx, "designation", e.target.value)} />
+                  <input
+                    className={inputCls}
+                    placeholder="eg ciso/spoc etc."
+                    value={ct.designation}
+                    onChange={(e) => updateContact(idx, "designation", e.target.value)}
+                  />
                 </Field>
               </div>
               <div className="mt-3 flex items-center gap-2">
@@ -740,10 +1138,12 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           <div className="mt-4 pt-4 border-t border-border">
             <Field label="KYC Document" required>
               <div className="relative">
-                <label className={cn(
-                  "flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-dashed border-input bg-card px-3 text-sm transition-colors hover:bg-accent",
-                  s.kycFile && "border-success/50 bg-success/5"
-                )}>
+                <label
+                  className={cn(
+                    "flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-dashed border-input bg-card px-3 text-sm transition-colors hover:bg-accent",
+                    s.kycFile && "border-success/50 bg-success/5",
+                  )}
+                >
                   <input
                     type="file"
                     accept="*/*"
@@ -755,11 +1155,18 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
                         <Check className="h-3 w-3" />
                       </span>
-                      <span className="flex-1 truncate text-xs font-medium text-foreground">{s.kycFile.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{(s.kycFile.size / 1024).toFixed(0)} KB</span>
+                      <span className="flex-1 truncate text-xs font-medium text-foreground">
+                        {s.kycFile.name}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {(s.kycFile.size / 1024).toFixed(0)} KB
+                      </span>
                       <button
                         type="button"
-                        onClick={(e) => { e.preventDefault(); setS((p) => ({ ...p, kycFile: null })); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setS((p) => ({ ...p, kycFile: null }));
+                        }}
                         className="ml-1 rounded p-0.5 hover:bg-destructive/10 hover:text-destructive"
                         aria-label="Remove file"
                       >
@@ -769,16 +1176,29 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
                   ) : (
                     <>
                       <span className="text-muted-foreground">📎</span>
-                      <span className="text-xs text-muted-foreground">Click to attach KYC document — any format accepted</span>
+                      <span className="text-xs text-muted-foreground">
+                        Click to attach KYC document — any format accepted
+                      </span>
                     </>
                   )}
                 </label>
               </div>
-              <p className="mt-1 text-[11px] text-muted-foreground">Required · PDF, image, Word, or any other format</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Required · PDF, image, Word, or any other format
+              </p>
             </Field>
           </div>
           <Field label="Notes" className="pt-1">
-            <textarea rows={3} className={cn(inputCls, "py-2")} value={s.notes} onChange={(e) => u("notes", e.target.value)} />
+            <textarea
+              rows={3}
+              maxLength={2000}
+              className={cn(inputCls, "py-2")}
+              value={s.notes}
+              onChange={(e) => u("notes", e.target.value)}
+            />
+            <p className="mt-1 text-right text-[10px] tabular-nums text-muted-foreground">
+              {s.notes.length}/2000
+            </p>
           </Field>
         </div>
       )}
@@ -791,7 +1211,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           </h4>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <Row label="TK Customer" v={s.clientName || selectedExisting?.name || "—"} />
-            <Row label="Sub-venture Name" v={s.companyName} />
+            <Row label="Sub-venture Name" v={s.subVentureName} />
             <Row label="Customer ID" v={selectedExisting ? selectedExisting.id : s.customerId} />
             {!selectedExisting && (
               <>
@@ -809,7 +1229,10 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           <div className="mt-3 space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Contacts</p>
             {s.contacts.map((ct, idx) => (
-              <dl key={idx} className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-border bg-card px-3 py-2 text-xs">
+              <dl
+                key={idx}
+                className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-border bg-card px-3 py-2 text-xs"
+              >
                 <Row label="Name" v={ct.name} />
                 <Row label="Contact Type" v={ct.contactType || "—"} />
                 <Row label="Email" v={ct.email} />
@@ -845,7 +1268,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
         ) : (
           <button
             disabled={submitting}
-            onClick={submit}
+            onClick={() => void submit()}
             className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {submitting ? "Submitting…" : "Submit"}
@@ -862,15 +1285,27 @@ function CustomerDrawer({ client, onClose }: { client: Client; onClose: () => vo
   const active = projs.filter((p) => p.status !== "completed");
   const completed = projs.filter((p) => p.status === "completed");
   return (
-    <div className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/30" onClick={onClose}>
-      <div className="w-full max-w-2xl overflow-y-auto bg-card shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/30"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl overflow-y-auto bg-card shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card p-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-base font-semibold text-primary-foreground">{client.logo}</div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-base font-semibold text-primary-foreground">
+            {client.logo}
+          </div>
           <div className="flex-1">
             <h2 className="text-base font-semibold">{client.name}</h2>
-            <p className="text-xs text-muted-foreground">{client.industry} · {client.contact}</p>
+            <p className="text-xs text-muted-foreground">
+              {client.industry} · {client.contact}
+            </p>
           </div>
-          <button onClick={onClose} className="rounded-md p-2 hover:bg-accent" aria-label="Close"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="rounded-md p-2 hover:bg-accent" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
         </header>
         <Section title="Active Projects" projs={active} empty="No active projects" />
         <Section title="Completed Projects" projs={completed} empty="No completed projects" />
@@ -879,11 +1314,20 @@ function CustomerDrawer({ client, onClose }: { client: Client; onClose: () => vo
   );
 }
 
-function Section({ title, projs, empty }: { title: string; projs: ReturnType<typeof allProjects>; empty: string }) {
+function Section({
+  title,
+  projs,
+  empty,
+}: {
+  title: string;
+  projs: ReturnType<typeof allProjects>;
+  empty: string;
+}) {
   return (
     <section className="border-b border-border p-4">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-        <Building2 className="h-4 w-4 text-muted-foreground" />{title} · {projs.length}
+        <Building2 className="h-4 w-4 text-muted-foreground" />
+        {title} · {projs.length}
       </h3>
       {projs.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty}</p>
@@ -891,13 +1335,18 @@ function Section({ title, projs, empty }: { title: string; projs: ReturnType<typ
         <ul className="space-y-2">
           {projs.map((p) => (
             <li key={p.id}>
-              <Link to="/projects/$projectId" params={{ projectId: p.id }}
-                className="block rounded-lg border border-border bg-background p-3 hover:bg-accent/40">
+              <Link
+                to="/projects/$projectId"
+                params={{ projectId: p.id }}
+                className="block rounded-lg border border-border bg-background p-3 hover:bg-accent/40"
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium">{p.name}</span>
                   <HealthPill status={p.health} />
                   <StatusPill status={p.status} />
-                  <span className="ml-auto text-xs tabular-nums text-muted-foreground">{p.progress}%</span>
+                  <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+                    {p.progress}%
+                  </span>
                 </div>
                 <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{p.description}</p>
                 <ProgressBar value={p.progress} className="mt-2" />
