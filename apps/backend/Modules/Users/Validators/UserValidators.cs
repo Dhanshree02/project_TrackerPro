@@ -1,5 +1,6 @@
 using FluentValidation;
 using PMS.API.Modules.Users.DTOs;
+using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Users.Validators;
 
@@ -7,7 +8,11 @@ public sealed class CreateUserRequestValidator : AbstractValidator<CreateUserReq
 {
     public CreateUserRequestValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(255);
+        RuleFor(x => x.Email)
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty()
+            .MustBeValidEmail()
+            .MaximumLength(EmailRules.MaxLength);
         RuleFor(x => x.Name).NotEmpty().MaximumLength(255);
         RuleFor(x => x.EmployeeId).NotEmpty().MaximumLength(20);
         RuleFor(x => x.Role).NotEmpty().MaximumLength(50);

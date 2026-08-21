@@ -1,5 +1,6 @@
 using FluentValidation;
 using PMS.API.Modules.Customers.DTOs;
+using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Customers.Validators;
 
@@ -16,8 +17,9 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
             .MaximumLength(100);
 
         RuleFor(x => x.ContactEmail)
-            .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.ContactEmail))
-            .MaximumLength(255);
+            .MustBeValidEmail()
+            .When(x => !string.IsNullOrWhiteSpace(x.ContactEmail))
+            .MaximumLength(EmailRules.MaxLength);
 
         RuleFor(x => x.EngagementManager).MaximumLength(120);
 
@@ -34,8 +36,9 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
             sv.RuleForEach(s => s.Contacts).ChildRules(contact =>
             {
                 contact.RuleFor(c => c.Email)
-                    .EmailAddress().When(c => !string.IsNullOrWhiteSpace(c.Email))
-                    .MaximumLength(255);
+                    .MustBeValidEmail()
+                    .When(c => !string.IsNullOrWhiteSpace(c.Email))
+                    .MaximumLength(EmailRules.MaxLength);
                 contact.RuleFor(c => c.Name).MaximumLength(150);
             });
         });
@@ -43,8 +46,9 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
         RuleForEach(x => x.Contacts).ChildRules(contact =>
         {
             contact.RuleFor(c => c.Email)
-                .EmailAddress().When(c => !string.IsNullOrWhiteSpace(c.Email))
-                .MaximumLength(255);
+                .MustBeValidEmail()
+                .When(c => !string.IsNullOrWhiteSpace(c.Email))
+                .MaximumLength(EmailRules.MaxLength);
             contact.RuleFor(c => c.Name).MaximumLength(150);
         });
     }
@@ -61,7 +65,8 @@ public sealed class UpdateClientRequestValidator : AbstractValidator<UpdateClien
             .NotEmpty().When(x => x.Industry is not null)
             .MaximumLength(100);
         RuleFor(x => x.ContactEmail)
-            .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.ContactEmail));
+            .MustBeValidEmail()
+            .When(x => !string.IsNullOrWhiteSpace(x.ContactEmail));
         RuleFor(x => x.Status)
             .Must(s => s is null or "Active" or "Inactive" or "Onboarding")
             .WithMessage("Status must be Active, Inactive or Onboarding");

@@ -67,22 +67,44 @@ export function phoneError(value: string, required = false): string | undefined 
 }
 
 /**
- * Email must include a single @ with text on both sides.
- * Other punctuation (dots in the domain) is allowed; spaces are not.
+ * Trim then require local@domain with a real TLD (e.g. name@company.com).
+ * Rejects sahil@, @gmail.com, sahil@gmail, sahil gmail.com, sahil@.com
+ * without a heavy RFC regex.
  */
+export function normalizeEmail(value: string): string {
+  return value.trim();
+}
+
 export function isValidEmail(value: string): boolean {
-  const v = value.trim();
-  if (!v) return false;
-  const at = v.indexOf("@");
-  if (at <= 0 || at !== v.lastIndexOf("@") || at === v.length - 1) return false;
-  if (/\s/.test(v)) return false;
+  const email = normalizeEmail(value);
+  if (!email || email.length > FIELD_MAX.email) return false;
+  if (/\s/.test(email)) return false;
+
+  const at = email.indexOf("@");
+  if (at <= 0 || at !== email.lastIndexOf("@") || at === email.length - 1) return false;
+
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  if (local.startsWith(".") || local.endsWith(".")) return false;
+  if (domain.startsWith(".") || domain.endsWith(".") || domain.includes("..")) return false;
+
+  const lastDot = domain.lastIndexOf(".");
+  if (lastDot <= 0) return false;
+
+  const tld = domain.slice(lastDot + 1);
+  if (tld.length < 2 || !/^[A-Za-z]+$/.test(tld)) return false;
+  if (domain.split(".").some((label) => label.length === 0)) return false;
+
   return true;
 }
 
+export const EMAIL_INVALID_MESSAGE =
+  "Enter a valid email address (for example name@company.com)";
+
 export function emailError(value: string, required = false): string | undefined {
-  const v = value.trim();
+  const v = normalizeEmail(value);
   if (!v) return required ? "Email is required" : undefined;
-  if (!v.includes("@") || !isValidEmail(v)) return "Enter a valid email (must include @)";
+  if (!isValidEmail(v)) return EMAIL_INVALID_MESSAGE;
   if (v.length > FIELD_MAX.email) return `Email must be ${FIELD_MAX.email} characters or less`;
   return undefined;
 }

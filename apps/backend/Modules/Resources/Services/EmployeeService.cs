@@ -4,6 +4,7 @@ using PMS.API.Modules.Resources.DTOs;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Shared.Common.Wrappers;
 using PMS.API.Shared.Exceptions;
+using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Resources.Services;
 
@@ -94,8 +95,8 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
             EmployeeCode = request.EmployeeCode.Trim(),
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
-            WorkEmail = request.WorkEmail.Trim().ToLowerInvariant(),
-            PersonalEmail = request.PersonalEmail,
+            WorkEmail = EmailRules.Normalize(request.WorkEmail).ToLowerInvariant(),
+            PersonalEmail = EmailRules.NullIfEmpty(request.PersonalEmail),
             Phone = request.Phone,
             AltPhone = request.AltPhone,
             Gender = request.Gender,
@@ -165,8 +166,8 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
 
         if (request.FirstName is not null) entity.FirstName = request.FirstName.Trim();
         if (request.LastName is not null) entity.LastName = request.LastName.Trim();
-        if (request.WorkEmail is not null) entity.WorkEmail = request.WorkEmail.Trim().ToLowerInvariant();
-        if (request.PersonalEmail is not null) entity.PersonalEmail = request.PersonalEmail;
+        if (request.WorkEmail is not null) entity.WorkEmail = EmailRules.Normalize(request.WorkEmail).ToLowerInvariant();
+        if (request.PersonalEmail is not null) entity.PersonalEmail = EmailRules.NullIfEmpty(request.PersonalEmail);
         if (request.Phone is not null) entity.Phone = request.Phone;
         if (request.AltPhone is not null) entity.AltPhone = request.AltPhone;
         if (request.Gender is not null) entity.Gender = request.Gender;

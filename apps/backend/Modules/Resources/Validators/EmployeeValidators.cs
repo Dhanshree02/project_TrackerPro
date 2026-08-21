@@ -1,5 +1,6 @@
 using FluentValidation;
 using PMS.API.Modules.Resources.DTOs;
+using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Resources.Validators;
 
@@ -18,10 +19,15 @@ public sealed class CreateEmployeeRequestValidator : AbstractValidator<CreateEmp
             .MaximumLength(120)
             .Matches(@"^[A-Za-z]+(?: [A-Za-z]+)*$")
             .WithMessage("Only letters are allowed");
-        RuleFor(x => x.WorkEmail).NotEmpty().EmailAddress().MaximumLength(255);
+        RuleFor(x => x.WorkEmail)
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty()
+            .MustBeValidEmail()
+            .MaximumLength(EmailRules.MaxLength);
         RuleFor(x => x.PersonalEmail)
-            .EmailAddress()
-            .When(x => !string.IsNullOrWhiteSpace(x.PersonalEmail));
+            .MustBeValidEmail()
+            .When(x => !string.IsNullOrWhiteSpace(x.PersonalEmail))
+            .MaximumLength(EmailRules.MaxLength);
         RuleFor(x => x.DateOfBirth)
             .Must(d => !d.HasValue || d.Value <= DateOnly.FromDateTime(DateTime.UtcNow.Date.AddYears(-18)))
             .WithMessage("Employee must be at least 18 years old");
@@ -68,9 +74,13 @@ public sealed class UpdateEmployeeRequestValidator : AbstractValidator<UpdateEmp
             .When(x => !string.IsNullOrWhiteSpace(x.LastName))
             .WithMessage("Only letters are allowed");
         RuleFor(x => x.WorkEmail)
-            .EmailAddress()
+            .MustBeValidEmail()
             .When(x => !string.IsNullOrWhiteSpace(x.WorkEmail))
-            .MaximumLength(255);
+            .MaximumLength(EmailRules.MaxLength);
+        RuleFor(x => x.PersonalEmail)
+            .MustBeValidEmail()
+            .When(x => !string.IsNullOrWhiteSpace(x.PersonalEmail))
+            .MaximumLength(EmailRules.MaxLength);
         RuleFor(x => x.DateOfBirth)
             .Must(d => !d.HasValue || d.Value <= DateOnly.FromDateTime(DateTime.UtcNow.Date.AddYears(-18)))
             .WithMessage("Employee must be at least 18 years old");
