@@ -12,6 +12,9 @@ public class SubVenture : BaseEntity
 
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Free-text notes captured for this sub-venture during onboarding.</summary>
+    public string? Notes { get; set; }
+
     /// <summary>SPOC persons specific to this sub-venture.</summary>
     public ICollection<ClientContactEntity> Contacts { get; set; } = [];
 

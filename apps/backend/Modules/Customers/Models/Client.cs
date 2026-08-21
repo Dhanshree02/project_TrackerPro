@@ -57,6 +57,9 @@ public class Client : BaseEntity
     /// <summary>Name of the KYC document attached during onboarding.</summary>
     public string? KycDocumentName { get; set; }
 
+    /// <summary>Business date the customer relationship started (set to today on create).</summary>
+    public DateOnly? CustomerSince { get; set; }
+
     /// <summary>
     /// Sub-ventures / end-customer divisions. One-to-many: each sub-venture lives in its own
     /// <c>sub_ventures</c> row referencing this client, and carries its own SPOC contacts so

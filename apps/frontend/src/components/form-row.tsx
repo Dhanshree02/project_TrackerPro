@@ -1,5 +1,12 @@
 import React from "react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/** Shared label + control look for onboard / create forms. */
+export const FORM_LABEL_CLS = "mb-1 block text-xs font-medium text-muted-foreground";
+export const FORM_ERROR_CLS = "mt-1 text-[11px] text-destructive";
+export const FORM_CONTROL_CLS =
+  "h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60";
 
 export interface FieldProps {
   label: string;
@@ -22,11 +29,11 @@ export function Field({ label, required, children, value, className, error }: Fi
 
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1 block text-xs font-medium text-muted-foreground">
+      <span className={FORM_LABEL_CLS}>
         {label}{required && <span className="text-destructive"> *</span>}
       </span>
       {children}
-      {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
+      {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
     </label>
   );
 }
@@ -34,7 +41,7 @@ export function Field({ label, required, children, value, className, error }: Fi
 export function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
+      <span className={FORM_LABEL_CLS}>{label}</span>
       {children}
     </label>
   );
@@ -49,8 +56,6 @@ export function HorizontalField({ label, children }: { label: string; children: 
   );
 }
 
-import { ChevronDown } from "lucide-react";
-
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   containerClassName?: string;
 }
@@ -58,20 +63,18 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, containerClassName, children, ...props }, ref) => {
     return (
-      <div className={cn("relative flex items-center w-full", containerClassName)}>
+      <div className={cn("relative flex w-full items-center", containerClassName)}>
         <select
           ref={ref}
-          className={cn(
-            "h-9 w-full appearance-none rounded-md border border-input bg-card pl-3 pr-8 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer hover:bg-accent/40 transition-colors",
-            className
-          )}
+          autoComplete="off"
+          className={cn(FORM_CONTROL_CLS, "cursor-pointer appearance-none pr-8", className)}
           {...props}
         >
           {children}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground shrink-0" />
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 shrink-0 -translate-y-1/2 text-muted-foreground" />
       </div>
     );
-  }
+  },
 );
 Select.displayName = "Select";

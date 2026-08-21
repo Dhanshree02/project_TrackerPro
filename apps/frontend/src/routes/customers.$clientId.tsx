@@ -7,25 +7,39 @@ import {
   Building2,
   ExternalLink,
   Phone,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
-  PauseCircle,
   Layers,
   User,
-  Activity,
   Pencil,
   Check,
   X,
+  Search,
+  StickyNote,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
-import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
-import { fetchClient, mapApiClient } from "@/lib/api/clients";
+import { HealthPill, ProgressBar } from "@/components/pills";
+import { fetchClient, mapApiClient, updateClient } from "@/lib/api/clients";
+import {
+  fetchAllEmployees,
+  fetchDesignationOptions,
+  fetchEmployees,
+  type ApiEmployeeListItem,
+} from "@/lib/api/employees";
+import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { allClients, allProjects, useDhStore } from "@/lib/dh-store";
-import { type Client, getPerson, people } from "@/lib/mock-data";
+import { type Client, getPerson } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+async function fetchEmployeesByDesignation(designationId: string): Promise<ApiEmployeeListItem[]> {
+  const page = await fetchEmployees({
+    designationId,
+    perPage: 100,
+    status: "Active",
+  });
+  return page.items;
+}
 
 // Small inline avatar bubble (initials)
 function AvatarBubble({ name, size = 22 }: { name: string; size?: number }) {
@@ -76,6 +90,7 @@ const fmtClientId = (id: string) => `CL-${id.replace(/\D/g, "").padStart(6, "0")
 const fmtProjectId = (id: string) => `PR-${id.replace(/\D/g, "").padStart(6, "0")}`;
 
 type FilterTab = "all" | "new" | "ongoing" | "completed" | "archived" | "on_hold";
+type HealthFilter = "all" | "healthy" | "at_risk" | "critical";
 
 function CustomerDetailPage() {
   const { client: routeClient } = Route.useLoaderData();
@@ -88,12 +103,14 @@ function CustomerDetailPage() {
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
 
   const [filter, setFilter] = useState<FilterTab>("all");
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
   const [selectedSpoc, setSelectedSpoc] = useState<number | null>(null);
   const [svFilter, setSvFilter] = useState<string>("all");
 
   useEffect(() => {
     setSvFilter("all");
     setSelectedSpoc(null);
+    setHealthFilter("all");
   }, [clientId]);
 
   // API-backed clients (GUID ids) aren't in the dh-store — resolve lazily on the
@@ -134,27 +151,95 @@ function CustomerDetailPage() {
     return byName.get(client.name.toLowerCase()) ?? client.id;
   }, [client?.name, client?.id, extraCount]);
 
-  // EM state — initialised from client.engagementManager or derived from projects
-  const defaultEM = useMemo(() => {
-    if (client?.engagementManager) return client.engagementManager;
-    // fallback: derive from first project EM field
-    const proj = allProjects().find((p) => p.clientId === mockClientId && p.engagementManager);
-    return proj?.engagementManager ?? "—";
-  }, [client, mockClientId]);
-  const [emName, setEmName] = useState<string>(defaultEM);
-  // Late-loaded API clients arrive after mount — sync the EM chip once.
+  // EM — current value from clients.EngagementManager (DB); candidates from
+  // employees whose designation is "Engagement Manager" (mst_designations).
+  const [emName, setEmName] = useState<string>(client?.engagementManager?.trim() || "—");
   useEffect(() => {
-    if (client?.engagementManager && emName === "—") setEmName(client.engagementManager);
-  }, [client?.engagementManager, emName]);
+    setEmName(client?.engagementManager?.trim() || "—");
+  }, [client?.id, client?.engagementManager]);
   const [showEMPicker, setShowEMPicker] = useState(false);
   const [emSearch, setEmSearch] = useState("");
+  const [emPool, setEmPool] = useState<ApiEmployeeListItem[]>([]);
+  const [emLoading, setEmLoading] = useState(false);
+  const [emSaving, setEmSaving] = useState(false);
 
-  // EM pool — people with EM or Senior PM role
-  const emPool = useMemo(
-    () =>
-      people.filter((p) => ["Engagement Manager", "Senior PM", "Business Owner"].includes(p.role)),
-    [],
-  );
+  const loadEngagementManagers = async () => {
+    setEmLoading(true);
+    try {
+      const designations = await fetchDesignationOptions();
+      const list = Array.isArray(designations) ? designations : [];
+      const emDesignationIds = list
+        .filter((d) => (d.name ?? "").trim().toLowerCase() === "engagement manager")
+        .map((d) => d.id);
+
+      let items: ApiEmployeeListItem[] = [];
+      if (emDesignationIds.length > 0) {
+        const pages = await Promise.all(
+          emDesignationIds.map((designationId) => fetchEmployeesByDesignation(designationId)),
+        );
+        const byId = new Map<string, ApiEmployeeListItem>();
+        for (const item of pages.flat()) byId.set(item.id, item);
+        items = [...byId.values()];
+      }
+
+      // Always merge a full-directory filter so we never miss EMs if the
+      // designationId filter is empty/stale.
+      const all = await fetchAllEmployees();
+      for (const e of all) {
+        if ((e.designation ?? "").trim().toLowerCase() === "engagement manager") {
+          items = items.some((x) => x.id === e.id) ? items : [...items, e];
+        }
+      }
+
+      setEmPool(items.sort((a, b) => a.fullName.localeCompare(b.fullName)));
+    } catch {
+      setEmPool([]);
+      toast.error("Could not load Engagement Managers");
+    } finally {
+      setEmLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadEngagementManagers();
+  }, []);
+
+  const filteredEmPool = useMemo(() => {
+    const q = emSearch.trim().toLowerCase();
+    if (!q) return emPool;
+    return emPool.filter(
+      (p) =>
+        p.fullName.toLowerCase().includes(q) ||
+        (p.designation ?? "").toLowerCase().includes(q) ||
+        (p.workEmail ?? "").toLowerCase().includes(q) ||
+        (p.employeeCode ?? "").toLowerCase().includes(q),
+    );
+  }, [emPool, emSearch]);
+
+  const openEmPicker = () => {
+    setEmSearch("");
+    setShowEMPicker(true);
+    void loadEngagementManagers();
+  };
+
+  const changeEngagementManager = async (employee: ApiEmployeeListItem) => {
+    if (!client || emSaving) return;
+    setEmSaving(true);
+    try {
+      const updated = await updateClient(client.id, {
+        engagementManager: employee.fullName,
+      });
+      setClient(mapApiClient(updated));
+      setEmName(updated.engagementManager?.trim() || employee.fullName);
+      setShowEMPicker(false);
+      setEmSearch("");
+      toast.success(`Engagement Manager set to ${employee.fullName}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update Engagement Manager");
+    } finally {
+      setEmSaving(false);
+    }
+  };
 
   // Re-compute whenever extraCount changes (reactive to new clients/projects)
   const allProj = useMemo(
@@ -194,26 +279,22 @@ function CustomerDetailPage() {
     );
   }
 
-  // Categorise
-  const ongoingProjs = allProj.filter((p) => p.status === "ongoing" && p.progress > 0);
-  const newProjs = allProj.filter((p) => p.status === "ongoing" && p.progress === 0);
-  const completedProjs = allProj.filter((p) => p.status === "completed");
-  const onHoldProjs = allProj.filter((p) => p.status === "on_hold");
-  // Archived = completed that never reached 80% progress (historical/early-exit)
-  const archivedProjs = completedProjs.filter((p) => p.progress < 80);
-  const activeCompleted = completedProjs.filter((p) => p.progress >= 80);
+  // Categorise — mutually exclusive buckets; Total = sum of the five.
+  const buckets = categorizeClientProjects(allProj);
+  const newProjs = buckets.new;
+  const ongoingProjs = buckets.ongoing;
+  const completedProjs = buckets.completed;
+  const onHoldProjs = buckets.onHold;
+  const archivedProjs = buckets.archived;
 
-  // At-risk = ongoing with health red/amber
-  const atRiskCount = allProj.filter(
-    (p) => p.status === "ongoing" && (p.health === "red" || p.health === "amber"),
-  ).length;
-
-  // Client since = earliest project startDate
+  // Customer Since comes from clients.CustomerSince (set to today on create).
+  const clientSinceDate = client.customerSince
+    ? new Date(`${client.customerSince}T00:00:00`).toLocaleDateString()
+    : "—";
   const allDates = allProj
     .map((p) => p.startDate)
     .filter(Boolean)
     .sort();
-  const clientSinceDate = allDates[0] ? new Date(allDates[0]).toLocaleDateString() : "—";
   const firstProject = allProj.find((p) => p.startDate === allDates[0]);
   const firstProjectName = firstProject?.name ?? "—";
   const firstProjectId = firstProject ? fmtProjectId(firstProject.id) : "—";
@@ -233,16 +314,36 @@ function CustomerDetailPage() {
       }))
     : [];
 
+  // Notes are per sub-venture (captured at onboarding). Legacy client.notes is a fallback.
+  const displayNotes = activeSubVenture
+    ? (activeSubVenture.notes?.trim() || client.notes?.trim() || "")
+    : "";
+  const notesTitle = activeSubVenture
+    ? `Notes — ${activeSubVenture.name}`
+    : "Notes";
+  const notesEmptyMessage = activeSubVenture
+    ? "No notes captured for this sub-venture yet."
+    : subVentures.length > 0
+      ? "Select a sub-venture to view its onboarding notes."
+      : "No sub-ventures on file. Notes are captured per sub-venture during onboarding.";
+
   // Filter pool: status tab + sub-venture
   const poolByTab: Record<FilterTab, typeof allProj> = {
     all: allProj,
     new: newProjs,
     ongoing: ongoingProjs,
-    completed: activeCompleted,
+    completed: completedProjs,
     archived: archivedProjs,
     on_hold: onHoldProjs,
   };
-  const pool = poolByTab[filter].filter((p) => svFilter === "all" || p.subVenture === svFilter);
+  const pool = poolByTab[filter]
+    .filter((p) => svFilter === "all" || p.subVenture === svFilter)
+    .filter((p) => {
+      if (healthFilter === "all") return true;
+      if (healthFilter === "healthy") return p.health === "green";
+      if (healthFilter === "at_risk") return p.health === "amber";
+      return p.health === "red"; // critical
+    });
 
   return (
     <AppShell
@@ -259,7 +360,7 @@ function CustomerDetailPage() {
       </nav>
 
       {/* ── CLIENT HEADER BANNER ── */}
-      <div className="mb-4 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="mb-4 rounded-xl border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center gap-4 p-5">
           {/* Logo */}
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-info text-lg font-bold text-primary-foreground">
@@ -286,75 +387,19 @@ function CustomerDetailPage() {
 
               {/* EM Name + Change button */}
               {(isDhanshree || hasPermission("customers.edit")) && (
-                <div className="relative flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-info/30 bg-info/10 px-2.5 py-0.5 text-[11px] font-semibold text-info">
                     <User className="h-3 w-3" />
                     {emName !== "—" ? emName : "No EM assigned"}
                   </span>
                   {!isSales && (
-                  <>
                     <button
-                    onClick={() => {
-                      setShowEMPicker((v) => !v);
-                      setEmSearch("");
-                    }}
-                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                  >
-                    <Pencil className="h-2.5 w-2.5" /> Change EM
-                  </button>
-
-                  {showEMPicker && (
-                    <div className="absolute left-0 top-8 z-50 w-56 rounded-md border border-border bg-card shadow-lg p-2 space-y-1.5">
-                      <input
-                        value={emSearch}
-                        onChange={(e) => setEmSearch(e.target.value)}
-                        placeholder="Search EM…"
-                        autoFocus
-                        className="h-7 w-full rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      />
-                      <ul className="max-h-40 overflow-y-auto divide-y divide-border">
-                        {emPool
-                          .filter(
-                            (p) =>
-                              !emSearch.trim() ||
-                              p.name.toLowerCase().includes(emSearch.toLowerCase()),
-                          )
-                          .map((p) => (
-                            <li key={p.id}>
-                              <button
-                                onClick={() => {
-                                  setEmName(p.name);
-                                  setShowEMPicker(false);
-                                }}
-                                className={cn(
-                                  "flex w-full items-center gap-2 px-2 py-1.5 text-xs text-left hover:bg-accent/40 rounded-sm",
-                                  emName === p.name && "bg-primary/5",
-                                )}
-                              >
-                                <AvatarBubble name={p.name} size={20} />
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium truncate">{p.name}</div>
-                                  <div className="text-[10px] text-muted-foreground">{p.role}</div>
-                                </div>
-                                {emName === p.name && (
-                                  <Check className="h-3 w-3 text-primary shrink-0" />
-                                )}
-                              </button>
-                            </li>
-                          ))}
-                        {emPool.filter(
-                          (p) =>
-                            !emSearch.trim() ||
-                            p.name.toLowerCase().includes(emSearch.toLowerCase()),
-                        ).length === 0 && (
-                          <li className="px-2 py-3 text-center text-xs text-muted-foreground">
-                            No match
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
-                  </>
+                      type="button"
+                      onClick={openEmPicker}
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    >
+                      <Pencil className="h-2.5 w-2.5" /> Change EM
+                    </button>
                   )}
                 </div>
               )}
@@ -380,7 +425,7 @@ function CustomerDetailPage() {
                 {
                   id: "all" as FilterTab,
                   label: "Total",
-                  value: allProj.length,
+                  value: buckets.total,
                   color: "text-foreground",
                   ring: "ring-border",
                 },
@@ -394,14 +439,14 @@ function CustomerDetailPage() {
                 {
                   id: "ongoing" as FilterTab,
                   label: "Ongoing",
-                  value: ongoingProjs.length + newProjs.length,
+                  value: ongoingProjs.length,
                   color: "text-info",
                   ring: "ring-info",
                 },
                 {
                   id: "completed" as FilterTab,
                   label: "Completed",
-                  value: activeCompleted.length,
+                  value: completedProjs.length,
                   color: "text-success",
                   ring: "ring-success",
                 },
@@ -439,13 +484,13 @@ function CustomerDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-4">
+      <div className="grid gap-4 xl:grid-cols-4 xl:items-stretch xl:min-h-[calc(100vh-15rem)]">
         {/* ── LEFT SIDEBAR ── */}
-        <aside className="xl:col-span-1 space-y-3">
-          {/* Client Information — 7 fields */}
-          <div className="rounded-xl border border-border bg-card shadow-sm">
+        <aside className="xl:col-span-1 flex min-h-0 flex-col gap-3">
+          {/* Customer Information */}
+          <div className="shrink-0 rounded-xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <Building2 className="h-3.5 w-3.5" /> Customer Information
               </h2>
             </div>
@@ -467,10 +512,10 @@ function CustomerDetailPage() {
                 { label: "KYC Document", value: client.kycDocumentName || "—" },
               ].map(({ label, value, mono }) => (
                 <div key={label} className="grid grid-cols-2 gap-2 px-4 py-2.5 text-xs">
-                  <dt className="text-muted-foreground font-medium">{label}</dt>
+                  <dt className="font-medium text-muted-foreground">{label}</dt>
                   <dd
                     className={cn(
-                      "font-medium truncate text-right",
+                      "truncate text-right font-medium",
                       mono && "font-mono text-foreground",
                     )}
                   >
@@ -481,77 +526,33 @@ function CustomerDetailPage() {
             </dl>
           </div>
 
-          {/* Health Summary */}
-          <div className="rounded-xl border border-border bg-card shadow-sm">
-            <div className="border-b border-border px-4 py-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                <Activity className="h-3.5 w-3.5" /> Health Summary
+          {/* Notes — per sub-venture; fills remaining left height to match Projects */}
+          <div className="flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="shrink-0 border-b border-border px-4 py-3">
+              <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <StickyNote className="h-3.5 w-3.5" /> {notesTitle}
               </h2>
             </div>
-            <div className="p-4 space-y-2">
-              {[
-                {
-                  label: "Active Projects",
-                  value: ongoingProjs.length + newProjs.length,
-                  icon: TrendingUp,
-                  color: "text-info",
-                },
-                {
-                  label: "At Risk",
-                  value: atRiskCount,
-                  icon: AlertTriangle,
-                  color: atRiskCount > 0 ? "text-destructive" : "text-muted-foreground",
-                },
-                {
-                  label: "Completed",
-                  value: activeCompleted.length,
-                  icon: CheckCircle2,
-                  color: "text-success",
-                },
-                {
-                  label: "On Hold",
-                  value: onHoldProjs.length,
-                  icon: PauseCircle,
-                  color: "text-warning-foreground",
-                },
-              ].map(({ label, value, icon: Icon, color }) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2"
-                >
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Icon className={cn("h-3.5 w-3.5", color)} />
-                    {label}
-                  </div>
-                  <span className={cn("text-sm font-bold tabular-nums", color)}>{value}</span>
-                </div>
-              ))}
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              {displayNotes ? (
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
+                  {displayNotes}
+                </p>
+              ) : (
+                <p className="text-xs leading-relaxed text-muted-foreground">{notesEmptyMessage}</p>
+              )}
             </div>
           </div>
-
-          {/* Notes — shown only when the customer has notes on file */}
-          {client.notes && (
-            <div className="rounded-xl border border-border bg-card shadow-sm">
-              <div className="border-b border-border px-4 py-3">
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                  <Building2 className="h-3.5 w-3.5" /> Notes
-                </h2>
-              </div>
-              <p className="p-4 text-xs text-muted-foreground whitespace-pre-wrap">
-                {client.notes}
-              </p>
-            </div>
-          )}
         </aside>
 
         {/* ── MAIN PROJECTS SECTION ── */}
-        <section className="xl:col-span-3 space-y-3">
+        <section className="xl:col-span-3 flex min-h-0 flex-col gap-3">
           {/* ── SPOC Contacts + Sub-venture filter — side by side ── */}
-          <div className="flex gap-3 items-stretch">
+          <div className="flex shrink-0 items-stretch gap-3">
             {/* SPOC Contacts — follows the sub-venture filter */}
-            <div className="flex-1 rounded-xl border border-border bg-card shadow-sm min-w-0">
+            <div className="min-w-0 flex-1 rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <User className="h-3.5 w-3.5" />
                   {activeSubVenture ? `SPOC Contacts — ${activeSubVenture.name}` : "SPOC Contacts"}
                 </h3>
@@ -567,7 +568,7 @@ function CustomerDetailPage() {
                           "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-all",
                           selectedSpoc === i
                             ? "border-primary bg-primary/10 text-primary"
-                            : "border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60",
+                            : "border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                         )}
                       >
                         <User className="h-3 w-3" />
@@ -587,14 +588,14 @@ function CustomerDetailPage() {
 
                 {/* SPOC detail card */}
                 {selectedSpoc !== null && displaySpocs[selectedSpoc] && (
-                  <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs relative">
+                  <div className="relative mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
                     <button
                       onClick={() => setSelectedSpoc(null)}
                       className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-3 w-3" />
                     </button>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="mb-2 flex items-center gap-2">
                       <AvatarBubble name={displaySpocs[selectedSpoc].name} size={28} />
                       <div>
                         <div className="font-semibold text-foreground">
@@ -621,14 +622,14 @@ function CustomerDetailPage() {
               </div>
             </div>
 
-            {/* Sub-venture filter — SPOC list depends on this selection */}
+            {/* Sub-venture filter — SPOC list + notes depend on this selection */}
             <div className="w-72 shrink-0 rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <Layers className="h-3.5 w-3.5" /> Filter by Sub-venture
                 </h3>
               </div>
-              <div className="p-3 space-y-2">
+              <div className="space-y-2 p-3">
                 {subVentures.length > 0 ? (
                   <div className="relative">
                     <select
@@ -637,7 +638,7 @@ function CustomerDetailPage() {
                         setSvFilter(e.target.value);
                         setSelectedSpoc(null);
                       }}
-                      className="h-8 w-full rounded-md border border-border bg-card pr-7 pl-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring appearance-none"
+                      className="h-8 w-full appearance-none rounded-md border border-border bg-card py-0 pl-3 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <option value="all">Select sub-venture…</option>
                       {subVentures.map((sv) => (
@@ -646,14 +647,14 @@ function CustomerDetailPage() {
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">No sub-ventures for this client.</p>
                 )}
                 {svFilter !== "all" && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground truncate max-w-[160px]">
+                    <span className="max-w-[160px] truncate text-[11px] text-muted-foreground">
                       <span className="font-medium text-foreground">{pool.length}</span> project
                       {pool.length !== 1 ? "s" : ""}
                     </span>
@@ -662,7 +663,7 @@ function CustomerDetailPage() {
                         setSvFilter("all");
                         setSelectedSpoc(null);
                       }}
-                      className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     >
                       <X className="h-2.5 w-2.5" /> Clear
                     </button>
@@ -671,9 +672,10 @@ function CustomerDetailPage() {
               </div>
             </div>
           </div>
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-            <header className="flex items-center justify-between border-b border-border px-5 py-3">
-              <div>
+
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-5 py-3">
+              <div className="min-w-0">
                 <h3 className="text-sm font-semibold">
                   {filter === "all"
                     ? "All Projects"
@@ -681,133 +683,169 @@ function CustomerDetailPage() {
                       ? "On Hold Projects"
                       : `${filter.charAt(0).toUpperCase() + filter.slice(1)} Projects`}
                 </h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
                   {pool.length} project{pool.length !== 1 ? "s" : ""}
+                  {healthFilter !== "all" &&
+                    ` · ${
+                      healthFilter === "healthy"
+                        ? "Healthy"
+                        : healthFilter === "at_risk"
+                          ? "At Risk"
+                          : "Critical"
+                    }`}
                 </p>
               </div>
+              <label className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="hidden sm:inline">Health</span>
+                <select
+                  value={healthFilter}
+                  onChange={(e) => setHealthFilter(e.target.value as HealthFilter)}
+                  className="h-8 rounded-md border border-input bg-card px-2 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <option value="all">All</option>
+                  <option value="healthy">Healthy</option>
+                  <option value="at_risk">At Risk</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </label>
             </header>
 
             {pool.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-12 text-center">
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 py-12 text-center">
                 <Layers className="h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">No projects in this category</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/30 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium">Project ID</th>
-                      <th className="px-4 py-2.5 font-medium">Project Name</th>
-                      <th className="px-4 py-2.5 font-medium">Sub-venture</th>
-                      <th className="px-4 py-2.5 font-medium">Status</th>
-                      <th className="px-4 py-2.5 font-medium">Progress</th>
-                      <th className="px-4 py-2.5 font-medium">PM</th>
-                      <th className="px-4 py-2.5 font-medium">Start Date</th>
-                      <th className="px-4 py-2.5 font-medium">End Date</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Open</th>
+              <div className="min-h-0 flex-1 overflow-auto">
+                <table className="w-full min-w-[760px] table-fixed text-sm">
+                  <thead className="sticky top-0 z-[1]">
+                    <tr className="border-b border-border bg-muted/90 text-left text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground backdrop-blur-sm">
+                      <th className="w-[28%] px-5 py-3 font-medium">Project</th>
+                      <th className="w-[12%] px-3 py-3 font-medium">Health</th>
+                      <th className="w-[11%] px-3 py-3 font-medium">Stage</th>
+                      <th className="w-[14%] px-3 py-3 font-medium">Sub-venture</th>
+                      <th className="w-[14%] px-3 py-3 font-medium">Progress</th>
+                      <th className="w-[13%] px-3 py-3 font-medium">PM</th>
+                      <th className="w-[8%] px-3 py-3 text-right font-medium"> </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-border/70">
                     {pool.map((p) => {
                       const pm = getPerson(p.pmId);
                       const category =
-                        p.status === "completed"
-                          ? p.progress >= 80
+                        p.status === "archived"
+                          ? "Archived"
+                          : p.status === "completed"
                             ? "Completed"
-                            : "Archived"
-                          : p.status === "ongoing"
-                            ? p.progress === 0
-                              ? "New"
-                              : "Ongoing"
-                            : "On Hold";
+                            : p.status === "on_hold"
+                              ? "On Hold"
+                              : p.status === "ongoing" && p.progress === 0
+                                ? "New"
+                                : "Ongoing";
+                      const startLabel = p.startDate
+                        ? new Date(p.startDate).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : null;
+                      const endLabel = p.endDate
+                        ? new Date(p.endDate).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : null;
 
                       return (
                         <tr
                           key={p.id}
-                          className="hover:bg-accent/30 transition-colors cursor-pointer"
+                          className="group cursor-pointer transition-colors hover:bg-muted/30"
                           onClick={() =>
                             navigate({ to: "/projects/$projectId", params: { projectId: p.id } })
                           }
                         >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-xs text-muted-foreground">
-                                {fmtProjectId(p.id)}
-                              </span>
-                              <span
-                                className={cn(
-                                  "rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase",
-                                  category === "New"
-                                    ? "border-primary/30 bg-primary/10 text-primary"
-                                    : category === "Ongoing"
-                                      ? "border-info/30 bg-info/10 text-info"
-                                      : category === "Completed"
-                                        ? "border-success/30 bg-success/10 text-success"
-                                        : category === "On Hold"
-                                          ? "border-warning/30 bg-warning/10 text-warning-foreground"
-                                          : "border-muted-foreground/30 bg-muted text-muted-foreground",
+                          <td className="px-5 py-3.5 align-middle">
+                            <div className="min-w-0">
+                              <div className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+                                {p.name}
+                              </div>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                                <span className="font-mono tabular-nums">{fmtProjectId(p.id)}</span>
+                                {(startLabel || endLabel) && (
+                                  <>
+                                    <span className="text-border">·</span>
+                                    <span className="tabular-nums">
+                                      {startLabel ?? "—"} → {endLabel ?? "—"}
+                                    </span>
+                                  </>
                                 )}
-                              >
-                                {category}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 max-w-[200px]">
-                            <div className="flex items-center gap-2">
-                              <HealthPill status={p.health} />
-                              <div className="min-w-0">
-                                <div className="truncate font-medium text-sm">{p.name}</div>
-                                <div className="truncate text-[11px] text-muted-foreground">
-                                  {p.description}
-                                </div>
                               </div>
                             </div>
                           </td>
-                          {/* Sub-venture */}
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-3.5 align-middle">
+                            <HealthPill status={p.health} />
+                          </td>
+                          <td className="px-3 py-3.5 align-middle">
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                category === "New" &&
+                                  "border-primary/30 bg-primary/10 text-primary",
+                                category === "Ongoing" && "border-info/30 bg-info/10 text-info",
+                                category === "Completed" &&
+                                  "border-success/30 bg-success/10 text-success",
+                                category === "On Hold" &&
+                                  "border-warning/30 bg-warning/10 text-warning-foreground",
+                                category === "Archived" &&
+                                  "border-border bg-muted text-muted-foreground",
+                              )}
+                            >
+                              {category}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3.5 align-middle">
                             {p.subVenture ? (
-                              <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info max-w-[140px] truncate">
+                              <span
+                                className="block truncate text-[12px] text-foreground"
+                                title={p.subVenture}
+                              >
                                 {p.subVenture}
                               </span>
                             ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
+                              <span className="text-[12px] text-muted-foreground">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3">
-                            <StatusPill status={p.status} />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2 min-w-[100px]">
-                              <ProgressBar value={p.progress} className="flex-1" />
-                              <span className="text-xs tabular-nums text-muted-foreground w-8 text-right">
+                          <td className="px-3 py-3.5 align-middle">
+                            <div className="flex items-center gap-2">
+                              <ProgressBar value={p.progress} className="h-1.5 min-w-0 flex-1" />
+                              <span className="w-8 shrink-0 text-right text-[11px] font-medium tabular-nums text-muted-foreground">
                                 {p.progress}%
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-3.5 align-middle">
                             {pm ? (
-                              <div className="flex items-center gap-1.5">
-                                <AvatarBubble name={pm.name} size={20} />
-                                <span className="text-xs whitespace-nowrap">{pm.name}</span>
+                              <div className="flex min-w-0 items-center gap-2">
+                                <AvatarBubble name={pm.name} size={22} />
+                                <span className="truncate text-[12px] font-medium">{pm.name}</span>
                               </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
+                              <span className="text-[12px] text-muted-foreground">Unassigned</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                            {p.startDate ? new Date(p.startDate).toLocaleDateString() : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                            {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            className="px-3 py-3.5 text-right align-middle"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <Link
                               to="/projects/$projectId"
                               params={{ projectId: p.id }}
-                              className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-medium hover:bg-accent transition-colors"
+                              className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-card px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground opacity-80 transition-all hover:border-border hover:bg-accent hover:text-foreground group-hover:opacity-100"
                             >
-                              <ExternalLink className="h-3 w-3" /> Open
+                              Open
+                              <ExternalLink className="h-3 w-3" />
                             </Link>
                           </td>
                         </tr>
@@ -820,6 +858,106 @@ function CustomerDetailPage() {
           </div>
         </section>
       </div>
+
+      {showEMPicker && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Close"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => {
+              if (!emSaving) {
+                setShowEMPicker(false);
+                setEmSearch("");
+              }
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="change-em-title"
+            className="relative z-[81] flex w-full max-w-md flex-col rounded-xl border border-border bg-card shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div>
+                <h2 id="change-em-title" className="text-sm font-semibold text-foreground">
+                  Change Engagement Manager
+                </h2>
+                <p className="text-[11px] text-muted-foreground">
+                  {emLoading
+                    ? "Loading from directory…"
+                    : `${filteredEmPool.length} of ${emPool.length} Engagement Manager${emPool.length === 1 ? "" : "s"}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={emSaving}
+                onClick={() => {
+                  setShowEMPicker(false);
+                  setEmSearch("");
+                }}
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-accent disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="border-b border-border px-4 py-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={emSearch}
+                  onChange={(e) => setEmSearch(e.target.value)}
+                  placeholder="Search by name, email, or code…"
+                  autoFocus
+                  autoComplete="off"
+                  className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+            </div>
+
+            <ul className="max-h-[min(360px,50vh)] overflow-y-auto px-2 py-2">
+              {emLoading ? (
+                <li className="px-3 py-8 text-center text-sm text-muted-foreground">Loading…</li>
+              ) : filteredEmPool.length === 0 ? (
+                <li className="px-3 py-8 text-center text-sm text-muted-foreground">
+                  {emPool.length === 0
+                    ? "No Engagement Managers found in the database."
+                    : "No match for your search."}
+                </li>
+              ) : (
+                filteredEmPool.map((p) => {
+                  const selected = emName === p.fullName;
+                  return (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        disabled={emSaving}
+                        onClick={() => void changeEngagementManager(p)}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/50 disabled:opacity-50",
+                          selected && "bg-primary/5",
+                        )}
+                      >
+                        <AvatarBubble name={p.fullName} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-foreground truncate">{p.fullName}</div>
+                          <div className="text-[11px] text-muted-foreground truncate">
+                            {p.designation ?? "Engagement Manager"}
+                            {p.workEmail ? ` · ${p.workEmail}` : ""}
+                          </div>
+                        </div>
+                        {selected ? <Check className="h-4 w-4 shrink-0 text-primary" /> : null}
+                      </button>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

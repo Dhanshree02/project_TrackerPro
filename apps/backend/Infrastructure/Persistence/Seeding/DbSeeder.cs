@@ -576,6 +576,10 @@ public static class DbSeeder
             ("EMP-1018", "Aditya", "Reddy", "Engineering", "Senior Software Engineer", "Employee", "Male"),
             ("EMP-1019", "Pooja", "Menon", "Human Resources", "HR Business Partner", "Hr", "Female"),
             ("EMP-1020", "Nikhil", "Khanna", "Sales", "Sales Executive", "Sales", "Male"),
+            ("EMP-1021", "Riya", "Kapoor", "Delivery", "Engagement Manager", "Engagement Manager", "Female"),
+            ("EMP-1022", "Rahul", "Sharma", "Delivery", "Engagement Manager", "Engagement Manager", "Male"),
+            ("EMP-1023", "Pradeep", "Singh", "Delivery", "Engagement Manager", "Engagement Manager", "Male"),
+            ("EMP-1024", "Arjun", "Mehta", "Delivery", "Engagement Manager", "Engagement Manager", "Male"),
         };
 
         var existingCodes = await db.Employees
@@ -698,6 +702,15 @@ public static class DbSeeder
 
     private static async Task SeedClientsAsync(AppDbContext db, Dictionary<string, User> users, CancellationToken ct)
     {
+        // Backfill Customer Since for clients created before the column existed.
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            UPDATE clients
+            SET "CustomerSince" = (("CreatedAtUtc" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')::date
+            WHERE "CustomerSince" IS NULL AND "DeletedAtUtc" IS NULL;
+            """,
+            ct);
+
         if (await db.Clients.AnyAsync(ct)) return; // already seeded
 
         var seed = new (string Id, string Name, string Industry, string Contact, ClientType Type,
@@ -751,6 +764,7 @@ public static class DbSeeder
                 ContactPhone = cPhone,
                 ContactDesignation = cDesig,
                 ContactType = cType,
+                CustomerSince = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddMonths(-6)),
             };
             // Each sub-venture lives in its own row referencing this client.
             client.SubVentures = subs.Select(s => new SubVenture

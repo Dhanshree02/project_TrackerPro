@@ -101,11 +101,17 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             BusinessType = request.BusinessType,
             Notes = request.Notes,
             KycDocumentName = request.KycDocumentName,
+            CustomerSince = TodayIst(),
         };
 
         var subVentureInputs = request.SubVentures ?? [];
         client.SubVentures = subVentureInputs
-            .Select(s => new SubVenture { ClientId = client.Id, Name = s.Name.Trim() })
+            .Select(s => new SubVenture
+            {
+                ClientId = client.Id,
+                Name = s.Name.Trim(),
+                Notes = string.IsNullOrWhiteSpace(s.Notes) ? null : s.Notes.Trim(),
+            })
             .ToList();
 
         db.Clients.Add(client);
@@ -192,6 +198,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
                 if (match is not null)
                 {
                     match.Name = input.Name.Trim();
+                    if (input.Notes is not null)
+                        match.Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
                 }
                 else
                 {
@@ -199,7 +207,12 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
                     // entity as Added. Adding a non-default-Guid entity directly to a
                     // tracked (Unchanged) client's nav collection makes EF treat it as
                     // an existing row (Modified), which then fails with a 0-row UPDATE.
-                    var subVenture = new SubVenture { ClientId = client.Id, Name = input.Name.Trim() };
+                    var subVenture = new SubVenture
+                    {
+                        ClientId = client.Id,
+                        Name = input.Name.Trim(),
+                        Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim(),
+                    };
                     db.SubVentures.Add(subVenture);
                 }
             }
@@ -413,9 +426,14 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         var first = parts[0];
         var last = parts.Length > 1 ? string.Join(' ', parts.Skip(1)) : string.Empty;
 
-        var employee = await db.Employees.FirstOrDefaultAsync(e =>
-            e.FirstName == first &&
-            (last.Length == 0 || e.LastName == last), ct);
+        var employee = await db.Employees
+            .Include(e => e.Designation)
+            .Where(e =>
+                (e.FirstName + " " + e.LastName).Trim().ToLower() == trimmed.ToLower() ||
+                (e.FirstName == first && (last.Length == 0 || e.LastName == last)))
+            .OrderByDescending(e =>
+                e.Designation != null && e.Designation.Name == "Engagement Manager")
+            .FirstOrDefaultAsync(ct);
 
         return employee?.Id;
     }
@@ -441,8 +459,25 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         c.KycDocumentName,
         c.SubVentures.Select(s => new SubVentureDto(
             s.Name,
-            s.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType)).ToList())).ToList(),
+            s.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType)).ToList(),
+            s.Notes)).ToList(),
         c.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType)).ToList(),
+        c.CustomerSince,
         c.CreatedAtUtc);
+
+    private static DateOnly TodayIst()
+    {
+        TimeZoneInfo tz;
+        try
+        {
+            tz = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
+        }
+
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz));
+    }
 }
 

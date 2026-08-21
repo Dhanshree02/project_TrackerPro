@@ -15,10 +15,11 @@ export interface ApiClientContact {
   contactType?: string | null;
 }
 
-/** Wire shape of a sub-venture: name + its own SPOC contacts. */
+/** Wire shape of a sub-venture: name + its own SPOC contacts + notes. */
 export interface ApiSubVenture {
   name: string;
   contacts: ApiClientContact[];
+  notes?: string | null;
 }
 
 export interface ApiClient {
@@ -41,6 +42,7 @@ export interface ApiClient {
   kycDocumentName?: string | null;
   subVentures: ApiSubVenture[];
   contacts: ApiClientContact[];
+  customerSince?: string | null;
   createdAtUtc: string;
 }
 
@@ -72,8 +74,10 @@ export function mapApiClient(c: ApiClient): Client {
     businessType: c.businessType ?? undefined,
     notes: c.notes ?? undefined,
     kycDocumentName: c.kycDocumentName ?? undefined,
+    customerSince: c.customerSince ? c.customerSince.slice(0, 10) : c.createdAtUtc?.slice(0, 10),
     subVentures: (c.subVentures ?? []).map((sv) => ({
       name: sv.name,
+      notes: sv.notes ?? undefined,
       // A sub-venture SPOC is identified by name — phone is the primary field for
       // per-sub-venture contacts, so don't drop phone-only contacts.
       contacts: (sv.contacts ?? [])

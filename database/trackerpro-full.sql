@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict VUEiyNTy78Xrl6sILiIwnlaaz84vI7U23nusddhgyUUUzvut5Vv1YeHYnc4oXMO
+\restrict rFHC1zE1RNcnN78Y0yCCt14bqsRvGzRE3L6H3fWptuPc10dvhkHW8skdBh0VEgL
 
 -- Dumped from database version 18.4
 -- Dumped by pg_dump version 18.4
@@ -96,7 +96,8 @@ CREATE TABLE public.clients (
     "EngagementManagerId" uuid,
     "IndustryId" uuid,
     "CityId" uuid,
-    "CountryId" uuid
+    "CountryId" uuid,
+    "CustomerSince" date
 );
 
 
@@ -424,7 +425,8 @@ CREATE TABLE public.sub_ventures (
     "UpdatedAtUtc" timestamp with time zone,
     "CreatedBy" uuid,
     "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
+    "DeletedAtUtc" timestamp with time zone,
+    "Notes" character varying(2000)
 );
 
 
@@ -472,6 +474,8 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 20260820113531_AddGeoCatalogs	10.0.4
 20260820122343_AddEmployeeCatalogs	10.0.4
 20260820124931_AddSalaryBands	10.0.4
+20260821085833_AddClientCustomerSince	10.0.4
+20260821120228_AddSubVentureNotes	10.0.4
 \.
 
 
@@ -494,9 +498,6 @@ f61741ca-2c63-917f-ee7f-ae00cdbc08cb	e7554ba2-e546-93ce-1e88-a073badd78a2
 COPY public.client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
 d5572af5-adde-4fd9-b14b-c857467d1c93	\N	37f0c3b1-16a1-4643-9f5a-f824204543c1	Sahil Lad	sahillad77@gmail.com	7854125698	ciso	Procurement	f	2026-08-19 12:13:26.584779+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 8959a84a-a7cc-42be-ba71-c142d5dae1fa	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-19 12:39:05.853384+05:30	2026-08-20 15:51:44.183087+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 15:51:44.183087+05:30
-855194e2-92d8-4bd8-a850-110fa9ce4776	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-08-20 15:51:44.192431+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-873fac91-16b6-421c-bd45-3cd92e2dc931	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-08-20 15:51:44.192431+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-e90e0928-dbe2-47eb-b92d-3835423c1163	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-20 15:51:44.192431+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 26358579-8daf-4027-81c9-c375e8628aa3	\N	6a40584b-3bde-4c7d-a6e6-3ef920cd43d0	Sahil 	sahillad2092003@gmail.com	8744541212	spoc	Technical	f	2026-08-20 16:30:13.771971+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 77e4a9a2-d473-4007-be16-f9eebfb39df8	90fc8bcd-f45d-4bd4-88e7-a5543a0a9046	\N	Sahil	sahillad2092003@gmail.com	8744541212	spoc	Technical	f	2026-08-20 16:30:13.771971+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 0529bbe6-d5da-4295-9af6-a5d1fc964dc4	a04ccf3a-81c8-4416-8af7-068717ddb22b	\N	roshan jadhav	roshan.jadhav@gmail.com	7389247892	spoc	Accounts	f	2026-08-20 19:01:53.354468+05:30	2026-08-20 19:04:48.401428+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 19:04:48.401428+05:30
@@ -507,6 +508,13 @@ e90e0928-dbe2-47eb-b92d-3835423c1163	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sah
 251274f1-0037-4f3c-8d67-44d1e46981fa	\N	65c6925a-8948-4485-9d93-e596e1f4273e	roshan jadhav	roshan.jadhav@gmail.com	7389247892	spoc	Accounts	f	2026-08-20 19:04:48.407968+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 3865019e-696f-4b90-9347-8cd7ef76d999	\N	d3af0a54-b527-40ca-ac1e-9fb09fd81504	harshada	harshada@tk.com	4373947849	ciso	Technical	f	2026-08-20 19:04:48.407968+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 e6e01a67-c99e-4ed7-87a0-92e5a498d8ab	\N	d3af0a54-b527-40ca-ac1e-9fb09fd81504	muskan	muskan@tk.com	4356789038	spoc	Procurement	f	2026-08-20 19:04:48.407968+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+855194e2-92d8-4bd8-a850-110fa9ce4776	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-08-20 15:51:44.192431+05:30	2026-08-21 15:35:12.70694+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-21 15:35:12.70694+05:30
+873fac91-16b6-421c-bd45-3cd92e2dc931	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-08-20 15:51:44.192431+05:30	2026-08-21 15:35:12.70694+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-21 15:35:12.70694+05:30
+e90e0928-dbe2-47eb-b92d-3835423c1163	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-20 15:51:44.192431+05:30	2026-08-21 15:35:12.70694+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-21 15:35:12.70694+05:30
+00331436-e85a-4899-8929-daf84f77440f	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-21 15:35:12.720669+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+10f3620f-44d6-44a2-a90d-cbeb6ea0851a	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-08-21 15:35:12.720669+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+327f81c4-11e3-40bd-a73c-f5c9dfe06147	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-08-21 15:35:12.720669+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d8e9f1ce-ac14-4a5a-899a-5d87963e99d2	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omkar	omkar@talakunchi.com	9877987899	SPOC	Accounts	f	2026-08-21 15:35:12.720669+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
@@ -514,19 +522,19 @@ e6e01a67-c99e-4ed7-87a0-92e5a498d8ab	\N	d3af0a54-b527-40ca-ac1e-9fb09fd81504	mus
 -- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId") FROM stdin;
-06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Pharma	Healthcare	HP	it@helix.com	Old	Active	Pradeep Singh	Sanjay Sen	+91 98765 43211	Procurement Head	Procurement	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7f460c51-01ec-4da1-8f71-d6f360b56f91	\N	\N
-a04ccf3a-81c8-4416-8af7-068717ddb22b	Morphle	Banking	M	roshan.jadhav@gmail.com	New	Active	saif mirkar	roshan jadhav	7389247892	spoc	Accounts	2026-08-20 19:01:53.288995+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	Kalyan-Dombivli	India	API Gateway Configuration Guide (1).txt	no comments	\N	4a80bfdb-a191-4ce1-ab51-2142eb366db7	4d396fc0-ae55-4eeb-b2db-79bbb757d3cd	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0
-a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync AI	Technology	CA	contact@cloudsync.com	New	Active	Riya Kapoor	Neha Gupta	+91 98765 43215	IT Lead	Technical SPOC	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	02012f0c-97b2-4aea-a6b4-954ee97d892d	\N	\N
-a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Plus	Healthcare	MP	tech@medicareplus.com	New	Active	Pradeep Singh	Priyanka Joshi	+91 98765 43217	Procurement Mgr	Procurement	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7f460c51-01ec-4da1-8f71-d6f360b56f91	\N	\N
-428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Logistics	Logistics	ZL	pm@zenith.com	New	Active	Rahul Sharma	Vikram Malhotra	+91 98765 43213	Legal Counsel	Legal	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f175fde9-14f8-40e8-b564-47d8a29d84ff	\N	\N
-47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Energy	Energy	LE	digital@lumen.com	Old	Active	Pradeep Singh	Arjun Mehta	+91 98765 43214	Operations Manager	Technical SPOC	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	c7e82721-829b-4450-8393-022587178471	\N	\N
-9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Bank	Banking	NB	ops@northwind.com	Old	Active	Rahul Sharma	Rahul Sharma	+91 98765 43210	IT Manager	Technical SPOC	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	4a80bfdb-a191-4ce1-ab51-2142eb366db7	\N	\N
-c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Systems	Automotive	AS	engineering@autodrive.com	Old	Active	Rahul Sharma	Kabir Sen	+91 98765 43219	Engineering SPOC	Technical SPOC	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	4bf54de4-0e85-4904-a89f-542301b65077	\N	\N
-fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Global	Finance	FG	dev@fintechglobal.com	Old	Active	Rahul Sharma	Siddharth Shah	+91 98765 43216	Finance VP	Accounts	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	cd116cba-a939-4cb7-bd0f-233019a005b0	\N	\N
-f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Retail	Retail	OR	tech@orbit.com	Old	Active	Riya Kapoor	Aditi Rao	+91 98765 43212	CFO	Accounts	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	935db8d7-e2aa-417e-839e-b51d00ce951e	\N	\N
-f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Solutions	Environment	ES	projects@ecogreen.com	Old	Active	Riya Kapoor	Rohan Varma	+91 98765 43218	Legal Head	Legal	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	16ebeb23-b3d8-4fb7-a4f6-789510c28ad3	\N	\N
-90fc8bcd-f45d-4bd4-88e7-a5543a0a9046	TATA	Energy	T	sahillad2092003@gmail.com	New	Active	Sanket	Sahil	8744541212	spoc	Technical	2026-08-20 16:30:13.739957+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	mumbai	India	exit-summary (1).csv	kldfslkdfsdlf	\N	c7e82721-829b-4450-8393-022587178471	\N	\N
+COPY public.clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince") FROM stdin;
+06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Pharma	Healthcare	HP	it@helix.com	Old	Active	Pradeep Singh	Sanjay Sen	+91 98765 43211	Procurement Head	Procurement	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7f460c51-01ec-4da1-8f71-d6f360b56f91	\N	\N	2026-08-07
+a04ccf3a-81c8-4416-8af7-068717ddb22b	Morphle	Banking	M	roshan.jadhav@gmail.com	New	Active	Pradeep Singh	roshan jadhav	7389247892	spoc	Accounts	2026-08-20 19:01:53.288995+05:30	2026-08-21 17:58:26.459736+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	Kalyan-Dombivli	India	API Gateway Configuration Guide (1).txt	no comments	8a50b4b9-7091-423c-ac8c-af55bc6df348	4a80bfdb-a191-4ce1-ab51-2142eb366db7	4d396fc0-ae55-4eeb-b2db-79bbb757d3cd	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-08-20
+a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync AI	Technology	CA	contact@cloudsync.com	New	Active	Riya Kapoor	Neha Gupta	+91 98765 43215	IT Lead	Technical SPOC	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	02012f0c-97b2-4aea-a6b4-954ee97d892d	\N	\N	2026-08-07
+a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Plus	Healthcare	MP	tech@medicareplus.com	New	Active	Pradeep Singh	Priyanka Joshi	+91 98765 43217	Procurement Mgr	Procurement	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7f460c51-01ec-4da1-8f71-d6f360b56f91	\N	\N	2026-08-07
+428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Logistics	Logistics	ZL	pm@zenith.com	New	Active	Rahul Sharma	Vikram Malhotra	+91 98765 43213	Legal Counsel	Legal	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f175fde9-14f8-40e8-b564-47d8a29d84ff	\N	\N	2026-08-07
+9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Bank	Banking	NB	ops@northwind.com	Old	Active	Rahul Sharma	Rahul Sharma	+91 98765 43210	IT Manager	Technical SPOC	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	4a80bfdb-a191-4ce1-ab51-2142eb366db7	\N	\N	2026-08-07
+c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Systems	Automotive	AS	engineering@autodrive.com	Old	Active	Rahul Sharma	Kabir Sen	+91 98765 43219	Engineering SPOC	Technical SPOC	2026-08-07 13:19:59.669429+05:30	2026-08-21 15:50:25.776021+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N	\N	9a15533f-f863-44a7-b61c-b978fa1f5174	4bf54de4-0e85-4904-a89f-542301b65077	\N	\N	2026-08-07
+47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Energy	Energy	LE	digital@lumen.com	Old	Active	Pradeep Singh	Arjun Mehta	+91 98765 43214	Operations Manager	Technical SPOC	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:58:40.3605+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N	\N	8a50b4b9-7091-423c-ac8c-af55bc6df348	c7e82721-829b-4450-8393-022587178471	\N	\N	2026-08-07
+fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Global	Finance	FG	dev@fintechglobal.com	Old	Active	Rahul Sharma	Siddharth Shah	+91 98765 43216	Finance VP	Accounts	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	cd116cba-a939-4cb7-bd0f-233019a005b0	\N	\N	2026-08-07
+f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Retail	Retail	OR	tech@orbit.com	Old	Active	Riya Kapoor	Aditi Rao	+91 98765 43212	CFO	Accounts	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	935db8d7-e2aa-417e-839e-b51d00ce951e	\N	\N	2026-08-07
+f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Solutions	Environment	ES	projects@ecogreen.com	Old	Active	Riya Kapoor	Rohan Varma	+91 98765 43218	Legal Head	Legal	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	16ebeb23-b3d8-4fb7-a4f6-789510c28ad3	\N	\N	2026-08-07
+90fc8bcd-f45d-4bd4-88e7-a5543a0a9046	TATA	Energy	T	sahillad2092003@gmail.com	New	Active	Pradeep Singh	Sahil	8744541212	spoc	Technical	2026-08-20 16:30:13.739957+05:30	2026-08-21 14:32:02.864281+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	mumbai	India	exit-summary (1).csv	kldfslkdfsdlf	8a50b4b9-7091-423c-ac8c-af55bc6df348	c7e82721-829b-4450-8393-022587178471	\N	\N	2026-08-20
 \.
 
 
@@ -563,6 +571,10 @@ df465de2-4aba-41d3-a2a3-1e81ca66e34a	EMP-1004	Karthik	Bose	karthik.bose@acme.co	
 f7404cb8-5d1a-40bf-b690-22cf179320dd	EMP-1008	Samar	Patel	samar.patel@acme.co	samar1008@gmail.com	9876501008	9866501008	Male	1997-08-08	128, Dombivali Office	9811101008	Single	Indian	d0ab0dc3-606c-4d62-95ea-3d62749f9006	dca2305b-b3c1-405b-a2ed-4eb6ffc3575f	Hr	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team B	Offsite	2020-08-10	Active	Active	Completed	9 years	TCS	Full-time	Permanent	No	90 days	TK-4008	NA	NA	MCA	["Communication", "Delivery", "Human Resources"]	["NA"]	["English", "Hindi"]	77	75	4	82	97	87	Ready in 1 year	Solid contributor on current assignments.	ABCDE1242F	501234567808	L4	100112345008	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
 f8258beb-f446-477d-bb7e-69666c5fe314	EMP-1012	Yash	Malik	yash.malik@acme.co	yash1012@gmail.com	9876501012	9866501012	Male	1993-12-12	132, Dombivali Office	9811101012	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	56643cd3-35e5-429e-9b1c-385881443d8f	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team F	Offsite	2024-12-10	Active	Active	Completed	3 years	TCS	Full-time	Permanent	No	90 days	TK-4012	NA	NA	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	81	79	5	86	92	91	Ready in 1 year	Solid contributor on current assignments.	ABCDE1246F	501234567812	L4	100112345012	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
 fc06e810-3e2d-4510-bfc1-669ccf579da2	EMP-1006	Ankit	Verma	ankit.verma@acme.co	ankit1006@gmail.com	9876501006	9866501006	Male	1995-06-06	126, Dombivali Office	9811101006	Single	Indian	aad03f2b-8be9-45c8-a5d4-1082a639acc6	84f01f23-588a-4c7f-b8d8-826b8f210729	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Bond	Team F	Offsite	2024-06-10	Active	Active	Completed	7 years	TCS	Full-time	Permanent	Yes — 2 years	90 days	TK-4006	NA	NA	MCA	["Communication", "Delivery", "Design"]	["NA"]	["English", "Hindi"]	75	73	5	80	95	85	Ready in 1 year	Solid contributor on current assignments.	ABCDE1240F	501234567806	L4	100112345006	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
+230058bf-ed8a-45da-8d77-4a2821a0a76a	EMP-1024	Arjun	Mehta	arjun.mehta@acme.co	arjun1024@gmail.com	9876501024	9866501024	Male	1997-12-24	144, Dombivali Office	9811101024	Single	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team F	Offsite	2024-12-10	Active	Active	Completed	5 years	TCS	Full-time	Permanent	No	90 days	TK-4024	NA	NA	MCA	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	93	71	5	78	95	88	Ready in 1 year	Solid contributor on current assignments.	ABCDE1258F	501234567824	L4	100112345024	Old Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	\N	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
+8a50b4b9-7091-423c-ac8c-af55bc6df348	EMP-1023	Pradeep	Singh	pradeep.singh@acme.co	pradeep1023@gmail.com	9876501023	9866501023	Male	1996-11-23	143, Andheri Office	9811101023	Single	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team E	Offsite	2023-11-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4023	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	92	70	4	77	94	87	Ready in 1 year	Solid contributor on current assignments.	ABCDE1257F	501234567823	L4	100112345023	New Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	\N	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
+9a15533f-f863-44a7-b61c-b978fa1f5174	EMP-1022	Rahul	Sharma	rahul.sharma@acme.co	rahul1022@gmail.com	9876501022	9866501022	Male	1995-10-22	142, Dombivali Office	9811101022	Married	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team D	Onsite	2022-10-10	Active	Active	Completed	3 years	TCS	Full-time	Permanent	No	90 days	TK-4022	NA	NA	MCA	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	91	69	3	76	93	86	Ready in 1 year	Solid contributor on current assignments.	ABCDE1256F	501234567822	L4	100112345022	Old Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	\N	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
+dd7a3258-31be-425c-8771-cab8ba8b1b22	EMP-1021	Riya	Kapoor	riya.kapoor@acme.co	riya1021@gmail.com	9876501021	9866501021	Female	1994-09-21	141, Andheri Office	9811101021	Single	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Bond	Team C	Offsite	2021-09-10	Active	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes — 2 years	60 days	TK-4021	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	90	68	5	75	92	85	Ready Now	Solid contributor on current assignments.	ABCDE1255F	501234567821	L4	100112345021	New Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	\N	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
 \.
 
 
@@ -792,6 +804,7 @@ c21b43ad-98f5-43cb-9466-6f0b22ce7505	delivery	Delivery	t	2026-08-21 11:01:26.963
 d0ab0dc3-606c-4d62-95ea-3d62749f9006	human_resources	Human Resources	t	2026-08-21 11:01:26.963654+05:30	\N	\N	\N	\N
 d32a6c00-a02a-4586-90c2-4a503b6efc3a	sales	Sales	t	2026-08-21 11:01:26.963654+05:30	\N	\N	\N	\N
 e91e9aa5-1cbb-4d1e-99fe-d7aefedd9f87	finance	Finance	t	2026-08-21 11:01:26.963654+05:30	\N	\N	\N	\N
+6a43386d-7119-47d6-b95d-84d03b0b29f2	accounts	Accounts	t	2026-08-21 14:47:43.930064+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
@@ -800,6 +813,8 @@ e91e9aa5-1cbb-4d1e-99fe-d7aefedd9f87	finance	Finance	t	2026-08-21 11:01:26.96365
 --
 
 COPY public.mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+8802cfae-1dcb-4a34-a8cf-cf3de393ee1d	delivery_test_delivery	test delivery	t	c21b43ad-98f5-43cb-9466-6f0b22ce7505	2026-08-21 14:39:45.280716+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+580e71ef-8c9f-44d7-b3bb-e191d8708884	accounts_ca	CA	t	6a43386d-7119-47d6-b95d-84d03b0b29f2	2026-08-21 14:48:00.270122+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 eccddb98-13a9-4d79-82d6-3b97e710c83c	squad1_operation_head	operation head	t	\N	2026-08-20 19:09:27.933257+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 0cbff6d6-9622-4d55-a0db-2e7b192988f3	business_analyst	Business Analyst	t	2083db49-90d5-4f46-b4be-2d0a24edec35	2026-08-18 13:25:36.166597+05:30	2026-08-21 11:01:26.963654+05:30	\N	\N	\N
 13d33d9b-c70e-4f07-897f-c9aa2bf89277	finance_analyst	Finance Analyst	t	e91e9aa5-1cbb-4d1e-99fe-d7aefedd9f87	2026-08-18 13:25:36.166597+05:30	2026-08-21 11:01:26.963654+05:30	\N	\N	\N
@@ -944,6 +959,7 @@ e6e9131d-2328-494a-836a-d4863aa1fd8a	project_manager_delivery_manager	Delivery M
 f01e766b-6ff7-4c60-8591-91934f79ad0e	ux_designer_employee	Employee	t	84f01f23-588a-4c7f-b8d8-826b8f210729	2026-08-20 17:55:01.232338+05:30	\N	\N	\N	\N
 fbd9d8c8-1fb6-4757-a095-a9f1ec77336b	ux_designer_designer	Designer	t	84f01f23-588a-4c7f-b8d8-826b8f210729	2026-08-20 17:55:01.232338+05:30	\N	\N	\N	\N
 78123fe6-6d61-4ca5-b5e1-57d8b06f1787	squad1_operation_head_software_devloer	software devloer	t	eccddb98-13a9-4d79-82d6-3b97e710c83c	2026-08-20 19:09:45.101646+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+3c19568f-7048-4ad1-a963-87d3d8b31f36	accounts_ca_jr_ca	Jr. CA	t	580e71ef-8c9f-44d7-b3bb-e191d8708884	2026-08-21 14:48:18.227322+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
@@ -1364,7 +1380,42 @@ d7d9292d-f491-4e7f-befe-7f73eb31b348	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	gge5pE
 8d5837f5-dbc1-4423-8ae2-97d4358aca89	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	bx5OFf/RvVpsNVtNRHX0dZm7IAICmi+4PWRGy1c1ysU=	2026-08-28 12:01:59.463683+05:30	2026-08-21 12:06:09.423238+05:30	\N	2026-08-21 12:01:59.463802+05:30	2026-08-21 12:06:09.423736+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 279927ba-cbd0-40d0-9de5-6ae418424420	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	h9HVCJVWZp780TJ5BLnGNNFxZUaSIMeHRwtX7dR931E=	2026-08-28 12:06:09.423582+05:30	2026-08-21 12:06:14.75644+05:30	\N	2026-08-21 12:06:09.423736+05:30	2026-08-21 12:06:14.756689+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 d4273aa9-23e1-4f31-aec4-d70ca5333673	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	k0eFwtrkyx5g2aCDvke8zQoOQnPLK+d1k0shynqPZ7I=	2026-08-28 12:06:14.756583+05:30	2026-08-21 12:06:31.720672+05:30	\N	2026-08-21 12:06:14.756689+05:30	2026-08-21 12:06:31.720901+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-9d5093c7-2c83-4d41-a657-34f93211e474	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	g8KkCi8RYkhbpFuPfTUo4Ew9Ei/+/4XN0HKQ8T1IMn8=	2026-08-28 12:06:31.72081+05:30	\N	\N	2026-08-21 12:06:31.720901+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+9d5093c7-2c83-4d41-a657-34f93211e474	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	g8KkCi8RYkhbpFuPfTUo4Ew9Ei/+/4XN0HKQ8T1IMn8=	2026-08-28 12:06:31.72081+05:30	2026-08-21 12:16:17.921822+05:30	\N	2026-08-21 12:06:31.720901+05:30	2026-08-21 12:16:17.922445+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+259a31c8-d9d9-4bc5-9def-c1137b74720d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	4VDuFl24Zhk2QYlVfK+Wh10l3TYXFDXT7rOQZfRKfJA=	2026-08-28 12:16:17.922204+05:30	2026-08-21 12:17:06.36368+05:30	\N	2026-08-21 12:16:17.922445+05:30	2026-08-21 12:17:06.36397+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bd8fae92-3c26-42f3-90fe-b06c8fa15254	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	gyk6sU9BqAWgSfwjepNDfETfWWWGqONq9MSs/+crFjw=	2026-08-28 12:17:06.363827+05:30	2026-08-21 12:51:26.070233+05:30	\N	2026-08-21 12:17:06.36397+05:30	2026-08-21 12:51:26.169632+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+456acd1b-3737-4bc8-a0a2-a4cf6993add9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	QMCfWBATRFxu0tVLz8EllZ6dSFvAYKDe/zqWttk7PQ0=	2026-08-28 12:51:26.153677+05:30	2026-08-21 12:52:44.125443+05:30	\N	2026-08-21 12:51:26.169632+05:30	2026-08-21 12:52:44.12734+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6101e27f-5bf8-4026-98ec-6263b5be20cb	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	lGJ/egLqWvNYkrseSlUy1d3qhpiWJGvzQRvup6oVRtE=	2026-08-28 12:54:18.433794+05:30	2026-08-21 12:54:50.30453+05:30	\N	2026-08-21 12:54:18.433922+05:30	2026-08-21 12:54:50.304551+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fdd46d8f-4679-4d87-b5e6-ccea047114d4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	dq9aP/BsB3bUnnjfvIECblL6eZSRAcLX8nYKIlIO0bs=	2026-08-28 12:52:44.12589+05:30	2026-08-21 12:54:50.704002+05:30	\N	2026-08-21 12:52:44.12734+05:30	2026-08-21 12:54:50.704388+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+82098bf8-bff7-4907-957f-aba21abdc0f7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Ru4cnbeKJVkUBDYSaofUu45nsAbwmE5LpV+QbDskvPg=	2026-08-28 12:54:50.704227+05:30	2026-08-21 12:55:19.350804+05:30	\N	2026-08-21 12:54:50.704388+05:30	2026-08-21 12:55:19.3512+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c3ec8254-2af3-4dd3-9a4b-64f9ff9e4a85	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	N0XiiUVLG1sa0tsM2q6U8PRn8UksLfEBRgcWHiiDslI=	2026-08-28 12:55:19.351033+05:30	2026-08-21 12:56:43.860434+05:30	\N	2026-08-21 12:55:19.3512+05:30	2026-08-21 12:56:43.860453+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5d0c6621-7ea1-4b50-b74d-607b7336d7fd	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	b/1qwao5G4Ho/urp46yo7UxXCiIZggs5q6rsKVBMhvc=	2026-08-28 12:56:44.127404+05:30	2026-08-21 13:04:39.905083+05:30	\N	2026-08-21 12:56:44.127508+05:30	2026-08-21 13:04:39.905346+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+09078517-fa6c-463a-9558-3a4675807194	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Dj5OwJrJSLRWIjgbNjtAxUF5p+5/BFHxK0iOlsqJxuk=	2026-08-28 13:04:39.905246+05:30	2026-08-21 13:08:22.344483+05:30	\N	2026-08-21 13:04:39.905346+05:30	2026-08-21 13:08:22.344506+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+981c0b8c-517c-48f5-9a74-f34acc945efe	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	D++ULv/dx/W/bTMU/OZVtw9PWmYmw+rEejiaeYCJksw=	2026-08-28 13:08:22.689183+05:30	2026-08-21 13:08:22.848084+05:30	\N	2026-08-21 13:08:22.689295+05:30	2026-08-21 13:08:22.848349+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d8f61d12-00f3-4bc3-88ac-8ba744c48593	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	vdop+6qmU/k/ERPZQM1mLGYFkic6LLmQEqxPOe2jrHY=	2026-08-28 13:08:22.84827+05:30	2026-08-21 13:10:53.184238+05:30	\N	2026-08-21 13:08:22.848349+05:30	2026-08-21 13:10:53.184257+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b9abc560-3a7e-416c-9b22-02f032a8070f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	hZWmbYhJqy8BPzixyo1Wf01h98duLdJQZpjesDezH7s=	2026-08-28 13:10:53.538584+05:30	2026-08-21 13:10:53.569865+05:30	\N	2026-08-21 13:10:53.538729+05:30	2026-08-21 13:10:53.570113+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6b1073a4-baa2-4747-acaa-16054a78a832	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	PtkLzxxm7Xu9b3yKVC8RR0Qi1m8Makn9CG+uLy0pXdo=	2026-08-28 13:10:53.57002+05:30	2026-08-21 13:10:55.389926+05:30	\N	2026-08-21 13:10:53.570113+05:30	2026-08-21 13:10:55.389944+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+47b45b61-f3ef-4ddd-bd77-27072b4d45a6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	SOJGT5tGRn9JasLHm0hxw8B4Gj++8KFPX73DqQTaVfc=	2026-08-28 13:10:55.695417+05:30	2026-08-21 13:10:55.761053+05:30	\N	2026-08-21 13:10:55.695512+05:30	2026-08-21 13:10:55.761272+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+cc3623d6-d71b-4386-a3cd-d2376bf6ad1e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uaeNVSpFUWL0Jxnky6yjHfTsaTkQXSoicmieiJuI460=	2026-08-28 13:10:55.761197+05:30	2026-08-21 13:15:22.736494+05:30	\N	2026-08-21 13:10:55.761272+05:30	2026-08-21 13:15:22.736515+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3a98deaa-010d-41d5-a663-77e082ad8063	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	sEMhqRxYVGSKwx8uNMq0IQS0VYVYiF7oeUPm6Nk0VgE=	2026-08-28 13:15:23.082302+05:30	2026-08-21 13:15:47.91884+05:30	\N	2026-08-21 13:15:23.082388+05:30	2026-08-21 13:15:47.919146+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a2891299-dded-4132-a6c3-ae38c76d0818	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	THS/cJWb7O+PsdN4ZtHZrP8s8sP1Lt4sUfcY6E20bZo=	2026-08-28 13:15:47.919068+05:30	2026-08-21 13:17:29.784995+05:30	\N	2026-08-21 13:15:47.919146+05:30	2026-08-21 13:17:29.785281+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6cd9b195-26f1-4735-9258-803921acc4f8	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	cz5XUUHMRViQSIr6iN0F3KMfSvmtgLdwygf2vz/BJ/E=	2026-08-28 13:17:29.785175+05:30	2026-08-21 13:34:40.89184+05:30	\N	2026-08-21 13:17:29.785281+05:30	2026-08-21 13:34:40.940327+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+33422ad5-5f96-434e-aa2c-af31049bc7b9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	nh0TSpa8IMfTviy4yt57afbqzAWkCHgDj+j6+HtYLqY=	2026-08-28 13:34:40.919537+05:30	2026-08-21 13:36:19.914115+05:30	\N	2026-08-21 13:34:40.940327+05:30	2026-08-21 13:36:19.951673+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5c34f6b4-5cc6-4daf-9fda-5beeaad92303	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	0XMWC0ZdvRamfFk2HBtqpVuRMAGgkgTxNAWORFSWrvw=	2026-08-28 13:36:19.937128+05:30	2026-08-21 14:00:49.986435+05:30	\N	2026-08-21 13:36:19.951673+05:30	2026-08-21 14:00:50.015844+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+eeac3333-1087-46df-b584-e06073585df4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	/zyKZMxg4FL2nubO6HVz9u60eY4go1SzIJ18U1NuBE4=	2026-08-28 14:00:50.010949+05:30	2026-08-21 14:01:01.573311+05:30	\N	2026-08-21 14:00:50.015844+05:30	2026-08-21 14:01:01.574035+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9fc23122-a225-4117-8519-046e9f6397c0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uluZJt6xIl3BwnQCzhZpPcI//AEvO0qSiU3EjquxtGs=	2026-08-28 14:01:01.573889+05:30	2026-08-21 14:22:16.644074+05:30	\N	2026-08-21 14:01:01.574035+05:30	2026-08-21 14:22:16.644088+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fbddbf59-402d-4553-addd-80063d0ca640	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	14aCBzgS+HpGVQRDKD2QUJazX8uE04TG80wFEHJo6dk=	2026-08-28 14:22:16.935474+05:30	2026-08-21 14:22:25.752409+05:30	\N	2026-08-21 14:22:16.935729+05:30	2026-08-21 14:22:25.752421+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e4498769-e805-48fb-9278-c6b2a14be681	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	oIFe4z5rzdGbSX1aNlIzA/9foesy6BsGGjSyBi2FUc8=	2026-08-28 14:22:26.04929+05:30	2026-08-21 14:27:05.669535+05:30	\N	2026-08-21 14:22:26.04942+05:30	2026-08-21 14:27:05.669573+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+53f09124-e876-4681-98c7-6078538336bd	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	tU0tytLgHYNwcV1kCyVyihGeNxXJxqJUSWSrFpLXPnc=	2026-08-28 14:27:06.025117+05:30	2026-08-21 14:27:06.333994+05:30	\N	2026-08-21 14:27:06.025257+05:30	2026-08-21 14:27:06.334353+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bbf7ccba-1069-4d13-89fe-33f7805e04a2	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	xR8dbkda93AUKtNLWp25cyIk828O7blLFxFkkT7GRVA=	2026-08-28 14:27:06.334228+05:30	2026-08-21 14:29:23.538867+05:30	\N	2026-08-21 14:27:06.334353+05:30	2026-08-21 14:29:23.573404+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a83a1e87-80a7-4503-8f58-2c97397a54e1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	+TmJp3U+Bd7XAijBQ/BjUu9R11eEBsFnb9qVYTsv3qI=	2026-08-28 14:29:23.560229+05:30	2026-08-21 14:32:12.560757+05:30	\N	2026-08-21 14:29:23.573404+05:30	2026-08-21 14:32:12.560781+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a1ca6e83-19ab-47d9-ad69-60061d17827a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	i0xAWBQJwKxDD7G105nTy1B1nRsXcSwTfyQ99z1fiR4=	2026-08-28 14:32:12.834053+05:30	2026-08-21 15:05:06.144071+05:30	\N	2026-08-21 14:32:12.834751+05:30	2026-08-21 15:05:06.167438+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0a7ab51b-5976-49e0-b364-139333fe7e58	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	vW5YoaN6rZD3BM0pVjSBhB3W1CoQz2nF3zilVb1vwes=	2026-08-28 15:05:06.154332+05:30	2026-08-21 15:05:14.813051+05:30	\N	2026-08-21 15:05:06.167438+05:30	2026-08-21 15:05:14.814048+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+95ebaf5d-69c0-4f01-8f7b-78956a9909d1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	XMtNzIvHj5xiO2Ysf5BdgP7NxUbn0gaGNBjkdH0hkCI=	2026-08-28 15:05:14.813254+05:30	2026-08-21 16:29:50.698892+05:30	\N	2026-08-21 15:05:14.814048+05:30	2026-08-21 16:29:50.699283+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a0aebe9e-471e-4516-ad8a-b4545ad9969f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	SFJVwpDHOBVi8OAEMqEiOU/Hn/jL40HXksqM5ojIAKw=	2026-08-28 16:29:52.901861+05:30	2026-08-21 16:29:53.128556+05:30	\N	2026-08-21 16:29:52.902882+05:30	2026-08-21 16:29:53.128576+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+121f839e-b03f-4e04-80f8-ea8e83243f75	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	4VGUSUvUZNO1+WtZrYFr8YWe2m0RR26zHBD0Qua5/5Y=	2026-08-28 16:29:54.289016+05:30	2026-08-21 16:58:44.956739+05:30	\N	2026-08-21 16:29:54.289291+05:30	2026-08-21 16:58:45.009172+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+696eaaf7-55f5-42c5-abba-09215fa7a77d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	VH5KM98YMgydYLnVF14EcD8+nE4OABzknaaXYdWCbL8=	2026-08-28 16:58:44.988141+05:30	2026-08-21 17:37:08.133091+05:30	\N	2026-08-21 16:58:45.009172+05:30	2026-08-21 17:37:08.201891+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bc55d6d5-9ac0-411f-9700-a10642154e80	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	yr4LdREvX24a/eDSjlHXEF2vW3uslLcaKcdqgxofONo=	2026-08-28 17:37:08.173874+05:30	2026-08-21 17:50:45.21947+05:30	\N	2026-08-21 17:37:08.201891+05:30	2026-08-21 17:50:45.220722+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fd51c301-496a-49d0-b8d4-ce0f9ac7436c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uaTDuoA1EKZDjd6pLVcMTd8ym6KQzroRF3BUH8DpcVs=	2026-08-28 17:50:45.219749+05:30	\N	\N	2026-08-21 17:50:45.220722+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
@@ -1425,63 +1476,64 @@ cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	["dashboard.view", "proj
 -- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.sub_ventures ("Id", "ClientId", "Name", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-03e40de1-c4a7-425b-87ab-7d2b45ec364d	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Clinical Research	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-5fd7f539-0471-41ef-b4f9-f9c72071e117	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Biotech Division	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-fec11a61-59e0-4cfa-b03e-189789ceab63	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Manufacturing	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-15c89a23-7196-48e6-9c9c-0a10cc38cf80	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Global Healthcare	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-adc6d310-c567-4598-8bee-699791ca28cb	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Medical Devices	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-f8c2759e-1526-4499-93fe-4bf9383551a9	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Freight Services	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-b472f090-9382-4fcb-9a13-ad023a2b8edb	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Warehouse Operations	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-f701bcf7-0139-44fe-9188-1e2218afdb10	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith International Logistics	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-fb458d8a-fe51-4a06-a8cc-135b3784da0e	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Fleet Management	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-f453f787-9888-4058-8098-d99b9a89b9e1	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Express Delivery	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-58e5ee34-e198-47b6-9a9e-95903f56b20d	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Renewable Energy	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-d08681c8-6a5b-4c1e-af29-8997fa0e9de3	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Power Distribution	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-a34f1aad-ed5a-4eef-80e7-ffb186ac5a02	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Smart Grid	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-fbc527bd-d4b0-4a18-9ebb-b2ed0752da93	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Solar Division	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-eb5474ee-f271-4b23-b41e-dac2a1905a50	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Energy Consulting	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-8f8671f4-01e4-42d9-ba2e-afc03d0a37d0	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Retail Banking	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-e2868bff-2f6e-41e5-a1fa-6451ca5a7f0f	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Corporate Banking	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-b5f5586f-63f0-4fe2-b864-89937fb76a72	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Digital Payments	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-c973cd24-655e-4de7-98e2-f0627d34696c	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Treasury Services	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-3ea7fd34-bce6-4d9c-868b-380ef2658536	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Wealth Management	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-321598b3-aae4-4d07-a5b0-2e27cec16136	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync AI Platform	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-889e05ef-4311-474b-9d2e-23a7c5516aa2	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync Cloud Infrastructure	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-8113f77c-878e-42bc-912b-5a7c388702a4	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync Data Engineering	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-42304e00-59f2-4bed-b23b-87c4800caa16	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync Machine Learning	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-bd25f3d8-a3a0-4135-a341-e13aeba728b5	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync Enterprise Solutions	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-e1b95e8b-302d-4cf3-9ab1-c6f0bd75d394	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Hospital Systems	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-3540c693-d4be-438c-a795-b11c7edd1f84	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Telemedicine	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-8789ae47-e505-4fb3-adf2-04ade91e418c	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Diagnostics	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-ee71d5b9-7d64-4cef-83a8-1195ff484538	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Health Analytics	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-30613fc3-38d9-45c8-9333-72a178f1e2b7	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Patient Services	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-fa9d3ecf-bd5f-4ccb-a03e-b574d8370f11	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Connected Vehicles	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-80d85beb-5a07-40f2-b7ae-2f6168a6755e	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Autonomous Systems	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-bf470ada-eecb-4ed7-9dc0-0c11436d2eec	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive EV Solutions	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-a9afcff9-fadd-4d29-aeab-d83159813cde	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Manufacturing	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-a5ddbee0-90a3-425b-be8d-bcb2b8e1acda	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Smart Mobility	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-857a1e5d-ba2d-4499-9170-866e7f80596c	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Waste Management	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-7958d666-b744-4889-9c26-4d9152b5e23c	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Sustainability Consulting	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-c5b810e0-cf3c-46cf-91ca-615d583f7f9d	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Renewable Projects	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-c2c8966d-d634-45b1-b1e2-c231d2a91c16	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Water Management	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-6e5a495d-40be-4bb8-b40e-2480d3364bd3	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Carbon Solutions	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-116ef6af-75e2-4743-af52-db5f71093752	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit E-Commerce	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-c10b586c-3015-46a1-9ca4-c8a0758788ef	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Hypermarket	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-0d158329-c66c-4427-b5e8-073bfab60dba	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Fashion	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-79de3aae-5152-44f0-9c77-0c54c3fd701d	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Supply Chain	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-9e067c55-cc90-48a0-ab8b-ded41dace8cb	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Digital Commerce	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-ac923fa9-3ecb-4ccb-a755-5b21621eea43	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Digital Banking	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-ed26b19c-dd44-4dbd-931f-32302088e02d	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Payment Solutions	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-7ac571e1-5915-46fb-b36d-64323d485e8a	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Lending	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-4b278fdd-0c00-477a-ac9f-8c3013de4149	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Investment Services	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-cab77d0e-e88a-4056-8712-a5a39ff91cd9	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Risk & Compliance	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N
-37f0c3b1-16a1-4643-9f5a-f824204543c1	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	subventure-northwindbank	2026-08-19 12:13:26.578788+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	sfsddf	2026-08-19 12:39:05.842701+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-6b55edc3-064f-468d-9084-54fbd72dc126	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	New Subventure	2026-08-20 15:51:44.125441+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-6a40584b-3bde-4c7d-a6e6-3ef920cd43d0	90fc8bcd-f45d-4bd4-88e7-a5543a0a9046	TATA-subventure	2026-08-20 16:30:13.739957+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-65c6925a-8948-4485-9d93-e596e1f4273e	a04ccf3a-81c8-4416-8af7-068717ddb22b	Morphle Machine desgining	2026-08-20 19:01:53.288995+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-d3af0a54-b527-40ca-ac1e-9fb09fd81504	a04ccf3a-81c8-4416-8af7-068717ddb22b	morphle labs	2026-08-20 19:04:48.394235+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+COPY public.sub_ventures ("Id", "ClientId", "Name", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Notes") FROM stdin;
+03e40de1-c4a7-425b-87ab-7d2b45ec364d	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Clinical Research	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+5fd7f539-0471-41ef-b4f9-f9c72071e117	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Biotech Division	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+fec11a61-59e0-4cfa-b03e-189789ceab63	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Manufacturing	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+15c89a23-7196-48e6-9c9c-0a10cc38cf80	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Global Healthcare	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+adc6d310-c567-4598-8bee-699791ca28cb	06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Medical Devices	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+f8c2759e-1526-4499-93fe-4bf9383551a9	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Freight Services	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+b472f090-9382-4fcb-9a13-ad023a2b8edb	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Warehouse Operations	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+f701bcf7-0139-44fe-9188-1e2218afdb10	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith International Logistics	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+fb458d8a-fe51-4a06-a8cc-135b3784da0e	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Fleet Management	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+f453f787-9888-4058-8098-d99b9a89b9e1	428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Express Delivery	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+58e5ee34-e198-47b6-9a9e-95903f56b20d	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Renewable Energy	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+d08681c8-6a5b-4c1e-af29-8997fa0e9de3	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Power Distribution	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+a34f1aad-ed5a-4eef-80e7-ffb186ac5a02	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Smart Grid	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+fbc527bd-d4b0-4a18-9ebb-b2ed0752da93	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Solar Division	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+eb5474ee-f271-4b23-b41e-dac2a1905a50	47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Energy Consulting	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+8f8671f4-01e4-42d9-ba2e-afc03d0a37d0	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Retail Banking	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+e2868bff-2f6e-41e5-a1fa-6451ca5a7f0f	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Corporate Banking	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+b5f5586f-63f0-4fe2-b864-89937fb76a72	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Digital Payments	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+c973cd24-655e-4de7-98e2-f0627d34696c	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Treasury Services	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+3ea7fd34-bce6-4d9c-868b-380ef2658536	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Wealth Management	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+321598b3-aae4-4d07-a5b0-2e27cec16136	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync AI Platform	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+889e05ef-4311-474b-9d2e-23a7c5516aa2	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync Cloud Infrastructure	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+8113f77c-878e-42bc-912b-5a7c388702a4	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync Data Engineering	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+42304e00-59f2-4bed-b23b-87c4800caa16	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync Machine Learning	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+bd25f3d8-a3a0-4135-a341-e13aeba728b5	a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync Enterprise Solutions	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+e1b95e8b-302d-4cf3-9ab1-c6f0bd75d394	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Hospital Systems	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+3540c693-d4be-438c-a795-b11c7edd1f84	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Telemedicine	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+8789ae47-e505-4fb3-adf2-04ade91e418c	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Diagnostics	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+ee71d5b9-7d64-4cef-83a8-1195ff484538	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Health Analytics	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+30613fc3-38d9-45c8-9333-72a178f1e2b7	a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Patient Services	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+fa9d3ecf-bd5f-4ccb-a03e-b574d8370f11	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Connected Vehicles	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+80d85beb-5a07-40f2-b7ae-2f6168a6755e	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Autonomous Systems	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+bf470ada-eecb-4ed7-9dc0-0c11436d2eec	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive EV Solutions	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+a9afcff9-fadd-4d29-aeab-d83159813cde	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Manufacturing	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+a5ddbee0-90a3-425b-be8d-bcb2b8e1acda	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Smart Mobility	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+857a1e5d-ba2d-4499-9170-866e7f80596c	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Waste Management	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+7958d666-b744-4889-9c26-4d9152b5e23c	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Sustainability Consulting	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+c5b810e0-cf3c-46cf-91ca-615d583f7f9d	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Renewable Projects	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+c2c8966d-d634-45b1-b1e2-c231d2a91c16	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Water Management	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+6e5a495d-40be-4bb8-b40e-2480d3364bd3	f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Carbon Solutions	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+116ef6af-75e2-4743-af52-db5f71093752	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit E-Commerce	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+c10b586c-3015-46a1-9ca4-c8a0758788ef	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Hypermarket	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+0d158329-c66c-4427-b5e8-073bfab60dba	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Fashion	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+79de3aae-5152-44f0-9c77-0c54c3fd701d	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Supply Chain	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+9e067c55-cc90-48a0-ab8b-ded41dace8cb	f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Digital Commerce	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+ac923fa9-3ecb-4ccb-a755-5b21621eea43	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Digital Banking	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+ed26b19c-dd44-4dbd-931f-32302088e02d	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Payment Solutions	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+7ac571e1-5915-46fb-b36d-64323d485e8a	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Lending	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+4b278fdd-0c00-477a-ac9f-8c3013de4149	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Investment Services	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+cab77d0e-e88a-4056-8712-a5a39ff91cd9	fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Risk & Compliance	2026-08-07 13:19:59.669429+05:30	\N	\N	\N	\N	\N
+37f0c3b1-16a1-4643-9f5a-f824204543c1	9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	subventure-northwindbank	2026-08-19 12:13:26.578788+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N
+f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	sfsddf	2026-08-19 12:39:05.842701+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N
+6b55edc3-064f-468d-9084-54fbd72dc126	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	New Subventure	2026-08-20 15:51:44.125441+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N
+6a40584b-3bde-4c7d-a6e6-3ef920cd43d0	90fc8bcd-f45d-4bd4-88e7-a5543a0a9046	TATA-subventure	2026-08-20 16:30:13.739957+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N
+65c6925a-8948-4485-9d93-e596e1f4273e	a04ccf3a-81c8-4416-8af7-068717ddb22b	Morphle Machine desgining	2026-08-20 19:01:53.288995+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N
+d3af0a54-b527-40ca-ac1e-9fb09fd81504	a04ccf3a-81c8-4416-8af7-068717ddb22b	morphle labs	2026-08-20 19:04:48.394235+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N
+a69fe228-de12-44e5-9128-dc3898f67e5c	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	IT	2026-08-21 15:35:12.642403+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N
 \.
 
 
@@ -1490,27 +1542,27 @@ d3af0a54-b527-40ca-ac1e-9fb09fd81504	a04ccf3a-81c8-4416-8af7-068717ddb22b	morphl
 --
 
 COPY public.users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Department", "SubDepartment", "Avatar", "Designation", "IsActive", "MustChangePassword", "RoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "FailedLoginAttempts", "LastLoginAtUtc", "LockedUntilUtc", "PasswordChangedAtUtc") FROM stdin;
-730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$fO5ghu4nIvhDi00alJVMJuo5pkFuVx8tvv8lcCPqcgEnTSYZppHLm	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
+9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$Ks2m13K9zMo3gcvv.oQSyukOXF3Y4q8phI.mQjBiokPHNSyVp7dSa	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
 cf106b1b-6a96-464f-aa63-ddcb77a737e0	new.pm@acme.co	$2a$12$p.MfI7wlBAX2LZkpEvPoEunU.q5UljNMmswtXsI80UcJj8X2CVWM.	New PM	u99	\N	\N	\N	PM	t	t	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:25:45.951114+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
-9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$NbfY4xIbbDEWTKs7VMqQI.GOyPRQpGeAYICzwuRIxqeBA25n57wIa	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
-a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$TEDOK/IWv0lL2TJQnG14pOBYfZOnn5TmaTmu1NH5A60nyTFpUusD6	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-21 10:41:12.373604+05:30	\N	\N
-a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$04qZXeQHKnM6ZCvITEF4JuagjDCsenk9c4ikk7tEHeyCDfkJHG0ii	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
-a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$931oE5FsBy2D/GumHfP2De2j/xPBn1LRfgTm9wLlHia9LR8Z0Cuy6	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
-b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$pdxXW7noF4/4yx/oyg4c1u7rlf1YWCOHcNCOSiDRyJUC7ROhNE6Ra	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
-1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$knqqgVr.qF5vb8tje3WGk.SiIUMzj3Qtabembvs.jQWkqg.ln9Chy	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
+a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$b2JtQGvsufasVJcscUVaf.UqUtMwf9/vKEcWdmmOoOLkczd0mUdrW	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-21 16:29:54.285259+05:30	\N	\N
+a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$FBiOs3uj4C/jeMJs4bJYI.srSoNYxHArv8hF3Yu4ioH1u9SixM3hW	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
+a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$4wMeuwyVuQwNnnEMOETf9.KDeAHOEaxSdl7H5DCdjZ6OwCa7/8Ppi	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
+b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$tvy6i6cIwMPxznzWYZnWvOAo3EQbgcismc.iBPMREU7kdQLcPW8ZG	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
+1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$Z8NFnaolFNK3Q6VDZ1Cow.u3q1I/edVZC/jhDnEBj4ZpuxTJHmT.i	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
 30d629ff-3076-40f8-9c12-fb385b8c2600	admin2@acme.co	$2a$12$aqJIdIL9tzPW5DFE.zVFVurFkCUE0knMbU7.A0A1pBtjA7K4Qk7wS	Test Admin Two	A2	\N	\N	\N	\N	f	t	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:45:16.235641+05:30	2026-08-07 13:45:23.702021+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	0	\N	\N	\N
+2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$S6xJaiLDIWWkO6v/Wg.xlefjHqovXP9IaO5vFYdL7Ho//iH8ROZjS	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
 a1878763-b174-41b0-88db-f2ebba76af83	sdsa@gmail.com	$2a$12$.bzyuW3FFq2Uau84IyFnYO1LXxDLXkbxtjVyvzVs71KECK6u2CONy	sadas	ads	sda	\N	\N	sda	t	t	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 15:00:46.654787+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
-2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$52/Fho/vQhYLoHZ7saVERO02MLADz6uZoFWBUAd31lrtB9cBnxUQC	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
-304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$wikestymtV/6eFSTg7xGUeb.8WylbfuN6twth67rstAATp3FDL5sa	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-19 13:49:46.145648+05:30	\N	\N
-40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$vwzYEA6vP4veUy4K9fGKOOSqMs0KMuAlCh.p78npN2DbK47pkHFpa	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-21 11:51:37.97411+05:30	\N	2026-08-10 12:32:04.244561+05:30
-47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$RkztaKIE6Hs.PiNgJzW2HO394J1xrzbmRnbDlhaWdUdSEAQLOedme	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-20 12:01:20.644786+05:30	\N	\N
-49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$.uFMqX3ull8WfEg0vlInKe/9gv/EawKK3Ypc54EigTzJyiqIKEIv6	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	\N	\N	\N
-65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$luiCUQy8NRQUC2rvQgUAYeQwxHRwT8f3mHppIeCKMkWI9LLZfquZm	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
-111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$I73Bh4kB0TyivntnEZq1Mu6RtJPd.IsO1Ue8TIea4iW0UeYzWTdfe	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
-b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$AX6haIHIbM9hNRh1jCTvbOcseuunAaC5XkDEF86ZcvkVjWLFAfPOW	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-18 12:39:23.505267+05:30	\N	\N
-dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$TLYf2le65tO8SduMTQlYDu.mwQ3Nr3VPIwTjOuhZAFhPNjiGxAgQu	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	\N	\N	\N
-e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$0A9hDfJMHYL9iVyXqauCJOavqmTydYWM7chHaFG9pp4P4v889R2kS	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
-f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$TXdVfstLzJ4JDa.rVrCNfepqe.N.iiaprn6kYLWSzP7ps3y.2pppC	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 11:51:53.678639+05:30	\N	\N	\N	0	2026-08-20 12:01:45.022783+05:30	\N	\N
+304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$1IsDiKmr8gDoVCIKvlYPzOtr.ABeZepjWoisxVeK2bFczErcmHjwO	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-19 13:49:46.145648+05:30	\N	\N
+40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$lZaaacMFr3quKIhayJtpc.jwf5oaoDzTuOv10sDg8yDsV2igOwaGm	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-21 11:51:37.97411+05:30	\N	2026-08-10 12:32:04.244561+05:30
+47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$Q5NGoB8ldfMCsjqEB6jGcuwFyAToUDKHwI7fzSGgR5yYMteNmeZ.2	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-20 12:01:20.644786+05:30	\N	\N
+49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$GHUMHN3rwHVArXhcNuaGu.h425xy4r6HtJrSrQX5g2vAOqHt8V2ES	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	\N	\N	\N
+65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$JwML0SIKXSWlRgptP92MnO.Ukd4jFZiMDiiNjIyLZ.ZZ1Q/ptCrGa	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
+730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$FFAmqyNMtRQ5naLD8gGlC.wju/apsFk17Z7XRz15t6gOT8Zb3WNgm	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
+e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$nLcb.DFHf.wuYZ1d10nizezQb52Pd/xNGus1i36PaWklDWRP1kmYa	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
+f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$28Cu5PgexUJgvbXBsUXdF.UH5FIW57bAZuoyn/uAw0vw1NQHD.mze	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-21 12:54:18.426443+05:30	\N	\N
+111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$FF6xY8Ph1PmSonf06f/uM.xhSiaPfxGbTayQFzwDrfOKkoDRE/nGC	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
+b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$A6QBZLzFtmbFt25iwcWhwekWRvUMqt0ZvOaRSV5Mqwf2KDECdBzHC	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-18 12:39:23.505267+05:30	\N	\N
+dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$hUK0NiNvbiFEjFbwgtafd.ri6Ib3hGpEEO9VnMHNIxxFJ8iKTscUu	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	\N	\N	\N
 \.
 
 
@@ -2154,5 +2206,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict VUEiyNTy78Xrl6sILiIwnlaaz84vI7U23nusddhgyUUUzvut5Vv1YeHYnc4oXMO
+\unrestrict rFHC1zE1RNcnN78Y0yCCt14bqsRvGzRE3L6H3fWptuPc10dvhkHW8skdBh0VEgL
 

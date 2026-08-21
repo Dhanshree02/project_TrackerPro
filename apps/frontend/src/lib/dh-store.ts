@@ -2132,8 +2132,8 @@ export const dhStore = {
     return c;
   },
 
-  // Add a new sub-venture (with its own SPOC contacts) to an existing client.
-  addSubVenture(clientId: string, subVentureName: string, newContacts?: any[]) {
+  // Add a new sub-venture (with its own SPOC contacts + notes) to an existing client.
+  addSubVenture(clientId: string, subVentureName: string, newContacts?: any[], notes?: string) {
     const trimmed = subVentureName.trim();
     const validContacts = newContacts
       ? newContacts.filter((c) => c.name?.trim() && c.email?.trim())
@@ -2142,9 +2142,11 @@ export const dhStore = {
       emit();
       return;
     }
+    const noteText = notes?.trim() || undefined;
     const subVenture: ClientSubVenture = {
       name: trimmed,
       contacts: validContacts.length > 0 ? validContacts : undefined,
+      notes: noteText,
     };
 
     // For extra clients created at runtime, mutate directly

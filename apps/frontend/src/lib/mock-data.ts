@@ -175,6 +175,8 @@ export interface ClientContact {
 export interface ClientSubVenture {
   name: string;
   contacts?: ClientContact[]; // SPOC contacts specific to this sub-venture
+  /** Onboarding notes for this sub-venture (not shared across SVs). */
+  notes?: string;
 }
 
 /**
@@ -212,6 +214,8 @@ export interface Client {
   businessType?: string;
   notes?: string;
   kycDocumentName?: string;
+  /** ISO date (yyyy-mm-dd) when the customer relationship started. */
+  customerSince?: string;
   contacts?: ClientContact[]; // full list of SPOC persons
 }
 
@@ -333,11 +337,31 @@ export const clients: Client[] = [
     previousPmIds: ["u3", "u4"],
     engagementManager: "Rahul Sharma",
     subVentures: [
-      { name: "Northwind Retail Banking", contacts: [] },
-      { name: "Northwind Corporate Banking", contacts: [] },
-      { name: "Northwind Digital Payments", contacts: [] },
-      { name: "Northwind Treasury Services", contacts: [] },
-      { name: "Northwind Wealth Management", contacts: [] },
+      {
+        name: "Northwind Retail Banking",
+        contacts: [],
+        notes: "Retail branch KYC complete. Prefer quarterly reporting cadence.",
+      },
+      {
+        name: "Northwind Corporate Banking",
+        contacts: [],
+        notes: "Corporate SPOC prefers email. Onsite kickoff required for each SOW.",
+      },
+      {
+        name: "Northwind Digital Payments",
+        contacts: [],
+        notes: "PCI scope discussion pending. Pilot on UPI rails first.",
+      },
+      {
+        name: "Northwind Treasury Services",
+        contacts: [],
+        notes: "Treasury team available Tue–Thu only for workshops.",
+      },
+      {
+        name: "Northwind Wealth Management",
+        contacts: [],
+        notes: "High-touch client; escalate blockers to EM within 24h.",
+      },
     ],
     contactName: "Rahul Sharma",
     contactPhone: "+91 98765 43210",
@@ -1293,7 +1317,7 @@ export const projects: Project[] = [
     name: "Internet Banking Portal",
     clientId: "c1",
     wbsId: "IN-2024-25-C001-P003",
-    status: "completed",
+    status: "archived",
     health: "green",
     progress: 100,
     pmId: "u4",
@@ -1350,7 +1374,7 @@ export const projects: Project[] = [
     name: "Loan Origination System",
     clientId: "c1",
     wbsId: "IN-2023-24-C001-P005",
-    status: "completed",
+    status: "archived",
     health: "amber",
     progress: 72,
     pmId: "u4",
@@ -1409,7 +1433,7 @@ export const projects: Project[] = [
     name: "Drug Trial Management",
     clientId: "c2",
     wbsId: "IN-2023-24-C002-P002",
-    status: "completed",
+    status: "archived",
     health: "amber",
     progress: 68,
     pmId: "u3",
@@ -1466,7 +1490,7 @@ export const projects: Project[] = [
     id: "p24",
     name: "Customer Data Platform",
     clientId: "c3",
-    status: "completed",
+    status: "archived",
     health: "amber",
     progress: 55,
     pmId: "u4",
@@ -1524,7 +1548,7 @@ export const projects: Project[] = [
     id: "p27",
     name: "Renewable Energy Dashboard",
     clientId: "c5",
-    status: "completed",
+    status: "archived",
     health: "green",
     progress: 100,
     pmId: "u4",
@@ -1598,7 +1622,7 @@ export const projects: Project[] = [
     id: "p31",
     name: "MLOps Framework",
     clientId: "c6",
-    status: "completed",
+    status: "archived",
     health: "green",
     progress: 100,
     pmId: "u4",
@@ -1654,7 +1678,7 @@ export const projects: Project[] = [
     id: "p34",
     name: "Open Banking API Suite",
     clientId: "c7",
-    status: "completed",
+    status: "archived",
     health: "amber",
     progress: 44,
     pmId: "u4",
@@ -1710,7 +1734,7 @@ export const projects: Project[] = [
     id: "p37",
     name: "Patient Engagement App",
     clientId: "c8",
-    status: "completed",
+    status: "archived",
     health: "amber",
     progress: 52,
     pmId: "u4",
@@ -1766,7 +1790,7 @@ export const projects: Project[] = [
     id: "p40",
     name: "Water Quality Platform",
     clientId: "c9",
-    status: "completed",
+    status: "archived",
     health: "amber",
     progress: 48,
     pmId: "u3",
@@ -1822,7 +1846,7 @@ export const projects: Project[] = [
     id: "p43",
     name: "OBD Diagnostics Cloud",
     clientId: "c10",
-    status: "completed",
+    status: "archived",
     health: "amber",
     progress: 38,
     pmId: "u4",

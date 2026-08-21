@@ -9,9 +9,23 @@ alwaysApply: true
 
 ## Latest
 
+- Onboard New Employee form fields share one control style (height, border, bg, labels, select chevrons). Department / Designation / Role all use select + `+ Add`; disabled fields use opacity instead of a different background.
+- Add Employee catalog fields (Department / Designation / Role): `+ Add` button beside the select (not “+ Add new…” inside the dropdown).
+- Regenerated `database/trackerpro-full.sql` from live Postgres (`trackerpro`) via pg_dump — includes `clients."CustomerSince"` and `sub_ventures."Notes"`.
+- Customer detail Notes: always under Customer Information; scoped per sub-venture; Notes + All Projects cards share height — only the projects table scrolls. Sub-venture `Notes` column + create/add-client save notes onto that SV.
+- Customer All Projects table: fixed columns — Project (name + ID + dates), Health, Stage, Sub-venture, Progress, PM, Open.
+- Project details UI polish (Apple HIG): richer header (health/status, timeline, budget, progress), quieter stage band, underline tabs, soft segmented filters (Health/Team/Comm), Tasks search.
+- Customer cards follow Apple HIG clarity/deference: identity first, EM as secondary row, unified metrics strip; soft lift on hover.
+- Customer detail: At Risk removed from Customer Information; Health filter (All / Healthy / At Risk / Critical) on All Projects top-right.
+- Customer project counts are mutually exclusive: **New** (ongoing 0%), **Ongoing**, **Completed** (delivered), **On Hold**, **Archived** (payment done). **Total** = sum of those five. Same breakdown on Customers list cards/table. Shared helper: `lib/client-project-counts.ts`.
+- **Customer Since** stored on `clients."CustomerSince"` (date). Set to today (IST) on create; existing rows backfilled from `CreatedAtUtc`. Shown in Customer Information on the detail page (no longer derived from project dates).
+- Customer details **Change EM** opens a centered modal (no longer clipped by the header). Loads all employees with designation Engagement Manager from the DB; search filters by name/email/code.
+- Customer details **Change EM**: lists employees with designation Engagement Manager (`mst_designations` → `employees`). Shows current EM from `clients`; save updates `EngagementManager` + `EngagementManagerId`. Seeded EM employees: Riya Kapoor, Rahul Sharma, Pradeep Singh, Arjun Mehta.
+- Serilog file blocks: `Time : dd-MM-yyyy HH:mm:ss | PMS_DEBUG` (or `PMS_ERROR`) and `Message : ...`, wrapped in `===` lines.
+- Resource Pool table columns sort like Directory (click header for A→Z / Z→A). Sortable: Dept, Emp Name, Reporting Manager, Allocation Status, Location, Office Site, Project Site. Allocation Type / Duration / Tasks stay plain headers.
 - Resource Directory/Pool always opens on Directory after a first load or hard refresh. Pool stays in memory until you leave or reload; it is no longer kept in `?tab=`.
-- Email allows letters, digits, `.`, `_`, `-`, and a single `@`. Symbols such as `# $ % ^ + & !` are rejected on the form and the API.
-- Backend Serilog writes to `apps/backend/Log/Debug log/` (Debug–Warning) and `apps/backend/Log/Error log/` (Error–Fatal). Folders are created on startup.
+- Email inputs strip `# $ % ^ & *` and similar as you type. Allowed: letters, digits, `.` `_` `-`, and one `@`.
+- Forms disable browser autofill (`autoComplete="off"`); email fields use text + `inputMode="email"` so Google/Chrome history suggestions do not appear while typing.
 - Directory & Pool filters load departments from `mst_departments` and designations from `mst_designations` (not hardcoded frontend lists). Status filter is Active / Probation / Notice Period only.
 - Onboard New Employee now sends the full profile payload (gender, DOB, address, emergency contact, marital status, nationality, dept/designation IDs, org + employment + skills fields). Those columns were empty because most form inputs were uncontrolled and `handleCreate` only POSTed a small subset.
 - Profile reads the same API fields; probation row uses `ProbationStatus` with fallback to `ProbationPeriod`. Skills/certs/languages are comma-split lists.

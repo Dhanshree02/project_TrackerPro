@@ -30,6 +30,19 @@ function formatDateString(dateStr: string | undefined | null): string {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+/** Apple-like segmented control track / item (clarity + deference). */
+const segmentTrackCls =
+  "inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted/55 p-1 ring-1 ring-border/50";
+function segmentItemCls(active: boolean, size: "sm" | "md" = "sm") {
+  return cn(
+    "rounded-lg font-medium whitespace-nowrap transition-colors",
+    size === "sm" ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-sm",
+    active
+      ? "bg-card text-foreground shadow-sm ring-1 ring-border/70"
+      : "text-muted-foreground hover:text-foreground",
+  );
+}
+
 const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
   "Penetration Testing": "Scope",
   "Vulnerability Assessment": "Scope",
@@ -246,6 +259,7 @@ function ProjectDetail() {
     isViewOnly,
     employeeProjectIds,
     assignedProjects,
+    hideBudget,
   } = useRoleContext();
 
   // Subscribe to store so runtime-created projects stay live/reactive
@@ -600,33 +614,50 @@ function ProjectDetail() {
   }
 
   return (
-    <AppShell title={project.name} subtitle={
-      <span>
+    <AppShell
+      title={project.name}
+      subtitle={
+        <span className="inline-flex flex-wrap items-center gap-x-1.5">
+          <Link
+            to="/customers/$clientId"
+            params={{ clientId: client.id }}
+            className="font-medium text-primary hover:underline"
+          >
+            {client.name}
+          </Link>
+          {project.subVenture ? (
+            <span className="text-muted-foreground">· {project.subVenture}</span>
+          ) : null}
+        </span>
+      }
+    >
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Link to="/projects" className="hover:text-foreground transition-colors">
+          Projects
+        </Link>
+        <ChevronRight className="h-3 w-3 shrink-0 opacity-60" />
         <Link
           to="/customers/$clientId"
           params={{ clientId: client.id }}
-          className="font-medium text-primary hover:underline"
+          className="hover:text-foreground transition-colors truncate max-w-[140px]"
         >
           {client.name}
         </Link>
-        {project.subVenture ? ` (${project.subVenture})` : ""}
-        {` · ${project.description}`}
-      </span>
-    }>
-
-      {/* Breadcrumb path */}
-      <nav className="mb-3 flex items-center gap-1 text-xs text-muted-foreground">
-        <Link to="/projects" className="hover:text-foreground transition-colors">Projects</Link>
-        <ChevronRight className="h-3 w-3 shrink-0" />
-        <span className="text-foreground font-medium truncate">{project.name}</span>
+        <ChevronRight className="h-3 w-3 shrink-0 opacity-60" />
+        <span className="truncate font-medium text-foreground">{project.name}</span>
       </nav>
 
-      {/* Project Stages Tracker */}
+      {/* Stages — quiet secondary band */}
       {(isDhanshree || isPmFamily || isPmoFamily || isAccounts || isSales) && (
-        <div className="mb-3 rounded-lg border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-4 py-3">
-            <h2 className="text-xs font-semibold text-gray-900">Project Stages Tracker</h2>
-            <p className="text-[11px] text-gray-600 mt-0.5">Track project progression through Sales → PMO → Delivery → Accounts</p>
+        <div className="mb-4 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="border-b border-border/70 px-5 py-3">
+            <h2 className="text-[13px] font-semibold tracking-tight text-foreground">
+              Project Stages
+            </h2>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Sales → PMO → Delivery → Accounts
+            </p>
           </div>
           {isDhanshree ? (
             <StageTracker stages={stages} subStatusMap={subStatusMap} subStagesMap={subStagesMap} />
@@ -636,27 +667,84 @@ function ProjectDetail() {
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
-          <HealthPill status={project.health} />
-          <StatusPill status={project.status} />
-          {isViewOnly && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-              <Lock className="h-3 w-3" /> View only · {user.role}
-            </span>
-          )}
-          <div className="ml-auto flex items-center gap-3">
-            <ProgressBar value={project.progress} className="w-40" />
-            <span className="text-xs font-medium tabular-nums">{project.progress}%</span>
+      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        {/* Identity + metrics */}
+        <div className="flex flex-col gap-4 border-b border-border/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3.5">
+            <div
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px]",
+                "bg-gradient-to-br from-primary to-info text-primary-foreground",
+                "shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]",
+              )}
+              aria-hidden
+            >
+              <FolderOpen className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <HealthPill status={project.health} />
+                <StatusPill status={project.status} />
+                {isViewOnly && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground">
+                    <Lock className="h-3 w-3" /> View only
+                  </span>
+                )}
+              </div>
+              <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground">
+                {project.description || "No description yet."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 flex-wrap items-end gap-5 sm:justify-end">
+            <div>
+              <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                <Calendar className="h-3 w-3" /> Timeline
+              </div>
+              <p className="mt-0.5 text-[12px] font-semibold tabular-nums tracking-tight">
+                {formatDateString(project.startDate)} → {formatDateString(project.endDate)}
+              </p>
+            </div>
+            {!(hideBudget || isPmFamily) && project.budget != null && (
+              <div>
+                <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  <Wallet className="h-3 w-3" /> Budget
+                </div>
+                <p className="mt-0.5 text-[12px] font-semibold tabular-nums tracking-tight">
+                  {project.currency ?? "INR"} {Number(project.budget).toLocaleString()}
+                </p>
+              </div>
+            )}
+            <div className="min-w-[132px]">
+              <div className="flex items-center justify-between gap-2 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                <span>Progress</span>
+                <span className="tabular-nums text-foreground">{project.progress}%</span>
+              </div>
+              <div className="mt-1.5">
+                <ProgressBar value={project.progress} className="w-full" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-1 overflow-x-auto border-b border-border px-2">
+        {/* Primary tabs */}
+        <div className="flex gap-1 overflow-x-auto border-b border-border/70 bg-muted/20 px-2">
           {visibleTabs.map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={cn("border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
-                tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                "relative px-3.5 py-3 text-[13px] font-medium transition-colors",
+                tab === t
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
               {t}
+              {tab === t && (
+                <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
+              )}
             </button>
           ))}
         </div>
@@ -2414,9 +2502,30 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
     updateExpanded(newSet);
   };
 
+  const [taskQuery, setTaskQuery] = useState("");
+  const filteredTree = useMemo(() => {
+    const q = taskQuery.trim().toLowerCase();
+    if (!q) return visibleTree;
+    return visibleTree.filter((svc) => {
+      const inService =
+        svc.serviceName.toLowerCase().includes(q) ||
+        svc.serviceId.toLowerCase().includes(q);
+      if (inService) return true;
+      const allTasks = svc.quarters
+        ? svc.quarters.flatMap((quarter) => quarter.aps.flatMap((ap) => ap.tasks))
+        : (svc.aps ?? []).flatMap((ap) => ap.tasks);
+      return allTasks.some(
+        (t) =>
+          t.taskId.toLowerCase().includes(q) ||
+          t.serviceModel.toLowerCase().includes(q) ||
+          t.id.toLowerCase().includes(q),
+      );
+    });
+  }, [visibleTree, taskQuery]);
+
   const handleExpandAll = () => {
     const newSet = new Set<string>();
-    visibleTree.forEach(svc => {
+    filteredTree.forEach(svc => {
       newSet.add(`svc-${svc.serviceId}`);
       if (svc.quarters) {
         svc.quarters.forEach(q => {
@@ -2445,7 +2554,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
 
   const flattenedRows = useMemo(() => {
     const rows: TreeRow[] = [];
-    visibleTree.forEach((svc) => {
+    filteredTree.forEach((svc) => {
       const svcId = `svc-${svc.serviceId}`;
       rows.push({ type: "service", id: svcId, service: svc, depth: 0 });
 
@@ -2468,7 +2577,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
       }
     });
     return rows;
-  }, [visibleTree, expandedNodes]);
+  }, [filteredTree, expandedNodes]);
 
   const [assignFor, setAssignFor] = useState<TreeTask | null>(null);
   const liveAssignments = useDhStore((s) => s.taskAssignments);
@@ -2495,43 +2604,55 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={taskQuery}
+              onChange={(e) => setTaskQuery(e.target.value)}
+              placeholder="Search services or tasks…"
+              className="h-8 w-52 rounded-lg border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
           <button
             onClick={handleExpandAll}
-            className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg border border-input bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <ChevronsDown className="h-3.5 w-3.5" /> Expand All
           </button>
           <button
             onClick={handleCollapseAll}
-            className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg border border-input bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <ChevronsUp className="h-3.5 w-3.5" /> Collapse All
           </button>
         </div>
         <div className="text-xs text-muted-foreground">
-          Showing {visibleTree.length} active service tree(s)
+          {filteredTree.length} service{filteredTree.length !== 1 ? "s" : ""}
+          {taskQuery.trim() ? " matched" : ""}
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border/80">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-muted/90 backdrop-blur-sm text-center text-xs uppercase tracking-wide text-muted-foreground z-10 border-b border-border">
+          <thead className="sticky top-0 z-10 border-b border-border bg-muted/90 text-center text-xs uppercase tracking-wide text-muted-foreground backdrop-blur-sm">
             <tr>
-              <th className="px-4 py-3 text-left font-medium whitespace-nowrap min-w-[280px]">Name &amp; Hierarchy</th>
-              <th className="px-3 py-3 font-medium whitespace-nowrap">Service ID</th>
-              <th className="px-3 py-3 font-medium whitespace-nowrap">Start Date</th>
-              <th className="px-3 py-3 font-medium whitespace-nowrap">End Date</th>
-              <th className="px-3 py-3 font-medium whitespace-nowrap">Hours (Utilized / Est.)</th>
-              <th className="px-3 py-3 font-medium whitespace-nowrap">Progress</th>
+              <th className="min-w-[280px] whitespace-nowrap px-4 py-3 text-left font-medium">Name &amp; Hierarchy</th>
+              <th className="whitespace-nowrap px-3 py-3 font-medium">Service ID</th>
+              <th className="whitespace-nowrap px-3 py-3 font-medium">Start Date</th>
+              <th className="whitespace-nowrap px-3 py-3 font-medium">End Date</th>
+              <th className="whitespace-nowrap px-3 py-3 font-medium">Hours (Utilized / Est.)</th>
+              <th className="whitespace-nowrap px-3 py-3 font-medium">Progress</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40">
-            {visibleTree.length === 0 ? (
+            {filteredTree.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                  No active services. Start services from the Prerequisites tab to populate tasks.
+                  {taskQuery.trim()
+                    ? "No services or tasks match your search."
+                    : "No active services. Start services from the Prerequisites tab to populate tasks."}
                 </td>
               </tr>
             ) : (
@@ -3076,14 +3197,13 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className={segmentTrackCls}>
           {(["project", "shadow"] as TeamTabType[]).map((t) => (
             <button
               key={t}
               onClick={() => setTeamTab(t)}
-              className={cn("rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                teamTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+              className={segmentItemCls(teamTab === t)}
             >
               {t === "project" ? "Project Team" : "Shadow Team"}
             </button>
@@ -3092,7 +3212,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
         {!readOnly && (
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-3.5 w-3.5" /> Add Team Member
         </button>
@@ -3689,15 +3809,12 @@ function HealthTab({ project }: { project: Project }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1 text-sm">
+      <div className={segmentTrackCls}>
         {tabsList.map((t) => (
           <button
             key={t}
             onClick={() => setHealthTab(t)}
-            className={cn(
-              "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap",
-              healthTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
+            className={segmentItemCls(healthTab === t, "md")}
           >
             {t}
           </button>
@@ -4272,15 +4389,12 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1 text-sm shadow-sm">
+      <div className={segmentTrackCls}>
         {(["Interview Scheduling", "Additional Customer Requirement"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setCommTab(t)}
-            className={cn(
-              "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap",
-              commTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
+            className={segmentItemCls(commTab === t, "md")}
           >
             {t}
           </button>
@@ -4433,16 +4547,13 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
               <Field label="Project Name"><input value={projName} onChange={(e) => setProjName(e.target.value)} readOnly className="h-9 w-full rounded-md border border-input bg-muted/40 px-3 text-sm outline-none" /></Field>
             </div>
 
-            <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1 text-xs">
+            <div className={cn(segmentTrackCls, "w-full text-xs")}>
               {(["Add Service", "Scope Cancellation"] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => setReqTab(t)}
-                  className={cn(
-                    "flex-1 rounded-md px-3 py-1.5 font-medium transition-colors",
-                    reqTab === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
+                  className={cn(segmentItemCls(reqTab === t), "flex-1")}
                 >
                   {t}
                 </button>
@@ -4682,9 +4793,15 @@ function ClientCommTab({ project }: { project: Project }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1 text-sm">
+      <div className={segmentTrackCls}>
         {(["Interview Scheduling", "Prerequisite Validation"] as const).map((t) => (
-          <button key={t} onClick={() => setCommTab(t)} className={cn("rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap", commTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{t}</button>
+          <button
+            key={t}
+            onClick={() => setCommTab(t)}
+            className={segmentItemCls(commTab === t, "md")}
+          >
+            {t}
+          </button>
         ))}
       </div>
 

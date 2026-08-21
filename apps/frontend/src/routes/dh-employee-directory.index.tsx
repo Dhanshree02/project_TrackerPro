@@ -30,10 +30,12 @@ import {
   phoneError,
   toDigits,
   toLettersName,
+  toEmailInput,
   toTenDigitPhone,
 } from "@/lib/form-validation";
 import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
 import { CreatableCatalogSelect } from "@/components/creatable-catalog-select";
+import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import {
   createDepartmentOption,
   createDesignationOption,
@@ -83,6 +85,14 @@ type DirectorySortKey =
   | "joiningDate"
   | "status"
   | "kpiScore";
+type PoolSortKey =
+  | "department"
+  | "name"
+  | "reportingManager"
+  | "allocationStatus"
+  | "officeBranch"
+  | "workLocation"
+  | "projectSite";
 type SortDir = "asc" | "desc";
 
 const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey }[] = [
@@ -101,6 +111,19 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey }[] = [
 const BASIC_DIRECTORY_COLUMNS = DIRECTORY_COLUMNS.slice(0, 4).map((c, i) =>
   i === 1 ? { ...c, label: "Employee Name" } : c,
 );
+
+const POOL_COLUMNS: { label: string; key: PoolSortKey | null; align?: "right" }[] = [
+  { label: "Dept", key: "department" },
+  { label: "Emp Name", key: "name" },
+  { label: "Reporting Manager", key: "reportingManager" },
+  { label: "Allocation Status", key: "allocationStatus" },
+  { label: "Allocation Type", key: null },
+  { label: "Allocation Duration", key: null },
+  { label: "Location", key: "officeBranch" },
+  { label: "Office Site", key: "workLocation" },
+  { label: "Project Site", key: "projectSite" },
+  { label: "Tasks", key: null, align: "right" },
+];
 
 function sortBlank(value: string): string {
   return !value || value === "—" ? "" : value;
@@ -121,23 +144,70 @@ function compareEmployees(a: Employee, b: Employee, key: DirectorySortKey): numb
   return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
 }
 
-function SortableTh({
+// ── Allocation Status type ──────────────────────────
+type AllocationStatus = "OnLeave" | "Trainee" | "Unassigned";
+
+function getAllocationStatus(e: Employee): AllocationStatus {
+  if (e.status === "On Leave") return "OnLeave";
+  if (e.category?.includes("Intern") || e.designation.toLowerCase().includes("intern"))
+    return "Trainee";
+  return "Unassigned";
+}
+
+const ALLOCATION_STATUS_ORDER: Record<AllocationStatus, number> = {
+  OnLeave: 0,
+  Trainee: 1,
+  Unassigned: 2,
+};
+
+function comparePoolEmployees(a: Employee, b: Employee, key: PoolSortKey): number {
+  if (key === "name") {
+    return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, undefined, {
+      sensitivity: "base",
+    });
+  }
+  if (key === "allocationStatus") {
+    return ALLOCATION_STATUS_ORDER[getAllocationStatus(a)] - ALLOCATION_STATUS_ORDER[getAllocationStatus(b)];
+  }
+  const valueFor = (e: Employee): string => {
+    switch (key) {
+      case "department":
+        return e.department;
+      case "reportingManager":
+        return e.reportingManager;
+      case "officeBranch":
+        return e.officeBranch;
+      case "workLocation":
+        return e.workLocation;
+      case "projectSite":
+        return e.projectSite ?? "";
+    }
+  };
+  return sortBlank(valueFor(a)).localeCompare(sortBlank(valueFor(b)), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function SortableTh<T extends string>({
   label,
   column,
   sortKey,
   sortDir,
   onSort,
+  className,
 }: {
   label: string;
-  column: DirectorySortKey;
-  sortKey: DirectorySortKey;
+  column: T;
+  sortKey: T;
   sortDir: SortDir;
-  onSort: (column: DirectorySortKey) => void;
+  onSort: (column: T) => void;
+  className?: string;
 }) {
   const active = sortKey === column;
   const Icon = active && sortDir === "desc" ? ChevronDown : ChevronUp;
   return (
-    <th className="whitespace-nowrap px-3 py-2.5 font-medium">
+    <th className={cn("whitespace-nowrap px-3 py-2.5 font-medium", className)}>
       <button
         type="button"
         onClick={() => onSort(column)}
@@ -158,16 +228,6 @@ function SortableTh({
       </button>
     </th>
   );
-}
-
-// ── Allocation Status type ──────────────────────────
-type AllocationStatus = "OnLeave" | "Trainee" | "Unassigned";
-
-function getAllocationStatus(e: Employee): AllocationStatus {
-  if (e.status === "On Leave") return "OnLeave";
-  if (e.category?.includes("Intern") || e.designation.toLowerCase().includes("intern"))
-    return "Trainee";
-  return "Unassigned";
 }
 
 function dash(value?: string | null): string {
@@ -495,13 +555,14 @@ function RequestAllocationModal({
           </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form autoComplete="off" onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
                 Start Date
               </span>
               <input
+                autoComplete="off"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -512,6 +573,7 @@ function RequestAllocationModal({
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-muted-foreground">End Date</span>
               <input
+                autoComplete="off"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -527,6 +589,7 @@ function RequestAllocationModal({
                 Comments (Type @ to tag team members)
               </span>
               <textarea
+                autoComplete="off"
                 ref={textareaRef}
                 value={comment}
                 onChange={handleTextareaChange}
@@ -609,9 +672,6 @@ function RequestAllocationModal({
     </div>
   );
 }
-
-const ONBOARD_INPUT_CLS =
-  "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const ONBOARD_DOC_SLOTS = [
   "Resume",
@@ -1013,7 +1073,6 @@ function FormField({
   required,
   className,
   name,
-  autoComplete,
   maxLength,
   min,
   max,
@@ -1029,8 +1088,8 @@ function FormField({
   error?: string;
   required?: boolean;
   className?: string;
+  /** Logical field id only — never emitted as a browser autofill name. */
   name?: string;
-  autoComplete?: string;
   maxLength?: number;
   min?: string;
   max?: string;
@@ -1039,31 +1098,46 @@ function FormField({
 }) {
   const resolvedMaxLength =
     type === "date" || type === "number" ? maxLength : (maxLength ?? FIELD_MAX.text);
+  // Chrome ignores autoComplete="off". new-password + readOnly-until-focus is the reliable pair.
+  const unlock = (el: HTMLInputElement) => {
+    el.removeAttribute("readonly");
+  };
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1 block text-xs font-medium text-muted-foreground">
+      <span className={FORM_LABEL_CLS}>
         {label}
         {required ? <span className="text-destructive"> *</span> : null}
       </span>
       <div className="relative">
         <input
-          name={name}
-          type={type}
+          id={name ? `onboard-${name}` : undefined}
+          type={type === "email" ? "text" : type}
           placeholder={placeholder}
-          autoComplete={autoComplete}
+          autoComplete="new-password"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          readOnly
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+          data-form-type="other"
           maxLength={resolvedMaxLength}
           min={min}
           max={max}
-          inputMode={inputMode}
+          inputMode={inputMode === "email" ? "text" : inputMode}
           className={cn(
-            ONBOARD_INPUT_CLS,
+            FORM_CONTROL_CLS,
             suffix && "pr-16",
             error && "border-destructive focus-visible:ring-destructive",
           )}
           {...(value !== undefined
             ? { value, onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange?.(e.target.value) }
             : {})}
+          onFocus={(e) => unlock(e.currentTarget)}
+          onMouseDown={(e) => unlock(e.currentTarget)}
           onBlur={onBlur}
+          aria-label={label}
           aria-invalid={Boolean(error)}
           aria-required={required}
         />
@@ -1073,7 +1147,7 @@ function FormField({
           </span>
         ) : null}
       </div>
-      {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
+      {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
     </label>
   );
 }
@@ -1096,26 +1170,34 @@ function FormSelect({
   const normalized = options.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
-      <select
-        disabled={disabled}
-        className={cn(
-          ONBOARD_INPUT_CLS,
-          error && "border-destructive focus-visible:ring-destructive",
-          disabled && "cursor-not-allowed bg-muted text-muted-foreground",
-        )}
-        {...(value !== undefined
-          ? { value, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value) }
-          : {})}
-      >
-        <option value="">Select…</option>
-        {normalized.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
+      <span className={FORM_LABEL_CLS}>{label}</span>
+      <div className="relative">
+        <select
+          disabled={disabled}
+          autoComplete="off"
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-form-type="other"
+          className={cn(
+            FORM_CONTROL_CLS,
+            "cursor-pointer appearance-none pr-8",
+            !value && "text-muted-foreground",
+            error && "border-destructive focus-visible:ring-destructive",
+          )}
+          {...(value !== undefined
+            ? { value, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value) }
+            : {})}
+        >
+          <option value="">Select…</option>
+          {normalized.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 shrink-0 -translate-y-1/2 text-muted-foreground" />
+      </div>
+      {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
     </label>
   );
 }
@@ -1285,11 +1367,13 @@ function OnboardingPanel({
         ? toTenDigitPhone(value)
         : field === "firstName" || field === "lastName"
           ? toLettersName(value)
-          : field === "probationPeriod"
-            ? toDigits(value, FIELD_MAX.probationMonths)
-            : field === "noticePeriod"
-              ? toDigits(value, FIELD_MAX.noticeDays)
-              : value;
+          : field === "workEmail" || field === "personalEmail"
+            ? toEmailInput(value)
+            : field === "probationPeriod"
+              ? toDigits(value, FIELD_MAX.probationMonths)
+              : field === "noticePeriod"
+                ? toDigits(value, FIELD_MAX.noticeDays)
+                : value;
     const next = { ...form, [field]: nextValue };
     if (field === "departmentId") {
       next.designationId = "";
@@ -1470,14 +1554,28 @@ function OnboardingPanel({
           </button>
         </div>
 
-        <form noValidate onSubmit={handleCreate} className="flex min-h-0 flex-1 flex-col">
+        <form
+          noValidate
+          autoComplete="off"
+          autoCorrect="off"
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-form-type="other"
+          onSubmit={handleCreate}
+          className="relative flex min-h-0 flex-1 flex-col"
+        >
+        {/* Decoy fields absorb Chrome autofill so real onboard inputs stay clean. */}
+        <div aria-hidden="true" className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0">
+          <input type="text" name="username" autoComplete="username" tabIndex={-1} defaultValue="" />
+          <input type="email" name="email" autoComplete="email" tabIndex={-1} defaultValue="" />
+          <input type="password" name="password" autoComplete="new-password" tabIndex={-1} defaultValue="" />
+        </div>
         {/* scrollable body */}
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
           <FormSection title="1. Personal Information">
             <FormField
               label="First Name"
               name="firstName"
-              autoComplete="given-name"
               required
               maxLength={FIELD_MAX.firstName}
               value={form.firstName}
@@ -1488,7 +1586,6 @@ function OnboardingPanel({
             <FormField
               label="Last Name"
               name="lastName"
-              autoComplete="family-name"
               required
               maxLength={FIELD_MAX.lastName}
               value={form.lastName}
@@ -1499,8 +1596,7 @@ function OnboardingPanel({
             <FormField
               label="Email ID"
               name="workEmail"
-              type="email"
-              autoComplete="email"
+              type="text"
               required
               maxLength={FIELD_MAX.email}
               value={form.workEmail}
@@ -1511,8 +1607,7 @@ function OnboardingPanel({
             <FormField
               label="Personal Email"
               name="personalEmail"
-              type="email"
-              autoComplete="off"
+              type="text"
               maxLength={FIELD_MAX.email}
               value={form.personalEmail}
               onChange={(v) => setField("personalEmail", v)}
@@ -1523,6 +1618,7 @@ function OnboardingPanel({
               label="Mobile Number"
               name="phone"
               inputMode="numeric"
+              required
               maxLength={FIELD_MAX.phone}
               placeholder="10-digit mobile"
               value={form.phone}
@@ -1594,7 +1690,6 @@ function OnboardingPanel({
             <FormField
               label="Employee ID"
               name="employeeCode"
-              autoComplete="off"
               required
               placeholder="EMP-1049"
               maxLength={FIELD_MAX.employeeCode}
@@ -1992,6 +2087,8 @@ function EmployeeDirectoryPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<DirectorySortKey>("id");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [poolSortKey, setPoolSortKey] = useState<PoolSortKey>("department");
+  const [poolSortDir, setPoolSortDir] = useState<SortDir>("asc");
 
   // Pool modal states
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -2068,7 +2165,7 @@ function EmployeeDirectoryPage() {
 
   // ── Pool Filtering ──
   const poolRows = useMemo(() => {
-    return dbEmployees.filter((e) => {
+    const filtered = dbEmployees.filter((e) => {
       const matchQ =
         !q ||
         `${e.firstName} ${e.lastName} ${e.id} ${e.email} ${e.department} ${e.designation} ${e.reportingManager} ${e.workLocation}`
@@ -2081,7 +2178,11 @@ function EmployeeDirectoryPage() {
         (!status || e.status === status)
       );
     });
-  }, [dbEmployees, q, dept, desig, status]);
+    return [...filtered].sort((a, b) => {
+      const cmp = comparePoolEmployees(a, b, poolSortKey);
+      return poolSortDir === "asc" ? cmp : -cmp;
+    });
+  }, [dbEmployees, q, dept, desig, status, poolSortKey, poolSortDir]);
 
   // Determine active rows based on tab
   const activeRows = tab === "directory" ? directoryRows : poolRows;
@@ -2093,7 +2194,7 @@ function EmployeeDirectoryPage() {
   // Reset page when filters or tab change
   useEffect(() => {
     setPage(1);
-  }, [q, dept, desig, status, tab, sortKey, sortDir]);
+  }, [q, dept, desig, status, tab, sortKey, sortDir, poolSortKey, poolSortDir]);
 
   // Admin and HR both manage the full employee directory (HR uses it for
   // onboarding); every other role is redirected.
@@ -2319,28 +2420,35 @@ function EmployeeDirectoryPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                {[
-                  "Dept",
-                  "Emp Name",
-                  "Reporting Manager",
-                  "Allocation Status",
-                  "Allocation Type",
-                  "Allocation Duration",
-                  "Location",
-                  "Office Site",
-                  "Project Site",
-                  "Tasks",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className={cn(
-                      "whitespace-nowrap px-4 py-3 font-medium",
-                      h === "Tasks" ? "text-right" : "text-left",
-                    )}
-                  >
-                    {h}
-                  </th>
-                ))}
+                {POOL_COLUMNS.map((col) =>
+                  col.key ? (
+                    <SortableTh
+                      key={col.label}
+                      label={col.label}
+                      column={col.key}
+                      sortKey={poolSortKey}
+                      sortDir={poolSortDir}
+                      className="px-4 py-3"
+                      onSort={(next) => {
+                        if (poolSortKey === next) setPoolSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                        else {
+                          setPoolSortKey(next);
+                          setPoolSortDir("asc");
+                        }
+                      }}
+                    />
+                  ) : (
+                    <th
+                      key={col.label}
+                      className={cn(
+                        "whitespace-nowrap px-4 py-3 font-medium",
+                        col.align === "right" ? "text-right" : "text-left",
+                      )}
+                    >
+                      {col.label}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

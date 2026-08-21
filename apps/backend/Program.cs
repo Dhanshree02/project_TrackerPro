@@ -21,8 +21,18 @@ builder.Host.UseSerilog((context, services, config) =>
     Directory.CreateDirectory(debugDir);
     Directory.CreateDirectory(errorDir);
 
-    const string outputTemplate =
-        "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}";
+    const string banner =
+        "===========================================================================================";
+    const string debugTemplate =
+        banner + "{NewLine}" +
+        "Time : {Timestamp:dd-MM-yyyy HH:mm:ss} | PMS_DEBUG{NewLine}" +
+        "Message : {Message:lj}{NewLine}{Exception}" +
+        banner + "{NewLine}";
+    const string errorTemplate =
+        banner + "{NewLine}" +
+        "Time : {Timestamp:dd-MM-yyyy HH:mm:ss} | PMS_ERROR{NewLine}" +
+        "Message : {Message:lj}{NewLine}{Exception}" +
+        banner + "{NewLine}";
 
     config
         .ReadFrom.Configuration(context.Configuration)
@@ -35,7 +45,7 @@ builder.Host.UseSerilog((context, services, config) =>
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 14,
                 shared: true,
-                outputTemplate: outputTemplate))
+                outputTemplate: debugTemplate))
         .WriteTo.Logger(error => error
             .Filter.ByIncludingOnly(e => e.Level >= LogEventLevel.Error)
             .WriteTo.File(
@@ -43,7 +53,7 @@ builder.Host.UseSerilog((context, services, config) =>
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 30,
                 shared: true,
-                outputTemplate: outputTemplate));
+                outputTemplate: errorTemplate));
 });
 
 // ---- Controllers ----

@@ -27,6 +27,7 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.BusinessType).HasMaxLength(40);
         builder.Property(c => c.Notes).HasMaxLength(2000);
         builder.Property(c => c.KycDocumentName).HasMaxLength(255);
+        builder.Property(c => c.CustomerSince);
         builder.Property(c => c.ClientType).HasConversion<string>().HasMaxLength(10);
         builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(c => c.IndustryId);

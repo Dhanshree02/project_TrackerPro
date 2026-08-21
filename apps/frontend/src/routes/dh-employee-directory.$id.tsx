@@ -12,6 +12,7 @@ import {
   fieldInputCls,
   isoDateToday,
   phoneError,
+  toEmailInput,
   toTenDigitPhone,
 } from "@/lib/form-validation";
 import { toast } from "sonner";
@@ -211,6 +212,7 @@ function OffboardConfirmDialog({
               Notice Period (days) <span className="text-destructive">*</span>
             </span>
             <input
+              autoComplete="off"
               type="number"
               min={0}
               max={730}
@@ -231,6 +233,7 @@ function OffboardConfirmDialog({
               Resignation Date <span className="text-destructive">*</span>
             </span>
             <input
+              autoComplete="off"
               type="date"
               value={resignationDate}
               onChange={(e) => setResignationDate(e.target.value)}
@@ -246,6 +249,7 @@ function OffboardConfirmDialog({
               Last Working Day
             </span>
             <input
+              autoComplete="off"
               type="date"
               value={lastWorkingDay}
               readOnly
@@ -263,6 +267,7 @@ function OffboardConfirmDialog({
               Reason for Leaving <span className="text-destructive">*</span>
             </span>
             <input
+              autoComplete="off"
               value={reasonForLeaving}
               onChange={(e) => setReasonForLeaving(e.target.value)}
               placeholder="Better opportunity"
@@ -404,6 +409,8 @@ function EditProfilePanel({
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <form
+        noValidate
+        autoComplete="off"
         onSubmit={handleSubmit}
         className="relative flex h-full w-full max-w-4xl flex-col bg-background shadow-2xl"
       >
@@ -435,6 +442,7 @@ function EditProfilePanel({
                   First Name
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.firstName}
                   maxLength={FIELD_MAX.firstName}
@@ -448,6 +456,7 @@ function EditProfilePanel({
                   Last Name
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.lastName}
                   maxLength={FIELD_MAX.lastName}
@@ -461,10 +470,12 @@ function EditProfilePanel({
                   Email ID
                 </span>
                 <input
-                  type="email"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="off"
                   value={formData.email}
                   maxLength={FIELD_MAX.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
+                  onChange={(e) => handleChange("email", toEmailInput(e.target.value))}
                   onBlur={() => handleChange("email", formData.email.trim())}
                   className={fieldInputCls(inputCls, Boolean(emailError(formData.email)))}
                   required
@@ -478,10 +489,12 @@ function EditProfilePanel({
                   Personal Email
                 </span>
                 <input
-                  type="email"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="off"
                   value={formData.personalEmail}
                   maxLength={FIELD_MAX.email}
-                  onChange={(e) => handleChange("personalEmail", e.target.value)}
+                  onChange={(e) => handleChange("personalEmail", toEmailInput(e.target.value))}
                   onBlur={() => handleChange("personalEmail", formData.personalEmail.trim())}
                   className={fieldInputCls(inputCls, Boolean(emailError(formData.personalEmail ?? "")))}
                 />
@@ -496,6 +509,7 @@ function EditProfilePanel({
                   Mobile Number
                 </span>
                 <input
+                  autoComplete="off"
                   type="tel"
                   inputMode="numeric"
                   maxLength={FIELD_MAX.phone}
@@ -513,6 +527,7 @@ function EditProfilePanel({
                   Alternate Contact
                 </span>
                 <input
+                  autoComplete="off"
                   type="tel"
                   inputMode="numeric"
                   maxLength={FIELD_MAX.phone}
@@ -530,6 +545,7 @@ function EditProfilePanel({
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">Gender</span>
                 <select
+                  autoComplete="off"
                   value={formData.gender}
                   onChange={(e) => handleChange("gender", e.target.value)}
                   className={inputCls}
@@ -545,6 +561,7 @@ function EditProfilePanel({
                   Date of Birth
                 </span>
                 <input
+                  autoComplete="off"
                   type="date"
                   value={formData.dob}
                   onChange={(e) => handleChange("dob", e.target.value)}
@@ -556,6 +573,7 @@ function EditProfilePanel({
                   Marital Status
                 </span>
                 <select
+                  autoComplete="off"
                   value={formData.maritalStatus}
                   onChange={(e) => handleChange("maritalStatus", e.target.value)}
                   className={inputCls}
@@ -570,6 +588,7 @@ function EditProfilePanel({
                   Nationality
                 </span>
                 <select
+                  autoComplete="off"
                   value={formData.nationality}
                   onChange={(e) => handleChange("nationality", e.target.value)}
                   className={inputCls}
@@ -592,6 +611,7 @@ function EditProfilePanel({
                     Address
                   </span>
                   <input
+                    autoComplete="off"
                     type="text"
                     value={formData.address}
                     maxLength={FIELD_MAX.address}
@@ -614,6 +634,7 @@ function EditProfilePanel({
                   Employee ID
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.id}
                   disabled
@@ -625,6 +646,7 @@ function EditProfilePanel({
                   Department
                 </span>
                 <select
+                  autoComplete="off"
                   value={formData.department}
                   onChange={(e) => handleChange("department", e.target.value)}
                   className={inputCls}
@@ -645,6 +667,7 @@ function EditProfilePanel({
                   Designation
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.designation}
                   maxLength={FIELD_MAX.designation}
@@ -655,6 +678,7 @@ function EditProfilePanel({
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">Role</span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.role}
                   onChange={(e) => handleChange("role", e.target.value)}
@@ -666,6 +690,7 @@ function EditProfilePanel({
                   Reporting Manager
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.reportingManager}
                   onChange={(e) => handleChange("reportingManager", e.target.value)}
@@ -677,6 +702,7 @@ function EditProfilePanel({
                   Business Unit
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.businessUnit}
                   onChange={(e) => handleChange("businessUnit", e.target.value)}
@@ -686,6 +712,7 @@ function EditProfilePanel({
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">Team</span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.team}
                   onChange={(e) => handleChange("team", e.target.value)}
@@ -697,6 +724,7 @@ function EditProfilePanel({
                   Project Site
                 </span>
                 <select
+                  autoComplete="off"
                   value={formData.projectSite}
                   onChange={(e) => handleChange("projectSite", e.target.value)}
                   className={inputCls}
@@ -710,6 +738,7 @@ function EditProfilePanel({
                   Work Location
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.workLocation}
                   onChange={(e) => handleChange("workLocation", e.target.value)}
@@ -721,6 +750,7 @@ function EditProfilePanel({
                   Office Branch
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.officeBranch}
                   onChange={(e) => handleChange("officeBranch", e.target.value)}
@@ -741,6 +771,7 @@ function EditProfilePanel({
                   Date of Joining
                 </span>
                 <input
+                  autoComplete="off"
                   type="date"
                   min={isoDateToday()}
                   value={formData.joiningDate}
@@ -753,6 +784,7 @@ function EditProfilePanel({
                   Category
                 </span>
                 <select
+                  autoComplete="off"
                   value={formData.category}
                   onChange={(e) => handleChange("category", e.target.value)}
                   className={inputCls}
@@ -769,6 +801,7 @@ function EditProfilePanel({
                   Asset ID
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.assetId}
                   onChange={(e) => handleChange("assetId", e.target.value)}
@@ -780,6 +813,7 @@ function EditProfilePanel({
                   Employment Status
                 </span>
                 <select
+                  autoComplete="off"
                   value={formData.status}
                   onChange={(e) => handleChange("status", e.target.value)}
                   className={inputCls}
@@ -796,6 +830,7 @@ function EditProfilePanel({
                   Confirmation Status
                 </span>
                 <select
+                  autoComplete="off"
                   value={formData.confirmationStatus}
                   onChange={(e) => handleChange("confirmationStatus", e.target.value)}
                   className={inputCls}
@@ -812,6 +847,7 @@ function EditProfilePanel({
                   Probation Status
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.probationStatus}
                   onChange={(e) => handleChange("probationStatus", e.target.value)}
@@ -823,6 +859,7 @@ function EditProfilePanel({
                   Notice Period
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.noticePeriod}
                   onChange={(e) => handleChange("noticePeriod", e.target.value)}
@@ -834,6 +871,7 @@ function EditProfilePanel({
                   Salary Band
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.salaryBand}
                   onChange={(e) => handleChange("salaryBand", e.target.value)}
@@ -845,6 +883,7 @@ function EditProfilePanel({
                   Experience
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.experience}
                   onChange={(e) => handleChange("experience", e.target.value)}
@@ -856,6 +895,7 @@ function EditProfilePanel({
                   Previous Company
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.previousCompany}
                   onChange={(e) => handleChange("previousCompany", e.target.value)}
@@ -876,6 +916,7 @@ function EditProfilePanel({
                   Education / Highest Qualification
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.education}
                   onChange={(e) => handleChange("education", e.target.value)}
@@ -887,6 +928,7 @@ function EditProfilePanel({
                   Technical Skills (comma separated)
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.skills.join(", ")}
                   onChange={(e) => handleSkillsChange(e.target.value)}
@@ -898,6 +940,7 @@ function EditProfilePanel({
                   Languages (comma separated)
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.languages.join(", ")}
                   onChange={(e) => handleLanguagesChange(e.target.value)}
@@ -909,6 +952,7 @@ function EditProfilePanel({
                   Certifications (comma separated)
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.certifications.join(", ")}
                   onChange={(e) => handleCertificationsChange(e.target.value)}
@@ -929,6 +973,7 @@ function EditProfilePanel({
                   PAN Number
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.pan}
                   onChange={(e) => handleChange("pan", e.target.value)}
@@ -940,6 +985,7 @@ function EditProfilePanel({
                   Bank Account Number
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.bankAccount}
                   onChange={(e) => handleChange("bankAccount", e.target.value)}
@@ -951,6 +997,7 @@ function EditProfilePanel({
                   PF/UAN Number
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.pfUan}
                   onChange={(e) => handleChange("pfUan", e.target.value)}
@@ -962,6 +1009,7 @@ function EditProfilePanel({
                   Tax Regime
                 </span>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.taxRegime}
                   onChange={(e) => handleChange("taxRegime", e.target.value)}
@@ -973,6 +1021,7 @@ function EditProfilePanel({
                   Compliance Status
                 </span>
                 <select
+                  autoComplete="off"
                   value={formData.complianceStatus}
                   onChange={(e) => handleChange("complianceStatus", e.target.value)}
                   className={inputCls}
@@ -1829,6 +1878,7 @@ function EmployeeCalendar({
             </button>
             <div className="relative">
               <select
+                autoComplete="off"
                 value={currentMonth}
                 onChange={(e) => setCurrentMonth(Number(e.target.value))}
                 className="h-9 rounded-md border border-input bg-card px-3 text-sm font-semibold outline-none focus:ring-1 focus:ring-ring text-foreground pr-8 appearance-none"
@@ -1840,6 +1890,7 @@ function EmployeeCalendar({
                 ))}
               </select>
               <select
+                autoComplete="off"
                 value={currentYear}
                 onChange={(e) => setCurrentYear(Number(e.target.value))}
                 className="h-9 ml-1.5 rounded-md border border-input bg-card px-3 text-sm font-semibold outline-none focus:ring-1 focus:ring-ring text-foreground"
@@ -1990,12 +2041,13 @@ function EmployeeCalendar({
               .
             </p>
 
-            <form onSubmit={handleSaveDayOverride} className="space-y-4">
+            <form autoComplete="off" onSubmit={handleSaveDayOverride} className="space-y-4">
               <label className="block">
                 <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   Day Status Type
                 </span>
                 <select
+                  autoComplete="off"
                   value={dayType}
                   onChange={(e) => setDayType(e.target.value as any)}
                   className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
@@ -2013,6 +2065,7 @@ function EmployeeCalendar({
                     Shift Timing
                   </span>
                   <select
+                    autoComplete="off"
                     value={shiftTiming}
                     onChange={(e) => setShiftTiming(e.target.value)}
                     className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
@@ -2031,6 +2084,7 @@ function EmployeeCalendar({
                     Leave Type
                   </span>
                   <select
+                    autoComplete="off"
                     value={leaveType}
                     onChange={(e) => setLeaveType(e.target.value)}
                     className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
@@ -2050,6 +2104,7 @@ function EmployeeCalendar({
                   Remarks / Reason
                 </span>
                 <textarea
+                  autoComplete="off"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="E.g., Doctor appointment, customer alignment, holiday list update..."
@@ -2102,12 +2157,13 @@ function EmployeeCalendar({
               Submit a formal request to alter the assigned work shift.
             </p>
 
-            <form onSubmit={handleShiftRequestSubmit} className="space-y-4">
+            <form autoComplete="off" onSubmit={handleShiftRequestSubmit} className="space-y-4">
               <label className="block">
                 <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   Effective Date
                 </span>
                 <input
+                  autoComplete="off"
                   type="date"
                   value={reqShiftDate}
                   onChange={(e) => setReqShiftDate(e.target.value)}
@@ -2121,6 +2177,7 @@ function EmployeeCalendar({
                   Target Work Shift
                 </span>
                 <select
+                  autoComplete="off"
                   value={reqShiftNew}
                   onChange={(e) => setReqShiftNew(e.target.value)}
                   className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
@@ -2137,6 +2194,7 @@ function EmployeeCalendar({
                   Reason for Request
                 </span>
                 <textarea
+                  autoComplete="off"
                   value={reqShiftReason}
                   onChange={(e) => setReqShiftReason(e.target.value)}
                   placeholder="Explain why the shift change is required..."
@@ -2181,12 +2239,13 @@ function EmployeeCalendar({
               Submit a request to change the weekly off day.
             </p>
 
-            <form onSubmit={handleWeeklyOffRequestSubmit} className="space-y-4">
+            <form autoComplete="off" onSubmit={handleWeeklyOffRequestSubmit} className="space-y-4">
               <label className="block">
                 <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   Off Date Requested
                 </span>
                 <input
+                  autoComplete="off"
                   type="date"
                   value={reqWOffDate}
                   onChange={(e) => setReqWOffDate(e.target.value)}
@@ -2200,6 +2259,7 @@ function EmployeeCalendar({
                   Reason / Description
                 </span>
                 <textarea
+                  autoComplete="off"
                   value={reqWOffReason}
                   onChange={(e) => setReqWOffReason(e.target.value)}
                   placeholder="Explain why the weekly off change is required..."

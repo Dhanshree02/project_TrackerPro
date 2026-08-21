@@ -133,7 +133,16 @@ export function toDigits(value: string, max = 10): string {
   return value.replace(/\D/g, "").slice(0, max);
 }
 
-/** Keep letters and spaces only (first/last name). */
+/** Keep letters, digits, `.` `_` `-`, and a single `@`. Strips `# $ % ^ & *` etc. as you type. */
+export function toEmailInput(value: string): string {
+  const stripped = value.replace(/[^A-Za-z0-9._@-]/g, "");
+  const at = stripped.indexOf("@");
+  const next =
+    at === -1
+      ? stripped
+      : stripped.slice(0, at + 1) + stripped.slice(at + 1).replace(/@/g, "");
+  return next.slice(0, FIELD_MAX.email);
+}
 export function toLettersName(value: string): string {
   return value.replace(/[^A-Za-z ]/g, "");
 }
