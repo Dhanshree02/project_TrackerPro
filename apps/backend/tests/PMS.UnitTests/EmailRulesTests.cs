@@ -9,7 +9,8 @@ public class EmailRulesTests
     [InlineData("sahil.lad@company.com")]
     [InlineData("sahil@company.co.in")]
     [InlineData("  sahil@gmail.com  ")]
-    [InlineData("sahil+tag@gmail.com")]
+    [InlineData("first-last@acme.co")]
+    [InlineData("first_last@acme.co")]
     public void AcceptsValidEmails(string email)
     {
         Assert.True(EmailRules.IsValid(email));
@@ -24,6 +25,14 @@ public class EmailRulesTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("sahil@@gmail.com")]
+    [InlineData("sahil+tag@gmail.com")]
+    [InlineData("sahil#test@gmail.com")]
+    [InlineData("sahil$test@gmail.com")]
+    [InlineData("sahil%test@gmail.com")]
+    [InlineData("sahil^test@gmail.com")]
+    [InlineData("sahil!test@gmail.com")]
+    [InlineData("sahil&test@gmail.com")]
+    [InlineData("user@comp#any.com")]
     public void RejectsInvalidEmails(string email)
     {
         Assert.False(EmailRules.IsValid(email));

@@ -329,6 +329,11 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData("sahil@gmail")]
     [InlineData("sahil gmail.com")]
     [InlineData("sahil@.com")]
+    [InlineData("sahil#test@gmail.com")]
+    [InlineData("sahil$test@gmail.com")]
+    [InlineData("sahil%test@gmail.com")]
+    [InlineData("sahil^test@gmail.com")]
+    [InlineData("sahil+tag@gmail.com")]
     public async Task CreateEmployee_RejectsInvalidWorkEmail(string workEmail)
     {
         _client.DefaultRequestHeaders.Authorization =

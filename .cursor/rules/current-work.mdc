@@ -9,7 +9,8 @@ alwaysApply: true
 
 ## Latest
 
-- Email format is shared: frontend `isValidEmail` / `emailError` in `form-validation.ts`; backend `EmailRules` + `MustBeValidEmail()` on employee, client, user, and login validators. Invalid values never reach the database.
+- Resource Directory/Pool always opens on Directory after a first load or hard refresh. Pool stays in memory until you leave or reload; it is no longer kept in `?tab=`.
+- Email allows letters, digits, `.`, `_`, `-`, and a single `@`. Symbols such as `# $ % ^ + & !` are rejected on the form and the API.
 - Backend Serilog writes to `apps/backend/Log/Debug log/` (Debug–Warning) and `apps/backend/Log/Error log/` (Error–Fatal). Folders are created on startup.
 - Directory & Pool filters load departments from `mst_departments` and designations from `mst_designations` (not hardcoded frontend lists). Status filter is Active / Probation / Notice Period only.
 - Onboard New Employee now sends the full profile payload (gender, DOB, address, emergency contact, marital status, nationality, dept/designation IDs, org + employment + skills fields). Those columns were empty because most form inputs were uncontrolled and `handleCreate` only POSTed a small subset.

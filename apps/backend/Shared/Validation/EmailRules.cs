@@ -2,8 +2,8 @@ namespace PMS.API.Shared.Validation;
 
 /// <summary>
 /// Practical email format check used by FluentValidation and services.
-/// Trims first. Requires local@domain with a real TLD (name@company.com),
-/// not a full RFC regex.
+/// Trims first. Requires local@domain with a real TLD (name@company.com).
+/// Letters, digits, dot, underscore, and hyphen only — the only other symbol allowed is @.
 /// </summary>
 public static class EmailRules
 {
@@ -32,7 +32,7 @@ public static class EmailRules
 
         var local = email[..at];
         var domain = email[(at + 1)..];
-        if (local.StartsWith('.') || local.EndsWith('.')) return false;
+        if (!IsLocalPart(local)) return false;
         if (domain.StartsWith('.') || domain.EndsWith('.') || domain.Contains(".."))
             return false;
 
@@ -44,9 +44,36 @@ public static class EmailRules
 
         foreach (var label in domain.Split('.'))
         {
-            if (label.Length == 0) return false;
+            if (!IsDomainLabel(label)) return false;
         }
 
+        return true;
+    }
+
+    private static bool IsLocalPart(string local)
+    {
+        if (local.Length == 0) return false;
+        if (local.Contains("..")) return false;
+        if (!char.IsAsciiLetterOrDigit(local[0])) return false;
+        if (!char.IsAsciiLetterOrDigit(local[^1])) return false;
+        foreach (var c in local)
+        {
+            if (char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-') continue;
+            return false;
+        }
+        return true;
+    }
+
+    private static bool IsDomainLabel(string label)
+    {
+        if (label.Length == 0) return false;
+        if (!char.IsAsciiLetterOrDigit(label[0])) return false;
+        if (!char.IsAsciiLetterOrDigit(label[^1])) return false;
+        foreach (var c in label)
+        {
+            if (char.IsAsciiLetterOrDigit(c) || c == '-') continue;
+            return false;
+        }
         return true;
     }
 }

@@ -68,11 +68,19 @@ export function phoneError(value: string, required = false): string | undefined 
 
 /**
  * Trim then require local@domain with a real TLD (e.g. name@company.com).
- * Rejects sahil@, @gmail.com, sahil@gmail, sahil gmail.com, sahil@.com
- * without a heavy RFC regex.
+ * Letters, digits, dot, underscore, and hyphen only — the only other symbol allowed is @.
+ * Rejects sahil@, @gmail.com, sahil@gmail, sahil#x@gmail.com, sahil+tag@gmail.com.
  */
 export function normalizeEmail(value: string): string {
   return value.trim();
+}
+
+function isEmailLocalPart(value: string): boolean {
+  return /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(value) && !value.includes("..");
+}
+
+function isEmailDomainLabel(value: string): boolean {
+  return /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(value);
 }
 
 export function isValidEmail(value: string): boolean {
@@ -85,7 +93,7 @@ export function isValidEmail(value: string): boolean {
 
   const local = email.slice(0, at);
   const domain = email.slice(at + 1);
-  if (local.startsWith(".") || local.endsWith(".")) return false;
+  if (!isEmailLocalPart(local)) return false;
   if (domain.startsWith(".") || domain.endsWith(".") || domain.includes("..")) return false;
 
   const lastDot = domain.lastIndexOf(".");
@@ -93,7 +101,9 @@ export function isValidEmail(value: string): boolean {
 
   const tld = domain.slice(lastDot + 1);
   if (tld.length < 2 || !/^[A-Za-z]+$/.test(tld)) return false;
-  if (domain.split(".").some((label) => label.length === 0)) return false;
+
+  const labels = domain.split(".");
+  if (labels.some((label) => !isEmailDomainLabel(label))) return false;
 
   return true;
 }

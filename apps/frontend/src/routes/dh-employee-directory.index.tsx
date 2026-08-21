@@ -1969,8 +1969,13 @@ function EmployeeDirectoryPage() {
   const { tab: searchTab } = Route.useSearch();
   const basicDirectoryView =
     isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  const tab = basicDirectoryView || !ENABLE_RESOURCE_POOL ? "directory" : searchTab || "directory";
+  const [tab, setTabState] = useState<"directory" | "pool">("directory");
   const navigate = useNavigate({ from: Route.fullPath });
+
+  useEffect(() => {
+    if (!searchTab) return;
+    void navigate({ search: (prev) => ({ ...prev, tab: undefined }), replace: true });
+  }, [searchTab, navigate]);
 
   const [q, setQ] = useState("");
   const [dept, setDept] = useState("");
@@ -1994,7 +1999,8 @@ function EmployeeDirectoryPage() {
 
   const setTab = (newTab: "directory" | "pool") => {
     if (!ENABLE_RESOURCE_POOL && newTab === "pool") return;
-    navigate({ search: (prev) => ({ ...prev, tab: newTab }) });
+    if (basicDirectoryView) return;
+    setTabState(newTab);
   };
 
   const loadEmployees = async () => {
