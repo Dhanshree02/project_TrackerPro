@@ -1,37 +1,37 @@
 import { cn } from "@/lib/utils";
 
-/** Max lengths aligned to field purpose / DB columns. */
+/** Max lengths aligned to field purpose / DB columns (all text boxes and text areas max 200 characters). */
 export const FIELD_MAX = {
-  clientName: 255,
-  subVentureName: 255,
-  projectName: 255,
-  personName: 150,
-  firstName: 120,
-  lastName: 120,
-  engagementManager: 120,
-  designation: 120,
-  industry: 100,
-  nationality: 80,
-  address: 500,
-  email: 255,
+  clientName: 200,
+  subVentureName: 200,
+  projectName: 200,
+  personName: 200,
+  firstName: 200,
+  lastName: 200,
+  engagementManager: 200,
+  designation: 200,
+  industry: 200,
+  nationality: 200,
+  address: 200,
+  email: 200,
   phone: 10,
-  notes: 2000,
-  employeeCode: 20,
-  text: 255,
-  team: 120,
-  assetId: 80,
-  exitComment: 500,
-  education: 255,
-  certifications: 255,
-  skills: 255,
-  experience: 80,
-  previousCompany: 160,
+  notes: 200,
+  employeeCode: 200,
+  text: 200,
+  team: 200,
+  assetId: 200,
+  exitComment: 200,
+  education: 200,
+  certifications: 200,
+  skills: 200,
+  experience: 200,
+  previousCompany: 200,
   pan: 10,
   aadhaar: 12,
   pfUan: 12,
   bankAccount: 18,
   ifsc: 11,
-  catalogName: 150,
+  catalogName: 200,
   probationMonths: 2,
   noticeDays: 3,
 } as const;
@@ -51,18 +51,29 @@ export function toTenDigitPhone(value: string): string {
   return digits.slice(0, FIELD_MAX.phone);
 }
 
-export function isCompletePhone(value: string): boolean {
-  return toTenDigitPhone(value).length === FIELD_MAX.phone;
+export function isValidIndianPhone(value?: string | null): boolean {
+  const digits = toTenDigitPhone(value ?? "");
+  if (digits.length !== 10) return false;
+  if (!/^[6-9]\d{9}$/.test(digits)) return false;
+  if (/^(\d)\1{9}$/.test(digits)) return false;
+  return true;
+}
+
+export function isCompletePhone(value?: string | null): boolean {
+  return isValidIndianPhone(value);
 }
 
 /**
- * Live phone error. Empty is OK unless `required`.
- * Fewer than 10 digits → red box + message.
+ * Live phone error for Indian mobile numbers.
+ * Empty is OK unless `required`.
+ * Validates: 10 digits, starts with 6-9, non-repeated digits.
  */
-export function phoneError(value: string, required = false): string | undefined {
-  const digits = value.replace(/\D/g, "");
+export function phoneError(value?: string | null, required = false): string | undefined {
+  const digits = toTenDigitPhone(value ?? "");
   if (!digits) return required ? "Phone number is required" : undefined;
-  if (digits.length < FIELD_MAX.phone) return "Enter a 10-digit phone number";
+  if (digits.length < FIELD_MAX.phone) return "Enter a 10-digit mobile number";
+  if (!/^[6-9]/.test(digits)) return "Must start with 6, 7, 8, or 9";
+  if (/^(\d)\1{9}$/.test(digits)) return "Invalid repeated phone number";
   return undefined;
 }
 
@@ -144,11 +155,23 @@ export function toEmailInput(value: string): string {
   return next.slice(0, FIELD_MAX.email);
 }
 export function toLettersName(value: string): string {
-  return value.replace(/[^A-Za-z ]/g, "");
+  return value.replace(/[^A-Za-z '\-]/g, "");
 }
 
 export function isLettersName(value: string): boolean {
-  return /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(value.trim());
+  return /^[A-Za-z]+(?:['\s\-][A-Za-z]+)*$/.test(value.trim());
+}
+
+/** Keep alphanumeric characters and "." for username/local part of work email. */
+export function toEmailLocalPart(value: string): string {
+  return value.replace(/[^A-Za-z0-9.]/g, "").slice(0, 64);
+}
+
+export function isValidEmailLocalPart(value: string): boolean {
+  const v = value.trim();
+  if (!v || v.length > 64) return false;
+  if (v.startsWith(".") || v.endsWith(".") || v.includes("..")) return false;
+  return /^[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*$/.test(v);
 }
 
 /** Local calendar date as `YYYY-MM-DD`. */

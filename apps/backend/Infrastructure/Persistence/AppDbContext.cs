@@ -44,9 +44,25 @@ public class AppDbContext(
 
     public DbSet<MstSalaryBand> SalaryBands => Set<MstSalaryBand>();
 
+    public DbSet<MstEmailDomain> EmailDomains => Set<MstEmailDomain>();
+
+    public DbSet<MstReportingManager> ReportingManagers => Set<MstReportingManager>();
+
+    public DbSet<MstBusinessUnit> BusinessUnits => Set<MstBusinessUnit>();
+
+    public DbSet<MstWorkLocation> WorkLocations => Set<MstWorkLocation>();
+
+    public DbSet<MstOffice> Offices => Set<MstOffice>();
+
     public DbSet<Employee> Employees => Set<Employee>();
 
     public DbSet<ExitedEmployee> ExitedEmployees => Set<ExitedEmployee>();
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        base.OnConfiguring(optionsBuilder);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

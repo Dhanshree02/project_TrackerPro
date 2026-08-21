@@ -17,6 +17,22 @@ export interface ApiEmployeeListItem {
   kpiScore?: number | null;
   status?: string | null;
   createdAtUtc: string;
+  personalEmail?: string | null;
+  phone?: string | null;
+  altPhone?: string | null;
+  emergencyContact?: string | null;
+  pan?: string | null;
+  bankAccount?: string | null;
+  pfUan?: string | null;
+  education?: string | null;
+  skills?: string[] | null;
+  certifications?: string[] | null;
+  languages?: string[] | null;
+  role?: string | null;
+  businessUnit?: string | null;
+  team?: string | null;
+  experience?: string | null;
+  previousCompany?: string | null;
 }
 
 export interface ApiEmployeeDetail {
@@ -190,6 +206,27 @@ export async function fetchSalaryBandOptions(): Promise<ApiMetaOption[]> {
   return (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/salary-bands")) ?? [];
 }
 
+export async function fetchEmailDomainOptions(): Promise<ApiMetaOption[]> {
+  return (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/email-domains")) ?? [];
+}
+
+export async function fetchReportingManagerOptions(): Promise<ApiMetaOption[]> {
+  return (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/reporting-managers")) ?? [];
+}
+
+export async function fetchBusinessUnitOptions(): Promise<ApiMetaOption[]> {
+  return (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/business-units")) ?? [];
+}
+
+export async function fetchWorkLocationOptions(): Promise<ApiMetaOption[]> {
+  return (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/work-locations")) ?? [];
+}
+
+export async function fetchOfficeOptions(workLocationId?: string): Promise<ApiMetaOption[]> {
+  const query = workLocationId ? `?workLocationId=${encodeURIComponent(workLocationId)}` : "";
+  return (await apiFetch<ApiMetaOption[]>(`/api/v1/employees/meta/offices${query}`)) ?? [];
+}
+
 export async function createDepartmentOption(name: string): Promise<ApiMetaOption> {
   return apiFetch<ApiMetaOption>("/api/v1/employees/meta/departments", {
     method: "POST",
@@ -214,6 +251,37 @@ export async function createJobRoleOption(
   return apiFetch<ApiMetaOption>("/api/v1/employees/meta/roles", {
     method: "POST",
     body: JSON.stringify({ name, parentId: designationId }),
+  });
+}
+
+export async function createReportingManagerOption(name: string): Promise<ApiMetaOption> {
+  return apiFetch<ApiMetaOption>("/api/v1/employees/meta/reporting-managers", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createBusinessUnitOption(name: string): Promise<ApiMetaOption> {
+  return apiFetch<ApiMetaOption>("/api/v1/employees/meta/business-units", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createWorkLocationOption(name: string): Promise<ApiMetaOption> {
+  return apiFetch<ApiMetaOption>("/api/v1/employees/meta/work-locations", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createOfficeOption(
+  name: string,
+  workLocationId?: string,
+): Promise<ApiMetaOption> {
+  return apiFetch<ApiMetaOption>("/api/v1/employees/meta/offices", {
+    method: "POST",
+    body: JSON.stringify({ name, parentId: workLocationId }),
   });
 }
 
@@ -250,30 +318,30 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     firstName,
     lastName,
     email: item.workEmail,
-    personalEmail: "",
-    phone: "",
-    altPhone: "",
+    personalEmail: item.personalEmail ?? "",
+    phone: item.phone ?? "",
+    altPhone: item.altPhone ?? "",
     gender: "",
     dob: "",
     address: "",
-    emergencyContact: "",
+    emergencyContact: item.emergencyContact ?? "",
     maritalStatus: "",
     nationality: "",
     department: item.department ?? "—",
     designation: item.designation ?? "—",
-    role: "Employee",
+    role: item.role ?? "Employee",
     reportingManager: item.reportingManagerName?.trim() || "—",
-    businessUnit: "",
+    businessUnit: item.businessUnit ?? "",
     workLocation: item.workLocation ?? "",
     officeBranch: item.officeBranch ?? "",
     category: (item.category as Employee["category"]) || "Permanent - Without Bond",
-    team: "",
+    team: item.team ?? "",
     joiningDate: toDateInputValue(item.joiningDate) || "—",
     status: (item.status as Employee["status"]) ?? "Active",
     confirmationStatus: "Active",
     probationStatus: "",
-    experience: "",
-    previousCompany: "",
+    experience: item.experience ?? "",
+    previousCompany: item.previousCompany ?? "",
     employmentType: "",
     contractType: "",
     bondStatus: "",
@@ -285,10 +353,10 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     assetId: "",
     exitType: "NA",
     exitReason: "",
-    education: "",
-    skills: [],
-    certifications: [],
-    languages: [],
+    education: item.education ?? "",
+    skills: item.skills ?? [],
+    certifications: item.certifications ?? [],
+    languages: item.languages ?? [],
     kpiScore: item.kpiScore ?? 0,
     quarterlyKpi: 0,
     annualRating: 0,
@@ -297,10 +365,10 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     reportingEfficiency: 0,
     promotionReadiness: "",
     managerFeedback: "",
-    pan: "",
-    bankAccount: "",
+    pan: item.pan ?? "",
+    bankAccount: item.bankAccount ?? "",
     salaryBand: "",
-    pfUan: "",
+    pfUan: item.pfUan ?? "",
     taxRegime: "",
     complianceStatus: "Pending",
   };

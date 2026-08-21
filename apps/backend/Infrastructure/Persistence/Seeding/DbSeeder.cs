@@ -32,6 +32,8 @@ public static class DbSeeder
         await db.SaveChangesAsync(ct);
         await SeedDirectoryEmployeesAsync(db, ct);
         await db.SaveChangesAsync(ct);
+        await SeedReportingManagersAsync(db, ct);
+        await db.SaveChangesAsync(ct);
         await SeedClientsAsync(db, users, ct);
         await db.SaveChangesAsync(ct);
     }
@@ -288,6 +290,177 @@ public static class DbSeeder
         await SeedSalaryBandsAsync(db, ct);
         await SeedJobRolesAsync(db, existingDesignations, ct);
         await SeedGeoCatalogsAsync(db, ct);
+        await SeedEmailDomainsAsync(db, ct);
+        await SeedBusinessUnitsAsync(db, ct);
+        await SeedWorkLocationsAndOfficesAsync(db, ct);
+    }
+
+    private static async Task SeedBusinessUnitsAsync(AppDbContext db, CancellationToken ct)
+    {
+        var bus = new[] { "Cloud Platform", "Consumer Apps", "Enterprise", "Digital Solutions" };
+        var existing = await db.BusinessUnits.ToDictionaryAsync(b => b.Name.ToLower(), ct);
+        var order = 1;
+        foreach (var name in bus)
+        {
+            if (existing.ContainsKey(name.ToLower())) continue;
+            db.BusinessUnits.Add(new MstBusinessUnit
+            {
+                Code = Slug(name),
+                Name = name,
+                IsActive = true,
+                SortOrder = order++,
+            });
+        }
+    }
+
+    private static async Task SeedWorkLocationsAndOfficesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var locations = new (string Code, string Name, string[] Offices)[]
+        {
+            ("andheri", "Andheri", ["Suvidha Square"]),
+            ("dombivli", "Dombivli", ["Navare Plaza"]),
+            ("bengaluru", "Bengaluru", ["Tech Park East", "Tech Park West"]),
+            ("pune", "Pune", ["Cyber City Tower"]),
+            ("hyderabad", "Hyderabad", ["HITEC City Office"]),
+            ("mumbai", "Mumbai", ["HQ Tower", "Bandra Kurla Complex"]),
+            ("remote", "Remote", ["Virtual / Remote"]),
+        };
+
+        var existingLocations = await db.WorkLocations.Include(w => w.Offices).ToDictionaryAsync(w => w.Code, ct);
+        var locOrder = 1;
+        foreach (var (code, name, offices) in locations)
+        {
+            if (!existingLocations.TryGetValue(code, out var loc))
+            {
+                loc = new MstWorkLocation
+                {
+                    Code = code,
+                    Name = name,
+                    IsActive = true,
+                    SortOrder = locOrder++,
+                };
+                db.WorkLocations.Add(loc);
+                existingLocations[code] = loc;
+            }
+
+            var officeOrder = 1;
+            var existingOffices = loc.Offices.Select(o => o.Name.ToLower()).ToHashSet();
+            foreach (var offName in offices)
+            {
+                if (existingOffices.Contains(offName.ToLower())) continue;
+                loc.Offices.Add(new MstOffice
+                {
+                    Code = $"{code}_{Slug(offName)}",
+                    Name = offName,
+                    IsActive = true,
+                    SortOrder = officeOrder++,
+                });
+            }
+        }
+    }
+
+    private static async Task SeedEmailDomainsAsync(AppDbContext db, CancellationToken ct)
+    {
+        var domains = new (string Code, string Domain, string Display, int Order)[]
+        {
+            ("talakunchi_com", "talakunchi.com", "@talakunchi.com", 1),
+            ("talakunchi_in", "talakunchi.in", "@talakunchi.in", 2),
+            ("squad1_io", "squad1.io", "@squad1.io", 3),
+        };
+
+        var existing = await db.EmailDomains.ToDictionaryAsync(d => d.DomainName, ct);
+        foreach (var (code, domain, display, order) in domains)
+        {
+            if (existing.ContainsKey(domain)) continue;
+            db.EmailDomains.Add(new MstEmailDomain
+            {
+                Code = code,
+                DomainName = domain,
+                DisplayName = display,
+                IsActive = true,
+                SortOrder = order,
+            });
+        }
+    }
+
+    private static async Task SeedReportingManagersAsync(AppDbContext db, CancellationToken ct)
+    {
+        var existingCodes = await db.ReportingManagers.Select(m => m.Code).ToHashSetAsync(ct);
+        var existingNames = await db.ReportingManagers.Select(m => m.Name.ToLower()).ToHashSetAsync(ct);
+
+        // 1. Copy key employees holding leadership/managerial designations into mst_reporting_managers
+        var candidates = await db.Employees
+            .Include(e => e.Designation)
+            .Where(e => e.DeletedAtUtc == null && e.Status == "Active")
+            .OrderBy(e => e.FirstName)
+            .ThenBy(e => e.LastName)
+            .ToListAsync(ct);
+
+        var order = 1;
+        foreach (var emp in candidates)
+        {
+            var fullName = $"{emp.FirstName} {emp.LastName}".Trim();
+            if (string.IsNullOrWhiteSpace(fullName)) continue;
+            var code = Slug(fullName);
+            if (existingNames.Contains(fullName.ToLower()) || existingCodes.Contains(code))
+                continue;
+
+            var desig = emp.Designation?.Name ?? emp.Role ?? "";
+            var isLeadOrManager = desig.Contains("Lead", StringComparison.OrdinalIgnoreCase) ||
+                                  desig.Contains("Manager", StringComparison.OrdinalIgnoreCase) ||
+                                  desig.Contains("Director", StringComparison.OrdinalIgnoreCase) ||
+                                  desig.Contains("Head", StringComparison.OrdinalIgnoreCase) ||
+                                  desig.Contains("VP", StringComparison.OrdinalIgnoreCase) ||
+                                  order <= 6;
+
+            if (isLeadOrManager)
+            {
+                db.ReportingManagers.Add(new MstReportingManager
+                {
+                    Code = code,
+                    Name = fullName,
+                    Designation = desig,
+                    Email = emp.WorkEmail,
+                    EmployeeId = emp.Id,
+                    IsActive = true,
+                    SortOrder = order++,
+                });
+                existingCodes.Add(code);
+                existingNames.Add(fullName.ToLower());
+            }
+        }
+
+        // 2. Default seeded managers if none were added
+        var defaults = new (string Name, string Desig, string Email)[]
+        {
+            ("Aisha Rao", "VP of Engineering", "aisha.rao@talakunchi.com"),
+            ("Vikram Deshmukh", "Director of Product", "vikram.deshmukh@talakunchi.com"),
+            ("Rohan Verma", "Engineering Manager", "rohan.verma@talakunchi.com"),
+            ("Neha Kulkarni", "Technical Lead", "neha.kulkarni@talakunchi.com"),
+            ("Devansh Shah", "Head of Design", "devansh.shah@talakunchi.com"),
+            ("Ananya Sharma", "Lead Architect", "ananya.sharma@talakunchi.com"),
+            ("Rajesh Iyer", "Delivery Manager", "rajesh.iyer@talakunchi.com"),
+            ("Arjun Mehta", "Product Manager", "arjun.mehta@talakunchi.com"),
+        };
+
+        foreach (var (name, desig, email) in defaults)
+        {
+            var code = Slug(name);
+            if (existingNames.Contains(name.ToLower()) || existingCodes.Contains(code))
+                continue;
+
+            db.ReportingManagers.Add(new MstReportingManager
+            {
+                Code = code,
+                Name = name,
+                Designation = desig,
+                Email = email,
+                IsActive = true,
+                SortOrder = order++,
+            });
+            existingCodes.Add(code);
+            existingNames.Add(name.ToLower());
+        }
     }
 
     private static async Task SeedNationalitiesAsync(AppDbContext db, CancellationToken ct)

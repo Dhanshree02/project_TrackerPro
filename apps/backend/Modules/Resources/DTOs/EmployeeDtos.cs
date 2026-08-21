@@ -15,7 +15,23 @@ public sealed record EmployeeListItemDto(
     string? ProjectSite,
     decimal? KpiScore,
     string? Status,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    string? PersonalEmail = null,
+    string? Phone = null,
+    string? AltPhone = null,
+    string? EmergencyContact = null,
+    string? Pan = null,
+    string? BankAccount = null,
+    string? PfUan = null,
+    string? Education = null,
+    IReadOnlyList<string>? Skills = null,
+    IReadOnlyList<string>? Certifications = null,
+    IReadOnlyList<string>? Languages = null,
+    string? Role = null,
+    string? BusinessUnit = null,
+    string? Team = null,
+    string? Experience = null,
+    string? PreviousCompany = null);
 
 public sealed record EmployeeDetailDto(
     Guid Id,

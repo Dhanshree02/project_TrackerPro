@@ -40,7 +40,28 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             query = query.Where(c =>
                 c.Name.ToLower().Contains(needle) ||
                 c.Industry.ToLower().Contains(needle) ||
-                (c.IndustryRef != null && c.IndustryRef.Name.ToLower().Contains(needle)));
+                (c.IndustryRef != null && c.IndustryRef.Name.ToLower().Contains(needle)) ||
+                (c.ContactEmail != null && c.ContactEmail.ToLower().Contains(needle)) ||
+                (c.ContactName != null && c.ContactName.ToLower().Contains(needle)) ||
+                (c.ContactPhone != null && c.ContactPhone.ToLower().Contains(needle)) ||
+                (c.ContactDesignation != null && c.ContactDesignation.ToLower().Contains(needle)) ||
+                (c.City != null && c.City.ToLower().Contains(needle)) ||
+                (c.Country != null && c.Country.ToLower().Contains(needle)) ||
+                (c.Notes != null && c.Notes.ToLower().Contains(needle)) ||
+                (c.EngagementManager != null && c.EngagementManager.ToLower().Contains(needle)) ||
+                c.Contacts.Any(ct =>
+                    (ct.Name != null && ct.Name.ToLower().Contains(needle)) ||
+                    (ct.Email != null && ct.Email.ToLower().Contains(needle)) ||
+                    (ct.Phone != null && ct.Phone.ToLower().Contains(needle)) ||
+                    (ct.Designation != null && ct.Designation.ToLower().Contains(needle))) ||
+                c.SubVentures.Any(sv =>
+                    sv.Name.ToLower().Contains(needle) ||
+                    (sv.Notes != null && sv.Notes.ToLower().Contains(needle)) ||
+                    sv.Contacts.Any(sct =>
+                        (sct.Name != null && sct.Name.ToLower().Contains(needle)) ||
+                        (sct.Email != null && sct.Email.ToLower().Contains(needle)) ||
+                        (sct.Phone != null && sct.Phone.ToLower().Contains(needle)) ||
+                        (sct.Designation != null && sct.Designation.ToLower().Contains(needle)))));
         }
 
         var total = await query.CountAsync(ct);

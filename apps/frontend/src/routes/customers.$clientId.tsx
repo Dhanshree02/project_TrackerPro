@@ -379,7 +379,7 @@ function CustomerDetailPage() {
                     : "border-success/30 bg-success/10 text-success",
                 )}
               >
-                {client.clientType === "NEW" ? "New Client" : "Existing Client"}
+                {client.clientType === "NEW" ? "New Customer" : "Existing Customer"}
               </span>
               <span className="inline-flex rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
                 Active
@@ -485,66 +485,6 @@ function CustomerDetailPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-4 xl:items-stretch xl:min-h-[calc(100vh-15rem)]">
-        {/* ── LEFT SIDEBAR ── */}
-        <aside className="xl:col-span-1 flex min-h-0 flex-col gap-3">
-          {/* Customer Information */}
-          <div className="shrink-0 rounded-xl border border-border bg-card shadow-sm">
-            <div className="border-b border-border px-4 py-3">
-              <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <Building2 className="h-3.5 w-3.5" /> Customer Information
-              </h2>
-            </div>
-            <dl className="divide-y divide-border">
-              {[
-                { label: "Customer ID", value: fmtClientId(client.id), mono: true },
-                { label: "Customer Name", value: client.name },
-                { label: "Industry", value: client.industry },
-                {
-                  label: "Customer Type",
-                  value: client.clientType === "NEW" ? "New Customer" : "Existing Customer",
-                },
-                { label: "Customer Since", value: clientSinceDate },
-                { label: "First Project", value: firstProjectName },
-                { label: "First Project ID", value: firstProjectId, mono: true },
-                { label: "City", value: client.city || "—" },
-                { label: "Country", value: client.country || "—" },
-                { label: "Business Type", value: client.businessType || "—" },
-                { label: "KYC Document", value: client.kycDocumentName || "—" },
-              ].map(({ label, value, mono }) => (
-                <div key={label} className="grid grid-cols-2 gap-2 px-4 py-2.5 text-xs">
-                  <dt className="font-medium text-muted-foreground">{label}</dt>
-                  <dd
-                    className={cn(
-                      "truncate text-right font-medium",
-                      mono && "font-mono text-foreground",
-                    )}
-                  >
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-
-          {/* Notes — per sub-venture; fills remaining left height to match Projects */}
-          <div className="flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-            <div className="shrink-0 border-b border-border px-4 py-3">
-              <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <StickyNote className="h-3.5 w-3.5" /> {notesTitle}
-              </h2>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              {displayNotes ? (
-                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
-                  {displayNotes}
-                </p>
-              ) : (
-                <p className="text-xs leading-relaxed text-muted-foreground">{notesEmptyMessage}</p>
-              )}
-            </div>
-          </div>
-        </aside>
-
         {/* ── MAIN PROJECTS SECTION ── */}
         <section className="xl:col-span-3 flex min-h-0 flex-col gap-3">
           {/* ── SPOC Contacts + Sub-venture filter — side by side ── */}
@@ -614,7 +554,13 @@ function CustomerDetailPage() {
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Phone className="h-3 w-3" />
-                        <span>{displaySpocs[selectedSpoc].phone}</span>
+                        <span>
+                          {displaySpocs[selectedSpoc].phone && displaySpocs[selectedSpoc].phone !== "—"
+                            ? displaySpocs[selectedSpoc].phone.startsWith("+")
+                              ? displaySpocs[selectedSpoc].phone
+                              : `+91 ${displaySpocs[selectedSpoc].phone}`
+                            : "—"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -857,6 +803,66 @@ function CustomerDetailPage() {
             )}
           </div>
         </section>
+
+        {/* ── RIGHT SIDEBAR: Customer Info & Notes ── */}
+        <aside className="xl:col-span-1 flex min-h-0 flex-col gap-3">
+          {/* Customer Information */}
+          <div className="shrink-0 rounded-xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-4 py-3">
+              <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Building2 className="h-3.5 w-3.5" /> Customer Information
+              </h2>
+            </div>
+            <dl className="divide-y divide-border">
+              {[
+                { label: "Customer ID", value: fmtClientId(client.id), mono: true },
+                { label: "Customer Name", value: client.name },
+                { label: "Industry", value: client.industry },
+                {
+                  label: "Customer Type",
+                  value: client.clientType === "NEW" ? "New Customer" : "Existing Customer",
+                },
+                { label: "Customer Since", value: clientSinceDate },
+                { label: "First Project", value: firstProjectName },
+                { label: "First Project ID", value: firstProjectId, mono: true },
+                { label: "City", value: client.city || "—" },
+                { label: "Country", value: client.country || "—" },
+                { label: "Business Type", value: client.businessType || "—" },
+                { label: "KYC Document", value: client.kycDocumentName || "—" },
+              ].map(({ label, value, mono }) => (
+                <div key={label} className="grid grid-cols-2 gap-2 px-4 py-2.5 text-xs">
+                  <dt className="font-medium text-muted-foreground">{label}</dt>
+                  <dd
+                    className={cn(
+                      "truncate text-right font-medium",
+                      mono && "font-mono text-foreground",
+                    )}
+                  >
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          {/* Notes — per sub-venture; fills remaining right height to match Projects */}
+          <div className="flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="shrink-0 border-b border-border px-4 py-3">
+              <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <StickyNote className="h-3.5 w-3.5" /> {notesTitle}
+              </h2>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              {displayNotes ? (
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
+                  {displayNotes}
+                </p>
+              ) : (
+                <p className="text-xs leading-relaxed text-muted-foreground">{notesEmptyMessage}</p>
+              )}
+            </div>
+          </div>
+        </aside>
       </div>
 
       {showEMPicker && (

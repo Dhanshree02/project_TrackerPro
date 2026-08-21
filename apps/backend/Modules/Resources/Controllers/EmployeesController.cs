@@ -139,6 +139,83 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetSalaryBandsAsync(ct)));
     }
 
+    [HttpGet("meta/email-domains")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmailDomains(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetEmailDomainsAsync(ct)));
+    }
+
+    [HttpGet("meta/reporting-managers")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> ReportingManagers(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetReportingManagersAsync(ct)));
+    }
+
+    [HttpPost("meta/reporting-managers")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateReportingManager(
+        CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await employees.CreateReportingManagerAsync(request.Name, null, ct);
+        return Ok(ApiResponse<MetaOptionDto>.Ok(created));
+    }
+
+    [HttpGet("meta/business-units")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> BusinessUnits(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetBusinessUnitsAsync(ct)));
+    }
+
+    [HttpPost("meta/business-units")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateBusinessUnit(
+        CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await employees.CreateBusinessUnitAsync(request.Name, ct);
+        return Ok(ApiResponse<MetaOptionDto>.Ok(created));
+    }
+
+    [HttpGet("meta/work-locations")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> WorkLocations(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetWorkLocationsAsync(ct)));
+    }
+
+    [HttpPost("meta/work-locations")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateWorkLocation(
+        CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await employees.CreateWorkLocationAsync(request.Name, ct);
+        return Ok(ApiResponse<MetaOptionDto>.Ok(created));
+    }
+
+    [HttpGet("meta/offices")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> Offices(
+        [FromQuery] Guid? workLocationId,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetOfficesAsync(workLocationId, ct)));
+    }
+
+    [HttpPost("meta/offices")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateOffice(
+        CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await employees.CreateOfficeAsync(request.Name, request.ParentId, ct);
+        return Ok(ApiResponse<MetaOptionDto>.Ok(created));
+    }
+
     [HttpPost]
     [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Create(CreateEmployeeRequest request, CancellationToken ct)

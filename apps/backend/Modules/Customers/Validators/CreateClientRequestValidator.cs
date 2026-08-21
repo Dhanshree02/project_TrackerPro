@@ -21,6 +21,10 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
             .When(x => !string.IsNullOrWhiteSpace(x.ContactEmail))
             .MaximumLength(EmailRules.MaxLength);
 
+        RuleFor(x => x.ContactPhone)
+            .MustBeValidIndianPhone()
+            .When(x => !string.IsNullOrWhiteSpace(x.ContactPhone));
+
         RuleFor(x => x.EngagementManager).MaximumLength(120);
 
         RuleFor(x => x.ClientType)
@@ -39,6 +43,9 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
                     .MustBeValidEmail()
                     .When(c => !string.IsNullOrWhiteSpace(c.Email))
                     .MaximumLength(EmailRules.MaxLength);
+                contact.RuleFor(c => c.Phone)
+                    .MustBeValidIndianPhone()
+                    .When(c => !string.IsNullOrWhiteSpace(c.Phone));
                 contact.RuleFor(c => c.Name).MaximumLength(150);
             });
         });
@@ -49,6 +56,9 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
                 .MustBeValidEmail()
                 .When(c => !string.IsNullOrWhiteSpace(c.Email))
                 .MaximumLength(EmailRules.MaxLength);
+            contact.RuleFor(c => c.Phone)
+                .MustBeValidIndianPhone()
+                .When(c => !string.IsNullOrWhiteSpace(c.Phone));
             contact.RuleFor(c => c.Name).MaximumLength(150);
         });
     }

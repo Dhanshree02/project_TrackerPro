@@ -67,14 +67,14 @@ function ResourcesPage() {
 
   return (
     <AppShell title="Resources" subtitle="Company-wide directory · view only">
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 max-w-xs">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="relative w-full md:max-w-xs shrink-0">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search name, role or email…"
-            className="form-input h-9 w-full pl-8"
+            className="form-input h-9 w-full pl-8 text-xs"
           />
         </div>
         {!isEmployee && (
@@ -84,9 +84,9 @@ function ResourcesPage() {
                 key={r}
                 onClick={() => setFilter(r)}
                 className={cn(
-                  "rounded-md px-2.5 py-1",
+                  "rounded-md px-2.5 py-1 transition-colors",
                   filter === r
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary text-primary-foreground font-semibold"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -96,7 +96,7 @@ function ResourcesPage() {
           </div>
         )}
         {!isEmployee && (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] text-muted-foreground shrink-0 self-start md:self-auto">
             <Lock className="h-3 w-3" /> Tracking only · no shuffle/replace
           </span>
         )}
@@ -111,7 +111,7 @@ function ResourcesPage() {
       )}
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[650px] text-sm">
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             {isEmployee ? (
               <tr>

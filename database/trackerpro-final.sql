@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict rFHC1zE1RNcnN78Y0yCCt14bqsRvGzRE3L6H3fWptuPc10dvhkHW8skdBh0VEgL
+\restrict joA5a4aB2IvKLhcN9bSJeVyFriAumDdgJGGLWEWf5dChNZaQTD2xvs02lUIf9kY
 
--- Dumped from database version 18.4
--- Dumped by pg_dump version 18.4
+-- Dumped from database version 18.6
+-- Dumped by pg_dump version 18.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -19,6 +19,127 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE IF EXISTS ONLY public.mst_offices DROP CONSTRAINT IF EXISTS "mst_offices_WorkLocationId_fkey";
+ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS "FK_users_roles_RoleId";
+ALTER TABLE IF EXISTS ONLY public.sub_ventures DROP CONSTRAINT IF EXISTS "FK_sub_ventures_clients_ClientId";
+ALTER TABLE IF EXISTS ONLY public.role_permission_audits DROP CONSTRAINT IF EXISTS "FK_role_permission_audits_roles_RoleId";
+ALTER TABLE IF EXISTS ONLY public.refresh_tokens DROP CONSTRAINT IF EXISTS "FK_refresh_tokens_users_UserId";
+ALTER TABLE IF EXISTS ONLY public.mst_roles DROP CONSTRAINT IF EXISTS "FK_mst_roles_mst_designations_DesignationId";
+ALTER TABLE IF EXISTS ONLY public.mst_reporting_managers DROP CONSTRAINT IF EXISTS "FK_mst_reporting_managers_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY public.mst_designations DROP CONSTRAINT IF EXISTS "FK_mst_designations_mst_departments_DepartmentId";
+ALTER TABLE IF EXISTS ONLY public.mst_cities DROP CONSTRAINT IF EXISTS "FK_mst_cities_mst_countries_CountryId";
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_users_UserId";
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_salary_bands_SalaryBandId";
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_roles_JobRoleId";
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_nationalities_NationalityId";
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_designations_DesignationId";
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_departments_DepartmentId";
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_employees_ReportingManagerId";
+ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "FK_clients_mst_industries_IndustryId";
+ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "FK_clients_mst_countries_CountryId";
+ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "FK_clients_mst_cities_CityId";
+ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "FK_clients_employees_EngagementManagerId";
+ALTER TABLE IF EXISTS ONLY public.client_contacts DROP CONSTRAINT IF EXISTS "FK_client_contacts_sub_ventures_SubVentureId";
+ALTER TABLE IF EXISTS ONLY public.client_contacts DROP CONSTRAINT IF EXISTS "FK_client_contacts_clients_ClientId";
+ALTER TABLE IF EXISTS ONLY public.client_assignments DROP CONSTRAINT IF EXISTS "FK_client_assignments_users_UserId";
+ALTER TABLE IF EXISTS ONLY public.client_assignments DROP CONSTRAINT IF EXISTS "FK_client_assignments_clients_ClientId";
+DROP INDEX IF EXISTS public."IX_users_RoleId";
+DROP INDEX IF EXISTS public."IX_users_EmployeeId";
+DROP INDEX IF EXISTS public."IX_users_Email";
+DROP INDEX IF EXISTS public."IX_sub_ventures_ClientId";
+DROP INDEX IF EXISTS public."IX_roles_Name";
+DROP INDEX IF EXISTS public."IX_role_permission_audits_RoleId";
+DROP INDEX IF EXISTS public."IX_role_permission_audits_CreatedAtUtc";
+DROP INDEX IF EXISTS public."IX_refresh_tokens_UserId";
+DROP INDEX IF EXISTS public."IX_refresh_tokens_TokenHash";
+DROP INDEX IF EXISTS public."IX_mst_salary_bands_Name";
+DROP INDEX IF EXISTS public."IX_mst_salary_bands_Code";
+DROP INDEX IF EXISTS public."IX_mst_roles_DesignationId_Name";
+DROP INDEX IF EXISTS public."IX_mst_roles_Code";
+DROP INDEX IF EXISTS public."IX_mst_reporting_managers_Code";
+DROP INDEX IF EXISTS public."IX_mst_nationalities_Name";
+DROP INDEX IF EXISTS public."IX_mst_nationalities_Code";
+DROP INDEX IF EXISTS public."IX_mst_industries_Name";
+DROP INDEX IF EXISTS public."IX_mst_industries_Code";
+DROP INDEX IF EXISTS public."IX_mst_email_domains_DomainName";
+DROP INDEX IF EXISTS public."IX_mst_designations_DepartmentId_Name";
+DROP INDEX IF EXISTS public."IX_mst_designations_Code";
+DROP INDEX IF EXISTS public."IX_mst_departments_Name";
+DROP INDEX IF EXISTS public."IX_mst_departments_Code";
+DROP INDEX IF EXISTS public."IX_mst_countries_Name";
+DROP INDEX IF EXISTS public."IX_mst_countries_Code";
+DROP INDEX IF EXISTS public."IX_mst_cities_CountryId_Name";
+DROP INDEX IF EXISTS public."IX_mst_cities_Code";
+DROP INDEX IF EXISTS public."IX_exited_employees_OriginalEmployeeId";
+DROP INDEX IF EXISTS public."IX_exited_employees_EmployeeCode";
+DROP INDEX IF EXISTS public."IX_employees_WorkEmail";
+DROP INDEX IF EXISTS public."IX_employees_UserId";
+DROP INDEX IF EXISTS public."IX_employees_SalaryBandId";
+DROP INDEX IF EXISTS public."IX_employees_ReportingManagerId";
+DROP INDEX IF EXISTS public."IX_employees_NationalityId";
+DROP INDEX IF EXISTS public."IX_employees_JobRoleId";
+DROP INDEX IF EXISTS public."IX_employees_EmployeeCode";
+DROP INDEX IF EXISTS public."IX_employees_DesignationId";
+DROP INDEX IF EXISTS public."IX_employees_DepartmentId";
+DROP INDEX IF EXISTS public."IX_clients_Name";
+DROP INDEX IF EXISTS public."IX_clients_IndustryId";
+DROP INDEX IF EXISTS public."IX_clients_EngagementManagerId";
+DROP INDEX IF EXISTS public."IX_clients_CountryId";
+DROP INDEX IF EXISTS public."IX_clients_CityId";
+DROP INDEX IF EXISTS public."IX_client_contacts_SubVentureId";
+DROP INDEX IF EXISTS public."IX_client_contacts_ClientId";
+DROP INDEX IF EXISTS public."IX_client_assignments_UserId";
+ALTER TABLE IF EXISTS ONLY public.mst_work_locations DROP CONSTRAINT IF EXISTS mst_work_locations_pkey;
+ALTER TABLE IF EXISTS ONLY public.mst_work_locations DROP CONSTRAINT IF EXISTS "mst_work_locations_Code_key";
+ALTER TABLE IF EXISTS ONLY public.mst_reporting_managers DROP CONSTRAINT IF EXISTS mst_reporting_managers_pkey;
+ALTER TABLE IF EXISTS ONLY public.mst_offices DROP CONSTRAINT IF EXISTS mst_offices_pkey;
+ALTER TABLE IF EXISTS ONLY public.mst_offices DROP CONSTRAINT IF EXISTS "mst_offices_Code_key";
+ALTER TABLE IF EXISTS ONLY public.mst_email_domains DROP CONSTRAINT IF EXISTS mst_email_domains_pkey;
+ALTER TABLE IF EXISTS ONLY public.mst_business_units DROP CONSTRAINT IF EXISTS mst_business_units_pkey;
+ALTER TABLE IF EXISTS ONLY public.mst_business_units DROP CONSTRAINT IF EXISTS "mst_business_units_Code_key";
+ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS "PK_users";
+ALTER TABLE IF EXISTS ONLY public.sub_ventures DROP CONSTRAINT IF EXISTS "PK_sub_ventures";
+ALTER TABLE IF EXISTS ONLY public.roles DROP CONSTRAINT IF EXISTS "PK_roles";
+ALTER TABLE IF EXISTS ONLY public.role_permission_audits DROP CONSTRAINT IF EXISTS "PK_role_permission_audits";
+ALTER TABLE IF EXISTS ONLY public.refresh_tokens DROP CONSTRAINT IF EXISTS "PK_refresh_tokens";
+ALTER TABLE IF EXISTS ONLY public.mst_salary_bands DROP CONSTRAINT IF EXISTS "PK_mst_salary_bands";
+ALTER TABLE IF EXISTS ONLY public.mst_roles DROP CONSTRAINT IF EXISTS "PK_mst_roles";
+ALTER TABLE IF EXISTS ONLY public.mst_nationalities DROP CONSTRAINT IF EXISTS "PK_mst_nationalities";
+ALTER TABLE IF EXISTS ONLY public.mst_industries DROP CONSTRAINT IF EXISTS "PK_mst_industries";
+ALTER TABLE IF EXISTS ONLY public.mst_designations DROP CONSTRAINT IF EXISTS "PK_mst_designations";
+ALTER TABLE IF EXISTS ONLY public.mst_departments DROP CONSTRAINT IF EXISTS "PK_mst_departments";
+ALTER TABLE IF EXISTS ONLY public.mst_countries DROP CONSTRAINT IF EXISTS "PK_mst_countries";
+ALTER TABLE IF EXISTS ONLY public.mst_cities DROP CONSTRAINT IF EXISTS "PK_mst_cities";
+ALTER TABLE IF EXISTS ONLY public.exited_employees DROP CONSTRAINT IF EXISTS "PK_exited_employees";
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "PK_employees";
+ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "PK_clients";
+ALTER TABLE IF EXISTS ONLY public.client_contacts DROP CONSTRAINT IF EXISTS "PK_client_contacts";
+ALTER TABLE IF EXISTS ONLY public.client_assignments DROP CONSTRAINT IF EXISTS "PK_client_assignments";
+ALTER TABLE IF EXISTS ONLY public."__EFMigrationsHistory" DROP CONSTRAINT IF EXISTS "PK___EFMigrationsHistory";
+DROP TABLE IF EXISTS public.users;
+DROP TABLE IF EXISTS public.sub_ventures;
+DROP TABLE IF EXISTS public.roles;
+DROP TABLE IF EXISTS public.role_permission_audits;
+DROP TABLE IF EXISTS public.refresh_tokens;
+DROP TABLE IF EXISTS public.mst_work_locations;
+DROP TABLE IF EXISTS public.mst_salary_bands;
+DROP TABLE IF EXISTS public.mst_roles;
+DROP TABLE IF EXISTS public.mst_reporting_managers;
+DROP TABLE IF EXISTS public.mst_offices;
+DROP TABLE IF EXISTS public.mst_nationalities;
+DROP TABLE IF EXISTS public.mst_industries;
+DROP TABLE IF EXISTS public.mst_email_domains;
+DROP TABLE IF EXISTS public.mst_designations;
+DROP TABLE IF EXISTS public.mst_departments;
+DROP TABLE IF EXISTS public.mst_countries;
+DROP TABLE IF EXISTS public.mst_cities;
+DROP TABLE IF EXISTS public.mst_business_units;
+DROP TABLE IF EXISTS public.exited_employees;
+DROP TABLE IF EXISTS public.employees;
+DROP TABLE IF EXISTS public.clients;
+DROP TABLE IF EXISTS public.client_contacts;
+DROP TABLE IF EXISTS public.client_assignments;
+DROP TABLE IF EXISTS public."__EFMigrationsHistory";
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -209,6 +330,24 @@ CREATE TABLE public.exited_employees (
 
 
 --
+-- Name: mst_business_units; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mst_business_units (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "Name" character varying(150) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
 -- Name: mst_cities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -279,6 +418,25 @@ CREATE TABLE public.mst_designations (
 
 
 --
+-- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mst_email_domains (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "DomainName" character varying(150) NOT NULL,
+    "DisplayName" character varying(150) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
 -- Name: mst_industries; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -305,6 +463,46 @@ CREATE TABLE public.mst_nationalities (
     "Name" character varying(120) NOT NULL,
     "IsActive" boolean NOT NULL,
     "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: mst_offices; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mst_offices (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "Name" character varying(150) NOT NULL,
+    "WorkLocationId" uuid,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mst_reporting_managers (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "Name" character varying(150) NOT NULL,
+    "Designation" character varying(150),
+    "Email" character varying(255),
+    "EmployeeId" uuid,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "UpdatedAtUtc" timestamp with time zone,
     "CreatedBy" uuid,
     "UpdatedBy" uuid,
@@ -340,6 +538,24 @@ CREATE TABLE public.mst_salary_bands (
     "Name" character varying(20) NOT NULL,
     "IsActive" boolean NOT NULL,
     "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mst_work_locations (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "Name" character varying(150) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
     "UpdatedAtUtc" timestamp with time zone,
     "CreatedBy" uuid,
     "UpdatedBy" uuid,
@@ -597,6 +813,18 @@ c86dbb9b-4d96-4e3a-b74a-a94fa9992605	96425efc-9b0e-4f2b-8fd6-ec3b77161547	EMP-34
 
 
 --
+-- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+3ee30a59-078a-4469-9b07-540af53ae71e	enterprise	Enterprise	t	3	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+468da60b-5b73-4987-9444-ff16ea7c0b79	digital_solutions	Digital Solutions	t	4	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+9fe393e0-0489-43e0-b868-72217b02c00a	consumer_apps	Consumer Apps	t	2	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+cd3c05b0-fc85-49fe-adcc-e7d2dcde28df	cloud_platform	Cloud Platform	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+\.
+
+
+--
 -- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -835,6 +1063,18 @@ d15a2e6e-0d0b-4a54-a80b-21c8e580302b	devops_engineer	DevOps Engineer	t	7f81ec90-
 dca2305b-b3c1-405b-a2ed-4eb6ffc3575f	hr_business_partner	HR Business Partner	t	d0ab0dc3-606c-4d62-95ea-3d62749f9006	2026-08-18 13:25:36.166597+05:30	2026-08-21 11:01:26.963654+05:30	\N	\N	\N
 e2d6a273-bb40-4b2e-a9b1-e4e5122ebab1	head_of_department	Head of Department	t	3764a485-1786-470f-b3cb-eba4329f07cb	2026-08-18 13:25:36.166597+05:30	2026-08-21 11:01:26.963654+05:30	\N	\N	\N
 f9aa2b6e-26a3-40db-bb37-9c88a1249304	engagement_manager	Engagement Manager	t	c21b43ad-98f5-43cb-9466-6f0b22ce7505	2026-08-18 13:25:36.166597+05:30	2026-08-21 11:01:26.963654+05:30	\N	\N	\N
+5e962bb1-7f9c-4dc5-8752-65cea3eaec1c	engineering_ds	ds	t	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	2026-08-22 01:07:57.085326+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mst_email_domains ("Id", "Code", "DomainName", "DisplayName", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+5112286a-225d-4b86-b16f-74211d9c5779	talakunchi_com	talakunchi.com	@talakunchi.com	t	1	2026-08-22 00:42:04.483485+05:30	\N	\N	\N	\N
+a19f97e1-8bf5-4b14-823a-b653b62c2954	talakunchi_in	talakunchi.in	@talakunchi.in	t	2	2026-08-22 00:42:04.483485+05:30	\N	\N	\N	\N
+fb66fff9-7911-47de-bde7-ab5fb5ab0757	squad1_io	squad1.io	@squad1.io	t	3	2026-08-22 00:42:04.483485+05:30	\N	\N	\N	\N
 \.
 
 
@@ -907,6 +1147,55 @@ fe29360e-bc38-4557-8653-98b749b34fe0	indonesian	Indonesian	t	2026-08-20 17:55:01
 
 
 --
+-- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+375cc899-3e63-4b9c-aad3-368f9a6b50d9	bengaluru_tech_park_west	Tech Park West	0c534759-4e58-40f0-9015-78143792ac7c	t	2	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+3a43966e-cc7a-4f61-9a14-5b4a29918761	mumbai_bandra_kurla_complex	Bandra Kurla Complex	f93f660f-db88-4f46-8df8-ade0e93d3eaf	t	2	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+4ce8547a-da87-4ebc-a9b3-11055b29f85c	dombivli_navare_plaza	Navare Plaza	d8ad5202-097f-42e5-9afc-9fd1456590ad	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+4ec817eb-b7bc-4cff-ad45-e3f33d9e92ef	remote_virtual_remote	Virtual / Remote	ddf66d66-c299-4a92-a3ca-8fcfa88a00d1	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+5cc2905f-945a-4fd1-a367-26fa63c93b94	bengaluru_tech_park_east	Tech Park East	0c534759-4e58-40f0-9015-78143792ac7c	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+6356473e-b6a5-41a7-b7e7-a8c601caf097	hyderabad_hitec_city_office	HITEC City Office	44e2e805-3659-41ed-b423-b12efa989f7d	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+70b9b373-1f98-4d24-9344-6c1825ea0d5c	andheri_suvidha_square	Suvidha Square	f8f6b305-478f-41fb-910d-67ef268fc529	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+9b1cd55f-af9a-42ea-89f0-beebd340751b	mumbai_hq_tower	HQ Tower	f93f660f-db88-4f46-8df8-ade0e93d3eaf	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+f26ab4c4-8824-480f-bbfe-1e08a855f21c	pune_cyber_city_tower	Cyber City Tower	14272979-6065-4afc-92e4-09f335253728	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email", "EmployeeId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+0bf170bc-2bfd-4133-9009-d3176627e14d	riya_kapoor	Riya Kapoor	Engagement Manager	riya.kapoor@acme.co	dd7a3258-31be-425c-8771-cab8ba8b1b22	t	9	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+11e7b9b1-ad41-4198-bd80-7d136992417f	neha_kulkarni	Neha Kulkarni	Technical Lead	neha.kulkarni@talakunchi.com	\N	t	15	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+1adf0cf4-260e-4518-b152-1f892eba2070	divya_rao	Divya Rao	Product Manager	divya.rao@acme.co	a586e15e-0ad4-4d33-aa18-b1edcf241baf	t	5	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+2606f49c-5ed6-4d3c-935a-0959d610ae47	arjun_shah	Arjun Shah	Data Analyst	arjun.shah@acme.co	58198691-3595-4565-8ba6-d5f150240aa3	t	4	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+5843c0cb-ad67-4377-bc53-4d9d1a5bc761	vikram_gupta	Vikram Gupta	Project Manager	vikram.gupta@acme.co	c15b2b43-0884-4999-bece-9289d1db561f	t	11	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+5ad3ffbf-606b-41f9-a34b-8b4cef837d60	rajesh_iyer	Rajesh Iyer	Delivery Manager	rajesh.iyer@talakunchi.com	\N	t	18	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+7f34be9a-66a0-48ee-922b-7994f2eb7cd0	harsh_nair	Harsh Nair	Business Analyst	harsh.nair@acme.co	18b83048-56d5-4365-8bc5-3ba65405467e	t	6	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+8b96778e-13d5-4ab1-ace6-31c6acc88bbb	ankit_verma	Ankit Verma	UX Designer	ankit.verma@acme.co	fc06e810-3e2d-4510-bfc1-669ccf579da2	t	2	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+91f99333-18be-400c-838d-0fe6c171f86e	arjun_mehta	Arjun Mehta	Engagement Manager	arjun.mehta@acme.co	230058bf-ed8a-45da-8d77-4a2821a0a76a	t	3	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+9ef6ec60-9d29-44c2-b0b4-773ba5ae99b1	vikram_deshmukh	Vikram Deshmukh	Director of Product	vikram.deshmukh@talakunchi.com	\N	t	13	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+b7c28347-fe03-4034-9d63-0348a05f85b1	aisha_rao	Aisha Rao	VP of Engineering	aisha.rao@talakunchi.com	\N	t	12	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+b838f751-d684-4c98-a20f-2d656fd09553	ananya_sharma	Ananya Sharma	Lead Architect	ananya.sharma@talakunchi.com	\N	t	17	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+bd239c0a-2dbe-4b43-831e-1607691606c9	pradeep_singh	Pradeep Singh	Engagement Manager	pradeep.singh@acme.co	8a50b4b9-7091-423c-ac8c-af55bc6df348	t	7	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+cbab65ee-e7b4-44e4-9641-3717342c9d88	aanya_joshi	Aanya Joshi	Sales Executive	aanya.joshi@acme.co	593b0378-d20a-40ee-b0a0-ae4acc0a78aa	t	1	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+e0043efa-276b-4b9b-9f1f-9e5349de06b1	sneha_iyer	Sneha Iyer	Tech Lead	sneha.iyer@acme.co	8e97c526-8c79-44c6-a23f-ece0d9b21df5	t	10	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+e206ba0c-38af-45c3-aa46-103dbf3cb45f	rahul_sharma	Rahul Sharma	Engagement Manager	rahul.sharma@acme.co	9a15533f-f863-44a7-b61c-b978fa1f5174	t	8	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+ef80f744-ce30-4db8-ae93-05cd00d748e0	rohan_verma	Rohan Verma	Engineering Manager	rohan.verma@talakunchi.com	\N	t	14	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+f0d6d5a1-bc56-4f3c-8ad5-027bb2f935c4	devansh_shah	Devansh Shah	Head of Design	devansh.shah@talakunchi.com	\N	t	16	2026-08-22 01:00:26.29718+05:30	\N	\N	\N	\N
+141f0e6a-7f0b-4fdc-8e48-117012ef17d2	pranjali_shah	Pranjali Shah	Employee	pranjali@talakunchi.io	b78530f0-0687-4f26-a614-8318c62901f9	t	6	2026-08-22 01:27:33.765567+05:30	\N	\N	\N	\N
+27ea58af-8649-413b-b68f-5ab8d7ae9e0b	nikhil_khanna	Nikhil Khanna	Sales Executive	nikhil.khanna@acme.co	8065ff15-64d6-4f36-a003-f0444a620bd8	t	4	2026-08-22 01:27:33.765567+05:30	\N	\N	\N	\N
+332f42c5-cbe4-4616-bdef-f1c5ed4f525c	ishita_bansal	Ishita Bansal	UX Designer	ishita.bansal@acme.co	7c9168b9-8269-430b-89d8-a1ba0b8e99af	t	2	2026-08-22 01:27:33.765567+05:30	\N	\N	\N	\N
+56290531-8a9f-4280-a611-7a056595cf04	pooja_menon	Pooja Menon	HR Business Partner	pooja.menon@acme.co	81c42f4c-b588-4037-a106-47f339a777f6	t	5	2026-08-22 01:27:33.765567+05:30	\N	\N	\N	\N
+9e9286c4-8f25-47e2-8bf9-37620fbcb726	kavya_desai	Kavya Desai	Content Strategist	kavya.desai@acme.co	3dcb0f17-b94a-470c-ba85-86ac0f1c65c8	t	3	2026-08-22 01:27:33.765567+05:30	\N	\N	\N	\N
+e2ea7517-353b-40d9-be27-0fbe07d6c963	ira_kapoor	Ira Kapoor	QA Engineer	ira.kapoor@acme.co	d24cafbe-bb30-4522-93b2-25588511f0e2	t	1	2026-08-22 01:27:33.765567+05:30	\N	\N	\N	\N
+\.
+
+
+--
 -- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -973,6 +1262,21 @@ COPY public.mst_salary_bands ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", 
 822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	l4	L4	t	2026-08-20 18:21:10.222702+05:30	\N	\N	\N	\N
 e5f5511b-dea6-421c-8c0e-b271e4ee5d43	l5	L5	t	2026-08-20 18:21:10.222702+05:30	\N	\N	\N	\N
 ebed343e-301f-4984-b292-fa8d1cb1623c	l2	L2	t	2026-08-20 18:21:10.222702+05:30	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+0c534759-4e58-40f0-9015-78143792ac7c	bengaluru	Bengaluru	t	3	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+14272979-6065-4afc-92e4-09f335253728	pune	Pune	t	4	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+44e2e805-3659-41ed-b423-b12efa989f7d	hyderabad	Hyderabad	t	5	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+d8ad5202-097f-42e5-9afc-9fd1456590ad	dombivli	Dombivli	t	2	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+ddf66d66-c299-4a92-a3ca-8fcfa88a00d1	remote	Remote	t	7	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+f8f6b305-478f-41fb-910d-67ef268fc529	andheri	Andheri	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+f93f660f-db88-4f46-8df8-ade0e93d3eaf	mumbai	Mumbai	t	6	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
 \.
 
 
@@ -1415,7 +1719,24 @@ a0aebe9e-471e-4516-ad8a-b4545ad9969f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	SFJVwp
 121f839e-b03f-4e04-80f8-ea8e83243f75	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	4VGUSUvUZNO1+WtZrYFr8YWe2m0RR26zHBD0Qua5/5Y=	2026-08-28 16:29:54.289016+05:30	2026-08-21 16:58:44.956739+05:30	\N	2026-08-21 16:29:54.289291+05:30	2026-08-21 16:58:45.009172+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 696eaaf7-55f5-42c5-abba-09215fa7a77d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	VH5KM98YMgydYLnVF14EcD8+nE4OABzknaaXYdWCbL8=	2026-08-28 16:58:44.988141+05:30	2026-08-21 17:37:08.133091+05:30	\N	2026-08-21 16:58:45.009172+05:30	2026-08-21 17:37:08.201891+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 bc55d6d5-9ac0-411f-9700-a10642154e80	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	yr4LdREvX24a/eDSjlHXEF2vW3uslLcaKcdqgxofONo=	2026-08-28 17:37:08.173874+05:30	2026-08-21 17:50:45.21947+05:30	\N	2026-08-21 17:37:08.201891+05:30	2026-08-21 17:50:45.220722+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-fd51c301-496a-49d0-b8d4-ce0f9ac7436c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uaTDuoA1EKZDjd6pLVcMTd8ym6KQzroRF3BUH8DpcVs=	2026-08-28 17:50:45.219749+05:30	\N	\N	2026-08-21 17:50:45.220722+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+fd51c301-496a-49d0-b8d4-ce0f9ac7436c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uaTDuoA1EKZDjd6pLVcMTd8ym6KQzroRF3BUH8DpcVs=	2026-08-28 17:50:45.219749+05:30	2026-08-21 22:14:11.513173+05:30	\N	2026-08-21 17:50:45.220722+05:30	2026-08-21 22:14:11.513622+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+36f78caf-82bd-4622-93c0-e8b84c40c324	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	i1pSLRo3IomL1fIZCv5b+1Ado/VO/w8som9tjRJNjwo=	2026-08-28 22:14:07.063834+05:30	2026-08-21 22:14:11.265326+05:30	\N	2026-08-21 22:14:07.072163+05:30	2026-08-21 22:14:11.265427+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6361d004-adca-4415-b3ea-54adebcb45c0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YyxvWFS5f48TkO36BOOiGrxPUwylijfvKy6dtGqyMr8=	2026-08-28 22:14:11.513377+05:30	2026-08-21 22:15:24.64354+05:30	\N	2026-08-21 22:14:11.513622+05:30	2026-08-21 22:15:24.64357+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+73ad424b-313d-4f88-a383-732517001113	304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	wRb9Fuq96HgCOLsh4ZBrHx/O2a1uLX4eSi/eLXCqrCY=	2026-08-28 22:15:24.912611+05:30	2026-08-21 22:15:41.944072+05:30	\N	2026-08-21 22:15:24.912703+05:30	2026-08-21 22:15:41.944099+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+12b3b983-fb1a-4894-9baf-0906e1045092	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	gqCUpWIoEJIc6NkItrLKSy7wGgcV0K7xoBvdKYTlTxs=	2026-08-28 22:15:42.22899+05:30	2026-08-21 22:26:25.768887+05:30	\N	2026-08-21 22:15:42.229084+05:30	2026-08-21 22:26:25.769324+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ffcdf4b6-544e-4a8a-b4ac-9c91f983ce49	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	TUfHft3yPMeXwg8oy6TBAOBoyMRMyiYeZ+XLx1EC/Lo=	2026-08-28 22:26:25.769184+05:30	2026-08-21 22:28:41.84208+05:30	\N	2026-08-21 22:26:25.769324+05:30	2026-08-21 22:28:41.842378+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a922a8ad-5543-4880-9b89-4eaf47b91a2e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ZvMWRWFBFBOSyOKviBVRXkbkjI/CwLLGdFPAXzzYM2w=	2026-08-28 22:28:41.842274+05:30	2026-08-21 22:29:08.651372+05:30	\N	2026-08-21 22:28:41.842378+05:30	2026-08-21 22:29:08.652417+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+08f66602-d863-473a-afab-fbe72f53e7b4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	eoGo2A4LDab8RkqLvkVeEpjgT6vXu7maybKL8lEvUxI=	2026-08-28 22:29:08.652119+05:30	2026-08-21 23:04:46.777543+05:30	\N	2026-08-21 22:29:08.652417+05:30	2026-08-21 23:04:46.779812+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+146be78d-1c05-4286-865f-7028c005a4a3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	NCjQIwLQ9w6NPWh8aG2mO1ffaZxvOzCEhUfyQv0+SDk=	2026-08-28 23:04:46.779376+05:30	2026-08-21 23:53:23.965424+05:30	\N	2026-08-21 23:04:46.779812+05:30	2026-08-21 23:53:23.966722+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+794b4692-22e0-4eda-9290-858ba2538832	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	eNYgNhQWcM59lYomI1ZAHX/YkGe6qq7QTurmDUrmLSc=	2026-08-28 23:53:23.966243+05:30	2026-08-21 23:59:52.319345+05:30	\N	2026-08-21 23:53:23.966722+05:30	2026-08-21 23:59:52.328113+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f3f0782f-585e-44db-bc53-63fc2475899b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	FOfN9VTBsBHvqKF41LCS5OZHqp3TWK2UkgPebU0n5tg=	2026-08-29 00:07:39.864765+05:30	\N	\N	2026-08-22 00:07:39.86485+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+dc87d396-0874-4ff5-ae32-c8b2a4280fdc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	90ZQxe5bYSNLKEafIjIcaweUsBN0UtDU3aIozcRzhVc=	2026-08-28 23:59:52.323595+05:30	2026-08-22 00:07:39.862253+05:30	\N	2026-08-21 23:59:52.328113+05:30	2026-08-22 00:07:39.863271+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1e0ce1ac-6f9c-414a-8a77-dc1c4d1b3115	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qrSA7SjigRIJ2HtX4V2gYA1OP5ivczuvX7WXsKPZ04o=	2026-08-29 00:07:39.862529+05:30	2026-08-22 00:12:26.568489+05:30	\N	2026-08-22 00:07:39.863271+05:30	2026-08-22 00:12:26.569922+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3f36e699-4bf5-4e28-ba53-006c291cfcc3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	xtZyGkidTG4pMY8LXdeYt0U03DK8XH+aGo/C+XKBYBI=	2026-08-29 00:12:26.56925+05:30	2026-08-22 00:12:26.591675+05:30	\N	2026-08-22 00:12:26.569922+05:30	2026-08-22 00:12:26.591848+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+eed20a06-948c-48cc-b808-1a3dccb37d8c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	kDT1ViMUM/9YLThxw/NsNdii6g6vnoEdOBMnV5We+LM=	2026-08-29 00:12:26.591785+05:30	2026-08-22 00:34:39.361956+05:30	\N	2026-08-22 00:12:26.591848+05:30	2026-08-22 00:34:39.364511+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1fbccd59-468c-43cc-ac9d-672bda518373	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	F54pXs5SBEb0xqCwqIH+jIsNC39vj3GgKC39BdIC2R0=	2026-08-29 00:34:39.364037+05:30	2026-08-22 00:42:16.243304+05:30	\N	2026-08-22 00:34:39.364511+05:30	2026-08-22 00:42:16.259357+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d9c52b8b-8e58-4ea6-b2fd-2ca72f4dab15	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	1Amn2ovPj652YrJMnKloLckITQ20ILT1kbd/ma2ou5o=	2026-08-29 00:42:16.256325+05:30	2026-08-22 00:52:51.395163+05:30	\N	2026-08-22 00:42:16.259357+05:30	2026-08-22 00:52:51.395779+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2ac137b4-e43b-429f-8615-7d78707c354f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	TzQJtXzqydcylYR9n+UoQqE4ETn+hbLxL4YEwyEBkjY=	2026-08-29 00:52:51.395571+05:30	\N	\N	2026-08-22 00:52:51.395779+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
@@ -1542,27 +1863,27 @@ a69fe228-de12-44e5-9128-dc3898f67e5c	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	IT	202
 --
 
 COPY public.users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Department", "SubDepartment", "Avatar", "Designation", "IsActive", "MustChangePassword", "RoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "FailedLoginAttempts", "LastLoginAtUtc", "LockedUntilUtc", "PasswordChangedAtUtc") FROM stdin;
-9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$Ks2m13K9zMo3gcvv.oQSyukOXF3Y4q8phI.mQjBiokPHNSyVp7dSa	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
 cf106b1b-6a96-464f-aa63-ddcb77a737e0	new.pm@acme.co	$2a$12$p.MfI7wlBAX2LZkpEvPoEunU.q5UljNMmswtXsI80UcJj8X2CVWM.	New PM	u99	\N	\N	\N	PM	t	t	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:25:45.951114+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
-a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$b2JtQGvsufasVJcscUVaf.UqUtMwf9/vKEcWdmmOoOLkczd0mUdrW	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-21 16:29:54.285259+05:30	\N	\N
-a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$FBiOs3uj4C/jeMJs4bJYI.srSoNYxHArv8hF3Yu4ioH1u9SixM3hW	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
-a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$4wMeuwyVuQwNnnEMOETf9.KDeAHOEaxSdl7H5DCdjZ6OwCa7/8Ppi	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
-b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$tvy6i6cIwMPxznzWYZnWvOAo3EQbgcismc.iBPMREU7kdQLcPW8ZG	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
-1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$Z8NFnaolFNK3Q6VDZ1Cow.u3q1I/edVZC/jhDnEBj4ZpuxTJHmT.i	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
 30d629ff-3076-40f8-9c12-fb385b8c2600	admin2@acme.co	$2a$12$aqJIdIL9tzPW5DFE.zVFVurFkCUE0knMbU7.A0A1pBtjA7K4Qk7wS	Test Admin Two	A2	\N	\N	\N	\N	f	t	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:45:16.235641+05:30	2026-08-07 13:45:23.702021+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	0	\N	\N	\N
-2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$S6xJaiLDIWWkO6v/Wg.xlefjHqovXP9IaO5vFYdL7Ho//iH8ROZjS	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
 a1878763-b174-41b0-88db-f2ebba76af83	sdsa@gmail.com	$2a$12$.bzyuW3FFq2Uau84IyFnYO1LXxDLXkbxtjVyvzVs71KECK6u2CONy	sadas	ads	sda	\N	\N	sda	t	t	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 15:00:46.654787+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
-304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$1IsDiKmr8gDoVCIKvlYPzOtr.ABeZepjWoisxVeK2bFczErcmHjwO	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-19 13:49:46.145648+05:30	\N	\N
-40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$lZaaacMFr3quKIhayJtpc.jwf5oaoDzTuOv10sDg8yDsV2igOwaGm	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-21 11:51:37.97411+05:30	\N	2026-08-10 12:32:04.244561+05:30
-47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$Q5NGoB8ldfMCsjqEB6jGcuwFyAToUDKHwI7fzSGgR5yYMteNmeZ.2	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-20 12:01:20.644786+05:30	\N	\N
-49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$GHUMHN3rwHVArXhcNuaGu.h425xy4r6HtJrSrQX5g2vAOqHt8V2ES	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	\N	\N	\N
-65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$JwML0SIKXSWlRgptP92MnO.Ukd4jFZiMDiiNjIyLZ.ZZ1Q/ptCrGa	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
-730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$FFAmqyNMtRQ5naLD8gGlC.wju/apsFk17Z7XRz15t6gOT8Zb3WNgm	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
-e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$nLcb.DFHf.wuYZ1d10nizezQb52Pd/xNGus1i36PaWklDWRP1kmYa	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
-f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$28Cu5PgexUJgvbXBsUXdF.UH5FIW57bAZuoyn/uAw0vw1NQHD.mze	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-21 12:54:18.426443+05:30	\N	\N
-111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$FF6xY8Ph1PmSonf06f/uM.xhSiaPfxGbTayQFzwDrfOKkoDRE/nGC	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
-b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$A6QBZLzFtmbFt25iwcWhwekWRvUMqt0ZvOaRSV5Mqwf2KDECdBzHC	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	2026-08-18 12:39:23.505267+05:30	\N	\N
-dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$hUK0NiNvbiFEjFbwgtafd.ri6Ib3hGpEEO9VnMHNIxxFJ8iKTscUu	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-21 17:36:31.568108+05:30	\N	\N	\N	0	\N	\N	\N
+111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$S6VAjw1L0UQXtEUGvUppa.hk5Ew4qrzeV2Ip5BzN46zV/ykj7RtAS	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
+1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$O4Pyf7gA4Qzq6johV1BHDOfBHqMe2dc7c/oU38fK/hBPq/7/7upQG	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
+2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$InmduBjvoVo47yX1TZbSVuoFyfv4snwCUMjXEJxzyYvaLWai7i232	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
+304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$lbiQNR4O8XDwdwxmcYjnFe3x2wUthwTwGKVH56ixKJ.FnAaD37rP2	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-21 22:15:24.911658+05:30	\N	\N
+40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$mI5CNbfY4sxwlozSEYPdoOLpQipdyWdqDSyUxAVu6dH4DWt0FD3Ei	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-21 11:51:37.97411+05:30	\N	2026-08-10 12:32:04.244561+05:30
+47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$WGQ3iCykbpMf/jaYFTIhf.wukF8feU.NAWyrIYAsrhiNybTZjwxji	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-20 12:01:20.644786+05:30	\N	\N
+49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$I8WLNrJc0W8jVldGbYycL.TJFF.hn.iMCTErPWiPGKoAfJScUn6NC	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	\N	\N	\N
+65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$AQTy9whi5C2PsBSiKweJAOY69v1jkri8XCghGY/AnKBkUCju0Elr6	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
+730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$iod9XnjyupvpJLOFFAOGf.6.ANT6nPgLwPxMK/qFCQRL1wDvLBE8u	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
+9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$UF6PZwOpd8pu8VK5QUX5euuj7.y.mji/rArxYZObeFLKDlsRV3UyG	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
+a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$nPemmEjlOsARI.x67Fp3FOBGOg4TO8.5uKYGi3L4qVZZFRk00Pcd6	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-21 22:15:42.227714+05:30	\N	\N
+a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$YZJE1RHNxe1gKg1AoMUGOuXIkBFivjbh/S3O5hS6RCoGWUlUXUmpG	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
+a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$bZcGuJrzKdroRz9zVk7DDOnkRfKVe07E0UMhzVzHCOr2hp3AqBwcu	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
+b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$YlpMx3y/6YZXNe0mfPbPr.Erby46IC7pr//Dzudluq9nxi/IlVmVq	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
+b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$qa0XgmtuNr/74BRbIbEO7OwxjfNQw4m/15HD8LoLYi6vwf8.6MqjK	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-18 12:39:23.505267+05:30	\N	\N
+dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$X4OgL682T7v2i8LlsThzbeh4uc3k.hnTFAcoPItWB2v4x3HcugDu.	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	\N	\N	\N
+e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$FMGduAhxPBbcczVr2WbnCOzqEKn654jneInO7YQsIsYEhJVgb1t06	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
+f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$IRs/m9194EqGTnMwaUC2euKl.rNZIv0reyawyAYS8QoyBR5Wom7ya	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-21 22:14:07.051033+05:30	\N	\N
 \.
 
 
@@ -1716,6 +2037,70 @@ ALTER TABLE ONLY public.sub_ventures
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT "PK_users" PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_business_units
+    ADD CONSTRAINT "mst_business_units_Code_key" UNIQUE ("Code");
+
+
+--
+-- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_business_units
+    ADD CONSTRAINT mst_business_units_pkey PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_email_domains
+    ADD CONSTRAINT mst_email_domains_pkey PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_offices
+    ADD CONSTRAINT "mst_offices_Code_key" UNIQUE ("Code");
+
+
+--
+-- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_offices
+    ADD CONSTRAINT mst_offices_pkey PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_reporting_managers
+    ADD CONSTRAINT mst_reporting_managers_pkey PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_work_locations
+    ADD CONSTRAINT "mst_work_locations_Code_key" UNIQUE ("Code");
+
+
+--
+-- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_work_locations
+    ADD CONSTRAINT mst_work_locations_pkey PRIMARY KEY ("Id");
 
 
 --
@@ -1908,6 +2293,13 @@ CREATE UNIQUE INDEX "IX_mst_designations_DepartmentId_Name" ON public.mst_design
 
 
 --
+-- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_email_domains_DomainName" ON public.mst_email_domains USING btree ("DomainName");
+
+
+--
 -- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1933,6 +2325,13 @@ CREATE UNIQUE INDEX "IX_mst_nationalities_Code" ON public.mst_nationalities USIN
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Name" ON public.mst_nationalities USING btree ("Name");
+
+
+--
+-- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_reporting_managers_Code" ON public.mst_reporting_managers USING btree ("Code");
 
 
 --
@@ -2163,6 +2562,14 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
+-- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_reporting_managers
+    ADD CONSTRAINT "FK_mst_reporting_managers_employees_EmployeeId" FOREIGN KEY ("EmployeeId") REFERENCES public.employees("Id") ON DELETE SET NULL;
+
+
+--
 -- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2203,8 +2610,16 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_offices
+    ADD CONSTRAINT "mst_offices_WorkLocationId_fkey" FOREIGN KEY ("WorkLocationId") REFERENCES public.mst_work_locations("Id") ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict rFHC1zE1RNcnN78Y0yCCt14bqsRvGzRE3L6H3fWptuPc10dvhkHW8skdBh0VEgL
+\unrestrict joA5a4aB2IvKLhcN9bSJeVyFriAumDdgJGGLWEWf5dChNZaQTD2xvs02lUIf9kY
 

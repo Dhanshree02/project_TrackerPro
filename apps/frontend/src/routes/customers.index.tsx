@@ -134,10 +134,55 @@ function CustomersPage() {
     });
   }, [clients, projects, apiClients]);
 
-  const filtered = enriched.filter(
-    ({ client: c }) =>
-      !q.trim() || [c.name, c.industry].some((v) => v.toLowerCase().includes(q.toLowerCase())),
-  );
+  const matchesClientSearch = (c: Client, query: string): boolean => {
+    if (!query) return true;
+    const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return true;
+
+    const svNames = (c.subVentures ?? []).map((s) => s.name);
+    const svNotes = (c.subVentures ?? []).map((s) => s.notes ?? "");
+    const svContacts = (c.subVentures ?? []).flatMap((s) => s.contacts ?? []);
+
+    const allContacts = [...(c.contacts ?? []), ...svContacts];
+    const contactNames = allContacts.map((ct) => ct.name);
+    const contactEmails = allContacts.map((ct) => ct.email);
+    const contactPhones = allContacts.map((ct) => ct.phone ?? "");
+    const contactDesigs = allContacts.map((ct) => ct.designation ?? "");
+    const contactTypes = allContacts.map((ct) => ct.contactType ?? "");
+
+    const searchableText = [
+      c.id,
+      c.name,
+      c.industry,
+      c.clientType,
+      c.engagementManager,
+      c.contact,
+      c.contactName,
+      c.contactPhone,
+      c.contactDesignation,
+      c.contactType,
+      c.city,
+      c.country,
+      c.businessType,
+      c.notes,
+      c.kycDocumentName,
+      c.customerSince,
+      ...svNames,
+      ...svNotes,
+      ...contactNames,
+      ...contactEmails,
+      ...contactPhones,
+      ...contactDesigs,
+      ...contactTypes,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return terms.every((term) => searchableText.includes(term));
+  };
+
+  const filtered = enriched.filter(({ client: c }) => matchesClientSearch(c, q));
 
   const open = openId ? clients.find((c) => c.id === openId) : null;
 
@@ -149,29 +194,31 @@ function CustomersPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search customer or industry…"
+            placeholder="Search customer, SPOC, sub-venture, phone…"
             className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <div className="flex gap-1 rounded-lg border border-border bg-card p-1 text-xs shadow-sm">
+        <div className="ml-auto flex items-center gap-2.5">
+          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
             <button
               onClick={() => setView("card")}
+              aria-label="Grid view"
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2.5 py-1",
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
                 view === "card"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <LayoutGrid className="h-3.5 w-3.5" /> Card
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
             </button>
             <button
               onClick={() => setView("list")}
+              aria-label="List view"
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2.5 py-1",
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
                 view === "list"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -181,9 +228,9 @@ function CustomersPage() {
           {canCreateClient && (
             <button
               onClick={() => setOpenNew(true)}
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"
             >
-              <Plus className="h-3.5 w-3.5" /> New Client
+              <Plus className="h-4 w-4" /> New Customer
             </button>
           )}
         </div>
@@ -531,7 +578,8 @@ function NewClientModal({
     if (!s.clientName.trim()) return "TK Customer / Partner Name is required";
     if (!s.engagementManager.trim()) return "Engagement Manager is required";
     if (!s.phoneNumber.trim()) return "Phone Number is required";
-    if (!isCompletePhone(s.phoneNumber)) return "Enter a 10-digit phone number";
+    const phErr = phoneError(s.phoneNumber, true);
+    if (phErr) return phErr;
     if (!s.city.trim()) return "City is required";
     if (!s.country.trim()) return "Country is required";
     if (!s.industry.trim()) return "Industry is required";
@@ -1086,15 +1134,23 @@ function NewClientModal({
                 required
                 error={phoneError(s.phoneNumber)}
               >
-                <input
-                  className={fieldInputCls(inputCls, Boolean(phoneError(s.phoneNumber)))}
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={FIELD_MAX.phone}
-                  placeholder="10-digit phone"
-                  value={s.phoneNumber}
-                  onChange={(e) => u("phoneNumber", toTenDigitPhone(e.target.value))}
-                />
+                <div className="relative flex rounded-md">
+                  <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
+                    +91
+                  </span>
+                  <input
+                    className={cn(
+                      fieldInputCls(inputCls, Boolean(phoneError(s.phoneNumber))),
+                      "rounded-l-none",
+                    )}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={FIELD_MAX.phone}
+                    placeholder="9876543210"
+                    value={s.phoneNumber}
+                    onChange={(e) => u("phoneNumber", toTenDigitPhone(e.target.value))}
+                  />
+                </div>
               </Field>
               <Field label="Country / Region" required>
                 <select
@@ -1248,15 +1304,23 @@ function NewClientModal({
                   />
                 </Field>
                 <Field label="Phone" required error={phoneError(ct.phone)}>
-                  <input
-                    className={fieldInputCls(inputCls, Boolean(phoneError(ct.phone)))}
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={FIELD_MAX.phone}
-                    placeholder="10-digit phone"
-                    value={ct.phone}
-                    onChange={(e) => updateContact(idx, "phone", toTenDigitPhone(e.target.value))}
-                  />
+                  <div className="relative flex rounded-md">
+                    <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
+                      +91
+                    </span>
+                    <input
+                      className={cn(
+                        fieldInputCls(inputCls, Boolean(phoneError(ct.phone))),
+                        "rounded-l-none",
+                      )}
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={FIELD_MAX.phone}
+                      placeholder="9876543210"
+                      value={ct.phone}
+                      onChange={(e) => updateContact(idx, "phone", toTenDigitPhone(e.target.value))}
+                    />
+                  </div>
                 </Field>
                 <Field label="Designation" required>
                   <input
@@ -1367,7 +1431,7 @@ function NewClientModal({
             {!selectedExisting && (
               <>
                 <Row label="Engagement Manager" v={s.engagementManager} />
-                <Row label="Phone Number" v={s.phoneNumber} />
+                <Row label="Phone Number" v={s.phoneNumber ? `+91 ${s.phoneNumber}` : "—"} />
                 <Row label="City" v={s.city} />
                 <Row label="Country / Region" v={s.country} />
                 <Row label="Industry" v={s.industry} />
@@ -1387,7 +1451,7 @@ function NewClientModal({
                 <Row label="Name" v={ct.name} />
                 <Row label="Contact Type" v={ct.contactType || "—"} />
                 <Row label="Email" v={ct.email} />
-                <Row label="Phone" v={ct.phone || "—"} />
+                <Row label="Phone" v={ct.phone ? `+91 ${ct.phone}` : "—"} />
                 <Row label="Designation" v={ct.designation || "—"} />
               </dl>
             ))}

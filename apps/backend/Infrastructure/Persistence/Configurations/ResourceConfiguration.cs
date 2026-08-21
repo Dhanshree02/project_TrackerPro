@@ -233,3 +233,76 @@ public sealed class ExitedEmployeeConfiguration : IEntityTypeConfiguration<Exite
         builder.Property(x => x.FinalSettlementJson).HasColumnType("jsonb");
     }
 }
+
+public sealed class MstEmailDomainConfiguration : IEntityTypeConfiguration<MstEmailDomain>
+{
+    public void Configure(EntityTypeBuilder<MstEmailDomain> builder)
+    {
+        builder.ToTable("mst_email_domains");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.DomainName).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.DomainName).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.DisplayName).HasMaxLength(150).IsRequired();
+    }
+}
+
+public sealed class MstReportingManagerConfiguration : IEntityTypeConfiguration<MstReportingManager>
+{
+    public void Configure(EntityTypeBuilder<MstReportingManager> builder)
+    {
+        builder.ToTable("mst_reporting_managers");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.Designation).HasMaxLength(150);
+        builder.Property(x => x.Email).HasMaxLength(255);
+
+        builder.HasOne(x => x.Employee)
+            .WithMany()
+            .HasForeignKey(x => x.EmployeeId)
+            .OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public sealed class MstBusinessUnitConfiguration : IEntityTypeConfiguration<MstBusinessUnit>
+{
+    public void Configure(EntityTypeBuilder<MstBusinessUnit> builder)
+    {
+        builder.ToTable("mst_business_units");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+    }
+}
+
+public sealed class MstWorkLocationConfiguration : IEntityTypeConfiguration<MstWorkLocation>
+{
+    public void Configure(EntityTypeBuilder<MstWorkLocation> builder)
+    {
+        builder.ToTable("mst_work_locations");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+    }
+}
+
+public sealed class MstOfficeConfiguration : IEntityTypeConfiguration<MstOffice>
+{
+    public void Configure(EntityTypeBuilder<MstOffice> builder)
+    {
+        builder.ToTable("mst_offices");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+
+        builder.HasOne(x => x.WorkLocation)
+            .WithMany(w => w.Offices)
+            .HasForeignKey(x => x.WorkLocationId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

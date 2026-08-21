@@ -34,11 +34,29 @@ public interface IEmployeeService
 
     Task<IReadOnlyList<MetaOptionDto>> GetSalaryBandsAsync(CancellationToken ct = default);
 
+    Task<IReadOnlyList<MetaOptionDto>> GetEmailDomainsAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<MetaOptionDto>> GetReportingManagersAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<MetaOptionDto>> GetBusinessUnitsAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<MetaOptionDto>> GetWorkLocationsAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<MetaOptionDto>> GetOfficesAsync(Guid? workLocationId = null, CancellationToken ct = default);
+
     Task<MetaOptionDto> CreateDepartmentAsync(string name, CancellationToken ct = default);
 
     Task<MetaOptionDto> CreateDesignationAsync(string name, Guid departmentId, CancellationToken ct = default);
 
     Task<MetaOptionDto> CreateJobRoleAsync(string name, Guid designationId, CancellationToken ct = default);
+
+    Task<MetaOptionDto> CreateReportingManagerAsync(string name, string? designation = null, CancellationToken ct = default);
+
+    Task<MetaOptionDto> CreateBusinessUnitAsync(string name, CancellationToken ct = default);
+
+    Task<MetaOptionDto> CreateWorkLocationAsync(string name, CancellationToken ct = default);
+
+    Task<MetaOptionDto> CreateOfficeAsync(string name, Guid? workLocationId = null, CancellationToken ct = default);
 
     Task<IReadOnlyList<EmployeeLookupDto>> LookupEmployeesAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default);
 

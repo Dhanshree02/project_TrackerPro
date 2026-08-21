@@ -508,16 +508,24 @@ function EditProfilePanel({
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Mobile Number
                 </span>
-                <input
-                  autoComplete="off"
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={FIELD_MAX.phone}
-                  placeholder="10-digit mobile"
-                  value={formData.phone}
-                  onChange={(e) => handleChange("phone", e.target.value)}
-                  className={fieldInputCls(inputCls, Boolean(phoneError(formData.phone ?? "")))}
-                />
+                <div className="relative flex rounded-md">
+                  <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
+                    +91
+                  </span>
+                  <input
+                    autoComplete="off"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={FIELD_MAX.phone}
+                    placeholder="9876543210"
+                    value={formData.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    className={cn(
+                      fieldInputCls(inputCls, Boolean(phoneError(formData.phone ?? ""))),
+                      "rounded-l-none",
+                    )}
+                  />
+                </div>
                 {phoneError(formData.phone ?? "") ? (
                   <p className="mt-1 text-[11px] text-destructive">{phoneError(formData.phone ?? "")}</p>
                 ) : null}
@@ -526,16 +534,24 @@ function EditProfilePanel({
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Alternate Contact
                 </span>
-                <input
-                  autoComplete="off"
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={FIELD_MAX.phone}
-                  placeholder="10-digit mobile"
-                  value={formData.altPhone}
-                  onChange={(e) => handleChange("altPhone", e.target.value)}
-                  className={fieldInputCls(inputCls, Boolean(phoneError(formData.altPhone ?? "")))}
-                />
+                <div className="relative flex rounded-md">
+                  <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
+                    +91
+                  </span>
+                  <input
+                    autoComplete="off"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={FIELD_MAX.phone}
+                    placeholder="9876543210"
+                    value={formData.altPhone}
+                    onChange={(e) => handleChange("altPhone", e.target.value)}
+                    className={cn(
+                      fieldInputCls(inputCls, Boolean(phoneError(formData.altPhone ?? ""))),
+                      "rounded-l-none",
+                    )}
+                  />
+                </div>
                 {phoneError(formData.altPhone ?? "") ? (
                   <p className="mt-1 text-[11px] text-destructive">
                     {phoneError(formData.altPhone ?? "")}
@@ -610,13 +626,13 @@ function EditProfilePanel({
                   <span className="mb-1 block text-xs font-medium text-muted-foreground">
                     Address
                   </span>
-                  <input
+                  <textarea
+                    rows={2}
                     autoComplete="off"
-                    type="text"
                     value={formData.address}
                     maxLength={FIELD_MAX.address}
                     onChange={(e) => handleChange("address", e.target.value)}
-                    className={inputCls}
+                    className={cn(inputCls, "h-auto min-h-[64px] py-2 resize-y leading-relaxed")}
                   />
                 </label>
               </div>
@@ -747,7 +763,7 @@ function EditProfilePanel({
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Office Branch
+                  Office
                 </span>
                 <input
                   autoComplete="off"
@@ -1361,12 +1377,12 @@ function EmployeeProfilePage() {
                 <Row label="Last Name" value={emp.lastName} />
                 <Row label="Email ID" value={emp.email} />
                 <Row label="Personal Email" value={emp.personalEmail} />
-                <Row label="Contact Number" value={emp.phone} />
-                <Row label="Alternate Contact" value={emp.altPhone} />
+                <Row label="Contact Number" value={emp.phone ? `+91 ${emp.phone}` : "—"} />
+                <Row label="Alternate Contact" value={emp.altPhone ? `+91 ${emp.altPhone}` : "—"} />
                 <Row label="Gender" value={emp.gender} />
                 <Row label="Date of Birth" value={emp.dob} />
                 <Row label="Address" value={emp.address} />
-                <Row label="Emergency Contact" value={emp.emergencyContact} />
+                <Row label="Emergency Contact" value={emp.emergencyContact ? `+91 ${emp.emergencyContact}` : "—"} />
                 <Row label="Marital Status" value={emp.maritalStatus} />
                 <Row label="Nationality" value={emp.nationality} />
                 <Row label="Employment Status" value={<EmpStatusBadge status={emp.status} />} />
@@ -1384,7 +1400,7 @@ function EmployeeProfilePage() {
                 <Row label="Reporting Manager" value={emp.reportingManager} />
                 <Row label="Business Unit" value={emp.businessUnit} />
                 <Row label="Work Location" value={emp.workLocation} />
-                <Row label="Office Branch" value={emp.officeBranch} />
+                <Row label="Office" value={emp.officeBranch} />
                 <Row label="Employee Category" value={emp.category} />
                 <Row label="Team Name" value={emp.team} />
               </Grid>

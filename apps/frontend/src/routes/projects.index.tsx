@@ -149,26 +149,26 @@ function ProjectsPage() {
               )}
             </button>
           )}
-          <div className="flex gap-1 rounded-lg border border-border bg-card p-1 text-xs shadow-sm">
+          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
             <button
               onClick={() => setView("card")}
-              aria-label="Card view"
+              aria-label="Grid view"
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2.5 py-1",
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
                 view === "card"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <LayoutGrid className="h-3.5 w-3.5" /> Card
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
             </button>
             <button
               onClick={() => setView("list")}
               aria-label="List view"
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2.5 py-1",
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
                 view === "list"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -178,9 +178,9 @@ function ProjectsPage() {
           {hasPermission("projects.create") && (
             <button
               onClick={() => navigate({ to: "/projects/new" })}
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"
             >
-              <Plus className="h-3.5 w-3.5" /> New Project
+              <Plus className="h-4 w-4" /> New Project
             </button>
           )}
         </div>

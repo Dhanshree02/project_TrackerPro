@@ -34,7 +34,19 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
                 e.FirstName.ToLower().Contains(needle) ||
                 e.LastName.ToLower().Contains(needle) ||
                 e.EmployeeCode.ToLower().Contains(needle) ||
-                e.WorkEmail.ToLower().Contains(needle));
+                e.WorkEmail.ToLower().Contains(needle) ||
+                (e.PersonalEmail != null && e.PersonalEmail.ToLower().Contains(needle)) ||
+                (e.Phone != null && e.Phone.ToLower().Contains(needle)) ||
+                (e.AltPhone != null && e.AltPhone.ToLower().Contains(needle)) ||
+                (e.EmergencyContact != null && e.EmergencyContact.ToLower().Contains(needle)) ||
+                (e.Pan != null && e.Pan.ToLower().Contains(needle)) ||
+                (e.BankAccount != null && e.BankAccount.ToLower().Contains(needle)) ||
+                (e.PfUan != null && e.PfUan.ToLower().Contains(needle)) ||
+                (e.Education != null && e.Education.ToLower().Contains(needle)) ||
+                (e.Address != null && e.Address.ToLower().Contains(needle)) ||
+                (e.BusinessUnit != null && e.BusinessUnit.ToLower().Contains(needle)) ||
+                (e.Team != null && e.Team.ToLower().Contains(needle)) ||
+                (e.PreviousCompany != null && e.PreviousCompany.ToLower().Contains(needle)));
         }
 
         if (departmentId.HasValue)
@@ -66,7 +78,23 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
                 e.ProjectSite,
                 e.KpiScore,
                 e.Status,
-                e.CreatedAtUtc))
+                e.CreatedAtUtc,
+                e.PersonalEmail,
+                e.Phone,
+                e.AltPhone,
+                e.EmergencyContact,
+                e.Pan,
+                e.BankAccount,
+                e.PfUan,
+                e.Education,
+                e.Skills,
+                e.Certifications,
+                e.Languages,
+                e.Role,
+                e.BusinessUnit,
+                e.Team,
+                e.Experience,
+                e.PreviousCompany))
             .ToListAsync(ct);
 
         return new PagedResult<EmployeeListItemDto>(items, page, perPage, total);
@@ -397,6 +425,149 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
             .OrderBy(b => b.Code)
             .Select(b => new MetaOptionDto(b.Id, b.Code, b.Name, null))
             .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetEmailDomainsAsync(CancellationToken ct = default)
+    {
+        return await db.EmailDomains
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.SortOrder)
+            .ThenBy(d => d.DomainName)
+            .Select(d => new MetaOptionDto(d.Id, d.DomainName, d.DisplayName, null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetReportingManagersAsync(CancellationToken ct = default)
+    {
+        return await db.ReportingManagers
+            .Where(m => m.IsActive)
+            .OrderBy(m => m.SortOrder)
+            .ThenBy(m => m.Name)
+            .Select(m => new MetaOptionDto(m.Id, m.Code, m.Name, m.EmployeeId))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetBusinessUnitsAsync(CancellationToken ct = default)
+    {
+        return await db.BusinessUnits
+            .Where(b => b.IsActive)
+            .OrderBy(b => b.SortOrder)
+            .ThenBy(b => b.Name)
+            .Select(b => new MetaOptionDto(b.Id, b.Code, b.Name, null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetWorkLocationsAsync(CancellationToken ct = default)
+    {
+        return await db.WorkLocations
+            .Where(w => w.IsActive)
+            .OrderBy(w => w.SortOrder)
+            .ThenBy(w => w.Name)
+            .Select(w => new MetaOptionDto(w.Id, w.Code, w.Name, null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetOfficesAsync(Guid? workLocationId = null, CancellationToken ct = default)
+    {
+        var query = db.Offices.Where(o => o.IsActive);
+        if (workLocationId.HasValue)
+        {
+            query = query.Where(o => o.WorkLocationId == workLocationId.Value);
+        }
+
+        return await query
+            .OrderBy(o => o.SortOrder)
+            .ThenBy(o => o.Name)
+            .Select(o => new MetaOptionDto(o.Id, o.Code, o.Name, o.WorkLocationId))
+            .ToListAsync(ct);
+    }
+
+    public async Task<MetaOptionDto> CreateBusinessUnitAsync(string name, CancellationToken ct = default)
+    {
+        var trimmed = RequireName(name);
+        var existing = await db.BusinessUnits.FirstOrDefaultAsync(b => b.Name.ToLower() == trimmed.ToLower(), ct);
+        if (existing is not null)
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, null);
+
+        var entity = new MstBusinessUnit
+        {
+            Code = await UniqueCodeAsync(Slug(trimmed), c => db.BusinessUnits.AnyAsync(b => b.Code == c, ct), 80),
+            Name = trimmed,
+            IsActive = true,
+            SortOrder = 999,
+        };
+        db.BusinessUnits.Add(entity);
+        await db.SaveChangesAsync(ct);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, null);
+    }
+
+    public async Task<MetaOptionDto> CreateWorkLocationAsync(string name, CancellationToken ct = default)
+    {
+        var trimmed = RequireName(name);
+        var existing = await db.WorkLocations.FirstOrDefaultAsync(w => w.Name.ToLower() == trimmed.ToLower(), ct);
+        if (existing is not null)
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, null);
+
+        var entity = new MstWorkLocation
+        {
+            Code = await UniqueCodeAsync(Slug(trimmed), c => db.WorkLocations.AnyAsync(w => w.Code == c, ct), 80),
+            Name = trimmed,
+            IsActive = true,
+            SortOrder = 999,
+        };
+        db.WorkLocations.Add(entity);
+        await db.SaveChangesAsync(ct);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, null);
+    }
+
+    public async Task<MetaOptionDto> CreateOfficeAsync(string name, Guid? workLocationId = null, CancellationToken ct = default)
+    {
+        var trimmed = RequireName(name);
+        var query = db.Offices.Where(o => o.Name.ToLower() == trimmed.ToLower());
+        if (workLocationId.HasValue)
+        {
+            query = query.Where(o => o.WorkLocationId == workLocationId.Value);
+        }
+
+        var existing = await query.FirstOrDefaultAsync(ct);
+        if (existing is not null)
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.WorkLocationId);
+
+        var prefix = workLocationId.HasValue
+            ? (await db.WorkLocations.Where(w => w.Id == workLocationId.Value).Select(w => w.Code).FirstOrDefaultAsync(ct) ?? "off")
+            : "off";
+
+        var entity = new MstOffice
+        {
+            Code = await UniqueCodeAsync(Truncate($"{prefix}_{Slug(trimmed)}", 80), c => db.Offices.AnyAsync(o => o.Code == c, ct)),
+            Name = trimmed,
+            WorkLocationId = workLocationId,
+            IsActive = true,
+            SortOrder = 999,
+        };
+        db.Offices.Add(entity);
+        await db.SaveChangesAsync(ct);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.WorkLocationId);
+    }
+
+    public async Task<MetaOptionDto> CreateReportingManagerAsync(string name, string? designation = null, CancellationToken ct = default)
+    {
+        var trimmed = RequireName(name);
+        var existing = await db.ReportingManagers.FirstOrDefaultAsync(m => m.Name.ToLower() == trimmed.ToLower(), ct);
+        if (existing is not null)
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.EmployeeId);
+
+        var entity = new MstReportingManager
+        {
+            Code = await UniqueCodeAsync(Slug(trimmed), c => db.ReportingManagers.AnyAsync(m => m.Code == c, ct), 80),
+            Name = trimmed,
+            Designation = string.IsNullOrWhiteSpace(designation) ? null : designation.Trim(),
+            IsActive = true,
+            SortOrder = 999,
+        };
+        db.ReportingManagers.Add(entity);
+        await db.SaveChangesAsync(ct);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.EmployeeId);
     }
 
     public async Task<MetaOptionDto> CreateDepartmentAsync(string name, CancellationToken ct = default)
