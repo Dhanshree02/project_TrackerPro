@@ -5,6 +5,7 @@ using PMS.API.Modules.Auth.DTOs;
 using PMS.API.Modules.Auth.Models;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Shared.Validation;
 
 namespace PMS.API.Infrastructure.Authentication;
 
@@ -29,7 +30,7 @@ public sealed class AuthService(
 
     public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
-        var user = await LoadUserAsync(email: request.Email, ct: ct)
+        var user = await LoadUserAsync(email: EmailRules.Normalize(request.Email).ToLowerInvariant(), ct: ct)
             ?? throw new UnauthorizedException("Invalid email or password.");
 
         // Lockout window active?

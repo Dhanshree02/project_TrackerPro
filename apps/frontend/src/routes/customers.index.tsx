@@ -1147,6 +1147,7 @@ function NewClientModal({
                     onChange={(e) =>
                       updateContact(idx, "email", e.target.value.slice(0, FIELD_MAX.email))
                     }
+                    onBlur={() => updateContact(idx, "email", ct.email.trim())}
                   />
                 </Field>
                 <Field label="Phone" required error={phoneError(ct.phone)}>

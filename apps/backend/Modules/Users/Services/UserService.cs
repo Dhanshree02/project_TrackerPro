@@ -7,6 +7,7 @@ using PMS.API.Modules.Users.DTOs;
 using PMS.API.Shared.Common.Wrappers;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Shared.Validation;
 using PMS.API.Infrastructure.Authentication;
 
 namespace PMS.API.Modules.Users.Services;
@@ -59,7 +60,7 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
 
     public async Task<UserDto> CreateUserAsync(CreateUserRequest request, CancellationToken ct = default)
     {
-        if (await db.Users.AnyAsync(u => u.Email == request.Email, ct))
+        if (await db.Users.AnyAsync(u => u.Email == EmailRules.Normalize(request.Email).ToLowerInvariant(), ct))
             throw new ConflictException("A user with this email already exists.");
 
         if (await db.Users.AnyAsync(u => u.EmployeeId == request.EmployeeId, ct))
@@ -69,7 +70,7 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
 
         var user = new User
         {
-            Email = request.Email.Trim().ToLower(),
+            Email = EmailRules.Normalize(request.Email).ToLowerInvariant(),
             Name = request.Name.Trim(),
             EmployeeId = request.EmployeeId.Trim(),
             Avatar = request.Avatar,

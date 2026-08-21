@@ -1326,6 +1326,13 @@ function OnboardingPanel({
   };
 
   const blurField = (field: OnboardField) => {
+    if (field === "workEmail" || field === "personalEmail") {
+      const trimmed = form[field].trim();
+      if (trimmed !== form[field]) {
+        setField(field, trimmed);
+        return;
+      }
+    }
     const message = validateOnboardField(field, form, existingCodes);
     setErrors((prev) => {
       const nextErrors = { ...prev };

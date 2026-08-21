@@ -386,7 +386,11 @@ function EditProfilePanel({
     }
     setIsSaving(true);
     try {
-      await onSave(formData);
+      await onSave({
+        ...formData,
+        email: formData.email.trim(),
+        personalEmail: (formData.personalEmail ?? "").trim(),
+      });
       toast.success("Profile updated successfully!");
       onClose();
     } catch (error: any) {
@@ -461,6 +465,7 @@ function EditProfilePanel({
                   value={formData.email}
                   maxLength={FIELD_MAX.email}
                   onChange={(e) => handleChange("email", e.target.value)}
+                  onBlur={() => handleChange("email", formData.email.trim())}
                   className={fieldInputCls(inputCls, Boolean(emailError(formData.email)))}
                   required
                 />
@@ -477,6 +482,7 @@ function EditProfilePanel({
                   value={formData.personalEmail}
                   maxLength={FIELD_MAX.email}
                   onChange={(e) => handleChange("personalEmail", e.target.value)}
+                  onBlur={() => handleChange("personalEmail", formData.personalEmail.trim())}
                   className={fieldInputCls(inputCls, Boolean(emailError(formData.personalEmail ?? "")))}
                 />
                 {emailError(formData.personalEmail ?? "") ? (
@@ -1097,8 +1103,8 @@ function EmployeeProfilePage() {
     const saved = await updateEmployee(updatedEmp.id, {
       firstName: updatedEmp.firstName,
       lastName: updatedEmp.lastName,
-      workEmail: updatedEmp.email,
-      personalEmail: updatedEmp.personalEmail || null,
+      workEmail: updatedEmp.email.trim(),
+      personalEmail: updatedEmp.personalEmail.trim() || null,
       phone: updatedEmp.phone || null,
       altPhone: updatedEmp.altPhone || null,
       gender: updatedEmp.gender || null,

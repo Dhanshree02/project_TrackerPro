@@ -323,6 +323,31 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(HttpStatusCode.BadRequest, youngResponse.StatusCode);
     }
 
+    [Theory]
+    [InlineData("sahil@")]
+    [InlineData("@gmail.com")]
+    [InlineData("sahil@gmail")]
+    [InlineData("sahil gmail.com")]
+    [InlineData("sahil@.com")]
+    public async Task CreateEmployee_RejectsInvalidWorkEmail(string workEmail)
+    {
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+
+        var response = await _client.PostAsJsonAsync("/api/v1/employees", new
+        {
+            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            firstName = "Sahil",
+            lastName = "Lad",
+            workEmail,
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("valid email", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("\"data\":{", json, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public async Task CreateEmployee_PersistsOnboardProfileFields()
     {

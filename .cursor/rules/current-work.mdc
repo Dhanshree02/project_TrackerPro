@@ -9,6 +9,7 @@ alwaysApply: true
 
 ## Latest
 
+- Email format is shared: frontend `isValidEmail` / `emailError` in `form-validation.ts`; backend `EmailRules` + `MustBeValidEmail()` on employee, client, user, and login validators. Invalid values never reach the database.
 - Backend Serilog writes to `apps/backend/Log/Debug log/` (Debug–Warning) and `apps/backend/Log/Error log/` (Error–Fatal). Folders are created on startup.
 - Directory & Pool filters load departments from `mst_departments` and designations from `mst_designations` (not hardcoded frontend lists). Status filter is Active / Probation / Notice Period only.
 - Onboard New Employee now sends the full profile payload (gender, DOB, address, emergency contact, marital status, nationality, dept/designation IDs, org + employment + skills fields). Those columns were empty because most form inputs were uncontrolled and `handleCreate` only POSTed a small subset.

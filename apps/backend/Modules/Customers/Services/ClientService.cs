@@ -7,6 +7,7 @@ using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Customers.Services;
 
@@ -85,7 +86,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             IndustryId = await ResolveIndustryIdAsync(request.Industry, ct),
             // Logo is always derived from the client name.
             Logo = Client.LogoFromName(request.Name),
-            ContactEmail = request.ContactEmail,
+            ContactEmail = EmailRules.NullIfEmpty(request.ContactEmail),
             ClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New,
             EngagementManager = request.EngagementManager,
             EngagementManagerId = await ResolveEngagementManagerIdAsync(request.EngagementManager, ct),
@@ -140,7 +141,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             client.IndustryId = await ResolveIndustryIdAsync(request.Industry, ct);
         }
         if (request.Logo is not null) client.Logo = request.Logo;
-        if (request.ContactEmail is not null) client.ContactEmail = request.ContactEmail;
+        if (request.ContactEmail is not null) client.ContactEmail = EmailRules.NullIfEmpty(request.ContactEmail);
         if (request.ClientType is not null) client.ClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New;
         if (request.Status is not null &&
             Enum.TryParse<ClientStatus>(request.Status, ignoreCase: true, out var status))
@@ -277,7 +278,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         ClientId = clientId,
         SubVentureId = null,
         Name = c.Name,
-        Email = c.Email,
+        Email = EmailRules.NullIfEmpty(c.Email),
         Phone = c.Phone,
         Designation = c.Designation,
         ContactType = c.ContactType,
@@ -288,7 +289,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         ClientId = null,
         SubVentureId = subVentureId,
         Name = c.Name,
-        Email = c.Email,
+        Email = EmailRules.NullIfEmpty(c.Email),
         Phone = c.Phone,
         Designation = c.Designation,
         ContactType = c.ContactType,

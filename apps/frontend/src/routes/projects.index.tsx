@@ -815,6 +815,12 @@ function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
                         },
                       }))
                     }
+                    onBlur={() =>
+                      setS((p) => ({
+                        ...p,
+                        newClient: { ...p.newClient, email: p.newClient.email.trim() },
+                      }))
+                    }
                   />
                 </Field>
               </div>
