@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
 import { useRoleContext } from "@/lib/role-context";
-import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person } from "@/lib/mock-data";
+import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person, type WbsService } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar } from "@/components/pills";
 import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType, people as dhPeople } from "@/lib/dh-helpers";
 import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/dh-store";
@@ -235,7 +235,18 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
 
 function ProjectDetail() {
   const { project: loaderProject, client: loaderClient } = Route.useLoaderData() as { project: Project; client: Client };
-  const { user, isDhanshree, isEmployee, isProjectManager, employeeProjectIds } = useRoleContext();
+  const {
+    user,
+    isDhanshree,
+    isEmployee,
+    isPmFamily,
+    isPmoFamily,
+    isAccounts,
+    isSales,
+    isViewOnly,
+    employeeProjectIds,
+    assignedProjects,
+  } = useRoleContext();
 
   // Subscribe to store so runtime-created projects stay live/reactive
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
@@ -254,12 +265,18 @@ function ProjectDetail() {
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
   const [invoiceNumberInput, setInvoiceNumberInput] = useState("");
   // Employees only get Team / Tasks / Health — every other submodule is hidden.
-  // Project Managers get everything except Invoices.
+  // PM family get everything except Invoices.
+  // Accounts: Overview, WBS, Invoices only.
   const visibleTabs: Tab[] = isEmployee
     ? ["Team", "Tasks", "Health"]
-    : isProjectManager
+    : isPmFamily
       ? tabs.filter((t) => t !== "Invoices")
-      : [...tabs];
+      : isAccounts
+        ? ["Overview", "WBS", "Invoices"]
+        : [...tabs];
+  const useDhWorkspace = isDhanshree || isPmFamily || isPmoFamily || isSales;
+  const invoiceEditable = isDhanshree || isAccounts;
+  const invoicePmoColumns = isPmoFamily;
 
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window !== "undefined") {
@@ -574,8 +591,11 @@ function ProjectDetail() {
     };
   }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
 
-  // Employees cannot open projects they are not involved in.
+  // Scope project detail to the role's assigned portfolio.
   if (isEmployee && employeeProjectIds && !employeeProjectIds.has(project.id)) {
+    return <Navigate to="/access-denied" />;
+  }
+  if (!isDhanshree && assignedProjects.length > 0 && !assignedProjects.some((p) => p.id === project.id)) {
     return <Navigate to="/access-denied" />;
   }
 
@@ -601,8 +621,8 @@ function ProjectDetail() {
         <span className="text-foreground font-medium truncate">{project.name}</span>
       </nav>
 
-      {/* Project Stages Tracker - Admin + Project Manager */}
-      {(isDhanshree || isProjectManager) && (
+      {/* Project Stages Tracker */}
+      {(isDhanshree || isPmFamily || isPmoFamily || isAccounts || isSales) && (
         <div className="mb-3 rounded-lg border border-border bg-card shadow-sm">
           <div className="border-b border-border px-4 py-3">
             <h2 className="text-xs font-semibold text-gray-900">Project Stages Tracker</h2>
@@ -620,7 +640,7 @@ function ProjectDetail() {
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <HealthPill status={project.health} />
           <StatusPill status={project.status} />
-          {!isDhanshree && !isProjectManager && (
+          {isViewOnly && (
             <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
               <Lock className="h-3 w-3" /> View only · {user.role}
             </span>
@@ -648,8 +668,6 @@ function ProjectDetail() {
               pm={pm}
               tl={tl}
               team={team}
-              isDhanshree={isDhanshree}
-              isProjectManager={isProjectManager}
             />
           )}
 
@@ -667,15 +685,15 @@ function ProjectDetail() {
           {tab === "Health" && <HealthTab project={project} />}
 
           {tab === "Tasks" &&
-            (isDhanshree || isProjectManager ? (
-              <DhTasksTab project={project} />
+            (useDhWorkspace ? (
+              <DhTasksTab project={project} readOnly={isViewOnly || isSales} />
             ) : (
               <DefaultTasksTab project={project} />
             ))}
 
           {tab === "Team" &&
-            (isDhanshree || isProjectManager ? (
-              <DhTeamTab project={project} />
+            (useDhWorkspace ? (
+              <DhTeamTab project={project} readOnly={isViewOnly || isSales} />
             ) : (
               <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />
             ))}
@@ -697,7 +715,46 @@ function ProjectDetail() {
                 </div>
               )}
 
-              {isDhanshree ? (
+              {invoicePmoColumns ? (
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Milestone</th>
+                        <th className="px-3 py-2 font-medium">Resource Level</th>
+                        <th className="px-3 py-2 font-medium">Invoice Target Date</th>
+                        <th className="px-3 py-2 font-medium">Qty</th>
+                        <th className="px-3 py-2 font-medium">Invoice Status</th>
+                        <th className="px-3 py-2 font-medium">Invoice Number</th>
+                        <th className="px-3 py-2 font-medium">Date of Payment</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {snapshotInvoices.filter((i) => i.projectId === project.id).map((inv) => (
+                        <tr key={inv.id} className="hover:bg-accent/30">
+                          <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
+                          <td className="px-3 py-2.5 text-center font-medium">{inv.resourceLevel || "—"}</td>
+                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.invoiceTargetDate}</td>
+                          <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
+                          <td className="px-3 py-2.5">
+                            <span className={cn(
+                              "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                              inv.invoiceStatus === "Raised" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800",
+                            )}>
+                              {inv.invoiceStatus}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 font-mono text-xs">{inv.invoiceNumber || "-"}</td>
+                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.paymentReceivedDate || "-"}</td>
+                        </tr>
+                      ))}
+                      {snapshotInvoices.filter((i) => i.projectId === project.id).length === 0 && (
+                        <tr><td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
                 <div className="overflow-x-auto rounded-lg border border-border">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -730,48 +787,60 @@ function ProjectDetail() {
                             <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
                             <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
                             <td className="px-3 py-2.5">
-                              <select
-                                value={inv.invoiceStatus}
-                                onChange={(e) => {
-                                  const val = e.target.value as "Not Raised" | "Raised";
-                                  if (val === "Raised") {
-                                    setRaiseInvoiceId(inv.id);
-                                    setInvoiceNumberInput("");
-                                    setRaiseModalOpen(true);
-                                  } else {
-                                    dhStore.cancelInvoice(project.id, inv.id, user.id, user.name);
-                                    toast.success("Invoice status reset to Not Raised");
-                                  }
-                                }}
-                                className={cn(
-                                  "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
-                                  statusTone
-                                )}
-                              >
-                                <option value="Not Raised" className="bg-white text-gray-800">Not Raised</option>
-                                <option value="Raised" className="bg-white text-gray-800">Raised</option>
-                              </select>
+                              {invoiceEditable ? (
+                                <select
+                                  value={inv.invoiceStatus}
+                                  onChange={(e) => {
+                                    const val = e.target.value as "Not Raised" | "Raised";
+                                    if (val === "Raised") {
+                                      setRaiseInvoiceId(inv.id);
+                                      setInvoiceNumberInput("");
+                                      setRaiseModalOpen(true);
+                                    } else {
+                                      dhStore.cancelInvoice(project.id, inv.id, user.id, user.name);
+                                      toast.success("Invoice status reset to Not Raised");
+                                    }
+                                  }}
+                                  className={cn(
+                                    "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
+                                    statusTone
+                                  )}
+                                >
+                                  <option value="Not Raised" className="bg-white text-gray-800">Not Raised</option>
+                                  <option value="Raised" className="bg-white text-gray-800">Raised</option>
+                                </select>
+                              ) : (
+                                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium", statusTone)}>
+                                  {inv.invoiceStatus}
+                                </span>
+                              )}
                             </td>
                             <td className="px-3 py-2.5 font-mono text-xs">
                               {inv.invoiceNumber || "-"}
                             </td>
                             <td className="px-3 py-2.5">
-                              <select
-                                value={inv.paymentStatus}
-                                disabled={inv.invoiceStatus === "Not Raised"}
-                                onChange={(e) => {
-                                  const val = e.target.value as "Not Received" | "Received";
-                                  dhStore.updatePaymentStatus(project.id, inv.id, val, user.id, user.name);
-                                  toast.success(`Payment Status updated to ${val}`);
-                                }}
-                                className={cn(
-                                  "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
-                                  paymentTone
-                                )}
-                              >
-                                <option value="Not Received" className="bg-white text-gray-800">Not Received</option>
-                                <option value="Received" className="bg-white text-gray-800">Received</option>
-                              </select>
+                              {invoiceEditable ? (
+                                <select
+                                  value={inv.paymentStatus}
+                                  disabled={inv.invoiceStatus === "Not Raised"}
+                                  onChange={(e) => {
+                                    const val = e.target.value as "Not Received" | "Received";
+                                    dhStore.updatePaymentStatus(project.id, inv.id, val, user.id, user.name);
+                                    toast.success(`Payment Status updated to ${val}`);
+                                  }}
+                                  className={cn(
+                                    "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
+                                    paymentTone
+                                  )}
+                                >
+                                  <option value="Not Received" className="bg-white text-gray-800">Not Received</option>
+                                  <option value="Received" className="bg-white text-gray-800">Received</option>
+                                </select>
+                              ) : (
+                                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium", paymentTone)}>
+                                  {inv.paymentStatus}
+                                </span>
+                              )}
                             </td>
                             <td className="px-3 py-2.5 text-xs text-muted-foreground">
                               {inv.paymentReceivedDate || "-"}
@@ -780,55 +849,7 @@ function ProjectDetail() {
                         );
                       })}
                       {snapshotInvoices.filter((i) => i.projectId === project.id).length === 0 && (
-                        <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-lg border border-border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 font-medium">Unit Price</th>
-                        <th className="px-3 py-2 font-medium">Qty</th>
-                        <th className="px-3 py-2 font-medium">Currency</th>
-                        <th className="px-3 py-2 font-medium">Invoice Amount</th>
-                        <th className="px-3 py-2 font-medium">Actions</th>
-                        <th className="px-3 py-2 font-medium">Payment Status</th>
-                        <th className="px-3 py-2 font-medium">Payment Received</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {invoices.filter((i) => i.projectId === project.id).map((inv, idx) => {
-                        const paymentTone = inv.paymentStatus === "completed" ? "bg-success/10 text-success border-success/30"
-                          : inv.paymentStatus === "overdue" ? "bg-destructive/10 text-destructive border-destructive/30"
-                            : inv.paymentStatus === "pending" ? "bg-warning/15 text-warning-foreground border-warning/30"
-                              : "bg-muted text-muted-foreground border-border";
-                        return (
-                          <tr key={idx} className="hover:bg-accent/30">
-                            <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
-                            <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
-                            <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
-                            <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
-                            <td className="px-3 py-2.5 text-center">
-                              {inv.status === "raised" && (
-                                <button className="inline-flex items-center gap-1 rounded-md text-xs font-medium text-primary hover:bg-primary/10 px-2 py-1">
-                                  <Plus className="h-3 w-3" /> Raise
-                                </button>
-                              )}
-                            </td>
-                            <td className="px-3 py-2.5">
-                              <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${paymentTone}`}>{inv.paymentStatus.replace("_", " ")}</span>
-                            </td>
-                            <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                              {inv.paymentReceivedDate ? new Date(inv.paymentReceivedDate).toLocaleDateString() : "-"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {invoices.filter((i) => i.projectId === project.id).length === 0 && (
-                        <tr><td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
+                        <tr><td colSpan={11} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -836,6 +857,7 @@ function ProjectDetail() {
               )}
 
               {/* Project Closure Section */}
+              {(isDhanshree || isAccounts) && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm mt-4">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -857,6 +879,7 @@ function ProjectDetail() {
                   {project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived" ? "Project Archived" : "Project Closure"}
                 </button>
               </div>
+              )}
             </div>
           )}
         </div>
@@ -995,7 +1018,10 @@ const LEGACY_WBS_SERVICES = [
 
 function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project: Project; onRaiseInvoice: (invoiceId: string) => void; onNavigateToHealthAlerts?: () => void }) {
   const snapshotInvoices = useDhStore((s) => s.invoices);
-  const { user, isDhanshree, isProjectManager } = useRoleContext();
+  const { isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
+  const hideAmounts = isPmFamily || hideBudget;
+  const hidePrereq = isPmFamily || isAccounts;
+  const canRaise = isDhanshree || isAccounts;
 
   if (project.wbsDetails) {
     const wbsDetails = project.wbsDetails;
@@ -1019,7 +1045,7 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
             <div className="space-y-2">
               <InfoRow label="Billing Model" value={wbsDetails.accounts.billingModel} />
               <InfoRow label="Payment Terms" value={wbsDetails.accounts.paymentTerms} />
-              {!isProjectManager && (
+              {!hideAmounts && (
                 <InfoRow label="Total Services Value" value={`${wbsDetails.currency} ${totalServices.toLocaleString()}`} />
               )}
               <InfoRow label="Currency" value={wbsDetails.currency} />
@@ -1027,7 +1053,7 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
           </div>
         </div>
 
-        {!isProjectManager && (
+        {!hidePrereq && (
           <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
         )}
 
@@ -1090,7 +1116,7 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
           </div>
         </div>
 
-        {!isProjectManager && (
+        {!hideAmounts && (
           <div className="grid gap-4 md:grid-cols-3 rounded-lg border border-border bg-muted/20 p-4">
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1">Total Services</div>
@@ -1107,7 +1133,7 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
           </div>
         )}
 
-        {!isProjectManager && (
+        {!hideAmounts && (
           <div>
             <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
             <div className="overflow-x-auto rounded-lg border border-border">
@@ -1147,7 +1173,7 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
                               <span className="inline-flex rounded-full bg-blue-100 border border-blue-200 px-2 py-0.5 text-[11px] font-medium text-blue-800">
                                 Raised
                               </span>
-                              {isDhanshree && liveInv && (
+                              {canRaise && liveInv && (
                                 <button
                                   onClick={() => {
                                     dhStore.updatePaymentStatus(project.id, liveInv.id, "Received", user.id, user.name);
@@ -1160,7 +1186,7 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
                               )}
                             </div>
                           ) : (
-                            isDhanshree && liveInv ? (
+                            canRaise && liveInv ? (
                               <button
                                 onClick={() => onRaiseInvoice(liveInv.id)}
                                 className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
@@ -1215,14 +1241,14 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
           <div className="space-y-2">
             <InfoRow label="Project Type" value="Short term (Ad-hoc)" />
             <InfoRow label="Billing Model" value="70% Advance + 30% on Delivery" />
-            <InfoRow label="Total Amount" value="---------" muted />
+            {!hideAmounts && <InfoRow label="Total Amount" value="---------" muted />}
             <InfoRow label="Currency" value="---------" muted />
           </div>
         </div>
       </div>
 
-      {/* PMO Intake & Prerequisite Workflow — hidden for Project Managers */}
-      {!isProjectManager && (
+      {/* PMO Intake & Prerequisite Workflow — hidden for PM family and Accounts */}
+      {!hidePrereq && (
         <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
       )}
 
@@ -1303,8 +1329,8 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
         </div>
       </div>
 
-      {/* Invoice Schedule — hidden for Project Managers */}
-      {!isProjectManager && (
+      {/* Invoice Schedule — hidden when budget is not visible */}
+      {!hideAmounts && (
         <div>
           <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
           <div className="overflow-x-auto rounded-lg border border-border">
@@ -1369,16 +1395,16 @@ function OverviewTab({
   pm,
   tl,
   team,
-  isDhanshree,
-  isProjectManager = false,
 }: {
   project: Project;
   pm: Person;
   tl: Person;
   team: Person[];
-  isDhanshree: boolean;
-  isProjectManager?: boolean;
 }) {
+  const { isDhanshree, isProjectManager, isSeniorPm, isPmFamily, isPmoFamily, isAccounts, isSales, hideBudget } =
+    useRoleContext();
+  const showLeadership = isDhanshree || isPmFamily || isPmoFamily || isAccounts || isSales;
+  const hideAmounts = isPmFamily || hideBudget;
   // Reactive leadership assignments from store (Dhanshree overrides)
   const leadershipAssignment = useDhStore((s) => s.leadershipAssignments[project.id] ?? null);
 
@@ -1418,7 +1444,7 @@ function OverviewTab({
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <div className={cn("space-y-4", isDhanshree ? "md:col-span-2" : "md:col-span-3")}>
+      <div className={cn("space-y-4", showLeadership ? "md:col-span-2" : "md:col-span-3")}>
         <div>
           <h3 className="text-sm font-semibold">Description</h3>
           <p className="mt-1 text-sm text-muted-foreground">{project.description || project.sectionAComments || "—"}</p>
@@ -1426,11 +1452,11 @@ function OverviewTab({
         <div className="grid gap-3 sm:grid-cols-3">
           <Info icon={Calendar} label="Start" value={formatDate(new Date(project.startDate))} />
           <Info icon={Calendar} label="End" value={formatDate(new Date(project.endDate))} />
-          {!isProjectManager && (
+          {!hideAmounts && (
             <Info icon={Wallet} label="Budget" value={`${currency} ${(project.budget / 1000).toFixed(0)}k`} sub={`Spent ${currency} ${(project.spent / 1000).toFixed(0)}k`} />
           )}
         </div>
-        {!isProjectManager && project.budget > 0 && (
+        {!hideAmounts && project.budget > 0 && (
           <div>
             <h3 className="mb-2 text-sm font-semibold">Budget burn</h3>
             <ProgressBar value={(project.spent / project.budget) * 100} />
@@ -1475,7 +1501,7 @@ function OverviewTab({
                 <InfoRow label="WBS Status" value={project.wbsSubStatus ?? project.wbsStatus} />
               )}
             </div>
-            {!isProjectManager && totalServices > 0 && (
+            {!hideAmounts && totalServices > 0 && (
               <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
                 <div>
                   <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Services Subtotal</div>
@@ -1510,20 +1536,15 @@ function OverviewTab({
           </div>
         )}
 
-        {isDhanshree && (
+        {showLeadership && (
           <div className="grid gap-3 sm:grid-cols-3 items-stretch">
-            <LeadershipBlock title="Senior Project Managers" role="Senior Project Manager" people={spms} project={project} />
-            <LeadershipBlock title="Project Managers" role="Project Manager" people={pms} unassigned={isNewWbsProject} project={project} />
-            <LeadershipBlock title="Team Leads" role="Team Lead" people={tls} unassigned={isNewWbsProject} project={project} />
-          </div>
-        )}
-        {isProjectManager && (
-          <div className="grid gap-3 sm:grid-cols-3 items-stretch">
-            <LeadershipBlock title="Team Leads" role="Team Lead" people={tls} unassigned={isNewWbsProject} project={project} />
+            <LeadershipBlock title="Senior Project Managers" role="Senior Project Manager" people={spms} project={project} viewOnly={!isDhanshree} />
+            <LeadershipBlock title="Project Managers" role="Project Manager" people={pms} unassigned={isNewWbsProject} project={project} viewOnly={!isDhanshree && !isSeniorPm} />
+            <LeadershipBlock title="Team Leads" role="Team Lead" people={tls} unassigned={isNewWbsProject} project={project} viewOnly={!isDhanshree && !isSeniorPm && !isProjectManager} />
           </div>
         )}
       </div>
-      {isDhanshree && (
+      {showLeadership && (
         <aside className="space-y-3">
           {client && (
             <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
@@ -1560,9 +1581,11 @@ function OverviewTab({
               </div>
             </div>
           )}
-          <div className="rounded-lg border border-border bg-accent/30 p-4">
-            <ExtensionRequestCard project={project} />
-          </div>
+          {isDhanshree && (
+            <div className="rounded-lg border border-border bg-accent/30 p-4">
+              <ExtensionRequestCard project={project} />
+            </div>
+          )}
         </aside>
       )}
     </div>
@@ -1740,13 +1763,14 @@ function PeopleBlock({ title, people, unassigned }: { title: string; people: Per
 
 // ---------- Leadership Block (Dhanshree only) — chips + Change Leader button ----------
 function LeadershipBlock({
-  title, role, people, unassigned, project,
+  title, role, people, unassigned, project, viewOnly = false,
 }: {
   title: string;
   role: LeadershipRole;
   people: Person[];
   unassigned?: boolean;
   project: Project;
+  viewOnly?: boolean;
 }) {
   const [showPanel, setShowPanel] = useState(false);
   return (
@@ -1768,13 +1792,14 @@ function LeadershipBlock({
           ))
         )}
       </div>
-      {/* Button always at the bottom */}
-      <button
-        onClick={() => setShowPanel(true)}
-        className="mt-auto w-full h-7 rounded-md border border-primary/40 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 transition-colors"
-      >
-        Change Leader
-      </button>
+      {!viewOnly && (
+        <button
+          onClick={() => setShowPanel(true)}
+          className="mt-auto w-full h-7 rounded-md border border-primary/40 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 transition-colors"
+        >
+          Change Leader
+        </button>
+      )}
       {showPanel && (
         <ChangeLeaderPanel
           project={project}
@@ -2199,10 +2224,52 @@ interface ServiceFolder {
   aps: APFolder[] | null;
 }
 
-function buildServiceTree(project: Project, store: any): ServiceFolder[] {
-  if (!project.wbsDetails?.services) return [];
+function dummyWbsServices(project: Project): WbsService[] {
+  const start = project.startDate;
+  const end = project.endDate;
+  const mk = (
+    id: string,
+    department: string,
+    serviceName: string,
+    qty: number,
+    frequency: string,
+    serviceModel: string,
+    totalHrs: number,
+  ): WbsService => ({
+    id,
+    department,
+    serviceName,
+    qty,
+    description: `${serviceName} workstream for ${project.name}`,
+    frequency,
+    location: "Offshore",
+    serviceModel,
+    deliveryModel: "Offshore",
+    finalDeliveryFormat: "Report",
+    billingModel: "Fixed Price",
+    tools: "Jira",
+    startDate: start,
+    endDate: end,
+    duration: 30,
+    totalDays: 30,
+    totalHrs,
+    unitPrice: 0,
+    total: 0,
+  });
+  return [
+    mk("s1", "QA", "Application Testing", 2, "Once", "Initial + 1", 240),
+    mk("s2", "Security", "SOC", 1, "Half Yearly", "Initial Test", 160),
+    mk("s3", "Infra", "Infrastructure", 1, "Once", "Initial + 2", 200),
+  ];
+}
 
-  return project.wbsDetails.services.map((svc) => {
+function buildServiceTree(project: Project, store: any): ServiceFolder[] {
+  const services = project.wbsDetails?.services?.length
+    ? project.wbsDetails.services
+    : dummyWbsServices(project);
+  const usingDummy = !project.wbsDetails?.services?.length;
+
+  return services.map((svc) => {
     const qty = svc.qty || 1;
     const freq = (svc.frequency || "Once").toLowerCase();
     const serviceModel = svc.serviceModel || "Initial Test";
@@ -2231,15 +2298,26 @@ function buildServiceTree(project: Project, store: any): ServiceFolder[] {
         const taskId = `${project.id}-${svc.id}-${qPart}${apName.toLowerCase()}-t${spec.suffix}`;
 
         const liveState = store.getTreeTaskState(project.id, taskId);
+        const dummyStages: TreeTaskStage[] = ["Completed", "Ongoing", "Not Started"];
+        const dummyStage = dummyStages[Number(spec.suffix) % dummyStages.length];
+        const fallbackAssignee = project.teamIds[0] ?? project.tlId ?? project.pmId;
 
         return {
           id: taskId,
           taskId: `Task ${spec.suffix}`,
           serviceModel: spec.label,
-          actualStartDate: liveState.actualStartDate,
-          actualEndDate: liveState.actualEndDate,
-          stage: liveState.stage as TreeTaskStage,
-          assigneeIds: liveState.assigneeIds,
+          actualStartDate: liveState.actualStartDate || (usingDummy ? svc.startDate : ""),
+          actualEndDate: liveState.actualEndDate || (usingDummy && dummyStage === "Completed" ? svc.endDate : ""),
+          stage: (liveState.actualStartDate || liveState.assigneeIds.length
+            ? liveState.stage
+            : usingDummy
+              ? dummyStage
+              : liveState.stage) as TreeTaskStage,
+          assigneeIds: liveState.assigneeIds.length
+            ? liveState.assigneeIds
+            : usingDummy && fallbackAssignee
+              ? [fallbackAssignee]
+              : liveState.assigneeIds,
           estHoursPerTask,
         };
       });
@@ -2295,7 +2373,7 @@ function buildServiceTree(project: Project, store: any): ServiceFolder[] {
 
 const expandedNodesMap = new Map<string, Set<string>>();
 
-function DhTasksTab({ project }: { project: Project }) {
+function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?: boolean }) {
   const snapshot = useDhStore((s) => s);
   const prereq = snapshot.prereqs[project.id];
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
@@ -2304,13 +2382,16 @@ function DhTasksTab({ project }: { project: Project }) {
     return buildServiceTree(project, dhStore);
   }, [project, snapshot.treeTaskStates]);
 
+  const usingDummy = !project.wbsDetails?.services?.length;
+
   const visibleTree = useMemo(() => {
-    if (!prereq) return [];
-    return tree.filter((svcFolder) => {
+    if (usingDummy || !prereq) return tree;
+    const filtered = tree.filter((svcFolder) => {
       const pSvc = prereq.services?.find((s) => s.serviceId === svcFolder.serviceId);
       return pSvc ? pSvc.isReady : false;
     });
-  }, [tree, prereq]);
+    return filtered.length > 0 ? filtered : tree;
+  }, [tree, prereq, usingDummy]);
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
     const existing = expandedNodesMap.get(project.id);
@@ -2447,13 +2528,7 @@ function DhTasksTab({ project }: { project: Project }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40">
-            {project.wbsDetails?.services?.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                  No services onboarding details found — create WBS first.
-                </td>
-              </tr>
-            ) : visibleTree.length === 0 ? (
+            {visibleTree.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   No active services. Start services from the Prerequisites tab to populate tasks.
@@ -2664,6 +2739,7 @@ function DhTasksTab({ project }: { project: Project }) {
                                             <input
                                               type="date"
                                               value={t.actualStartDate}
+                                              disabled={readOnly}
                                               onChange={(e) => {
                                                 const newStart = e.target.value;
                                                 const estHrs = t.estHoursPerTask || 0;
@@ -2683,6 +2759,7 @@ function DhTasksTab({ project }: { project: Project }) {
                                             <input
                                               type="date"
                                               value={t.actualEndDate}
+                                              disabled={readOnly}
                                               onChange={(e) => {
                                                 dhStore.updateTreeTaskState(project.id, t.id, {
                                                   actualEndDate: e.target.value,
@@ -2699,17 +2776,19 @@ function DhTasksTab({ project }: { project: Project }) {
                                         </td>
                                         <td className="px-3 py-2 align-middle text-center">
                                           <div className="flex items-center justify-center h-8">
+                                            {!readOnly && (
                                             <button
                                               onClick={() => setAssignFor(t)}
                                               className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
                                             >
                                               <UserPlus className="h-3.5 w-3.5" /> Assign
                                             </button>
+                                            )}
                                           </div>
                                         </td>
                                         <td className="px-3 py-2 align-middle text-center">
                                           <div className="flex items-center justify-center h-8">
-                                            {!isStarted ? (
+                                            {!isStarted || readOnly ? (
                                               <span className={cn("inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium shadow-sm", treeStageCls(t.stage as any))}>
                                                 {t.stage || "Not Started"}
                                               </span>
@@ -2914,7 +2993,7 @@ function DefaultTeamTab({ project, pm, tl, team }: { project: Project; pm: Perso
 type ActionType = null | "view" | "edit" | "remove" | "praise" | "feedback" | "request" | "add";
 type TeamTabType = "project" | "shadow";
 
-function DhTeamTab({ project }: { project: Project }) {
+function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?: boolean }) {
   const snapshot = useDhStore((s) => s);
   const prereq = snapshot.prereqs[project.id];
 
@@ -3010,12 +3089,14 @@ function DhTeamTab({ project }: { project: Project }) {
             </button>
           ))}
         </div>
+        {!readOnly && (
         <button
           onClick={() => setShowAddModal(true)}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-3.5 w-3.5" /> Add Team Member
         </button>
+        )}
       </div>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
@@ -3076,12 +3157,16 @@ function DhTeamTab({ project }: { project: Project }) {
                   <div className="relative inline-flex items-center gap-1">
                     <button title="View" onClick={() => setAction({ type: "view", person: r.person })}
                       className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Eye className="h-3.5 w-3.5" /></button>
+                    {!readOnly && (
+                    <>
                     <button title="Edit" onClick={() => setAction({ type: "edit", person: r.person })}
                       className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
                     <button title="Remove" onClick={() => setAction({ type: "remove", person: r.person })}
                       className="rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
                     <button title="More" onClick={() => setMenuOpen(menuOpen === r.person.id ? null : r.person.id)}
                       className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><MoreHorizontal className="h-3.5 w-3.5" /></button>
+                    </>
+                    )}
                     {menuOpen === r.person.id && (
                       <div className="absolute right-0 top-9 z-10 w-44 overflow-hidden rounded-md border border-border bg-card shadow-lg" onMouseLeave={() => setMenuOpen(null)}>
                         {[
@@ -3534,7 +3619,7 @@ function PersonRow({ label, person, unassigned }: { label: string; person: Perso
 // ---------- Health Tab ----------
 function HealthTab({ project }: { project: Project }) {
   const store = useDhStore((s) => s);
-  const { user, isDhanshree, isProjectManager } = useRoleContext();
+  const { user, isDhanshree, isPmFamily, isEngagementManager, isSales, isViewOnly, isPmoFamily } = useRoleContext();
   const isEmployee = user.role === "Employee";
   const [healthTab, setHealthTab] = useState<string>(() => {
     let initial: string = "Issues";
@@ -3578,11 +3663,14 @@ function HealthTab({ project }: { project: Project }) {
   const projectAppreciations = store.appreciations.filter((a) => a.projectId === project.id);
 
   const canRaiseIssue =
-    isEmployee ||
-    isProjectManager ||
-    user.role === "Team Member" ||
-    user.role === "Team Lead" ||
-    user.role === "Dhanshree";
+    !isViewOnly &&
+    (isEmployee ||
+      isPmFamily ||
+      isSales ||
+      isDhanshree ||
+      user.role === "Team Member" ||
+      user.role === "Team Lead" ||
+      user.role === "Dhanshree");
 
   // Check if user has access to Client Communication
   const canAccessClientComm = ["Dhanshree", "PMO", "Project Manager", "Engagement Manager", "Senior Project Manager", "Head of Delivery", "Business Operations"].includes(user.role);
@@ -3593,9 +3681,9 @@ function HealthTab({ project }: { project: Project }) {
   // Project Manager: full Health except customer engagement / communication.
   const tabsList = isEmployee
     ? (["Issues", "Alerts", "Appreciation"] as const)
-    : isDhanshree
+    : isDhanshree || isEngagementManager
       ? (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Engagement"] as const)
-      : isProjectManager
+      : isPmFamily || isSales || isPmoFamily
         ? (["Issues", "Alerts", "Escalations", "Appreciation"] as const)
         : (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Communication"] as const);
 
@@ -3621,7 +3709,7 @@ function HealthTab({ project }: { project: Project }) {
       {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} />}
       {healthTab === "Appreciation" && <HealthAppreciationPanel appreciations={projectAppreciations} project={project} />}
 
-      {isDhanshree && healthTab === "Customer Engagement" && (
+      {(isDhanshree || isEngagementManager) && healthTab === "Customer Engagement" && (
         <DhClientEngagementTab project={project} clientName={client.name} />
       )}
 
@@ -4079,16 +4167,25 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
 
 function HealthAppreciationPanel({ appreciations, project }: { appreciations: DhAppreciation[]; project: Project }) {
   const store = useDhStore((s) => s);
-  const { user } = useRoleContext();
+  const { user, isEmployee, isPmFamily, isDhanshree, isSales, isViewOnly } = useRoleContext();
   const [showAppreciateModal, setShowAppreciateModal] = useState(false);
   const [formData, setFormData] = useState({ toUserId: project.teamIds[0] || "u5", badge: "Star Performer" as const, note: "" });
   const canAppreciate =
-    user.role === "Employee" ||
-    user.role === "Project Manager" ||
-    user.role === "Senior Project Manager" ||
-    user.role === "Team Lead" ||
-    user.role === "Engagement Manager" ||
-    user.role === "Dhanshree";
+    !isViewOnly &&
+    (isEmployee ||
+      isPmFamily ||
+      isSales ||
+      isDhanshree ||
+      user.role === "Employee" ||
+      user.role === "ProjectManager" ||
+      user.role === "Project Manager" ||
+      user.role === "Senior Project Manager" ||
+      user.role === "SeniorPm" ||
+      user.role === "Team Lead" ||
+      user.role === "TeamLead" ||
+      user.role === "Engagement Manager" ||
+      user.role === "EngagementManager" ||
+      user.role === "Dhanshree");
 
   const teamPool = useMemo(() => {
     const ids = [project.pmId, project.tlId, ...project.teamIds];
@@ -4779,7 +4876,7 @@ function getClientInfo(clientId: string) {
 function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project: Project; onNavigateToHealthAlerts?: () => void }) {
   const snapshot = useDhStore((s) => s);
   const prereqs = snapshot.prereqs;
-  const { user } = useRoleContext();
+  const { user, isSales, isViewOnly } = useRoleContext();
   const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
 
   // Escalation Modal States
@@ -4906,6 +5003,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
   };
 
   const handleServiceChange = (serviceId: string, field: "collectionStatus" | "validationStatus" | "billingStatus", value: string) => {
+    if (isViewOnly) return;
     dhStore.setServicePrereqStatus(project.id, serviceId, field, value, user.id, user.name);
     toast.success("Service status updated successfully");
   };
@@ -5053,6 +5151,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
           </div>
 
           {/* PM/SPM ASSIGNMENT FLOW */}
+          {!isSales && (
           <div className="rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm">
             <div className="flex items-center gap-2 border-b border-border pb-2">
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-purple-500/20 text-xs font-semibold text-purple-600">2</span>
@@ -5088,7 +5187,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
             <div className="flex gap-2">
               <button
                 onClick={() => setAssignModalMode("pm")}
-                disabled={!canShowAssignment}
+                disabled={!canShowAssignment || isViewOnly}
                 className={cn(
                   "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
                   canShowAssignment
@@ -5100,7 +5199,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
               </button>
               <button
                 onClick={() => setAssignModalMode("spm")}
-                disabled={!canShowAssignment}
+                disabled={!canShowAssignment || isViewOnly}
                 className={cn(
                   "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
                   canShowAssignment
@@ -5115,9 +5214,11 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
               <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
             )}
           </div>
+          )}
         </div>
 
         {/* STEP 3 & 4: SERVICE WISE TRACKING TABLE */}
+        {!isSales && (
         <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div className="md:col-span-4 rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
             <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -5284,6 +5385,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
           </div>
 
         </div>
+        )}
       </div>
 
       {/* Raise Escalation Modal */}

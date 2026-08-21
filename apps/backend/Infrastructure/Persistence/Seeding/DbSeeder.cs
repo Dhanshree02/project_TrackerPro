@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Shared.Constants;
 using PMS.API.Modules.Customers.Models;
+using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Infrastructure.Authentication;
 
@@ -27,6 +28,10 @@ public static class DbSeeder
         // Each Seed* method is individually idempotent, so partial seeds self-heal.
         var roles = await SeedRolesAsync(db, ct);
         var users = await SeedUsersAsync(db, hasher, roles, ct);
+        await SeedMasterCatalogsAsync(db, ct);
+        await db.SaveChangesAsync(ct);
+        await SeedDirectoryEmployeesAsync(db, ct);
+        await db.SaveChangesAsync(ct);
         await SeedClientsAsync(db, users, ct);
         await db.SaveChangesAsync(ct);
     }
@@ -177,6 +182,516 @@ public static class DbSeeder
         }
 
         return users;
+    }
+
+    // ---------- Master catalogs ----------
+
+    private static async Task SeedMasterCatalogsAsync(AppDbContext db, CancellationToken ct)
+    {
+        var departments = new[]
+        {
+            ("product", "Product"),
+            ("design", "Design"),
+            ("marketing", "Marketing"),
+            ("sales", "Sales"),
+            ("finance", "Finance"),
+            ("human_resources", "Human Resources"),
+            ("operations", "Operations"),
+            ("engineering", "Engineering"),
+            ("delivery", "Delivery"),
+            ("leadership", "Leadership"),
+        };
+
+        var existingDepartments = await db.Departments.ToDictionaryAsync(d => d.Code, ct);
+        foreach (var (code, name) in departments)
+        {
+            if (existingDepartments.ContainsKey(code)) continue;
+            var department = new MstDepartment
+            {
+                Code = code,
+                Name = name,
+                IsActive = true,
+            };
+            db.Departments.Add(department);
+            existingDepartments[code] = department;
+        }
+
+        var designations = new (string Code, string Name, string DepartmentCode)[]
+        {
+            ("engineering_manager", "Engineering Manager", "engineering"),
+            ("product_manager", "Product Manager", "product"),
+            ("ux_designer", "UX Designer", "design"),
+            ("marketing_lead", "Marketing Lead", "marketing"),
+            ("sales_executive", "Sales Executive", "sales"),
+            ("finance_analyst", "Finance Analyst", "finance"),
+            ("hr_business_partner", "HR Business Partner", "human_resources"),
+            ("software_engineer", "Software Engineer", "engineering"),
+            ("senior_software_engineer", "Senior Software Engineer", "engineering"),
+            ("tech_lead", "Tech Lead", "engineering"),
+            ("devops_engineer", "DevOps Engineer", "engineering"),
+            ("qa_engineer", "QA Engineer", "engineering"),
+            ("data_analyst", "Data Analyst", "engineering"),
+            ("content_strategist", "Content Strategist", "marketing"),
+            ("business_analyst", "Business Analyst", "operations"),
+            ("project_manager", "Project Manager", "operations"),
+            ("engagement_manager", "Engagement Manager", "delivery"),
+            ("senior_project_manager", "Senior Project Manager", "delivery"),
+            ("head_of_department", "Head of Department", "leadership"),
+        };
+        var existingDesignations = await db.Designations.ToDictionaryAsync(d => d.Code, ct);
+        foreach (var (code, name, departmentCode) in designations)
+        {
+            existingDepartments.TryGetValue(departmentCode, out var department);
+            if (existingDesignations.TryGetValue(code, out var existing))
+            {
+                if (existing.DepartmentId is null && department is not null)
+                    existing.DepartmentId = department.Id;
+                continue;
+            }
+
+            var designation = new MstDesignation
+            {
+                Code = code,
+                Name = name,
+                DepartmentId = department?.Id,
+                IsActive = true,
+            };
+            db.Designations.Add(designation);
+            existingDesignations[code] = designation;
+        }
+
+        var existingIndustries = await db.Industries.ToDictionaryAsync(i => i.Code, ct);
+        var industries = new[]
+        {
+            ("banking", "Banking"),
+            ("healthcare", "Healthcare"),
+            ("retail", "Retail"),
+            ("logistics", "Logistics"),
+            ("energy", "Energy"),
+            ("technology", "Technology"),
+            ("finance", "Finance"),
+            ("environment", "Environment"),
+            ("automotive", "Automotive"),
+        };
+        foreach (var (code, name) in industries)
+        {
+            if (existingIndustries.ContainsKey(code)) continue;
+            db.Industries.Add(new MstIndustry
+            {
+                Code = code,
+                Name = name,
+                IsActive = true,
+            });
+        }
+
+        await SeedNationalitiesAsync(db, ct);
+        await SeedSalaryBandsAsync(db, ct);
+        await SeedJobRolesAsync(db, existingDesignations, ct);
+        await SeedGeoCatalogsAsync(db, ct);
+    }
+
+    private static async Task SeedNationalitiesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var nationalities = new[]
+        {
+            ("indian", "Indian"),
+            ("american", "American"),
+            ("british", "British"),
+            ("canadian", "Canadian"),
+            ("australian", "Australian"),
+            ("german", "German"),
+            ("french", "French"),
+            ("emirati", "Emirati"),
+            ("singaporean", "Singaporean"),
+            ("japanese", "Japanese"),
+            ("chinese", "Chinese"),
+            ("south_korean", "South Korean"),
+            ("brazilian", "Brazilian"),
+            ("mexican", "Mexican"),
+            ("south_african", "South African"),
+            ("irish", "Irish"),
+            ("dutch", "Dutch"),
+            ("swedish", "Swedish"),
+            ("italian", "Italian"),
+            ("spanish", "Spanish"),
+            ("filipino", "Filipino"),
+            ("indonesian", "Indonesian"),
+            ("thai", "Thai"),
+            ("vietnamese", "Vietnamese"),
+            ("bangladeshi", "Bangladeshi"),
+            ("sri_lankan", "Sri Lankan"),
+            ("nepali", "Nepali"),
+            ("pakistani", "Pakistani"),
+            ("malaysian", "Malaysian"),
+            ("saudi", "Saudi"),
+            ("qatari", "Qatari"),
+            ("new_zealander", "New Zealander"),
+            ("swiss", "Swiss"),
+            ("polish", "Polish"),
+            ("austrian", "Austrian"),
+            ("belgian", "Belgian"),
+            ("danish", "Danish"),
+            ("norwegian", "Norwegian"),
+            ("finnish", "Finnish"),
+            ("portuguese", "Portuguese"),
+        };
+
+        var existing = await db.Nationalities.ToDictionaryAsync(n => n.Code, ct);
+        foreach (var (code, name) in nationalities)
+        {
+            if (existing.ContainsKey(code)) continue;
+            db.Nationalities.Add(new MstNationality
+            {
+                Code = code,
+                Name = name,
+                IsActive = true,
+            });
+        }
+    }
+
+    private static async Task SeedSalaryBandsAsync(AppDbContext db, CancellationToken ct)
+    {
+        var bands = new[] { "L1", "L2", "L3", "L4", "L5" };
+        var existing = await db.SalaryBands.ToDictionaryAsync(b => b.Code, ct);
+        foreach (var name in bands)
+        {
+            var code = name.ToLowerInvariant();
+            if (existing.ContainsKey(code)) continue;
+            db.SalaryBands.Add(new MstSalaryBand
+            {
+                Code = code,
+                Name = name,
+                IsActive = true,
+            });
+        }
+    }
+
+    private static async Task SeedJobRolesAsync(
+        AppDbContext db,
+        IReadOnlyDictionary<string, MstDesignation> designations,
+        CancellationToken ct)
+    {
+        var rolesByDesignation = new Dictionary<string, string[]>
+        {
+            ["software_engineer"] = ["Employee", "Developer", "Associate Engineer"],
+            ["senior_software_engineer"] = ["Employee", "Senior Developer", "Specialist"],
+            ["tech_lead"] = ["TeamLead", "Technical Lead", "Module Lead"],
+            ["devops_engineer"] = ["Employee", "DevOps Specialist", "SRE"],
+            ["qa_engineer"] = ["Employee", "QA Analyst", "Test Engineer"],
+            ["data_analyst"] = ["Employee", "Analyst", "Data Specialist"],
+            ["engineering_manager"] = ["Engineering Manager", "People Manager"],
+            ["product_manager"] = ["ProjectManager", "Product Owner", "Product Manager"],
+            ["ux_designer"] = ["Employee", "Designer", "UX Specialist"],
+            ["marketing_lead"] = ["Marketing Lead", "Campaign Lead"],
+            ["sales_executive"] = ["Sales", "Account Executive"],
+            ["finance_analyst"] = ["Accounts", "Analyst"],
+            ["hr_business_partner"] = ["Hr", "Business Partner"],
+            ["content_strategist"] = ["Employee", "Strategist"],
+            ["business_analyst"] = ["Pmo", "Analyst", "Consultant"],
+            ["project_manager"] = ["ProjectManager", "Delivery Manager"],
+            ["engagement_manager"] = ["Engagement Manager", "Client Partner"],
+            ["senior_project_manager"] = ["Senior Project Manager", "Program Manager"],
+            ["head_of_department"] = ["Head of Department", "Director"],
+        };
+
+        var existingCodes = await db.JobRoles.Select(r => r.Code).ToHashSetAsync(ct);
+        var existingPairs = await db.JobRoles
+            .Select(r => new { r.DesignationId, r.Name })
+            .ToListAsync(ct);
+        var existingKeys = existingPairs
+            .Select(r => (r.DesignationId, r.Name))
+            .ToHashSet();
+
+        foreach (var (designationCode, names) in rolesByDesignation)
+        {
+            if (!designations.TryGetValue(designationCode, out var designation)) continue;
+            foreach (var name in names)
+            {
+                if (existingKeys.Contains((designation.Id, name))) continue;
+                var roleCode = Truncate($"{designationCode}_{Slug(name)}", 80);
+                var n = 2;
+                while (existingCodes.Contains(roleCode))
+                {
+                    var suffix = $"_{n}";
+                    roleCode = Truncate(designationCode + "_" + Slug(name), 80 - suffix.Length) + suffix;
+                    n++;
+                }
+
+                db.JobRoles.Add(new MstRole
+                {
+                    Code = roleCode,
+                    Name = name,
+                    DesignationId = designation.Id,
+                    IsActive = true,
+                });
+                existingCodes.Add(roleCode);
+                existingKeys.Add((designation.Id, name));
+            }
+        }
+    }
+
+    private static string Truncate(string value, int max) =>
+        value.Length <= max ? value : value[..max].Trim('_');
+
+    private static async Task SeedGeoCatalogsAsync(AppDbContext db, CancellationToken ct)
+    {
+        var geo = new (string Code, string Name, string[] Cities)[]
+        {
+            ("IN", "India",
+            [
+                "Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Chennai", "Kolkata", "Pune",
+                "Ahmedabad", "Jaipur", "Surat", "Lucknow", "Noida", "Gurugram", "Chandigarh",
+                "Kochi", "Thiruvananthapuram", "Coimbatore", "Indore", "Bhopal", "Nagpur",
+                "Visakhapatnam", "Bhubaneswar", "Guwahati", "Patna", "Ranchi", "Dehradun",
+                "Mysuru", "Mangaluru", "Vadodara", "Nashik", "Aurangabad", "Rajkot",
+                "Jodhpur", "Udaipur", "Amritsar", "Ludhiana", "Kanpur", "Varanasi",
+                "Prayagraj", "Raipur", "Vijayawada", "Madurai", "Tiruchirappalli",
+                "Hubballi", "Warangal", "Guntur", "Jamshedpur", "Kalyan-Dombivli",
+                "Navi Mumbai", "Thane",
+            ]),
+            ("US", "United States",
+            [
+                "New York", "San Francisco", "Seattle", "Austin", "Chicago", "Boston",
+                "Los Angeles", "Dallas", "Atlanta", "Washington DC",
+            ]),
+            ("GB", "United Kingdom", ["London", "Manchester", "Birmingham", "Edinburgh", "Bristol"]),
+            ("AE", "United Arab Emirates", ["Dubai", "Abu Dhabi", "Sharjah"]),
+            ("SG", "Singapore", ["Singapore"]),
+            ("DE", "Germany", ["Berlin", "Munich", "Frankfurt", "Hamburg"]),
+            ("AU", "Australia", ["Sydney", "Melbourne", "Brisbane", "Perth"]),
+            ("CA", "Canada", ["Toronto", "Vancouver", "Montreal"]),
+            ("NL", "Netherlands", ["Amsterdam", "Rotterdam"]),
+            ("JP", "Japan", ["Tokyo", "Osaka", "Yokohama"]),
+            ("FR", "France", ["Paris", "Lyon"]),
+            ("SA", "Saudi Arabia", ["Riyadh", "Jeddah", "Dammam"]),
+            ("QA", "Qatar", ["Doha"]),
+            ("MY", "Malaysia", ["Kuala Lumpur", "Penang"]),
+            ("ZA", "South Africa", ["Johannesburg", "Cape Town"]),
+            ("IE", "Ireland", ["Dublin"]),
+            ("CH", "Switzerland", ["Zurich", "Geneva"]),
+            ("SE", "Sweden", ["Stockholm", "Gothenburg"]),
+            ("CN", "China", ["Shanghai", "Beijing", "Shenzhen"]),
+            ("KR", "South Korea", ["Seoul", "Busan"]),
+            ("NZ", "New Zealand", ["Auckland", "Wellington"]),
+            ("PH", "Philippines", ["Manila", "Cebu"]),
+            ("ID", "Indonesia", ["Jakarta", "Surabaya"]),
+            ("TH", "Thailand", ["Bangkok"]),
+            ("VN", "Vietnam", ["Ho Chi Minh City", "Hanoi"]),
+            ("BD", "Bangladesh", ["Dhaka", "Chittagong"]),
+            ("LK", "Sri Lanka", ["Colombo"]),
+            ("NP", "Nepal", ["Kathmandu"]),
+            ("PK", "Pakistan", ["Karachi", "Lahore", "Islamabad"]),
+            ("BR", "Brazil", ["Sao Paulo", "Rio de Janeiro"]),
+            ("MX", "Mexico", ["Mexico City", "Monterrey"]),
+            ("IT", "Italy", ["Milan", "Rome"]),
+            ("ES", "Spain", ["Madrid", "Barcelona"]),
+            ("PL", "Poland", ["Warsaw", "Krakow"]),
+            ("AT", "Austria", ["Vienna"]),
+            ("BE", "Belgium", ["Brussels"]),
+            ("DK", "Denmark", ["Copenhagen"]),
+            ("NO", "Norway", ["Oslo"]),
+            ("FI", "Finland", ["Helsinki"]),
+            ("PT", "Portugal", ["Lisbon"]),
+        };
+
+        var existingCountries = await db.Countries.ToDictionaryAsync(c => c.Code, ct);
+        foreach (var (code, name, _) in geo)
+        {
+            if (existingCountries.ContainsKey(code)) continue;
+            var country = new MstCountry
+            {
+                Code = code,
+                Name = name,
+                IsActive = true,
+            };
+            db.Countries.Add(country);
+            existingCountries[code] = country;
+        }
+
+        if (db.ChangeTracker.HasChanges())
+        {
+            await db.SaveChangesAsync(ct);
+        }
+
+        var existingCityCodes = await db.Cities.Select(c => c.Code).ToHashSetAsync(ct);
+        foreach (var (countryCode, _, cities) in geo)
+        {
+            if (!existingCountries.TryGetValue(countryCode, out var country)) continue;
+            foreach (var cityName in cities)
+            {
+                var cityCode = $"{countryCode.ToLowerInvariant()}_{Slug(cityName)}";
+                if (existingCityCodes.Contains(cityCode)) continue;
+                db.Cities.Add(new MstCity
+                {
+                    Code = cityCode,
+                    Name = cityName,
+                    CountryId = country.Id,
+                    IsActive = true,
+                });
+                existingCityCodes.Add(cityCode);
+            }
+        }
+    }
+
+    private static string Slug(string value)
+    {
+        var chars = value.Trim().ToLowerInvariant()
+            .Select(c => char.IsLetterOrDigit(c) ? c : '_')
+            .ToArray();
+        var slug = new string(chars);
+        while (slug.Contains("__", StringComparison.Ordinal))
+        {
+            slug = slug.Replace("__", "_", StringComparison.Ordinal);
+        }
+
+        return slug.Trim('_');
+    }
+
+    private static async Task SeedDirectoryEmployeesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var departments = await db.Departments.ToDictionaryAsync(d => d.Name, ct);
+        var designations = await db.Designations.ToDictionaryAsync(d => d.Name, ct);
+        var indian = await db.Nationalities.FirstOrDefaultAsync(n => n.Code == "indian", ct);
+        var jobRoles = await db.JobRoles.ToListAsync(ct);
+
+        var seed = new (string Code, string FirstName, string LastName, string Department, string Designation, string Role, string Gender)[]
+        {
+            ("EMP-1001", "Priya", "Sharma", "Engineering", "Software Engineer", "Employee", "Female"),
+            ("EMP-1002", "Rohan", "Mehta", "Engineering", "Senior Software Engineer", "Employee", "Male"),
+            ("EMP-1003", "Sneha", "Iyer", "Engineering", "Tech Lead", "TeamLead", "Female"),
+            ("EMP-1004", "Karthik", "Bose", "Engineering", "DevOps Engineer", "Employee", "Male"),
+            ("EMP-1005", "Divya", "Rao", "Product", "Product Manager", "ProjectManager", "Female"),
+            ("EMP-1006", "Ankit", "Verma", "Design", "UX Designer", "Employee", "Male"),
+            ("EMP-1007", "Neha", "Kulkarni", "Finance", "Finance Analyst", "Accounts", "Female"),
+            ("EMP-1008", "Samar", "Patel", "Human Resources", "HR Business Partner", "Hr", "Male"),
+            ("EMP-1009", "Aanya", "Joshi", "Sales", "Sales Executive", "Sales", "Female"),
+            ("EMP-1010", "Harsh", "Nair", "Operations", "Business Analyst", "Pmo", "Male"),
+            ("EMP-1011", "Ira", "Kapoor", "Engineering", "QA Engineer", "Employee", "Female"),
+            ("EMP-1012", "Yash", "Malik", "Engineering", "Software Engineer", "Employee", "Male"),
+            ("EMP-1013", "Kavya", "Desai", "Marketing", "Content Strategist", "Employee", "Female"),
+            ("EMP-1014", "Arjun", "Shah", "Engineering", "Data Analyst", "Employee", "Male"),
+            ("EMP-1015", "Meera", "Nambiar", "Product", "Business Analyst", "Employee", "Female"),
+            ("EMP-1016", "Vikram", "Gupta", "Operations", "Project Manager", "ProjectManager", "Male"),
+            ("EMP-1017", "Ishita", "Bansal", "Design", "UX Designer", "Employee", "Female"),
+            ("EMP-1018", "Aditya", "Reddy", "Engineering", "Senior Software Engineer", "Employee", "Male"),
+            ("EMP-1019", "Pooja", "Menon", "Human Resources", "HR Business Partner", "Hr", "Female"),
+            ("EMP-1020", "Nikhil", "Khanna", "Sales", "Sales Executive", "Sales", "Male"),
+        };
+
+        var existingCodes = await db.Employees
+            .IgnoreQueryFilters()
+            .Select(e => e.EmployeeCode)
+            .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, ct);
+
+        var entities = new List<Employee>();
+        for (var i = 0; i < seed.Length; i++)
+        {
+            var row = seed[i];
+            if (existingCodes.Contains(row.Code)) continue;
+            departments.TryGetValue(row.Department, out var dept);
+            designations.TryGetValue(row.Designation, out var desig);
+            var andheri = i % 2 == 0;
+            var location = andheri ? "Andheri Office" : "Dombivali Office";
+            var branch = andheri ? "HQ Tower" : "Tech Park East";
+            var n = i + 1;
+
+            entities.Add(new Employee
+            {
+                EmployeeCode = row.Code,
+                FirstName = row.FirstName,
+                LastName = row.LastName,
+                WorkEmail = $"{row.FirstName.ToLowerInvariant()}.{row.LastName.ToLowerInvariant()}@acme.co",
+                PersonalEmail = $"{row.FirstName.ToLowerInvariant()}{1000 + n}@gmail.com",
+                Phone = (9876501000 + n).ToString(),
+                AltPhone = (9866501000 + n).ToString(),
+                Gender = row.Gender,
+                DateOfBirth = new DateOnly(1990 + (i % 8), 1 + (i % 12), 1 + (i % 27)),
+                Address = $"{120 + n}, {location}",
+                EmergencyContact = (9811101000 + n).ToString(),
+                MaritalStatus = i % 3 == 0 ? "Married" : "Single",
+                Nationality = indian?.Name ?? "Indian",
+                NationalityId = indian?.Id,
+                DepartmentId = dept?.Id,
+                DesignationId = desig?.Id,
+                Role = row.Role,
+                JobRoleId = jobRoles.FirstOrDefault(r =>
+                    r.DesignationId == desig?.Id && r.Name == row.Role)?.Id,
+                BusinessUnit = i % 2 == 0 ? "Cloud Platform" : "Enterprise",
+                WorkLocation = location,
+                OfficeBranch = branch,
+                Category = i % 5 == 0 ? "Permanent - Bond" : "Permanent - Without Bond",
+                Team = $"Team {(char)('A' + (i % 6))}",
+                ProjectSite = i % 3 == 0 ? "Onsite" : "Offsite",
+                JoiningDate = new DateOnly(2019 + (i % 6), 1 + (i % 12), 10),
+                Status = "Active",
+                ConfirmationStatus = "Active",
+                ProbationStatus = "Completed",
+                Experience = $"{2 + (i % 10)} years",
+                PreviousCompany = i % 2 == 0 ? "Infosys" : "TCS",
+                EmploymentType = "Full-time",
+                ContractType = "Permanent",
+                BondStatus = i % 5 == 0 ? "Yes — 2 years" : "No",
+                NoticePeriod = i % 2 == 0 ? "60 days" : "90 days",
+                AssetId = $"TK-{4000 + n}",
+                ExitType = "NA",
+                ExitReason = "NA",
+                Education = i % 2 == 0 ? "B.Tech Computer Science" : "MCA",
+                Skills = ["Communication", "Delivery", row.Department],
+                Certifications = ["NA"],
+                Languages = ["English", "Hindi"],
+                KpiScore = 70 + (i % 25),
+                QuarterlyKpi = 68 + (i % 20),
+                AnnualRating = 3 + (i % 3),
+                GoalCompletion = 75 + (i % 20),
+                Attendance = 90 + (i % 9),
+                ReportingEfficiency = 80 + (i % 15),
+                PromotionReadiness = i % 4 == 0 ? "Ready Now" : "Ready in 1 year",
+                ManagerFeedback = "Solid contributor on current assignments.",
+                Pan = $"ABCDE{(1234 + n):0000}F",
+                BankAccount = (501234567800 + n).ToString(),
+                SalaryBand = i < 4 ? "L5" : "L4",
+                PfUan = (100112345000 + n).ToString(),
+                TaxRegime = i % 2 == 0 ? "New Regime" : "Old Regime",
+                ComplianceStatus = "Compliant",
+            });
+        }
+
+        if (entities.Count > 0)
+            db.Employees.AddRange(entities);
+
+        var lead = entities.FirstOrDefault(e => e.EmployeeCode == "EMP-1003")
+            ?? await db.Employees.FirstOrDefaultAsync(e => e.EmployeeCode == "EMP-1003", ct);
+
+        if (lead is not null)
+        {
+            foreach (var employee in entities)
+            {
+                if (employee.EmployeeCode == lead.EmployeeCode) continue;
+                employee.ReportingManagerId = lead.Id;
+            }
+        }
+
+        var seedCodes = seed.Select(s => s.Code).ToArray();
+        var existingDummy = await db.Employees
+            .Where(e => seedCodes.Contains(e.EmployeeCode))
+            .ToListAsync(ct);
+        for (var i = 0; i < seed.Length; i++)
+        {
+            var row = seed[i];
+            var employee = existingDummy.FirstOrDefault(e => e.EmployeeCode == row.Code);
+            if (employee is null) continue;
+            employee.JoiningDate ??= new DateOnly(2019 + (i % 6), 1 + (i % 12), 10);
+            if (employee.DepartmentId is null && departments.TryGetValue(row.Department, out var dept))
+                employee.DepartmentId = dept.Id;
+            if (employee.DesignationId is null && designations.TryGetValue(row.Designation, out var desig))
+                employee.DesignationId = desig.Id;
+            if (lead is not null
+                && employee.ReportingManagerId is null
+                && employee.EmployeeCode != lead.EmployeeCode)
+            {
+                employee.ReportingManagerId = lead.Id;
+            }
+        }
     }
 
     // ---------- Clients ----------

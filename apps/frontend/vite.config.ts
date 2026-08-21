@@ -14,6 +14,12 @@ export default defineConfig({
     server: {
       port: 6002,
       allowedHosts: true,
+      proxy: {
+        "/api": {
+          target: "http://localhost:5194",
+          changeOrigin: true,
+        },
+      },
     },
   },
 });

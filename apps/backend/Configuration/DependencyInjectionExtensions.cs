@@ -7,7 +7,9 @@ using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Modules.Auth.Services;
+using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Modules.Customers.Services;
+using PMS.API.Modules.Resources.Services;
 using PMS.API.Modules.Users.Services;
 
 namespace PMS.API.Configuration;
@@ -42,6 +44,8 @@ public static class DependencyInjectionExtensions
 
         // ---- Features (modules) ----
         services.AddScoped<IClientService, ClientService>();
+        services.AddScoped<ICatalogService, CatalogService>();
+        services.AddScoped<IEmployeeService, EmployeeService>();
         services.AddScoped<IUserService, UserService>();
 
         // ---- FluentValidation validators (scanned from this assembly) ----

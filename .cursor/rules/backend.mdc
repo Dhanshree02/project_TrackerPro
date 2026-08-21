@@ -1,0 +1,25 @@
+---
+description: ASP.NET backend module, API, and EF conventions
+globs: apps/backend/**/*.cs
+alwaysApply: false
+---
+
+# Backend conventions
+
+Single project `PMS.API`. Namespaces match folders. One business module at a time under `Modules/<Name>/`:
+
+`Controllers/` `DTOs/` `Models/` `Services/` `Validators/` (`Mappings/` if needed)
+
+Register new services in `Configuration/DependencyInjectionExtensions.cs`. Add `DbSet` + `IEntityTypeConfiguration` (snake_case tables). Entities inherit `BaseEntity`. New schema = EF migration, never hand-edit snapshots unless required.
+
+## API
+
+- Routes: `/api/v1/...`. Auth required unless `[AllowAnonymous]`.
+- Guard with `[RequirePermission(Permissions.X)]` from `Shared/Constants/Permissions.cs`.
+- Return `ApiResponse<T>` / `PagedResult<T>`. 404 uses `Fail("NOT_FOUND", ...)`.
+- Validate with FluentValidation (assembly-scanned). JSON enums as strings.
+- Pagination: `page` >= 1, `perPage` clamp 1–100.
+
+## Follow existing modules
+
+Copy patterns from `Modules/Customers` and `Modules/Resources`. Integration tests: `tests/PMS.IntegrationTests/`. Dev bypass is Development-only — do not ship it as real auth.

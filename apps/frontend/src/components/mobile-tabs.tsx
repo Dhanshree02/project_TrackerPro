@@ -16,15 +16,15 @@ const MAX_TABS = 5;
 export function MobileTabs() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const search = useRouterState({ select: (s) => s.location.search }) as any;
-  const { isDhanshree, isEmployee, isHr } = useRoleContext();
+  const { isDhanshree, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales } =
+    useRoleContext();
   const { hasPermission, hasAny } = usePermissions();
 
   const items: NavItem[] = filterNavItems(
     isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
     hasPermission,
     hasAny,
-    isEmployee,
-    isHr,
+    { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
   );
   const primary = items.slice(0, MAX_TABS);
   const overflow = items.slice(MAX_TABS);

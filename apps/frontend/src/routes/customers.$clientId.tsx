@@ -47,13 +47,8 @@ function AvatarBubble({ name, size = 22 }: { name: string; size?: number }) {
 
 export const Route = createFileRoute("/customers/$clientId")({
   loader: async ({ params }) => {
-    // Mock / dh-store clients resolve instantly (this path also runs during SSR).
-    const cached = allClients().find((c) => c.id === params.clientId);
-    if (cached) return { client: cached };
-
-    // API-backed clients carry GUID ids and live in the backend — the session
-    // token is client-side only, so fetch here when navigating in the browser.
-    // For hard loads / refreshes the component re-fetches as a fallback.
+    // Customer records are Postgres-only — always resolve from the API.
+    // (Mock/dh-store clients are intentionally NOT used in the customer module.)
     if (typeof window !== "undefined") {
       try {
         const api = await fetchClient(params.clientId);
@@ -85,7 +80,7 @@ type FilterTab = "all" | "new" | "ongoing" | "completed" | "archived" | "on_hold
 function CustomerDetailPage() {
   const { client: routeClient } = Route.useLoaderData();
   const { clientId } = Route.useParams();
-  const { isDhanshree } = useRoleContext();
+  const { isDhanshree, isSales } = useRoleContext();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
 
@@ -95,6 +90,11 @@ function CustomerDetailPage() {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [selectedSpoc, setSelectedSpoc] = useState<number | null>(null);
   const [svFilter, setSvFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setSvFilter("all");
+    setSelectedSpoc(null);
+  }, [clientId]);
 
   // API-backed clients (GUID ids) aren't in the dh-store — resolve lazily on the
   // client so hard loads / refreshes work even when the loader couldn't fetch.
@@ -124,13 +124,23 @@ function CustomerDetailPage() {
     };
   }, [routeClient, clientId]);
 
+  // The client record is Postgres-only (GUID id). Mock projects are keyed by
+  // the mock client id ("c1"…), so to keep showing the project table/counts
+  // from mock data we map the API client's name back to its mock id. This is
+  // an internal join key only — no mock client record is ever displayed.
+  const mockClientId = useMemo(() => {
+    if (!client?.name) return undefined;
+    const byName = new Map(allClients().map((c) => [c.name.toLowerCase(), c.id]));
+    return byName.get(client.name.toLowerCase()) ?? client.id;
+  }, [client?.name, client?.id, extraCount]);
+
   // EM state — initialised from client.engagementManager or derived from projects
   const defaultEM = useMemo(() => {
     if (client?.engagementManager) return client.engagementManager;
     // fallback: derive from first project EM field
-    const proj = allProjects().find((p) => p.clientId === client?.id && p.engagementManager);
+    const proj = allProjects().find((p) => p.clientId === mockClientId && p.engagementManager);
     return proj?.engagementManager ?? "—";
-  }, [client]);
+  }, [client, mockClientId]);
   const [emName, setEmName] = useState<string>(defaultEM);
   // Late-loaded API clients arrive after mount — sync the EM chip once.
   useEffect(() => {
@@ -148,8 +158,8 @@ function CustomerDetailPage() {
 
   // Re-compute whenever extraCount changes (reactive to new clients/projects)
   const allProj = useMemo(
-    () => allProjects().filter((p) => p.clientId === client?.id),
-    [client?.id, extraCount],
+    () => allProjects().filter((p) => p.clientId === mockClientId),
+    [mockClientId, extraCount],
   );
 
   if (!isDhanshree && !hasPermission("customers.view")) return <Navigate to="/customers" />;
@@ -208,31 +218,9 @@ function CustomerDetailPage() {
   const firstProjectName = firstProject?.name ?? "—";
   const firstProjectId = firstProject ? fmtProjectId(firstProject.id) : "—";
 
-  // Build SPOC list — prefer the stored contacts array, fall back to single legacy fields
-  const spocs =
-    client.contacts && client.contacts.length > 0
-      ? client.contacts.map((c) => ({
-          name: c.name,
-          email: c.email,
-          phone: c.phone ?? "—",
-          designation: c.designation ?? "—",
-          type: c.contactType ?? "Primary",
-        }))
-      : [
-          {
-            name: client.contactName ?? client.contact.split("@")[0],
-            email: client.contact,
-            phone: client.contactPhone ?? "—",
-            designation: client.contactDesignation ?? "—",
-            type: client.contactType ?? "Primary",
-          },
-        ];
-
-  // Sub-venture list from client
+  // Sub-venture list from client. SPOC contacts are per sub-venture — only
+  // show them after a specific sub-venture is selected.
   const subVentures = client.subVentures ?? [];
-
-  // When the sub-venture filter is active, show that sub-venture's own SPOC contacts;
-  // otherwise show the client-level SPOCs.
   const activeSubVenture =
     svFilter !== "all" ? subVentures.find((sv) => sv.name === svFilter) : undefined;
   const displaySpocs = activeSubVenture
@@ -243,7 +231,7 @@ function CustomerDetailPage() {
         designation: c.designation ?? "—",
         type: c.contactType ?? "Primary",
       }))
-    : spocs;
+    : [];
 
   // Filter pool: status tab + sub-venture
   const poolByTab: Record<FilterTab, typeof allProj> = {
@@ -303,7 +291,9 @@ function CustomerDetailPage() {
                     <User className="h-3 w-3" />
                     {emName !== "—" ? emName : "No EM assigned"}
                   </span>
-                  <button
+                  {!isSales && (
+                  <>
+                    <button
                     onClick={() => {
                       setShowEMPicker((v) => !v);
                       setEmSearch("");
@@ -363,6 +353,8 @@ function CustomerDetailPage() {
                         )}
                       </ul>
                     </div>
+                  )}
+                  </>
                   )}
                 </div>
               )}
@@ -587,7 +579,9 @@ function CustomerDetailPage() {
                   <p className="text-xs text-muted-foreground">
                     {activeSubVenture
                       ? "No SPOC contacts for this sub-venture yet."
-                      : "No SPOC contacts on file."}
+                      : subVentures.length > 0
+                        ? "Select a sub-venture to view SPOC contacts."
+                        : "No sub-ventures on file. SPOC contacts are tied to a sub-venture."}
                   </p>
                 )}
 
@@ -627,15 +621,15 @@ function CustomerDetailPage() {
               </div>
             </div>
 
-            {/* Sub-venture filter */}
-            {subVentures.length > 0 && (
-              <div className="w-72 shrink-0 rounded-xl border border-border bg-card shadow-sm">
-                <div className="border-b border-border px-4 py-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                    <Layers className="h-3.5 w-3.5" /> Filter by Sub-venture
-                  </h3>
-                </div>
-                <div className="p-3 space-y-2">
+            {/* Sub-venture filter — SPOC list depends on this selection */}
+            <div className="w-72 shrink-0 rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5" /> Filter by Sub-venture
+                </h3>
+              </div>
+              <div className="p-3 space-y-2">
+                {subVentures.length > 0 ? (
                   <div className="relative">
                     <select
                       value={svFilter}
@@ -645,7 +639,7 @@ function CustomerDetailPage() {
                       }}
                       className="h-8 w-full rounded-md border border-border bg-card pr-7 pl-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring appearance-none"
                     >
-                      <option value="all">All Sub-ventures</option>
+                      <option value="all">Select sub-venture…</option>
                       {subVentures.map((sv) => (
                         <option key={sv.name} value={sv.name}>
                           {sv.name}
@@ -654,26 +648,28 @@ function CustomerDetailPage() {
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   </div>
-                  {svFilter !== "all" && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-muted-foreground truncate max-w-[160px]">
-                        <span className="font-medium text-foreground">{pool.length}</span> project
-                        {pool.length !== 1 ? "s" : ""}
-                      </span>
-                      <button
-                        onClick={() => {
-                          setSvFilter("all");
-                          setSelectedSpoc(null);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                      >
-                        <X className="h-2.5 w-2.5" /> Clear
-                      </button>
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No sub-ventures for this client.</p>
+                )}
+                {svFilter !== "all" && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[160px]">
+                      <span className="font-medium text-foreground">{pool.length}</span> project
+                      {pool.length !== 1 ? "s" : ""}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setSvFilter("all");
+                        setSelectedSpoc(null);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    >
+                      <X className="h-2.5 w-2.5" /> Clear
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
           <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
             <header className="flex items-center justify-between border-b border-border px-5 py-3">

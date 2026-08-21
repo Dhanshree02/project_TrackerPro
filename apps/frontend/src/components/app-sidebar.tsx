@@ -9,8 +9,20 @@ import { NAV_ITEMS, DH_NAV_ITEMS, filterNavItems, type NavItem } from "@/lib/nav
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const search = useRouterState({ select: (s) => s.location.search }) as any;
-  const { assignedIssues, pendingTimesheets, isPMO, isHOD, isBO, isDhanshree, isEmployee, isHr } =
-    useRoleContext();
+  const {
+    assignedIssues,
+    pendingTimesheets,
+    isPMO,
+    isHOD,
+    isBO,
+    isDhanshree,
+    isEmployee,
+    isHr,
+    isPmFamily,
+    isPmoFamily,
+    isAccounts,
+    isSales,
+  } = useRoleContext();
   const { hasPermission, hasAny } = usePermissions();
   const openIssues = assignedIssues.filter((i) => i.status === "open").length;
 
@@ -35,8 +47,7 @@ export function AppSidebar() {
     isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
     hasPermission,
     hasAny,
-    isEmployee,
-    isHr,
+    { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
   );
 
   const isActive = (to?: string, exact?: boolean, subSearch?: Record<string, any>) => {

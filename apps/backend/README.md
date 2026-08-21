@@ -24,7 +24,9 @@ apps/backend/
 │   ├── Persistence/               # EF Core DbContext, configurations, seeding
 │   └── Swagger/                   # OpenAPI (Swagger) setup
 ├── Jobs/                          # Reserved for Hangfire background jobs
-├── Logs/                          # Serilog runtime logs
+├── Log/
+│   ├── Debug log/                 # Debug / Information / Warning logs
+│   └── Error log/                 # Error / Fatal logs
 ├── Middleware/                    # Exception handling, validation filter
 ├── Migrations/                    # EF Core migrations
 ├── Modules/                       # Business modules (see Modules/README.md)
@@ -41,7 +43,6 @@ apps/backend/
 ├── tests/
 │   ├── PMS.UnitTests/             # Fast unit tests (JWT, pagination, domain rules)
 │   └── PMS.IntegrationTests/      # API smoke tests (WebApplicationFactory)
-├── docker-compose.yml             # Local PostgreSQL 16
 ├── .env.example                   # Environment variable reference
 └── README.md
 ```
@@ -49,12 +50,9 @@ apps/backend/
 ## Prerequisites
 
 - [.NET SDK 10](https://dotnet.microsoft.com/download) (verified: 10.0.302)
-- PostgreSQL 16 — either an existing install or:
-  ```bash
-  docker compose up -d
-  ```
-- A `trackerpro` database/user (the `DefaultConnection` in `appsettings.json` assumes
-  `Host=localhost;Port=5432;Database=trackerpro;Username=trackerpro;Password=trackerpro_dev`)
+- PostgreSQL on this machine (`trackerpro` database)
+- Connection string in `appsettings.json` / `.env`:
+  `Host=localhost;Port=5432;Database=trackerpro;Username=trackerpro;Password=trackerpro_dev`
 
 ## Run
 

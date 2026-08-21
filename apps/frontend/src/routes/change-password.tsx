@@ -25,7 +25,7 @@ function ChangePasswordPage() {
   const [busy, setBusy] = useState(false);
 
   // Only reachable for an authenticated user who still must change their password.
-  if (status !== "authed") return <Navigate to="/login" />;
+  if (status !== "authed") return <Navigate to="/" />;
   if (user && !user.mustChangePassword) return <Navigate to="/" />;
 
   const onSubmit = async (e: FormEvent) => {

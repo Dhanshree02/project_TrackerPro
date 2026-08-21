@@ -1,0 +1,15 @@
+---
+description: Frontend routing, API client, and mock-vs-live conventions
+globs: apps/frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend conventions
+
+- Routes: `apps/frontend/src/routes/*.tsx` (kebab-case). Do not hand-edit `routeTree.gen.ts`.
+- Shared UI: `src/components/`. Domain/API: `src/lib/` and `src/lib/api/`.
+- Live HTTP only through `apiFetch` in `src/lib/api-client.ts` (JWT in memory, refresh cookie, `{ data, meta, errors }` envelope).
+- Module clients: `src/lib/api/clients.ts`, `employees.ts`, `users.ts`. Add a new file there when a backend module comes online.
+- Screens still on mock data (`mock-data.ts`, `dh-store.ts`) until that module has an API — do not invent parallel fetch helpers.
+- Dev auth: topbar demo-role switch (`demo-roles.ts` + `auth-context.tsx`) plus backend Development bypass. Keep `VITE_API_URL` defaulting to the .NET API (`5194`).
+- Ports: frontend **6002**, not 5173.

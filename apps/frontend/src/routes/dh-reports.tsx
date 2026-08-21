@@ -28,30 +28,36 @@ const tabIcons: Record<Tab, typeof BarChart3> = {
 };
 
 function DhReportsPage() {
-  const { isDhanshree } = useRoleContext();
-  const [tab, setTab] = useState<Tab>("Sales Reports");
+  const { isDhanshree, isAccounts, isSales } = useRoleContext();
+  const visibleTabs: Tab[] = isAccounts
+    ? ["PO Tracker", "Invoice Tracker"]
+    : isSales
+      ? ["Sales Reports", "WBS Tracker"]
+      : [...tabs];
+  const [tab, setTab] = useState<Tab>(visibleTabs[0]);
+  const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
 
-  if (!isDhanshree) return <Navigate to="/" />;
+  if (!isDhanshree && !isAccounts && !isSales) return <Navigate to="/" />;
 
   return (
     <AppShell title="Reports" subtitle="Sales, delivery, finance and PO tracking">
       <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
-        {tabs.map((t) => {
+        {visibleTabs.map((t) => {
           const Icon = tabIcons[t];
           return (
             <button key={t} onClick={() => setTab(t)}
               className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium",
-                tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+                activeTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
               <Icon className="h-3.5 w-3.5" /> {t}
             </button>
           );
         })}
       </div>
 
-      {tab === "Sales Reports" && <SalesReports />}
-      {tab === "WBS Tracker" && <WbsTracker />}
-      {tab === "PO Tracker" && <POTracker />}
-      {tab === "Invoice Tracker" && <InvoiceTracker />}
+      {activeTab === "Sales Reports" && <SalesReports />}
+      {activeTab === "WBS Tracker" && <WbsTracker />}
+      {activeTab === "PO Tracker" && <POTracker />}
+      {activeTab === "Invoice Tracker" && <InvoiceTracker />}
     </AppShell>
   );
 }

@@ -7,9 +7,10 @@ export interface FieldProps {
   children?: React.ReactNode;
   value?: React.ReactNode;
   className?: string;
+  error?: string;
 }
 
-export function Field({ label, required, children, value, className }: FieldProps) {
+export function Field({ label, required, children, value, className, error }: FieldProps) {
   if (value !== undefined && children === undefined) {
     return (
       <div className={cn("block", className)}>
@@ -25,6 +26,7 @@ export function Field({ label, required, children, value, className }: FieldProp
         {label}{required && <span className="text-destructive"> *</span>}
       </span>
       {children}
+      {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
     </label>
   );
 }

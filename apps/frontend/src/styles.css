@@ -180,3 +180,29 @@
     -moz-appearance: textfield;
   }
 }
+
+/* Solid success / error toasts (top-right via Toaster position). */
+[data-sonner-toaster] {
+  z-index: 10000;
+}
+
+[data-sonner-toast][data-type="success"] {
+  background: #16a34a !important;
+  color: #fff !important;
+  border-color: #15803d !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  background: #dc2626 !important;
+  color: #fff !important;
+  border-color: #b91c1c !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon],
+[data-sonner-toast][data-type="success"] [data-title],
+[data-sonner-toast][data-type="success"] [data-description],
+[data-sonner-toast][data-type="error"] [data-icon],
+[data-sonner-toast][data-type="error"] [data-title],
+[data-sonner-toast][data-type="error"] [data-description] {
+  color: #fff !important;
+}

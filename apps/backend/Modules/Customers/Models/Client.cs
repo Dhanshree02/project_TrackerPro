@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using PMS.API.Shared.Common.Models;
+using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 
 namespace PMS.API.Modules.Customers.Models;
@@ -14,6 +15,8 @@ public class Client : BaseEntity
 
     public string Industry { get; set; } = string.Empty;
 
+    public Guid? IndustryId { get; set; }
+
     /// <summary>Two-letter initials used as the avatar text.</summary>
     public string? Logo { get; set; }
 
@@ -25,6 +28,8 @@ public class Client : BaseEntity
 
     public string? EngagementManager { get; set; }
 
+    public Guid? EngagementManagerId { get; set; }
+
     public string? ContactName { get; set; }
 
     public string? ContactPhone { get; set; }
@@ -33,11 +38,15 @@ public class Client : BaseEntity
 
     public string? ContactType { get; set; }
 
-    /// <summary>Head-office city captured during onboarding.</summary>
+    /// <summary>Head-office city captured during onboarding (name, API-compatible).</summary>
     public string? City { get; set; }
 
-    /// <summary>Head-office country / region captured during onboarding.</summary>
+    public Guid? CityId { get; set; }
+
+    /// <summary>Head-office country / region captured during onboarding (name, API-compatible).</summary>
     public string? Country { get; set; }
+
+    public Guid? CountryId { get; set; }
 
     /// <summary>Enterprise / Mid-Market / SMB / Public Sector.</summary>
     public string? BusinessType { get; set; }
@@ -69,23 +78,17 @@ public class Client : BaseEntity
         return initials;
     }
 
-    /// <summary>SPOC contact persons, stored as JSONB.</summary>
-    public List<ClientContact> Contacts { get; set; } = [];
+    /// <summary>SPOC contact persons attached to the client.</summary>
+    public ICollection<ClientContactEntity> Contacts { get; set; } = [];
 
     /// <summary>Users explicitly granted visibility of this client (data scoping).</summary>
     public ICollection<ClientAssignment> Assignments { get; set; } = [];
-}
 
-/// <summary>SPOC person owned by a client or sub-venture (JSONB value object).</summary>
-public class ClientContact
-{
-    public string? Name { get; set; }
+    public MstIndustry? IndustryRef { get; set; }
 
-    public string? Email { get; set; }
+    public Employee? EngagementManagerRef { get; set; }
 
-    public string? Phone { get; set; }
+    public MstCountry? CountryRef { get; set; }
 
-    public string? Designation { get; set; }
-
-    public string? ContactType { get; set; }
+    public MstCity? CityRef { get; set; }
 }

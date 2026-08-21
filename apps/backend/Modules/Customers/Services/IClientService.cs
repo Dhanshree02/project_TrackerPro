@@ -23,4 +23,6 @@ public interface IClientService
 
     /// <summary>Soft-deletes the client (sets DeletedAtUtc). Returns false when not found.</summary>
     Task<bool> SoftDeleteClientAsync(Guid id, CancellationToken ct = default);
+
+    Task<IReadOnlyList<string>> GetIndustriesAsync(CancellationToken ct = default);
 }

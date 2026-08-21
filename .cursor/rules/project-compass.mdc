@@ -1,0 +1,27 @@
+---
+description: Pulse PMO / TrackerPro identity, stack, and how to resume after a new chat
+alwaysApply: true
+---
+
+# Project Compass (Pulse PMO)
+
+Repo `project_TrackerPro`. Product name **Pulse PMO**. Backend project/namespaces: **PMS.API**.
+
+## Stack (current — ignore older FastAPI wiki drafts)
+
+- Frontend: React 19, TypeScript, TanStack Start/Router, Tailwind, shadcn. Dev: `http://localhost:6002`
+- Backend: ASP.NET Core 10, EF Core 10, PostgreSQL 16 (`trackerpro`). Dev: `http://localhost:5194` (`/swagger`)
+- Auth: JWT access (memory) + rotating HttpOnly refresh cookie. Permissions via `[RequirePermission]`, not role strings on controllers.
+
+## Docs — trust code first
+
+Root `README.md`, `wiki/AI_HANDOVER.md`, and `wiki/development/backend-progress/PROGRESS_LOG.md` are **stale** (still say backend not started). Prefer:
+
+- `apps/backend/README.md`, `database/STRUCTURE.md`, `wiki/31_Backend_Plan_DotNet.md`
+- This folder: `.cursor/rules/current-work.mdc` (living snapshot)
+
+Do not redesign `users`/`roles` this phase. M365 auth is future. Do not commit `.env`.
+
+## Continuity (mandatory)
+
+After any meaningful change, update `.cursor/rules/current-work.mdc`: status, key files, next step. That file is how the next chat resumes after this window closes.

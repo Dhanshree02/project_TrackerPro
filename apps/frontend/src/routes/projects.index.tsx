@@ -25,6 +25,11 @@ import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar } from "@/com
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/dh-helpers";
 import { cn } from "@/lib/utils";
 import { Field, HorizontalField } from "@/components/form-row";
+import {
+  FIELD_MAX,
+  emailError,
+  fieldInputCls,
+} from "@/lib/form-validation";
 import { useDraggable } from "@/hooks/use-draggable";
 
 export const Route = createFileRoute("/projects/")({
@@ -41,7 +46,7 @@ const tabs = ["Active Projects", "Archived Projects", "All Projects"] as const;
 type Tab = (typeof tabs)[number];
 
 function ProjectsPage() {
-  const { isDhanshree, isEmployee, employeeProjectIds } = useRoleContext();
+  const { isDhanshree, isEmployee, assignedProjects } = useRoleContext();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("Active Projects");
@@ -68,9 +73,9 @@ function ProjectsPage() {
   const clients = useMemo(() => allClients(), [extraCount]);
 
   const visible = useMemo(() => {
+    const assignedIds = new Set(assignedProjects.map((p) => p.id));
     return projects.filter((p) => {
-      // Employees only ever see projects they are involved in.
-      if (isEmployee && employeeProjectIds && !employeeProjectIds.has(p.id)) return false;
+      if (!assignedIds.has(p.id)) return false;
       const isArchived =
         p.status === "completed" || p.status === "archived" || (p.status as any) === "Archived";
       if (tab === "Active Projects" && isArchived) return false;
@@ -81,7 +86,7 @@ function ProjectsPage() {
         v.toLowerCase().includes(q.toLowerCase()),
       );
     });
-  }, [tab, q, projects, clients, isEmployee, employeeProjectIds]);
+  }, [tab, q, projects, clients, assignedProjects]);
 
   if (!isDhanshree && !hasPermission("projects.view")) return <Navigate to="/" />;
 
@@ -749,20 +754,31 @@ function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
                 <Field label="Customer Name" required>
                   <input
                     className={inputCls}
+                    maxLength={FIELD_MAX.clientName}
                     value={s.newClient.name}
                     onChange={(e) =>
-                      setS((p) => ({ ...p, newClient: { ...p.newClient, name: e.target.value } }))
+                      setS((p) => ({
+                        ...p,
+                        newClient: {
+                          ...p.newClient,
+                          name: e.target.value.slice(0, FIELD_MAX.clientName),
+                        },
+                      }))
                     }
                   />
                 </Field>
                 <Field label="Industry">
                   <input
                     className={inputCls}
+                    maxLength={FIELD_MAX.industry}
                     value={s.newClient.industry}
                     onChange={(e) =>
                       setS((p) => ({
                         ...p,
-                        newClient: { ...p.newClient, industry: e.target.value },
+                        newClient: {
+                          ...p.newClient,
+                          industry: e.target.value.slice(0, FIELD_MAX.industry),
+                        },
                       }))
                     }
                   />
@@ -770,22 +786,34 @@ function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
                 <Field label="Contact Person">
                   <input
                     className={inputCls}
+                    maxLength={FIELD_MAX.personName}
                     value={s.newClient.contact}
                     onChange={(e) =>
                       setS((p) => ({
                         ...p,
-                        newClient: { ...p.newClient, contact: e.target.value },
+                        newClient: {
+                          ...p.newClient,
+                          contact: e.target.value.slice(0, FIELD_MAX.personName),
+                        },
                       }))
                     }
                   />
                 </Field>
-                <Field label="Email">
+                <Field label="Email" error={emailError(s.newClient.email)}>
                   <input
                     type="email"
-                    className={inputCls}
+                    className={fieldInputCls(inputCls, Boolean(emailError(s.newClient.email)))}
+                    maxLength={FIELD_MAX.email}
+                    placeholder="name@company.com"
                     value={s.newClient.email}
                     onChange={(e) =>
-                      setS((p) => ({ ...p, newClient: { ...p.newClient, email: e.target.value } }))
+                      setS((p) => ({
+                        ...p,
+                        newClient: {
+                          ...p.newClient,
+                          email: e.target.value.slice(0, FIELD_MAX.email),
+                        },
+                      }))
                     }
                   />
                 </Field>
@@ -800,8 +828,9 @@ function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
               <Field label="Project Name" required className="sm:col-span-2">
                 <input
                   className={inputCls}
+                  maxLength={FIELD_MAX.projectName}
                   value={s.proj.name}
-                  onChange={(e) => updateProj("name", e.target.value)}
+                  onChange={(e) => updateProj("name", e.target.value.slice(0, FIELD_MAX.projectName))}
                 />
               </Field>
               <Field label="Start Date" required>

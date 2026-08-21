@@ -11,7 +11,12 @@
  *              the browser sends the cookie automatically.
  */
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:5194";
+const API_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (import.meta.env.DEV ? "" : "http://localhost:5194");
+
+/** Dev-only: API accepts unauthenticated requests via backend DevelopmentAuthBypassMiddleware. */
+const DEV_BYPASS_AUTH = import.meta.env.DEV;
 
 interface ApiEnvelope<T> {
   data: T | null;
@@ -56,6 +61,7 @@ let sessionEpoch = 0;
 let refreshInFlight: Promise<boolean> | null = null;
 
 export function isAuthenticated(): boolean {
+  if (DEV_BYPASS_AUTH) return true;
   return accessToken !== null;
 }
 
@@ -118,6 +124,7 @@ export async function getMe(): Promise<AuthUser> {
 
 /** Ensures a live session exists; throws when unauthenticated. */
 export async function ensureAuthenticated(): Promise<void> {
+  if (DEV_BYPASS_AUTH) return;
   if (accessToken) return;
   if (await restoreSession()) return;
   throw new Error("Not authenticated");

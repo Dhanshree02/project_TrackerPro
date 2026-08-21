@@ -207,6 +207,85 @@ public class CustomerModuleTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
+    public async Task Update_AddingSubVentureWithContacts_PersistsContacts()
+    {
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+
+        var name = "SubVentureContacts-" + Guid.NewGuid().ToString("N")[..8];
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/clients",
+            new CreateClientRequest(
+                Name: name,
+                Industry: "Technology",
+                Logo: null,
+                ContactEmail: null,
+                ClientType: null,
+                EngagementManager: null,
+                ContactName: null,
+                ContactPhone: null,
+                ContactDesignation: null,
+                ContactType: null,
+                City: null,
+                Country: null,
+                BusinessType: null,
+                Notes: null,
+                KycDocumentName: null,
+                SubVentures: [new SubVentureInput("Initial Division", null)],
+                Contacts: null));
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<ClientDto>>();
+        Assert.NotNull(created?.Data);
+        var id = created!.Data!.Id;
+
+        try
+        {
+            var spoc = new ClientContactDto(
+                "Jane SPOC",
+                "jane.spoc@acme.co",
+                "+91 9876543210",
+                "Manager",
+                "Primary");
+
+            var updateResponse = await _client.PutAsJsonAsync($"/api/v1/clients/{id}",
+                new UpdateClientRequest(
+                    Name: null,
+                    Industry: null,
+                    Logo: null,
+                    ContactEmail: null,
+                    ClientType: null,
+                    Status: null,
+                    EngagementManager: null,
+                    ContactName: null,
+                    ContactPhone: null,
+                    ContactDesignation: null,
+                    ContactType: null,
+                    City: null,
+                    Country: null,
+                    BusinessType: null,
+                    Notes: null,
+                    KycDocumentName: null,
+                    SubVentures:
+                    [
+                        new SubVentureInput("Initial Division", null),
+                        new SubVentureInput("Second Division", [spoc]),
+                    ],
+                    Contacts: null));
+
+            Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+            var updated = await updateResponse.Content.ReadFromJsonAsync<ApiResponse<ClientDto>>();
+            Assert.NotNull(updated?.Data);
+            var second = updated!.Data!.SubVentures.First(sv => sv.Name == "Second Division");
+            Assert.Single(second.Contacts);
+            Assert.Equal("jane.spoc@acme.co", second.Contacts[0].Email);
+        }
+        finally
+        {
+            await _client.DeleteAsync($"/api/v1/clients/{id}");
+        }
+    }
+
+    [Fact]
     public async Task Create_WithEmptyName_ReturnsValidationError()
     {
         _client.DefaultRequestHeaders.Authorization =

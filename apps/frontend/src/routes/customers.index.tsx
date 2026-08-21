@@ -23,12 +23,21 @@ import {
   updateClient,
   type CreateClientInput,
 } from "@/lib/api/clients";
+import { fetchCities, fetchCountries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
 import { useAuth } from "@/lib/auth-context";
 import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
 import { Modal } from "@/routes/projects.index";
 import { Field } from "@/components/form-row";
 import { dhStore, useDhStore, allClients, allProjects } from "@/lib/dh-store";
 import { cn } from "@/lib/utils";
+import {
+  FIELD_MAX,
+  emailError,
+  fieldInputCls,
+  isCompletePhone,
+  phoneError,
+  toTenDigitPhone,
+} from "@/lib/form-validation";
 
 export const Route = createFileRoute("/customers/")({
   head: () => ({
@@ -41,7 +50,7 @@ export const Route = createFileRoute("/customers/")({
 });
 
 function CustomersPage() {
-  const { isDhanshree, assignedClients, assignedProjects } = useRoleContext();
+  const { isDhanshree, isBO, assignedProjects } = useRoleContext();
   const navigate = useNavigate();
   const [view, setViewState] = useState<"card" | "list">(() => {
     if (typeof window !== "undefined") {
@@ -63,15 +72,21 @@ function CustomersPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [openNew, setOpenNew] = useState(false);
 
-  // Live data from the TrackerPro API (when reachable). Falls back to mock data
-  // when the backend is offline so the page never breaks.
+  // Live data from the TrackerPro API. The customer list is Postgres-only —
+  // no mock/dh-store fallback. While loading (or if the backend is unreachable)
+  // we show a spinner / empty state instead of mock clients.
   const [apiClients, setApiClients] = useState<Client[] | null>(null);
+  const [clientsLoading, setClientsLoading] = useState(true);
   const refreshApiClients = useCallback(async () => {
+    setClientsLoading(true);
     try {
       const list = await fetchClients();
-      if (list.length > 0) setApiClients(list.map(mapApiClient));
+      setApiClients(list.map(mapApiClient));
     } catch {
-      /* backend offline — keep current list */
+      /* backend offline — show empty, do NOT fall back to mock data */
+      setApiClients([]);
+    } finally {
+      setClientsLoading(false);
     }
   }, []);
   useEffect(() => {
@@ -79,18 +94,13 @@ function CustomersPage() {
   }, [refreshApiClients]);
 
   // Only users holding clients:write may onboard new customers (RBAC).
-  const canCreateClient = authUser ? authUser.permissions.includes("clients:write") : true;
+  const canCreateClient =
+    !isBO && (authUser ? authUser.permissions.includes("clients:write") : true);
 
-  // Subscribe to store so newly created clients/projects appear immediately
+  // Subscribe to store so newly created projects appear immediately
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
-  const clients = useMemo(() => {
-    if (apiClients) return apiClients;
-    return isDhanshree
-      ? allClients()
-      : assignedClients && assignedClients.length > 0
-        ? assignedClients
-        : allClients();
-  }, [apiClients, isDhanshree, assignedClients, extraCount]);
+  // Customer records come exclusively from the API (Postgres). No mock fallback.
+  const clients = useMemo(() => apiClients ?? [], [apiClients]);
   const projects = useMemo(
     () =>
       isDhanshree
@@ -172,7 +182,12 @@ function CustomersPage() {
         </div>
       </div>
 
-      {view === "card" ? (
+      {clientsLoading ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-12 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading customers from the database…</p>
+        </div>
+      ) : view === "card" ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map(({ client: c, total, active }) => (
             <article
@@ -316,16 +331,10 @@ function NewClientModal({
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── TK Customer search state — mock/dh-store + API-backed clients ──
-  // Subscribes to the store so locally-created clients appear immediately.
-  const localClientCount = useDhStore((s) => s.extraClients.length);
-  const existingClients = useMemo(() => {
-    const local = allClients();
-    const seen = new Set(local.map((c) => c.id));
-    return [...local, ...(apiClients ?? []).filter((c) => !seen.has(c.id))];
-    // localClientCount intentionally keeps this memo fresh when the store changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiClients, localClientCount]);
+  // ── TK Customer search state — API-backed clients only (no mock data) ──
+  // The onboarding search must only look up real clients from the backend, never
+  // the in-memory mock/dh-store seed list.
+  const existingClients = useMemo(() => apiClients ?? [], [apiClients]);
   const [tkSearch, setTkSearch] = useState("");
   const [tkDropOpen, setTkDropOpen] = useState(false);
   const [selectedExisting, setSelectedExisting] = useState<(typeof existingClients)[0] | null>(
@@ -337,6 +346,9 @@ function NewClientModal({
   const [svDropOpen, setSvDropOpen] = useState(false);
   const [svAlreadyExists, setSvAlreadyExists] = useState(false);
 
+  const [countries, setCountries] = useState<CatalogOption[]>([]);
+  const [cities, setCities] = useState<CityCatalogOption[]>([]);
+
   const filteredTk = existingClients.filter(
     (c) => tkSearch.trim() === "" || c.name.toLowerCase().includes(tkSearch.toLowerCase()),
   );
@@ -344,7 +356,7 @@ function NewClientModal({
   const [s, setS] = useState<NewClientState>(() => ({
     clientName: "",
     subVentureName: "",
-    customerId: "C" + String(allClients().length + 1).padStart(3, "0"),
+    customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
     engagementManager: "",
     phoneNumber: "",
     city: "",
@@ -357,6 +369,40 @@ function NewClientModal({
     contacts: [{ name: "", email: "", phone: "", designation: "", contactType: "" }],
     notes: "",
   }));
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCountries()
+      .then((rows) => {
+        if (!cancelled) setCountries(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setCountries([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedCountryId = countries.find((c) => c.name === s.country)?.id;
+
+  useEffect(() => {
+    if (!selectedCountryId) {
+      setCities([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchCities(selectedCountryId)
+      .then((rows) => {
+        if (!cancelled) setCities(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setCities([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCountryId]);
 
   const u = (k: keyof Omit<NewClientState, "contacts" | "kycFile">, v: string) =>
     setS((p) => ({ ...p, [k]: v }));
@@ -385,16 +431,6 @@ function NewClientModal({
       contacts: p.contacts.map((c, i) => (i === idx ? { ...c, [field]: val } : c)),
     }));
 
-  // Validates a phone number.
-  // Rejects fake numbers (0000000000), wrong digit counts, impossible formats.
-  const isValidPhone = (val: string): boolean => {
-    const cleaned = val.trim();
-    if (!cleaned) return false;
-    const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{6,15}$/;
-    const digitsOnly = cleaned.replace(/\D/g, "");
-    return phoneRegex.test(cleaned) && digitsOnly.length >= 7 && !/^(.)\1+$/.test(digitsOnly);
-  };
-
   // Returns the first missing required field label, or null if all valid
   const getStep1Error = (): string | null => {
     if (!s.subVentureName.trim()) return "End Customer / Sub-venture Name is required";
@@ -402,8 +438,7 @@ function NewClientModal({
     if (!s.clientName.trim()) return "TK Customer / Partner Name is required";
     if (!s.engagementManager.trim()) return "Engagement Manager is required";
     if (!s.phoneNumber.trim()) return "Phone Number is required";
-    if (!isValidPhone(s.phoneNumber))
-      return "Please enter a real, valid phone number (e.g. +91 98765 432XXX)";
+    if (!isCompletePhone(s.phoneNumber)) return "Enter a 10-digit phone number";
     if (!s.city.trim()) return "City is required";
     if (!s.country.trim()) return "Country is required";
     if (!s.industry.trim()) return "Industry is required";
@@ -416,12 +451,10 @@ function NewClientModal({
       const n = s.contacts.length > 1 ? ` (Contact ${i + 1})` : "";
       if (!c.name.trim()) return `Contact Name${n} is required`;
       if (!c.contactType?.trim()) return `Contact Type${n} is required`;
-      if (!c.email.trim()) return `Contact Email${n} is required`;
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email.trim()))
-        return `Contact Email${n} — please enter a valid email address`;
-      if (!c.phone.trim()) return `Contact Phone${n} is required`;
-      if (!isValidPhone(c.phone))
-        return `Contact Phone${n} — please enter a real, valid phone number (e.g. +91 98765 432XXX)`;
+      const mailErr = emailError(c.email, true);
+      if (mailErr) return `Contact Email${n} — ${mailErr}`;
+      const phErr = phoneError(c.phone, true);
+      if (phErr) return `Contact Phone${n} — ${phErr}`;
       if (!c.designation.trim()) return `Designation${n} is required`;
     }
     if (!s.kycFile) return "KYC Document is required";
@@ -651,11 +684,12 @@ function NewClientModal({
               <input
                 className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-8 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Search existing TK customers or type a new name…"
+                maxLength={FIELD_MAX.clientName}
                 value={tkSearch}
                 onFocus={() => setTkDropOpen(true)}
                 onChange={(e) => {
                   // Only allow alphabets, spaces, hyphens, and apostrophes
-                  const filtered = e.target.value.replace(/[^a-zA-Z\s-']/g, "");
+                  const filtered = e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.clientName);
                   setTkSearch(filtered);
                   setTkDropOpen(true);
                   // If user edits after selecting, deselect
@@ -674,7 +708,7 @@ function NewClientModal({
                       country: "",
                       industry: "",
                       businessType: "",
-                      customerId: "C" + String(allClients().length + 1).padStart(3, "0"),
+                      customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
                     }));
                   } else {
                     setS((p) => ({ ...p, clientName: filtered }));
@@ -698,7 +732,7 @@ function NewClientModal({
                       country: "",
                       industry: "",
                       businessType: "",
-                      customerId: "C" + String(allClients().length + 1).padStart(3, "0"),
+                      customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
                     }));
                     setSvSearch("");
                     setSvDropOpen(false);
@@ -827,13 +861,15 @@ function NewClientModal({
                     !s.subVentureName.trim() && "border-destructive/60",
                   )}
                   placeholder="Search existing or type new sub-venture name…"
+                  maxLength={FIELD_MAX.subVentureName}
                   value={svSearch}
                   onFocus={() => setSvDropOpen(true)}
                   onChange={(e) => {
-                    setSvSearch(e.target.value);
+                    const next = e.target.value.slice(0, FIELD_MAX.subVentureName);
+                    setSvSearch(next);
                     setSvDropOpen(true);
                     setSvAlreadyExists(false);
-                    setS((p) => ({ ...p, subVentureName: e.target.value }));
+                    setS((p) => ({ ...p, subVentureName: next }));
                   }}
                   onBlur={() => setTimeout(() => setSvDropOpen(false), 150)}
                 />
@@ -922,7 +958,8 @@ function NewClientModal({
               <input
                 className={inputCls}
                 value={s.subVentureName}
-                onChange={(e) => u("subVentureName", e.target.value)}
+                maxLength={FIELD_MAX.subVentureName}
+                onChange={(e) => u("subVentureName", e.target.value.slice(0, FIELD_MAX.subVentureName))}
                 placeholder="Enter sub-venture or end customer name…"
               />
             </Field>
@@ -937,44 +974,64 @@ function NewClientModal({
               <Field label="Engagement Manager" required>
                 <input
                   className={inputCls}
+                  maxLength={FIELD_MAX.engagementManager}
                   value={s.engagementManager}
                   onChange={(e) =>
-                    u("engagementManager", e.target.value.replace(/[^a-zA-Z\s-']/g, ""))
+                    u(
+                      "engagementManager",
+                      e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.engagementManager),
+                    )
                   }
                 />
               </Field>
-              <Field label="Phone Number" required>
+              <Field
+                label="Phone Number"
+                required
+                error={phoneError(s.phoneNumber)}
+              >
                 <input
-                  className={inputCls}
+                  className={fieldInputCls(inputCls, Boolean(phoneError(s.phoneNumber)))}
                   type="tel"
-                  inputMode="tel"
-                  placeholder="e.g. +91 98765 43XXX"
+                  inputMode="numeric"
+                  maxLength={FIELD_MAX.phone}
+                  placeholder="10-digit phone"
                   value={s.phoneNumber}
-                  onChange={(e) => {
-                    // Only allow digits, +, spaces, and hyphens
-                    const filtered = e.target.value.replace(/[^\d\s+-]/g, "");
-                    u("phoneNumber", filtered);
-                  }}
-                />
-                {s.phoneNumber.trim() && !isValidPhone(s.phoneNumber) && (
-                  <p className="mt-1 text-[11px] text-destructive">
-                    Please enter a real, valid phone number (e.g. +91 98765 43XXX)
-                  </p>
-                )}
-              </Field>
-              <Field label="City" required>
-                <input
-                  className={inputCls}
-                  value={s.city}
-                  onChange={(e) => u("city", e.target.value.replace(/[^a-zA-Z\s-']/g, ""))}
+                  onChange={(e) => u("phoneNumber", toTenDigitPhone(e.target.value))}
                 />
               </Field>
               <Field label="Country / Region" required>
-                <input
+                <select
                   className={inputCls}
                   value={s.country}
-                  onChange={(e) => u("country", e.target.value.replace(/[^a-zA-Z\s-']/g, ""))}
-                />
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setS((p) => ({ ...p, country: next, city: "" }));
+                  }}
+                >
+                  <option value="">Select country</option>
+                  {countries.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="City" required>
+                <select
+                  className={inputCls}
+                  value={s.city}
+                  disabled={!s.country}
+                  onChange={(e) => u("city", e.target.value)}
+                >
+                  <option value="">
+                    {s.country ? "Select city" : "Select country first"}
+                  </option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="Industry" required>
                 <select
@@ -998,11 +1055,7 @@ function NewClientModal({
                 </select>
               </Field>
               <Field label="Business Type">
-                <select
-                  className={inputCls}
-                  value={s.businessType}
-                  onChange={(e) => u("businessType", e.target.value)}
-                >
+                <select className={readOnlyCls} value={s.businessType} disabled>
                   <option value="">Select business type</option>
                   {["Enterprise", "Mid-Market", "SMB", "Public Sector"].map((o) => (
                     <option key={o}>{o}</option>
@@ -1060,10 +1113,12 @@ function NewClientModal({
                   <input
                     className={inputCls}
                     value={ct.name}
+                    maxLength={FIELD_MAX.personName}
                     placeholder="Full name"
                     onChange={(e) => {
-                      // Only allow alphabets, spaces, hyphens, and apostrophes
-                      const filtered = e.target.value.replace(/[^a-zA-Z\s-']/g, "");
+                      const filtered = e.target.value
+                        .replace(/[^a-zA-Z\s-']/g, "")
+                        .slice(0, FIELD_MAX.personName);
                       updateContact(idx, "name", filtered);
                     }}
                   />
@@ -1082,41 +1137,38 @@ function NewClientModal({
                     ))}
                   </select>
                 </Field>
-                <Field label="Email" required>
+                <Field label="Email" required error={emailError(ct.email)}>
                   <input
                     type="email"
-                    className={inputCls}
+                    className={fieldInputCls(inputCls, Boolean(emailError(ct.email)))}
                     value={ct.email}
-                    onChange={(e) => updateContact(idx, "email", e.target.value)}
+                    maxLength={FIELD_MAX.email}
+                    placeholder="name@company.com"
+                    onChange={(e) =>
+                      updateContact(idx, "email", e.target.value.slice(0, FIELD_MAX.email))
+                    }
                   />
                 </Field>
-                <Field label="Phone" required>
-                  <div>
-                    <input
-                      className={inputCls}
-                      type="tel"
-                      inputMode="tel"
-                      placeholder="e.g. +91 98765 43XXX"
-                      value={ct.phone}
-                      onChange={(e) => {
-                        // Only allow digits, +, spaces, and hyphens
-                        const filtered = e.target.value.replace(/[^\d\s+-]/g, "");
-                        updateContact(idx, "phone", filtered);
-                      }}
-                    />
-                    {ct.phone.trim() && !isValidPhone(ct.phone) && (
-                      <p className="mt-1 text-[11px] text-destructive">
-                        Please enter a real, valid phone number (e.g. +91 98765 43XXX)
-                      </p>
-                    )}
-                  </div>
+                <Field label="Phone" required error={phoneError(ct.phone)}>
+                  <input
+                    className={fieldInputCls(inputCls, Boolean(phoneError(ct.phone)))}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={FIELD_MAX.phone}
+                    placeholder="10-digit phone"
+                    value={ct.phone}
+                    onChange={(e) => updateContact(idx, "phone", toTenDigitPhone(e.target.value))}
+                  />
                 </Field>
                 <Field label="Designation" required>
                   <input
                     className={inputCls}
+                    maxLength={FIELD_MAX.designation}
                     placeholder="eg ciso/spoc etc."
                     value={ct.designation}
-                    onChange={(e) => updateContact(idx, "designation", e.target.value)}
+                    onChange={(e) =>
+                      updateContact(idx, "designation", e.target.value.slice(0, FIELD_MAX.designation))
+                    }
                   />
                 </Field>
               </div>

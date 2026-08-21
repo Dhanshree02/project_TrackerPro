@@ -36,7 +36,8 @@ const roleFilters = [
 ] as const;
 
 function ResourcesPage() {
-  const { isPMO, isHOD, isBO, isEmployee, isProjectManager } = useRoleContext();
+  const { isPMO, isHOD, isBO, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
+    useRoleContext();
   const { hasPermission } = usePermissions();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<(typeof roleFilters)[number]>("All");
@@ -50,6 +51,9 @@ function ResourcesPage() {
     });
     return map;
   }, []);
+
+  if (isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales)
+    return <Navigate to="/dh-employee-directory" replace />;
 
   if (!isPMO && !isHOD && !isBO && !hasPermission("resources.view")) return <Navigate to="/" />;
 

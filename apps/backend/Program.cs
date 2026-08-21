@@ -6,14 +6,45 @@ using PMS.API.Configuration;
 using PMS.API.Infrastructure.Swagger;
 using PMS.API.Middleware;
 using Serilog;
+using Serilog.Events;
+
+DotEnvLoader.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ---- Serilog (structured logging) ----
-builder.Host.UseSerilog((context, services, config) => config
-    .ReadFrom.Configuration(context.Configuration)
-    .ReadFrom.Services(services)
-    .Enrich.FromLogContext());
+builder.Host.UseSerilog((context, services, config) =>
+{
+    var logRoot = Path.Combine(context.HostingEnvironment.ContentRootPath, "Log");
+    var debugDir = Path.Combine(logRoot, "Debug log");
+    var errorDir = Path.Combine(logRoot, "Error log");
+    Directory.CreateDirectory(debugDir);
+    Directory.CreateDirectory(errorDir);
+
+    const string outputTemplate =
+        "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}";
+
+    config
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Logger(debug => debug
+            .Filter.ByIncludingOnly(e => e.Level < LogEventLevel.Error)
+            .WriteTo.File(
+                Path.Combine(debugDir, "debug-.log"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 14,
+                shared: true,
+                outputTemplate: outputTemplate))
+        .WriteTo.Logger(error => error
+            .Filter.ByIncludingOnly(e => e.Level >= LogEventLevel.Error)
+            .WriteTo.File(
+                Path.Combine(errorDir, "error-.log"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 30,
+                shared: true,
+                outputTemplate: outputTemplate));
+});
 
 // ---- Controllers ----
 builder.Services.AddControllers(o => o.Filters.Add<ValidationFilter>())
@@ -81,13 +112,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseSerilogRequestLogging();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-app.UseHttpsRedirection();
+if (!app.Configuration.GetValue("DisableHttpsRedirection", false))
+    app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseAuthentication();
+if (app.Environment.IsDevelopment())
+    app.UseMiddleware<DevelopmentAuthBypassMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
 

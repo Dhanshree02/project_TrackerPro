@@ -9,6 +9,7 @@ import {
   issues,
   timesheets,
 } from "@/lib/mock-data";
+import { getDept } from "@/lib/dh-helpers";
 import { useAuth } from "@/lib/auth-context";
 
 interface RoleContextValue {
@@ -19,20 +20,22 @@ interface RoleContextValue {
   isHOD: boolean;
   isBO: boolean;
   isDhanshree: boolean;
-  /** True when the signed-in user holds the backend Employee role. */
   isEmployee: boolean;
-  /** True when the signed-in user holds the backend HR role. */
   isHr: boolean;
-  /** True when the signed-in user holds the backend Project Manager role. */
   isProjectManager: boolean;
-  /** Mock-directory person matching the signed-in user (by email), if any. */
+  isSeniorPm: boolean;
+  isEngagementManager: boolean;
+  isAccounts: boolean;
+  isSales: boolean;
+  /** PM, Senior PM, or Engagement Manager — share the PM workspace. */
+  isPmFamily: boolean;
+  /** PMO, Business Owner, or HOD. */
+  isPmoFamily: boolean;
+  /** Everywhere-view-only (Business Owner). HOD is view-only except approvals. */
+  isViewOnly: boolean;
+  hideBudget: boolean;
   employeePersonId: string | null;
-  /** Mock-directory person id of the signed-in Project Manager (by email), if any. */
   pmPersonId: string | null;
-  /**
-   * Projects the Employee is involved in (PM / TL / team / shadow team).
-   * Null for every non-Employee role.
-   */
   employeeProjectIds: Set<string> | null;
   assignedClientIds: string[];
   assignedClients: typeof clients;
@@ -52,11 +55,6 @@ const userByRole: Record<Role, string> = {
   dhanshree: "u14",
 };
 
-/**
- * Maps a backend role key to the 6 frontend mock-data roles. The mapping only
- * controls which demo data the pages scope to — the real RBAC enforcement is
- * permission-based (JWT claims + backend guards + the permission provider).
- */
 const roleFromBackend: Record<string, Role> = {
   SeniorPm: "senior_pm",
   EngagementManager: "engagement_manager",
@@ -64,9 +62,9 @@ const roleFromBackend: Record<string, Role> = {
   Hod: "hod",
   BusinessOwner: "business_owner",
   Dhanshree: "dhanshree",
-  Admin: "dhanshree", // super-admin sees the full workspace
+  Admin: "dhanshree",
   Sales: "business_owner",
-  Accounts: "business_owner",
+  Accounts: "pmo",
   Hr: "business_owner",
   ProjectManager: "senior_pm",
   TeamLead: "senior_pm",
@@ -79,11 +77,6 @@ function mapBackendRole(role?: string | null): Role {
   return (role && roleFromBackend[role]) || fallbackRole;
 }
 
-/**
- * Human-readable labels for the backend role keys (mirrors the seeded
- * DisplayName values). Used in the topbar so the real role is shown, not the
- * mock-data scope role.
- */
 export const backendRoleLabels: Record<string, string> = {
   Admin: "Admin",
   Dhanshree: "Admin (Dhanshree)",
@@ -112,41 +105,47 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const { user: authUser, status } = useAuth();
   const [role, setRole] = useState<Role>(() => mapBackendRole(authUser?.role));
 
-  // Sync the role whenever the authenticated user changes (login/logout).
   useEffect(() => {
     setRole(mapBackendRole(authUser?.role));
   }, [authUser?.role]);
 
+  const backendRole = authUser?.role ?? "";
   const user =
     authUser && status === "authed"
       ? {
           id: authUser.id,
           name: authUser.name,
-          role: authUser.role ?? "",
+          role: backendRole,
           avatar: authUser.name ? initialsOf(authUser.name) : "?",
           email: authUser.email,
         }
       : getPerson(userByRole[role]);
-  const isPMO = role === "pmo";
-  const isHOD = role === "hod";
-  const isBO = role === "business_owner";
-  const isDhanshree = role === "dhanshree";
 
-  // ── Employee scoping: only projects the signed-in Employee is on ──────────
-  // The Employee never sees projects they are not involved in (dashboard,
-  // project list, issues, timesheet approvals). Involvement is matched by
-  // email against the mock directory, mirroring the seeded test accounts.
-  const isEmployee = !!authUser && status === "authed" && authUser.role === "Employee";
-  const isHr = !!authUser && status === "authed" && authUser.role === "Hr";
-  const isProjectManager = !!authUser && status === "authed" && authUser.role === "ProjectManager";
-  const employeePersonId = isEmployee
-    ? (people.find((p) => p.email.toLowerCase() === (authUser?.email ?? "").toLowerCase())?.id ??
-      null)
-    : null;
-  const pmPersonId = isProjectManager
-    ? (people.find((p) => p.email.toLowerCase() === (authUser?.email ?? "").toLowerCase())?.id ??
-      null)
-    : null;
+  const isDhanshree =
+    !!authUser && status === "authed" && (backendRole === "Dhanshree" || backendRole === "Admin");
+  const isEmployee = !!authUser && status === "authed" && backendRole === "Employee";
+  const isHr = !!authUser && status === "authed" && backendRole === "Hr";
+  const isProjectManager = !!authUser && status === "authed" && backendRole === "ProjectManager";
+  const isSeniorPm = !!authUser && status === "authed" && backendRole === "SeniorPm";
+  const isEngagementManager =
+    !!authUser && status === "authed" && backendRole === "EngagementManager";
+  const isPMO = !!authUser && status === "authed" && backendRole === "Pmo";
+  const isHOD = !!authUser && status === "authed" && backendRole === "Hod";
+  const isBO = !!authUser && status === "authed" && backendRole === "BusinessOwner";
+  const isAccounts = !!authUser && status === "authed" && backendRole === "Accounts";
+  const isSales = !!authUser && status === "authed" && backendRole === "Sales";
+  const isPmFamily = isProjectManager || isSeniorPm || isEngagementManager;
+  const isPmoFamily = isPMO || isBO || isHOD;
+  /** Business Owner is view-only everywhere; HOD is view-only except approvals / acknowledge. */
+  const isViewOnly = isBO || isHOD;
+  const hideBudget = isPmoFamily;
+
+  const directoryPersonId = people.find(
+    (p) => p.email.toLowerCase() === (authUser?.email ?? "").toLowerCase(),
+  )?.id ?? null;
+  const employeePersonId = isEmployee ? directoryPersonId : null;
+  const pmPersonId = isProjectManager ? directoryPersonId : null;
+
   const employeeProjectIds = useMemo(() => {
     if (!isEmployee || !employeePersonId) return null;
     const ids = new Set<string>();
@@ -163,33 +162,104 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     return ids;
   }, [isEmployee, employeePersonId]);
 
+  const hodProjectIds = useMemo(() => {
+    if (!isHOD || !directoryPersonId) return null;
+    const hodPerson = getPerson(directoryPersonId);
+    const hodDept = getDept(hodPerson);
+    const ids = new Set<string>();
+    projects.forEach((p) => {
+      const involved = [p.pmId, p.tlId, ...p.teamIds].map(getPerson);
+      const match =
+        involved.some((person) => getDept(person) === hodDept) ||
+        involved.some((person) => ["Delivery", "Engineering"].includes(getDept(person)));
+      if (match) ids.add(p.id);
+    });
+    return ids;
+  }, [isHOD, directoryPersonId]);
+
   const assignedClientIds = assignments[role];
-  const assignedClients =
-    isEmployee && employeeProjectIds
-      ? (() => {
-          const clientIds = new Set(
-            projects.filter((p) => employeeProjectIds.has(p.id)).map((p) => p.clientId),
-          );
-          return clients.filter((c) => clientIds.has(c.id));
-        })()
-      : isProjectManager
-        ? clients // PM sees the full customer directory (cannot add new ones)
-        : clients.filter((c) => assignedClientIds.includes(c.id));
-  const assignedProjects =
-    isEmployee && employeeProjectIds
-      ? projects.filter((p) => employeeProjectIds.has(p.id))
-      : isProjectManager && pmPersonId
-        ? projects.filter((p) => p.pmId === pmPersonId) // dashboard shows only the PM's own projects
-        : projects.filter((p) => assignedClientIds.includes(p.clientId));
+  const assignedProjects = useMemo(() => {
+    if (isEmployee && employeeProjectIds) {
+      return projects.filter((p) => employeeProjectIds.has(p.id));
+    }
+    if (isProjectManager && pmPersonId) {
+      return projects.filter((p) => p.pmId === pmPersonId);
+    }
+    if (isSeniorPm && directoryPersonId) {
+      return projects.filter((p) => p.pmId === directoryPersonId);
+    }
+    if (isEngagementManager && directoryPersonId) {
+      const em = getPerson(directoryPersonId);
+      return projects.filter(
+        (p) =>
+          (p.engagementManager ?? "").toLowerCase() === em.name.toLowerCase() ||
+          p.pmId === directoryPersonId,
+      );
+    }
+    if (isHOD && hodProjectIds) {
+      return projects.filter((p) => hodProjectIds.has(p.id));
+    }
+    if (isPMO || isBO || isAccounts || isSales || isDhanshree) {
+      return projects;
+    }
+    return projects.filter((p) => assignedClientIds.includes(p.clientId));
+  }, [
+    isEmployee,
+    employeeProjectIds,
+    isProjectManager,
+    pmPersonId,
+    isSeniorPm,
+    isEngagementManager,
+    directoryPersonId,
+    isHOD,
+    hodProjectIds,
+    isPMO,
+    isBO,
+    isAccounts,
+    isSales,
+    isDhanshree,
+    assignedClientIds,
+  ]);
+
+  const assignedClients = useMemo(() => {
+    if (isEmployee && employeeProjectIds) {
+      const clientIds = new Set(
+        projects.filter((p) => employeeProjectIds.has(p.id)).map((p) => p.clientId),
+      );
+      return clients.filter((c) => clientIds.has(c.id));
+    }
+    if (isPmFamily || isPmoFamily || isAccounts || isSales || isDhanshree) {
+      if (isHOD && hodProjectIds) {
+        const clientIds = new Set(
+          projects.filter((p) => hodProjectIds.has(p.id)).map((p) => p.clientId),
+        );
+        return clients.filter((c) => clientIds.has(c.id));
+      }
+      return clients;
+    }
+    return clients.filter((c) => assignedClientIds.includes(c.id));
+  }, [
+    isEmployee,
+    employeeProjectIds,
+    isPmFamily,
+    isPmoFamily,
+    isAccounts,
+    isSales,
+    isDhanshree,
+    isHOD,
+    hodProjectIds,
+    assignedClientIds,
+  ]);
+
   const projectIds = new Set(assignedProjects.map((p) => p.id));
   const assignedIssues = issues.filter((i) => projectIds.has(i.projectId));
   const pendingTimesheets = isEmployee
-    ? []
+    ? timesheets.filter((t) => t.userId === employeePersonId && t.status === "submitted")
     : timesheets.filter((t) => {
         if (t.status !== "submitted") return isPMO ? true : false;
-        if (isPMO) return true; // monitoring all
+        if (isPMO) return true;
         if (isHOD) return t.userRole === "Senior PM" || t.userRole === "EM";
-        if (isBO) return false; // BO does not approve timesheets
+        if (isBO) return false;
         if (isDhanshree)
           return t.userRole === "PM" || t.userRole === "TL" || t.userRole === "Employee";
         return t.userRole === "PM";
@@ -208,6 +278,14 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         isEmployee,
         isHr,
         isProjectManager,
+        isSeniorPm,
+        isEngagementManager,
+        isAccounts,
+        isSales,
+        isPmFamily,
+        isPmoFamily,
+        isViewOnly,
+        hideBudget,
         employeePersonId,
         pmPersonId,
         employeeProjectIds,

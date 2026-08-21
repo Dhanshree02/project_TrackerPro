@@ -23,7 +23,14 @@ function AuthGate() {
   }
 
   if (status === "anon") {
-    return <Navigate to="/login" />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span className="text-xs text-muted-foreground">Signing you in…</span>
+        </div>
+      </div>
+    );
   }
 
   return null;
@@ -39,7 +46,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const { status, user } = useAuth();
-  const { isHr } = useRoleContext();
+  const { isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } = useRoleContext();
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
@@ -62,7 +69,14 @@ export function AppShell({
   // Users without dashboard access (e.g. HR) land on their first permitted
   // module after login instead of hitting the 403 page on the root route.
   if (pathname === "/" && !hasPermission("dashboard.view")) {
-    const items = filterNavItems(NAV_ITEMS, hasPermission, hasAny, false, isHr);
+    const items = filterNavItems(NAV_ITEMS, hasPermission, hasAny, {
+      isHr,
+      isEmployee,
+      isPmFamily,
+      isPmoFamily,
+      isAccounts,
+      isSales,
+    });
     const landing = items
       .map((i) => i.to ?? i.subItems?.[0]?.to)
       .find((to): to is string => Boolean(to));

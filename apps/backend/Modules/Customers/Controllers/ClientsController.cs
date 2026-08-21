@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PMS.API.Infrastructure.Authorization;
+using PMS.API.Modules.Catalogs.DTOs;
+using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Shared.Constants;
 using PMS.API.Modules.Customers.Services;
 using PMS.API.Modules.Customers.DTOs;
@@ -9,7 +11,7 @@ namespace PMS.API.Modules.Customers.Controllers;
 
 [ApiController]
 [Route("api/v1/clients")]
-public class ClientsController(IClientService clients) : ControllerBase
+public class ClientsController(IClientService clients, ICatalogService catalogs) : ControllerBase
 {
     [HttpGet]
     [RequirePermission(Permissions.ClientsRead)]
@@ -64,5 +66,29 @@ public class ClientsController(IClientService clients) : ControllerBase
     {
         var deleted = await clients.SoftDeleteClientAsync(id, ct);
         return deleted ? NoContent() : NotFound(ApiResponse<ClientDto>.Fail("NOT_FOUND", "Client not found."));
+    }
+
+    [HttpGet("meta/industries")]
+    [RequirePermission(Permissions.ClientsRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<string>>>> Industries(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<string>>.Ok(await clients.GetIndustriesAsync(ct)));
+    }
+
+    [HttpGet("meta/countries")]
+    [RequirePermission(Permissions.ClientsRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CatalogOptionDto>>>> Countries(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<CatalogOptionDto>>.Ok(await catalogs.GetCountriesAsync(ct)));
+    }
+
+    [HttpGet("meta/cities")]
+    [RequirePermission(Permissions.ClientsRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CityCatalogOptionDto>>>> Cities(
+        [FromQuery] Guid? countryId,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<CityCatalogOptionDto>>.Ok(
+            await catalogs.GetCitiesAsync(countryId, ct)));
     }
 }

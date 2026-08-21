@@ -1,0 +1,46 @@
+---
+description: Living snapshot of in-progress work — update this after every meaningful change
+alwaysApply: true
+---
+
+# Current work (update this file)
+
+**Last updated:** 2026-08-21
+
+## Latest
+
+- Backend Serilog writes to `apps/backend/Log/Debug log/` (Debug–Warning) and `apps/backend/Log/Error log/` (Error–Fatal). Folders are created on startup.
+- Directory & Pool filters load departments from `mst_departments` and designations from `mst_designations` (not hardcoded frontend lists). Status filter is Active / Probation / Notice Period only.
+- Onboard New Employee now sends the full profile payload (gender, DOB, address, emergency contact, marital status, nationality, dept/designation IDs, org + employment + skills fields). Those columns were empty because most form inputs were uncontrolled and `handleCreate` only POSTed a small subset.
+- Profile reads the same API fields; probation row uses `ProbationStatus` with fallback to `ProbationPeriod`. Skills/certs/languages are comma-split lists.
+- Integration test: `CreateEmployee_PersistsOnboardProfileFields`.
+- Date of joining on onboard (and the profile date picker) is today or future only. API create rejects past joining dates. Existing employees keep historical dates on save.
+- Toasts appear top-right: success = green + tick, error = red + alert icon.
+- Customer details: SPOC Contacts stay empty until a sub-venture is selected; then that sub-venture's SPOCs are shown.
+- Restored real dummy departments (Engineering, Product, Design, …). Tests no longer insert `Catalog Dept {guid}` rows.
+
+## Phase I — Resources + customer alignment (in progress, uncommitted)
+
+Canonical spine: `employees -> clients -> projects -> tasks/timesheets -> approvals`. Projects+ are not implemented yet.
+
+**Done in code (not all committed):**
+
+- Auth/Users/Customers modules live. Standard envelope `{ data, meta, errors }`. Soft deletes via `BaseEntity`.
+- Master catalogs: `mst_departments`, `mst_designations`, `mst_industries`, `mst_countries`, `mst_cities`, `mst_nationalities`, `mst_roles` (job titles under designation), `mst_salary_bands`
+- Resources: `employees`, `exited_employees`, `EmployeesController` at `/api/v1/employees` (list/get/create/update/offboard/exited + catalog GET/POST)
+- Customers: `client_contacts`; `clients` still has string `Industry`/`EngagementManager`/`City`/`Country` plus FKs `IndustryId`/`EngagementManagerId`/`CountryId`/`CityId`
+- Dev: `DotEnvLoader`, `DevelopmentAuthBypassMiddleware` (unauthenticated → seeded Admin). Frontend demo role switcher still in topbar (`demo-roles.ts`); API live for clients/employees/users
+- Migrations: `20260818075129_AddMasterCatalogs`, `20260820113531_AddGeoCatalogs`, `20260820122343_AddEmployeeCatalogs`, `20260820124931_AddSalaryBands`
+
+**Deferred:** pool/allocation until Action Centre; projects, timesheets, approvals, repository, analytics.
+
+**Do not:** weaken JWT/CORS; hardcode roles on endpoints; physically delete rows; edit `apps/frontend/src/routeTree.gen.ts`; mix `mst_roles` with RBAC `roles`.
+
+## Next
+
+Keep wiring frontend Resources/Customers to `/api/v1/*` (see `apps/frontend/src/lib/api/`). Then Projects module.
+
+## Local
+
+- DB: `Host=localhost;Port=5432;Database=trackerpro;Username=trackerpro;Password=trackerpro_dev`
+- Demo: `dhanshree@acme.co` / `Password@123` (also `admin@acme.co`). Frontend `VITE_DEMO_LOGIN=true` by default.

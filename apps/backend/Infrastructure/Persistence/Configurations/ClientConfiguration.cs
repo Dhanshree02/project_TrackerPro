@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PMS.API.Modules.Customers.Models;
@@ -7,8 +6,6 @@ namespace PMS.API.Infrastructure.Persistence.Configurations;
 
 public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public void Configure(EntityTypeBuilder<Client> builder)
     {
         builder.ToTable("clients");
@@ -32,17 +29,30 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.KycDocumentName).HasMaxLength(255);
         builder.Property(c => c.ClientType).HasConversion<string>().HasMaxLength(10);
         builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(c => c.IndustryId);
+        builder.Property(c => c.EngagementManagerId);
+        builder.Property(c => c.CountryId);
+        builder.Property(c => c.CityId);
 
-        // SPOC contacts as a JSONB array of objects.
-        builder.OwnsMany(c => c.Contacts, contact =>
-        {
-            contact.ToJson("contacts");
-            contact.Property(x => x.Name).HasMaxLength(150);
-            contact.Property(x => x.Email).HasMaxLength(255);
-            contact.Property(x => x.Phone).HasMaxLength(40);
-            contact.Property(x => x.Designation).HasMaxLength(120);
-            contact.Property(x => x.ContactType).HasMaxLength(40);
-        });
+        builder.HasOne(c => c.IndustryRef)
+            .WithMany()
+            .HasForeignKey(c => c.IndustryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(c => c.EngagementManagerRef)
+            .WithMany()
+            .HasForeignKey(c => c.EngagementManagerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(c => c.CountryRef)
+            .WithMany()
+            .HasForeignKey(c => c.CountryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(c => c.CityRef)
+            .WithMany()
+            .HasForeignKey(c => c.CityId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

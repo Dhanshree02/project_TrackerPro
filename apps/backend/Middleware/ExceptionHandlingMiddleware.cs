@@ -53,7 +53,7 @@ public sealed class ExceptionHandlingMiddleware(
             logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
 
             var message = environment.IsDevelopment()
-                ? ex.Message
+                ? ex.InnerException?.Message ?? ex.Message
                 : "An unexpected error occurred.";
 
             await WriteAsync(context, HttpStatusCode.InternalServerError, "INTERNAL_ERROR",

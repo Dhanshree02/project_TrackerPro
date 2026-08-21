@@ -36,6 +36,8 @@ apps/backend/.env
 apps/backend/**/bin/
 apps/backend/**/obj/
 apps/backend/**/logs/
+apps/backend/Logs/
+apps/backend/Log/**/*.log
 apps/backend/.vs/
 apps/backend/.idea/
 *.user
@@ -46,7 +48,15 @@ apps/backend/.idea/
 # =========================
 *.local
 .env
+.env.*
+!.env.example
+!**/.env.example
 .dev.vars
+
+# Database dumps — keep off git
+backups/
+*.dump
+*.sql.gz
 
 # =========================
 # Editor & IDE

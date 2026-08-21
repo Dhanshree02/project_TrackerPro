@@ -81,12 +81,19 @@ function Dashboard() {
     role,
     isPMO,
     isBO,
+    isHOD,
     isEmployee,
+    isPmoFamily,
+    isAccounts,
+    isSales,
+    isPmFamily,
     assignedProjects,
     assignedIssues,
     pendingTimesheets,
+    assignedClients,
   } = useRoleContext();
-  const showExec = isPMO || isBO;
+  const showExec = isPmoFamily;
+  const hideHealthLink = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
 
   const ongoing = assignedProjects.filter((p) => p.status === "ongoing").length;
   const completed = assignedProjects.filter((p) => p.status === "completed").length;
@@ -116,52 +123,82 @@ function Dashboard() {
   return (
     <AppShell
       title={`Welcome back, ${user.name.split(" ")[0]}`}
-      subtitle={`${isEmployee ? "Employee" : roleLabels[role]} · ${assignedProjects.length} projects across ${new Set(assignedProjects.map((p) => p.clientId)).size} customers${isBO ? " · executive overview" : isPMO ? " · governance + allocation view" : ""}`}
+      subtitle={`${isEmployee ? "Employee" : isAccounts ? "Accounts & Finance" : isSales ? "Sales & BD" : roleLabels[role]} · ${assignedProjects.length} projects across ${new Set(assignedProjects.map((p) => p.clientId)).size} customers${isBO ? " · executive overview" : isHOD ? " · department view" : isPMO ? " · governance + allocation view" : ""}`}
     >
-      {!isEmployee && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat
-            label="Ongoing"
-            value={ongoing}
-            sub={`${completed} completed · ${onHold} on hold`}
-            icon={Briefcase}
-            tone="info"
-          />
-          <Stat
-            label="At Risk + Critical"
-            value={red + amber}
-            sub={`${red} critical · ${amber} at risk · ${green} healthy`}
-            icon={AlertTriangle}
-            tone={red > 0 ? "danger" : "warn"}
-          />
-          <Stat
-            label={
-              isBO ? "Open escalations" : showExec ? "Pending approvals (all)" : "Pending Approvals"
-            }
-            value={isBO ? openIssues : pendingTimesheets.length}
-            sub={
-              isBO
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat
+          label="Ongoing projects"
+          value={ongoing}
+          sub={`${completed} completed · ${onHold} on hold`}
+          icon={Briefcase}
+          tone="info"
+        />
+        <Stat
+          label="At Risk + Critical"
+          value={red + amber}
+          sub={`${red} critical · ${amber} at risk · ${green} healthy`}
+          icon={AlertTriangle}
+          tone={red > 0 ? "danger" : "warn"}
+        />
+        <Stat
+          label={
+            isEmployee
+              ? "Pending Approvals"
+              : isBO
+                ? "Open escalations"
+                : isAccounts
+                  ? "Invoices · raised"
+                  : isSales
+                    ? "Customers"
+                    : showExec
+                      ? "Pending approvals (all)"
+                      : "Pending Approvals"
+          }
+          value={
+            isBO && !isEmployee
+              ? openIssues
+              : isAccounts
+                ? invRaised
+                : isSales
+                  ? assignedClients.length
+                  : pendingTimesheets.length
+          }
+          sub={
+            isEmployee
+              ? "Timesheets awaiting review"
+              : isBO
                 ? "Strategic issues to review"
-                : isPMO
-                  ? "PM/TL/Employee timesheets in flow"
-                  : "PM timesheets awaiting review"
-            }
-            icon={CheckCircle2}
-            tone="warn"
-          />
-          <Stat
-            label={showExec ? "Invoices · raised" : "People on Projects"}
-            value={showExec ? invRaised : teamSet.size}
-            sub={
-              showExec ? `${invPaid} paid · ${invOverdue} overdue` : "Across PM, TL and engineers"
-            }
-            icon={showExec ? CheckCircle2 : Users}
-            tone={showExec && invOverdue > 0 ? "danger" : "default"}
-          />
-        </div>
-      )}
+                : isAccounts
+                  ? `${invPaid} paid · ${invOverdue} overdue`
+                  : isSales
+                    ? "Active customer accounts"
+                    : isPMO || isHOD
+                      ? "PM/TL/Employee timesheets in flow"
+                      : "PM timesheets awaiting review"
+          }
+          icon={CheckCircle2}
+          tone="warn"
+        />
+        <Stat
+          label={
+            isAccounts
+              ? "People on the project"
+              : showExec && !isEmployee
+                ? "Invoices · raised"
+                : "People on the project"
+          }
+          value={showExec && !isEmployee && !isAccounts ? invRaised : teamSet.size}
+          sub={
+            showExec && !isEmployee && !isAccounts
+              ? `${invPaid} paid · ${invOverdue} overdue`
+              : "Across PM, TL and engineers"
+          }
+          icon={showExec && !isEmployee && !isAccounts ? CheckCircle2 : Users}
+          tone={showExec && !isEmployee && !isAccounts && invOverdue > 0 ? "danger" : "default"}
+        />
+      </div>
 
-      {showExec && (
+      {showExec && !isAccounts && (
         <div className="mt-4 grid gap-3 lg:grid-cols-3">
           <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
@@ -195,7 +232,7 @@ function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground">Available for allocation</p>
             <Link
-              to="/resources"
+              to="/dh-employee-directory"
               className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
               View directory <ArrowRight className="h-3 w-3" />
@@ -231,16 +268,14 @@ function Dashboard() {
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <section
-          className={`${isEmployee ? "lg:col-span-3" : "lg:col-span-2"} rounded-xl border border-border bg-card shadow-sm`}
-        >
+        <section className="lg:col-span-2 rounded-xl border border-border bg-card shadow-sm">
           <header className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
               <h2 className="text-sm font-semibold">Assigned projects</h2>
               <p className="text-xs text-muted-foreground">Health, status and progress</p>
             </div>
             <Link
-              to={isEmployee ? "/projects" : "/customers"}
+              to={isEmployee || isPmFamily || isSales || isAccounts ? "/projects" : "/customers"}
               className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
               View all <ArrowRight className="h-3 w-3" />
@@ -314,109 +349,105 @@ function Dashboard() {
           )}
         </section>
 
-        {!isEmployee && (
-          <section className="rounded-xl border border-border bg-card shadow-sm">
-            <header className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div>
-                <h2 className="text-sm font-semibold">Pending issues</h2>
-                <p className="text-xs text-muted-foreground">Latest activity</p>
-              </div>
-              <Link
-                to="/health"
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                Open <ArrowRight className="h-3 w-3" />
-              </Link>
-            </header>
-            <ul className="divide-y divide-border">
-              {recentIssues.map((i) => (
-                <li key={i.id} className="px-4 py-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {issueTypeLabels[i.type]}
-                    </span>
-                    <PriorityPill priority={i.priority} />
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-sm">{i.description}</p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <IssueStatusPill status={i.status} />
-                    <span className="text-[11px] text-muted-foreground">
-                      {new Date(i.updatedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </li>
-              ))}
-              {recentIssues.length === 0 && (
-                <li className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  No issues raised
-                </li>
-              )}
-            </ul>
-          </section>
-        )}
+        <section className="rounded-xl border border-border bg-card shadow-sm">
+          <header className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h2 className="text-sm font-semibold">Pending issues</h2>
+              <p className="text-xs text-muted-foreground">Latest activity</p>
+            </div>
+            <Link
+              to={hideHealthLink ? "/projects" : "/health"}
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              Open <ArrowRight className="h-3 w-3" />
+            </Link>
+          </header>
+          <ul className="divide-y divide-border">
+            {recentIssues.map((i) => (
+              <li key={i.id} className="px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {issueTypeLabels[i.type]}
+                  </span>
+                  <PriorityPill priority={i.priority} />
+                </div>
+                <p className="mt-1 line-clamp-2 text-sm">{i.description}</p>
+                <div className="mt-2 flex items-center justify-between">
+                  <IssueStatusPill status={i.status} />
+                  <span className="text-[11px] text-muted-foreground">
+                    {new Date(i.updatedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </li>
+            ))}
+            {recentIssues.length === 0 && (
+              <li className="px-4 py-8 text-center text-sm text-muted-foreground">
+                No issues raised
+              </li>
+            )}
+          </ul>
+        </section>
       </div>
 
-      {!isEmployee && (
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Project status mix</h2>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="mt-4 space-y-3">
-              {[
-                { k: "ongoing", n: ongoing, cls: "bg-info" },
-                { k: "completed", n: completed, cls: "bg-success" },
-                { k: "on_hold", n: onHold, cls: "bg-muted-foreground/40" },
-              ].map((row) => {
-                const pct = assignedProjects.length ? (row.n / assignedProjects.length) * 100 : 0;
-                return (
-                  <div key={row.k}>
-                    <div className="mb-1 flex justify-between text-xs">
-                      <span>{projectStatusLabels[row.k as keyof typeof projectStatusLabels]}</span>
-                      <span className="tabular-nums text-muted-foreground">{row.n}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-muted">
-                      <div className={`h-full ${row.cls}`} style={{ width: `${pct}%` }} />
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Project status</h2>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="mt-4 space-y-3">
+            {[
+              { k: "ongoing", n: ongoing, cls: "bg-info" },
+              { k: "completed", n: completed, cls: "bg-success" },
+              { k: "on_hold", n: onHold, cls: "bg-muted-foreground/40" },
+            ].map((row) => {
+              const pct = assignedProjects.length ? (row.n / assignedProjects.length) * 100 : 0;
+              return (
+                <div key={row.k}>
+                  <div className="mb-1 flex justify-between text-xs">
+                    <span>{projectStatusLabels[row.k as keyof typeof projectStatusLabels]}</span>
+                    <span className="tabular-nums text-muted-foreground">{row.n}</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div className={`h-full ${row.cls}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Pending approvals</h2>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <ul className="mt-3 divide-y divide-border">
+            {pendingTimesheets.map((ts) => {
+              const u = getPerson(ts.userId);
+              return (
+                <li key={ts.id} className="flex items-center justify-between py-2">
+                  <div>
+                    <div className="text-sm font-medium">{u.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Week of {ts.weekStart} · {ts.totalHours}h
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Pending approvals</h2>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <ul className="mt-3 divide-y divide-border">
-              {pendingTimesheets.map((ts) => {
-                const u = getPerson(ts.userId);
-                return (
-                  <li key={ts.id} className="flex items-center justify-between py-2">
-                    <div>
-                      <div className="text-sm font-medium">{u.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Week of {ts.weekStart} · {ts.totalHours}h
-                      </div>
-                    </div>
-                    <Link
-                      to="/approvals"
-                      className="rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent"
-                    >
-                      Review
-                    </Link>
-                  </li>
-                );
-              })}
-              {pendingTimesheets.length === 0 && (
-                <li className="py-6 text-center text-sm text-muted-foreground">All caught up</li>
-              )}
-            </ul>
-          </section>
-        </div>
-      )}
+                  <Link
+                    to={isEmployee ? "/timesheet" : "/approvals"}
+                    className="rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                  >
+                    {isEmployee ? "View" : "Review"}
+                  </Link>
+                </li>
+              );
+            })}
+            {pendingTimesheets.length === 0 && (
+              <li className="py-6 text-center text-sm text-muted-foreground">All caught up</li>
+            )}
+          </ul>
+        </section>
+      </div>
     </AppShell>
   );
 }

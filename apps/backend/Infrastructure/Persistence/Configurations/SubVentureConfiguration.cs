@@ -15,17 +15,6 @@ public sealed class SubVentureConfiguration : IEntityTypeConfiguration<SubVentur
 
         builder.Property(s => s.Name).HasMaxLength(255).IsRequired();
 
-        // SPOC contacts as a JSONB array of objects (same shape as Client.Contacts).
-        builder.OwnsMany(s => s.Contacts, contact =>
-        {
-            contact.ToJson("contacts");
-            contact.Property(x => x.Name).HasMaxLength(150);
-            contact.Property(x => x.Email).HasMaxLength(255);
-            contact.Property(x => x.Phone).HasMaxLength(40);
-            contact.Property(x => x.Designation).HasMaxLength(120);
-            contact.Property(x => x.ContactType).HasMaxLength(40);
-        });
-
         builder.HasOne(s => s.Client)
             .WithMany(c => c.SubVentures)
             .HasForeignKey(s => s.ClientId)

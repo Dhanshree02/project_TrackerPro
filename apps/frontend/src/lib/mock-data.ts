@@ -2110,6 +2110,61 @@ export const timesheets: Timesheet[] = [
       { taskId: "p2-t4", projectId: "p2", hours: [4, 3, 4, 3, 3, 0, 0] },
     ],
   },
+  {
+    id: "ts8",
+    userId: "u7",
+    userRole: "Employee",
+    weekStart: "2026-08-03",
+    status: "submitted",
+    totalHours: 40,
+    submittedAt: "2026-08-07T18:00:00Z",
+    entries: [
+      {
+        taskId: "p1-t1",
+        projectId: "p1",
+        hours: [8, 8, 8, 8, 8, 0, 0],
+        note: "Payments service stories",
+      },
+    ],
+  },
+  {
+    id: "ts9",
+    userId: "u7",
+    userRole: "Employee",
+    weekStart: "2026-07-27",
+    status: "approved",
+    totalHours: 38,
+    submittedAt: "2026-07-31T17:30:00Z",
+    entries: [{ taskId: "p1-t2", projectId: "p1", hours: [8, 8, 6, 8, 8, 0, 0] }],
+  },
+  {
+    id: "ts10",
+    userId: "u7",
+    userRole: "Employee",
+    weekStart: "2026-07-20",
+    status: "approved",
+    totalHours: 42,
+    submittedAt: "2026-07-24T18:15:00Z",
+    entries: [
+      {
+        taskId: "p3-t1",
+        projectId: "p3",
+        hours: [8, 8, 8, 8, 10, 0, 0],
+        note: "Clinical data ingest",
+      },
+    ],
+  },
+  {
+    id: "ts11",
+    userId: "u7",
+    userRole: "Employee",
+    weekStart: "2026-07-13",
+    status: "rejected",
+    totalHours: 32,
+    submittedAt: "2026-07-17T16:00:00Z",
+    rejectionReason: "Saturday hours need a note. Please resubmit.",
+    entries: [{ taskId: "p1-t3", projectId: "p1", hours: [8, 8, 8, 8, 0, 0, 0] }],
+  },
 ];
 
 export const issueTypeLabels: Record<IssueType, string> = {

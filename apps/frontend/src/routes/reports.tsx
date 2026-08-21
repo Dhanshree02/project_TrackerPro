@@ -69,11 +69,12 @@ const execTabs: { id: Tab; label: string; icon: typeof BarChart3 }[] = [
 ];
 
 function ReportsPage() {
-  const { isHOD, isBO } = useRoleContext();
+  const { isHOD, isBO, isPmoFamily, isAccounts, isSales } = useRoleContext();
   const { hasPermission } = usePermissions();
   const [tab, setTab] = useState<Tab>("delivery");
+  if (isAccounts || isSales) return <Navigate to="/dh-reports" replace />;
   if (!isHOD && !isBO && !hasPermission("reports.view")) return <Navigate to="/" />;
-  const tabs = isBO ? [...baseTabs, ...execTabs] : baseTabs;
+  const tabs = isPmoFamily ? [...baseTabs, ...execTabs] : baseTabs;
 
   return (
     <AppShell

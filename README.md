@@ -24,11 +24,14 @@ npm run dev
 # Opens at http://localhost:6002
 ```
 
-### Backend (Future)
+### Backend
 ```powershell
 cd apps/backend
-# Not yet implemented — see Backend_Master_Plan.md in wiki for plans
+dotnet run --launch-profile http
+# http://localhost:5194
 ```
+
+Uses the local PostgreSQL on this machine (`Host=localhost` in `apps/backend/appsettings.json`).
 
 ## Documentation
 

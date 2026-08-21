@@ -139,16 +139,29 @@ export const DH_NAV_ITEMS: NavItem[] = [
  * - Employee: the "My Team" folder is replaced by a direct "Timesheet" item —
  *   Employees never see the My Team module.
  * - HR: the single "Resources" item becomes the admin-style folder
- *   (Directory & Pool + Exit Summary) — HR manages the full employee
- *   directory for onboarding.
+ *   (Directory + Exit Summary) — HR manages the employee directory
+ *   for onboarding (no resource pool).
+ * - Employee / PM family / PMO family / Accounts / Sales: Resources opens the
+ *   DH directory (view only, basic details).
+ * - PM family + PMO family: Health & Governance / Approvals stay hidden
+ *   (health lives inside each project; approvals live in Action Centre).
  */
+export type NavRoleFlags = {
+  isEmployee?: boolean;
+  isHr?: boolean;
+  isPmFamily?: boolean;
+  isPmoFamily?: boolean;
+  isAccounts?: boolean;
+  isSales?: boolean;
+};
+
 export function filterNavItems(
   items: NavItem[],
   hasPermission: (key: string) => boolean,
   hasAny: (...keys: Array<string | undefined | null>) => boolean,
-  isEmployee = false,
-  isHr = false,
+  flags: NavRoleFlags = {},
 ): NavItem[] {
+  const { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales } = flags;
   const allowed = (perm?: string | string[]): boolean => {
     if (!perm) return true;
     const list = Array.isArray(perm) ? perm : [perm];
@@ -196,11 +209,53 @@ export function filterNavItems(
         icon: Users,
         permission: undefined,
         subItems: [
-          { to: "/dh-employee-directory", label: "Directory & Pool", permission: "resources.view" },
+          { to: "/dh-employee-directory", label: "Directory", permission: "resources.view" },
           { to: "/dh-exit-summary", label: "Exit Summary", permission: "resources.view" },
         ],
       };
     }
+  }
+
+  const useDhDirectory = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
+  if (useDhDirectory && !isHr) {
+    const idx = result.findIndex((i) => i.label === "Resources");
+    if (idx >= 0) {
+      result[idx] = {
+        to: "/dh-employee-directory",
+        label: "Resources",
+        icon: Users,
+        permission: undefined,
+      };
+    }
+  }
+
+  if (isPmoFamily) {
+    const idx = result.findIndex((i) => i.label === "My Team");
+    if (idx >= 0) {
+      result[idx] = {
+        ...result[idx],
+        subItems: [{ to: "/my-team/", label: "Team Dashboard" }],
+      };
+    }
+  }
+
+  if (isAccounts || isSales) {
+    const idx = result.findIndex((i) => i.label === "Reports");
+    if (idx >= 0) {
+      result[idx] = { ...result[idx], to: "/dh-reports" };
+    }
+  }
+
+  const hideStandalone = isPmFamily || isPmoFamily || isAccounts || isSales;
+  if (hideStandalone) {
+    return result.filter(
+      (i) =>
+        i.label !== "Health & Governance" &&
+        i.label !== "Approvals" &&
+        i.label !== "WBS Allocation" &&
+        i.label !== "Portfolio" &&
+        i.label !== "Settings",
+    );
   }
 
   return result;

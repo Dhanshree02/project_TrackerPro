@@ -84,6 +84,9 @@ namespace PMS.API.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<Guid?>("CityId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ClientType")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -113,6 +116,9 @@ namespace PMS.API.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<Guid?>("CountryId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -126,10 +132,16 @@ namespace PMS.API.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<Guid?>("EngagementManagerId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Industry")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("IndustryId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("KycDocumentName")
                         .HasMaxLength(255)
@@ -161,6 +173,14 @@ namespace PMS.API.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CityId");
+
+                    b.HasIndex("CountryId");
+
+                    b.HasIndex("EngagementManagerId");
+
+                    b.HasIndex("IndustryId");
+
                     b.HasIndex("Name");
 
                     b.ToTable("clients", (string)null);
@@ -179,6 +199,68 @@ namespace PMS.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("client_assignments", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Customers.Models.ClientContactEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContactType")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Designation")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("SubVentureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("SubVentureId");
+
+                    b.ToTable("client_contacts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_client_contacts_exactly_one_owner", "(\"ClientId\" IS NOT NULL AND \"SubVentureId\" IS NULL) OR (\"ClientId\" IS NULL AND \"SubVentureId\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Customers.Models.SubVenture", b =>
@@ -215,6 +297,745 @@ namespace PMS.API.Migrations
                     b.HasIndex("ClientId");
 
                     b.ToTable("sub_ventures", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.Employee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AltPhone")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<decimal?>("AnnualRating")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("AssetId")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<decimal?>("Attendance")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("BankAccount")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("BondStatus")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("BusinessUnit")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.PrimitiveCollection<string>("Certifications")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ComplianceStatus")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ConfirmationStatus")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ContractType")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DesignationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Education")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("EmergencyContact")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EmployeeCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("EmploymentType")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ExitReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ExitType")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Experience")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Gender")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("GoalCompletion")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("JobRoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("JoiningDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("KpiScore")
+                        .HasColumnType("numeric");
+
+                    b.PrimitiveCollection<string>("Languages")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("ManagerFeedback")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MaritalStatus")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nationality")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("NationalityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NoticePeriod")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("OfficeBranch")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Pan")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("PersonalEmail")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("PfUan")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("PreviousCompany")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("ProbationPeriod")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ProbationStatus")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ProjectSite")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("PromotionReadiness")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<decimal?>("QuarterlyKpi")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("ReportingEfficiency")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("ReportingManagerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("SalaryBand")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("SalaryBandId")
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<string>("Skills")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("TaxRegime")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Team")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WorkEmail")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("WorkLocation")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("DesignationId");
+
+                    b.HasIndex("EmployeeCode")
+                        .IsUnique();
+
+                    b.HasIndex("JobRoleId");
+
+                    b.HasIndex("NationalityId");
+
+                    b.HasIndex("ReportingManagerId");
+
+                    b.HasIndex("SalaryBandId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("WorkEmail")
+                        .IsUnique();
+
+                    b.ToTable("employees", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.ExitedEmployee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AssetReturnJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DepartmentName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("DesignationName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("EmployeeCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ExitChecklistJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ExitReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ExitType")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("ExitedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ExitedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FinalSettlementJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateOnly?>("LastWorkingDay")
+                        .HasColumnType("date");
+
+                    b.Property<string>("NoticePeriodServed")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("OriginalEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PersonalEmail")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ReasonForLeaving")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateOnly?>("ResignationDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("StatusAtExit")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WorkEmail")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeCode");
+
+                    b.HasIndex("OriginalEmployeeId");
+
+                    b.ToTable("exited_employees", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstCity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("CountryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CountryId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_cities", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstCountry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_countries", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstDepartment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_departments", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstDesignation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("DepartmentId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_designations", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstIndustry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_industries", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstNationality", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_nationalities", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DesignationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("DesignationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_roles", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstSalaryBand", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_salary_bands", (string)null);
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Users.Models.Role", b =>
@@ -458,41 +1279,33 @@ namespace PMS.API.Migrations
 
             modelBuilder.Entity("PMS.API.Modules.Customers.Models.Client", b =>
                 {
-                    b.OwnsMany("PMS.API.Modules.Customers.Models.ClientContact", "Contacts", b1 =>
-                        {
-                            b1.Property<Guid>("ClientId");
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstCity", "CityRef")
+                        .WithMany()
+                        .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstCountry", "CountryRef")
+                        .WithMany()
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                            b1.Property<string>("ContactType")
-                                .HasMaxLength(40);
+                    b.HasOne("PMS.API.Modules.Resources.Models.Employee", "EngagementManagerRef")
+                        .WithMany()
+                        .HasForeignKey("EngagementManagerId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                            b1.Property<string>("Designation")
-                                .HasMaxLength(120);
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstIndustry", "IndustryRef")
+                        .WithMany()
+                        .HasForeignKey("IndustryId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                            b1.Property<string>("Email")
-                                .HasMaxLength(255);
+                    b.Navigation("CityRef");
 
-                            b1.Property<string>("Name")
-                                .HasMaxLength(150);
+                    b.Navigation("CountryRef");
 
-                            b1.Property<string>("Phone")
-                                .HasMaxLength(40);
+                    b.Navigation("EngagementManagerRef");
 
-                            b1.HasKey("ClientId", "__synthesizedOrdinal");
-
-                            b1.ToTable("clients");
-
-                            b1
-                                .ToJson("contacts")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("ClientId");
-                        });
-
-                    b.Navigation("Contacts");
+                    b.Navigation("IndustryRef");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Customers.Models.ClientAssignment", b =>
@@ -514,6 +1327,23 @@ namespace PMS.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Customers.Models.ClientContactEntity", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Customers.Models.Client", "Client")
+                        .WithMany("Contacts")
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PMS.API.Modules.Customers.Models.SubVenture", "SubVenture")
+                        .WithMany("Contacts")
+                        .HasForeignKey("SubVentureId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Client");
+
+                    b.Navigation("SubVenture");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Customers.Models.SubVenture", b =>
                 {
                     b.HasOne("PMS.API.Modules.Customers.Models.Client", "Client")
@@ -522,43 +1352,91 @@ namespace PMS.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsMany("PMS.API.Modules.Customers.Models.ClientContact", "Contacts", b1 =>
-                        {
-                            b1.Property<Guid>("SubVentureId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<string>("ContactType")
-                                .HasMaxLength(40);
-
-                            b1.Property<string>("Designation")
-                                .HasMaxLength(120);
-
-                            b1.Property<string>("Email")
-                                .HasMaxLength(255);
-
-                            b1.Property<string>("Name")
-                                .HasMaxLength(150);
-
-                            b1.Property<string>("Phone")
-                                .HasMaxLength(40);
-
-                            b1.HasKey("SubVentureId", "__synthesizedOrdinal");
-
-                            b1.ToTable("sub_ventures");
-
-                            b1
-                                .ToJson("contacts")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("SubVentureId");
-                        });
-
                     b.Navigation("Client");
+                });
 
-                    b.Navigation("Contacts");
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.Employee", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDesignation", "Designation")
+                        .WithMany()
+                        .HasForeignKey("DesignationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstRole", "JobRole")
+                        .WithMany()
+                        .HasForeignKey("JobRoleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstNationality", "NationalityRef")
+                        .WithMany()
+                        .HasForeignKey("NationalityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.Employee", "ReportingManager")
+                        .WithMany()
+                        .HasForeignKey("ReportingManagerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstSalaryBand", "SalaryBandRef")
+                        .WithMany()
+                        .HasForeignKey("SalaryBandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PMS.API.Modules.Users.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Designation");
+
+                    b.Navigation("JobRole");
+
+                    b.Navigation("NationalityRef");
+
+                    b.Navigation("ReportingManager");
+
+                    b.Navigation("SalaryBandRef");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstCity", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstCountry", "Country")
+                        .WithMany("Cities")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Country");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstDesignation", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDepartment", "Department")
+                        .WithMany("Designations")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstRole", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDesignation", "Designation")
+                        .WithMany("Roles")
+                        .HasForeignKey("DesignationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Designation");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Users.Models.RolePermissionAudit", b =>
@@ -586,7 +1464,29 @@ namespace PMS.API.Migrations
                 {
                     b.Navigation("Assignments");
 
+                    b.Navigation("Contacts");
+
                     b.Navigation("SubVentures");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Customers.Models.SubVenture", b =>
+                {
+                    b.Navigation("Contacts");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstCountry", b =>
+                {
+                    b.Navigation("Cities");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstDepartment", b =>
+                {
+                    b.Navigation("Designations");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstDesignation", b =>
+                {
+                    b.Navigation("Roles");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Users.Models.Role", b =>

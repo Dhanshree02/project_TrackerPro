@@ -3,6 +3,7 @@ using PMS.API.Infrastructure.Authorization;
 using PMS.API.Shared.Common.Models;
 using PMS.API.Modules.Auth.Models;
 using PMS.API.Modules.Customers.Models;
+using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 
 namespace PMS.API.Infrastructure.Persistence;
@@ -24,6 +25,28 @@ public class AppDbContext(
     public DbSet<SubVenture> SubVentures => Set<SubVenture>();
 
     public DbSet<ClientAssignment> ClientAssignments => Set<ClientAssignment>();
+
+    public DbSet<ClientContactEntity> ClientContacts => Set<ClientContactEntity>();
+
+    public DbSet<MstDepartment> Departments => Set<MstDepartment>();
+
+    public DbSet<MstDesignation> Designations => Set<MstDesignation>();
+
+    public DbSet<MstIndustry> Industries => Set<MstIndustry>();
+
+    public DbSet<MstCountry> Countries => Set<MstCountry>();
+
+    public DbSet<MstCity> Cities => Set<MstCity>();
+
+    public DbSet<MstNationality> Nationalities => Set<MstNationality>();
+
+    public DbSet<MstRole> JobRoles => Set<MstRole>();
+
+    public DbSet<MstSalaryBand> SalaryBands => Set<MstSalaryBand>();
+
+    public DbSet<Employee> Employees => Set<Employee>();
+
+    public DbSet<ExitedEmployee> ExitedEmployees => Set<ExitedEmployee>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

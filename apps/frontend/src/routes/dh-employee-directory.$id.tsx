@@ -1,13 +1,23 @@
-import { createFileRoute, Link, Navigate, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { X, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, FileText, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { Avatar, ProgressBar } from "@/components/pills";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import {
-  employees,
+  FIELD_MAX,
+  emailError,
+  fieldInputCls,
+  isoDateToday,
+  phoneError,
+  toTenDigitPhone,
+} from "@/lib/form-validation";
+import { toast } from "sonner";
+import { fetchEmployee, offboardEmployee, toUiEmployee, updateEmployee } from "@/lib/api/employees";
+import { fetchNationalities, type CatalogOption } from "@/lib/api/catalogs";
+import {
   departments,
   type Employee,
   type EmployeeStatus,
@@ -34,11 +44,6 @@ export const Route = createFileRoute("/dh-employee-directory/$id")({
       { name: "description", content: "View full profile and performance of an employee." },
     ],
   }),
-  loader: ({ params }) => {
-    const emp = employees.find((e) => e.id === params.id);
-    if (!emp) throw notFound();
-    return { emp };
-  },
   component: EmployeeProfilePage,
 });
 
@@ -79,7 +84,9 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
-      <div className="mt-1 text-sm text-foreground">{value ?? "—"}</div>
+      <div className="mt-1 text-sm text-foreground">
+        {value == null || value === "" ? "—" : value}
+      </div>
     </div>
   );
 }
@@ -88,183 +95,202 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2 lg:grid-cols-3">{children}</div>;
 }
 
-// ── Offboarding modal ──────────────────────────────
-function OffboardingModal({
-  open,
-  onClose,
+function addDaysIso(isoDate: string, days: number): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const next = new Date(y, m - 1, d);
+  next.setDate(next.getDate() + days);
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+}
+
+function todayIso(): string {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+}
+
+function parseNoticeDays(value?: string): string {
+  const match = value?.match(/\d+/);
+  return match ? match[0] : "";
+}
+
+function OffboardConfirmDialog({
   employee,
+  isSubmitting,
+  onConfirm,
+  onCancel,
 }: {
-  open: boolean;
-  onClose: () => void;
   employee: Employee;
+  isSubmitting: boolean;
+  onConfirm: (details: {
+    resignationDate: string;
+    lastWorkingDay: string;
+    reasonForLeaving: string;
+    noticePeriodServed: string;
+  }) => void;
+  onCancel: () => void;
 }) {
-  useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-  if (!open) return null;
+  const [noticePeriodDays, setNoticePeriodDays] = useState(parseNoticeDays(employee.noticePeriod));
+  const [resignationDate, setResignationDate] = useState(todayIso);
+  const [reasonForLeaving, setReasonForLeaving] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const inputCls =
     "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  const readOnlyCls = `${inputCls} bg-muted text-muted-foreground cursor-not-allowed`;
 
-  const checklist = [
-    "Manager exit interview scheduled",
-    "HR exit interview scheduled",
-    "Knowledge transfer document submitted",
-    "Access revocation requested",
-    "Pending leaves reconciled",
-    "Final pay slip generated",
-  ];
-  const assets = [
-    "Laptop · Dell XPS 15",
-    "Mobile · iPhone 13",
-    "Access Card #A-3392",
-    "VPN Token",
-    "Office Keys",
-  ];
+  const noticeDays = Number.parseInt(noticePeriodDays, 10);
+  const lastWorkingDay =
+    resignationDate && Number.isInteger(noticeDays) && noticeDays >= 0
+      ? addDaysIso(resignationDate, noticeDays)
+      : "";
+
+  const submit = () => {
+    const next: Record<string, string> = {};
+    if (!noticePeriodDays.trim()) next.noticePeriodDays = "Notice period is required";
+    else if (!Number.isInteger(noticeDays) || noticeDays < 0 || noticeDays > 730) {
+      next.noticePeriodDays = "Enter notice period in days (0–730)";
+    }
+    if (!resignationDate) next.resignationDate = "Resignation date is required";
+    if (!lastWorkingDay) next.lastWorkingDay = "Last working day could not be calculated";
+    if (!reasonForLeaving.trim()) next.reasonForLeaving = "Reason for leaving is required";
+    if (reasonForLeaving.trim().length > 500) next.reasonForLeaving = "Reason must be 500 characters or less";
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+    onConfirm({
+      resignationDate,
+      lastWorkingDay,
+      reasonForLeaving: reasonForLeaving.trim(),
+      noticePeriodServed: `${noticeDays} days`,
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={onCancel} />
       <div
-        className="relative flex max-h-[90vh] w-full max-w-3xl flex-col rounded-xl bg-card shadow-2xl"
+        className="relative w-full max-w-lg rounded-xl border border-destructive/30 bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div>
-            <h2 className="text-base font-semibold">Offboard Employee</h2>
-            <p className="text-xs text-muted-foreground">
-              {employee.firstName} {employee.lastName} · {employee.id} · {employee.department}
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground">Offboard Employee?</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This action cannot be undone. They will appear on Exit Summary immediately
+              and stay in the directory until the day after last working day (notice period
+              end).
             </p>
           </div>
           <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent"
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="ml-auto shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* body */}
-        <div className="space-y-5 overflow-y-auto px-6 py-5">
-          <section>
-            <h3 className="mb-3 text-sm font-semibold">Resignation Details</h3>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Resignation Date
-                </span>
-                <input type="date" className={inputCls} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Last Working Day
-                </span>
-                <input type="date" className={inputCls} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Reason for Leaving
-                </span>
-                <input placeholder="Better opportunity" className={inputCls} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Notice Period Served
-                </span>
-                <input placeholder="60 days" className={inputCls} />
-              </label>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="mb-3 text-sm font-semibold">Exit Checklist</h3>
-            <div className="space-y-2 rounded-lg border border-border p-3">
-              {checklist.map((c, i) => (
-                <label
-                  key={c}
-                  className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-accent/30"
-                >
-                  <input
-                    type="checkbox"
-                    defaultChecked={i < 3}
-                    className="h-4 w-4 rounded border-input"
-                  />
-                  <span>{c}</span>
-                </label>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <h3 className="mb-3 text-sm font-semibold">Asset Return</h3>
-            <div className="overflow-hidden rounded-lg border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Asset</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                    <th className="px-3 py-2 font-medium">Returned On</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {assets.map((a, i) => (
-                    <tr key={a} className="hover:bg-accent/30">
-                      <td className="px-3 py-2">{a}</td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={cn(
-                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                            i % 2
-                              ? "border-warning/40 bg-warning/15 text-warning-foreground"
-                              : "border-success/30 bg-success/10 text-success",
-                          )}
-                        >
-                          {i % 2 ? "Pending" : "Returned"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        {i % 2 ? "—" : "2026-05-22"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="mb-3 text-sm font-semibold">Final Settlement</h3>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {[
-                { l: "Pending Salary", v: "₹ 1,24,500", s: "Processing" },
-                { l: "Leave Encashment", v: "₹ 38,200", s: "Approved" },
-                { l: "Gratuity", v: "₹ 2,15,000", s: "Pending" },
-              ].map((x) => (
-                <div key={x.l} className="rounded-lg border border-border p-3">
-                  <div className="text-xs text-muted-foreground">{x.l}</div>
-                  <div className="mt-1 text-base font-semibold">{x.v}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">{x.s}</div>
-                </div>
-              ))}
-            </div>
-          </section>
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3">
+          <Avatar name={`${employee.firstName} ${employee.lastName}`} size={36} />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-foreground">
+              {employee.firstName} {employee.lastName}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {employee.id} · {employee.department || "—"}
+            </p>
+          </div>
         </div>
 
-        {/* footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Notice Period (days) <span className="text-destructive">*</span>
+            </span>
+            <input
+              type="number"
+              min={0}
+              max={730}
+              step={1}
+              inputMode="numeric"
+              placeholder="e.g. 60"
+              value={noticePeriodDays}
+              onChange={(e) => setNoticePeriodDays(e.target.value.replace(/[^\d]/g, ""))}
+              className={cn(inputCls, errors.noticePeriodDays && "border-destructive")}
+              disabled={isSubmitting}
+            />
+            {errors.noticePeriodDays ? (
+              <p className="mt-1 text-[11px] text-destructive">{errors.noticePeriodDays}</p>
+            ) : null}
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Resignation Date <span className="text-destructive">*</span>
+            </span>
+            <input
+              type="date"
+              value={resignationDate}
+              onChange={(e) => setResignationDate(e.target.value)}
+              className={cn(inputCls, errors.resignationDate && "border-destructive")}
+              disabled={isSubmitting}
+            />
+            {errors.resignationDate ? (
+              <p className="mt-1 text-[11px] text-destructive">{errors.resignationDate}</p>
+            ) : null}
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Last Working Day
+            </span>
+            <input
+              type="date"
+              value={lastWorkingDay}
+              readOnly
+              className={cn(readOnlyCls, errors.lastWorkingDay && "border-destructive")}
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Calculated as resignation date + notice period days.
+            </p>
+            {errors.lastWorkingDay ? (
+              <p className="mt-1 text-[11px] text-destructive">{errors.lastWorkingDay}</p>
+            ) : null}
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Reason for Leaving <span className="text-destructive">*</span>
+            </span>
+            <input
+              value={reasonForLeaving}
+              onChange={(e) => setReasonForLeaving(e.target.value)}
+              placeholder="Better opportunity"
+              className={cn(inputCls, errors.reasonForLeaving && "border-destructive")}
+              disabled={isSubmitting}
+            />
+            {errors.reasonForLeaving ? (
+              <p className="mt-1 text-[11px] text-destructive">{errors.reasonForLeaving}</p>
+            ) : null}
+          </label>
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-2 border-t border-border pt-4">
           <button
-            onClick={onClose}
-            className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
           >
             Cancel
           </button>
-          <button className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90">
-            Initiate Offboarding
+          <button
+            type="button"
+            onClick={submit}
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground shadow-sm transition-all hover:bg-destructive/90 disabled:opacity-60"
+          >
+            {isSubmitting ? "Offboarding…" : "Yes, Offboard"}
           </button>
         </div>
       </div>
@@ -282,7 +308,7 @@ function EditProfilePanel({
   open: boolean;
   onClose: () => void;
   employee: Employee;
-  onSave: (updated: Employee) => void;
+  onSave: (updated: Employee) => Promise<void>;
 }) {
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -293,10 +319,16 @@ function EditProfilePanel({
   }, [open]);
 
   const [formData, setFormData] = useState<Employee>({ ...employee });
+  const [isSaving, setIsSaving] = useState(false);
+  const [nationalities, setNationalities] = useState<CatalogOption[]>([]);
 
   useEffect(() => {
     if (open) {
       setFormData({ ...employee });
+      setIsSaving(false);
+      void fetchNationalities()
+        .then(setNationalities)
+        .catch(() => toast.error("Could not load nationalities"));
     }
   }, [open, employee]);
 
@@ -308,7 +340,7 @@ function EditProfilePanel({
   const handleChange = (field: keyof Employee, value: any) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: field === "phone" || field === "altPhone" ? toTenDigitPhone(String(value)) : value,
     }));
   };
 
@@ -342,11 +374,26 @@ function EditProfilePanel({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    toast.success("Profile updated successfully!");
-    onClose();
+    const mailErr = emailError(formData.email, true);
+    const personalMailErr = emailError(formData.personalEmail ?? "");
+    const mobileErr = phoneError(formData.phone ?? "");
+    const altErr = phoneError(formData.altPhone ?? "");
+    if (mailErr || personalMailErr || mobileErr || altErr) {
+      toast.error(mailErr || personalMailErr || mobileErr || altErr);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onSave(formData);
+      toast.success("Profile updated successfully!");
+      onClose();
+    } catch (error: any) {
+      toast.error(error?.message ?? "Failed to update employee");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -386,6 +433,7 @@ function EditProfilePanel({
                 <input
                   type="text"
                   value={formData.firstName}
+                  maxLength={FIELD_MAX.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
                   className={inputCls}
                   required
@@ -398,6 +446,7 @@ function EditProfilePanel({
                 <input
                   type="text"
                   value={formData.lastName}
+                  maxLength={FIELD_MAX.lastName}
                   onChange={(e) => handleChange("lastName", e.target.value)}
                   className={inputCls}
                   required
@@ -410,10 +459,14 @@ function EditProfilePanel({
                 <input
                   type="email"
                   value={formData.email}
+                  maxLength={FIELD_MAX.email}
                   onChange={(e) => handleChange("email", e.target.value)}
-                  className={inputCls}
+                  className={fieldInputCls(inputCls, Boolean(emailError(formData.email)))}
                   required
                 />
+                {emailError(formData.email) ? (
+                  <p className="mt-1 text-[11px] text-destructive">{emailError(formData.email)}</p>
+                ) : null}
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -422,31 +475,51 @@ function EditProfilePanel({
                 <input
                   type="email"
                   value={formData.personalEmail}
+                  maxLength={FIELD_MAX.email}
                   onChange={(e) => handleChange("personalEmail", e.target.value)}
-                  className={inputCls}
+                  className={fieldInputCls(inputCls, Boolean(emailError(formData.personalEmail ?? "")))}
                 />
+                {emailError(formData.personalEmail ?? "") ? (
+                  <p className="mt-1 text-[11px] text-destructive">
+                    {emailError(formData.personalEmail ?? "")}
+                  </p>
+                ) : null}
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Mobile Number
                 </span>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={FIELD_MAX.phone}
+                  placeholder="10-digit mobile"
                   value={formData.phone}
                   onChange={(e) => handleChange("phone", e.target.value)}
-                  className={inputCls}
+                  className={fieldInputCls(inputCls, Boolean(phoneError(formData.phone ?? "")))}
                 />
+                {phoneError(formData.phone ?? "") ? (
+                  <p className="mt-1 text-[11px] text-destructive">{phoneError(formData.phone ?? "")}</p>
+                ) : null}
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Alternate Contact
                 </span>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={FIELD_MAX.phone}
+                  placeholder="10-digit mobile"
                   value={formData.altPhone}
                   onChange={(e) => handleChange("altPhone", e.target.value)}
-                  className={inputCls}
+                  className={fieldInputCls(inputCls, Boolean(phoneError(formData.altPhone ?? "")))}
                 />
+                {phoneError(formData.altPhone ?? "") ? (
+                  <p className="mt-1 text-[11px] text-destructive">
+                    {phoneError(formData.altPhone ?? "")}
+                  </p>
+                ) : null}
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">Gender</span>
@@ -455,6 +528,7 @@ function EditProfilePanel({
                   onChange={(e) => handleChange("gender", e.target.value)}
                   className={inputCls}
                 >
+                  <option value="">Select…</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
@@ -489,12 +563,22 @@ function EditProfilePanel({
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Nationality
                 </span>
-                <input
-                  type="text"
+                <select
                   value={formData.nationality}
                   onChange={(e) => handleChange("nationality", e.target.value)}
                   className={inputCls}
-                />
+                >
+                  <option value="">Select…</option>
+                  {formData.nationality &&
+                    !nationalities.some((n) => n.name === formData.nationality) && (
+                      <option value={formData.nationality}>{formData.nationality}</option>
+                    )}
+                  {nationalities.map((n) => (
+                    <option key={n.id} value={n.name}>
+                      {n.name}
+                    </option>
+                  ))}
+                </select>
               </label>
               <div className="md:col-span-2">
                 <label className="block">
@@ -504,6 +588,7 @@ function EditProfilePanel({
                   <input
                     type="text"
                     value={formData.address}
+                    maxLength={FIELD_MAX.address}
                     onChange={(e) => handleChange("address", e.target.value)}
                     className={inputCls}
                   />
@@ -538,6 +623,10 @@ function EditProfilePanel({
                   onChange={(e) => handleChange("department", e.target.value)}
                   className={inputCls}
                 >
+                  {formData.department && !departments.includes(formData.department) && (
+                    <option value={formData.department}>{formData.department}</option>
+                  )}
+                  <option value="">Select…</option>
                   {departments.map((d) => (
                     <option key={d} value={d}>
                       {d}
@@ -552,6 +641,7 @@ function EditProfilePanel({
                 <input
                   type="text"
                   value={formData.designation}
+                  maxLength={FIELD_MAX.designation}
                   onChange={(e) => handleChange("designation", e.target.value)}
                   className={inputCls}
                 />
@@ -646,6 +736,7 @@ function EditProfilePanel({
                 </span>
                 <input
                   type="date"
+                  min={isoDateToday()}
                   value={formData.joiningDate}
                   onChange={(e) => handleChange("joiningDate", e.target.value)}
                   className={inputCls}
@@ -900,9 +991,10 @@ function EditProfilePanel({
           </button>
           <button
             type="submit"
+            disabled={isSaving}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Save Changes
+            {isSaving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </form>
@@ -922,26 +1014,177 @@ const tabs = [
 
 // ── Main page ──────────────────────────────────────
 function EmployeeProfilePage() {
-  const { isDhanshree, isHr } = useRoleContext();
-  const { emp: loaderEmp } = Route.useLoaderData() as { emp: Employee };
-  const [emp, setEmp] = useState<Employee>(loaderEmp);
+  const { status: authStatus } = useAuth();
+  const { id } = Route.useParams();
+  const navigate = useNavigate();
+  const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
+    useRoleContext();
+  const [emp, setEmp] = useState<Employee | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<string>("basic");
-  const [offOpen, setOffOpen] = useState(false);
+  const [isOffboarding, setIsOffboarding] = useState(false);
+  const [offboardConfirmOpen, setOffboardConfirmOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [localAssetId, setLocalAssetId] = useState(loaderEmp.assetId);
+  const [localAssetId, setLocalAssetId] = useState("");
   const [assetTypeInput, setAssetTypeInput] = useState<"TK" | "Customer">("TK");
   const [assetIdInput, setAssetIdInput] = useState("");
 
+  const employeeId = decodeURIComponent(id ?? "").trim();
+
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hash === "#kpi") setTab("kpi");
-  }, []);
+    if (authStatus !== "authed") return;
+    if (!employeeId) {
+      setLoadError(true);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const detail = await fetchEmployee(employeeId);
+        if (cancelled) return;
+        const loaded = toUiEmployee(detail);
+        setEmp(loaded);
+        setLocalAssetId(loaded.assetId);
+        setLoadError(false);
+      } catch {
+        if (!cancelled) setLoadError(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authStatus, employeeId]);
 
-  if (!isDhanshree && !isHr) return <Navigate to="/" />;
+  const basicDirectory = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#kpi" && !basicDirectory) {
+      setTab("kpi");
+    }
+  }, [basicDirectory]);
 
-  const handleSaveProfile = (updatedEmp: Employee) => {
-    setEmp(updatedEmp);
-    setLocalAssetId(updatedEmp.assetId);
+  if (!isDhanshree && !isHr && !basicDirectory) return <Navigate to="/" />;
+
+  if (loadError) {
+    return (
+      <AppShell title="Employee Profile" subtitle="Not found">
+        <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
+          <p className="text-sm font-medium text-foreground">This employee profile could not be loaded.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            The record may not exist in the database, or the API is unavailable.
+          </p>
+          <Link
+            to="/dh-employee-directory"
+            className="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Back to directory
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!emp) {
+    return (
+      <AppShell title="Employee Profile" subtitle="Loading…">
+        <div className="py-12 text-center text-sm text-muted-foreground">Loading employee…</div>
+      </AppShell>
+    );
+  }
+
+  const handleSaveProfile = async (updatedEmp: Employee) => {
+    const catalog = await fetchNationalities();
+    const nationalityId = catalog.find((n) => n.name === updatedEmp.nationality)?.id ?? null;
+    const saved = await updateEmployee(updatedEmp.id, {
+      firstName: updatedEmp.firstName,
+      lastName: updatedEmp.lastName,
+      workEmail: updatedEmp.email,
+      personalEmail: updatedEmp.personalEmail || null,
+      phone: updatedEmp.phone || null,
+      altPhone: updatedEmp.altPhone || null,
+      gender: updatedEmp.gender || null,
+      dateOfBirth: updatedEmp.dob || null,
+      address: updatedEmp.address || null,
+      emergencyContact: updatedEmp.emergencyContact || null,
+      maritalStatus: updatedEmp.maritalStatus || null,
+      nationality: updatedEmp.nationality || null,
+      nationalityId,
+      department: updatedEmp.department || null,
+      designation: updatedEmp.designation || null,
+      role: updatedEmp.role || null,
+      businessUnit: updatedEmp.businessUnit || null,
+      workLocation: updatedEmp.workLocation || null,
+      officeBranch: updatedEmp.officeBranch || null,
+      category: updatedEmp.category || null,
+      team: updatedEmp.team || null,
+      joiningDate: updatedEmp.joiningDate || null,
+      status: updatedEmp.status,
+      confirmationStatus: updatedEmp.confirmationStatus,
+      probationStatus: updatedEmp.probationStatus || null,
+      experience: updatedEmp.experience || null,
+      previousCompany: updatedEmp.previousCompany || null,
+      employmentType: updatedEmp.employmentType || null,
+      contractType: updatedEmp.contractType || null,
+      bondStatus: updatedEmp.bondStatus || null,
+      noticePeriod: updatedEmp.noticePeriod || null,
+      projectSite: updatedEmp.projectSite || null,
+      assetId: updatedEmp.assetId || null,
+      exitType: updatedEmp.exitType || null,
+      exitReason: updatedEmp.exitReason || null,
+      education: updatedEmp.education || null,
+      skills: updatedEmp.skills,
+      certifications: updatedEmp.certifications,
+      languages: updatedEmp.languages,
+      kpiScore: updatedEmp.kpiScore,
+      quarterlyKpi: updatedEmp.quarterlyKpi,
+      annualRating: updatedEmp.annualRating,
+      goalCompletion: updatedEmp.goalCompletion,
+      attendance: updatedEmp.attendance,
+      reportingEfficiency: updatedEmp.reportingEfficiency,
+      promotionReadiness: updatedEmp.promotionReadiness || null,
+      managerFeedback: updatedEmp.managerFeedback || null,
+      pan: updatedEmp.pan || null,
+      bankAccount: updatedEmp.bankAccount || null,
+      salaryBand: updatedEmp.salaryBand || null,
+      pfUan: updatedEmp.pfUan || null,
+      taxRegime: updatedEmp.taxRegime || null,
+      complianceStatus: updatedEmp.complianceStatus,
+    });
+
+    setEmp(toUiEmployee(saved));
+    setLocalAssetId(toUiEmployee(saved).assetId);
   };
+
+  const handleOffboard = async (details: {
+    resignationDate: string;
+    lastWorkingDay: string;
+    reasonForLeaving: string;
+    noticePeriodServed: string;
+  }) => {
+    if (!emp || isOffboarding) return;
+    setIsOffboarding(true);
+    try {
+      await offboardEmployee(emp.id, {
+        resignationDate: details.resignationDate,
+        lastWorkingDay: details.lastWorkingDay,
+        reasonForLeaving: details.reasonForLeaving,
+        noticePeriodServed: details.noticePeriodServed,
+        exitType: "Resign",
+        exitReason: details.reasonForLeaving,
+      });
+      setOffboardConfirmOpen(false);
+      toast.success(
+        `${emp.firstName} ${emp.lastName} added to Exit Summary. They stay in the directory until the day after last working day.`,
+      );
+      await navigate({ to: "/dh-exit-summary" });
+    } catch (error: any) {
+      toast.error(error?.message ?? "Failed to offboard employee");
+    } finally {
+      setIsOffboarding(false);
+    }
+  };
+
+  const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
+  const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "basic") : tabs;
 
   return (
     <AppShell
@@ -1010,30 +1253,34 @@ function EmployeeProfilePage() {
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setEditOpen(true)}
-              className="rounded-md border border-input bg-card px-3 py-2 text-sm font-medium hover:bg-accent"
-            >
-              Edit Profile
-            </button>
-            <button className="rounded-md border border-input bg-card px-3 py-2 text-sm font-medium hover:bg-accent">
-              Generate Report
-            </button>
-            <button
-              onClick={() => setOffOpen(true)}
-              className="rounded-md bg-destructive px-3 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
-            >
-              Offboard Employee
-            </button>
-          </div>
+          {!basicOnly && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setEditOpen(true)}
+                className="rounded-md border border-input bg-card px-3 py-2 text-sm font-medium hover:bg-accent"
+              >
+                Edit Profile
+              </button>
+              <button className="rounded-md border border-input bg-card px-3 py-2 text-sm font-medium hover:bg-accent">
+                Generate Report
+              </button>
+              <button
+                type="button"
+                onClick={() => setOffboardConfirmOpen(true)}
+                disabled={isOffboarding || emp.status === "Notice Period"}
+                className="rounded-md bg-destructive px-3 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
+              >
+                {emp.status === "Notice Period" ? "On Notice Period" : "Offboard Employee"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
       <div className="mt-6">
         <div className="flex flex-wrap gap-1 border-b border-border overflow-x-auto">
-          {tabs.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -1093,7 +1340,7 @@ function EmployeeProfilePage() {
           {tab === "employment" && (
             <div className="rounded-lg border border-border bg-card p-6">
               <Grid>
-                <Row label="Date of Joining" value={emp.joiningDate} />
+                <Row label="Date of Joining" value={emp.joiningDate || "—"} />
                 <Row
                   label="Employment Status"
                   value={<EmpStatusBadge status={emp.confirmationStatus} />}
@@ -1160,51 +1407,56 @@ function EmployeeProfilePage() {
                 <div className="rounded-lg border border-border bg-card p-6">
                   <h3 className="mb-3 text-sm font-semibold">Technical Skills</h3>
                   <div className="flex flex-wrap gap-2">
-                    {emp.skills.map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
-                      >
-                        {s}
-                      </span>
-                    ))}
+                    {emp.skills.length === 0 ? (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    ) : (
+                      emp.skills.map((s) => (
+                        <span
+                          key={s}
+                          className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
+                        >
+                          {s}
+                        </span>
+                      ))
+                    )}
                   </div>
                 </div>
                 <div className="rounded-lg border border-border bg-card p-6">
                   <h3 className="mb-3 text-sm font-semibold">Functional Skills</h3>
                   <div className="flex flex-wrap gap-2">
-                    {["Stakeholder Mgmt", "Roadmapping", "Mentoring"].map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
-                      >
-                        {s}
-                      </span>
-                    ))}
+                    <span className="text-sm text-muted-foreground">—</span>
                   </div>
                 </div>
                 <div className="rounded-lg border border-border bg-card p-6">
                   <h3 className="mb-3 text-sm font-semibold">Certifications</h3>
-                  <ul className="space-y-1.5 text-sm">
-                    {emp.certifications.map((c) => (
-                      <li key={c} className="flex items-center gap-2 text-foreground">
-                        <span className="h-1 w-1 rounded-full bg-primary" />
-                        {c}
-                      </li>
-                    ))}
-                  </ul>
+                  {emp.certifications.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  ) : (
+                    <ul className="space-y-1.5 text-sm">
+                      {emp.certifications.map((c) => (
+                        <li key={c} className="flex items-center gap-2 text-foreground">
+                          <span className="h-1 w-1 rounded-full bg-primary" />
+                          {c}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <div className="rounded-lg border border-border bg-card p-6">
                   <h3 className="mb-3 text-sm font-semibold">Languages Known</h3>
                   <div className="flex flex-wrap gap-2">
-                    {emp.languages.map((l) => (
-                      <span
-                        key={l}
-                        className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
-                      >
-                        {l}
-                      </span>
-                    ))}
+                    {emp.languages.length === 0 ? (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    ) : (
+                      emp.languages.map((l) => (
+                        <span
+                          key={l}
+                          className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
+                        >
+                          {l}
+                        </span>
+                      ))
+                    )}
                   </div>
                 </div>
                 <div className="rounded-lg border border-border bg-card p-6 md:col-span-2">
@@ -1327,8 +1579,16 @@ function EmployeeProfilePage() {
         </div>
       </div>
 
-      {/* Offboarding modal */}
-      <OffboardingModal open={offOpen} onClose={() => setOffOpen(false)} employee={emp} />
+      {offboardConfirmOpen && (
+        <OffboardConfirmDialog
+          employee={emp}
+          isSubmitting={isOffboarding}
+          onConfirm={(details) => void handleOffboard(details)}
+          onCancel={() => {
+            if (!isOffboarding) setOffboardConfirmOpen(false);
+          }}
+        />
+      )}
 
       {/* Edit Profile panel */}
       <EditProfilePanel

@@ -73,15 +73,21 @@ const tabs = ["Bucket List", "Approvals", "Alerts", "Notifications"] as const;
 type Tab = (typeof tabs)[number];
 
 function ActionCentrePage() {
-  const { isDhanshree, user, isEmployee } = useRoleContext();
+  const { isDhanshree, user, isEmployee, isPmoFamily, isSales } = useRoleContext();
   const { hasPermission } = usePermissions();
-  const [tab, setTab] = useState<Tab>("Bucket List");
   const store = useDhStore((s) => s);
   const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
 
   const visibleTabs: Tab[] = isEmployee
     ? ["Bucket List", "Notifications"]
-    : ["Bucket List", "Approvals", "Alerts", "Notifications"];
+    : isSales
+      ? ["Alerts", "Notifications"]
+      : isPmoFamily
+        ? ["Approvals", "Alerts", "Notifications"]
+        : ["Bucket List", "Approvals", "Alerts", "Notifications"];
+
+  const [tab, setTab] = useState<Tab>(visibleTabs[0]);
+  const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
 
   if (!isDhanshree && !hasPermission("action-center.view")) return <Navigate to="/" />;
 
@@ -99,7 +105,7 @@ function ActionCentrePage() {
               onClick={() => setTab(t)}
               className={cn(
                 "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
-                tab === t
+                activeTab === t
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
@@ -115,10 +121,10 @@ function ActionCentrePage() {
         })}
       </div>
 
-      {tab === "Bucket List" && <BucketList />}
-      {tab === "Approvals" && <ApprovalsTab />}
-      {tab === "Alerts" && <AlertsTab />}
-      {tab === "Notifications" && <NotificationsTab />}
+      {activeTab === "Bucket List" && <BucketList />}
+      {activeTab === "Approvals" && <ApprovalsTab />}
+      {activeTab === "Alerts" && <AlertsTab />}
+      {activeTab === "Notifications" && <NotificationsTab />}
     </AppShell>
   );
 }
@@ -496,7 +502,7 @@ function ApprovalsTab() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const { user } = useRoleContext();
+  const { user, isBO } = useRoleContext();
 
   const selectedApproval = useMemo(() => {
     return store.approvals.find((a) => a.id === selectedAppId);
@@ -658,7 +664,7 @@ function ApprovalsTab() {
                   >
                     View
                   </button>
-                  {app.status !== "Pending" && !app.acknowledgedAt && (
+                  {app.status !== "Pending" && !app.acknowledgedAt && !isBO && (
                     <button
                       onClick={() => handleAcknowledge(app.id)}
                       className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20"
@@ -789,7 +795,7 @@ function ApprovalsTab() {
               >
                 Close
               </button>
-              {selectedApproval.status === "Pending" && (
+              {selectedApproval.status === "Pending" && !isBO && (
                 <>
                   <button
                     onClick={() => handleAction("Hold")}
@@ -1555,7 +1561,7 @@ function AlertsTab() {
 
 function NotificationsTab() {
   const store = useDhStore((s) => s);
-  const { user } = useRoleContext();
+  const { user, isBO } = useRoleContext();
   const [subTab, setSubTab] = useState<"Current" | "Archived">("Current");
 
   // Search state
@@ -2254,7 +2260,7 @@ function NotificationsTab() {
               >
                 Close
               </button>
-              {selectedNotification.status === "Pending" && (
+              {selectedNotification.status === "Pending" && !isBO && (
                 <button
                   onClick={handleConfirmAcknowledge}
                   className="rounded-md bg-success text-success-foreground px-4 py-2 font-semibold hover:bg-success/90 text-xs flex items-center gap-1 cursor-pointer"
