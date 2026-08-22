@@ -61,13 +61,13 @@ type ExitSortKey =
 type SortDir = "asc" | "desc";
 
 const EXIT_COLUMNS: { label: string; key: ExitSortKey; className?: string }[] = [
-  { label: "Emp ID", key: "employeeCode", className: "w-28" },
-  { label: "Employee", key: "fullName", className: "min-w-[200px]" },
-  { label: "Department & Role", key: "departmentName", className: "min-w-[180px]" },
-  { label: "Exit Type", key: "exitType", className: "min-w-[130px]" },
-  { label: "Exit Reason", key: "exitReason", className: "min-w-[200px]" },
-  { label: "Last Working Day", key: "lastWorkingDay", className: "min-w-[140px]" },
-  { label: "Exited On", key: "exitedAtUtc", className: "min-w-[130px]" },
+  { label: "Emp ID", key: "employeeCode", className: "w-28 min-w-[100px]" },
+  { label: "Employee", key: "fullName", className: "w-64 min-w-[200px]" },
+  { label: "Department & Role", key: "departmentName", className: "w-56 min-w-[180px]" },
+  { label: "Exit Type", key: "exitType", className: "w-36 min-w-[130px]" },
+  { label: "Exit Reason", key: "exitReason", className: "w-64 min-w-[200px]" },
+  { label: "Last Working Day", key: "lastWorkingDay", className: "w-36 min-w-[130px]" },
+  { label: "Exited On", key: "exitedAtUtc", className: "w-36 min-w-[130px]" },
 ];
 
 function sortBlank(value?: string | null): string {
@@ -530,7 +530,7 @@ function ExitSummaryPage() {
 
         {/* Table Container */}
         <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[1080px] table-fixed text-sm">
             <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 {EXIT_COLUMNS.map((col) => (
@@ -556,10 +556,10 @@ function ExitSummaryPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={`skel-${i}`} className="animate-pulse">
-                    <td className="px-4 py-3.5">
+                    <td className="w-28 min-w-[100px] px-4 py-3.5">
                       <div className="h-4 w-16 rounded bg-muted" />
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="w-64 min-w-[200px] px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
                         <div className="h-7 w-7 rounded-full bg-muted" />
                         <div className="space-y-1">
@@ -568,19 +568,19 @@ function ExitSummaryPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="w-56 min-w-[180px] px-4 py-3.5">
                       <div className="h-3.5 w-28 rounded bg-muted" />
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="w-36 min-w-[130px] px-4 py-3.5">
                       <div className="h-5 w-20 rounded-full bg-muted" />
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="w-64 min-w-[200px] px-4 py-3.5">
                       <div className="h-3.5 w-32 rounded bg-muted" />
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="w-36 min-w-[130px] px-4 py-3.5">
                       <div className="h-3.5 w-20 rounded bg-muted" />
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="w-36 min-w-[130px] px-4 py-3.5">
                       <div className="h-3.5 w-20 rounded bg-muted" />
                     </td>
                   </tr>
@@ -592,21 +592,21 @@ function ExitSummaryPage() {
                     className="group transition-colors hover:bg-accent/30"
                   >
                     {/* Emp ID */}
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground font-medium">
+                    <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground font-medium truncate" title={e.employeeCode}>
                       {e.employeeCode}
                     </td>
 
                     {/* Employee Profile */}
-                    <td className="whitespace-nowrap px-4 py-3 font-medium">
+                    <td className="w-64 min-w-[200px] whitespace-nowrap px-4 py-3 font-medium">
                       <Link
                         to="/dh-employee-directory/$id"
                         params={{ id: e.id }}
-                        className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors"
+                        className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors min-w-0"
                       >
                         <Avatar name={e.fullName} size={30} />
-                        <div>
-                          <span className="font-semibold block text-xs">{e.fullName}</span>
-                          <span className="text-[11px] text-muted-foreground block font-normal">
+                        <div className="truncate">
+                          <span className="font-semibold block text-xs truncate" title={e.fullName}>{e.fullName}</span>
+                          <span className="text-[11px] text-muted-foreground block font-normal truncate" title={e.designationName || "Ex-Employee"}>
                             {e.designationName || "Ex-Employee"}
                           </span>
                         </div>
@@ -614,25 +614,25 @@ function ExitSummaryPage() {
                     </td>
 
                     {/* Department & Role */}
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <div className="text-xs font-medium text-foreground">{e.departmentName || "—"}</div>
-                      <div className="text-[11px] text-muted-foreground">{e.designationName || "—"}</div>
+                    <td className="w-56 min-w-[180px] whitespace-nowrap px-4 py-3 truncate">
+                      <div className="text-xs font-medium text-foreground truncate" title={e.departmentName || "—"}>{e.departmentName || "—"}</div>
+                      <div className="text-[11px] text-muted-foreground truncate" title={e.designationName || "—"}>{e.designationName || "—"}</div>
                     </td>
 
                     {/* Exit Type */}
-                    <td className="whitespace-nowrap px-4 py-3">
+                    <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3">
                       <ExitTypeBadge type={e.exitType} />
                     </td>
 
                     {/* Exit Reason */}
-                    <td className="px-4 py-3 max-w-[240px]">
+                    <td className="w-64 min-w-[200px] px-4 py-3">
                       <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed" title={exitReasonOf(e)}>
                         {exitReasonOf(e)}
                       </div>
                     </td>
 
                     {/* Last Working Day */}
-                    <td className="whitespace-nowrap px-4 py-3 text-xs font-medium text-foreground/90">
+                    <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3 text-xs font-medium text-foreground/90">
                       {e.lastWorkingDay ? (
                         <span className="inline-flex items-center gap-1">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -644,7 +644,7 @@ function ExitSummaryPage() {
                     </td>
 
                     {/* Exited On */}
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                    <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
                       {formatDate(e.exitedAtUtc)}
                     </td>
                   </tr>

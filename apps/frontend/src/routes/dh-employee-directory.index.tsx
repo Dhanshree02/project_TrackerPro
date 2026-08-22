@@ -129,34 +129,37 @@ type PoolSortKey =
   | "projectSite";
 type SortDir = "asc" | "desc";
 
-const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey }[] = [
-  { label: "Employee ID", key: "id" },
-  { label: "Name", key: "name" },
-  { label: "Department", key: "department" },
-  { label: "Designation", key: "designation" },
-  { label: "Reporting Manager", key: "reportingManager" },
-  { label: "Location", key: "workLocation" },
-  { label: "Category", key: "category" },
-  { label: "Joining Date", key: "joiningDate" },
-  { label: "Status", key: "status" },
-  { label: "KPI", key: "kpiScore" },
+const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
+  { label: "Employee ID", key: "id", className: "w-28 min-w-[110px]" },
+  { label: "Name", key: "name", className: "w-56 min-w-[190px]" },
+  { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
+  { label: "Designation", key: "designation", className: "w-64 min-w-[220px]" },
+  { label: "Reporting Manager", key: "reportingManager", className: "w-44 min-w-[150px]" },
+  { label: "Location", key: "workLocation", className: "w-36 min-w-[120px]" },
+  { label: "Category", key: "category", className: "w-60 min-w-[210px]" },
+  { label: "Joining Date", key: "joiningDate", className: "w-32 min-w-[110px]" },
+  { label: "Status", key: "status", className: "w-36 min-w-[120px]" },
+  { label: "KPI", key: "kpiScore", className: "w-28 min-w-[100px]" },
 ];
 
-const BASIC_DIRECTORY_COLUMNS = DIRECTORY_COLUMNS.slice(0, 4).map((c, i) =>
-  i === 1 ? { ...c, label: "Employee Name" } : c,
-);
+const BASIC_DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
+  { label: "Employee ID", key: "id", className: "w-36 min-w-[130px]" },
+  { label: "Employee Name", key: "name", className: "w-72 min-w-[240px]" },
+  { label: "Department", key: "department", className: "w-60 min-w-[180px]" },
+  { label: "Designation", key: "designation", className: "w-80 min-w-[260px]" },
+];
 
-const POOL_COLUMNS: { label: string; key: PoolSortKey | null; align?: "right" }[] = [
-  { label: "Dept", key: "department" },
-  { label: "Emp Name", key: "name" },
-  { label: "Reporting Manager", key: "reportingManager" },
-  { label: "Allocation Status", key: "allocationStatus" },
-  { label: "Allocation Type", key: null },
-  { label: "Allocation Duration", key: null },
-  { label: "Location", key: "officeBranch" },
-  { label: "Office Site", key: "workLocation" },
-  { label: "Project Site", key: "projectSite" },
-  { label: "Tasks", key: null, align: "right" },
+const POOL_COLUMNS: { label: string; key: PoolSortKey | null; className?: string; align?: "right" }[] = [
+  { label: "Dept", key: "department", className: "w-40 min-w-[140px]" },
+  { label: "Emp Name", key: "name", className: "w-56 min-w-[190px]" },
+  { label: "Reporting Manager", key: "reportingManager", className: "w-44 min-w-[150px]" },
+  { label: "Allocation Status", key: "allocationStatus", className: "w-48 min-w-[170px]" },
+  { label: "Allocation Type", key: null, className: "w-44 min-w-[150px]" },
+  { label: "Allocation Duration", key: null, className: "w-48 min-w-[170px]" },
+  { label: "Location", key: "workLocation", className: "w-36 min-w-[120px]" },
+  { label: "Office", key: "officeBranch", className: "w-44 min-w-[150px]" },
+  { label: "Project Site", key: "projectSite", className: "w-32 min-w-[110px]" },
+  { label: "Tasks", key: null, className: "w-28 min-w-[100px]", align: "right" },
 ];
 
 function sortBlank(value: string): string {
@@ -239,25 +242,30 @@ function SortableTh<T extends string>({
   className?: string;
 }) {
   const active = sortKey === column;
-  const Icon = active && sortDir === "desc" ? ChevronDown : ChevronUp;
   return (
-    <th className={cn("whitespace-nowrap px-3 py-2.5 font-medium", className)}>
+    <th className={cn("whitespace-nowrap px-4 py-3 font-semibold", className)}>
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-left uppercase tracking-wide",
-          active && "text-foreground",
+          "group inline-flex items-center gap-1.5 text-left text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground",
+          active && "text-foreground font-bold",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
         aria-label={`Sort by ${label}`}
       >
-        {label}
+        <span>{label}</span>
         <span
-          className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-foreground text-background opacity-0 transition-opacity group-hover:opacity-100"
-          aria-hidden
+          className={cn(
+            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-colors",
+            active ? "text-primary" : "text-muted-foreground/50 opacity-0 group-hover:opacity-100",
+          )}
         >
-          <Icon className="h-2.5 w-2.5" strokeWidth={2.75} />
+          {active && sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronUp className="h-3.5 w-3.5" />
+          )}
         </span>
       </button>
     </th>
@@ -2547,8 +2555,8 @@ function EmployeeDirectoryPage() {
       {/* Directory Table / Pool Table */}
       {tab === "directory" ? (
         <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-          <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+          <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[800px]" : "min-w-[1440px]")}>
+            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
               <tr>
                 {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col) => (
                   <SortableTh
@@ -2557,6 +2565,7 @@ function EmployeeDirectoryPage() {
                     column={col.key}
                     sortKey={sortKey}
                     sortDir={sortDir}
+                    className={col.className}
                     onSort={(next) => {
                       if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
                       else {
@@ -2577,39 +2586,47 @@ function EmployeeDirectoryPage() {
                   }
                   className="cursor-pointer transition-colors hover:bg-accent/30"
                 >
-                  <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted-foreground">
+                  <td className={cn("whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground truncate", basicDirectoryView ? "w-36 min-w-[130px]" : "w-28 min-w-[110px]")} title={e.id}>
                     {e.id}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5">
+                  <td className={cn("whitespace-nowrap px-4 py-3", basicDirectoryView ? "w-72 min-w-[240px]" : "w-56 min-w-[190px]")}>
                     <Link
                       to="/dh-employee-directory/$id"
                       params={{ id: e.id }}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
                     >
                       <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                      <span className="font-medium">
+                      <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
                         {e.firstName} {e.lastName}
                       </span>
                     </Link>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5">{e.department}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5">{e.designation}</td>
+                  <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-60 min-w-[180px]" : "w-44 min-w-[150px]")} title={e.department}>
+                    {dash(e.department)}
+                  </td>
+                  <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-80 min-w-[260px]" : "w-64 min-w-[220px]")} title={e.designation}>
+                    {dash(e.designation)}
+                  </td>
                   {!basicDirectoryView && (
                     <>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
-                        {e.reportingManager}
+                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.reportingManager}>
+                        {dash(e.reportingManager)}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2.5">{e.workLocation}</td>
-                      <td className="whitespace-nowrap px-3 py-2.5">{e.category}</td>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
-                        {e.joiningDate}
+                      <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.workLocation}>
+                        {dash(e.workLocation)}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2.5">
+                      <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.category}>
+                        {dash(e.category)}
+                      </td>
+                      <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3 text-muted-foreground">
+                        {dash(e.joiningDate)}
+                      </td>
+                      <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3">
                         <EmpStatusBadge status={e.status} />
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2.5">
+                      <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <ProgressBar value={e.kpiScore} className="w-16" />
+                          <ProgressBar value={e.kpiScore} className="w-14" />
                           <span className="text-xs font-medium tabular-nums">{e.kpiScore}</span>
                         </div>
                       </td>
@@ -2621,7 +2638,7 @@ function EmployeeDirectoryPage() {
                 <tr>
                   <td
                     colSpan={basicDirectoryView ? 4 : 10}
-                    className="px-3 py-10 text-center text-sm text-muted-foreground"
+                    className="px-4 py-10 text-center text-sm text-muted-foreground"
                   >
                     {isLoading
                       ? "Loading employees from database…"
@@ -2688,8 +2705,8 @@ function EmployeeDirectoryPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-          <table className="w-full min-w-[950px] text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+          <table className="w-full min-w-[1440px] table-fixed text-sm">
+            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
               <tr>
                 {POOL_COLUMNS.map((col) =>
                   col.key ? (
@@ -2699,7 +2716,7 @@ function EmployeeDirectoryPage() {
                       column={col.key}
                       sortKey={poolSortKey}
                       sortDir={poolSortDir}
-                      className="px-4 py-3"
+                      className={col.className}
                       onSort={(next) => {
                         if (poolSortKey === next) setPoolSortDir((d) => (d === "asc" ? "desc" : "asc"));
                         else {
@@ -2712,7 +2729,8 @@ function EmployeeDirectoryPage() {
                     <th
                       key={col.label}
                       className={cn(
-                        "whitespace-nowrap px-4 py-3 font-medium",
+                        "whitespace-nowrap px-4 py-3 font-semibold",
+                        col.className,
                         col.align === "right" ? "text-right" : "text-left",
                       )}
                     >
@@ -2727,36 +2745,36 @@ function EmployeeDirectoryPage() {
                 const statusVal = getAllocationStatus(e);
                 return (
                   <tr key={e.id} className="cursor-pointer transition-colors hover:bg-accent/30">
-                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground/90">
+                    <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3 font-semibold text-foreground/90 truncate" title={e.department}>
                       {dash(e.department)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-medium">
+                    <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3">
                       <Link
                         to="/dh-employee-directory/$id"
                         params={{ id: e.id }}
-                        className="flex items-center gap-2.5 hover:text-primary transition-colors"
+                        className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
                       >
                         <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                        <span className="font-semibold">
+                        <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
                           {e.firstName} {e.lastName}
                         </span>
                       </Link>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                    <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.reportingManager}>
                       {dash(e.reportingManager)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3">
+                    <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3">
                       <AllocationStatusBadge status={statusVal} />
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                      {dash(e.officeBranch)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                    <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
+                    <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
+                    <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.workLocation}>
                       {dash(e.workLocation)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3">
+                    <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.officeBranch}>
+                      {dash(e.officeBranch)}
+                    </td>
+                    <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3">
                       {e.projectSite === "Onsite" || e.projectSite === "Offsite" ? (
                         <span
                           className={cn(
@@ -2772,7 +2790,7 @@ function EmployeeDirectoryPage() {
                         "—"
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3 text-right">
                       <button
                         onClick={(evt) => {
                           evt.stopPropagation();

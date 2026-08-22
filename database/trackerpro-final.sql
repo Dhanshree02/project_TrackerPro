@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict XxxDTrllkykjwwwnqsNgHNgFsAPHSnQUA3s8NyHXS3wLxS0MigXtWHzaM2eeMIb
+\restrict ENaGz11fKKcKdBJSJWHVLYxuhfBYAQhiaxlCSilnoB30EvJjJuOsgBYgBXhuC7n
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -145,7 +145,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: postgres
+-- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."__EFMigrationsHistory" (
@@ -154,10 +154,8 @@ CREATE TABLE public."__EFMigrationsHistory" (
 );
 
 
-ALTER TABLE public."__EFMigrationsHistory" OWNER TO postgres;
-
 --
--- Name: client_assignments; Type: TABLE; Schema: public; Owner: postgres
+-- Name: client_assignments; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.client_assignments (
@@ -166,10 +164,8 @@ CREATE TABLE public.client_assignments (
 );
 
 
-ALTER TABLE public.client_assignments OWNER TO postgres;
-
 --
--- Name: client_contacts; Type: TABLE; Schema: public; Owner: postgres
+-- Name: client_contacts; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.client_contacts (
@@ -191,10 +187,8 @@ CREATE TABLE public.client_contacts (
 );
 
 
-ALTER TABLE public.client_contacts OWNER TO postgres;
-
 --
--- Name: clients; Type: TABLE; Schema: public; Owner: postgres
+-- Name: clients; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.clients (
@@ -228,10 +222,8 @@ CREATE TABLE public.clients (
 );
 
 
-ALTER TABLE public.clients OWNER TO postgres;
-
 --
--- Name: employees; Type: TABLE; Schema: public; Owner: postgres
+-- Name: employees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.employees (
@@ -303,10 +295,8 @@ CREATE TABLE public.employees (
 );
 
 
-ALTER TABLE public.employees OWNER TO postgres;
-
 --
--- Name: exited_employees; Type: TABLE; Schema: public; Owner: postgres
+-- Name: exited_employees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.exited_employees (
@@ -339,10 +329,8 @@ CREATE TABLE public.exited_employees (
 );
 
 
-ALTER TABLE public.exited_employees OWNER TO postgres;
-
 --
--- Name: mst_business_units; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_business_units; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_business_units (
@@ -359,10 +347,8 @@ CREATE TABLE public.mst_business_units (
 );
 
 
-ALTER TABLE public.mst_business_units OWNER TO postgres;
-
 --
--- Name: mst_cities; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_cities; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_cities (
@@ -379,10 +365,8 @@ CREATE TABLE public.mst_cities (
 );
 
 
-ALTER TABLE public.mst_cities OWNER TO postgres;
-
 --
--- Name: mst_countries; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_countries; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_countries (
@@ -398,10 +382,8 @@ CREATE TABLE public.mst_countries (
 );
 
 
-ALTER TABLE public.mst_countries OWNER TO postgres;
-
 --
--- Name: mst_departments; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_departments; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_departments (
@@ -417,10 +399,8 @@ CREATE TABLE public.mst_departments (
 );
 
 
-ALTER TABLE public.mst_departments OWNER TO postgres;
-
 --
--- Name: mst_designations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_designations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_designations (
@@ -437,10 +417,8 @@ CREATE TABLE public.mst_designations (
 );
 
 
-ALTER TABLE public.mst_designations OWNER TO postgres;
-
 --
--- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: trackerpro
+-- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_email_domains (
@@ -458,10 +436,8 @@ CREATE TABLE public.mst_email_domains (
 );
 
 
-ALTER TABLE public.mst_email_domains OWNER TO trackerpro;
-
 --
--- Name: mst_industries; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_industries; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_industries (
@@ -477,10 +453,8 @@ CREATE TABLE public.mst_industries (
 );
 
 
-ALTER TABLE public.mst_industries OWNER TO postgres;
-
 --
--- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_nationalities (
@@ -496,10 +470,8 @@ CREATE TABLE public.mst_nationalities (
 );
 
 
-ALTER TABLE public.mst_nationalities OWNER TO postgres;
-
 --
--- Name: mst_offices; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_offices; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_offices (
@@ -517,10 +489,8 @@ CREATE TABLE public.mst_offices (
 );
 
 
-ALTER TABLE public.mst_offices OWNER TO postgres;
-
 --
--- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: trackerpro
+-- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_reporting_managers (
@@ -540,10 +510,8 @@ CREATE TABLE public.mst_reporting_managers (
 );
 
 
-ALTER TABLE public.mst_reporting_managers OWNER TO trackerpro;
-
 --
--- Name: mst_roles; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_roles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_roles (
@@ -560,10 +528,8 @@ CREATE TABLE public.mst_roles (
 );
 
 
-ALTER TABLE public.mst_roles OWNER TO postgres;
-
 --
--- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_salary_bands (
@@ -579,10 +545,8 @@ CREATE TABLE public.mst_salary_bands (
 );
 
 
-ALTER TABLE public.mst_salary_bands OWNER TO postgres;
-
 --
--- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_work_locations (
@@ -599,10 +563,8 @@ CREATE TABLE public.mst_work_locations (
 );
 
 
-ALTER TABLE public.mst_work_locations OWNER TO postgres;
-
 --
--- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: postgres
+-- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.refresh_tokens (
@@ -620,10 +582,8 @@ CREATE TABLE public.refresh_tokens (
 );
 
 
-ALTER TABLE public.refresh_tokens OWNER TO postgres;
-
 --
--- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: postgres
+-- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.role_permission_audits (
@@ -649,10 +609,8 @@ CREATE TABLE public.role_permission_audits (
 );
 
 
-ALTER TABLE public.role_permission_audits OWNER TO postgres;
-
 --
--- Name: roles; Type: TABLE; Schema: public; Owner: postgres
+-- Name: roles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.roles (
@@ -671,10 +629,8 @@ CREATE TABLE public.roles (
 );
 
 
-ALTER TABLE public.roles OWNER TO postgres;
-
 --
--- Name: sub_ventures; Type: TABLE; Schema: public; Owner: postgres
+-- Name: sub_ventures; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.sub_ventures (
@@ -690,10 +646,8 @@ CREATE TABLE public.sub_ventures (
 );
 
 
-ALTER TABLE public.sub_ventures OWNER TO postgres;
-
 --
--- Name: users; Type: TABLE; Schema: public; Owner: postgres
+-- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.users (
@@ -721,10 +675,8 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO postgres;
-
 --
--- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin;
@@ -744,7 +696,7 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 
 
 --
--- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.client_assignments ("ClientId", "UserId") FROM stdin;
@@ -756,7 +708,7 @@ f61741ca-2c63-917f-ee7f-ae00cdbc08cb	e7554ba2-e546-93ce-1e88-a073badd78a2
 
 
 --
--- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -783,7 +735,7 @@ d8e9f1ce-ac14-4a5a-899a-5d87963e99d2	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omk
 
 
 --
--- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince") FROM stdin;
@@ -803,7 +755,7 @@ f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Solutions	Environment	ES	projects@
 
 
 --
--- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "ProjectSite", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "JobRoleId", "NationalityId", "ProbationPeriod", "SalaryBandId") FROM stdin;
@@ -843,7 +795,7 @@ fc06e810-3e2d-4510-bfc1-669ccf579da2	EMP-1006	Ankit	Verma	ankit.verma@acme.co	an
 
 
 --
--- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.exited_employees ("Id", "OriginalEmployeeId", "EmployeeCode", "FullName", "DepartmentName", "DesignationName", "WorkEmail", "PersonalEmail", "Phone", "StatusAtExit", "ExitType", "ExitReason", "ResignationDate", "LastWorkingDay", "ReasonForLeaving", "NoticePeriodServed", "ExitChecklistJson", "AssetReturnJson", "FinalSettlementJson", "ExitedAtUtc", "ExitedBy", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -861,7 +813,7 @@ c86dbb9b-4d96-4e3a-b74a-a94fa9992605	96425efc-9b0e-4f2b-8fd6-ec3b77161547	EMP-34
 
 
 --
--- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -873,7 +825,7 @@ cd3c05b0-fc85-49fe-adcc-e7d2dcde28df	cloud_platform	Cloud Platform	t	1	2026-08-2
 
 
 --
--- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_cities ("Id", "Code", "Name", "IsActive", "CountryId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1018,7 +970,7 @@ fe6526bc-a57b-4c6e-8094-be6327614409	in_tiruchirappalli	Tiruchirappalli	t	f6f989
 
 
 --
--- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_countries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1066,7 +1018,7 @@ f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	IN	India	t	2026-08-20 17:07:05.749911+05:30
 
 
 --
--- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_departments ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1085,7 +1037,7 @@ e91e9aa5-1cbb-4d1e-99fe-d7aefedd9f87	finance	Finance	t	2026-08-21 11:01:26.96365
 
 
 --
--- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1116,7 +1068,7 @@ f9aa2b6e-26a3-40db-bb37-9c88a1249304	engagement_manager	Engagement Manager	t	c21
 
 
 --
--- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: trackerpro
+-- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_email_domains ("Id", "Code", "DomainName", "DisplayName", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1127,7 +1079,7 @@ fb66fff9-7911-47de-bde7-ab5fb5ab0757	squad1_io	squad1.io	@squad1.io	t	3	2026-08-
 
 
 --
--- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_industries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1147,7 +1099,7 @@ ff5e83cc-9c1c-4056-ab0b-42a70714ddd3	media	Media	t	2026-08-20 11:45:51.759149+05
 
 
 --
--- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_nationalities ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1195,7 +1147,7 @@ fe29360e-bc38-4557-8653-98b749b34fe0	indonesian	Indonesian	t	2026-08-20 17:55:01
 
 
 --
--- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1212,7 +1164,7 @@ f26ab4c4-8824-480f-bbfe-1e08a855f21c	pune_cyber_city_tower	Cyber City Tower	1427
 
 
 --
--- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: trackerpro
+-- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email", "EmployeeId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1247,7 +1199,7 @@ a72d8337-b9ca-41b7-add3-33420d5fa811	priya_shah	Priya Shah	Onboard Role f918b0f6
 
 
 --
--- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1304,7 +1256,7 @@ fbd9d8c8-1fb6-4757-a095-a9f1ec77336b	ux_designer_designer	Designer	t	84f01f23-58
 
 
 --
--- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_salary_bands ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1317,7 +1269,7 @@ ebed343e-301f-4984-b292-fa8d1cb1623c	l2	L2	t	2026-08-20 18:21:10.222702+05:30	\N
 
 
 --
--- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1332,7 +1284,7 @@ f93f660f-db88-4f46-8df8-ade0e93d3eaf	mumbai	Mumbai	f	6	2026-08-22 01:27:33.55667
 
 
 --
--- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.refresh_tokens ("Id", "UserId", "TokenHash", "ExpiresAtUtc", "RevokedAtUtc", "ReplacedByTokenHash", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1802,12 +1754,17 @@ b3c7cbaf-de43-4f28-b872-7056652f4ddd	40517b71-5e62-182e-73b5-d4070e20a3c2	xE1v9m
 180e657d-d97f-47e3-b45e-39744f0ada07	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	U15LKEO+WJbDufRQ51pnGj5nDIWVUb74QqiSlUwGn9c=	2026-08-29 12:06:29.686936+05:30	2026-08-22 12:18:25.697107+05:30	\N	2026-08-22 12:06:29.687523+05:30	2026-08-22 12:18:25.697307+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 16719cf4-c618-4a17-b892-e59a074bebbf	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	iNsRClCwDq4LcPLIHgrai5MlJFvEe4JoP9M9q3x08Xg=	2026-08-29 12:18:25.697226+05:30	2026-08-22 12:19:35.297474+05:30	\N	2026-08-22 12:18:25.697307+05:30	2026-08-22 12:19:35.299012+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 885f5917-e8dd-46c5-9c66-33992f64f733	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ax9B92tSK12r1XO5cQgJBSkLqti9YpBxSaPVlWEZso8=	2026-08-29 12:19:35.29872+05:30	2026-08-22 12:20:23.315016+05:30	\N	2026-08-22 12:19:35.299012+05:30	2026-08-22 12:20:23.315453+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c7cbad57-77ec-46c7-8a2e-a751eed4d045	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	4/pRS0i/Ewg5MTVNgJIe4e3xPTQJzW3vk6qA6rlwu2Q=	2026-08-29 12:20:23.315252+05:30	\N	\N	2026-08-22 12:20:23.315453+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+c7cbad57-77ec-46c7-8a2e-a751eed4d045	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	4/pRS0i/Ewg5MTVNgJIe4e3xPTQJzW3vk6qA6rlwu2Q=	2026-08-29 12:20:23.315252+05:30	2026-08-22 12:37:16.266622+05:30	\N	2026-08-22 12:20:23.315453+05:30	2026-08-22 12:37:16.268127+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6689e2d3-bd75-4047-8f41-ae3cba9f7b01	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	zQSLo7GP7jf+FzCdymBmuyCtiOkD/QL9S85EwtfHZrM=	2026-08-29 12:37:16.26775+05:30	2026-08-22 13:01:33.882431+05:30	\N	2026-08-22 12:37:16.268127+05:30	2026-08-22 13:01:33.883447+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f669f630-9d3d-4db4-92c8-fc33dfa1ae17	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	xOBXkr7ivNqIN6KVvB5ZYdJqJGwC2lNywuLTeuu0U4A=	2026-08-29 13:01:33.882933+05:30	2026-08-22 13:10:41.190725+05:30	\N	2026-08-22 13:01:33.883447+05:30	2026-08-22 13:10:41.191352+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fc718aae-2527-479e-b105-183386bf8495	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YG47BKlvEGwDMG0WseE0yCrgjagBu7uaLbrhYF48bGE=	2026-08-29 13:10:41.191035+05:30	2026-08-22 13:28:51.028852+05:30	\N	2026-08-22 13:10:41.191352+05:30	2026-08-22 13:28:51.030688+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a28aed47-94ca-452c-a316-5d1629c9eb00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3gVN2DweRtsn360ZYcqZaj/lm0HVhXPPgj3SRGnmFkU=	2026-08-29 13:28:51.029847+05:30	2026-08-22 15:22:27.266179+05:30	\N	2026-08-22 13:28:51.030688+05:30	2026-08-22 15:22:27.268678+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+af55bf54-9809-4bd2-b88c-4308307bb333	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	n0Zq2zK3bws0mD9Im8OmptbMu/onU/LYTNdwsGbRLzI=	2026-08-29 15:22:27.267567+05:30	\N	\N	2026-08-22 15:22:27.268678+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
 --
--- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.role_permission_audits ("Id", "RoleId", "RoleName", "ModuleKey", "ModuleLabel", "SubmoduleKey", "SubmoduleLabel", "PermissionKey", "ActionLabel", "ChangeType", "PreviousValue", "NewValue", "ChangedById", "ChangedByName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1839,7 +1796,7 @@ dbeb83dc-772f-4df2-833f-8154a02d3955	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	Projec
 
 
 --
--- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.roles ("Id", "DisplayName", "Permissions", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Name", "Description", "IsActive", "IsSystemRole") FROM stdin;
@@ -1860,7 +1817,7 @@ cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	["dashboard.view", "proj
 
 
 --
--- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.sub_ventures ("Id", "ClientId", "Name", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Notes") FROM stdin;
@@ -1925,7 +1882,7 @@ a69fe228-de12-44e5-9128-dc3898f67e5c	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	IT	202
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Department", "SubDepartment", "Avatar", "Designation", "IsActive", "MustChangePassword", "RoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "FailedLoginAttempts", "LastLoginAtUtc", "LockedUntilUtc", "PasswordChangedAtUtc") FROM stdin;
@@ -1954,7 +1911,7 @@ f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$EANToQthuN0ITD/VJ27Pae
 
 
 --
--- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."__EFMigrationsHistory"
@@ -1962,7 +1919,7 @@ ALTER TABLE ONLY public."__EFMigrationsHistory"
 
 
 --
--- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -1970,7 +1927,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -1978,7 +1935,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -1986,7 +1943,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -1994,7 +1951,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.exited_employees
@@ -2002,7 +1959,7 @@ ALTER TABLE ONLY public.exited_employees
 
 
 --
--- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -2010,7 +1967,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_countries
@@ -2018,7 +1975,7 @@ ALTER TABLE ONLY public.mst_countries
 
 
 --
--- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_departments
@@ -2026,7 +1983,7 @@ ALTER TABLE ONLY public.mst_departments
 
 
 --
--- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -2034,7 +1991,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_industries
@@ -2042,7 +1999,7 @@ ALTER TABLE ONLY public.mst_industries
 
 
 --
--- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_nationalities
@@ -2050,7 +2007,7 @@ ALTER TABLE ONLY public.mst_nationalities
 
 
 --
--- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -2058,7 +2015,7 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_salary_bands
@@ -2066,7 +2023,7 @@ ALTER TABLE ONLY public.mst_salary_bands
 
 
 --
--- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -2074,7 +2031,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -2082,7 +2039,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.roles
@@ -2090,7 +2047,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -2098,7 +2055,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -2106,7 +2063,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -2114,7 +2071,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -2122,7 +2079,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: trackerpro
+-- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_email_domains
@@ -2130,7 +2087,7 @@ ALTER TABLE ONLY public.mst_email_domains
 
 
 --
--- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2138,7 +2095,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2146,7 +2103,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: trackerpro
+-- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -2154,7 +2111,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -2162,7 +2119,7 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -2170,329 +2127,329 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_client_assignments_UserId" ON public.client_assignments USING btree ("UserId");
 
 
 --
--- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_client_contacts_ClientId" ON public.client_contacts USING btree ("ClientId");
 
 
 --
--- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_client_contacts_SubVentureId" ON public.client_contacts USING btree ("SubVentureId");
 
 
 --
--- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_CityId" ON public.clients USING btree ("CityId");
 
 
 --
--- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_CountryId" ON public.clients USING btree ("CountryId");
 
 
 --
--- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_EngagementManagerId" ON public.clients USING btree ("EngagementManagerId");
 
 
 --
--- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_IndustryId" ON public.clients USING btree ("IndustryId");
 
 
 --
--- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_Name" ON public.clients USING btree ("Name");
 
 
 --
--- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_DepartmentId" ON public.employees USING btree ("DepartmentId");
 
 
 --
--- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_DesignationId" ON public.employees USING btree ("DesignationId");
 
 
 --
--- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_employees_EmployeeCode" ON public.employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_JobRoleId" ON public.employees USING btree ("JobRoleId");
 
 
 --
--- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_NationalityId" ON public.employees USING btree ("NationalityId");
 
 
 --
--- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_ReportingManagerId" ON public.employees USING btree ("ReportingManagerId");
 
 
 --
--- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_SalaryBandId" ON public.employees USING btree ("SalaryBandId");
 
 
 --
--- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_UserId" ON public.employees USING btree ("UserId");
 
 
 --
--- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_employees_WorkEmail" ON public.employees USING btree ("WorkEmail");
 
 
 --
--- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_exited_employees_EmployeeCode" ON public.exited_employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_exited_employees_OriginalEmployeeId" ON public.exited_employees USING btree ("OriginalEmployeeId");
 
 
 --
--- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_Code" ON public.mst_cities USING btree ("Code");
 
 
 --
--- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_CountryId_Name" ON public.mst_cities USING btree ("CountryId", "Name");
 
 
 --
--- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Code" ON public.mst_countries USING btree ("Code");
 
 
 --
--- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Name" ON public.mst_countries USING btree ("Name");
 
 
 --
--- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Code" ON public.mst_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Name" ON public.mst_departments USING btree ("Name");
 
 
 --
--- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_Code" ON public.mst_designations USING btree ("Code");
 
 
 --
--- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_DepartmentId_Name" ON public.mst_designations USING btree ("DepartmentId", "Name");
 
 
 --
--- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: trackerpro
+-- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_email_domains_DomainName" ON public.mst_email_domains USING btree ("DomainName");
 
 
 --
--- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Code" ON public.mst_industries USING btree ("Code");
 
 
 --
--- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Name" ON public.mst_industries USING btree ("Name");
 
 
 --
--- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Code" ON public.mst_nationalities USING btree ("Code");
 
 
 --
--- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Name" ON public.mst_nationalities USING btree ("Name");
 
 
 --
--- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: trackerpro
+-- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_reporting_managers_Code" ON public.mst_reporting_managers USING btree ("Code");
 
 
 --
--- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_Code" ON public.mst_roles USING btree ("Code");
 
 
 --
--- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_DesignationId_Name" ON public.mst_roles USING btree ("DesignationId", "Name");
 
 
 --
--- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Code" ON public.mst_salary_bands USING btree ("Code");
 
 
 --
--- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Name" ON public.mst_salary_bands USING btree ("Name");
 
 
 --
--- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_refresh_tokens_TokenHash" ON public.refresh_tokens USING btree ("TokenHash");
 
 
 --
--- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_refresh_tokens_UserId" ON public.refresh_tokens USING btree ("UserId");
 
 
 --
--- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_role_permission_audits_CreatedAtUtc" ON public.role_permission_audits USING btree ("CreatedAtUtc");
 
 
 --
--- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_role_permission_audits_RoleId" ON public.role_permission_audits USING btree ("RoleId");
 
 
 --
--- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_roles_Name" ON public.roles USING btree ("Name");
 
 
 --
--- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_sub_ventures_ClientId" ON public.sub_ventures USING btree ("ClientId");
 
 
 --
--- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_users_Email" ON public.users USING btree ("Email");
 
 
 --
--- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_users_EmployeeId" ON public.users USING btree ("EmployeeId");
 
 
 --
--- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_users_RoleId" ON public.users USING btree ("RoleId");
 
 
 --
--- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2500,7 +2457,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2508,7 +2465,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2516,7 +2473,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2524,7 +2481,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2532,7 +2489,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2540,7 +2497,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2548,7 +2505,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2556,7 +2513,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2564,7 +2521,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2572,7 +2529,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2580,7 +2537,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2588,7 +2545,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2596,7 +2553,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2604,7 +2561,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2612,7 +2569,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -2620,7 +2577,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -2628,7 +2585,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: trackerpro
+-- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -2636,7 +2593,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -2644,7 +2601,7 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -2652,7 +2609,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -2660,7 +2617,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -2668,7 +2625,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -2676,7 +2633,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2684,148 +2641,8 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
---
-
-GRANT ALL ON SCHEMA public TO trackerpro;
-
-
---
--- Name: TABLE "__EFMigrationsHistory"; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public."__EFMigrationsHistory" TO trackerpro;
-
-
---
--- Name: TABLE client_assignments; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.client_assignments TO trackerpro;
-
-
---
--- Name: TABLE client_contacts; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.client_contacts TO trackerpro;
-
-
---
--- Name: TABLE clients; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.clients TO trackerpro;
-
-
---
--- Name: TABLE employees; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.employees TO trackerpro;
-
-
---
--- Name: TABLE exited_employees; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.exited_employees TO trackerpro;
-
-
---
--- Name: TABLE mst_cities; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_cities TO trackerpro;
-
-
---
--- Name: TABLE mst_countries; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_countries TO trackerpro;
-
-
---
--- Name: TABLE mst_departments; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_departments TO trackerpro;
-
-
---
--- Name: TABLE mst_designations; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_designations TO trackerpro;
-
-
---
--- Name: TABLE mst_industries; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_industries TO trackerpro;
-
-
---
--- Name: TABLE mst_nationalities; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_nationalities TO trackerpro;
-
-
---
--- Name: TABLE mst_roles; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_roles TO trackerpro;
-
-
---
--- Name: TABLE mst_salary_bands; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_salary_bands TO trackerpro;
-
-
---
--- Name: TABLE refresh_tokens; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.refresh_tokens TO trackerpro;
-
-
---
--- Name: TABLE role_permission_audits; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.role_permission_audits TO trackerpro;
-
-
---
--- Name: TABLE roles; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.roles TO trackerpro;
-
-
---
--- Name: TABLE sub_ventures; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.sub_ventures TO trackerpro;
-
-
---
--- Name: TABLE users; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.users TO trackerpro;
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict XxxDTrllkykjwwwnqsNgHNgFsAPHSnQUA3s8NyHXS3wLxS0MigXtWHzaM2eeMIb
+\unrestrict ENaGz11fKKcKdBJSJWHVLYxuhfBYAQhiaxlCSilnoB30EvJjJuOsgBYgBXhuC7n
 
