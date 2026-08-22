@@ -59,8 +59,29 @@ import {
   fetchSalaryBandOptions,
   fetchWorkLocationOptions,
   toUiEmployeeFromList,
+  uploadEmployeeDocuments,
   type ApiMetaOption,
 } from "@/lib/api/employees";
+import {
+  ONBOARD_DOC_SLOTS,
+  EMPTY_DOCS,
+  EMPTY_ONBOARD,
+  ONBOARD_FIELDS,
+  MAX_ADULT_DOB,
+  MIN_DOB,
+  formatBytes,
+  validateOnboardField,
+  validateOnboardForm,
+  validateOnboardFile,
+  toDirectoryStatus,
+  blankToNull,
+  csvToList,
+  type OnboardDocs,
+  type OnboardDocErrors,
+  type OnboardErrors,
+  type OnboardField,
+  type OnboardValues,
+} from "@/lib/onboard-validation";
 import { Modal } from "@/routes/projects.index";
 
 export const Route = createFileRoute("/dh-employee-directory/")({
@@ -691,399 +712,6 @@ function RequestAllocationModal({
   );
 }
 
-const ONBOARD_DOC_SLOTS = [
-  "Resume",
-  "PAN Card",
-  "Aadhaar Card",
-  "Offer Letter",
-  "Education Certs",
-  "Experience Letters",
-] as const;
-
-const MAX_DOC_BYTES = 5 * 1024 * 1024;
-const DOC_EXT = [".pdf", ".jpg", ".jpeg", ".png"];
-
-type OnboardField =
-  | "firstName"
-  | "lastName"
-  | "workEmail"
-  | "personalEmail"
-  | "employeeCode"
-  | "phone"
-  | "altPhone"
-  | "gender"
-  | "dateOfBirth"
-  | "maritalStatus"
-  | "nationalityId"
-  | "address"
-  | "emergencyContact"
-  | "departmentId"
-  | "designationId"
-  | "jobRoleId"
-  | "businessUnit"
-  | "team"
-  | "projectSite"
-  | "workLocation"
-  | "officeBranch"
-  | "category"
-  | "assetId"
-  | "status"
-  | "exitType"
-  | "exitReason"
-  | "probationPeriod"
-  | "noticePeriod"
-  | "salaryBandId"
-  | "education"
-  | "certifications"
-  | "technicalSkills"
-  | "functionalSkills"
-  | "experience"
-  | "previousCompany"
-  | "employmentType"
-  | "contractType"
-  | "bondStatus"
-  | "languages"
-  | "pan"
-  | "aadhaar"
-  | "pfUan"
-  | "bankAccount"
-  | "ifsc"
-  | "joiningDate"
-  | "reportingManagerId";
-type OnboardErrors = Partial<Record<OnboardField, string>>;
-type OnboardValues = Record<OnboardField, string>;
-type OnboardDocs = Record<(typeof ONBOARD_DOC_SLOTS)[number], File | null>;
-type OnboardDocErrors = Partial<Record<(typeof ONBOARD_DOC_SLOTS)[number], string>>;
-
-const EMPTY_ONBOARD: OnboardValues = {
-  firstName: "",
-  lastName: "",
-  workEmail: "",
-  personalEmail: "",
-  employeeCode: "",
-  phone: "",
-  altPhone: "",
-  gender: "",
-  dateOfBirth: "",
-  maritalStatus: "",
-  nationalityId: "",
-  address: "",
-  emergencyContact: "",
-  departmentId: "",
-  designationId: "",
-  jobRoleId: "",
-  businessUnit: "",
-  team: "",
-  projectSite: "",
-  workLocation: "",
-  officeBranch: "",
-  category: "",
-  assetId: "",
-  status: "Active",
-  exitType: "NA",
-  exitReason: "",
-  probationPeriod: "",
-  noticePeriod: "",
-  salaryBandId: "",
-  education: "",
-  certifications: "",
-  technicalSkills: "",
-  functionalSkills: "",
-  experience: "",
-  previousCompany: "",
-  employmentType: "",
-  contractType: "",
-  bondStatus: "",
-  languages: "",
-  pan: "",
-  aadhaar: "",
-  pfUan: "",
-  bankAccount: "",
-  ifsc: "",
-  joiningDate: "",
-  reportingManagerId: "",
-};
-
-const EMPTY_DOCS: OnboardDocs = {
-  Resume: null,
-  "PAN Card": null,
-  "Aadhaar Card": null,
-  "Offer Letter": null,
-  "Education Certs": null,
-  "Experience Letters": null,
-};
-
-const ONBOARD_FIELDS: OnboardField[] = [
-  "firstName",
-  "lastName",
-  "workEmail",
-  "personalEmail",
-  "employeeCode",
-  "phone",
-  "altPhone",
-  "emergencyContact",
-  "dateOfBirth",
-  "joiningDate",
-  "probationPeriod",
-  "noticePeriod",
-  "pan",
-  "aadhaar",
-  "pfUan",
-  "bankAccount",
-  "ifsc",
-];
-
-const MAX_ADULT_DOB = isoDateYearsAgo(18);
-const MIN_DOB = isoDateYearsAgo(100);
-
-function digitsOnly(value: string): string {
-  return value.replace(/\D/g, "");
-}
-
-/** Verhoeff checksum used by Aadhaar. */
-function isValidAadhaar(value: string): boolean {
-  const digits = digitsOnly(value);
-  if (digits.length !== 12 || /^0+$/.test(digits)) return false;
-  const d = [
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-    [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
-    [2, 3, 4, 0, 1, 7, 8, 9, 5, 6],
-    [3, 4, 0, 1, 2, 8, 9, 5, 6, 7],
-    [4, 0, 1, 2, 3, 9, 5, 6, 7, 8],
-    [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
-    [6, 5, 9, 8, 7, 1, 0, 4, 3, 2],
-    [7, 6, 5, 9, 8, 2, 1, 0, 4, 3],
-    [8, 7, 6, 5, 9, 3, 2, 1, 0, 4],
-    [9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
-  ];
-  const p = [
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-    [1, 5, 7, 6, 2, 8, 3, 0, 9, 4],
-    [5, 8, 0, 3, 7, 9, 6, 1, 4, 2],
-    [8, 9, 1, 6, 0, 4, 3, 5, 2, 7],
-    [9, 4, 5, 3, 1, 2, 6, 8, 7, 0],
-    [4, 2, 8, 6, 5, 7, 3, 9, 0, 1],
-    [2, 7, 9, 3, 8, 0, 6, 4, 1, 5],
-    [7, 0, 4, 6, 9, 1, 3, 2, 5, 8],
-  ];
-  let c = 0;
-  const reversed = digits.split("").reverse().map(Number);
-  for (let i = 0; i < reversed.length; i++) c = d[c][p[i % 8][reversed[i]]];
-  return c === 0;
-}
-
-function isValidPan(value: string): boolean {
-  return /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(value.trim().toUpperCase());
-}
-
-function isValidIfsc(value: string): boolean {
-  return /^[A-Z]{4}0[A-Z0-9]{6}$/.test(value.trim().toUpperCase());
-}
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function validateOnboardField(
-  field: OnboardField,
-  values: OnboardValues,
-  existingCodes: string[],
-): string | undefined {
-  switch (field) {
-    case "firstName": {
-      const v = values.firstName.trim();
-      if (!v) return "First name is required";
-      if (v.length > 120) return "First name must be 120 characters or less";
-      if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
-      return undefined;
-    }
-    case "lastName": {
-      const v = values.lastName.trim();
-      if (!v) return "Last name is required";
-      if (v.length > 120) return "Last name must be 120 characters or less";
-      if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
-      return undefined;
-    }
-    case "dateOfBirth": {
-      const v = values.dateOfBirth.trim();
-      if (!v) return undefined;
-      if (v > MAX_ADULT_DOB) return "Employee must be at least 18 years old";
-      if (v < MIN_DOB) return "Enter a valid date of birth";
-      return undefined;
-    }
-    case "joiningDate": {
-      const v = values.joiningDate.trim();
-      if (!v) return undefined;
-      if (v < isoDateToday()) return "Date of joining must be today or a future date";
-      return undefined;
-    }
-    case "nationalityId":
-    case "departmentId":
-    case "designationId":
-    case "jobRoleId":
-    case "salaryBandId":
-      return undefined;
-    case "probationPeriod": {
-      const v = values.probationPeriod.trim();
-      if (!v) return undefined;
-      const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 36) return "Enter months between 0 and 36";
-      return undefined;
-    }
-    case "noticePeriod": {
-      const v = values.noticePeriod.trim();
-      if (!v) return undefined;
-      const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 365) return "Enter days between 0 and 365";
-      return undefined;
-    }
-    case "workEmail": {
-      const v = values.workEmail.trim();
-      if (!v) return "Work email is required";
-      const atIdx = v.indexOf("@");
-      if (atIdx <= 0) return "Enter a valid username (e.g. john.doe)";
-      const local = v.slice(0, atIdx);
-      if (!isValidEmailLocalPart(local)) return "Username can only contain letters, numbers, and '.'";
-      return emailError(v, true);
-    }
-    case "personalEmail": {
-      const v = values.personalEmail.trim();
-      if (!v) return undefined;
-      const mailErr = emailError(v);
-      if (mailErr) return mailErr;
-      if (v.toLowerCase() === values.workEmail.trim().toLowerCase()) {
-        return "Personal email should be different from work email";
-      }
-      return undefined;
-    }
-    case "employeeCode": {
-      const v = values.employeeCode.trim();
-      if (!v) return "Employee ID is required";
-      if (v.length > 20) return "Employee ID must be 20 characters or less";
-      if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(v)) {
-        return "Use letters, numbers, dot, hyphen or underscore";
-      }
-      if (existingCodes.some((c) => c.toLowerCase() === v.toLowerCase())) {
-        return "This employee ID already exists";
-      }
-      return undefined;
-    }
-    case "phone": {
-      return phoneError(values.phone);
-    }
-    case "altPhone": {
-      return phoneError(values.altPhone);
-    }
-    case "emergencyContact": {
-      return phoneError(values.emergencyContact);
-    }
-    case "pan": {
-      const v = values.pan.trim();
-      if (!v) return undefined;
-      if (!isValidPan(v)) return "Enter a valid PAN (e.g. ABCDE1234F)";
-      return undefined;
-    }
-    case "aadhaar": {
-      const v = values.aadhaar.trim();
-      if (!v) return undefined;
-      if (/\D/.test(v.replace(/\s/g, ""))) return "Only numbers are allowed";
-      if (!isValidAadhaar(v)) return "Enter a valid 12-digit Aadhaar number";
-      return undefined;
-    }
-    case "pfUan": {
-      const v = values.pfUan.trim();
-      if (!v) return undefined;
-      if (/\D/.test(v)) return "Only numbers are allowed";
-      if (digitsOnly(v).length !== 12) return "UAN must be a valid 12-digit number";
-      return undefined;
-    }
-    case "bankAccount": {
-      const v = values.bankAccount.trim();
-      if (!v) return undefined;
-      if (/\D/.test(v)) return "Only numbers are allowed";
-      const n = digitsOnly(v);
-      if (n.length < 9 || n.length > 18) return "Enter a valid bank account number (9–18 digits)";
-      return undefined;
-    }
-    case "ifsc": {
-      const v = values.ifsc.trim();
-      if (!v) return undefined;
-      if (!isValidIfsc(v)) return "Enter a valid IFSC (e.g. SBIN0001234)";
-      return undefined;
-    }
-    case "gender":
-    case "maritalStatus":
-    case "address":
-    case "businessUnit":
-    case "team":
-    case "projectSite":
-    case "workLocation":
-    case "officeBranch":
-    case "category":
-    case "assetId":
-    case "status":
-    case "exitType":
-    case "exitReason":
-    case "education":
-    case "certifications":
-    case "technicalSkills":
-    case "functionalSkills":
-    case "experience":
-    case "previousCompany":
-    case "employmentType":
-    case "contractType":
-    case "bondStatus":
-    case "languages":
-    case "reportingManagerId":
-      return undefined;
-  }
-}
-
-function csvToList(value: string): string[] {
-  return value
-    .split(/[,;]/)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => part.slice(0, 120));
-}
-
-function blankToNull(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
-
-function toDirectoryStatus(employmentStatus: string): string {
-  switch (employmentStatus) {
-    case "Active - Probation":
-      return "Probation";
-    case "Resignation - Under Review":
-    case "Resignation - Accepted":
-      return "Notice Period";
-    case "Inactive - After Onboarding":
-      return "Inactive";
-    default:
-      return "Active";
-  }
-}
-
-function validateOnboardForm(values: OnboardValues, existingCodes: string[]): OnboardErrors {
-  const errors: OnboardErrors = {};
-  ONBOARD_FIELDS.forEach((field) => {
-    const message = validateOnboardField(field, values, existingCodes);
-    if (message) errors[field] = message;
-  });
-  return errors;
-}
-
-function validateOnboardFile(file: File): string | undefined {
-  const ext = file.name.includes(".") ? `.${file.name.split(".").pop()!.toLowerCase()}` : "";
-  if (!DOC_EXT.includes(ext)) return "Only PDF, JPG or PNG files are allowed";
-  if (file.size > MAX_DOC_BYTES) return "File must be 5 MB or smaller";
-  return undefined;
-}
-
 function FormField({
   label,
   type = "text",
@@ -1277,69 +905,150 @@ function FormSection({ title, children }: { title: string; children: React.React
 function UploadSlot({
   label,
   file,
+  files,
+  multiple,
   error,
   onSelect,
+  onSelectMultiple,
   onClear,
+  onRemoveFile,
 }: {
   label: string;
-  file: File | null;
+  file?: File | null;
+  files?: File[];
+  multiple?: boolean;
   error?: string;
-  onSelect: (file: File) => void;
+  onSelect?: (file: File) => void;
+  onSelectMultiple?: (files: File[]) => void;
   onClear: () => void;
+  onRemoveFile?: (index: number) => void;
 }) {
   const inputId = `onboard-doc-${label.replace(/\s+/g, "-").toLowerCase()}`;
+  const fileList = multiple ? files ?? [] : file ? [file] : [];
+  const hasFiles = fileList.length > 0;
+
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col space-y-1">
       <input
         id={inputId}
         type="file"
+        multiple={multiple}
         accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
         className="sr-only"
         onChange={(e) => {
-          const next = e.target.files?.[0];
-          if (next) onSelect(next);
+          const selected = Array.from(e.target.files ?? []);
+          if (selected.length > 0) {
+            if (multiple && onSelectMultiple) {
+              onSelectMultiple(selected);
+            } else if (onSelect && selected[0]) {
+              onSelect(selected[0]);
+            }
+          }
           e.target.value = "";
         }}
       />
-      {file ? (
-        <div
-          className={cn(
-            "flex flex-col items-center justify-center rounded-md border-2 px-3 py-5 text-center",
-            error ? "border-destructive bg-destructive/5" : "border-primary/40 bg-primary/5",
-          )}
-        >
-          <FileText className="mb-2 h-5 w-5 text-primary" />
-          <div className="max-w-full truncate text-xs font-medium text-foreground" title={file.name}>
-            {file.name}
-          </div>
-          <div className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</div>
-          <div className="mt-2 flex items-center gap-2">
-            <label htmlFor={inputId} className="cursor-pointer text-[11px] font-medium text-primary hover:underline">
-              Replace
-            </label>
-            <button
-              type="button"
-              onClick={onClear}
-              className="text-[11px] font-medium text-muted-foreground hover:text-destructive"
-            >
-              Remove
-            </button>
-          </div>
-        </div>
-      ) : (
-        <label
-          htmlFor={inputId}
-          className={cn(
-            "flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed px-4 py-6 text-center transition-colors hover:bg-muted/50",
-            error ? "border-destructive bg-destructive/5" : "border-border bg-muted/30",
-          )}
-        >
-          <Plus className="mb-2 h-5 w-5 text-muted-foreground" />
-          <div className="text-xs font-medium text-foreground">{label}</div>
-          <div className="text-[11px] text-muted-foreground">PDF, JPG · up to 5 MB</div>
-        </label>
-      )}
-      {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
+      <div
+        className={cn(
+          "relative flex h-[144px] w-full flex-col items-center justify-between rounded-lg border-2 p-2.5 text-center transition-all",
+          hasFiles
+            ? error
+              ? "border-destructive bg-destructive/5"
+              : "border-primary/40 bg-primary/5 shadow-xs"
+            : error
+              ? "border-destructive/60 bg-destructive/5 hover:bg-destructive/10"
+              : "border-dashed border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40",
+        )}
+      >
+        {hasFiles ? (
+          <>
+            <div className="flex w-full flex-1 flex-col items-center justify-center min-h-0 overflow-hidden">
+              <div className="flex items-center gap-1.5 text-primary mb-1 shrink-0">
+                <FileText className="h-4 w-4" />
+                {multiple && fileList.length > 1 ? (
+                  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                    {fileList.length} files
+                  </span>
+                ) : null}
+              </div>
+
+              {multiple && fileList.length > 1 ? (
+                <div className="w-full max-h-[55px] overflow-y-auto space-y-1 px-0.5 my-0.5 text-left text-[11px]">
+                  {fileList.map((f, idx) => (
+                    <div
+                      key={`${f.name}-${idx}`}
+                      className="flex items-center justify-between gap-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] border border-border/60"
+                    >
+                      <span className="truncate flex-1 font-medium text-foreground" title={f.name}>
+                        {f.name}
+                      </span>
+                      {onRemoveFile && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveFile(idx);
+                          }}
+                          className="shrink-0 text-muted-foreground hover:text-destructive p-0.5"
+                          title="Remove file"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full px-1">
+                  <div
+                    className="max-w-full truncate text-xs font-semibold text-foreground"
+                    title={fileList[0].name}
+                  >
+                    {fileList[0].name}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {formatBytes(fileList[0].size)}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-1 flex shrink-0 items-center justify-center gap-2 pt-1 border-t border-border/40 w-full text-[11px]">
+              <label
+                htmlFor={inputId}
+                className="cursor-pointer font-medium text-primary hover:underline"
+              >
+                {multiple ? "+ Add More" : "Replace"}
+              </label>
+              <span className="text-muted-foreground/40">·</span>
+              <button
+                type="button"
+                onClick={onClear}
+                className="font-medium text-muted-foreground hover:text-destructive"
+              >
+                {multiple && fileList.length > 1 ? "Clear All" : "Remove"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <label
+            htmlFor={inputId}
+            className="flex h-full w-full cursor-pointer flex-col items-center justify-center"
+          >
+            <Plus className="mb-1.5 h-4 w-4 text-muted-foreground" />
+            <div className="text-xs font-medium text-foreground line-clamp-1 leading-tight" title={label}>
+              {label}
+            </div>
+            {multiple ? (
+              <span className="mt-1 inline-block rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                Multi-file
+              </span>
+            ) : (
+              <div className="text-[10px] text-muted-foreground mt-0.5">PDF, JPG · ≤ 5 MB</div>
+            )}
+          </label>
+        )}
+      </div>
+      {error ? <p className="text-[10px] text-destructive leading-tight px-0.5">{error}</p> : null}
     </div>
   );
 }
@@ -1374,7 +1083,7 @@ function OnboardingPanel({
   const [workLocOptions, setWorkLocOptions] = useState<ApiMetaOption[]>([]);
   const [officeOptions, setOfficeOptions] = useState<ApiMetaOption[]>([]);
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
-  const [workEmailDomain, setWorkEmailDomain] = useState("talakunchi.com");
+  const [workEmailDomain, setWorkEmailDomain] = useState("");
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -1402,7 +1111,7 @@ function OnboardingPanel({
       setWorkLocOptions([]);
       setOfficeOptions([]);
       setWorkEmailPrefix("");
-      setWorkEmailDomain("talakunchi.com");
+      setWorkEmailDomain("");
       return;
     }
     void fetchNationalityOptions()
@@ -1418,31 +1127,23 @@ function OnboardingPanel({
       .then(setBuOptions)
       .catch(() => toast.error("Could not load business units"));
     void fetchWorkLocationOptions()
-      .then(setWorkLocOptions)
+      .then((locs) => setWorkLocOptions(locs ?? []))
       .catch(() => toast.error("Could not load work locations"));
     void fetchOfficeOptions()
-      .then(setOfficeOptions)
+      .then((offs) => setOfficeOptions(offs ?? []))
       .catch(() => toast.error("Could not load offices"));
     void fetchReportingManagerOptions()
-      .then(setManagerOptions)
-      .catch(() => {
-        setManagerOptions(managers.map((m) => ({ id: m.id, code: m.id, name: m.name })));
-      });
+      .then((mgrs) => setManagerOptions(mgrs ?? []))
+      .catch(() => toast.error("Could not load reporting managers"));
     void fetchEmailDomainOptions()
       .then((domains) => {
-        setEmailDomainOptions(domains);
-        if (domains.length > 0) {
+        setEmailDomainOptions(domains ?? []);
+        if (domains && domains.length > 0) {
           const firstDomain = domains[0].code.replace(/^@/, "");
           setWorkEmailDomain(firstDomain);
         }
       })
-      .catch(() => {
-        setEmailDomainOptions([
-          { id: "1", code: "talakunchi.com", name: "@talakunchi.com" },
-          { id: "2", code: "talakunchi.in", name: "@talakunchi.in" },
-          { id: "3", code: "squad1.io", name: "@squad1.io" },
-        ]);
-      });
+      .catch(() => toast.error("Could not load email domains"));
   }, [open, managers]);
 
   useEffect(() => {
@@ -1466,10 +1167,13 @@ function OnboardingPanel({
   }, [open, form.designationId]);
 
   const selectedWorkLoc = useMemo(() => {
+    if (!form.workLocation) return undefined;
+    const target = form.workLocation.trim().toLowerCase();
     return workLocOptions.find(
       (l) =>
-        l.name.toLowerCase() === form.workLocation.trim().toLowerCase() ||
-        l.id === form.workLocation,
+        l.name.toLowerCase() === target ||
+        l.id.toLowerCase() === target ||
+        (l.code && l.code.toLowerCase() === target),
     );
   }, [workLocOptions, form.workLocation]);
 
@@ -1493,19 +1197,24 @@ function OnboardingPanel({
               : field === "noticePeriod"
                 ? toDigits(value, FIELD_MAX.noticeDays)
                 : value;
-    const next = { ...form, [field]: nextValue };
-    if (field === "departmentId") {
-      next.designationId = "";
-      next.jobRoleId = "";
-    }
-    if (field === "designationId") next.jobRoleId = "";
-    setForm(next);
+
+    setForm((prev) => {
+      const next = { ...prev, [field]: nextValue };
+      if (field === "departmentId") {
+        next.designationId = "";
+        next.jobRoleId = "";
+      }
+      if (field === "designationId") next.jobRoleId = "";
+      return next;
+    });
+
     const live =
       field === "phone" ||
       field === "altPhone" ||
       field === "emergencyContact" ||
       field === "workEmail" ||
       field === "personalEmail";
+
     setErrors((prev) => {
       if (
         !live &&
@@ -1516,11 +1225,12 @@ function OnboardingPanel({
         return prev;
       }
       const nextErrors = { ...prev };
-      const message = validateOnboardField(field, next, existingCodes);
+      const simulatedNext = { ...form, [field]: nextValue };
+      const message = validateOnboardField(field, simulatedNext, existingCodes);
       if (message) nextErrors[field] = message;
       else delete nextErrors[field];
-      if (field === "workEmail" && next.personalEmail.trim()) {
-        const personalMsg = validateOnboardField("personalEmail", next, existingCodes);
+      if (field === "workEmail" && simulatedNext.personalEmail.trim()) {
+        const personalMsg = validateOnboardField("personalEmail", simulatedNext, existingCodes);
         if (personalMsg) nextErrors.personalEmail = personalMsg;
         else delete nextErrors.personalEmail;
       }
@@ -1560,16 +1270,66 @@ function OnboardingPanel({
     setDocs((prev) => ({ ...prev, [slot]: file }));
   };
 
+  const handleDocSelectMultiple = (
+    slot: (typeof ONBOARD_DOC_SLOTS)[number],
+    incomingFiles: File[],
+  ) => {
+    for (const file of incomingFiles) {
+      const message = validateOnboardFile(file);
+      if (message) {
+        setDocErrors((prev) => ({ ...prev, [slot]: message }));
+        toast.error(message);
+        return;
+      }
+    }
+    setDocErrors((prev) => {
+      const next = { ...prev };
+      delete next[slot];
+      return next;
+    });
+    setDocs((prev) => {
+      const currentList = Array.isArray(prev[slot]) ? (prev[slot] as File[]) : [];
+      const combined = [...currentList];
+      for (const f of incomingFiles) {
+        if (!combined.some((x) => x.name === f.name && x.size === f.size)) {
+          combined.push(f);
+        }
+      }
+      return { ...prev, [slot]: combined };
+    });
+  };
+
+  const handleRemoveSingleDocFile = (
+    slot: (typeof ONBOARD_DOC_SLOTS)[number],
+    fileIndex: number,
+  ) => {
+    setDocs((prev) => {
+      const currentList = Array.isArray(prev[slot]) ? (prev[slot] as File[]) : [];
+      const updated = currentList.filter((_, idx) => idx !== fileIndex);
+      return { ...prev, [slot]: updated };
+    });
+  };
+
   const handleCreate = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const nextErrors = validateOnboardForm(form, existingCodes);
     setErrors(nextErrors);
     const nextDocErrors: OnboardDocErrors = {};
     ONBOARD_DOC_SLOTS.forEach((slot) => {
-      const file = docs[slot];
-      if (!file) return;
-      const message = validateOnboardFile(file);
-      if (message) nextDocErrors[slot] = message;
+      const docItem = docs[slot];
+      if (!docItem) return;
+      if (Array.isArray(docItem)) {
+        for (const f of docItem) {
+          const message = validateOnboardFile(f);
+          if (message) {
+            nextDocErrors[slot] = message;
+            break;
+          }
+        }
+      } else {
+        const message = validateOnboardFile(docItem);
+        if (message) nextDocErrors[slot] = message;
+      }
     });
     setDocErrors(nextDocErrors);
     if (Object.keys(nextErrors).length > 0 || Object.keys(nextDocErrors).length > 0) {
@@ -1666,8 +1426,10 @@ function OnboardingPanel({
         ? `${form.probationPeriod.trim()} months`
         : null;
       const employmentStatus = form.status.trim() || "Active";
+      const empCode = form.employeeCode.trim();
+
       await createEmployee({
-        employeeCode: form.employeeCode.trim(),
+        employeeCode: empCode,
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         workEmail: form.workEmail.trim(),
@@ -1721,11 +1483,28 @@ function OnboardingPanel({
         salaryBandId: form.salaryBandId || null,
         salaryBand: salaryBands.find((b) => b.id === form.salaryBandId)?.name ?? null,
       });
-      const attached = ONBOARD_DOC_SLOTS.filter((slot) => docs[slot]).length;
+
+      // Upload attached documents to local backend storage
+      const uploadPromises: Promise<void>[] = [];
+      let totalFilesUploaded = 0;
+      for (const slot of ONBOARD_DOC_SLOTS) {
+        const docItem = docs[slot];
+        if (Array.isArray(docItem) && docItem.length > 0) {
+          totalFilesUploaded += docItem.length;
+          uploadPromises.push(uploadEmployeeDocuments(empCode, slot, docItem));
+        } else if (docItem && !Array.isArray(docItem)) {
+          totalFilesUploaded += 1;
+          uploadPromises.push(uploadEmployeeDocuments(empCode, slot, [docItem]));
+        }
+      }
+      if (uploadPromises.length > 0) {
+        await Promise.allSettled(uploadPromises);
+      }
+
       onCreated();
       toast.success(
-        attached > 0
-          ? `Employee created with ${attached} document${attached === 1 ? "" : "s"} attached`
+        totalFilesUploaded > 0
+          ? `Employee created with ${totalFilesUploaded} document${totalFilesUploaded === 1 ? "" : "s"} saved to storage`
           : "Employee created successfully",
       );
       onClose();
@@ -1781,6 +1560,7 @@ function OnboardingPanel({
                 name="firstName"
                 required
                 maxLength={FIELD_MAX.firstName}
+                placeholder="First name"
                 value={form.firstName}
                 onChange={(v) => setField("firstName", v)}
                 onBlur={() => blurField("firstName")}
@@ -1791,6 +1571,7 @@ function OnboardingPanel({
                 name="lastName"
                 required
                 maxLength={FIELD_MAX.lastName}
+                placeholder="Last name"
                 value={form.lastName}
                 onChange={(v) => setField("lastName", v)}
                 onBlur={() => blurField("lastName")}
@@ -1805,7 +1586,7 @@ function OnboardingPanel({
                     <input
                       id="onboard-workEmail"
                       type="text"
-                      placeholder="e.g. john.doe"
+                      placeholder="john.doe"
                       autoComplete="new-password"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -1864,21 +1645,18 @@ function OnboardingPanel({
                       className="h-9 shrink-0 rounded-r-md border border-l-0 border-input bg-muted/70 px-2.5 text-xs font-semibold text-foreground outline-none hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors"
                       aria-label="Email domain"
                     >
-                      {(emailDomainOptions.length > 0
-                        ? emailDomainOptions
-                        : [
-                          { id: "1", code: "talakunchi.com", name: "@talakunchi.com" },
-                          { id: "2", code: "talakunchi.in", name: "@talakunchi.in" },
-                          { id: "3", code: "squad1.io", name: "@squad1.io" },
-                        ]
-                      ).map((opt) => {
-                        const domainVal = opt.code.replace(/^@/, "");
-                        return (
-                          <option key={opt.id || opt.code} value={domainVal}>
-                            {opt.name.startsWith("@") ? opt.name : `@${opt.name}`}
-                          </option>
-                        );
-                      })}
+                      {emailDomainOptions.length === 0 ? (
+                        <option value="" disabled>Loading domains…</option>
+                      ) : (
+                        emailDomainOptions.map((opt) => {
+                          const domainVal = opt.code.replace(/^@/, "");
+                          return (
+                            <option key={opt.id || opt.code} value={domainVal}>
+                              {opt.name.startsWith("@") ? opt.name : `@${opt.name}`}
+                            </option>
+                          );
+                        })
+                      )}
                     </select>
                   </div>
                   {errors.workEmail ? <p className={FORM_ERROR_CLS}>{errors.workEmail}</p> : null}
@@ -1889,6 +1667,7 @@ function OnboardingPanel({
                 name="personalEmail"
                 type="text"
                 maxLength={FIELD_MAX.email}
+                placeholder="name@example.com"
                 value={form.personalEmail}
                 onChange={(v) => setField("personalEmail", v)}
                 onBlur={() => blurField("personalEmail")}
@@ -1900,7 +1679,7 @@ function OnboardingPanel({
                 required
                 inputMode="numeric"
                 maxLength={FIELD_MAX.phone}
-                placeholder="9876543210"
+                placeholder="10-digit number"
                 prefix="+91"
                 value={form.phone}
                 onChange={(v) => setField("phone", v)}
@@ -1912,12 +1691,24 @@ function OnboardingPanel({
                 name="altPhone"
                 inputMode="numeric"
                 maxLength={FIELD_MAX.phone}
-                placeholder="9876543210"
+                placeholder="10-digit number"
                 prefix="+91"
                 value={form.altPhone}
                 onChange={(v) => setField("altPhone", v)}
                 onBlur={() => blurField("altPhone")}
                 error={errors.altPhone}
+              />
+              <FormField
+                label="Emergency Contact"
+                name="emergencyContact"
+                inputMode="numeric"
+                maxLength={FIELD_MAX.phone}
+                placeholder="10-digit number"
+                prefix="+91"
+                value={form.emergencyContact}
+                onChange={(v) => setField("emergencyContact", v)}
+                onBlur={() => blurField("emergencyContact")}
+                error={errors.emergencyContact}
               />
               <FormSelect
                 label="Gender"
@@ -1952,22 +1743,11 @@ function OnboardingPanel({
                   label="Address"
                   name="address"
                   maxLength={FIELD_MAX.address}
+                  placeholder="Street address, city, state, PIN code"
                   value={form.address}
                   onChange={(v) => setField("address", v)}
                 />
               </div>
-              <FormField
-                label="Emergency Contact"
-                name="emergencyContact"
-                inputMode="numeric"
-                maxLength={FIELD_MAX.phone}
-                placeholder="9876543210"
-                prefix="+91"
-                value={form.emergencyContact}
-                onChange={(v) => setField("emergencyContact", v)}
-                onBlur={() => blurField("emergencyContact")}
-                error={errors.emergencyContact}
-              />
             </FormSection>
 
             <FormSection title="2. Organization Assignment">
@@ -1975,7 +1755,7 @@ function OnboardingPanel({
                 label="Employee ID"
                 name="employeeCode"
                 required
-                placeholder="EMP-1049"
+                placeholder="e.g. EMP-1001"
                 maxLength={FIELD_MAX.employeeCode}
                 value={form.employeeCode}
                 onChange={(v) => setField("employeeCode", v)}
@@ -2038,7 +1818,7 @@ function OnboardingPanel({
                 label="Reporting Manager"
                 options={managerOptions}
                 valueId={form.reportingManagerId}
-                placeholder="Select reporting manager…"
+                placeholder="Select reporting manager"
                 onSelect={(id) => setField("reportingManagerId", id)}
                 onCreate={(name) => {
                   const trimmed = name.trim();
@@ -2055,7 +1835,7 @@ function OnboardingPanel({
                 label="Business Unit"
                 options={buOptions}
                 valueId={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
-                placeholder="Select business unit…"
+                placeholder="Select business unit"
                 onSelect={(id, name) => setField("businessUnit", name || id)}
                 onCreate={(name) => {
                   const trimmed = name.trim();
@@ -2068,6 +1848,7 @@ function OnboardingPanel({
               />
               <FormField
                 label="Team"
+                placeholder="Enter team or squad name"
                 maxLength={FIELD_MAX.team}
                 value={form.team}
                 onChange={(v) => setField("team", v)}
@@ -2082,39 +1863,77 @@ function OnboardingPanel({
                 label="Work Location"
                 options={workLocOptions}
                 valueId={selectedWorkLoc?.id ?? form.workLocation}
-                placeholder="Select work location…"
+                placeholder="Select work location"
                 onSelect={(id, name) => {
                   const resolvedName = name || id;
-                  setField("workLocation", resolvedName);
-                  const loc = workLocOptions.find((l) => l.name === resolvedName || l.id === id);
+                  const loc = workLocOptions.find(
+                    (l) =>
+                      l.id === id ||
+                      l.name.toLowerCase() === resolvedName.toLowerCase() ||
+                      (l.code && l.code.toLowerCase() === resolvedName.toLowerCase()),
+                  );
                   const matchedOffices = loc ? officeOptions.filter((o) => o.parentId === loc.id) : [];
-                  if (matchedOffices.length === 1) {
-                    setField("officeBranch", matchedOffices[0].name);
-                  } else if (!matchedOffices.some((o) => o.name.toLowerCase() === form.officeBranch.toLowerCase())) {
-                    setField("officeBranch", "");
-                  }
+                  const autoOffice =
+                    matchedOffices.length === 1
+                      ? matchedOffices[0].name
+                      : matchedOffices.some(
+                            (o) => o.name.toLowerCase() === form.officeBranch.toLowerCase(),
+                          )
+                        ? form.officeBranch
+                        : "";
+                  setForm((prev) => ({
+                    ...prev,
+                    workLocation: loc ? loc.name : resolvedName,
+                    officeBranch: autoOffice,
+                  }));
                 }}
-                onCreate={(name) => {
+                onCreate={async (name) => {
                   const trimmed = name.trim();
                   const existing = workLocOptions.find((w) => w.name.toLowerCase() === trimmed.toLowerCase());
                   if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setWorkLocOptions((prev) => [...prev, temp]);
-                  return temp;
+                  try {
+                    const created = await createWorkLocationOption(trimmed);
+                    setWorkLocOptions((prev) => [...prev, created]);
+                    return created;
+                  } catch {
+                    const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
+                    setWorkLocOptions((prev) => [...prev, temp]);
+                    return temp;
+                  }
                 }}
               />
               <CreatableCatalogSelect
                 label="Office"
                 options={availableOffices}
-                valueId={availableOffices.find((o) => o.name === form.officeBranch || o.id === form.officeBranch)?.id ?? form.officeBranch}
+                valueId={availableOffices.find((o) => o.name.toLowerCase() === form.officeBranch.toLowerCase() || o.id === form.officeBranch)?.id ?? form.officeBranch}
                 disabled={!selectedWorkLoc}
                 disabledHint="Select a work location first"
-                placeholder={selectedWorkLoc ? "Select office…" : "Select a work location first"}
-                onSelect={(id, name) => setField("officeBranch", name || id)}
-                onCreate={(name) => {
+                placeholder={selectedWorkLoc ? "Select office branch" : "Select a work location first"}
+                onSelect={(id, name) => {
+                  const resolvedName = name || id;
+                  const off = availableOffices.find(
+                    (o) =>
+                      o.id === id ||
+                      o.name.toLowerCase() === resolvedName.toLowerCase(),
+                  );
+                  setForm((prev) => ({
+                    ...prev,
+                    officeBranch: off ? off.name : resolvedName,
+                  }));
+                }}
+                onCreate={async (name) => {
                   const trimmed = name.trim();
                   const existing = availableOffices.find((o) => o.name.toLowerCase() === trimmed.toLowerCase());
                   if (existing) return existing;
+                  if (selectedWorkLoc && !selectedWorkLoc.id.startsWith("__new__")) {
+                    try {
+                      const created = await createOfficeOption(trimmed, selectedWorkLoc.id);
+                      setOfficeOptions((prev) => [...prev, created]);
+                      return created;
+                    } catch {
+                      // fallback
+                    }
+                  }
                   const temp = {
                     id: `__new__${trimmed}`,
                     code: `__new__${trimmed}`,
@@ -2151,7 +1970,7 @@ function OnboardingPanel({
               />
               <FormField
                 label="Asset ID"
-                placeholder="TK-4029"
+                placeholder="e.g. AST-1001"
                 maxLength={FIELD_MAX.assetId}
                 value={form.assetId}
                 onChange={(v) => setField("assetId", v)}
@@ -2161,31 +1980,15 @@ function OnboardingPanel({
                 options={[
                   "Active - Probation",
                   "Active",
-                  "Resignation - Under Review",
-                  "Resignation - Accepted",
-                  "Inactive - After Onboarding",
                 ]}
                 value={form.status}
                 onChange={(v) => setField("status", v)}
-              />
-              <FormSelect
-                label="Exit Type"
-                options={["NA", "Resign", "Absconded", "Terminated", "Suspension"]}
-                value={form.exitType}
-                onChange={(v) => setField("exitType", v)}
-              />
-              <FormField
-                label="Exit Comment"
-                placeholder="Reason for resignation/termination"
-                maxLength={FIELD_MAX.exitComment}
-                value={form.exitReason}
-                onChange={(v) => setField("exitReason", v)}
               />
               <FormField
                 label="Probation Period"
                 inputMode="numeric"
                 maxLength={FIELD_MAX.probationMonths}
-                placeholder="6"
+                placeholder="e.g. 6"
                 suffix="months"
                 value={form.probationPeriod}
                 onChange={(v) => setField("probationPeriod", v)}
@@ -2196,7 +1999,7 @@ function OnboardingPanel({
                 label="Notice Period"
                 inputMode="numeric"
                 maxLength={FIELD_MAX.noticeDays}
-                placeholder="90"
+                placeholder="e.g. 90"
                 suffix="days"
                 value={form.noticePeriod}
                 onChange={(v) => setField("noticePeriod", v)}
@@ -2233,46 +2036,48 @@ function OnboardingPanel({
               <FormField
                 label="Highest Qualification"
                 maxLength={FIELD_MAX.education}
+                placeholder="e.g. Bachelor of Technology / Master of Business Administration"
                 value={form.education}
                 onChange={(v) => setField("education", v)}
               />
               <FormField
                 label="Certifications"
-                placeholder="AWS, Scrum Master"
+                placeholder="e.g. AWS Certified Solutions Architect, Scrum Master"
                 maxLength={FIELD_MAX.certifications}
                 value={form.certifications}
                 onChange={(v) => setField("certifications", v)}
               />
               <FormField
                 label="Technical Skills"
-                placeholder="React, Node.js"
+                placeholder="e.g. React, Node.js, TypeScript, PostgreSQL"
                 maxLength={FIELD_MAX.skills}
                 value={form.technicalSkills}
                 onChange={(v) => setField("technicalSkills", v)}
               />
               <FormField
                 label="Functional Skills"
-                placeholder="Stakeholder Mgmt, Mentoring"
+                placeholder="e.g. Stakeholder Management, Team Leadership"
                 maxLength={FIELD_MAX.skills}
                 value={form.functionalSkills}
                 onChange={(v) => setField("functionalSkills", v)}
               />
               <FormField
                 label="Experience"
-                placeholder="5 years"
+                placeholder="e.g. 5 years"
                 maxLength={FIELD_MAX.experience}
                 value={form.experience}
                 onChange={(v) => setField("experience", v)}
               />
               <FormField
                 label="Previous Organization"
+                placeholder="e.g. Previous Employer Name"
                 maxLength={FIELD_MAX.previousCompany}
                 value={form.previousCompany}
                 onChange={(v) => setField("previousCompany", v)}
               />
               <FormField
                 label="Languages Known"
-                placeholder="English, Hindi"
+                placeholder="e.g. English, Hindi, Marathi"
                 maxLength={FIELD_MAX.text}
                 value={form.languages}
                 onChange={(v) => setField("languages", v)}
@@ -2284,7 +2089,7 @@ function OnboardingPanel({
                 label="PAN Number"
                 name="pan"
                 maxLength={10}
-                placeholder="ABCDE1234F"
+                placeholder="e.g. ABCDE1234F"
                 value={form.pan}
                 onChange={(v) => setField("pan", v.toUpperCase())}
                 onBlur={() => blurField("pan")}
@@ -2295,7 +2100,7 @@ function OnboardingPanel({
                 name="aadhaar"
                 inputMode="numeric"
                 maxLength={12}
-                placeholder="12-digit Aadhaar"
+                placeholder="Enter 12-digit Aadhaar number"
                 value={form.aadhaar}
                 onChange={(v) => setField("aadhaar", v)}
                 onBlur={() => blurField("aadhaar")}
@@ -2306,7 +2111,7 @@ function OnboardingPanel({
                 name="pfUan"
                 inputMode="numeric"
                 maxLength={12}
-                placeholder="12-digit UAN"
+                placeholder="Enter 12-digit UAN number"
                 value={form.pfUan}
                 onChange={(v) => setField("pfUan", v)}
                 onBlur={() => blurField("pfUan")}
@@ -2317,6 +2122,7 @@ function OnboardingPanel({
                 name="bankAccount"
                 inputMode="numeric"
                 maxLength={18}
+                placeholder="Enter bank account number"
                 value={form.bankAccount}
                 onChange={(v) => setField("bankAccount", v)}
                 onBlur={() => blurField("bankAccount")}
@@ -2326,7 +2132,7 @@ function OnboardingPanel({
                 label="IFSC Code"
                 name="ifsc"
                 maxLength={11}
-                placeholder="SBIN0001234"
+                placeholder="e.g. SBIN0001234"
                 value={form.ifsc}
                 onChange={(v) => setField("ifsc", v.toUpperCase())}
                 onBlur={() => blurField("ifsc")}
@@ -2335,25 +2141,39 @@ function OnboardingPanel({
             </FormSection>
 
             <section className="rounded-lg border border-border bg-card p-5">
-              <h3 className="mb-4 text-sm font-semibold text-foreground">6. Document Uploads</h3>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-                {ONBOARD_DOC_SLOTS.map((d) => (
-                  <UploadSlot
-                    key={d}
-                    label={d}
-                    file={docs[d]}
-                    error={docErrors[d]}
-                    onSelect={(file) => handleDocSelect(d, file)}
-                    onClear={() => {
-                      setDocs((prev) => ({ ...prev, [d]: null }));
-                      setDocErrors((prev) => {
-                        const next = { ...prev };
-                        delete next[d];
-                        return next;
-                      });
-                    }}
-                  />
-                ))}
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">6. Document Uploads</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Attach employee verification documents (PDF, JPG, PNG up to 5 MB each). Multiple files supported for Certificates & Experience Letters.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {ONBOARD_DOC_SLOTS.map((d) => {
+                  const isMulti = d === "Education Certs" || d === "Experience Letters";
+                  return (
+                    <UploadSlot
+                      key={d}
+                      label={d}
+                      multiple={isMulti}
+                      file={!isMulti ? (docs[d] as File | null) : null}
+                      files={isMulti ? (docs[d] as File[]) : undefined}
+                      error={docErrors[d]}
+                      onSelect={(file) => handleDocSelect(d, file)}
+                      onSelectMultiple={(files) => handleDocSelectMultiple(d, files)}
+                      onRemoveFile={(idx) => handleRemoveSingleDocFile(d, idx)}
+                      onClear={() => {
+                        setDocs((prev) => ({ ...prev, [d]: isMulti ? [] : null }));
+                        setDocErrors((prev) => {
+                          const next = { ...prev };
+                          delete next[d];
+                          return next;
+                        });
+                      }}
+                    />
+                  );
+                })}
               </div>
             </section>
           </div>
@@ -2606,7 +2426,7 @@ function EmployeeDirectoryPage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name, role, ID…"
+              placeholder="Search by name, role, or ID..."
               className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
             />
             {q && (
@@ -2644,7 +2464,7 @@ function EmployeeDirectoryPage() {
             <FilterSelect
               value={status}
               onChange={setStatus}
-              placeholder="All Status"
+              placeholder="All Statuses"
               options={DIRECTORY_STATUSES}
             />
           </div>

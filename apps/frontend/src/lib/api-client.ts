@@ -196,7 +196,9 @@ async function rawFetch<T>(
   withAuth = false,
 ): Promise<{ ok: boolean; status: number; envelope: T }> {
   const headers = new Headers(init?.headers);
-  headers.set("Content-Type", "application/json");
+  if (!(init?.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
   if (withAuth && accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
 
   // credentials: "include" is required so the HttpOnly refresh cookie is sent

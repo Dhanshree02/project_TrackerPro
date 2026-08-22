@@ -6,6 +6,7 @@ using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
+using PMS.API.Infrastructure.Storage;
 using PMS.API.Modules.Auth.Services;
 using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Modules.Customers.Services;
@@ -27,6 +28,9 @@ public static class DependencyInjectionExtensions
         // ---- Persistence (EF Core + Npgsql) ----
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+
+        // ---- Storage (Local Modular File Storage) ----
+        services.AddSingleton<IFileStorageService, FileStorageService>();
 
         // ---- Security / Authentication ----
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));

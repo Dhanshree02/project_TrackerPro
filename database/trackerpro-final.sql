@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict joA5a4aB2IvKLhcN9bSJeVyFriAumDdgJGGLWEWf5dChNZaQTD2xvs02lUIf9kY
+\restrict XxxDTrllkykjwwwnqsNgHNgFsAPHSnQUA3s8NyHXS3wLxS0MigXtWHzaM2eeMIb
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -145,7 +145,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: -
+-- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."__EFMigrationsHistory" (
@@ -154,8 +154,10 @@ CREATE TABLE public."__EFMigrationsHistory" (
 );
 
 
+ALTER TABLE public."__EFMigrationsHistory" OWNER TO postgres;
+
 --
--- Name: client_assignments; Type: TABLE; Schema: public; Owner: -
+-- Name: client_assignments; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.client_assignments (
@@ -164,8 +166,10 @@ CREATE TABLE public.client_assignments (
 );
 
 
+ALTER TABLE public.client_assignments OWNER TO postgres;
+
 --
--- Name: client_contacts; Type: TABLE; Schema: public; Owner: -
+-- Name: client_contacts; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.client_contacts (
@@ -187,8 +191,10 @@ CREATE TABLE public.client_contacts (
 );
 
 
+ALTER TABLE public.client_contacts OWNER TO postgres;
+
 --
--- Name: clients; Type: TABLE; Schema: public; Owner: -
+-- Name: clients; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.clients (
@@ -222,8 +228,10 @@ CREATE TABLE public.clients (
 );
 
 
+ALTER TABLE public.clients OWNER TO postgres;
+
 --
--- Name: employees; Type: TABLE; Schema: public; Owner: -
+-- Name: employees; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.employees (
@@ -295,8 +303,10 @@ CREATE TABLE public.employees (
 );
 
 
+ALTER TABLE public.employees OWNER TO postgres;
+
 --
--- Name: exited_employees; Type: TABLE; Schema: public; Owner: -
+-- Name: exited_employees; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.exited_employees (
@@ -329,8 +339,10 @@ CREATE TABLE public.exited_employees (
 );
 
 
+ALTER TABLE public.exited_employees OWNER TO postgres;
+
 --
--- Name: mst_business_units; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_business_units; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_business_units (
@@ -347,8 +359,10 @@ CREATE TABLE public.mst_business_units (
 );
 
 
+ALTER TABLE public.mst_business_units OWNER TO postgres;
+
 --
--- Name: mst_cities; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_cities; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_cities (
@@ -365,8 +379,10 @@ CREATE TABLE public.mst_cities (
 );
 
 
+ALTER TABLE public.mst_cities OWNER TO postgres;
+
 --
--- Name: mst_countries; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_countries; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_countries (
@@ -382,8 +398,10 @@ CREATE TABLE public.mst_countries (
 );
 
 
+ALTER TABLE public.mst_countries OWNER TO postgres;
+
 --
--- Name: mst_departments; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_departments; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_departments (
@@ -399,8 +417,10 @@ CREATE TABLE public.mst_departments (
 );
 
 
+ALTER TABLE public.mst_departments OWNER TO postgres;
+
 --
--- Name: mst_designations; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_designations; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_designations (
@@ -417,8 +437,10 @@ CREATE TABLE public.mst_designations (
 );
 
 
+ALTER TABLE public.mst_designations OWNER TO postgres;
+
 --
--- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: trackerpro
 --
 
 CREATE TABLE public.mst_email_domains (
@@ -436,8 +458,10 @@ CREATE TABLE public.mst_email_domains (
 );
 
 
+ALTER TABLE public.mst_email_domains OWNER TO trackerpro;
+
 --
--- Name: mst_industries; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_industries; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_industries (
@@ -453,8 +477,10 @@ CREATE TABLE public.mst_industries (
 );
 
 
+ALTER TABLE public.mst_industries OWNER TO postgres;
+
 --
--- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_nationalities (
@@ -470,8 +496,10 @@ CREATE TABLE public.mst_nationalities (
 );
 
 
+ALTER TABLE public.mst_nationalities OWNER TO postgres;
+
 --
--- Name: mst_offices; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_offices; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_offices (
@@ -489,8 +517,10 @@ CREATE TABLE public.mst_offices (
 );
 
 
+ALTER TABLE public.mst_offices OWNER TO postgres;
+
 --
--- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: trackerpro
 --
 
 CREATE TABLE public.mst_reporting_managers (
@@ -510,8 +540,10 @@ CREATE TABLE public.mst_reporting_managers (
 );
 
 
+ALTER TABLE public.mst_reporting_managers OWNER TO trackerpro;
+
 --
--- Name: mst_roles; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_roles; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_roles (
@@ -528,8 +560,10 @@ CREATE TABLE public.mst_roles (
 );
 
 
+ALTER TABLE public.mst_roles OWNER TO postgres;
+
 --
--- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_salary_bands (
@@ -545,8 +579,10 @@ CREATE TABLE public.mst_salary_bands (
 );
 
 
+ALTER TABLE public.mst_salary_bands OWNER TO postgres;
+
 --
--- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_work_locations (
@@ -563,8 +599,10 @@ CREATE TABLE public.mst_work_locations (
 );
 
 
+ALTER TABLE public.mst_work_locations OWNER TO postgres;
+
 --
--- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: -
+-- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.refresh_tokens (
@@ -582,8 +620,10 @@ CREATE TABLE public.refresh_tokens (
 );
 
 
+ALTER TABLE public.refresh_tokens OWNER TO postgres;
+
 --
--- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: -
+-- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.role_permission_audits (
@@ -609,8 +649,10 @@ CREATE TABLE public.role_permission_audits (
 );
 
 
+ALTER TABLE public.role_permission_audits OWNER TO postgres;
+
 --
--- Name: roles; Type: TABLE; Schema: public; Owner: -
+-- Name: roles; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.roles (
@@ -629,8 +671,10 @@ CREATE TABLE public.roles (
 );
 
 
+ALTER TABLE public.roles OWNER TO postgres;
+
 --
--- Name: sub_ventures; Type: TABLE; Schema: public; Owner: -
+-- Name: sub_ventures; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.sub_ventures (
@@ -646,8 +690,10 @@ CREATE TABLE public.sub_ventures (
 );
 
 
+ALTER TABLE public.sub_ventures OWNER TO postgres;
+
 --
--- Name: users; Type: TABLE; Schema: public; Owner: -
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.users (
@@ -675,8 +721,10 @@ CREATE TABLE public.users (
 );
 
 
+ALTER TABLE public.users OWNER TO postgres;
+
 --
--- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin;
@@ -696,7 +744,7 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 
 
 --
--- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.client_assignments ("ClientId", "UserId") FROM stdin;
@@ -708,7 +756,7 @@ f61741ca-2c63-917f-ee7f-ae00cdbc08cb	e7554ba2-e546-93ce-1e88-a073badd78a2
 
 
 --
--- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -735,7 +783,7 @@ d8e9f1ce-ac14-4a5a-899a-5d87963e99d2	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omk
 
 
 --
--- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince") FROM stdin;
@@ -755,47 +803,47 @@ f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Solutions	Environment	ES	projects@
 
 
 --
--- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "ProjectSite", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "JobRoleId", "NationalityId", "ProbationPeriod", "SalaryBandId") FROM stdin;
-18b83048-56d5-4365-8bc5-3ba65405467e	EMP-1010	Harsh	Nair	harsh.nair@acme.co	harsh1010@gmail.com	9876501010	9866501010	Male	1991-10-10	130, Dombivali Office	9811101010	Married	Indian	2083db49-90d5-4f46-b4be-2d0a24edec35	0cbff6d6-9622-4d55-a0db-2e7b192988f3	Pmo	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team D	Onsite	2022-10-10	Active	Active	Completed	11 years	TCS	Full-time	Permanent	No	90 days	TK-4010	NA	NA	MCA	["Communication", "Delivery", "Operations"]	["NA"]	["English", "Hindi"]	79	77	3	84	90	89	Ready in 1 year	Solid contributor on current assignments.	ABCDE1244F	501234567810	L4	100112345010	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-8e97c526-8c79-44c6-a23f-ece0d9b21df5	EMP-1003	Sneha	Iyer	sneha.iyer@acme.co	sneha1003@gmail.com	9876501003	9866501003	Female	1992-03-03	123, Andheri Office	9811101003	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	72466f60-859b-4946-998c-b34eb2c40c0e	TeamLead	\N	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team C	Offsite	2021-03-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4003	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	72	70	5	77	92	82	Ready in 1 year	Solid contributor on current assignments.	ABCDE1237F	501234567803	L5	100112345003	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-b78530f0-0687-4f26-a614-8318c62901f9	EMP-3021	Pranjali	Shah	pranjali@talakunchi.io	pranjali@gmail.com	8894344343	9827327263	\N	\N	\N	\N	\N	India	\N	\N	Employee	2446deb8-f6cc-4ee1-b179-599d0a2e357a	\N	\N	\N	Permanent - Without Bond	\N	Offsite	2026-08-12	Active	Active	\N	\N	\N	\N	\N	\N	\N	\N	NA	NA	\N	[]	[]	[]	0	0	0	0	0	0	\N	\N	WASDE2324H	3246572827344	\N	973456234651	\N	Pending	\N	2026-08-20 16:09:23.376516+05:30	2026-08-20 16:10:58.921794+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N
-eb50369d-e526-459c-bb6c-aa3a85b231db	EMP-9301	Integration	Resource	integration.resource.c92dd5fc2d1c4c4fa7401c33cac1e6fe@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Employee	\N	\N	\N	\N	Permanent - Without Bond	\N	\N	\N	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Integration test	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 17:55:03.82285+05:30	2026-08-20 17:55:04.39085+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	\N	\N
 a165f6aa-148a-4ad0-953a-f154ae0991c8	EMP-5886	Integration	Resource	integration.resource.e531fb2cecab4c6caa485682aeaa36eb@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Employee	\N	\N	\N	\N	\N	\N	\N	\N	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Notice already ended	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 17:55:04.462343+05:30	2026-08-20 17:55:04.510288+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	2026-08-20 17:55:04.510288+05:30	\N	\N	\N	\N
-080045f2-3ff3-49af-bced-4b10ea1dde6f	EMP-7266	Integration	Resource	integration.resource.ce5bcae27dbc41978b56226b5bf1debf@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Employee	\N	\N	\N	\N	Permanent - Without Bond	\N	\N	\N	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Integration test	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 18:21:17.146104+05:30	2026-08-20 18:21:19.272327+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	\N	\N
 649f4c6f-8719-4ff4-8969-7a55a16e43bd	EMP-8163	Integration	Resource	integration.resource.55c6d73ab436476db67f6f1b9df80d8a@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Employee	\N	\N	\N	\N	\N	\N	\N	\N	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Notice already ended	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 18:21:19.436175+05:30	2026-08-20 18:21:19.547505+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	2026-08-20 18:21:19.547505+05:30	\N	\N	\N	\N
-1a350645-f31a-4309-8441-d37f39e31fe5	EMP-9729	Priya	Shah	priya.shah.0191472791bb4c5593e44681a270b32a@acme.co	\N	\N	\N	Female	1994-03-12	Andheri East, Mumbai	9876543210	Married	Indian	\N	56643cd3-35e5-429e-9b1c-385881443d8f	Developer	\N	Enterprise	Mumbai	HQ Tower	\N	Platform	Offsite	\N	Active	\N	6 months	5 years	Acme	Full-time	Permanent	No	\N	TK-4029	NA	NA	B.Tech	["React", "Mentoring"]	["AWS"]	["English", "Hindi"]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	L2	\N	\N	\N	\N	2026-08-20 18:38:53.427831+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	81ef3e8a-db52-4670-a73e-5ba4d3b47c48	79686ca4-102c-456d-a08e-bdf9ac4c7a26	6 months	ebed343e-301f-4984-b292-fa8d1cb1623c
-58198691-3595-4565-8ba6-d5f150240aa3	EMP-1014	Arjun	Shah	arjun.shah@acme.co	arjun1014@gmail.com	9876501014	9866501014	Male	1995-02-14	134, Dombivali Office	9811101014	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	ae14ab4e-70bf-4e3f-b201-5a7a50bb6b73	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team B	Offsite	2020-02-10	Active	Active	Completed	5 years	TCS	Full-time	Permanent	No	90 days	TK-4014	NA	NA	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	83	81	4	88	94	93	Ready in 1 year	Solid contributor on current assignments.	ABCDE1248F	501234567814	L4	100112345014	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-96425efc-9b0e-4f2b-8fd6-ec3b77161547	EMP-3456	Dhanshree	Pansare	dhanshree.pansare@gmail.com	dhanshree.pansare002@gmail.com	9326178048	7900141424	Female	2002-11-02	31,kranti society,bhandup east 400042	9324567803	Single	Indian	\N	eccddb98-13a9-4d79-82d6-3b97e710c83c	software devloer	498bb0ed-62ca-4e56-bcb3-4cbd356077be	Consumer Apps	Mumbai	HQ Tower	Permanent - Bond	Devloper	Onsite	2026-08-28	Notice Period	Active - Probation	On Probation (6 months)	7 years	tcs	Full-time	Permanent	Yes	90 days	TK-566	Resign	bo	Bachlore enginering	["python", "testing"]	["AWS", "Pen tester"]	["hindi", "engish"]	0	0	0	0	0	0	\N	\N	WASDE2324H	3246572827344	L4	973456234651	\N	Pending	\N	2026-08-20 19:13:06.225084+05:30	2026-08-20 19:16:59.255691+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	78123fe6-6d61-4ca5-b5e1-57d8b06f1787	79686ca4-102c-456d-a08e-bdf9ac4c7a26	6 months	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583
-3dcb0f17-b94a-470c-ba85-86ac0f1c65c8	EMP-1013	Kavya	Desai	kavya.desai@acme.co	kavya1013@gmail.com	9876501013	9866501013	Female	1994-01-13	133, Andheri Office	9811101013	Married	Indian	92bfb4a4-87df-49ca-8f58-0b4add10f410	65bbcacb-ccc4-4502-87d4-eb142c6b406c	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team A	Onsite	2019-01-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4013	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Marketing"]	["NA"]	["English", "Hindi"]	82	80	3	87	93	92	Ready Now	Solid contributor on current assignments.	ABCDE1247F	501234567813	L4	100112345013	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-593b0378-d20a-40ee-b0a0-ae4acc0a78aa	EMP-1009	Aanya	Joshi	aanya.joshi@acme.co	aanya1009@gmail.com	9876501009	9866501009	Female	1990-09-09	129, Andheri Office	9811101009	Single	Indian	d32a6c00-a02a-4586-90c2-4a503b6efc3a	593f83a4-8af6-4fe5-8e91-a465fa5055e9	Sales	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team C	Offsite	2021-09-10	Active	Active	Completed	10 years	Infosys	Full-time	Permanent	No	60 days	TK-4009	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Sales"]	["NA"]	["English", "Hindi"]	78	76	5	83	98	88	Ready Now	Solid contributor on current assignments.	ABCDE1243F	501234567809	L4	100112345009	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
 9e1b1aa9-fcd3-47be-b264-53806520c9fc	EMP-1018	Aditya	Reddy	aditya.reddy@acme.co	aditya1018@gmail.com	9876501018	9866501018	Male	1991-06-18	138, Dombivali Office	9811101018	Single	Indian	\N	616911db-9bc2-4b40-b50f-2972f2c2f9e6	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team F	Offsite	2024-06-10	Active	Active	Completed	9 years	TCS	Full-time	Permanent	No	90 days	TK-4018	NA	NA	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	87	85	5	92	98	82	Ready in 1 year	Solid contributor on current assignments.	ABCDE1252F	501234567818	L4	100112345018	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-20 11:40:09.305181+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 11:40:09.305181+05:30	\N	\N	\N	\N
 c5d5234b-6151-4e42-abd3-0d91dd38754b	EMP-1015	Meera	Nambiar	meera.nambiar@acme.co	meera1015@gmail.com	9876501015	9866501015	Female	1996-03-15	135, Andheri Office	9811101015	Single	Indian	\N	0cbff6d6-9622-4d55-a0db-2e7b192988f3	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team C	Offsite	2021-03-10	Active	Active	Completed	6 years	Infosys	Full-time	Permanent	No	60 days	TK-4015	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Product"]	["NA"]	["English", "Hindi"]	84	82	5	89	95	94	Ready in 1 year	Solid contributor on current assignments.	ABCDE1249F	501234567815	L4	100112345015	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-20 12:05:44.26208+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 12:05:44.26208+05:30	\N	\N	\N	\N
-eb10f37d-b64f-4b17-976b-b962645514f2	EMP-8103	Priya	Shah	priya.shah.839199831f3541eda878b9f48a7f9743@acme.co	\N	\N	\N	Female	1994-03-12	Andheri East, Mumbai	9876543210	Married	Indian	\N	\N	Onboard Role f918b0f6	\N	Enterprise	Mumbai	HQ Tower	\N	Platform	Offsite	\N	Active	\N	6 months	5 years	Acme	Full-time	Permanent	No	\N	TK-4029	NA	NA	B.Tech	["React", "Mentoring"]	["AWS"]	["English", "Hindi"]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	L2	\N	\N	\N	\N	2026-08-21 10:51:39.645179+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	6 months	ebed343e-301f-4984-b292-fa8d1cb1623c
-2446deb8-f6cc-4ee1-b179-599d0a2e357a	EMP-1001	Priya	Sharma	priya.sharma@acme.co	priya1001@gmail.com	9876501001	9866501001	Female	1990-01-01	121, Andheri Office	9811101001	Married	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	56643cd3-35e5-429e-9b1c-385881443d8f	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Bond	Team A	Onsite	2019-01-10	Notice Period	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes — 2 years	60 days	TK-4001	Resign	bo	B.Tech Computer Science	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	70	68	3	75	90	80	Ready Now	Solid contributor on current assignments.	ABCDE1235F	501234567801	L5	100112345001	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-498bb0ed-62ca-4e56-bcb3-4cbd356077be	EMP-1002	Rohan	Mehta	rohan.mehta@acme.co	rohan1002@gmail.com	9876501002	9866501002	Male	1991-02-02	122, Dombivali Office	9811101002	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	616911db-9bc2-4b40-b50f-2972f2c2f9e6	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team B	Offsite	2020-02-10	Notice Period	Active	Completed	3 years	TCS	Full-time	Permanent	No	60 days	TK-4002	Resign	bo	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	71	69	4	76	91	81	Ready in 1 year	Solid contributor on current assignments.	ABCDE1236F	501234567802	L5	100112345002	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-7c9168b9-8269-430b-89d8-a1ba0b8e99af	EMP-1017	Ishita	Bansal	ishita.bansal@acme.co	ishita1017@gmail.com	9876501017	9866501017	Female	1990-05-17	137, Andheri Office	9811101017	Single	Indian	aad03f2b-8be9-45c8-a5d4-1082a639acc6	84f01f23-588a-4c7f-b8d8-826b8f210729	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team E	Offsite	2023-05-10	Active	Active	Completed	8 years	Infosys	Full-time	Permanent	No	60 days	TK-4017	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Design"]	["NA"]	["English", "Hindi"]	86	84	4	91	97	81	Ready Now	Solid contributor on current assignments.	ABCDE1251F	501234567817	L4	100112345017	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-8065ff15-64d6-4f36-a003-f0444a620bd8	EMP-1020	Nikhil	Khanna	nikhil.khanna@acme.co	nikhil1020@gmail.com	9876501020	9866501020	Male	1993-08-20	140, Dombivali Office	9811101020	Single	Indian	d32a6c00-a02a-4586-90c2-4a503b6efc3a	593f83a4-8af6-4fe5-8e91-a465fa5055e9	Sales	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team B	Offsite	2020-08-10	Active	Active	Completed	11 years	TCS	Full-time	Permanent	No	90 days	TK-4020	NA	NA	MCA	["Communication", "Delivery", "Sales"]	["NA"]	["English", "Hindi"]	89	87	4	94	91	84	Ready in 1 year	Solid contributor on current assignments.	ABCDE1254F	501234567820	L4	100112345020	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-81c42f4c-b588-4037-a106-47f339a777f6	EMP-1019	Pooja	Menon	pooja.menon@acme.co	pooja1019@gmail.com	9876501019	9866501019	Female	1992-07-19	139, Andheri Office	9811101019	Married	Indian	d0ab0dc3-606c-4d62-95ea-3d62749f9006	dca2305b-b3c1-405b-a2ed-4eb6ffc3575f	Hr	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team A	Onsite	2019-07-10	Active	Active	Completed	10 years	Infosys	Full-time	Permanent	No	60 days	TK-4019	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Human Resources"]	["NA"]	["English", "Hindi"]	88	86	3	93	90	83	Ready in 1 year	Solid contributor on current assignments.	ABCDE1253F	501234567819	L4	100112345019	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-929d4a75-9232-4ce7-a1a6-8f107ccca1e7	EMP-1007	Neha	Kulkarni	neha.kulkarni@acme.co	neha1007@gmail.com	9876501007	9866501007	Female	1996-07-07	127, Andheri Office	9811101007	Married	Indian	e91e9aa5-1cbb-4d1e-99fe-d7aefedd9f87	13d33d9b-c70e-4f07-897f-c9aa2bf89277	Accounts	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team A	Onsite	2019-07-10	Active	Active	Completed	8 years	Infosys	Full-time	Permanent	No	60 days	TK-4007	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Finance"]	["NA"]	["English", "Hindi"]	76	74	3	81	96	86	Ready in 1 year	Solid contributor on current assignments.	ABCDE1241F	501234567807	L4	100112345007	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-a586e15e-0ad4-4d33-aa18-b1edcf241baf	EMP-1005	Divya	Rao	divya.rao@acme.co	divya1005@gmail.com	9876501005	9866501005	Female	1994-05-05	125, Andheri Office	9811101005	Single	Indian	627cdb67-1e99-46ec-88ff-42b9c361fdc3	a307f07d-c56a-47c9-8106-792773adb304	ProjectManager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team E	Offsite	2023-05-10	Active	Active	Completed	6 years	Infosys	Full-time	Permanent	No	60 days	TK-4005	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Product"]	["NA"]	["English", "Hindi"]	74	72	4	79	94	84	Ready Now	Solid contributor on current assignments.	ABCDE1239F	501234567805	L4	100112345005	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-c15b2b43-0884-4999-bece-9289d1db561f	EMP-1016	Vikram	Gupta	vikram.gupta@acme.co	vikram1016@gmail.com	9876501016	9866501016	Male	1997-04-16	136, Dombivali Office	9811101016	Married	Indian	2083db49-90d5-4f46-b4be-2d0a24edec35	3cc44614-05d3-4283-9b66-d95dd7ec5708	ProjectManager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Bond	Team D	Onsite	2022-04-10	Active	Active	Completed	7 years	TCS	Full-time	Permanent	Yes — 2 years	90 days	TK-4016	NA	NA	MCA	["Communication", "Delivery", "Operations"]	["NA"]	["English", "Hindi"]	85	83	3	90	96	80	Ready in 1 year	Solid contributor on current assignments.	ABCDE1250F	501234567816	L4	100112345016	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-d24cafbe-bb30-4522-93b2-25588511f0e2	EMP-1011	Ira	Kapoor	ira.kapoor@acme.co	ira1011@gmail.com	9876501011	9866501011	Female	1992-11-11	131, Andheri Office	9811101011	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	988d1399-4c1d-4969-b41f-b8c856ff93d5	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Bond	Team E	Offsite	2023-11-10	Active	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes — 2 years	60 days	TK-4011	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	80	78	4	85	91	90	Ready in 1 year	Solid contributor on current assignments.	ABCDE1245F	501234567811	L4	100112345011	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-df465de2-4aba-41d3-a2a3-1e81ca66e34a	EMP-1004	Karthik	Bose	karthik.bose@acme.co	karthik1004@gmail.com	9876501004	9866501004	Male	1993-04-04	124, Dombivali Office	9811101004	Married	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	d15a2e6e-0d0b-4a54-a80b-21c8e580302b	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team D	Onsite	2022-04-10	Notice Period	Active	Completed	5 years	TCS	Full-time	Permanent	No	60 days	TK-4004	Resign	Better Opportunity	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	73	71	3	78	93	83	Ready in 1 year	Solid contributor on current assignments.	ABCDE1238F	501234567804	L5	100112345004	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-f7404cb8-5d1a-40bf-b690-22cf179320dd	EMP-1008	Samar	Patel	samar.patel@acme.co	samar1008@gmail.com	9876501008	9866501008	Male	1997-08-08	128, Dombivali Office	9811101008	Single	Indian	d0ab0dc3-606c-4d62-95ea-3d62749f9006	dca2305b-b3c1-405b-a2ed-4eb6ffc3575f	Hr	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team B	Offsite	2020-08-10	Active	Active	Completed	9 years	TCS	Full-time	Permanent	No	90 days	TK-4008	NA	NA	MCA	["Communication", "Delivery", "Human Resources"]	["NA"]	["English", "Hindi"]	77	75	4	82	97	87	Ready in 1 year	Solid contributor on current assignments.	ABCDE1242F	501234567808	L4	100112345008	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-f8258beb-f446-477d-bb7e-69666c5fe314	EMP-1012	Yash	Malik	yash.malik@acme.co	yash1012@gmail.com	9876501012	9866501012	Male	1993-12-12	132, Dombivali Office	9811101012	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	56643cd3-35e5-429e-9b1c-385881443d8f	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team F	Offsite	2024-12-10	Active	Active	Completed	3 years	TCS	Full-time	Permanent	No	90 days	TK-4012	NA	NA	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	81	79	5	86	92	91	Ready in 1 year	Solid contributor on current assignments.	ABCDE1246F	501234567812	L4	100112345012	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-fc06e810-3e2d-4510-bfc1-669ccf579da2	EMP-1006	Ankit	Verma	ankit.verma@acme.co	ankit1006@gmail.com	9876501006	9866501006	Male	1995-06-06	126, Dombivali Office	9811101006	Single	Indian	aad03f2b-8be9-45c8-a5d4-1082a639acc6	84f01f23-588a-4c7f-b8d8-826b8f210729	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Bond	Team F	Offsite	2024-06-10	Active	Active	Completed	7 years	TCS	Full-time	Permanent	Yes — 2 years	90 days	TK-4006	NA	NA	MCA	["Communication", "Delivery", "Design"]	["NA"]	["English", "Hindi"]	75	73	5	80	95	85	Ready in 1 year	Solid contributor on current assignments.	ABCDE1240F	501234567806	L4	100112345006	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-21 11:01:27.404812+05:30	\N	\N	\N	\N	\N	\N	\N
-230058bf-ed8a-45da-8d77-4a2821a0a76a	EMP-1024	Arjun	Mehta	arjun.mehta@acme.co	arjun1024@gmail.com	9876501024	9866501024	Male	1997-12-24	144, Dombivali Office	9811101024	Single	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team F	Offsite	2024-12-10	Active	Active	Completed	5 years	TCS	Full-time	Permanent	No	90 days	TK-4024	NA	NA	MCA	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	93	71	5	78	95	88	Ready in 1 year	Solid contributor on current assignments.	ABCDE1258F	501234567824	L4	100112345024	Old Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	\N	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
-8a50b4b9-7091-423c-ac8c-af55bc6df348	EMP-1023	Pradeep	Singh	pradeep.singh@acme.co	pradeep1023@gmail.com	9876501023	9866501023	Male	1996-11-23	143, Andheri Office	9811101023	Single	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Without Bond	Team E	Offsite	2023-11-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4023	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	92	70	4	77	94	87	Ready in 1 year	Solid contributor on current assignments.	ABCDE1257F	501234567823	L4	100112345023	New Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	\N	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
-9a15533f-f863-44a7-b61c-b978fa1f5174	EMP-1022	Rahul	Sharma	rahul.sharma@acme.co	rahul1022@gmail.com	9876501022	9866501022	Male	1995-10-22	142, Dombivali Office	9811101022	Married	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivali Office	Tech Park East	Permanent - Without Bond	Team D	Onsite	2022-10-10	Active	Active	Completed	3 years	TCS	Full-time	Permanent	No	90 days	TK-4022	NA	NA	MCA	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	91	69	3	76	93	86	Ready in 1 year	Solid contributor on current assignments.	ABCDE1256F	501234567822	L4	100112345022	Old Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	\N	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
-dd7a3258-31be-425c-8771-cab8ba8b1b22	EMP-1021	Riya	Kapoor	riya.kapoor@acme.co	riya1021@gmail.com	9876501021	9866501021	Female	1994-09-21	141, Andheri Office	9811101021	Single	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri Office	HQ Tower	Permanent - Bond	Team C	Offsite	2021-09-10	Active	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes — 2 years	60 days	TK-4021	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	90	68	5	75	92	85	Ready Now	Solid contributor on current assignments.	ABCDE1255F	501234567821	L4	100112345021	New Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	\N	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
+080045f2-3ff3-49af-bced-4b10ea1dde6f	EMP-7266	Integration	Resource	integration.resource.ce5bcae27dbc41978b56226b5bf1debf@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Employee	\N	\N	Andheri	Suvidha Square	Permanent - Without Bond	\N	\N	\N	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Integration test	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 18:21:17.146104+05:30	2026-08-22 10:57:05.457481+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	\N	\N	\N
+18b83048-56d5-4365-8bc5-3ba65405467e	EMP-1010	Harsh	Nair	harsh.nair@acme.co	harsh1010@gmail.com	9876501010	9866501010	Male	1991-10-10	130, Dombivali Office	9811101010	Married	Indian	2083db49-90d5-4f46-b4be-2d0a24edec35	0cbff6d6-9622-4d55-a0db-2e7b192988f3	Pmo	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Without Bond	Team D	Onsite	2022-10-10	Active	Active	Completed	11 years	TCS	Full-time	Permanent	No	90 days	TK-4010	NA	NA	MCA	["Communication", "Delivery", "Operations"]	["NA"]	["English", "Hindi"]	79	77	3	84	90	89	Ready in 1 year	Solid contributor on current assignments.	ABCDE1244F	501234567810	L4	100112345010	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+1a350645-f31a-4309-8441-d37f39e31fe5	EMP-9729	Priya	Shah	priya.shah.0191472791bb4c5593e44681a270b32a@acme.co	\N	\N	\N	Female	1994-03-12	Andheri East, Mumbai	9876543210	Married	Indian	\N	56643cd3-35e5-429e-9b1c-385881443d8f	Developer	\N	Enterprise	Dombivli	Navare Plaza	\N	Platform	Offsite	\N	Active	\N	6 months	5 years	Acme	Full-time	Permanent	No	\N	TK-4029	NA	NA	B.Tech	["React", "Mentoring"]	["AWS"]	["English", "Hindi"]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	L2	\N	\N	\N	\N	2026-08-20 18:38:53.427831+05:30	2026-08-22 10:57:05.457481+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	81ef3e8a-db52-4670-a73e-5ba4d3b47c48	79686ca4-102c-456d-a08e-bdf9ac4c7a26	6 months	ebed343e-301f-4984-b292-fa8d1cb1623c
+230058bf-ed8a-45da-8d77-4a2821a0a76a	EMP-1024	Arjun	Mehta	arjun.mehta@acme.co	arjun1024@gmail.com	9876501024	9866501024	Male	1997-12-24	144, Dombivali Office	9811101024	Single	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Without Bond	Team F	Offsite	2024-12-10	Active	Active	Completed	5 years	TCS	Full-time	Permanent	No	90 days	TK-4024	NA	NA	MCA	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	93	71	5	78	95	88	Ready in 1 year	Solid contributor on current assignments.	ABCDE1258F	501234567824	L4	100112345024	Old Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
+2446deb8-f6cc-4ee1-b179-599d0a2e357a	EMP-1001	Priya	Sharma	priya.sharma@acme.co	priya1001@gmail.com	9876501001	9866501001	Female	1990-01-01	121, Andheri Office	9811101001	Married	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	56643cd3-35e5-429e-9b1c-385881443d8f	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Bond	Team A	Onsite	2019-01-10	Notice Period	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes — 2 years	60 days	TK-4001	Resign	bo	B.Tech Computer Science	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	70	68	3	75	90	80	Ready Now	Solid contributor on current assignments.	ABCDE1235F	501234567801	L5	100112345001	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+3dcb0f17-b94a-470c-ba85-86ac0f1c65c8	EMP-1013	Kavya	Desai	kavya.desai@acme.co	kavya1013@gmail.com	9876501013	9866501013	Female	1994-01-13	133, Andheri Office	9811101013	Married	Indian	92bfb4a4-87df-49ca-8f58-0b4add10f410	65bbcacb-ccc4-4502-87d4-eb142c6b406c	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Without Bond	Team A	Onsite	2019-01-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4013	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Marketing"]	["NA"]	["English", "Hindi"]	82	80	3	87	93	92	Ready Now	Solid contributor on current assignments.	ABCDE1247F	501234567813	L4	100112345013	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+498bb0ed-62ca-4e56-bcb3-4cbd356077be	EMP-1002	Rohan	Mehta	rohan.mehta@acme.co	rohan1002@gmail.com	9876501002	9866501002	Male	1991-02-02	122, Dombivali Office	9811101002	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	616911db-9bc2-4b40-b50f-2972f2c2f9e6	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Without Bond	Team B	Offsite	2020-02-10	Notice Period	Active	Completed	3 years	TCS	Full-time	Permanent	No	60 days	TK-4002	Resign	bo	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	71	69	4	76	91	81	Ready in 1 year	Solid contributor on current assignments.	ABCDE1236F	501234567802	L5	100112345002	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+58198691-3595-4565-8ba6-d5f150240aa3	EMP-1014	Arjun	Shah	arjun.shah@acme.co	arjun1014@gmail.com	9876501014	9866501014	Male	1995-02-14	134, Dombivali Office	9811101014	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	ae14ab4e-70bf-4e3f-b201-5a7a50bb6b73	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Without Bond	Team B	Offsite	2020-02-10	Active	Active	Completed	5 years	TCS	Full-time	Permanent	No	90 days	TK-4014	NA	NA	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	83	81	4	88	94	93	Ready in 1 year	Solid contributor on current assignments.	ABCDE1248F	501234567814	L4	100112345014	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+593b0378-d20a-40ee-b0a0-ae4acc0a78aa	EMP-1009	Aanya	Joshi	aanya.joshi@acme.co	aanya1009@gmail.com	9876501009	9866501009	Female	1990-09-09	129, Andheri Office	9811101009	Single	Indian	d32a6c00-a02a-4586-90c2-4a503b6efc3a	593f83a4-8af6-4fe5-8e91-a465fa5055e9	Sales	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Without Bond	Team C	Offsite	2021-09-10	Active	Active	Completed	10 years	Infosys	Full-time	Permanent	No	60 days	TK-4009	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Sales"]	["NA"]	["English", "Hindi"]	78	76	5	83	98	88	Ready Now	Solid contributor on current assignments.	ABCDE1243F	501234567809	L4	100112345009	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+7c9168b9-8269-430b-89d8-a1ba0b8e99af	EMP-1017	Ishita	Bansal	ishita.bansal@acme.co	ishita1017@gmail.com	9876501017	9866501017	Female	1990-05-17	137, Andheri Office	9811101017	Single	Indian	aad03f2b-8be9-45c8-a5d4-1082a639acc6	84f01f23-588a-4c7f-b8d8-826b8f210729	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Without Bond	Team E	Offsite	2023-05-10	Active	Active	Completed	8 years	Infosys	Full-time	Permanent	No	60 days	TK-4017	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Design"]	["NA"]	["English", "Hindi"]	86	84	4	91	97	81	Ready Now	Solid contributor on current assignments.	ABCDE1251F	501234567817	L4	100112345017	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+8065ff15-64d6-4f36-a003-f0444a620bd8	EMP-1020	Nikhil	Khanna	nikhil.khanna@acme.co	nikhil1020@gmail.com	9876501020	9866501020	Male	1993-08-20	140, Dombivali Office	9811101020	Single	Indian	d32a6c00-a02a-4586-90c2-4a503b6efc3a	593f83a4-8af6-4fe5-8e91-a465fa5055e9	Sales	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Without Bond	Team B	Offsite	2020-08-10	Active	Active	Completed	11 years	TCS	Full-time	Permanent	No	90 days	TK-4020	NA	NA	MCA	["Communication", "Delivery", "Sales"]	["NA"]	["English", "Hindi"]	89	87	4	94	91	84	Ready in 1 year	Solid contributor on current assignments.	ABCDE1254F	501234567820	L4	100112345020	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+81c42f4c-b588-4037-a106-47f339a777f6	EMP-1019	Pooja	Menon	pooja.menon@acme.co	pooja1019@gmail.com	9876501019	9866501019	Female	1992-07-19	139, Andheri Office	9811101019	Married	Indian	d0ab0dc3-606c-4d62-95ea-3d62749f9006	dca2305b-b3c1-405b-a2ed-4eb6ffc3575f	Hr	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Without Bond	Team A	Onsite	2019-07-10	Active	Active	Completed	10 years	Infosys	Full-time	Permanent	No	60 days	TK-4019	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Human Resources"]	["NA"]	["English", "Hindi"]	88	86	3	93	90	83	Ready in 1 year	Solid contributor on current assignments.	ABCDE1253F	501234567819	L4	100112345019	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+8a50b4b9-7091-423c-ac8c-af55bc6df348	EMP-1023	Pradeep	Singh	pradeep.singh@acme.co	pradeep1023@gmail.com	9876501023	9866501023	Male	1996-11-23	143, Andheri Office	9811101023	Single	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Without Bond	Team E	Offsite	2023-11-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4023	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	92	70	4	77	94	87	Ready in 1 year	Solid contributor on current assignments.	ABCDE1257F	501234567823	L4	100112345023	New Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
+8e97c526-8c79-44c6-a23f-ece0d9b21df5	EMP-1003	Sneha	Iyer	sneha.iyer@acme.co	sneha1003@gmail.com	9876501003	9866501003	Female	1992-03-03	123, Andheri Office	9811101003	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	72466f60-859b-4946-998c-b34eb2c40c0e	TeamLead	\N	Cloud Platform	Andheri	Suvidha Square	Permanent - Without Bond	Team C	Offsite	2021-03-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4003	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	72	70	5	77	92	82	Ready in 1 year	Solid contributor on current assignments.	ABCDE1237F	501234567803	L5	100112345003	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+929d4a75-9232-4ce7-a1a6-8f107ccca1e7	EMP-1007	Neha	Kulkarni	neha.kulkarni@acme.co	neha1007@gmail.com	9876501007	9866501007	Female	1996-07-07	127, Andheri Office	9811101007	Married	Indian	e91e9aa5-1cbb-4d1e-99fe-d7aefedd9f87	13d33d9b-c70e-4f07-897f-c9aa2bf89277	Accounts	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Without Bond	Team A	Onsite	2019-07-10	Active	Active	Completed	8 years	Infosys	Full-time	Permanent	No	60 days	TK-4007	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Finance"]	["NA"]	["English", "Hindi"]	76	74	3	81	96	86	Ready in 1 year	Solid contributor on current assignments.	ABCDE1241F	501234567807	L4	100112345007	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+96425efc-9b0e-4f2b-8fd6-ec3b77161547	EMP-3456	Dhanshree	Pansare	dhanshree.pansare@gmail.com	dhanshree.pansare002@gmail.com	9326178048	7900141424	Female	2002-11-02	31,kranti society,bhandup east 400042	9324567803	Single	Indian	\N	eccddb98-13a9-4d79-82d6-3b97e710c83c	software devloer	498bb0ed-62ca-4e56-bcb3-4cbd356077be	Consumer Apps	Dombivli	Navare Plaza	Permanent - Bond	Devloper	Onsite	2026-08-28	Notice Period	Active - Probation	On Probation (6 months)	7 years	tcs	Full-time	Permanent	Yes	90 days	TK-566	Resign	bo	Bachlore enginering	["python", "testing"]	["AWS", "Pen tester"]	["hindi", "engish"]	0	0	0	0	0	0	\N	\N	WASDE2324H	3246572827344	L4	973456234651	\N	Pending	\N	2026-08-20 19:13:06.225084+05:30	2026-08-22 10:57:05.457481+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	78123fe6-6d61-4ca5-b5e1-57d8b06f1787	79686ca4-102c-456d-a08e-bdf9ac4c7a26	6 months	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583
+9a15533f-f863-44a7-b61c-b978fa1f5174	EMP-1022	Rahul	Sharma	rahul.sharma@acme.co	rahul1022@gmail.com	9876501022	9866501022	Male	1995-10-22	142, Dombivali Office	9811101022	Married	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Without Bond	Team D	Onsite	2022-10-10	Active	Active	Completed	3 years	TCS	Full-time	Permanent	No	90 days	TK-4022	NA	NA	MCA	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	91	69	3	76	93	86	Ready in 1 year	Solid contributor on current assignments.	ABCDE1256F	501234567822	L4	100112345022	Old Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
+a586e15e-0ad4-4d33-aa18-b1edcf241baf	EMP-1005	Divya	Rao	divya.rao@acme.co	divya1005@gmail.com	9876501005	9866501005	Female	1994-05-05	125, Andheri Office	9811101005	Single	Indian	627cdb67-1e99-46ec-88ff-42b9c361fdc3	a307f07d-c56a-47c9-8106-792773adb304	ProjectManager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Without Bond	Team E	Offsite	2023-05-10	Active	Active	Completed	6 years	Infosys	Full-time	Permanent	No	60 days	TK-4005	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Product"]	["NA"]	["English", "Hindi"]	74	72	4	79	94	84	Ready Now	Solid contributor on current assignments.	ABCDE1239F	501234567805	L4	100112345005	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+b78530f0-0687-4f26-a614-8318c62901f9	EMP-3021	Pranjali	Shah	pranjali@talakunchi.io	pranjali@gmail.com	8894344343	9827327263	\N	\N	\N	\N	\N	India	\N	\N	Employee	2446deb8-f6cc-4ee1-b179-599d0a2e357a	\N	Andheri	Suvidha Square	Permanent - Without Bond	\N	Offsite	2026-08-12	Active	Active	\N	\N	\N	\N	\N	\N	\N	\N	NA	NA	\N	[]	[]	[]	0	0	0	0	0	0	\N	\N	WASDE2324H	3246572827344	\N	973456234651	\N	Pending	\N	2026-08-20 16:09:23.376516+05:30	2026-08-22 10:57:05.457481+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N	\N
+c15b2b43-0884-4999-bece-9289d1db561f	EMP-1016	Vikram	Gupta	vikram.gupta@acme.co	vikram1016@gmail.com	9876501016	9866501016	Male	1997-04-16	136, Dombivali Office	9811101016	Married	Indian	2083db49-90d5-4f46-b4be-2d0a24edec35	3cc44614-05d3-4283-9b66-d95dd7ec5708	ProjectManager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Bond	Team D	Onsite	2022-04-10	Active	Active	Completed	7 years	TCS	Full-time	Permanent	Yes — 2 years	90 days	TK-4016	NA	NA	MCA	["Communication", "Delivery", "Operations"]	["NA"]	["English", "Hindi"]	85	83	3	90	96	80	Ready in 1 year	Solid contributor on current assignments.	ABCDE1250F	501234567816	L4	100112345016	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+d24cafbe-bb30-4522-93b2-25588511f0e2	EMP-1011	Ira	Kapoor	ira.kapoor@acme.co	ira1011@gmail.com	9876501011	9866501011	Female	1992-11-11	131, Andheri Office	9811101011	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	988d1399-4c1d-4969-b41f-b8c856ff93d5	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Bond	Team E	Offsite	2023-11-10	Active	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes — 2 years	60 days	TK-4011	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	80	78	4	85	91	90	Ready in 1 year	Solid contributor on current assignments.	ABCDE1245F	501234567811	L4	100112345011	New Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+dd7a3258-31be-425c-8771-cab8ba8b1b22	EMP-1021	Riya	Kapoor	riya.kapoor@acme.co	riya1021@gmail.com	9876501021	9866501021	Female	1994-09-21	141, Andheri Office	9811101021	Single	Indian	c21b43ad-98f5-43cb-9466-6f0b22ce7505	f9aa2b6e-26a3-40db-bb37-9c88a1249304	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Cloud Platform	Andheri	Suvidha Square	Permanent - Bond	Team C	Offsite	2021-09-10	Active	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes — 2 years	60 days	TK-4021	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	90	68	5	75	92	85	Ready Now	Solid contributor on current assignments.	ABCDE1255F	501234567821	L4	100112345021	New Regime	Compliant	\N	2026-08-21 13:58:23.134157+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	6c42b4d6-5942-474b-a941-82f4ce149209	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N
+df465de2-4aba-41d3-a2a3-1e81ca66e34a	EMP-1004	Karthik	Bose	karthik.bose@acme.co	karthik1004@gmail.com	9876501004	9866501004	Male	1993-04-04	124, Dombivali Office	9811101004	Married	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	d15a2e6e-0d0b-4a54-a80b-21c8e580302b	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Without Bond	Team D	Onsite	2022-04-10	Notice Period	Active	Completed	5 years	TCS	Full-time	Permanent	No	60 days	TK-4004	Resign	Better Opportunity	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	73	71	3	78	93	83	Ready in 1 year	Solid contributor on current assignments.	ABCDE1238F	501234567804	L5	100112345004	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+eb10f37d-b64f-4b17-976b-b962645514f2	EMP-8103	Priya	Shah	priya.shah.839199831f3541eda878b9f48a7f9743@acme.co	\N	\N	\N	Female	1994-03-12	Andheri East, Mumbai	9876543210	Married	Indian	\N	\N	Onboard Role f918b0f6	\N	Enterprise	Dombivli	Navare Plaza	\N	Platform	Offsite	\N	Active	\N	6 months	5 years	Acme	Full-time	Permanent	No	\N	TK-4029	NA	NA	B.Tech	["React", "Mentoring"]	["AWS"]	["English", "Hindi"]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	L2	\N	\N	\N	\N	2026-08-21 10:51:39.645179+05:30	2026-08-22 10:57:05.457481+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	6 months	ebed343e-301f-4984-b292-fa8d1cb1623c
+eb50369d-e526-459c-bb6c-aa3a85b231db	EMP-9301	Integration	Resource	integration.resource.c92dd5fc2d1c4c4fa7401c33cac1e6fe@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Employee	\N	\N	Andheri	Suvidha Square	Permanent - Without Bond	\N	\N	\N	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Integration test	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 17:55:03.82285+05:30	2026-08-22 10:57:05.457481+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	\N	\N	\N
+f7404cb8-5d1a-40bf-b690-22cf179320dd	EMP-1008	Samar	Patel	samar.patel@acme.co	samar1008@gmail.com	9876501008	9866501008	Male	1997-08-08	128, Dombivali Office	9811101008	Single	Indian	d0ab0dc3-606c-4d62-95ea-3d62749f9006	dca2305b-b3c1-405b-a2ed-4eb6ffc3575f	Hr	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Without Bond	Team B	Offsite	2020-08-10	Active	Active	Completed	9 years	TCS	Full-time	Permanent	No	90 days	TK-4008	NA	NA	MCA	["Communication", "Delivery", "Human Resources"]	["NA"]	["English", "Hindi"]	77	75	4	82	97	87	Ready in 1 year	Solid contributor on current assignments.	ABCDE1242F	501234567808	L4	100112345008	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+f8258beb-f446-477d-bb7e-69666c5fe314	EMP-1012	Yash	Malik	yash.malik@acme.co	yash1012@gmail.com	9876501012	9866501012	Male	1993-12-12	132, Dombivali Office	9811101012	Single	Indian	7f81ec90-a5fd-4a3e-ac7b-8797e545c431	56643cd3-35e5-429e-9b1c-385881443d8f	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Without Bond	Team F	Offsite	2024-12-10	Active	Active	Completed	3 years	TCS	Full-time	Permanent	No	90 days	TK-4012	NA	NA	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	81	79	5	86	92	91	Ready in 1 year	Solid contributor on current assignments.	ABCDE1246F	501234567812	L4	100112345012	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
+fc06e810-3e2d-4510-bfc1-669ccf579da2	EMP-1006	Ankit	Verma	ankit.verma@acme.co	ankit1006@gmail.com	9876501006	9866501006	Male	1995-06-06	126, Dombivali Office	9811101006	Single	Indian	aad03f2b-8be9-45c8-a5d4-1082a639acc6	84f01f23-588a-4c7f-b8d8-826b8f210729	Employee	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Enterprise	Dombivli	Navare Plaza	Permanent - Bond	Team F	Offsite	2024-06-10	Active	Active	Completed	7 years	TCS	Full-time	Permanent	Yes — 2 years	90 days	TK-4006	NA	NA	MCA	["Communication", "Delivery", "Design"]	["NA"]	["English", "Hindi"]	75	73	5	80	95	85	Ready in 1 year	Solid contributor on current assignments.	ABCDE1240F	501234567806	L4	100112345006	Old Regime	Compliant	\N	2026-08-20 11:39:32.142207+05:30	2026-08-22 10:57:05.457481+05:30	\N	\N	\N	\N	\N	\N	\N
 \.
 
 
 --
--- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.exited_employees ("Id", "OriginalEmployeeId", "EmployeeCode", "FullName", "DepartmentName", "DesignationName", "WorkEmail", "PersonalEmail", "Phone", "StatusAtExit", "ExitType", "ExitReason", "ResignationDate", "LastWorkingDay", "ReasonForLeaving", "NoticePeriodServed", "ExitChecklistJson", "AssetReturnJson", "FinalSettlementJson", "ExitedAtUtc", "ExitedBy", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -813,7 +861,7 @@ c86dbb9b-4d96-4e3a-b74a-a94fa9992605	96425efc-9b0e-4f2b-8fd6-ec3b77161547	EMP-34
 
 
 --
--- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -825,7 +873,7 @@ cd3c05b0-fc85-49fe-adcc-e7d2dcde28df	cloud_platform	Cloud Platform	t	1	2026-08-2
 
 
 --
--- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_cities ("Id", "Code", "Name", "IsActive", "CountryId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -970,7 +1018,7 @@ fe6526bc-a57b-4c6e-8094-be6327614409	in_tiruchirappalli	Tiruchirappalli	t	f6f989
 
 
 --
--- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_countries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1018,7 +1066,7 @@ f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	IN	India	t	2026-08-20 17:07:05.749911+05:30
 
 
 --
--- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_departments ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1037,7 +1085,7 @@ e91e9aa5-1cbb-4d1e-99fe-d7aefedd9f87	finance	Finance	t	2026-08-21 11:01:26.96365
 
 
 --
--- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1068,7 +1116,7 @@ f9aa2b6e-26a3-40db-bb37-9c88a1249304	engagement_manager	Engagement Manager	t	c21
 
 
 --
--- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: trackerpro
 --
 
 COPY public.mst_email_domains ("Id", "Code", "DomainName", "DisplayName", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1079,7 +1127,7 @@ fb66fff9-7911-47de-bde7-ab5fb5ab0757	squad1_io	squad1.io	@squad1.io	t	3	2026-08-
 
 
 --
--- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_industries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1099,7 +1147,7 @@ ff5e83cc-9c1c-4056-ab0b-42a70714ddd3	media	Media	t	2026-08-20 11:45:51.759149+05
 
 
 --
--- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_nationalities ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1147,24 +1195,24 @@ fe29360e-bc38-4557-8653-98b749b34fe0	indonesian	Indonesian	t	2026-08-20 17:55:01
 
 
 --
--- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-375cc899-3e63-4b9c-aad3-368f9a6b50d9	bengaluru_tech_park_west	Tech Park West	0c534759-4e58-40f0-9015-78143792ac7c	t	2	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-3a43966e-cc7a-4f61-9a14-5b4a29918761	mumbai_bandra_kurla_complex	Bandra Kurla Complex	f93f660f-db88-4f46-8df8-ade0e93d3eaf	t	2	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
 4ce8547a-da87-4ebc-a9b3-11055b29f85c	dombivli_navare_plaza	Navare Plaza	d8ad5202-097f-42e5-9afc-9fd1456590ad	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-4ec817eb-b7bc-4cff-ad45-e3f33d9e92ef	remote_virtual_remote	Virtual / Remote	ddf66d66-c299-4a92-a3ca-8fcfa88a00d1	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-5cc2905f-945a-4fd1-a367-26fa63c93b94	bengaluru_tech_park_east	Tech Park East	0c534759-4e58-40f0-9015-78143792ac7c	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-6356473e-b6a5-41a7-b7e7-a8c601caf097	hyderabad_hitec_city_office	HITEC City Office	44e2e805-3659-41ed-b423-b12efa989f7d	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
 70b9b373-1f98-4d24-9344-6c1825ea0d5c	andheri_suvidha_square	Suvidha Square	f8f6b305-478f-41fb-910d-67ef268fc529	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-9b1cd55f-af9a-42ea-89f0-beebd340751b	mumbai_hq_tower	HQ Tower	f93f660f-db88-4f46-8df8-ade0e93d3eaf	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-f26ab4c4-8824-480f-bbfe-1e08a855f21c	pune_cyber_city_tower	Cyber City Tower	14272979-6065-4afc-92e4-09f335253728	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+375cc899-3e63-4b9c-aad3-368f9a6b50d9	bengaluru_tech_park_west	Tech Park West	0c534759-4e58-40f0-9015-78143792ac7c	f	2	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+3a43966e-cc7a-4f61-9a14-5b4a29918761	mumbai_bandra_kurla_complex	Bandra Kurla Complex	f93f660f-db88-4f46-8df8-ade0e93d3eaf	f	2	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+4ec817eb-b7bc-4cff-ad45-e3f33d9e92ef	remote_virtual_remote	Virtual / Remote	ddf66d66-c299-4a92-a3ca-8fcfa88a00d1	f	1	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+5cc2905f-945a-4fd1-a367-26fa63c93b94	bengaluru_tech_park_east	Tech Park East	0c534759-4e58-40f0-9015-78143792ac7c	f	1	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+6356473e-b6a5-41a7-b7e7-a8c601caf097	hyderabad_hitec_city_office	HITEC City Office	44e2e805-3659-41ed-b423-b12efa989f7d	f	1	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+9b1cd55f-af9a-42ea-89f0-beebd340751b	mumbai_hq_tower	HQ Tower	f93f660f-db88-4f46-8df8-ade0e93d3eaf	f	1	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+f26ab4c4-8824-480f-bbfe-1e08a855f21c	pune_cyber_city_tower	Cyber City Tower	14272979-6065-4afc-92e4-09f335253728	f	1	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
 \.
 
 
 --
--- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: trackerpro
 --
 
 COPY public.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email", "EmployeeId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1192,11 +1240,14 @@ f0d6d5a1-bc56-4f3c-8ad5-027bb2f935c4	devansh_shah	Devansh Shah	Head of Design	de
 56290531-8a9f-4280-a611-7a056595cf04	pooja_menon	Pooja Menon	HR Business Partner	pooja.menon@acme.co	81c42f4c-b588-4037-a106-47f339a777f6	t	5	2026-08-22 01:27:33.765567+05:30	\N	\N	\N	\N
 9e9286c4-8f25-47e2-8bf9-37620fbcb726	kavya_desai	Kavya Desai	Content Strategist	kavya.desai@acme.co	3dcb0f17-b94a-470c-ba85-86ac0f1c65c8	t	3	2026-08-22 01:27:33.765567+05:30	\N	\N	\N	\N
 e2ea7517-353b-40d9-be27-0fbe07d6c963	ira_kapoor	Ira Kapoor	QA Engineer	ira.kapoor@acme.co	d24cafbe-bb30-4522-93b2-25588511f0e2	t	1	2026-08-22 01:27:33.765567+05:30	\N	\N	\N	\N
+230610a9-f798-4d1d-bf8e-86471c438c9b	samar_patel	Samar Patel	HR Business Partner	samar.patel@acme.co	f7404cb8-5d1a-40bf-b690-22cf179320dd	t	2	2026-08-22 10:31:40.262867+05:30	\N	\N	\N	\N
+602e1a4a-f54a-4b9d-bd55-4e5f86d530c9	yash_malik	Yash Malik	Software Engineer	yash.malik@acme.co	f8258beb-f446-477d-bb7e-69666c5fe314	t	3	2026-08-22 10:31:40.262867+05:30	\N	\N	\N	\N
+a72d8337-b9ca-41b7-add3-33420d5fa811	priya_shah	Priya Shah	Onboard Role f918b0f6	priya.shah.839199831f3541eda878b9f48a7f9743@acme.co	eb10f37d-b64f-4b17-976b-b962645514f2	t	1	2026-08-22 10:31:40.262867+05:30	\N	\N	\N	\N
 \.
 
 
 --
--- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1253,7 +1304,7 @@ fbd9d8c8-1fb6-4757-a095-a9f1ec77336b	ux_designer_designer	Designer	t	84f01f23-58
 
 
 --
--- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_salary_bands ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1266,22 +1317,22 @@ ebed343e-301f-4984-b292-fa8d1cb1623c	l2	L2	t	2026-08-20 18:21:10.222702+05:30	\N
 
 
 --
--- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-0c534759-4e58-40f0-9015-78143792ac7c	bengaluru	Bengaluru	t	3	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-14272979-6065-4afc-92e4-09f335253728	pune	Pune	t	4	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-44e2e805-3659-41ed-b423-b12efa989f7d	hyderabad	Hyderabad	t	5	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
 d8ad5202-097f-42e5-9afc-9fd1456590ad	dombivli	Dombivli	t	2	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-ddf66d66-c299-4a92-a3ca-8fcfa88a00d1	remote	Remote	t	7	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
 f8f6b305-478f-41fb-910d-67ef268fc529	andheri	Andheri	t	1	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
-f93f660f-db88-4f46-8df8-ade0e93d3eaf	mumbai	Mumbai	t	6	2026-08-22 01:27:33.556673+05:30	\N	\N	\N	\N
+0c534759-4e58-40f0-9015-78143792ac7c	bengaluru	Bengaluru	f	3	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+14272979-6065-4afc-92e4-09f335253728	pune	Pune	f	4	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+44e2e805-3659-41ed-b423-b12efa989f7d	hyderabad	Hyderabad	f	5	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+ddf66d66-c299-4a92-a3ca-8fcfa88a00d1	remote	Remote	f	7	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
+f93f660f-db88-4f46-8df8-ade0e93d3eaf	mumbai	Mumbai	f	6	2026-08-22 01:27:33.556673+05:30	2026-08-22 10:57:05.36605+05:30	\N	\N	\N
 \.
 
 
 --
--- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.refresh_tokens ("Id", "UserId", "TokenHash", "ExpiresAtUtc", "RevokedAtUtc", "ReplacedByTokenHash", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1673,7 +1724,6 @@ e0df4f1d-4460-45a6-8ef5-e19c8d6a9ae5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	FzgXoo
 c6027f46-82ba-4bfe-9af8-9d8a4acee77e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	RYS4VHGJ1dP0AdaiMbXqHg8+AqVzLCZC9fy1HCMaNgs=	2026-08-28 11:38:22.485782+05:30	2026-08-21 11:56:04.448974+05:30	\N	2026-08-21 11:38:22.485864+05:30	2026-08-21 11:56:04.470537+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 be85a87f-1bb6-4475-85f9-cb1f281de97a	40517b71-5e62-182e-73b5-d4070e20a3c2	nvEe8R45FUYsrOuGp2tIIE6M3q+KA1RgMZiDiW3pMbE=	2026-08-28 11:51:28.781654+05:30	2026-08-21 11:51:33.376751+05:30	\N	2026-08-21 11:51:28.781771+05:30	2026-08-21 11:51:33.377009+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 c1f7b1e2-a73b-4b6c-b294-530e218aee5c	40517b71-5e62-182e-73b5-d4070e20a3c2	cjr0kSWVJFlsDkHdCqa9S7bLV7TT2RgGPUTV5ctfAWg=	2026-08-28 11:51:33.37693+05:30	2026-08-21 11:51:37.975206+05:30	\N	2026-08-21 11:51:33.377009+05:30	2026-08-21 11:51:37.975497+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-9d19c141-d9c5-425d-bb7a-eed830231768	40517b71-5e62-182e-73b5-d4070e20a3c2	bqPpTT6VJ4epYUU6JDxsphMmYQXbCRreUGxKqPNDzzo=	2026-08-28 11:51:37.975412+05:30	\N	\N	2026-08-21 11:51:37.975497+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 987ee536-151d-47e7-be75-fd3ac5e472f5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	gTeh3cqMveF5yemDod73xB1ICWr4So0K0NDTJuMgAyo=	2026-08-28 11:56:04.457552+05:30	2026-08-21 11:56:10.677701+05:30	\N	2026-08-21 11:56:04.470537+05:30	2026-08-21 11:56:10.680216+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 5abc56c2-ae85-4927-8363-d666f116a86d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Gq7kFqR/xBYj1N+P2Sp+urPCLLKoo+H5DXMIG+avrqU=	2026-08-28 11:56:10.678333+05:30	2026-08-21 12:01:19.339085+05:30	\N	2026-08-21 11:56:10.680216+05:30	2026-08-21 12:01:19.339407+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 756e0513-10b3-4324-b42a-880e4744f278	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qc2+ZoX9Q4AKfoMSCp8NVdVve4aG+muCJKVsMMA+R7A=	2026-08-28 12:01:19.339276+05:30	2026-08-21 12:01:22.102641+05:30	\N	2026-08-21 12:01:19.339407+05:30	2026-08-21 12:01:22.103419+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
@@ -1729,6 +1779,7 @@ a922a8ad-5543-4880-9b89-4eaf47b91a2e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ZvMWRW
 08f66602-d863-473a-afab-fbe72f53e7b4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	eoGo2A4LDab8RkqLvkVeEpjgT6vXu7maybKL8lEvUxI=	2026-08-28 22:29:08.652119+05:30	2026-08-21 23:04:46.777543+05:30	\N	2026-08-21 22:29:08.652417+05:30	2026-08-21 23:04:46.779812+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 146be78d-1c05-4286-865f-7028c005a4a3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	NCjQIwLQ9w6NPWh8aG2mO1ffaZxvOzCEhUfyQv0+SDk=	2026-08-28 23:04:46.779376+05:30	2026-08-21 23:53:23.965424+05:30	\N	2026-08-21 23:04:46.779812+05:30	2026-08-21 23:53:23.966722+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 794b4692-22e0-4eda-9290-858ba2538832	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	eNYgNhQWcM59lYomI1ZAHX/YkGe6qq7QTurmDUrmLSc=	2026-08-28 23:53:23.966243+05:30	2026-08-21 23:59:52.319345+05:30	\N	2026-08-21 23:53:23.966722+05:30	2026-08-21 23:59:52.328113+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9be8b6ba-1f85-4027-89e0-89326a28117b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	HjHJQghUlF4k5EEXIW7vD4fag6gSaHFLi4WWqiw+VfQ=	2026-08-29 11:25:47.515373+05:30	2026-08-22 11:58:17.860566+05:30	\N	2026-08-22 11:25:47.51565+05:30	2026-08-22 11:58:17.874674+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 f3f0782f-585e-44db-bc53-63fc2475899b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	FOfN9VTBsBHvqKF41LCS5OZHqp3TWK2UkgPebU0n5tg=	2026-08-29 00:07:39.864765+05:30	\N	\N	2026-08-22 00:07:39.86485+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 dc87d396-0874-4ff5-ae32-c8b2a4280fdc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	90ZQxe5bYSNLKEafIjIcaweUsBN0UtDU3aIozcRzhVc=	2026-08-28 23:59:52.323595+05:30	2026-08-22 00:07:39.862253+05:30	\N	2026-08-21 23:59:52.328113+05:30	2026-08-22 00:07:39.863271+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 1e0ce1ac-6f9c-414a-8a77-dc1c4d1b3115	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qrSA7SjigRIJ2HtX4V2gYA1OP5ivczuvX7WXsKPZ04o=	2026-08-29 00:07:39.862529+05:30	2026-08-22 00:12:26.568489+05:30	\N	2026-08-22 00:07:39.863271+05:30	2026-08-22 00:12:26.569922+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
@@ -1736,12 +1787,27 @@ dc87d396-0874-4ff5-ae32-c8b2a4280fdc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	90ZQxe
 eed20a06-948c-48cc-b808-1a3dccb37d8c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	kDT1ViMUM/9YLThxw/NsNdii6g6vnoEdOBMnV5We+LM=	2026-08-29 00:12:26.591785+05:30	2026-08-22 00:34:39.361956+05:30	\N	2026-08-22 00:12:26.591848+05:30	2026-08-22 00:34:39.364511+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 1fbccd59-468c-43cc-ac9d-672bda518373	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	F54pXs5SBEb0xqCwqIH+jIsNC39vj3GgKC39BdIC2R0=	2026-08-29 00:34:39.364037+05:30	2026-08-22 00:42:16.243304+05:30	\N	2026-08-22 00:34:39.364511+05:30	2026-08-22 00:42:16.259357+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 d9c52b8b-8e58-4ea6-b2fd-2ca72f4dab15	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	1Amn2ovPj652YrJMnKloLckITQ20ILT1kbd/ma2ou5o=	2026-08-29 00:42:16.256325+05:30	2026-08-22 00:52:51.395163+05:30	\N	2026-08-22 00:42:16.259357+05:30	2026-08-22 00:52:51.395779+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-2ac137b4-e43b-429f-8615-7d78707c354f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	TzQJtXzqydcylYR9n+UoQqE4ETn+hbLxL4YEwyEBkjY=	2026-08-29 00:52:51.395571+05:30	\N	\N	2026-08-22 00:52:51.395779+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2ac137b4-e43b-429f-8615-7d78707c354f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	TzQJtXzqydcylYR9n+UoQqE4ETn+hbLxL4YEwyEBkjY=	2026-08-29 00:52:51.395571+05:30	2026-08-22 10:34:10.080698+05:30	\N	2026-08-22 00:52:51.395779+05:30	2026-08-22 10:34:10.088856+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d04b71ab-577a-4429-a3c8-644a1b333495	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	BusjdmdM3jgXDdYwKH9Jl8x/69c7BEm+KP3IBu+OBJE=	2026-08-29 10:34:10.087843+05:30	2026-08-22 10:57:40.421776+05:30	\N	2026-08-22 10:34:10.088856+05:30	2026-08-22 10:57:40.434407+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+761347ac-0c68-428a-bc31-beb56b573c42	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	XtCOt1XHh7DlZ0I68SdaNsw/Q3ZQCzehnzEqL3kOwgQ=	2026-08-29 10:57:40.430217+05:30	2026-08-22 11:04:40.710189+05:30	\N	2026-08-22 10:57:40.434407+05:30	2026-08-22 11:04:40.715259+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c0581efc-09e6-45fe-9e29-7b766c7df408	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	hzjdNIPFwXuWLfVcl9HBujxVIL1BsUvqhVbv80ukPvc=	2026-08-29 11:04:40.712979+05:30	2026-08-22 11:11:16.429178+05:30	\N	2026-08-22 11:04:40.715259+05:30	2026-08-22 11:11:16.430025+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6295fa3f-e6af-436f-8620-2afb7932e069	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	rpjJVZNqABk+YGxFYWXuMcYZnq8I9Ei8t6seTKkO8E8=	2026-08-29 11:11:16.429649+05:30	2026-08-22 11:11:44.935047+05:30	\N	2026-08-22 11:11:16.430025+05:30	2026-08-22 11:11:44.935395+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+edc8a465-5c3b-47d8-acf2-676cdb0d3d83	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	0izwIG3Ew3BhRpmmjq/XjcBXtkxV21ZGoZNY4C1Bi+o=	2026-08-29 11:11:44.935244+05:30	2026-08-22 11:25:47.514976+05:30	\N	2026-08-22 11:11:44.935395+05:30	2026-08-22 11:25:47.51565+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e3c3c71f-882e-4995-bd4e-4dd3c061dc3a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	mRtoJeEt7emELWtIsnwCDJPG7KQSgDWfw4Yad3tG+bQ=	2026-08-29 11:58:17.868176+05:30	2026-08-22 12:06:29.686572+05:30	\N	2026-08-22 11:58:17.874674+05:30	2026-08-22 12:06:29.687523+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9d19c141-d9c5-425d-bb7a-eed830231768	40517b71-5e62-182e-73b5-d4070e20a3c2	bqPpTT6VJ4epYUU6JDxsphMmYQXbCRreUGxKqPNDzzo=	2026-08-28 11:51:37.975412+05:30	2026-08-22 12:12:01.02779+05:30	\N	2026-08-21 11:51:37.975497+05:30	2026-08-22 12:12:01.027974+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+cf455132-90dc-4f5f-940a-31ab1c84dd07	40517b71-5e62-182e-73b5-d4070e20a3c2	pr5XfDuAOFywVtdLXl9Smytu6+R1fnTmkh3qlKZA594=	2026-08-29 12:12:01.027914+05:30	2026-08-22 12:12:13.433484+05:30	\N	2026-08-22 12:12:01.027974+05:30	2026-08-22 12:12:13.433666+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b3c7cbaf-de43-4f28-b872-7056652f4ddd	40517b71-5e62-182e-73b5-d4070e20a3c2	xE1v9mZFEj4l6YLZ0twjZQBzYjjNcfZce8lepWhUwgY=	2026-08-29 12:12:13.433604+05:30	2026-08-22 12:12:24.316953+05:30	\N	2026-08-22 12:12:13.433666+05:30	2026-08-22 12:12:24.317172+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0e04a1ea-fa80-4695-8e5f-9df3afa7749f	40517b71-5e62-182e-73b5-d4070e20a3c2	Ng+NvjQd3Ats8Tg1lFdtiuNf2TGSJLwAnqVOx9c1944=	2026-08-29 12:12:24.317097+05:30	2026-08-22 12:12:50.703729+05:30	\N	2026-08-22 12:12:24.317172+05:30	2026-08-22 12:12:50.703952+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+7f39c75c-2bf2-44d2-b29e-f3ba10b23c57	40517b71-5e62-182e-73b5-d4070e20a3c2	vr04lBMNtlBNorpGOusIu1ewMzFwf60mEqxP1t+4yrE=	2026-08-29 12:12:50.70387+05:30	\N	\N	2026-08-22 12:12:50.703952+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+180e657d-d97f-47e3-b45e-39744f0ada07	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	U15LKEO+WJbDufRQ51pnGj5nDIWVUb74QqiSlUwGn9c=	2026-08-29 12:06:29.686936+05:30	2026-08-22 12:18:25.697107+05:30	\N	2026-08-22 12:06:29.687523+05:30	2026-08-22 12:18:25.697307+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+16719cf4-c618-4a17-b892-e59a074bebbf	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	iNsRClCwDq4LcPLIHgrai5MlJFvEe4JoP9M9q3x08Xg=	2026-08-29 12:18:25.697226+05:30	2026-08-22 12:19:35.297474+05:30	\N	2026-08-22 12:18:25.697307+05:30	2026-08-22 12:19:35.299012+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+885f5917-e8dd-46c5-9c66-33992f64f733	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ax9B92tSK12r1XO5cQgJBSkLqti9YpBxSaPVlWEZso8=	2026-08-29 12:19:35.29872+05:30	2026-08-22 12:20:23.315016+05:30	\N	2026-08-22 12:19:35.299012+05:30	2026-08-22 12:20:23.315453+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c7cbad57-77ec-46c7-8a2e-a751eed4d045	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	4/pRS0i/Ewg5MTVNgJIe4e3xPTQJzW3vk6qA6rlwu2Q=	2026-08-29 12:20:23.315252+05:30	\N	\N	2026-08-22 12:20:23.315453+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
 --
--- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.role_permission_audits ("Id", "RoleId", "RoleName", "ModuleKey", "ModuleLabel", "SubmoduleKey", "SubmoduleLabel", "PermissionKey", "ActionLabel", "ChangeType", "PreviousValue", "NewValue", "ChangedById", "ChangedByName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1773,7 +1839,7 @@ dbeb83dc-772f-4df2-833f-8154a02d3955	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	Projec
 
 
 --
--- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.roles ("Id", "DisplayName", "Permissions", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Name", "Description", "IsActive", "IsSystemRole") FROM stdin;
@@ -1794,7 +1860,7 @@ cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	["dashboard.view", "proj
 
 
 --
--- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.sub_ventures ("Id", "ClientId", "Name", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Notes") FROM stdin;
@@ -1859,36 +1925,36 @@ a69fe228-de12-44e5-9128-dc3898f67e5c	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	IT	202
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Department", "SubDepartment", "Avatar", "Designation", "IsActive", "MustChangePassword", "RoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "FailedLoginAttempts", "LastLoginAtUtc", "LockedUntilUtc", "PasswordChangedAtUtc") FROM stdin;
 cf106b1b-6a96-464f-aa63-ddcb77a737e0	new.pm@acme.co	$2a$12$p.MfI7wlBAX2LZkpEvPoEunU.q5UljNMmswtXsI80UcJj8X2CVWM.	New PM	u99	\N	\N	\N	PM	t	t	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:25:45.951114+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
 30d629ff-3076-40f8-9c12-fb385b8c2600	admin2@acme.co	$2a$12$aqJIdIL9tzPW5DFE.zVFVurFkCUE0knMbU7.A0A1pBtjA7K4Qk7wS	Test Admin Two	A2	\N	\N	\N	\N	f	t	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:45:16.235641+05:30	2026-08-07 13:45:23.702021+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	0	\N	\N	\N
 a1878763-b174-41b0-88db-f2ebba76af83	sdsa@gmail.com	$2a$12$.bzyuW3FFq2Uau84IyFnYO1LXxDLXkbxtjVyvzVs71KECK6u2CONy	sadas	ads	sda	\N	\N	sda	t	t	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 15:00:46.654787+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
-111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$S6VAjw1L0UQXtEUGvUppa.hk5Ew4qrzeV2Ip5BzN46zV/ykj7RtAS	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
-1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$O4Pyf7gA4Qzq6johV1BHDOfBHqMe2dc7c/oU38fK/hBPq/7/7upQG	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
-2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$InmduBjvoVo47yX1TZbSVuoFyfv4snwCUMjXEJxzyYvaLWai7i232	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
-304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$lbiQNR4O8XDwdwxmcYjnFe3x2wUthwTwGKVH56ixKJ.FnAaD37rP2	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-21 22:15:24.911658+05:30	\N	\N
-40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$mI5CNbfY4sxwlozSEYPdoOLpQipdyWdqDSyUxAVu6dH4DWt0FD3Ei	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-21 11:51:37.97411+05:30	\N	2026-08-10 12:32:04.244561+05:30
-47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$WGQ3iCykbpMf/jaYFTIhf.wukF8feU.NAWyrIYAsrhiNybTZjwxji	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-20 12:01:20.644786+05:30	\N	\N
-49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$I8WLNrJc0W8jVldGbYycL.TJFF.hn.iMCTErPWiPGKoAfJScUn6NC	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	\N	\N	\N
-65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$AQTy9whi5C2PsBSiKweJAOY69v1jkri8XCghGY/AnKBkUCju0Elr6	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
-730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$iod9XnjyupvpJLOFFAOGf.6.ANT6nPgLwPxMK/qFCQRL1wDvLBE8u	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
-9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$UF6PZwOpd8pu8VK5QUX5euuj7.y.mji/rArxYZObeFLKDlsRV3UyG	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
-a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$nPemmEjlOsARI.x67Fp3FOBGOg4TO8.5uKYGi3L4qVZZFRk00Pcd6	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-21 22:15:42.227714+05:30	\N	\N
-a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$YZJE1RHNxe1gKg1AoMUGOuXIkBFivjbh/S3O5hS6RCoGWUlUXUmpG	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
-a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$bZcGuJrzKdroRz9zVk7DDOnkRfKVe07E0UMhzVzHCOr2hp3AqBwcu	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
-b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$YlpMx3y/6YZXNe0mfPbPr.Erby46IC7pr//Dzudluq9nxi/IlVmVq	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
-b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$qa0XgmtuNr/74BRbIbEO7OwxjfNQw4m/15HD8LoLYi6vwf8.6MqjK	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-18 12:39:23.505267+05:30	\N	\N
-dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$X4OgL682T7v2i8LlsThzbeh4uc3k.hnTFAcoPItWB2v4x3HcugDu.	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	\N	\N	\N
-e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$FMGduAhxPBbcczVr2WbnCOzqEKn654jneInO7YQsIsYEhJVgb1t06	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
-f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$IRs/m9194EqGTnMwaUC2euKl.rNZIv0reyawyAYS8QoyBR5Wom7ya	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 01:27:33.471006+05:30	\N	\N	\N	0	2026-08-21 22:14:07.051033+05:30	\N	\N
+111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$on1TvggHwb.9EuBd/zre5O1ZdO72NkiC2nE4iKucoIeIONSzsutsq	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
+1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$oiwbzKykmH0AUVPuhCOTju8XP10KNDfOtkbsKoiTO/P6Q2l1mUkyi	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
+2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$EYPIY1Nh2bu9s8PzP4yRYel2WltvY8t0cTiySyzl22sRJKcOU6HX.	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
+304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$61XieSPx2eJtWb5A8stGveP4CMgLai/av7It6uVW9SLjhhwsTE7ny	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-21 22:15:24.911658+05:30	\N	\N
+47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$VsUzyNkW1tnH4DAsvRQRQO4vT10KqbEuIKNmHzNLbM/yKzfMN2j1W	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-20 12:01:20.644786+05:30	\N	\N
+49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$DHbKZ1h/63M3qnVmQjHfsek8CjjT674JrU7wTiOrYLoV6lYl/tCEa	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	\N	\N	\N
+65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$0n7AECINy3F9Sv5yldTZVucKrKKYafBsscJ26sbPJkgSXOvy1fsmK	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
+730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$EpQesLxE6Rt8woZQMJM14e6PgeMQZKkV3NpQ6pKxJs.QJ2rn.mKLe	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
+9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$xsTnpsm8s7Wg7/SftAfCdueZGtpMexD.XHFBoo9/TNmIc5rPtKduy	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
+a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$Yb3Gc1WSRQp9D2xkaArWGOoLybN16P5ZWpbAPthgZTFty3JxPgLkK	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-21 22:15:42.227714+05:30	\N	\N
+a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$bcBZwdwOgzbEvICI45tpTOk0.dUjp0uhJNAZ5TF1krn6E1UVQbrIy	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
+a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$8VjdibmK5X2//F2fPNGZPOC5TFUaSxL4ufbb6PDMpPnK/xn1dzWEG	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
+b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$uwgzvzWD5rVzI9Eb9hAVIu4D1Zl6ixfFdPWyB86rsgHqFNYJb.yR6	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
+b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$2evQss8DeLlRtSqzje4E1Olkz1ijujOTmu.HMnXD3o.Eo/2U4QL7i	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-18 12:39:23.505267+05:30	\N	\N
+dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$W7Fx8abfmfsps5BN/.Gbse8QLmcGi37R6vghKvuY810rmVaBTZXRW	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	\N	\N	\N
+40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$dUZpVD3ohM2X5zkbYxd8.eNU6NSLgtEVuw4zw6zx0mnH.Xs9bzcdO	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-22 12:12:50.703952+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-08-22 12:12:50.7026+05:30	\N	2026-08-10 12:32:04.244561+05:30
+e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$CpIr22b9nTczfFt5gLZTdeqrcGoVHMI3JulgQ7V1ee.tT6nk5.ape	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
+f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$EANToQthuN0ITD/VJ27PaeBuRhuMJ8E3yshw16uJDRmfy.qqPa.W6	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-21 22:14:07.051033+05:30	\N	\N
 \.
 
 
 --
--- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."__EFMigrationsHistory"
@@ -1896,7 +1962,7 @@ ALTER TABLE ONLY public."__EFMigrationsHistory"
 
 
 --
--- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -1904,7 +1970,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -1912,7 +1978,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -1920,7 +1986,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -1928,7 +1994,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.exited_employees
@@ -1936,7 +2002,7 @@ ALTER TABLE ONLY public.exited_employees
 
 
 --
--- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -1944,7 +2010,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_countries
@@ -1952,7 +2018,7 @@ ALTER TABLE ONLY public.mst_countries
 
 
 --
--- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_departments
@@ -1960,7 +2026,7 @@ ALTER TABLE ONLY public.mst_departments
 
 
 --
--- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -1968,7 +2034,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_industries
@@ -1976,7 +2042,7 @@ ALTER TABLE ONLY public.mst_industries
 
 
 --
--- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_nationalities
@@ -1984,7 +2050,7 @@ ALTER TABLE ONLY public.mst_nationalities
 
 
 --
--- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -1992,7 +2058,7 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_salary_bands
@@ -2000,7 +2066,7 @@ ALTER TABLE ONLY public.mst_salary_bands
 
 
 --
--- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -2008,7 +2074,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -2016,7 +2082,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.roles
@@ -2024,7 +2090,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -2032,7 +2098,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.users
@@ -2040,7 +2106,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -2048,7 +2114,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -2056,7 +2122,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: trackerpro
 --
 
 ALTER TABLE ONLY public.mst_email_domains
@@ -2064,7 +2130,7 @@ ALTER TABLE ONLY public.mst_email_domains
 
 
 --
--- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2072,7 +2138,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2080,7 +2146,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: trackerpro
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -2088,7 +2154,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -2096,7 +2162,7 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -2104,329 +2170,329 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_client_assignments_UserId" ON public.client_assignments USING btree ("UserId");
 
 
 --
--- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_client_contacts_ClientId" ON public.client_contacts USING btree ("ClientId");
 
 
 --
--- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_client_contacts_SubVentureId" ON public.client_contacts USING btree ("SubVentureId");
 
 
 --
--- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_CityId" ON public.clients USING btree ("CityId");
 
 
 --
--- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_CountryId" ON public.clients USING btree ("CountryId");
 
 
 --
--- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_EngagementManagerId" ON public.clients USING btree ("EngagementManagerId");
 
 
 --
--- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_IndustryId" ON public.clients USING btree ("IndustryId");
 
 
 --
--- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_Name" ON public.clients USING btree ("Name");
 
 
 --
--- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_DepartmentId" ON public.employees USING btree ("DepartmentId");
 
 
 --
--- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_DesignationId" ON public.employees USING btree ("DesignationId");
 
 
 --
--- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_employees_EmployeeCode" ON public.employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_JobRoleId" ON public.employees USING btree ("JobRoleId");
 
 
 --
--- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_NationalityId" ON public.employees USING btree ("NationalityId");
 
 
 --
--- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_ReportingManagerId" ON public.employees USING btree ("ReportingManagerId");
 
 
 --
--- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_SalaryBandId" ON public.employees USING btree ("SalaryBandId");
 
 
 --
--- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_UserId" ON public.employees USING btree ("UserId");
 
 
 --
--- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_employees_WorkEmail" ON public.employees USING btree ("WorkEmail");
 
 
 --
--- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_exited_employees_EmployeeCode" ON public.exited_employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_exited_employees_OriginalEmployeeId" ON public.exited_employees USING btree ("OriginalEmployeeId");
 
 
 --
--- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_Code" ON public.mst_cities USING btree ("Code");
 
 
 --
--- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_CountryId_Name" ON public.mst_cities USING btree ("CountryId", "Name");
 
 
 --
--- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Code" ON public.mst_countries USING btree ("Code");
 
 
 --
--- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Name" ON public.mst_countries USING btree ("Name");
 
 
 --
--- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Code" ON public.mst_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Name" ON public.mst_departments USING btree ("Name");
 
 
 --
--- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_Code" ON public.mst_designations USING btree ("Code");
 
 
 --
--- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_DepartmentId_Name" ON public.mst_designations USING btree ("DepartmentId", "Name");
 
 
 --
--- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: trackerpro
 --
 
 CREATE UNIQUE INDEX "IX_mst_email_domains_DomainName" ON public.mst_email_domains USING btree ("DomainName");
 
 
 --
--- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Code" ON public.mst_industries USING btree ("Code");
 
 
 --
--- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Name" ON public.mst_industries USING btree ("Name");
 
 
 --
--- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Code" ON public.mst_nationalities USING btree ("Code");
 
 
 --
--- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Name" ON public.mst_nationalities USING btree ("Name");
 
 
 --
--- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: trackerpro
 --
 
 CREATE UNIQUE INDEX "IX_mst_reporting_managers_Code" ON public.mst_reporting_managers USING btree ("Code");
 
 
 --
--- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_Code" ON public.mst_roles USING btree ("Code");
 
 
 --
--- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_DesignationId_Name" ON public.mst_roles USING btree ("DesignationId", "Name");
 
 
 --
--- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Code" ON public.mst_salary_bands USING btree ("Code");
 
 
 --
--- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Name" ON public.mst_salary_bands USING btree ("Name");
 
 
 --
--- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_refresh_tokens_TokenHash" ON public.refresh_tokens USING btree ("TokenHash");
 
 
 --
--- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_refresh_tokens_UserId" ON public.refresh_tokens USING btree ("UserId");
 
 
 --
--- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_role_permission_audits_CreatedAtUtc" ON public.role_permission_audits USING btree ("CreatedAtUtc");
 
 
 --
--- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_role_permission_audits_RoleId" ON public.role_permission_audits USING btree ("RoleId");
 
 
 --
--- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_roles_Name" ON public.roles USING btree ("Name");
 
 
 --
--- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_sub_ventures_ClientId" ON public.sub_ventures USING btree ("ClientId");
 
 
 --
--- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_users_Email" ON public.users USING btree ("Email");
 
 
 --
--- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_users_EmployeeId" ON public.users USING btree ("EmployeeId");
 
 
 --
--- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_users_RoleId" ON public.users USING btree ("RoleId");
 
 
 --
--- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2434,7 +2500,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2442,7 +2508,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2450,7 +2516,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2458,7 +2524,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -2466,7 +2532,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -2474,7 +2540,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -2482,7 +2548,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -2490,7 +2556,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2498,7 +2564,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2506,7 +2572,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2514,7 +2580,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2522,7 +2588,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2530,7 +2596,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2538,7 +2604,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2546,7 +2612,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -2554,7 +2620,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -2562,7 +2628,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: trackerpro
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -2570,7 +2636,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -2578,7 +2644,7 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -2586,7 +2652,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -2594,7 +2660,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -2602,7 +2668,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.users
@@ -2610,7 +2676,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2618,8 +2684,148 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
+--
+
+GRANT ALL ON SCHEMA public TO trackerpro;
+
+
+--
+-- Name: TABLE "__EFMigrationsHistory"; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public."__EFMigrationsHistory" TO trackerpro;
+
+
+--
+-- Name: TABLE client_assignments; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.client_assignments TO trackerpro;
+
+
+--
+-- Name: TABLE client_contacts; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.client_contacts TO trackerpro;
+
+
+--
+-- Name: TABLE clients; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.clients TO trackerpro;
+
+
+--
+-- Name: TABLE employees; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.employees TO trackerpro;
+
+
+--
+-- Name: TABLE exited_employees; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.exited_employees TO trackerpro;
+
+
+--
+-- Name: TABLE mst_cities; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_cities TO trackerpro;
+
+
+--
+-- Name: TABLE mst_countries; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_countries TO trackerpro;
+
+
+--
+-- Name: TABLE mst_departments; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_departments TO trackerpro;
+
+
+--
+-- Name: TABLE mst_designations; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_designations TO trackerpro;
+
+
+--
+-- Name: TABLE mst_industries; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_industries TO trackerpro;
+
+
+--
+-- Name: TABLE mst_nationalities; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_nationalities TO trackerpro;
+
+
+--
+-- Name: TABLE mst_roles; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_roles TO trackerpro;
+
+
+--
+-- Name: TABLE mst_salary_bands; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_salary_bands TO trackerpro;
+
+
+--
+-- Name: TABLE refresh_tokens; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.refresh_tokens TO trackerpro;
+
+
+--
+-- Name: TABLE role_permission_audits; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.role_permission_audits TO trackerpro;
+
+
+--
+-- Name: TABLE roles; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.roles TO trackerpro;
+
+
+--
+-- Name: TABLE sub_ventures; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.sub_ventures TO trackerpro;
+
+
+--
+-- Name: TABLE users; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.users TO trackerpro;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict joA5a4aB2IvKLhcN9bSJeVyFriAumDdgJGGLWEWf5dChNZaQTD2xvs02lUIf9kY
+\unrestrict XxxDTrllkykjwwwnqsNgHNgFsAPHSnQUA3s8NyHXS3wLxS0MigXtWHzaM2eeMIb
 

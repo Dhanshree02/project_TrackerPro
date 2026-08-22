@@ -319,18 +319,29 @@ public static class DbSeeder
         {
             ("andheri", "Andheri", ["Suvidha Square"]),
             ("dombivli", "Dombivli", ["Navare Plaza"]),
-            ("bengaluru", "Bengaluru", ["Tech Park East", "Tech Park West"]),
-            ("pune", "Pune", ["Cyber City Tower"]),
-            ("hyderabad", "Hyderabad", ["HITEC City Office"]),
-            ("mumbai", "Mumbai", ["HQ Tower", "Bandra Kurla Complex"]),
-            ("remote", "Remote", ["Virtual / Remote"]),
         };
 
-        var existingLocations = await db.WorkLocations.Include(w => w.Offices).ToDictionaryAsync(w => w.Code, ct);
+        var existingLocations = await db.WorkLocations.Include(w => w.Offices).ToListAsync(ct);
+        var allowedCodes = locations.Select(l => l.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Deactivate any locations & offices that are not allowed
+        foreach (var loc in existingLocations)
+        {
+            if (!allowedCodes.Contains(loc.Code))
+            {
+                loc.IsActive = false;
+                foreach (var off in loc.Offices)
+                {
+                    off.IsActive = false;
+                }
+            }
+        }
+
+        var locDict = existingLocations.ToDictionary(w => w.Code, StringComparer.OrdinalIgnoreCase);
         var locOrder = 1;
         foreach (var (code, name, offices) in locations)
         {
-            if (!existingLocations.TryGetValue(code, out var loc))
+            if (!locDict.TryGetValue(code, out var loc))
             {
                 loc = new MstWorkLocation
                 {
@@ -340,21 +351,45 @@ public static class DbSeeder
                     SortOrder = locOrder++,
                 };
                 db.WorkLocations.Add(loc);
-                existingLocations[code] = loc;
+                locDict[code] = loc;
+            }
+            else
+            {
+                loc.Name = name;
+                loc.IsActive = true;
+                loc.SortOrder = locOrder++;
             }
 
             var officeOrder = 1;
-            var existingOffices = loc.Offices.Select(o => o.Name.ToLower()).ToHashSet();
+            var existingOffices = loc.Offices.ToDictionary(o => o.Name.ToLower(), StringComparer.OrdinalIgnoreCase);
+            var allowedOffices = offices.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var off in loc.Offices)
+            {
+                if (!allowedOffices.Contains(off.Name))
+                {
+                    off.IsActive = false;
+                }
+            }
+
             foreach (var offName in offices)
             {
-                if (existingOffices.Contains(offName.ToLower())) continue;
-                loc.Offices.Add(new MstOffice
+                if (existingOffices.TryGetValue(offName.ToLower(), out var existingOff))
                 {
-                    Code = $"{code}_{Slug(offName)}",
-                    Name = offName,
-                    IsActive = true,
-                    SortOrder = officeOrder++,
-                });
+                    existingOff.Name = offName;
+                    existingOff.IsActive = true;
+                    existingOff.SortOrder = officeOrder++;
+                }
+                else
+                {
+                    loc.Offices.Add(new MstOffice
+                    {
+                        Code = $"{code}_{Slug(offName)}",
+                        Name = offName,
+                        IsActive = true,
+                        SortOrder = officeOrder++,
+                    });
+                }
             }
         }
     }
@@ -768,8 +803,8 @@ public static class DbSeeder
             departments.TryGetValue(row.Department, out var dept);
             designations.TryGetValue(row.Designation, out var desig);
             var andheri = i % 2 == 0;
-            var location = andheri ? "Andheri Office" : "Dombivali Office";
-            var branch = andheri ? "HQ Tower" : "Tech Park East";
+            var location = andheri ? "Andheri" : "Dombivli";
+            var branch = andheri ? "Suvidha Square" : "Navare Plaza";
             var n = i + 1;
 
             entities.Add(new Employee
@@ -848,10 +883,26 @@ public static class DbSeeder
             }
         }
 
+        var allDbEmployees = await db.Employees.ToListAsync(ct);
+        foreach (var emp in allDbEmployees)
+        {
+            if (string.IsNullOrWhiteSpace(emp.WorkLocation) ||
+                emp.WorkLocation.Contains("Andheri", StringComparison.OrdinalIgnoreCase))
+            {
+                emp.WorkLocation = "Andheri";
+                emp.OfficeBranch = "Suvidha Square";
+            }
+            else
+            {
+                emp.WorkLocation = "Dombivli";
+                emp.OfficeBranch = "Navare Plaza";
+            }
+        }
+
         var seedCodes = seed.Select(s => s.Code).ToArray();
-        var existingDummy = await db.Employees
+        var existingDummy = allDbEmployees
             .Where(e => seedCodes.Contains(e.EmployeeCode))
-            .ToListAsync(ct);
+            .ToList();
         for (var i = 0; i < seed.Length; i++)
         {
             var row = seed[i];

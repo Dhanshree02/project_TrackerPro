@@ -432,3 +432,21 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     complianceStatus: (detail.complianceStatus as Employee["complianceStatus"]) || "Pending",
   };
 }
+
+export async function uploadEmployeeDocuments(
+  employeeCode: string,
+  category: string,
+  files: File[],
+): Promise<void> {
+  if (!files || files.length === 0) return;
+  const formData = new FormData();
+  formData.append("category", category);
+  for (const file of files) {
+    formData.append("files", file);
+  }
+  await apiFetch(`/api/v1/storage/employees/${encodeURIComponent(employeeCode)}/documents`, {
+    method: "POST",
+    body: formData,
+  });
+}
+

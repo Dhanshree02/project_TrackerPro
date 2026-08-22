@@ -28,7 +28,7 @@ const orgData: OrgNode = {
   dept: "Executive Office",
   email: "rakesh.menon@acmecorp.com",
   phone: "+91 98765 43210",
-  location: "HQ Tower, Bengaluru",
+  location: "Suvidha Square, Andheri",
   reports: [
     {
       id: "EMP-1002",
@@ -37,7 +37,7 @@ const orgData: OrgNode = {
       dept: "Engineering",
       email: "sunita.verma@acmecorp.com",
       phone: "+91 98765 43211",
-      location: "HQ Tower, Bengaluru",
+      location: "Suvidha Square, Andheri",
       reports: [
         {
           id: "EMP-1003",
@@ -46,7 +46,7 @@ const orgData: OrgNode = {
           dept: "Engineering",
           email: "david.thomas@acmecorp.com",
           phone: "+91 98765 43212",
-          location: "Tech Park East, Pune",
+          location: "Navare Plaza, Dombivli",
         },
         {
           id: "EMP-1004",
@@ -55,7 +55,7 @@ const orgData: OrgNode = {
           dept: "Engineering",
           email: "anu.krishnan@acmecorp.com",
           phone: "+91 98765 43213",
-          location: "Tech Park West, Mumbai",
+          location: "Suvidha Square, Andheri",
         }
       ]
     },
@@ -66,7 +66,7 @@ const orgData: OrgNode = {
       dept: "Product",
       email: "mohit.bansal@acmecorp.com",
       phone: "+91 98765 43214",
-      location: "Innovation Hub, Delhi NCR",
+      location: "Navare Plaza, Dombivli",
       reports: [
         {
           id: "EMP-1006",
@@ -75,7 +75,7 @@ const orgData: OrgNode = {
           dept: "Product",
           email: "lakshmi.iyer@acmecorp.com",
           phone: "+91 98765 43215",
-          location: "Innovation Hub, Delhi NCR",
+          location: "Navare Plaza, Dombivli",
         }
       ]
     },
@@ -86,7 +86,7 @@ const orgData: OrgNode = {
       dept: "Design",
       email: "priya.sharma@acmecorp.com",
       phone: "+91 98765 43216",
-      location: "Central Office, Bengaluru",
+      location: "Suvidha Square, Andheri",
       reports: [
         {
           id: "EMP-1008",
@@ -95,7 +95,7 @@ const orgData: OrgNode = {
           dept: "Design",
           email: "rajesh.nair@acmecorp.com",
           phone: "+91 98765 43217",
-          location: "Central Office, Bengaluru",
+          location: "Suvidha Square, Andheri",
         }
       ]
     }

@@ -132,8 +132,8 @@ const lastNames = [
   "Srinivasan","Mukherjee","Roy","Bhatt","Pandey","Tendulkar","Rathore","Dhawan",
 ];
 
-const locations = ["Pune","Mumbai","Bengaluru","Delhi NCR","Hyderabad","Chennai","Remote"];
-const branches = ["HQ Tower","Tech Park East","Tech Park West","Central Office","Innovation Hub"];
+const locations = ["Andheri", "Dombivli"];
+const branches = ["Suvidha Square", "Navare Plaza"];
 const businessUnits = ["Cloud Platform","Consumer Apps","Enterprise","Digital Commerce"];
 const teams = ["Alpha","Beta","Gamma","Delta","Epsilon","Zeta","Theta","Omega"];
 const categories = ["Permanent - Bond", "Permanent - Without Bond", "Contract-based", "Intern - Paid", "Intern - Unpaid"] as const;
@@ -175,7 +175,8 @@ export const employees: Employee[] = Array.from({ length: 48 }, (_, i) => {
   const desig = designationsList[i % designationsList.length];
   
   const projectSite = pick(["Onsite", "Offsite"]) as "Onsite" | "Offsite";
-  const loc = projectSite === "Onsite" ? pick(["Andheri Office", "Dombivali Office"]) : pick(locations);
+  const loc = pick(locations);
+  const branch = loc === "Andheri" ? "Suvidha Square" : "Navare Plaza";
   const category = pick(categories);
   const assetId = pick([
     `TK-${1000 + Math.floor(r() * 9000)}`,
@@ -245,7 +246,7 @@ export const employees: Employee[] = Array.from({ length: 48 }, (_, i) => {
     reportingManager: pick(mgrs),
     businessUnit: pick(businessUnits),
     workLocation: loc,
-    officeBranch: pick(branches),
+    officeBranch: loc === "Andheri" ? "Suvidha Square" : "Navare Plaza",
     category,
     team: `Team ${pick(teams)}`,
     joiningDate: `${joinYear}-${joinMonth}-${joinDay}`,

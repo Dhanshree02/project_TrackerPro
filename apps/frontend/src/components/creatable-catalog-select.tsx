@@ -191,9 +191,10 @@ export function SearchableSelect({
                 <input
                   ref={searchInputRef}
                   type="text"
+                  maxLength={200}
                   placeholder={searchPlaceholder ?? `Search ${label ? label.toLowerCase() : "options"}…`}
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => setSearch(e.target.value.slice(0, 200))}
                   onKeyDown={(e) => {
                     if (e.key === "Escape") {
                       setIsOpen(false);
@@ -365,10 +366,11 @@ export function CreatableCatalogSelect({
           type="button"
           disabled={disabled}
           className={cn(
-            "ml-1.5 h-9 shrink-0 rounded-md border border-input bg-card px-3 text-xs font-semibold text-foreground transition-colors",
-            "hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60",
-            adding && !disabled && "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
-            error && "border-destructive",
+            "ml-1.5 h-9 shrink-0 rounded-md bg-blue-600 px-3 text-xs font-semibold text-white transition-all duration-150 shadow-xs",
+            "hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800",
+            "disabled:cursor-not-allowed disabled:opacity-40 disabled:bg-muted disabled:border-border disabled:text-muted-foreground disabled:shadow-none",
+            adding && !disabled && "bg-blue-700 ring-2 ring-blue-500/30 shadow-xs",
+            error && "bg-destructive hover:bg-destructive/90 text-destructive-foreground",
           )}
           onClick={() => {
             if (disabled) return;
@@ -376,7 +378,7 @@ export function CreatableCatalogSelect({
             setNewName("");
           }}
         >
-          <Plus className="mr-1 inline h-3.5 w-3.5" />
+          <Plus className="mr-1 inline h-3.5 w-3.5 shrink-0 text-white" />
           Add
         </button>
       </div>
@@ -404,7 +406,7 @@ export function CreatableCatalogSelect({
           />
           <button
             type="button"
-            className="h-9 shrink-0 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground disabled:opacity-60"
+            className="h-9 shrink-0 rounded-md bg-blue-600 px-3.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 transition-colors"
             disabled={!newName.trim() || creating}
             onClick={() => void addNew()}
           >

@@ -58,6 +58,13 @@ backups/
 *.dump
 *.sql.gz
 
+# Local File Storage (Uploaded Documents)
+storage/**/*
+!storage/**/.gitkeep
+!storage/.gitkeep
+
+
+
 # =========================
 # Editor & IDE
 # =========================
