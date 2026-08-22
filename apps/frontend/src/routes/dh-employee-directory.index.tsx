@@ -64,6 +64,7 @@ import {
 } from "@/lib/api/employees";
 import {
   ONBOARD_DOC_SLOTS,
+  MANDATORY_DOC_SLOTS,
   EMPTY_DOCS,
   EMPTY_ONBOARD,
   ONBOARD_FIELDS,
@@ -73,6 +74,7 @@ import {
   validateOnboardField,
   validateOnboardForm,
   validateOnboardFile,
+  validateOnboardDocs,
   toDirectoryStatus,
   blankToNull,
   csvToList,
@@ -869,6 +871,7 @@ function FormSelect({
   value,
   onChange,
   error,
+  required,
   disabled,
   placeholder = "Select…",
 }: {
@@ -877,6 +880,7 @@ function FormSelect({
   value?: string;
   onChange?: (value: string) => void;
   error?: string;
+  required?: boolean;
   disabled?: boolean;
   placeholder?: string;
 }) {
@@ -887,6 +891,7 @@ function FormSelect({
       value={value}
       onChange={onChange}
       error={error}
+      required={required}
       disabled={disabled}
       placeholder={placeholder}
     />
@@ -907,6 +912,7 @@ function UploadSlot({
   file,
   files,
   multiple,
+  required,
   error,
   onSelect,
   onSelectMultiple,
@@ -917,6 +923,7 @@ function UploadSlot({
   file?: File | null;
   files?: File[];
   multiple?: boolean;
+  required?: boolean;
   error?: string;
   onSelect?: (file: File) => void;
   onSelectMultiple?: (files: File[]) => void;
@@ -1037,6 +1044,7 @@ function UploadSlot({
             <Plus className="mb-1.5 h-4 w-4 text-muted-foreground" />
             <div className="text-xs font-medium text-foreground line-clamp-1 leading-tight" title={label}>
               {label}
+              {required ? <span className="text-destructive font-bold"> *</span> : null}
             </div>
             {multiple ? (
               <span className="mt-1 inline-block rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
@@ -1314,26 +1322,10 @@ function OnboardingPanel({
     e?.preventDefault();
     const nextErrors = validateOnboardForm(form, existingCodes);
     setErrors(nextErrors);
-    const nextDocErrors: OnboardDocErrors = {};
-    ONBOARD_DOC_SLOTS.forEach((slot) => {
-      const docItem = docs[slot];
-      if (!docItem) return;
-      if (Array.isArray(docItem)) {
-        for (const f of docItem) {
-          const message = validateOnboardFile(f);
-          if (message) {
-            nextDocErrors[slot] = message;
-            break;
-          }
-        }
-      } else {
-        const message = validateOnboardFile(docItem);
-        if (message) nextDocErrors[slot] = message;
-      }
-    });
+    const nextDocErrors = validateOnboardDocs(docs);
     setDocErrors(nextDocErrors);
     if (Object.keys(nextErrors).length > 0 || Object.keys(nextDocErrors).length > 0) {
-      toast.error("Please fix the highlighted fields");
+      toast.error("Please complete all mandatory fields and required documents");
       return;
     }
     setIsSubmitting(true);
@@ -1701,6 +1693,7 @@ function OnboardingPanel({
               <FormField
                 label="Emergency Contact"
                 name="emergencyContact"
+                required
                 inputMode="numeric"
                 maxLength={FIELD_MAX.phone}
                 placeholder="10-digit number"
@@ -1712,6 +1705,8 @@ function OnboardingPanel({
               />
               <FormSelect
                 label="Gender"
+                required
+                error={errors.gender}
                 options={["Male", "Female", "Other"]}
                 value={form.gender}
                 onChange={(v) => setField("gender", v)}
@@ -1719,6 +1714,7 @@ function OnboardingPanel({
               <FormField
                 label="Date of Birth"
                 type="date"
+                required
                 value={form.dateOfBirth}
                 min={MIN_DOB}
                 max={MAX_ADULT_DOB}
@@ -1734,6 +1730,8 @@ function OnboardingPanel({
               />
               <FormSelect
                 label="Nationality"
+                required
+                error={errors.nationalityId}
                 options={nationalities.map((n) => ({ value: n.id, label: n.name }))}
                 value={form.nationalityId}
                 onChange={(v) => setField("nationalityId", v)}
@@ -1742,6 +1740,8 @@ function OnboardingPanel({
                 <FormTextarea
                   label="Address"
                   name="address"
+                  required
+                  error={errors.address}
                   maxLength={FIELD_MAX.address}
                   placeholder="Street address, city, state, PIN code"
                   value={form.address}
@@ -1764,6 +1764,8 @@ function OnboardingPanel({
               />
               <CreatableCatalogSelect
                 label="Department"
+                required
+                error={errors.departmentId}
                 options={deptOptions}
                 valueId={form.departmentId}
                 onSelect={(id) => setField("departmentId", id)}
@@ -1780,6 +1782,8 @@ function OnboardingPanel({
               />
               <CreatableCatalogSelect
                 label="Designation"
+                required
+                error={errors.designationId}
                 options={desigOptions}
                 valueId={form.designationId}
                 disabled={!form.departmentId}
@@ -1816,6 +1820,8 @@ function OnboardingPanel({
               />
               <CreatableCatalogSelect
                 label="Reporting Manager"
+                required
+                error={errors.reportingManagerId}
                 options={managerOptions}
                 valueId={form.reportingManagerId}
                 placeholder="Select reporting manager"
@@ -1861,6 +1867,8 @@ function OnboardingPanel({
               />
               <CreatableCatalogSelect
                 label="Work Location"
+                required
+                error={errors.workLocation}
                 options={workLocOptions}
                 valueId={selectedWorkLoc?.id ?? form.workLocation}
                 placeholder="Select work location"
@@ -1904,6 +1912,8 @@ function OnboardingPanel({
               />
               <CreatableCatalogSelect
                 label="Office"
+                required
+                error={errors.officeBranch}
                 options={availableOffices}
                 valueId={availableOffices.find((o) => o.name.toLowerCase() === form.officeBranch.toLowerCase() || o.id === form.officeBranch)?.id ?? form.officeBranch}
                 disabled={!selectedWorkLoc}
@@ -1950,6 +1960,7 @@ function OnboardingPanel({
               <FormField
                 label="Date of Joining"
                 type="date"
+                required
                 min={isoDateToday()}
                 value={form.joiningDate}
                 onChange={(v) => setField("joiningDate", v)}
@@ -1977,6 +1988,8 @@ function OnboardingPanel({
               />
               <FormSelect
                 label="Employment Status"
+                required
+                error={errors.status}
                 options={[
                   "Active - Probation",
                   "Active",
@@ -2008,12 +2021,16 @@ function OnboardingPanel({
               />
               <FormSelect
                 label="Salary Band"
+                required
+                error={errors.salaryBandId}
                 options={salaryBands.map((b) => ({ value: b.id, label: b.name }))}
                 value={form.salaryBandId}
                 onChange={(v) => setField("salaryBandId", v)}
               />
               <FormSelect
                 label="Employment Type"
+                required
+                error={errors.employmentType}
                 options={["Full-time", "Part-time", "Contract"]}
                 value={form.employmentType}
                 onChange={(v) => setField("employmentType", v)}
@@ -2088,6 +2105,7 @@ function OnboardingPanel({
               <FormField
                 label="PAN Number"
                 name="pan"
+                required
                 maxLength={10}
                 placeholder="e.g. ABCDE1234F"
                 value={form.pan}
@@ -2098,6 +2116,7 @@ function OnboardingPanel({
               <FormField
                 label="Aadhaar Number"
                 name="aadhaar"
+                required
                 inputMode="numeric"
                 maxLength={12}
                 placeholder="Enter 12-digit Aadhaar number"
@@ -2120,6 +2139,7 @@ function OnboardingPanel({
               <FormField
                 label="Bank Account Number"
                 name="bankAccount"
+                required
                 inputMode="numeric"
                 maxLength={18}
                 placeholder="Enter bank account number"
@@ -2131,6 +2151,7 @@ function OnboardingPanel({
               <FormField
                 label="IFSC Code"
                 name="ifsc"
+                required
                 maxLength={11}
                 placeholder="e.g. SBIN0001234"
                 value={form.ifsc}
@@ -2156,6 +2177,7 @@ function OnboardingPanel({
                     <UploadSlot
                       key={d}
                       label={d}
+                      required={MANDATORY_DOC_SLOTS.includes(d)}
                       multiple={isMulti}
                       file={!isMulti ? (docs[d] as File | null) : null}
                       files={isMulti ? (docs[d] as File[]) : undefined}

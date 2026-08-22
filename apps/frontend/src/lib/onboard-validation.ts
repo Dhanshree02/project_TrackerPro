@@ -19,6 +19,8 @@ export const ONBOARD_DOC_SLOTS = [
 
 export type OnboardDocSlot = (typeof ONBOARD_DOC_SLOTS)[number];
 
+export const MANDATORY_DOC_SLOTS: OnboardDocSlot[] = ["Resume", "PAN Card", "Aadhaar Card"];
+
 export const DOC_EXT = [".pdf", ".jpg", ".jpeg", ".png"];
 export const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -120,7 +122,7 @@ export const EMPTY_ONBOARD: OnboardValues = {
   functionalSkills: "",
   experience: "",
   previousCompany: "",
-  employmentType: "",
+  employmentType: "Full-Time",
   contractType: "",
   bondStatus: "",
   languages: "",
@@ -151,8 +153,20 @@ export const ONBOARD_FIELDS: OnboardField[] = [
   "phone",
   "altPhone",
   "emergencyContact",
+  "gender",
   "dateOfBirth",
+  "maritalStatus",
+  "nationalityId",
+  "address",
+  "departmentId",
+  "designationId",
+  "jobRoleId",
+  "reportingManagerId",
+  "workLocation",
+  "officeBranch",
   "joiningDate",
+  "status",
+  "employmentType",
   "probationPeriod",
   "noticePeriod",
   "pan",
@@ -160,6 +174,7 @@ export const ONBOARD_FIELDS: OnboardField[] = [
   "pfUan",
   "bankAccount",
   "ifsc",
+  "salaryBandId",
 ];
 
 export const MAX_ADULT_DOB = isoDateYearsAgo(18);
@@ -235,24 +250,75 @@ export function validateOnboardField(
       if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
       return undefined;
     }
+    case "gender": {
+      const v = (values.gender || "").trim();
+      if (!v) return "Gender is required";
+      return undefined;
+    }
     case "dateOfBirth": {
       const v = (values.dateOfBirth || "").trim();
-      if (!v) return undefined;
+      if (!v) return "Date of birth is required";
       if (v > MAX_ADULT_DOB) return "Employee must be at least 18 years old";
       if (v < MIN_DOB) return "Enter a valid date of birth";
       return undefined;
     }
+    case "nationalityId": {
+      const v = (values.nationalityId || "").trim();
+      if (!v) return "Nationality is required";
+      return undefined;
+    }
+    case "address": {
+      const v = (values.address || "").trim();
+      if (!v) return "Residential address is required";
+      return undefined;
+    }
+    case "departmentId": {
+      const v = (values.departmentId || "").trim();
+      if (!v) return "Department is required";
+      return undefined;
+    }
+    case "designationId": {
+      const v = (values.designationId || "").trim();
+      if (!v) return "Designation is required";
+      return undefined;
+    }
+    case "reportingManagerId": {
+      const v = (values.reportingManagerId || "").trim();
+      if (!v) return "Reporting manager is required";
+      return undefined;
+    }
+    case "workLocation": {
+      const v = (values.workLocation || "").trim();
+      if (!v) return "Work location is required";
+      return undefined;
+    }
+    case "officeBranch": {
+      const v = (values.officeBranch || "").trim();
+      if (!v) return "Office branch is required";
+      return undefined;
+    }
     case "joiningDate": {
       const v = (values.joiningDate || "").trim();
-      if (!v) return undefined;
+      if (!v) return "Joining date is required";
       if (v < isoDateToday()) return "Date of joining must be today or a future date";
       return undefined;
     }
-    case "nationalityId":
-    case "departmentId":
-    case "designationId":
+    case "status": {
+      const v = (values.status || "").trim();
+      if (!v) return "Employment status is required";
+      return undefined;
+    }
+    case "employmentType": {
+      const v = (values.employmentType || "").trim();
+      if (!v) return "Employment type is required";
+      return undefined;
+    }
+    case "salaryBandId": {
+      const v = (values.salaryBandId || "").trim();
+      if (!v) return "Salary band is required";
+      return undefined;
+    }
     case "jobRoleId":
-    case "salaryBandId":
       return undefined;
     case "probationPeriod": {
       const v = (values.probationPeriod || "").trim();
@@ -300,23 +366,23 @@ export function validateOnboardField(
       return undefined;
     }
     case "phone": {
-      return phoneError(values.phone);
+      return phoneError(values.phone, true);
     }
     case "altPhone": {
-      return phoneError(values.altPhone);
+      return phoneError(values.altPhone, false);
     }
     case "emergencyContact": {
-      return phoneError(values.emergencyContact);
+      return phoneError(values.emergencyContact, true);
     }
     case "pan": {
       const v = (values.pan || "").trim();
-      if (!v) return undefined;
+      if (!v) return "PAN number is required";
       if (!isValidPan(v)) return "Enter a valid PAN (e.g. ABCDE1234F)";
       return undefined;
     }
     case "aadhaar": {
       const v = (values.aadhaar || "").trim();
-      if (!v) return undefined;
+      if (!v) return "Aadhaar number is required";
       if (/\D/.test(v.replace(/\s/g, ""))) return "Only numbers are allowed";
       if (!isValidAadhaar(v)) return "Enter a valid 12-digit Aadhaar number";
       return undefined;
@@ -330,7 +396,7 @@ export function validateOnboardField(
     }
     case "bankAccount": {
       const v = (values.bankAccount || "").trim();
-      if (!v) return undefined;
+      if (!v) return "Bank account number is required";
       if (/\D/.test(v)) return "Only numbers are allowed";
       const n = digitsOnly(v);
       if (n.length < 9 || n.length > 18) return "Enter a valid bank account number (9–18 digits)";
@@ -338,21 +404,16 @@ export function validateOnboardField(
     }
     case "ifsc": {
       const v = (values.ifsc || "").trim();
-      if (!v) return undefined;
+      if (!v) return "IFSC code is required";
       if (!isValidIfsc(v)) return "Enter a valid IFSC (e.g. SBIN0001234)";
       return undefined;
     }
-    case "gender":
     case "maritalStatus":
-    case "address":
     case "businessUnit":
     case "team":
     case "projectSite":
-    case "workLocation":
-    case "officeBranch":
     case "category":
     case "assetId":
-    case "status":
     case "exitType":
     case "exitReason":
     case "education":
@@ -361,11 +422,9 @@ export function validateOnboardField(
     case "functionalSkills":
     case "experience":
     case "previousCompany":
-    case "employmentType":
     case "contractType":
     case "bondStatus":
     case "languages":
-    case "reportingManagerId":
       return undefined;
   }
 }
@@ -416,4 +475,55 @@ export function validateOnboardFile(file: File): string | undefined {
   if (!DOC_EXT.includes(ext)) return "Only PDF, JPG or PNG files are allowed";
   if (file.size > MAX_DOC_BYTES) return "File must be 5 MB or smaller";
   return undefined;
+}
+
+export function validateOnboardDocs(docs: OnboardDocs): OnboardDocErrors {
+  const errors: OnboardDocErrors = {};
+  if (!docs.Resume) {
+    errors.Resume = "Resume is required";
+  } else {
+    const err = validateOnboardFile(docs.Resume);
+    if (err) errors.Resume = err;
+  }
+
+  if (!docs["PAN Card"]) {
+    errors["PAN Card"] = "PAN card is required";
+  } else {
+    const err = validateOnboardFile(docs["PAN Card"]);
+    if (err) errors["PAN Card"] = err;
+  }
+
+  if (!docs["Aadhaar Card"]) {
+    errors["Aadhaar Card"] = "Aadhaar card is required";
+  } else {
+    const err = validateOnboardFile(docs["Aadhaar Card"]);
+    if (err) errors["Aadhaar Card"] = err;
+  }
+
+  if (docs["Offer Letter"]) {
+    const err = validateOnboardFile(docs["Offer Letter"]);
+    if (err) errors["Offer Letter"] = err;
+  }
+
+  if (Array.isArray(docs["Education Certs"])) {
+    for (const f of docs["Education Certs"]) {
+      const err = validateOnboardFile(f);
+      if (err) {
+        errors["Education Certs"] = err;
+        break;
+      }
+    }
+  }
+
+  if (Array.isArray(docs["Experience Letters"])) {
+    for (const f of docs["Experience Letters"]) {
+      const err = validateOnboardFile(f);
+      if (err) {
+        errors["Experience Letters"] = err;
+        break;
+      }
+    }
+  }
+
+  return errors;
 }
