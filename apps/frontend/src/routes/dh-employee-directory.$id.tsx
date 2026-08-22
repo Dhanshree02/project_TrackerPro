@@ -699,22 +699,14 @@ function EditProfilePanel({
                   </p>
                 ) : null}
               </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Gender <span className="text-destructive">*</span>
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.gender}
-                  onChange={(e) => handleChange("gender", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="">Select…</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </label>
+              <SearchableSelect
+                label="Gender"
+                required
+                options={["Male", "Female", "Other"]}
+                value={formData.gender}
+                onChange={(v) => handleChange("gender", v)}
+                placeholder="Select gender…"
+              />
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Date of Birth <span className="text-destructive">*</span>
@@ -727,21 +719,13 @@ function EditProfilePanel({
                   className={inputCls}
                 />
               </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Marital Status
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.maritalStatus}
-                  onChange={(e) => handleChange("maritalStatus", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                  <option value="Other">Other</option>
-                </select>
-              </label>
+              <SearchableSelect
+                label="Marital Status"
+                options={["Single", "Married", "Other"]}
+                value={formData.maritalStatus}
+                onChange={(v) => handleChange("maritalStatus", v)}
+                placeholder="Select marital status…"
+              />
               <SearchableSelect
                 label="Nationality"
                 required
@@ -844,20 +828,13 @@ function EditProfilePanel({
                 />
               </label>
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Project Site
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.projectSite}
-                  onChange={(e) => handleChange("projectSite", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="Onsite">Onsite</option>
-                  <option value="Offsite">Offsite</option>
-                </select>
-              </label>
+              <SearchableSelect
+                label="Project Site"
+                options={["Onsite", "Offsite"]}
+                value={formData.projectSite}
+                onChange={(v) => handleChange("projectSite", v)}
+                placeholder="Select project site…"
+              />
 
               <SearchableSelect
                 label="Work Location"
@@ -898,117 +875,77 @@ function EditProfilePanel({
                   required
                 />
               </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Category
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.category}
-                  onChange={(e) => handleChange("category", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="Permanent - Bond">Permanent - Bond</option>
-                  <option value="Permanent - Without Bond">Permanent - Without Bond</option>
-                  <option value="Contract-based">Contract-based</option>
-                  <option value="Intern - Paid">Intern - Paid</option>
-                  <option value="Intern - Unpaid">Intern - Unpaid</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Employment Status <span className="text-destructive">*</span>
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.status}
-                  onChange={(e) => handleChange("status", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="Active - Probation">Active - Probation</option>
-                  <option value="Active">Active</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Confirmation Status
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.confirmationStatus}
-                  onChange={(e) => handleChange("confirmationStatus", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="Active - Probation">Active - Probation</option>
-                  <option value="Active">Active</option>
-                  <option value="Resignation - Under Review">Resignation - Under Review</option>
-                  <option value="Resignation - Accepted">Resignation - Accepted</option>
-                  <option value="Inactive - After Onboarding">Inactive - After Onboarding</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Employment Type <span className="text-destructive">*</span>
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.employmentType}
-                  onChange={(e) => handleChange("employmentType", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="Full-time">Full-time</option>
-                  <option value="Part-time">Part-time</option>
-                  <option value="Contract">Contract</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Contract Type
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.contractType}
-                  onChange={(e) => handleChange("contractType", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="Standard">Standard</option>
-                  <option value="Retainer">Retainer</option>
-                  <option value="Freelance">Freelance</option>
-                  <option value="Consultant">Consultant</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Bond Status
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.bondStatus}
-                  onChange={(e) => handleChange("bondStatus", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="No Bond">No Bond</option>
-                  <option value="Yes - 1 Year">Yes - 1 Year</option>
-                  <option value="Yes - 2 Years">Yes - 2 Years</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Notice Period
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.noticePeriod}
-                  onChange={(e) => handleChange("noticePeriod", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="15 Days">15 Days</option>
-                  <option value="30 Days">30 Days</option>
-                  <option value="60 Days">60 Days</option>
-                  <option value="90 Days">90 Days</option>
-                  <option value="Immediate">Immediate</option>
-                </select>
-              </label>
+
+              <SearchableSelect
+                label="Category"
+                options={[
+                  "Permanent - Bond",
+                  "Permanent - Without Bond",
+                  "Contract-based",
+                  "Intern - Paid",
+                  "Intern - Unpaid",
+                ]}
+                value={formData.category}
+                onChange={(v) => handleChange("category", v)}
+                placeholder="Select category…"
+              />
+
+              <SearchableSelect
+                label="Employment Status"
+                required
+                options={["Active - Probation", "Active"]}
+                value={formData.status}
+                onChange={(v) => handleChange("status", v)}
+                placeholder="Select status…"
+              />
+
+              <SearchableSelect
+                label="Confirmation Status"
+                options={[
+                  "Active - Probation",
+                  "Active",
+                  "Resignation - Under Review",
+                  "Resignation - Accepted",
+                  "Inactive - After Onboarding",
+                ]}
+                value={formData.confirmationStatus}
+                onChange={(v) => handleChange("confirmationStatus", v)}
+                placeholder="Select confirmation status…"
+              />
+
+              <SearchableSelect
+                label="Employment Type"
+                required
+                options={["Full-time", "Part-time", "Contract"]}
+                value={formData.employmentType}
+                onChange={(v) => handleChange("employmentType", v)}
+                placeholder="Select employment type…"
+              />
+
+              <SearchableSelect
+                label="Contract Type"
+                options={["Standard", "Retainer", "Freelance", "Consultant"]}
+                value={formData.contractType}
+                onChange={(v) => handleChange("contractType", v)}
+                placeholder="Select contract type…"
+              />
+
+              <SearchableSelect
+                label="Bond Status"
+                options={["No Bond", "Yes - 1 Year", "Yes - 2 Years"]}
+                value={formData.bondStatus}
+                onChange={(v) => handleChange("bondStatus", v)}
+                placeholder="Select bond status…"
+              />
+
+              <SearchableSelect
+                label="Notice Period"
+                options={["15 Days", "30 Days", "60 Days", "90 Days", "Immediate"]}
+                value={formData.noticePeriod}
+                onChange={(v) => handleChange("noticePeriod", v)}
+                placeholder="Select notice period…"
+              />
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Asset ID
@@ -1022,21 +959,14 @@ function EditProfilePanel({
                   placeholder="e.g. TK-LAP-1024"
                 />
               </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Probation Status
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.probationStatus}
-                  onChange={(e) => handleChange("probationStatus", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="Ongoing">Ongoing</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Not Completed">Not Completed</option>
-                </select>
-              </label>
+
+              <SearchableSelect
+                label="Probation Status"
+                options={["Ongoing", "Completed", "Not Completed"]}
+                value={formData.probationStatus}
+                onChange={(v) => handleChange("probationStatus", v)}
+                placeholder="Select probation status…"
+              />
             </div>
           </section>
 
@@ -1181,35 +1111,21 @@ function EditProfilePanel({
                 onChange={(v) => handleChange("salaryBand", v)}
                 placeholder="Select salary band…"
               />
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Tax Regime
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.taxRegime}
-                  onChange={(e) => handleChange("taxRegime", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="New Regime">New Regime</option>
-                  <option value="Old Regime">Old Regime</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Compliance Status
-                </span>
-                <select
-                  autoComplete="off"
-                  value={formData.complianceStatus}
-                  onChange={(e) => handleChange("complianceStatus", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="Compliant">Compliant</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Non-Compliant">Non-Compliant</option>
-                </select>
-              </label>
+              <SearchableSelect
+                label="Tax Regime"
+                options={["New Regime", "Old Regime"]}
+                value={formData.taxRegime}
+                onChange={(v) => handleChange("taxRegime", v)}
+                placeholder="Select tax regime…"
+              />
+
+              <SearchableSelect
+                label="Compliance Status"
+                options={["Compliant", "Pending", "Non-Compliant"]}
+                value={formData.complianceStatus}
+                onChange={(v) => handleChange("complianceStatus", v)}
+                placeholder="Select compliance status…"
+              />
             </div>
           </section>
         </div>
