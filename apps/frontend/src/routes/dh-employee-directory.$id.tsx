@@ -1026,13 +1026,16 @@ function EditProfilePanel({
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Probation Status
                 </span>
-                <input
+                <select
                   autoComplete="off"
-                  type="text"
                   value={formData.probationStatus}
                   onChange={(e) => handleChange("probationStatus", e.target.value)}
                   className={inputCls}
-                />
+                >
+                  <option value="Ongoing">Ongoing</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Not Completed">Not Completed</option>
+                </select>
               </label>
             </div>
           </section>

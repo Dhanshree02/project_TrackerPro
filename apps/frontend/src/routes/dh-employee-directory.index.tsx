@@ -1448,12 +1448,7 @@ function OnboardingPanel({
         joiningDate: blankToNull(form.joiningDate),
         status: toDirectoryStatus(employmentStatus),
         confirmationStatus: employmentStatus,
-        probationStatus:
-          employmentStatus === "Active - Probation"
-            ? probationLabel
-              ? `On Probation (${probationLabel})`
-              : "On Probation"
-            : probationLabel,
+        probationStatus: employmentStatus === "Active - Probation" ? "Ongoing" : "Completed",
         probationPeriod: probationLabel,
         experience: blankToNull(form.experience),
         previousCompany: blankToNull(form.previousCompany),
