@@ -105,7 +105,7 @@ export const Route = createFileRoute("/dh-employee-directory/")({
   component: EmployeeDirectoryPage,
 });
 
-const PAGE_SIZE = 15;
+const DEFAULT_PAGE_SIZE = 15;
 const ENABLE_RESOURCE_POOL = true;
 
 type DirectorySortKey =
@@ -2247,6 +2247,7 @@ function EmployeeDirectoryPage() {
   const [desigCatalog, setDesigCatalog] = useState<ApiMetaOption[]>([]);
 
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [dbEmployees, setDbEmployees] = useState<Employee[]>([]);
   const [managers, setManagers] = useState<{ id: string; name: string }[]>([]);
@@ -2410,14 +2411,14 @@ function EmployeeDirectoryPage() {
   // Determine active rows based on tab
   const activeRows = tab === "directory" ? directoryRows : poolRows;
 
-  const totalPages = Math.max(1, Math.ceil(activeRows.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(activeRows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pageRows = activeRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = activeRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Reset page when filters or tab change
+  // Reset page when filters, tab, or pageSize change
   useEffect(() => {
     setPage(1);
-  }, [q, dept, desig, status, tab, sortKey, sortDir, poolSortKey, poolSortDir]);
+  }, [q, dept, desig, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
 
   // Admin and HR both manage the full employee directory (HR uses it for
   // onboarding); every other role is redirected.
@@ -2641,28 +2642,51 @@ function EmployeeDirectoryPage() {
           </table>
 
           {/* Pagination */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 border-t border-border px-4 py-3 text-xs text-muted-foreground">
-            <div>
-              Showing {activeRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–
-              {Math.min(currentPage * PAGE_SIZE, activeRows.length)} of {activeRows.length}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3">
+              <span>
+                Showing <strong className="font-semibold text-foreground">{activeRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong>–
+                <strong className="font-semibold text-foreground">
+                  {Math.min(currentPage * pageSize, activeRows.length)}
+                </strong>{" "}
+                of <strong className="font-semibold text-foreground">{activeRows.length}</strong> employees
+              </span>
+              <span className="text-muted-foreground/40">|</span>
+              <div className="flex items-center gap-1.5">
+                <span>Per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="h-6 rounded border border-input bg-background px-1.5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
+
+            <div className="flex items-center gap-1.5">
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1 hover:bg-accent disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
               >
-                <ChevronLeft className="h-3 w-3" /> Previous
+                <ChevronLeft className="h-3.5 w-3.5" /> Previous
               </button>
-              <span className="px-2 tabular-nums">
+              <span className="px-2 tabular-nums font-semibold text-foreground">
                 {currentPage} / {totalPages}
               </span>
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1 hover:bg-accent disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
               >
-                Next <ChevronRight className="h-3 w-3" />
+                Next <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
@@ -2788,26 +2812,49 @@ function EmployeeDirectoryPage() {
           </table>
 
           {/* Pagination */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 border-t border-border px-4 py-3 text-xs text-muted-foreground bg-muted/10">
-            <div>
-              Showing {activeRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–
-              {Math.min(currentPage * PAGE_SIZE, activeRows.length)} of {activeRows.length}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3">
+              <span>
+                Showing <strong className="font-semibold text-foreground">{activeRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong>–
+                <strong className="font-semibold text-foreground">
+                  {Math.min(currentPage * pageSize, activeRows.length)}
+                </strong>{" "}
+                of <strong className="font-semibold text-foreground">{activeRows.length}</strong> resources
+              </span>
+              <span className="text-muted-foreground/40">|</span>
+              <div className="flex items-center gap-1.5">
+                <span>Per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="h-6 rounded border border-input bg-background px-1.5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
             </div>
+
             <div className="flex items-center gap-1.5">
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 hover:bg-accent disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
               >
                 <ChevronLeft className="h-3.5 w-3.5" /> Previous
               </button>
-              <span className="px-2 tabular-nums font-medium">
+              <span className="px-2 tabular-nums font-semibold text-foreground">
                 {currentPage} / {totalPages}
               </span>
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 hover:bg-accent disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
               >
                 Next <ChevronRight className="h-3.5 w-3.5" />
               </button>
