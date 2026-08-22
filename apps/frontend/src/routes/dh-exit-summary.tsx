@@ -550,9 +550,6 @@ function ExitSummaryPage() {
                     }}
                   />
                 ))}
-                <th className="w-16 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Action
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -585,9 +582,6 @@ function ExitSummaryPage() {
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="h-3.5 w-20 rounded bg-muted" />
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="h-6 w-6 rounded bg-muted ml-auto" />
                     </td>
                   </tr>
                 ))
@@ -653,23 +647,11 @@ function ExitSummaryPage() {
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
                       {formatDate(e.exitedAtUtc)}
                     </td>
-
-                    {/* Actions */}
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <Link
-                        to="/dh-employee-directory/$id"
-                        params={{ id: e.id }}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-input bg-card text-muted-foreground hover:bg-accent hover:text-foreground shadow-2xs transition-colors"
-                        title="View profile & offboarding records"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center">
+                  <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="mx-auto flex max-w-sm flex-col items-center justify-center text-center">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60 text-muted-foreground mb-3">
                         <UserMinus className="h-6 w-6" />
