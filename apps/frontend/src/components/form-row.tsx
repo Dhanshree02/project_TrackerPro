@@ -67,7 +67,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           autoComplete="off"
-          className={cn(FORM_CONTROL_CLS, "cursor-pointer appearance-none pr-8", className)}
+          className={cn(FORM_CONTROL_CLS, "cursor-pointer appearance-none pr-8 [background-image:none]", className)}
           {...props}
         >
           {children}

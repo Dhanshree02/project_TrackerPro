@@ -2,10 +2,8 @@ import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-ro
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronRight,
-  ChevronDown,
   Mail,
   Building2,
-  ExternalLink,
   Phone,
   Layers,
   User,
@@ -577,24 +575,21 @@ function CustomerDetailPage() {
               </div>
               <div className="space-y-2 p-3">
                 {subVentures.length > 0 ? (
-                  <div className="relative">
-                    <select
-                      value={svFilter}
-                      onChange={(e) => {
-                        setSvFilter(e.target.value);
-                        setSelectedSpoc(null);
-                      }}
-                      className="h-8 w-full appearance-none rounded-md border border-border bg-card py-0 pl-3 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="all">Select sub-venture…</option>
-                      {subVentures.map((sv) => (
-                        <option key={sv.name} value={sv.name}>
-                          {sv.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  </div>
+                  <select
+                    value={svFilter}
+                    onChange={(e) => {
+                      setSvFilter(e.target.value);
+                      setSelectedSpoc(null);
+                    }}
+                    className="h-8 w-full rounded-md border border-border bg-card py-0 pl-3 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                  >
+                    <option value="all">Select sub-venture…</option>
+                    {subVentures.map((sv) => (
+                      <option key={sv.name} value={sv.name}>
+                        {sv.name}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <p className="text-xs text-muted-foreground">No sub-ventures for this client.</p>
                 )}
@@ -667,13 +662,12 @@ function CustomerDetailPage() {
                 <table className="w-full min-w-[760px] table-fixed text-sm">
                   <thead className="sticky top-0 z-[1]">
                     <tr className="border-b border-border bg-muted/90 text-left text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground backdrop-blur-sm">
-                      <th className="w-[28%] px-5 py-3 font-medium">Project</th>
-                      <th className="w-[12%] px-3 py-3 font-medium">Health</th>
-                      <th className="w-[11%] px-3 py-3 font-medium">Stage</th>
-                      <th className="w-[14%] px-3 py-3 font-medium">Sub-venture</th>
-                      <th className="w-[14%] px-3 py-3 font-medium">Progress</th>
-                      <th className="w-[13%] px-3 py-3 font-medium">PM</th>
-                      <th className="w-[8%] px-3 py-3 text-right font-medium"> </th>
+                      <th className="w-[30%] px-5 py-3 font-medium">Project</th>
+                      <th className="w-[13%] px-3 py-3 font-medium">Health</th>
+                      <th className="w-[12%] px-3 py-3 font-medium">Stage</th>
+                      <th className="w-[15%] px-3 py-3 font-medium">Sub-venture</th>
+                      <th className="w-[15%] px-3 py-3 font-medium">Progress</th>
+                      <th className="w-[15%] px-3 py-3 font-medium">PM</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/70">
@@ -780,19 +774,6 @@ function CustomerDetailPage() {
                             ) : (
                               <span className="text-[12px] text-muted-foreground">Unassigned</span>
                             )}
-                          </td>
-                          <td
-                            className="px-3 py-3.5 text-right align-middle"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Link
-                              to="/projects/$projectId"
-                              params={{ projectId: p.id }}
-                              className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-card px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground opacity-80 transition-all hover:border-border hover:bg-accent hover:text-foreground group-hover:opacity-100"
-                            >
-                              Open
-                              <ExternalLink className="h-3 w-3" />
-                            </Link>
                           </td>
                         </tr>
                       );

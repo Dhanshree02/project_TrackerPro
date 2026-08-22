@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Search, Lock, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -36,8 +36,10 @@ const roleFilters = [
 ] as const;
 
 function ResourcesPage() {
+  const navigate = useNavigate();
   const { isPMO, isHOD, isBO, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
     useRoleContext();
+  const isProjectManager = isPmFamily || isPmoFamily || isHOD || isBO;
   const { hasPermission } = usePermissions();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<(typeof roleFilters)[number]>("All");
@@ -133,7 +135,13 @@ function ResourcesPage() {
           <tbody className="divide-y divide-border">
             {filtered.map((p) =>
               isEmployee ? (
-                <tr key={p.id} className="hover:bg-accent/30">
+                <tr
+                  key={p.id}
+                  onClick={() =>
+                    navigate({ to: "/resources/$employeeId", params: { employeeId: p.id } })
+                  }
+                  className="cursor-pointer transition-colors hover:bg-accent/30"
+                >
                   <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{p.id}</td>
                   <td className="px-3 py-2.5">
                     <Link
@@ -149,7 +157,13 @@ function ResourcesPage() {
                   <td className="px-3 py-2.5">{p.role}</td>
                 </tr>
               ) : (
-                <tr key={p.id} className="hover:bg-accent/30">
+                <tr
+                  key={p.id}
+                  onClick={() =>
+                    navigate({ to: "/resources/$employeeId", params: { employeeId: p.id } })
+                  }
+                  className="cursor-pointer transition-colors hover:bg-accent/30"
+                >
                   <td className="px-3 py-2.5">
                     {isProjectManager ? (
                       <Link

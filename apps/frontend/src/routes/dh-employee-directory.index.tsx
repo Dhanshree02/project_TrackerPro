@@ -84,6 +84,7 @@ import {
   type OnboardField,
   type OnboardValues,
 } from "@/lib/onboard-validation";
+import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
 import { Modal } from "@/routes/projects.index";
 
 export const Route = createFileRoute("/dh-employee-directory/")({
@@ -133,7 +134,7 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: str
   { label: "Employee ID", key: "id", className: "w-28 min-w-[110px]" },
   { label: "Name", key: "name", className: "w-56 min-w-[190px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
-  { label: "Designation", key: "designation", className: "w-64 min-w-[220px]" },
+  { label: "Designation", key: "designation", className: "w-52 min-w-[185px]" },
   { label: "Reporting Manager", key: "reportingManager", className: "w-44 min-w-[150px]" },
   { label: "Location", key: "workLocation", className: "w-36 min-w-[120px]" },
   { label: "Category", key: "category", className: "w-60 min-w-[210px]" },
@@ -143,10 +144,10 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: str
 ];
 
 const BASIC_DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
-  { label: "Employee ID", key: "id", className: "w-36 min-w-[130px]" },
-  { label: "Employee Name", key: "name", className: "w-72 min-w-[240px]" },
-  { label: "Department", key: "department", className: "w-60 min-w-[180px]" },
-  { label: "Designation", key: "designation", className: "w-80 min-w-[260px]" },
+  { label: "Employee ID", key: "id", className: "w-28 min-w-[110px]" },
+  { label: "Employee Name", key: "name", className: "w-56 min-w-[190px]" },
+  { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
+  { label: "Designation", key: "designation", className: "w-64 min-w-[210px]" },
 ];
 
 const POOL_COLUMNS: { label: string; key: PoolSortKey | null; className?: string; align?: "right" }[] = [
@@ -1637,7 +1638,7 @@ function OnboardingPanel({
                           });
                         }
                       }}
-                      className="h-9 shrink-0 rounded-r-md border border-l-0 border-input bg-muted/70 px-2.5 text-xs font-semibold text-foreground outline-none hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors"
+                      className="h-9 shrink-0 rounded-r-md border border-l-0 border-input bg-muted/70 pl-2.5 pr-8 min-w-[130px] text-xs font-semibold text-foreground outline-none hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors"
                       aria-label="Email domain"
                     >
                       {emailDomainOptions.length === 0 ? (
@@ -2586,10 +2587,10 @@ function EmployeeDirectoryPage() {
                   }
                   className="cursor-pointer transition-colors hover:bg-accent/30"
                 >
-                  <td className={cn("whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground truncate", basicDirectoryView ? "w-36 min-w-[130px]" : "w-28 min-w-[110px]")} title={e.id}>
+                  <td className={cn("whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground truncate", basicDirectoryView ? "w-28 min-w-[110px]" : "w-28 min-w-[110px]")} title={e.id}>
                     {e.id}
                   </td>
-                  <td className={cn("whitespace-nowrap px-4 py-3", basicDirectoryView ? "w-72 min-w-[240px]" : "w-56 min-w-[190px]")}>
+                  <td className={cn("whitespace-nowrap px-4 py-3", basicDirectoryView ? "w-56 min-w-[190px]" : "w-56 min-w-[190px]")}>
                     <Link
                       to="/dh-employee-directory/$id"
                       params={{ id: e.id }}
@@ -2601,10 +2602,10 @@ function EmployeeDirectoryPage() {
                       </span>
                     </Link>
                   </td>
-                  <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-60 min-w-[180px]" : "w-44 min-w-[150px]")} title={e.department}>
+                  <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-44 min-w-[150px]" : "w-44 min-w-[150px]")} title={e.department}>
                     {dash(e.department)}
                   </td>
-                  <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-80 min-w-[260px]" : "w-64 min-w-[220px]")} title={e.designation}>
+                  <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-64 min-w-[210px]" : "w-52 min-w-[185px]")} title={e.designation}>
                     {dash(e.designation)}
                   </td>
                   {!basicDirectoryView && (
@@ -2744,7 +2745,13 @@ function EmployeeDirectoryPage() {
               {pageRows.map((e) => {
                 const statusVal = getAllocationStatus(e);
                 return (
-                  <tr key={e.id} className="cursor-pointer transition-colors hover:bg-accent/30">
+                  <tr
+                    key={e.id}
+                    onClick={() =>
+                      navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } })
+                    }
+                    className="cursor-pointer transition-colors hover:bg-accent/30"
+                  >
                     <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3 font-semibold text-foreground/90 truncate" title={e.department}>
                       {dash(e.department)}
                     </td>
