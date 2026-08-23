@@ -108,7 +108,7 @@ export const DH_NAV_ITEMS: NavItem[] = [
     icon: Users,
     permission: "resources.view",
     subItems: [
-      { to: "/dh-employee-directory", label: "Directory & Pool" },
+      { to: "/dh-employee-directory", label: "Directory & Resource Pool" },
       { to: "/dh-exit-summary", label: "Exit Summary" },
     ],
   },

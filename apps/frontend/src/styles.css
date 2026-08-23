@@ -192,8 +192,8 @@
   select.py-0,
   select.py-0\.5 {
     background-position: right 0.35rem center;
-    background-size: 0.7rem 0.7rem;
-    padding-right: 1.35rem;
+    background-size: 0.65rem 0.65rem;
+    padding-right: 1.4rem;
   }
 
   /* Hide number input spinners for custom payment % fields */

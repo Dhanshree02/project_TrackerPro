@@ -96,7 +96,7 @@ export const Route = createFileRoute("/dh-employee-directory/")({
   }),
   head: () => ({
     meta: [
-      { title: "Directory & Pool — Pulse PMO" },
+      { title: "Directory & Resource Pool — Pulse PMO" },
       {
         name: "description",
         content: "Browse and manage the full employee directory & resource pool.",
@@ -2428,7 +2428,7 @@ function EmployeeDirectoryPage() {
   // onboarding); every other role is redirected.
   if (!isDhanshree && !basicDirectoryView) return <Navigate to="/" />;
 
-  const title = basicDirectoryView ? "Directory" : tab === "directory" ? "Directory & Pool" : "Resource Pool";
+  const title = basicDirectoryView ? "Directory" : "Directory & Resource Pool";
   const subtitle =
     tab === "directory"
       ? `${activeRows.length} of ${dbEmployees.length} employees`
@@ -2670,7 +2670,8 @@ function EmployeeDirectoryPage() {
                 <select
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="h-6 rounded border border-input bg-background px-1.5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
+                  className="h-7 w-14 rounded-md border border-input bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
+                  aria-label="Rows per page"
                 >
                   <option value={10}>10</option>
                   <option value={15}>15</option>
@@ -2847,7 +2848,8 @@ function EmployeeDirectoryPage() {
                 <select
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="h-6 rounded border border-input bg-background px-1.5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
+                  className="h-7 w-14 rounded-md border border-input bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
+                  aria-label="Rows per page"
                 >
                   <option value={10}>10</option>
                   <option value={15}>15</option>

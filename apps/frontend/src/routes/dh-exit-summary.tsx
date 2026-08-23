@@ -700,12 +700,14 @@ function ExitSummaryPage() {
                   <select
                     value={pageSize}
                     onChange={(e) => setPageSize(Number(e.target.value))}
-                    className="h-6 rounded border border-input bg-background px-1.5 text-xs font-medium text-foreground outline-none cursor-pointer"
+                    className="h-7 w-14 rounded-md border border-input bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
+                    aria-label="Rows per page"
                   >
                     <option value={10}>10</option>
                     <option value={15}>15</option>
                     <option value={25}>25</option>
                     <option value={50}>50</option>
+                    <option value={100}>100</option>
                   </select>
                 </div>
               </div>
