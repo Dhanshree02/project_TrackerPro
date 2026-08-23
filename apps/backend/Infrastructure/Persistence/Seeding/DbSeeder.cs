@@ -1057,21 +1057,21 @@ public static class DbSeeder
 
         var seedDocs = new (string FileName, string Category, string SubDir, long Size, string UploadedBy, string Content)[]
         {
-            ("API_Gateway_Configuration_Guide.pdf", "Tech", "tech", 2457600, "Rahul Gupta", "%PDF-1.4 TrackerPro API Gateway Configuration Guide SOP\nTech Documentation"),
-            ("CI_CD_Pipeline_Setup_Procedures.docx", "Tech", "tech", 1048576, "Vikram Shah", "TrackerPro CI-CD Pipeline Setup Procedures SOP"),
-            ("Database_Backup_and_Recovery_SOP.pdf", "Tech", "tech", 3145728, "Aarav Mehta", "%PDF-1.4 TrackerPro Database Backup and Recovery SOP"),
-            ("Security_Incident_Response_Plan.pdf", "Tech", "tech", 1572864, "Rahul Gupta", "%PDF-1.4 TrackerPro Security Incident Response Plan SOP"),
+            ("API_Gateway_Configuration_Guide.pdf", "Tech", "tech", 2457600, "Rahul Sharma", "%PDF-1.4 TrackerPro API Gateway Configuration Guide SOP\nTech Documentation"),
+            ("CI_CD_Pipeline_Setup_Procedures.docx", "Tech", "tech", 1048576, "Sneha Iyer", "TrackerPro CI-CD Pipeline Setup Procedures SOP"),
+            ("Database_Backup_and_Recovery_SOP.pdf", "Tech", "tech", 3145728, "Vikram Gupta", "%PDF-1.4 TrackerPro Database Backup and Recovery SOP"),
+            ("Security_Incident_Response_Plan.pdf", "Tech", "tech", 1572864, "Nikhil Khanna", "%PDF-1.4 TrackerPro Security Incident Response Plan SOP"),
 
-            ("Project_Onboarding_Checklist.pdf", "PMS", "pms", 524288, "Riya Kapoor", "%PDF-1.4 TrackerPro Project Onboarding Checklist SOP"),
-            ("WBS_Creation_Guidelines.docx", "PMS", "pms", 786432, "Aarav Mehta", "TrackerPro WBS Creation Guidelines SOP"),
-            ("Timesheet_Submission_Process.pdf", "PMS", "pms", 409600, "Riya Kapoor", "%PDF-1.4 TrackerPro Timesheet Submission Process SOP"),
-            ("Resource_Allocation_SOP.pdf", "PMS", "pms", 655360, "Rahul Gupta", "%PDF-1.4 TrackerPro Resource Allocation SOP"),
-            ("Change_Request_Management_Process.docx", "PMS", "pms", 327680, "Aarav Mehta", "TrackerPro Change Request Management Process SOP"),
+            ("Project_Onboarding_Checklist.pdf", "PMS", "pms", 524288, "Pooja Menon", "%PDF-1.4 TrackerPro Project Onboarding Checklist SOP"),
+            ("WBS_Creation_Guidelines.docx", "PMS", "pms", 786432, "Rahul Sharma", "TrackerPro WBS Creation Guidelines SOP"),
+            ("Timesheet_Submission_Process.pdf", "PMS", "pms", 409600, "Kavya Desai", "%PDF-1.4 TrackerPro Timesheet Submission Process SOP"),
+            ("Resource_Allocation_SOP.pdf", "PMS", "pms", 655360, "Pooja Menon", "%PDF-1.4 TrackerPro Resource Allocation SOP"),
+            ("Change_Request_Management_Process.docx", "PMS", "pms", 327680, "Ira Kapoor", "TrackerPro Change Request Management Process SOP"),
 
-            ("Code_of_Conduct_2026.pdf", "IMP", "imp", 1048576, "Vikrant Malhotra", "%PDF-1.4 TrackerPro Company Code of Conduct 2026 Policy"),
-            ("Remote_Work_Policy.pdf", "IMP", "imp", 614400, "Vikrant Malhotra", "%PDF-1.4 TrackerPro Remote Work Policy & Guidelines"),
-            ("Data_Privacy_and_GDPR_Guidelines.pdf", "IMP", "imp", 2097152, "Anita Desai", "%PDF-1.4 TrackerPro Data Privacy and GDPR Compliance Guidelines"),
-            ("Leave_and_Attendance_Policy.pdf", "IMP", "imp", 819200, "Anita Desai", "%PDF-1.4 TrackerPro Leave and Attendance Policy 2026")
+            ("Code_of_Conduct_2026.pdf", "IMP", "imp", 1048576, "Ankit Verma", "%PDF-1.4 TrackerPro Company Code of Conduct 2026 Policy"),
+            ("Remote_Work_Policy.pdf", "IMP", "imp", 614400, "Arjun Shah", "%PDF-1.4 TrackerPro Remote Work Policy & Guidelines"),
+            ("Data_Privacy_and_GDPR_Guidelines.pdf", "IMP", "imp", 2097152, "Rohan Mehta", "%PDF-1.4 TrackerPro Data Privacy and GDPR Compliance Guidelines"),
+            ("Leave_and_Attendance_Policy.pdf", "IMP", "imp", 819200, "Harsh Nair", "%PDF-1.4 TrackerPro Leave and Attendance Policy 2026")
         };
 
         var activeEmployeeNames = await db.Employees

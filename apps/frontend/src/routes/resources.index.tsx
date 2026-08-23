@@ -112,23 +112,23 @@ function ResourcesPage() {
         </div>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card shadow-sm min-h-[460px]">
         <table className="w-full min-w-[650px] text-sm">
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             {isEmployee ? (
               <tr>
-                <th className="px-3 py-2 font-medium">Employee ID</th>
-                <th className="px-3 py-2 font-medium">Employee Name</th>
-                <th className="px-3 py-2 font-medium">Department</th>
-                <th className="px-3 py-2 font-medium">Designation</th>
+                <th className="px-4 py-3 font-medium">Employee ID</th>
+                <th className="px-4 py-3 font-medium">Employee Name</th>
+                <th className="px-4 py-3 font-medium">Department</th>
+                <th className="px-4 py-3 font-medium">Designation</th>
               </tr>
             ) : (
               <tr>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Role</th>
-                <th className="px-3 py-2 font-medium">Email</th>
-                <th className="px-3 py-2 font-medium">Active projects</th>
-                <th className="px-3 py-2 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Active projects</th>
+                <th className="px-4 py-3 font-medium">Status</th>
               </tr>
             )}
           </thead>
@@ -142,8 +142,8 @@ function ResourcesPage() {
                   }
                   className="cursor-pointer transition-colors hover:bg-accent/30"
                 >
-                  <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{p.id}</td>
-                  <td className="px-3 py-2.5">
+                  <td className="px-4 py-3.5 font-mono text-xs text-muted-foreground">{p.id}</td>
+                  <td className="px-4 py-3.5">
                     <Link
                       to="/resources/$employeeId"
                       params={{ employeeId: p.id }}
@@ -153,8 +153,8 @@ function ResourcesPage() {
                       <span>{p.name}</span>
                     </Link>
                   </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{getDept(p)}</td>
-                  <td className="px-3 py-2.5">{p.role}</td>
+                  <td className="px-4 py-3.5 text-muted-foreground">{getDept(p)}</td>
+                  <td className="px-4 py-3.5">{p.role}</td>
                 </tr>
               ) : (
                 <tr
@@ -164,7 +164,7 @@ function ResourcesPage() {
                   }
                   className="cursor-pointer transition-colors hover:bg-accent/30"
                 >
-                  <td className="px-3 py-2.5">
+                  <td className="px-4 py-3.5">
                     {isProjectManager ? (
                       <Link
                         to="/resources/$employeeId"
@@ -181,10 +181,10 @@ function ResourcesPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{p.role}</td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{p.email}</td>
-                  <td className="px-3 py-2.5 tabular-nums">{utilization[p.id] ?? 0}</td>
-                  <td className="px-3 py-2.5">
+                  <td className="px-4 py-3.5 text-muted-foreground">{p.role}</td>
+                  <td className="px-4 py-3.5 text-xs text-muted-foreground">{p.email}</td>
+                  <td className="px-4 py-3.5 tabular-nums">{utilization[p.id] ?? 0}</td>
+                  <td className="px-4 py-3.5">
                     {benchSet.has(p.id) ? (
                       <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning-foreground">
                         <Users className="h-3 w-3" /> On Bench

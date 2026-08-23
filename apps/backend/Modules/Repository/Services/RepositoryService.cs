@@ -74,10 +74,8 @@ public class RepositoryService(
         // Save file physically into category folder and get complete file path
         var stored = await storage.SaveRepositoryDocumentAsync(category, file, ct);
 
-        // Resolve uploader name / email
-        var uploader = !string.IsNullOrWhiteSpace(userEmailOrName)
-            ? userEmailOrName
-            : (!string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email : "Admin");
+        // Resolve uploader name from active employees
+        var uploader = await ResolveEmployeeNameAsync(userEmailOrName, ct);
 
         var doc = new RepositoryItem
         {
@@ -103,7 +101,7 @@ public class RepositoryService(
             FileName = doc.FileName,
             Category = doc.Category,
             PerformedBy = uploader,
-            Details = $"Uploaded {doc.FileName} ({FormatFileSize(doc.Size)}) to {doc.Category}",
+            Details = $"{uploader} uploaded {doc.FileName}",
             CreatedAtUtc = DateTime.UtcNow
         };
 
@@ -138,9 +136,7 @@ public class RepositoryService(
         var doc = await db.RepositoryItems.FirstOrDefaultAsync(r => r.Id == documentId, ct);
         if (doc == null) return;
 
-        var viewer = !string.IsNullOrWhiteSpace(userEmailOrName)
-            ? userEmailOrName
-            : (!string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email : "Employee");
+        var viewer = await ResolveEmployeeNameAsync(userEmailOrName, ct);
 
         var log = new RepositoryActivityLog
         {
@@ -172,9 +168,7 @@ public class RepositoryService(
         // Soft delete from database
         db.RepositoryItems.Remove(doc);
 
-        var performer = !string.IsNullOrWhiteSpace(userEmailOrName)
-            ? userEmailOrName
-            : (!string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email : "Admin");
+        var performer = await ResolveEmployeeNameAsync(userEmailOrName, ct);
 
         // Maintain Activity Log for deletion
         var log = new RepositoryActivityLog
@@ -307,6 +301,50 @@ public class RepositoryService(
             new RepositoryCategoryCountDto("pms", "PMS. SOPs", "Project Management System Standard Operating Procedures.", pmsCount),
             new RepositoryCategoryCountDto("imp", "IMP Templates", "Important templates, company-wide policies, guidelines, and compliance documents.", impCount)
         ];
+    }
+
+    private async Task<string> ResolveEmployeeNameAsync(string? providedNameOrEmail, CancellationToken ct = default)
+    {
+        if (!string.IsNullOrWhiteSpace(providedNameOrEmail))
+        {
+            var raw = providedNameOrEmail.Trim();
+            if (raw.Contains('@'))
+            {
+                var emp = await db.Employees
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(e => EF.Functions.ILike(e.WorkEmail, raw) || (e.PersonalEmail != null && EF.Functions.ILike(e.PersonalEmail, raw)), ct);
+                if (emp != null && !string.IsNullOrWhiteSpace(emp.FirstName))
+                {
+                    return $"{emp.FirstName} {emp.LastName}".Trim();
+                }
+            }
+            return raw;
+        }
+
+        if (currentUser.UserId.HasValue)
+        {
+            var emp = await db.Employees
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == currentUser.UserId.Value || e.UserId == currentUser.UserId.Value, ct);
+            if (emp != null && !string.IsNullOrWhiteSpace(emp.FirstName))
+            {
+                return $"{emp.FirstName} {emp.LastName}".Trim();
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentUser.Email))
+        {
+            var emp = await db.Employees
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => EF.Functions.ILike(e.WorkEmail, currentUser.Email), ct);
+            if (emp != null && !string.IsNullOrWhiteSpace(emp.FirstName))
+            {
+                return $"{emp.FirstName} {emp.LastName}".Trim();
+            }
+            return currentUser.Email;
+        }
+
+        return "Dhanshree Pansare";
     }
 
     private static string FormatFileSize(long bytes)

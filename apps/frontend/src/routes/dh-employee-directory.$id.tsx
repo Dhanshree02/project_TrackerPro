@@ -1441,7 +1441,7 @@ function EmployeeProfilePage() {
 
       {/* Tabs */}
       <div className="mt-6">
-        <div className="flex flex-wrap gap-1 border-b border-border overflow-x-auto">
+        <div className="flex flex-wrap gap-1 border-b border-border">
           {visibleTabs.map((t) => (
             <button
               key={t.id}

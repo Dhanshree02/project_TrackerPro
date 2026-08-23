@@ -131,8 +131,8 @@ type PoolSortKey =
 type SortDir = "asc" | "desc";
 
 const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
-  { label: "Employee ID", key: "id", className: "w-28 min-w-[110px]" },
-  { label: "Name", key: "name", className: "w-56 min-w-[190px]" },
+  { label: "Employee ID", key: "id", className: "w-32 min-w-[120px]" },
+  { label: "Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-52 min-w-[185px]" },
   { label: "Reporting Manager", key: "reportingManager", className: "w-44 min-w-[150px]" },
@@ -144,8 +144,8 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: str
 ];
 
 const BASIC_DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
-  { label: "Employee ID", key: "id", className: "w-28 min-w-[110px]" },
-  { label: "Employee Name", key: "name", className: "w-56 min-w-[190px]" },
+  { label: "Employee ID", key: "id", className: "w-32 min-w-[120px]" },
+  { label: "Employee Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-64 min-w-[210px]" },
 ];
@@ -2556,7 +2556,7 @@ function EmployeeDirectoryPage() {
       {/* Directory Table / Pool Table */}
       {tab === "directory" ? (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
-          <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
+          <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
             <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[800px]" : "min-w-[1440px]")}>
               <thead className="sticky top-0 z-10 bg-card text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
@@ -2588,10 +2588,10 @@ function EmployeeDirectoryPage() {
                     }
                     className="cursor-pointer transition-colors hover:bg-accent/30"
                   >
-                    <td className={cn("whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground truncate", basicDirectoryView ? "w-28 min-w-[110px]" : "w-28 min-w-[110px]")} title={e.id}>
+                    <td className={cn("whitespace-nowrap px-4 py-3.5 font-mono text-xs text-muted-foreground truncate", basicDirectoryView ? "w-32 min-w-[120px]" : "w-32 min-w-[120px]")} title={e.id}>
                       {e.id}
                     </td>
-                    <td className={cn("whitespace-nowrap px-4 py-3", basicDirectoryView ? "w-56 min-w-[190px]" : "w-56 min-w-[190px]")}>
+                    <td className={cn("whitespace-nowrap px-4 py-3.5", basicDirectoryView ? "w-52 min-w-[180px]" : "w-52 min-w-[180px]")}>
                       <Link
                         to="/dh-employee-directory/$id"
                         params={{ id: e.id }}
@@ -2603,30 +2603,30 @@ function EmployeeDirectoryPage() {
                         </span>
                       </Link>
                     </td>
-                    <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-44 min-w-[150px]" : "w-44 min-w-[150px]")} title={e.department}>
+                    <td className={cn("whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate", basicDirectoryView ? "w-44 min-w-[150px]" : "w-44 min-w-[150px]")} title={e.department}>
                       {dash(e.department)}
                     </td>
-                    <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-64 min-w-[210px]" : "w-52 min-w-[185px]")} title={e.designation}>
+                    <td className={cn("whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate", basicDirectoryView ? "w-64 min-w-[210px]" : "w-52 min-w-[185px]")} title={e.designation}>
                       {dash(e.designation)}
                     </td>
                     {!basicDirectoryView && (
                       <>
-                        <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.reportingManager}>
+                        <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
                           {dash(e.reportingManager)}
                         </td>
-                        <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.workLocation}>
+                        <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
                           {dash(e.workLocation)}
                         </td>
-                        <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.category}>
+                        <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.category}>
                           {dash(e.category)}
                         </td>
-                        <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3 text-muted-foreground">
+                        <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">
                           {dash(e.joiningDate)}
                         </td>
-                        <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3">
+                        <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3.5">
                           <EmpStatusBadge status={e.status} />
                         </td>
-                        <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3">
+                        <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5">
                           <div className="flex items-center gap-2">
                             <ProgressBar value={e.kpiScore} className="w-14" />
                             <span className="text-xs font-medium tabular-nums">{e.kpiScore}</span>
@@ -2709,7 +2709,7 @@ function EmployeeDirectoryPage() {
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
-          <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
+          <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
             <table className="w-full min-w-[1440px] table-fixed text-sm">
               <thead className="sticky top-0 z-10 bg-card text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
@@ -2734,7 +2734,7 @@ function EmployeeDirectoryPage() {
                       <th
                         key={col.label}
                         className={cn(
-                          "whitespace-nowrap px-4 py-3 font-semibold",
+                          "whitespace-nowrap px-4 py-3.5 font-semibold",
                           col.className,
                           col.align === "right" ? "text-right" : "text-left",
                         )}
@@ -2756,10 +2756,10 @@ function EmployeeDirectoryPage() {
                       }
                       className="cursor-pointer transition-colors hover:bg-accent/30"
                     >
-                      <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3 font-semibold text-foreground/90 truncate" title={e.department}>
+                      <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3.5 font-semibold text-foreground/90 truncate" title={e.department}>
                         {dash(e.department)}
                       </td>
-                      <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3">
+                      <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3.5">
                         <Link
                           to="/dh-employee-directory/$id"
                           params={{ id: e.id }}
@@ -2771,21 +2771,21 @@ function EmployeeDirectoryPage() {
                           </span>
                         </Link>
                       </td>
-                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.reportingManager}>
+                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
                         {dash(e.reportingManager)}
                       </td>
-                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3">
+                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5">
                         <AllocationStatusBadge status={statusVal} />
                       </td>
-                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
-                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
-                      <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.workLocation}>
+                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">—</td>
+                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">—</td>
+                      <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
                         {dash(e.workLocation)}
                       </td>
-                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.officeBranch}>
+                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.officeBranch}>
                         {dash(e.officeBranch)}
                       </td>
-                      <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3">
+                      <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3.5">
                         {e.projectSite === "Onsite" || e.projectSite === "Offsite" ? (
                           <span
                             className={cn(
@@ -2801,7 +2801,7 @@ function EmployeeDirectoryPage() {
                           "—"
                         )}
                       </td>
-                      <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3 text-right">
+                      <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5 text-right">
                         <button
                           onClick={(evt) => {
                             evt.stopPropagation();
