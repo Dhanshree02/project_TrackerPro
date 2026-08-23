@@ -9,6 +9,16 @@ public sealed record StoredFileInfo(
     string Category,
     DateTime UploadedAtUtc);
 
+public sealed record StoredRepositoryFileInfo(
+    string FileName,
+    string OriginalFileName,
+    string ContentType,
+    long SizeBytes,
+    string RelativePath,
+    string CompleteFilePath,
+    string Category,
+    DateTime UploadedAtUtc);
+
 public interface IFileStorageService
 {
     Task<StoredFileInfo> SaveEmployeeDocumentAsync(
@@ -39,6 +49,15 @@ public interface IFileStorageService
         string employeeCode,
         string? category = null,
         CancellationToken ct = default);
+
+    Task<StoredRepositoryFileInfo> SaveRepositoryDocumentAsync(
+        string category,
+        IFormFile file,
+        CancellationToken ct = default);
+
+    (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string filePath);
+
+    bool DeleteRepositoryFile(string filePath);
 
     string GetStorageRootPath();
 }

@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Shared.Constants;
 using PMS.API.Modules.Customers.Models;
+using PMS.API.Modules.Repository.Models;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Infrastructure.Authentication;
@@ -35,6 +36,8 @@ public static class DbSeeder
         await SeedReportingManagersAsync(db, ct);
         await db.SaveChangesAsync(ct);
         await SeedClientsAsync(db, users, ct);
+        await db.SaveChangesAsync(ct);
+        await SeedRepositoryAsync(db, ct);
         await db.SaveChangesAsync(ct);
     }
 
@@ -1012,6 +1015,136 @@ public static class DbSeeder
                 ClientId = StableGuid("client-" + clientId),
                 UserId = StableGuid("user-" + userId),
             });
+        }
+    }
+
+    // ---------- Repository Documents ----------
+
+    private static async Task SeedRepositoryAsync(AppDbContext db, CancellationToken ct)
+    {
+        if (await db.RepositoryItems.AnyAsync(ct))
+        {
+            return;
+        }
+
+        var solutionDir = AppDomain.CurrentDomain.BaseDirectory;
+        // Search upward for storage folder
+        var current = new DirectoryInfo(solutionDir);
+        string? storageRoot = null;
+        while (current != null)
+        {
+            var candidate = Path.Combine(current.FullName, "storage");
+            if (Directory.Exists(candidate))
+            {
+                storageRoot = candidate;
+                break;
+            }
+            current = current.Parent;
+        }
+
+        if (storageRoot == null)
+        {
+            storageRoot = Path.Combine(Directory.GetCurrentDirectory(), "storage");
+        }
+
+        var techDir = Path.Combine(storageRoot, "repository", "tech");
+        var pmsDir = Path.Combine(storageRoot, "repository", "pms");
+        var impDir = Path.Combine(storageRoot, "repository", "imp");
+
+        Directory.CreateDirectory(techDir);
+        Directory.CreateDirectory(pmsDir);
+        Directory.CreateDirectory(impDir);
+
+        var seedDocs = new (string FileName, string Category, string SubDir, long Size, string UploadedBy, string Content)[]
+        {
+            ("API_Gateway_Configuration_Guide.pdf", "Tech", "tech", 2457600, "Rahul Gupta", "%PDF-1.4 TrackerPro API Gateway Configuration Guide SOP\nTech Documentation"),
+            ("CI_CD_Pipeline_Setup_Procedures.docx", "Tech", "tech", 1048576, "Vikram Shah", "TrackerPro CI-CD Pipeline Setup Procedures SOP"),
+            ("Database_Backup_and_Recovery_SOP.pdf", "Tech", "tech", 3145728, "Aarav Mehta", "%PDF-1.4 TrackerPro Database Backup and Recovery SOP"),
+            ("Security_Incident_Response_Plan.pdf", "Tech", "tech", 1572864, "Rahul Gupta", "%PDF-1.4 TrackerPro Security Incident Response Plan SOP"),
+
+            ("Project_Onboarding_Checklist.pdf", "PMS", "pms", 524288, "Riya Kapoor", "%PDF-1.4 TrackerPro Project Onboarding Checklist SOP"),
+            ("WBS_Creation_Guidelines.docx", "PMS", "pms", 786432, "Aarav Mehta", "TrackerPro WBS Creation Guidelines SOP"),
+            ("Timesheet_Submission_Process.pdf", "PMS", "pms", 409600, "Riya Kapoor", "%PDF-1.4 TrackerPro Timesheet Submission Process SOP"),
+            ("Resource_Allocation_SOP.pdf", "PMS", "pms", 655360, "Rahul Gupta", "%PDF-1.4 TrackerPro Resource Allocation SOP"),
+            ("Change_Request_Management_Process.docx", "PMS", "pms", 327680, "Aarav Mehta", "TrackerPro Change Request Management Process SOP"),
+
+            ("Code_of_Conduct_2026.pdf", "IMP", "imp", 1048576, "Vikrant Malhotra", "%PDF-1.4 TrackerPro Company Code of Conduct 2026 Policy"),
+            ("Remote_Work_Policy.pdf", "IMP", "imp", 614400, "Vikrant Malhotra", "%PDF-1.4 TrackerPro Remote Work Policy & Guidelines"),
+            ("Data_Privacy_and_GDPR_Guidelines.pdf", "IMP", "imp", 2097152, "Anita Desai", "%PDF-1.4 TrackerPro Data Privacy and GDPR Compliance Guidelines"),
+            ("Leave_and_Attendance_Policy.pdf", "IMP", "imp", 819200, "Anita Desai", "%PDF-1.4 TrackerPro Leave and Attendance Policy 2026")
+        };
+
+        var activeEmployeeNames = await db.Employees
+            .AsNoTracking()
+            .Where(e => e.DeletedAtUtc == null && e.Status == "Active")
+            .Select(e => (!string.IsNullOrWhiteSpace(e.FirstName) 
+                ? (e.FirstName + " " + e.LastName).Trim() 
+                : e.WorkEmail.Split('@', StringSplitOptions.None)[0].Replace('.', ' ')))
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToListAsync(ct);
+
+        if (activeEmployeeNames.Count == 0)
+        {
+            activeEmployeeNames = ["Aanya Joshi", "Ankit Verma", "Arjun Mehta", "Dhanshree Pansare", "Divya Rao", "Harsh Nair", "Ira Kapoor", "Neha Kulkarni", "Priya Sharma", "Rahul Sharma", "Riya Kapoor", "Rohan Mehta", "Sneha Iyer", "Vikram Gupta", "Yash Malik"];
+        }
+
+        foreach (var item in seedDocs)
+        {
+            var targetDir = Path.Combine(storageRoot, "repository", item.SubDir);
+            var filePath = Path.Combine(targetDir, item.FileName);
+            if (!File.Exists(filePath))
+            {
+                await File.WriteAllTextAsync(filePath, item.Content, ct);
+            }
+
+            var completePath = filePath.Replace('\\', '/');
+
+            var doc = new RepositoryItem
+            {
+                Id = StableGuid("repo-" + item.FileName),
+                FileName = item.FileName.Replace('_', ' '),
+                Category = item.Category,
+                Size = item.Size,
+                LastUpdated = DateTime.UtcNow.AddDays(-Random.Shared.Next(2, 60)),
+                UploadedBy = item.UploadedBy,
+                FilePath = completePath,
+                CreatedAtUtc = DateTime.UtcNow.AddDays(-Random.Shared.Next(2, 60))
+            };
+
+            db.RepositoryItems.Add(doc);
+
+            db.RepositoryActivityLogs.Add(new RepositoryActivityLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "Uploaded",
+                DocumentId = doc.Id,
+                FileName = doc.FileName,
+                Category = doc.Category,
+                PerformedBy = doc.UploadedBy,
+                Details = $"Initial repository import for {doc.FileName}",
+                CreatedAtUtc = doc.CreatedAtUtc
+            });
+
+            // Seed access/download logs using real active employees from Resource Directory
+            var accessorCount = Random.Shared.Next(2, 5);
+            for (var i = 0; i < accessorCount; i++)
+            {
+                var emp = activeEmployeeNames[Random.Shared.Next(activeEmployeeNames.Count)];
+                var accessDate = doc.CreatedAtUtc.AddHours(Random.Shared.Next(2, 48));
+                if (accessDate > DateTime.UtcNow) accessDate = DateTime.UtcNow.AddMinutes(-Random.Shared.Next(5, 300));
+
+                db.RepositoryActivityLogs.Add(new RepositoryActivityLog
+                {
+                    Id = Guid.NewGuid(),
+                    Action = "Downloaded",
+                    DocumentId = doc.Id,
+                    FileName = doc.FileName,
+                    Category = doc.Category,
+                    PerformedBy = emp,
+                    Details = $"{emp} downloaded {doc.FileName}",
+                    CreatedAtUtc = accessDate
+                });
+            }
         }
     }
 

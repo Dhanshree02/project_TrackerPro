@@ -3,6 +3,7 @@ using PMS.API.Infrastructure.Authorization;
 using PMS.API.Shared.Common.Models;
 using PMS.API.Modules.Auth.Models;
 using PMS.API.Modules.Customers.Models;
+using PMS.API.Modules.Repository.Models;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 
@@ -57,6 +58,10 @@ public class AppDbContext(
     public DbSet<Employee> Employees => Set<Employee>();
 
     public DbSet<ExitedEmployee> ExitedEmployees => Set<ExitedEmployee>();
+
+    public DbSet<RepositoryItem> RepositoryItems => Set<RepositoryItem>();
+
+    public DbSet<RepositoryActivityLog> RepositoryActivityLogs => Set<RepositoryActivityLog>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

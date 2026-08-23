@@ -529,163 +529,165 @@ function ExitSummaryPage() {
         </div>
 
         {/* Table Container */}
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
-          <table className="w-full min-w-[1080px] table-fixed text-sm">
-            <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                {EXIT_COLUMNS.map((col) => (
-                  <SortableTh
-                    key={col.key}
-                    label={col.label}
-                    column={col.key}
-                    sortKey={sortKey}
-                    sortDir={sortDir}
-                    className={col.className}
-                    onSort={(next) => {
-                      if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-                      else {
-                        setSortKey(next);
-                        setSortDir("asc");
-                      }
-                    }}
-                  />
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={`skel-${i}`} className="animate-pulse">
-                    <td className="w-28 min-w-[100px] px-4 py-3.5">
-                      <div className="h-4 w-16 rounded bg-muted" />
-                    </td>
-                    <td className="w-64 min-w-[200px] px-4 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-7 w-7 rounded-full bg-muted" />
-                        <div className="space-y-1">
-                          <div className="h-3.5 w-24 rounded bg-muted" />
-                          <div className="h-2.5 w-16 rounded bg-muted" />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="w-56 min-w-[180px] px-4 py-3.5">
-                      <div className="h-3.5 w-28 rounded bg-muted" />
-                    </td>
-                    <td className="w-36 min-w-[130px] px-4 py-3.5">
-                      <div className="h-5 w-20 rounded-full bg-muted" />
-                    </td>
-                    <td className="w-64 min-w-[200px] px-4 py-3.5">
-                      <div className="h-3.5 w-32 rounded bg-muted" />
-                    </td>
-                    <td className="w-36 min-w-[130px] px-4 py-3.5">
-                      <div className="h-3.5 w-20 rounded bg-muted" />
-                    </td>
-                    <td className="w-36 min-w-[130px] px-4 py-3.5">
-                      <div className="h-3.5 w-20 rounded bg-muted" />
-                    </td>
-                  </tr>
-                ))
-              ) : pagedRows.length > 0 ? (
-                pagedRows.map((e) => (
-                  <tr
-                    key={e.id}
-                    className="group transition-colors hover:bg-accent/30"
-                  >
-                    {/* Emp ID */}
-                    <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground font-medium truncate" title={e.employeeCode}>
-                      {e.employeeCode}
-                    </td>
-
-                    {/* Employee Profile */}
-                    <td className="w-64 min-w-[200px] whitespace-nowrap px-4 py-3 font-medium">
-                      <Link
-                        to="/dh-employee-directory/$id"
-                        params={{ id: e.id }}
-                        className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors min-w-0"
-                      >
-                        <Avatar name={e.fullName} size={30} />
-                        <div className="truncate">
-                          <span className="font-semibold block text-xs truncate" title={e.fullName}>{e.fullName}</span>
-                          <span className="text-[11px] text-muted-foreground block font-normal truncate" title={e.designationName || "Ex-Employee"}>
-                            {e.designationName || "Ex-Employee"}
-                          </span>
-                        </div>
-                      </Link>
-                    </td>
-
-                    {/* Department & Role */}
-                    <td className="w-56 min-w-[180px] whitespace-nowrap px-4 py-3 truncate">
-                      <div className="text-xs font-medium text-foreground truncate" title={e.departmentName || "—"}>{e.departmentName || "—"}</div>
-                      <div className="text-[11px] text-muted-foreground truncate" title={e.designationName || "—"}>{e.designationName || "—"}</div>
-                    </td>
-
-                    {/* Exit Type */}
-                    <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3">
-                      <ExitTypeBadge type={e.exitType} />
-                    </td>
-
-                    {/* Exit Reason */}
-                    <td className="w-64 min-w-[200px] px-4 py-3">
-                      <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed" title={exitReasonOf(e)}>
-                        {exitReasonOf(e)}
-                      </div>
-                    </td>
-
-                    {/* Last Working Day */}
-                    <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3 text-xs font-medium text-foreground/90">
-                      {e.lastWorkingDay ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          <span>{formatDate(e.lastWorkingDay)}</span>
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-
-                    {/* Exited On */}
-                    <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
-                      {formatDate(e.exitedAtUtc)}
-                    </td>
-                  </tr>
-                ))
-              ) : (
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+          <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
+            <table className="w-full min-w-[1080px] table-fixed text-sm">
+              <thead className="sticky top-0 z-10 border-b border-border bg-card text-left text-xs uppercase tracking-wide text-muted-foreground shadow-2xs">
                 <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center">
-                    <div className="mx-auto flex max-w-sm flex-col items-center justify-center text-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60 text-muted-foreground mb-3">
-                        <UserMinus className="h-6 w-6" />
-                      </div>
-                      <h4 className="text-sm font-semibold text-foreground">
-                        {loadError ? "Failed to Load Exits" : "No Exited Records Found"}
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-1 leading-normal">
-                        {loadError
-                          ? loadError
-                          : hasActiveFilters
-                            ? "No offboarding records match the selected search terms or filters."
-                            : "There are currently no offboarded employees recorded in the system."}
-                      </p>
-                      {hasActiveFilters && (
-                        <button
-                          type="button"
-                          onClick={clearFilters}
-                          className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-input bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent shadow-xs transition-colors"
-                        >
-                          <FilterX className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>Clear All Filters</span>
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                  {EXIT_COLUMNS.map((col) => (
+                    <SortableTh
+                      key={col.key}
+                      label={col.label}
+                      column={col.key}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      className={col.className}
+                      onSort={(next) => {
+                        if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                        else {
+                          setSortKey(next);
+                          setSortDir("asc");
+                        }
+                      }}
+                    />
+                  ))}
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={`skel-${i}`} className="animate-pulse">
+                      <td className="w-28 min-w-[100px] px-4 py-3.5">
+                        <div className="h-4 w-16 rounded bg-muted" />
+                      </td>
+                      <td className="w-64 min-w-[200px] px-4 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-7 w-7 rounded-full bg-muted" />
+                          <div className="space-y-1">
+                            <div className="h-3.5 w-24 rounded bg-muted" />
+                            <div className="h-2.5 w-16 rounded bg-muted" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="w-56 min-w-[180px] px-4 py-3.5">
+                        <div className="h-3.5 w-28 rounded bg-muted" />
+                      </td>
+                      <td className="w-36 min-w-[130px] px-4 py-3.5">
+                        <div className="h-5 w-20 rounded-full bg-muted" />
+                      </td>
+                      <td className="w-64 min-w-[200px] px-4 py-3.5">
+                        <div className="h-3.5 w-32 rounded bg-muted" />
+                      </td>
+                      <td className="w-36 min-w-[130px] px-4 py-3.5">
+                        <div className="h-3.5 w-20 rounded bg-muted" />
+                      </td>
+                      <td className="w-36 min-w-[130px] px-4 py-3.5">
+                        <div className="h-3.5 w-20 rounded bg-muted" />
+                      </td>
+                    </tr>
+                  ))
+                ) : pagedRows.length > 0 ? (
+                  pagedRows.map((e) => (
+                    <tr
+                      key={e.id}
+                      className="group transition-colors hover:bg-accent/30"
+                    >
+                      {/* Emp ID */}
+                      <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground font-medium truncate" title={e.employeeCode}>
+                        {e.employeeCode}
+                      </td>
 
-          {/* Pagination Footer */}
+                      {/* Employee Profile */}
+                      <td className="w-64 min-w-[200px] whitespace-nowrap px-4 py-3 font-medium">
+                        <Link
+                          to="/dh-employee-directory/$id"
+                          params={{ id: e.id }}
+                          className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors min-w-0"
+                        >
+                          <Avatar name={e.fullName} size={30} />
+                          <div className="truncate">
+                            <span className="font-semibold block text-xs truncate" title={e.fullName}>{e.fullName}</span>
+                            <span className="text-[11px] text-muted-foreground block font-normal truncate" title={e.designationName || "Ex-Employee"}>
+                              {e.designationName || "Ex-Employee"}
+                            </span>
+                          </div>
+                        </Link>
+                      </td>
+
+                      {/* Department & Role */}
+                      <td className="w-56 min-w-[180px] whitespace-nowrap px-4 py-3 truncate">
+                        <div className="text-xs font-medium text-foreground truncate" title={e.departmentName || "—"}>{e.departmentName || "—"}</div>
+                        <div className="text-[11px] text-muted-foreground truncate" title={e.designationName || "—"}>{e.designationName || "—"}</div>
+                      </td>
+
+                      {/* Exit Type */}
+                      <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3">
+                        <ExitTypeBadge type={e.exitType} />
+                      </td>
+
+                      {/* Exit Reason */}
+                      <td className="w-64 min-w-[200px] px-4 py-3">
+                        <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed" title={exitReasonOf(e)}>
+                          {exitReasonOf(e)}
+                        </div>
+                      </td>
+
+                      {/* Last Working Day */}
+                      <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3 text-xs font-medium text-foreground/90">
+                        {e.lastWorkingDay ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <span>{formatDate(e.lastWorkingDay)}</span>
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+
+                      {/* Exited On */}
+                      <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                        {formatDate(e.exitedAtUtc)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-16 text-center">
+                      <div className="mx-auto flex max-w-sm flex-col items-center justify-center text-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60 text-muted-foreground mb-3">
+                          <UserMinus className="h-6 w-6" />
+                        </div>
+                        <h4 className="text-sm font-semibold text-foreground">
+                          {loadError ? "Failed to Load Exits" : "No Exited Records Found"}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1 leading-normal">
+                          {loadError
+                            ? loadError
+                            : hasActiveFilters
+                              ? "No offboarding records match the selected search terms or filters."
+                              : "There are currently no offboarded employees recorded in the system."}
+                        </p>
+                        {hasActiveFilters && (
+                          <button
+                            type="button"
+                            onClick={clearFilters}
+                            className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-input bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent shadow-xs transition-colors"
+                          >
+                            <FilterX className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>Clear All Filters</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Frozen / Sticky Pagination Footer */}
           {!isLoading && filtered.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+            <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground shadow-xs">
               <div className="flex items-center gap-3">
                 <span>
                   Showing <strong className="font-semibold text-foreground">{(currentPage - 1) * pageSize + 1}</strong>–

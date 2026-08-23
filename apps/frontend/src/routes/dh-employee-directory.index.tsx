@@ -2555,107 +2555,109 @@ function EmployeeDirectoryPage() {
 
       {/* Directory Table / Pool Table */}
       {tab === "directory" ? (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-          <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[800px]" : "min-w-[1440px]")}>
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
-              <tr>
-                {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col) => (
-                  <SortableTh
-                    key={col.key}
-                    label={col.label}
-                    column={col.key}
-                    sortKey={sortKey}
-                    sortDir={sortDir}
-                    className={col.className}
-                    onSort={(next) => {
-                      if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-                      else {
-                        setSortKey(next);
-                        setSortDir("asc");
-                      }
-                    }}
-                  />
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {pageRows.map((e) => (
-                <tr
-                  key={e.id}
-                  onClick={() =>
-                    navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } })
-                  }
-                  className="cursor-pointer transition-colors hover:bg-accent/30"
-                >
-                  <td className={cn("whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground truncate", basicDirectoryView ? "w-28 min-w-[110px]" : "w-28 min-w-[110px]")} title={e.id}>
-                    {e.id}
-                  </td>
-                  <td className={cn("whitespace-nowrap px-4 py-3", basicDirectoryView ? "w-56 min-w-[190px]" : "w-56 min-w-[190px]")}>
-                    <Link
-                      to="/dh-employee-directory/$id"
-                      params={{ id: e.id }}
-                      className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
-                    >
-                      <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                      <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
-                        {e.firstName} {e.lastName}
-                      </span>
-                    </Link>
-                  </td>
-                  <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-44 min-w-[150px]" : "w-44 min-w-[150px]")} title={e.department}>
-                    {dash(e.department)}
-                  </td>
-                  <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-64 min-w-[210px]" : "w-52 min-w-[185px]")} title={e.designation}>
-                    {dash(e.designation)}
-                  </td>
-                  {!basicDirectoryView && (
-                    <>
-                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.reportingManager}>
-                        {dash(e.reportingManager)}
-                      </td>
-                      <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.workLocation}>
-                        {dash(e.workLocation)}
-                      </td>
-                      <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.category}>
-                        {dash(e.category)}
-                      </td>
-                      <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3 text-muted-foreground">
-                        {dash(e.joiningDate)}
-                      </td>
-                      <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3">
-                        <EmpStatusBadge status={e.status} />
-                      </td>
-                      <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <ProgressBar value={e.kpiScore} className="w-14" />
-                          <span className="text-xs font-medium tabular-nums">{e.kpiScore}</span>
-                        </div>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))}
-              {pageRows.length === 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+          <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
+            <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[800px]" : "min-w-[1440px]")}>
+              <thead className="sticky top-0 z-10 bg-card text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
-                  <td
-                    colSpan={basicDirectoryView ? 4 : 10}
-                    className="px-4 py-10 text-center text-sm text-muted-foreground"
-                  >
-                    {isLoading
-                      ? "Loading employees from database…"
-                      : loadError
-                        ? `Could not load employees: ${loadError}`
-                        : dbEmployees.length === 0
-                          ? "No employees in database yet. Use Add Employee to create one."
-                          : "No employees match your filters"}
-                  </td>
+                  {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col) => (
+                    <SortableTh
+                      key={col.key}
+                      label={col.label}
+                      column={col.key}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      className={col.className}
+                      onSort={(next) => {
+                        if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                        else {
+                          setSortKey(next);
+                          setSortDir("asc");
+                        }
+                      }}
+                    />
+                  ))}
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {pageRows.map((e) => (
+                  <tr
+                    key={e.id}
+                    onClick={() =>
+                      navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } })
+                    }
+                    className="cursor-pointer transition-colors hover:bg-accent/30"
+                  >
+                    <td className={cn("whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground truncate", basicDirectoryView ? "w-28 min-w-[110px]" : "w-28 min-w-[110px]")} title={e.id}>
+                      {e.id}
+                    </td>
+                    <td className={cn("whitespace-nowrap px-4 py-3", basicDirectoryView ? "w-56 min-w-[190px]" : "w-56 min-w-[190px]")}>
+                      <Link
+                        to="/dh-employee-directory/$id"
+                        params={{ id: e.id }}
+                        className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
+                      >
+                        <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
+                        <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
+                          {e.firstName} {e.lastName}
+                        </span>
+                      </Link>
+                    </td>
+                    <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-44 min-w-[150px]" : "w-44 min-w-[150px]")} title={e.department}>
+                      {dash(e.department)}
+                    </td>
+                    <td className={cn("whitespace-nowrap px-4 py-3 text-muted-foreground truncate", basicDirectoryView ? "w-64 min-w-[210px]" : "w-52 min-w-[185px]")} title={e.designation}>
+                      {dash(e.designation)}
+                    </td>
+                    {!basicDirectoryView && (
+                      <>
+                        <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.reportingManager}>
+                          {dash(e.reportingManager)}
+                        </td>
+                        <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.workLocation}>
+                          {dash(e.workLocation)}
+                        </td>
+                        <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.category}>
+                          {dash(e.category)}
+                        </td>
+                        <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3 text-muted-foreground">
+                          {dash(e.joiningDate)}
+                        </td>
+                        <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3">
+                          <EmpStatusBadge status={e.status} />
+                        </td>
+                        <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <ProgressBar value={e.kpiScore} className="w-14" />
+                            <span className="text-xs font-medium tabular-nums">{e.kpiScore}</span>
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+                {pageRows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={basicDirectoryView ? 4 : 10}
+                      className="px-4 py-10 text-center text-sm text-muted-foreground"
+                    >
+                      {isLoading
+                        ? "Loading employees from database…"
+                        : loadError
+                          ? `Could not load employees: ${loadError}`
+                          : dbEmployees.length === 0
+                            ? "No employees in database yet. Use Add Employee to create one."
+                            : "No employees match your filters"}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-          {/* Pagination */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+          {/* Frozen / Sticky Pagination Footer */}
+          <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground shadow-xs">
             <div className="flex items-center gap-3">
               <span>
                 Showing <strong className="font-semibold text-foreground">{activeRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong>–
@@ -2706,134 +2708,136 @@ function EmployeeDirectoryPage() {
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-          <table className="w-full min-w-[1440px] table-fixed text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
-              <tr>
-                {POOL_COLUMNS.map((col) =>
-                  col.key ? (
-                    <SortableTh
-                      key={col.label}
-                      label={col.label}
-                      column={col.key}
-                      sortKey={poolSortKey}
-                      sortDir={poolSortDir}
-                      className={col.className}
-                      onSort={(next) => {
-                        if (poolSortKey === next) setPoolSortDir((d) => (d === "asc" ? "desc" : "asc"));
-                        else {
-                          setPoolSortKey(next);
-                          setPoolSortDir("asc");
-                        }
-                      }}
-                    />
-                  ) : (
-                    <th
-                      key={col.label}
-                      className={cn(
-                        "whitespace-nowrap px-4 py-3 font-semibold",
-                        col.className,
-                        col.align === "right" ? "text-right" : "text-left",
-                      )}
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+          <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
+            <table className="w-full min-w-[1440px] table-fixed text-sm">
+              <thead className="sticky top-0 z-10 bg-card text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border shadow-2xs">
+                <tr>
+                  {POOL_COLUMNS.map((col) =>
+                    col.key ? (
+                      <SortableTh
+                        key={col.label}
+                        label={col.label}
+                        column={col.key}
+                        sortKey={poolSortKey}
+                        sortDir={poolSortDir}
+                        className={col.className}
+                        onSort={(next) => {
+                          if (poolSortKey === next) setPoolSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                          else {
+                            setPoolSortKey(next);
+                            setPoolSortDir("asc");
+                          }
+                        }}
+                      />
+                    ) : (
+                      <th
+                        key={col.label}
+                        className={cn(
+                          "whitespace-nowrap px-4 py-3 font-semibold",
+                          col.className,
+                          col.align === "right" ? "text-right" : "text-left",
+                        )}
+                      >
+                        {col.label}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {pageRows.map((e) => {
+                  const statusVal = getAllocationStatus(e);
+                  return (
+                    <tr
+                      key={e.id}
+                      onClick={() =>
+                        navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } })
+                      }
+                      className="cursor-pointer transition-colors hover:bg-accent/30"
                     >
-                      {col.label}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {pageRows.map((e) => {
-                const statusVal = getAllocationStatus(e);
-                return (
-                  <tr
-                    key={e.id}
-                    onClick={() =>
-                      navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } })
-                    }
-                    className="cursor-pointer transition-colors hover:bg-accent/30"
-                  >
-                    <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3 font-semibold text-foreground/90 truncate" title={e.department}>
-                      {dash(e.department)}
-                    </td>
-                    <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3">
-                      <Link
-                        to="/dh-employee-directory/$id"
-                        params={{ id: e.id }}
-                        className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
-                      >
-                        <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                        <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
-                          {e.firstName} {e.lastName}
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.reportingManager}>
-                      {dash(e.reportingManager)}
-                    </td>
-                    <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3">
-                      <AllocationStatusBadge status={statusVal} />
-                    </td>
-                    <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
-                    <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
-                    <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.workLocation}>
-                      {dash(e.workLocation)}
-                    </td>
-                    <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.officeBranch}>
-                      {dash(e.officeBranch)}
-                    </td>
-                    <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3">
-                      {e.projectSite === "Onsite" || e.projectSite === "Offsite" ? (
-                        <span
-                          className={cn(
-                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                            e.projectSite === "Onsite"
-                              ? "border-info/30 bg-info/10 text-info"
-                              : "border-muted-foreground/30 bg-muted text-muted-foreground",
-                          )}
+                      <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3 font-semibold text-foreground/90 truncate" title={e.department}>
+                        {dash(e.department)}
+                      </td>
+                      <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3">
+                        <Link
+                          to="/dh-employee-directory/$id"
+                          params={{ id: e.id }}
+                          className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
                         >
-                          {e.projectSite}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3 text-right">
-                      <button
-                        onClick={(evt) => {
-                          evt.stopPropagation();
-                          setAllocReqEmployee(e);
-                        }}
-                        title="Request Allocation"
-                        className="mr-1.5 inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-primary/20 bg-primary/5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
-                      >
-                        <UserPlus className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={(evt) => {
-                          evt.stopPropagation();
-                          setSelectedEmployee(e);
-                        }}
-                        className="inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-input bg-card text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </button>
+                          <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
+                          <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
+                            {e.firstName} {e.lastName}
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.reportingManager}>
+                        {dash(e.reportingManager)}
+                      </td>
+                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3">
+                        <AllocationStatusBadge status={statusVal} />
+                      </td>
+                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
+                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3 text-muted-foreground">—</td>
+                      <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.workLocation}>
+                        {dash(e.workLocation)}
+                      </td>
+                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3 text-muted-foreground truncate" title={e.officeBranch}>
+                        {dash(e.officeBranch)}
+                      </td>
+                      <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3">
+                        {e.projectSite === "Onsite" || e.projectSite === "Offsite" ? (
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                              e.projectSite === "Onsite"
+                                ? "border-info/30 bg-info/10 text-info"
+                                : "border-muted-foreground/30 bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {e.projectSite}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3 text-right">
+                        <button
+                          onClick={(evt) => {
+                            evt.stopPropagation();
+                            setAllocReqEmployee(e);
+                          }}
+                          title="Request Allocation"
+                          className="mr-1.5 inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-primary/20 bg-primary/5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={(evt) => {
+                            evt.stopPropagation();
+                            setSelectedEmployee(e);
+                          }}
+                          className="inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-input bg-card text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {pageRows.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                      No resources match the selected criteria.
                     </td>
                   </tr>
-                );
-              })}
-              {pageRows.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                    No resources match the selected criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-          {/* Pagination */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+          {/* Frozen / Sticky Pagination Footer */}
+          <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground shadow-xs">
             <div className="flex items-center gap-3">
               <span>
                 Showing <strong className="font-semibold text-foreground">{activeRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong>–

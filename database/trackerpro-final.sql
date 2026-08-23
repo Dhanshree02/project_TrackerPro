@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict ENaGz11fKKcKdBJSJWHVLYxuhfBYAQhiaxlCSilnoB30EvJjJuOsgBYgBXhuC7n
+\restrict zQPHOv2VAZOL7W14EELFOybhvt4grh3apJIPCTyqeF1CWLS75UPXDHQKYYRDglo
 
--- Dumped from database version 18.6
--- Dumped by pg_dump version 18.6
+-- Dumped from database version 18.4
+-- Dumped by pg_dump version 18.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -50,6 +50,9 @@ DROP INDEX IF EXISTS public."IX_sub_ventures_ClientId";
 DROP INDEX IF EXISTS public."IX_roles_Name";
 DROP INDEX IF EXISTS public."IX_role_permission_audits_RoleId";
 DROP INDEX IF EXISTS public."IX_role_permission_audits_CreatedAtUtc";
+DROP INDEX IF EXISTS public."IX_repository_activity_logs_CreatedAtUtc";
+DROP INDEX IF EXISTS public."IX_repository_DeletedAtUtc";
+DROP INDEX IF EXISTS public."IX_repository_Category";
 DROP INDEX IF EXISTS public."IX_refresh_tokens_UserId";
 DROP INDEX IF EXISTS public."IX_refresh_tokens_TokenHash";
 DROP INDEX IF EXISTS public."IX_mst_salary_bands_Name";
@@ -89,6 +92,8 @@ DROP INDEX IF EXISTS public."IX_clients_CityId";
 DROP INDEX IF EXISTS public."IX_client_contacts_SubVentureId";
 DROP INDEX IF EXISTS public."IX_client_contacts_ClientId";
 DROP INDEX IF EXISTS public."IX_client_assignments_UserId";
+ALTER TABLE IF EXISTS ONLY public.repository DROP CONSTRAINT IF EXISTS repository_pkey;
+ALTER TABLE IF EXISTS ONLY public.repository_activity_logs DROP CONSTRAINT IF EXISTS repository_activity_logs_pkey;
 ALTER TABLE IF EXISTS ONLY public.mst_work_locations DROP CONSTRAINT IF EXISTS mst_work_locations_pkey;
 ALTER TABLE IF EXISTS ONLY public.mst_work_locations DROP CONSTRAINT IF EXISTS "mst_work_locations_Code_key";
 ALTER TABLE IF EXISTS ONLY public.mst_reporting_managers DROP CONSTRAINT IF EXISTS mst_reporting_managers_pkey;
@@ -120,6 +125,8 @@ DROP TABLE IF EXISTS public.users;
 DROP TABLE IF EXISTS public.sub_ventures;
 DROP TABLE IF EXISTS public.roles;
 DROP TABLE IF EXISTS public.role_permission_audits;
+DROP TABLE IF EXISTS public.repository_activity_logs;
+DROP TABLE IF EXISTS public.repository;
 DROP TABLE IF EXISTS public.refresh_tokens;
 DROP TABLE IF EXISTS public.mst_work_locations;
 DROP TABLE IF EXISTS public.mst_salary_bands;
@@ -145,7 +152,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: -
+-- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."__EFMigrationsHistory" (
@@ -154,8 +161,10 @@ CREATE TABLE public."__EFMigrationsHistory" (
 );
 
 
+ALTER TABLE public."__EFMigrationsHistory" OWNER TO postgres;
+
 --
--- Name: client_assignments; Type: TABLE; Schema: public; Owner: -
+-- Name: client_assignments; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.client_assignments (
@@ -164,8 +173,10 @@ CREATE TABLE public.client_assignments (
 );
 
 
+ALTER TABLE public.client_assignments OWNER TO postgres;
+
 --
--- Name: client_contacts; Type: TABLE; Schema: public; Owner: -
+-- Name: client_contacts; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.client_contacts (
@@ -187,8 +198,10 @@ CREATE TABLE public.client_contacts (
 );
 
 
+ALTER TABLE public.client_contacts OWNER TO postgres;
+
 --
--- Name: clients; Type: TABLE; Schema: public; Owner: -
+-- Name: clients; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.clients (
@@ -222,8 +235,10 @@ CREATE TABLE public.clients (
 );
 
 
+ALTER TABLE public.clients OWNER TO postgres;
+
 --
--- Name: employees; Type: TABLE; Schema: public; Owner: -
+-- Name: employees; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.employees (
@@ -295,8 +310,10 @@ CREATE TABLE public.employees (
 );
 
 
+ALTER TABLE public.employees OWNER TO postgres;
+
 --
--- Name: exited_employees; Type: TABLE; Schema: public; Owner: -
+-- Name: exited_employees; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.exited_employees (
@@ -329,8 +346,10 @@ CREATE TABLE public.exited_employees (
 );
 
 
+ALTER TABLE public.exited_employees OWNER TO postgres;
+
 --
--- Name: mst_business_units; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_business_units; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_business_units (
@@ -347,8 +366,10 @@ CREATE TABLE public.mst_business_units (
 );
 
 
+ALTER TABLE public.mst_business_units OWNER TO postgres;
+
 --
--- Name: mst_cities; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_cities; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_cities (
@@ -365,8 +386,10 @@ CREATE TABLE public.mst_cities (
 );
 
 
+ALTER TABLE public.mst_cities OWNER TO postgres;
+
 --
--- Name: mst_countries; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_countries; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_countries (
@@ -382,8 +405,10 @@ CREATE TABLE public.mst_countries (
 );
 
 
+ALTER TABLE public.mst_countries OWNER TO postgres;
+
 --
--- Name: mst_departments; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_departments; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_departments (
@@ -399,8 +424,10 @@ CREATE TABLE public.mst_departments (
 );
 
 
+ALTER TABLE public.mst_departments OWNER TO postgres;
+
 --
--- Name: mst_designations; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_designations; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_designations (
@@ -417,8 +444,10 @@ CREATE TABLE public.mst_designations (
 );
 
 
+ALTER TABLE public.mst_designations OWNER TO postgres;
+
 --
--- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_email_domains (
@@ -436,8 +465,10 @@ CREATE TABLE public.mst_email_domains (
 );
 
 
+ALTER TABLE public.mst_email_domains OWNER TO postgres;
+
 --
--- Name: mst_industries; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_industries; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_industries (
@@ -453,8 +484,10 @@ CREATE TABLE public.mst_industries (
 );
 
 
+ALTER TABLE public.mst_industries OWNER TO postgres;
+
 --
--- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_nationalities (
@@ -470,8 +503,10 @@ CREATE TABLE public.mst_nationalities (
 );
 
 
+ALTER TABLE public.mst_nationalities OWNER TO postgres;
+
 --
--- Name: mst_offices; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_offices; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_offices (
@@ -489,8 +524,10 @@ CREATE TABLE public.mst_offices (
 );
 
 
+ALTER TABLE public.mst_offices OWNER TO postgres;
+
 --
--- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_reporting_managers (
@@ -510,8 +547,10 @@ CREATE TABLE public.mst_reporting_managers (
 );
 
 
+ALTER TABLE public.mst_reporting_managers OWNER TO postgres;
+
 --
--- Name: mst_roles; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_roles; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_roles (
@@ -528,8 +567,10 @@ CREATE TABLE public.mst_roles (
 );
 
 
+ALTER TABLE public.mst_roles OWNER TO postgres;
+
 --
--- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_salary_bands (
@@ -545,8 +586,10 @@ CREATE TABLE public.mst_salary_bands (
 );
 
 
+ALTER TABLE public.mst_salary_bands OWNER TO postgres;
+
 --
--- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: -
+-- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.mst_work_locations (
@@ -563,8 +606,10 @@ CREATE TABLE public.mst_work_locations (
 );
 
 
+ALTER TABLE public.mst_work_locations OWNER TO postgres;
+
 --
--- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: -
+-- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.refresh_tokens (
@@ -582,8 +627,54 @@ CREATE TABLE public.refresh_tokens (
 );
 
 
+ALTER TABLE public.refresh_tokens OWNER TO postgres;
+
 --
--- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: -
+-- Name: repository; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.repository (
+    "Id" uuid NOT NULL,
+    "FileName" character varying(255) NOT NULL,
+    "Category" character varying(50) NOT NULL,
+    "Size" bigint NOT NULL,
+    "LastUpdated" timestamp with time zone NOT NULL,
+    "UploadedBy" character varying(150) NOT NULL,
+    "FilePath" character varying(1000) NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+ALTER TABLE public.repository OWNER TO postgres;
+
+--
+-- Name: repository_activity_logs; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.repository_activity_logs (
+    "Id" uuid NOT NULL,
+    "Action" character varying(50) NOT NULL,
+    "DocumentId" uuid,
+    "FileName" character varying(255) NOT NULL,
+    "Category" character varying(50) NOT NULL,
+    "PerformedBy" character varying(150) NOT NULL,
+    "Details" character varying(1000),
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "DeletedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "UpdatedAtUtc" timestamp with time zone
+);
+
+
+ALTER TABLE public.repository_activity_logs OWNER TO postgres;
+
+--
+-- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.role_permission_audits (
@@ -609,8 +700,10 @@ CREATE TABLE public.role_permission_audits (
 );
 
 
+ALTER TABLE public.role_permission_audits OWNER TO postgres;
+
 --
--- Name: roles; Type: TABLE; Schema: public; Owner: -
+-- Name: roles; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.roles (
@@ -629,8 +722,10 @@ CREATE TABLE public.roles (
 );
 
 
+ALTER TABLE public.roles OWNER TO postgres;
+
 --
--- Name: sub_ventures; Type: TABLE; Schema: public; Owner: -
+-- Name: sub_ventures; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.sub_ventures (
@@ -646,8 +741,10 @@ CREATE TABLE public.sub_ventures (
 );
 
 
+ALTER TABLE public.sub_ventures OWNER TO postgres;
+
 --
--- Name: users; Type: TABLE; Schema: public; Owner: -
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.users (
@@ -675,8 +772,10 @@ CREATE TABLE public.users (
 );
 
 
+ALTER TABLE public.users OWNER TO postgres;
+
 --
--- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin;
@@ -696,7 +795,7 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 
 
 --
--- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.client_assignments ("ClientId", "UserId") FROM stdin;
@@ -708,7 +807,7 @@ f61741ca-2c63-917f-ee7f-ae00cdbc08cb	e7554ba2-e546-93ce-1e88-a073badd78a2
 
 
 --
--- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -735,7 +834,7 @@ d8e9f1ce-ac14-4a5a-899a-5d87963e99d2	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omk
 
 
 --
--- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince") FROM stdin;
@@ -755,7 +854,7 @@ f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Solutions	Environment	ES	projects@
 
 
 --
--- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "ProjectSite", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "JobRoleId", "NationalityId", "ProbationPeriod", "SalaryBandId") FROM stdin;
@@ -795,7 +894,7 @@ fc06e810-3e2d-4510-bfc1-669ccf579da2	EMP-1006	Ankit	Verma	ankit.verma@acme.co	an
 
 
 --
--- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.exited_employees ("Id", "OriginalEmployeeId", "EmployeeCode", "FullName", "DepartmentName", "DesignationName", "WorkEmail", "PersonalEmail", "Phone", "StatusAtExit", "ExitType", "ExitReason", "ResignationDate", "LastWorkingDay", "ReasonForLeaving", "NoticePeriodServed", "ExitChecklistJson", "AssetReturnJson", "FinalSettlementJson", "ExitedAtUtc", "ExitedBy", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -813,7 +912,7 @@ c86dbb9b-4d96-4e3a-b74a-a94fa9992605	96425efc-9b0e-4f2b-8fd6-ec3b77161547	EMP-34
 
 
 --
--- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -825,7 +924,7 @@ cd3c05b0-fc85-49fe-adcc-e7d2dcde28df	cloud_platform	Cloud Platform	t	1	2026-08-2
 
 
 --
--- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_cities ("Id", "Code", "Name", "IsActive", "CountryId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -970,7 +1069,7 @@ fe6526bc-a57b-4c6e-8094-be6327614409	in_tiruchirappalli	Tiruchirappalli	t	f6f989
 
 
 --
--- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_countries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1018,7 +1117,7 @@ f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	IN	India	t	2026-08-20 17:07:05.749911+05:30
 
 
 --
--- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_departments ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1037,7 +1136,7 @@ e91e9aa5-1cbb-4d1e-99fe-d7aefedd9f87	finance	Finance	t	2026-08-21 11:01:26.96365
 
 
 --
--- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1068,7 +1167,7 @@ f9aa2b6e-26a3-40db-bb37-9c88a1249304	engagement_manager	Engagement Manager	t	c21
 
 
 --
--- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_email_domains ("Id", "Code", "DomainName", "DisplayName", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1079,7 +1178,7 @@ fb66fff9-7911-47de-bde7-ab5fb5ab0757	squad1_io	squad1.io	@squad1.io	t	3	2026-08-
 
 
 --
--- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_industries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1099,7 +1198,7 @@ ff5e83cc-9c1c-4056-ab0b-42a70714ddd3	media	Media	t	2026-08-20 11:45:51.759149+05
 
 
 --
--- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_nationalities ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1147,7 +1246,7 @@ fe29360e-bc38-4557-8653-98b749b34fe0	indonesian	Indonesian	t	2026-08-20 17:55:01
 
 
 --
--- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1164,7 +1263,7 @@ f26ab4c4-8824-480f-bbfe-1e08a855f21c	pune_cyber_city_tower	Cyber City Tower	1427
 
 
 --
--- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email", "EmployeeId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1199,7 +1298,7 @@ a72d8337-b9ca-41b7-add3-33420d5fa811	priya_shah	Priya Shah	Onboard Role f918b0f6
 
 
 --
--- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1256,7 +1355,7 @@ fbd9d8c8-1fb6-4757-a095-a9f1ec77336b	ux_designer_designer	Designer	t	84f01f23-58
 
 
 --
--- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_salary_bands ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1269,7 +1368,7 @@ ebed343e-301f-4984-b292-fa8d1cb1623c	l2	L2	t	2026-08-20 18:21:10.222702+05:30	\N
 
 
 --
--- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1284,7 +1383,7 @@ f93f660f-db88-4f46-8df8-ade0e93d3eaf	mumbai	Mumbai	f	6	2026-08-22 01:27:33.55667
 
 
 --
--- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.refresh_tokens ("Id", "UserId", "TokenHash", "ExpiresAtUtc", "RevokedAtUtc", "ReplacedByTokenHash", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1732,7 +1831,6 @@ a922a8ad-5543-4880-9b89-4eaf47b91a2e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ZvMWRW
 146be78d-1c05-4286-865f-7028c005a4a3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	NCjQIwLQ9w6NPWh8aG2mO1ffaZxvOzCEhUfyQv0+SDk=	2026-08-28 23:04:46.779376+05:30	2026-08-21 23:53:23.965424+05:30	\N	2026-08-21 23:04:46.779812+05:30	2026-08-21 23:53:23.966722+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 794b4692-22e0-4eda-9290-858ba2538832	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	eNYgNhQWcM59lYomI1ZAHX/YkGe6qq7QTurmDUrmLSc=	2026-08-28 23:53:23.966243+05:30	2026-08-21 23:59:52.319345+05:30	\N	2026-08-21 23:53:23.966722+05:30	2026-08-21 23:59:52.328113+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 9be8b6ba-1f85-4027-89e0-89326a28117b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	HjHJQghUlF4k5EEXIW7vD4fag6gSaHFLi4WWqiw+VfQ=	2026-08-29 11:25:47.515373+05:30	2026-08-22 11:58:17.860566+05:30	\N	2026-08-22 11:25:47.51565+05:30	2026-08-22 11:58:17.874674+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f3f0782f-585e-44db-bc53-63fc2475899b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	FOfN9VTBsBHvqKF41LCS5OZHqp3TWK2UkgPebU0n5tg=	2026-08-29 00:07:39.864765+05:30	\N	\N	2026-08-22 00:07:39.86485+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 dc87d396-0874-4ff5-ae32-c8b2a4280fdc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	90ZQxe5bYSNLKEafIjIcaweUsBN0UtDU3aIozcRzhVc=	2026-08-28 23:59:52.323595+05:30	2026-08-22 00:07:39.862253+05:30	\N	2026-08-21 23:59:52.328113+05:30	2026-08-22 00:07:39.863271+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 1e0ce1ac-6f9c-414a-8a77-dc1c4d1b3115	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qrSA7SjigRIJ2HtX4V2gYA1OP5ivczuvX7WXsKPZ04o=	2026-08-29 00:07:39.862529+05:30	2026-08-22 00:12:26.568489+05:30	\N	2026-08-22 00:07:39.863271+05:30	2026-08-22 00:12:26.569922+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 3f36e699-4bf5-4e28-ba53-006c291cfcc3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	xtZyGkidTG4pMY8LXdeYt0U03DK8XH+aGo/C+XKBYBI=	2026-08-29 00:12:26.56925+05:30	2026-08-22 00:12:26.591675+05:30	\N	2026-08-22 00:12:26.569922+05:30	2026-08-22 00:12:26.591848+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
@@ -1759,12 +1857,142 @@ c7cbad57-77ec-46c7-8a2e-a751eed4d045	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	4/pRS0
 f669f630-9d3d-4db4-92c8-fc33dfa1ae17	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	xOBXkr7ivNqIN6KVvB5ZYdJqJGwC2lNywuLTeuu0U4A=	2026-08-29 13:01:33.882933+05:30	2026-08-22 13:10:41.190725+05:30	\N	2026-08-22 13:01:33.883447+05:30	2026-08-22 13:10:41.191352+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 fc718aae-2527-479e-b105-183386bf8495	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YG47BKlvEGwDMG0WseE0yCrgjagBu7uaLbrhYF48bGE=	2026-08-29 13:10:41.191035+05:30	2026-08-22 13:28:51.028852+05:30	\N	2026-08-22 13:10:41.191352+05:30	2026-08-22 13:28:51.030688+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 a28aed47-94ca-452c-a316-5d1629c9eb00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3gVN2DweRtsn360ZYcqZaj/lm0HVhXPPgj3SRGnmFkU=	2026-08-29 13:28:51.029847+05:30	2026-08-22 15:22:27.266179+05:30	\N	2026-08-22 13:28:51.030688+05:30	2026-08-22 15:22:27.268678+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-af55bf54-9809-4bd2-b88c-4308307bb333	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	n0Zq2zK3bws0mD9Im8OmptbMu/onU/LYTNdwsGbRLzI=	2026-08-29 15:22:27.267567+05:30	\N	\N	2026-08-22 15:22:27.268678+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+fe4aedaf-cdd9-4558-8b33-59037909a400	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	tih7Rkuz4yVXaJGsCa4oB5MVqRr7h8NjpantoVBqqWA=	2026-08-30 21:38:59.45658+05:30	2026-08-23 21:39:55.104814+05:30	\N	2026-08-23 21:38:59.555391+05:30	2026-08-23 21:39:55.105177+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+af55bf54-9809-4bd2-b88c-4308307bb333	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	n0Zq2zK3bws0mD9Im8OmptbMu/onU/LYTNdwsGbRLzI=	2026-08-29 15:22:27.267567+05:30	2026-08-23 21:39:55.683159+05:30	\N	2026-08-22 15:22:27.268678+05:30	2026-08-23 21:39:55.68636+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f3f0782f-585e-44db-bc53-63fc2475899b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	FOfN9VTBsBHvqKF41LCS5OZHqp3TWK2UkgPebU0n5tg=	2026-08-29 00:07:39.864765+05:30	2026-08-23 21:39:55.683158+05:30	\N	2026-08-22 00:07:39.86485+05:30	2026-08-23 21:39:55.68636+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+7e5d627c-5368-4449-829d-5d278ea30026	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	aHOpJa3bZTYblUgtQ0gWRD27NURN3vqFPObAb6IZLMw=	2026-08-30 21:39:55.68371+05:30	2026-08-23 21:47:58.895813+05:30	\N	2026-08-23 21:39:55.68636+05:30	2026-08-23 21:47:58.895857+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+adae6dfb-3519-41a2-8a54-3d50b75675c5	dc139a9d-b996-7354-6c27-72659ea2fd59	xKIcraA8aZaWWzjGOEpZY4CAxN9rGhEUKwJX3DfQTQc=	2026-08-30 21:47:59.551065+05:30	2026-08-23 21:48:24.160084+05:30	\N	2026-08-23 21:47:59.551313+05:30	2026-08-23 21:48:24.160103+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6f4f7404-cc9c-4a74-82fc-5a821ceabede	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	sWWnGkBE4k/WhGxUh76RGZSOkBmlFk4c3a4feo0W8RA=	2026-08-30 21:48:24.730547+05:30	2026-08-23 22:20:53.407358+05:30	\N	2026-08-23 21:48:24.730692+05:30	2026-08-23 22:20:53.431792+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1653d2c2-b666-4e23-aba7-155c11cb35a2	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	lD7gyqz4aA6UDKdzbBrG1YiEoQ62/2Zy6xZpneu8Li0=	2026-08-30 22:20:53.423377+05:30	2026-08-23 22:58:05.498882+05:30	\N	2026-08-23 22:20:53.431792+05:30	2026-08-23 22:58:05.529424+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d65acbff-8844-4af8-9cdf-cf290b69437b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	g+QnURkep2lg3AG4BwefA8E4eyZ65iEaqun7fwbiq5w=	2026-08-30 22:58:05.516105+05:30	2026-08-23 23:27:34.001316+05:30	\N	2026-08-23 22:58:05.529424+05:30	2026-08-23 23:27:34.078007+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+efd24b5d-fcfc-432e-9682-84d404415c94	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	AK4JEqiXPmg24obEY2hvmFEmc7BnIoYIurm1ho80RUE=	2026-08-30 23:27:34.04365+05:30	2026-08-23 23:27:41.557754+05:30	\N	2026-08-23 23:27:34.078007+05:30	2026-08-23 23:27:41.577549+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+72843b55-7148-437c-bf9b-3c9768cec4e0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	MyHS6u7ACd0GRJv1ueXxRfcb42VDcFYkmhsLJUbKhTQ=	2026-08-30 23:27:41.573015+05:30	2026-08-23 23:37:53.59118+05:30	\N	2026-08-23 23:27:41.577549+05:30	2026-08-23 23:37:53.622258+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ecac5a33-5dbf-44c2-9f4e-4dd3218911ff	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ECHZNUXh8C0e4zk6b2E3LFKCfoTS0ncEV8IZpJV3GPg=	2026-08-30 23:37:53.605491+05:30	2026-08-23 23:41:19.943499+05:30	\N	2026-08-23 23:37:53.622258+05:30	2026-08-23 23:41:20.050493+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+66fd76b0-27e1-434f-b253-c89243c68ed5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	fiGMGKpH04wBNvtiEI2T60ABqWR7+Fq6TNMNw2Y9TvA=	2026-08-30 23:41:20.038269+05:30	2026-08-23 23:48:52.470236+05:30	\N	2026-08-23 23:41:20.050493+05:30	2026-08-23 23:48:52.534533+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e10ad75a-a483-44e0-b993-9c25430f88fb	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	U3f0pNHXJa3XfcnqKHPSphN5oDwl/c6/wDfne3MdUn8=	2026-08-30 23:48:52.52823+05:30	2026-08-23 23:59:47.311047+05:30	\N	2026-08-23 23:48:52.534533+05:30	2026-08-23 23:59:47.388531+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b57ffbbf-fede-4306-a844-19e1bbc2bc8b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	OUQHKv66uDcDhWfhqt+S8lTa7cHyLcq2thXR1pjlmFc=	2026-08-30 23:59:47.355812+05:30	2026-08-24 00:00:18.847065+05:30	\N	2026-08-23 23:59:47.388531+05:30	2026-08-24 00:00:18.853783+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+442744a1-e13a-4d52-9fb5-5c5ee6ef4a94	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Soows9yOnelt2rmGKr4Yk+jWoUs8sFlk6ItwK4j0LQE=	2026-08-31 00:00:18.847873+05:30	2026-08-24 00:00:24.333389+05:30	\N	2026-08-24 00:00:18.853783+05:30	2026-08-24 00:00:24.334846+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ac938833-48c2-4eb1-8efa-fb901cd8eb22	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	HOeAY3paeM7UixnPj2/z8q5NDSFHds0q7qReEkO+e0s=	2026-08-31 00:00:24.33446+05:30	2026-08-24 00:01:46.453152+05:30	\N	2026-08-24 00:00:24.334846+05:30	2026-08-24 00:01:46.454136+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+87a894b6-86f8-4e9b-8b97-f9a72728060a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	81gHe7O3OXq/BPZJoT4VzgkSUmPCTH4sD9mGpYwjZEs=	2026-08-31 00:01:46.453702+05:30	2026-08-24 00:14:40.157933+05:30	\N	2026-08-24 00:01:46.454136+05:30	2026-08-24 00:14:40.16586+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+4da302f8-9119-496f-85b8-3bf02b830ccf	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	UzJOEgBYXIVD5cqkZizbqJOMDm79ch561kPcCxE1Nso=	2026-08-31 00:14:40.159749+05:30	2026-08-24 00:19:09.821445+05:30	\N	2026-08-24 00:14:40.16586+05:30	2026-08-24 00:19:09.840698+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+45832294-4501-4770-b9ad-02783cc64e7a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	HCOEKEKI+bWQEGSDwSjfCKBt/tdoxTJ+sInvNOwgWdk=	2026-08-31 00:19:09.837861+05:30	2026-08-24 00:22:51.123284+05:30	\N	2026-08-24 00:19:09.840698+05:30	2026-08-24 00:22:51.124642+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b0b7b496-1d56-4bae-92dc-88563c87374c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	dTvgiFVErbWwNksMFP53zikXCMGBQ6k6C4YO9KP2JIc=	2026-08-31 00:22:51.12403+05:30	2026-08-24 00:22:53.521034+05:30	\N	2026-08-24 00:22:51.124642+05:30	2026-08-24 00:22:53.522734+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+30f466fc-6119-4fd5-bfef-b135b956ceed	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	NvtHt4Oc3kK0sam6WuB1Gac7GvVDR6LRl5RqL+vLKRw=	2026-08-31 00:22:53.522226+05:30	2026-08-24 00:27:26.960824+05:30	\N	2026-08-24 00:22:53.522734+05:30	2026-08-24 00:27:26.961524+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0ae780b3-1538-4d7c-a9ee-c28101512771	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	8qp7ZLOV1kc9OkCEQl8cTozJ5cPyTtrLFc1Nqnd72ZI=	2026-08-31 00:27:26.961179+05:30	2026-08-24 00:35:36.41221+05:30	\N	2026-08-24 00:27:26.961524+05:30	2026-08-24 00:35:36.413014+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+af7eabe3-7601-4373-9539-4b6f6f4b370f	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	S7i14RXfPbgiZfkSeAhhwF+YS4zUel/b93aXcLjG+w8=	2026-08-31 00:34:57.71757+05:30	2026-08-24 00:36:58.914515+05:30	\N	2026-08-24 00:34:57.910054+05:30	2026-08-24 00:36:59.327348+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+eae7fffc-c267-4ff9-80dc-84f7feb74cbb	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	KAh6XmH41jwep61lgoE0haM+lrmWQL3xxE2iKui+TgU=	2026-08-31 00:36:59.225314+05:30	2026-08-24 00:37:23.804955+05:30	\N	2026-08-24 00:36:59.327348+05:30	2026-08-24 00:37:23.805035+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0b1b048a-d4c8-4e4d-9b02-7f93452ee245	b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	eX5sGAamq72JgP+muc6sAF0a1Voi1IgD9KwxSUYZP8A=	2026-08-31 00:37:26.072685+05:30	2026-08-24 00:38:05.18258+05:30	\N	2026-08-24 00:37:26.076124+05:30	2026-08-24 00:38:05.182736+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+058f2ac3-af1e-43a5-b132-a9a115cce749	47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	eXkxy23WnQmxOz5RjZ/loiRsLcKGLexQmtBLsvfElXo=	2026-08-31 00:38:08.037171+05:30	2026-08-24 00:38:27.837912+05:30	\N	2026-08-24 00:38:08.050534+05:30	2026-08-24 00:38:27.837946+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+378303ce-6c57-4a7e-9a1d-d3962480f7fb	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ampYsxKLHxfnACqnoaFyGf1Yi6Su7bUekwv0gs2iJ4w=	2026-08-31 00:35:36.412719+05:30	2026-08-24 00:38:30.981674+05:30	\N	2026-08-24 00:35:36.413014+05:30	2026-08-24 00:38:30.992134+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fea861d0-47d1-414f-ba9d-33f1ba40efd7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	vwmtVWksGsZoMMX4znPPUJsgepiyTjUrCuctunS1Jgs=	2026-08-31 00:38:30.982714+05:30	2026-08-24 00:41:15.161028+05:30	\N	2026-08-24 00:38:30.992134+05:30	2026-08-24 00:41:15.177592+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f0901941-f404-4542-ac88-1d2555169cc7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Dn6Aj/kRV7/qRhBJzHgspv5JULaODvvY7mgXbJtIwNY=	2026-08-31 00:41:15.17156+05:30	2026-08-24 00:41:21.636677+05:30	\N	2026-08-24 00:41:15.177592+05:30	2026-08-24 00:41:21.640383+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+eda1d94a-066d-4ba9-862a-bb344eb416c3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qrPAvv7HV/IidNmtgESzjzmIfKx4mSU1S+hburO68mM=	2026-08-31 00:41:21.639868+05:30	\N	\N	2026-08-24 00:41:21.640383+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
 --
--- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: repository; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.repository ("Id", "FileName", "Category", "Size", "LastUpdated", "UploadedBy", "FilePath", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+0373b2cd-af08-ffa7-1773-e781671f7500	CI CD Pipeline Setup Procedures.docx	Tech	1048576	2026-07-07 23:40:16.324056+05:30	Vikram Shah	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/CI_CD_Pipeline_Setup_Procedures.docx	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+1d8b2ea8-542c-0bc9-2983-529a7c2b4bd4	Data Privacy and GDPR Guidelines.pdf	IMP	2097152	2026-06-28 23:40:16.325588+05:30	Anita Desai	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Data_Privacy_and_GDPR_Guidelines.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+303c6e5f-2413-0ae7-b7c6-85aaa53e19fe	Code of Conduct 2026.pdf	IMP	1048576	2026-07-07 23:40:16.325485+05:30	Vikrant Malhotra	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Code_of_Conduct_2026.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+40df639a-df99-7f51-f512-3207d21c1cf8	WBS Creation Guidelines.docx	PMS	786432	2026-07-07 23:40:16.325269+05:30	Aarav Mehta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/WBS_Creation_Guidelines.docx	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	655360	2026-08-15 23:40:16.325375+05:30	Rahul Gupta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Resource_Allocation_SOP.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+81637e14-47fd-16df-e1b0-a3f2678a8710	Project Onboarding Checklist.pdf	PMS	524288	2026-07-26 23:40:16.32521+05:30	Riya Kapoor	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Project_Onboarding_Checklist.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+aef197d2-4160-5d34-8c7a-04c6f140f681	Remote Work Policy.pdf	IMP	614400	2026-08-15 23:40:16.325536+05:30	Vikrant Malhotra	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Remote_Work_Policy.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	1572864	2026-08-17 23:40:16.325141+05:30	Rahul Gupta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/Security_Incident_Response_Plan.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+b90b20d5-4a19-40be-123d-17d74762e2b7	Timesheet Submission Process.pdf	PMS	409600	2026-07-05 23:40:16.325322+05:30	Riya Kapoor	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Timesheet_Submission_Process.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+c16772d2-8353-a212-0e4d-7068fb9f4207	API Gateway Configuration Guide.pdf	Tech	2457600	2026-07-02 23:40:16.247186+05:30	Rahul Gupta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/API_Gateway_Configuration_Guide.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+f0fa2ce3-cf22-534b-952f-d2333884d1d6	Database Backup and Recovery SOP.pdf	Tech	3145728	2026-07-27 23:40:16.325014+05:30	Aarav Mehta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/Database_Backup_and_Recovery_SOP.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+f17d9e84-8528-813e-e2e8-2b1f89b2c3bf	Leave and Attendance Policy.pdf	IMP	819200	2026-08-07 23:40:16.325637+05:30	Anita Desai	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Leave_and_Attendance_Policy.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+f23f909a-edfa-3d7a-d553-59fdd0d8690b	Change Request Management Process.docx	PMS	327680	2026-08-02 23:40:16.325432+05:30	Aarav Mehta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Change_Request_Management_Process.docx	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+e0c1cb36-139a-4fe9-a0ed-d28cfbb7076a	Sample_Architecture_Guide.pdf	Tech	33	2026-08-23 23:42:30.416433+05:30	Curl Tester	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/20260823_181230_394_Sample_Architecture_Guide.pdf	2026-08-23 23:42:30.4294+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+f4ec5e5f-7885-42cf-b1fc-b76c6bdd1a22	PMS_Workflow_Spec.docx	PMS	16	2026-08-23 23:42:46.310679+05:30	PMS Manager	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/20260823_181246_304_PMS_Workflow_Spec.docx	2026-08-23 23:42:46.312803+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	27	2026-08-23 23:42:46.368514+05:30	Compliance Officer	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/20260823_181246_366_Company_Compliance_Policy.pdf	2026-08-23 23:42:46.39232+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	17754568	2026-08-24 00:01:21.474426+05:30	Admin User	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/20260823_183121_383_document.pdf	2026-08-24 00:01:21.564645+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+\.
+
+
+--
+-- Data for Name: repository_activity_logs; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.repository_activity_logs ("Id", "Action", "DocumentId", "FileName", "Category", "PerformedBy", "Details", "CreatedAtUtc", "DeletedAtUtc", "CreatedBy", "UpdatedBy", "UpdatedAtUtc") FROM stdin;
+0cb574ba-87a9-408b-869e-0a3def818770	Uploaded	f17d9e84-8528-813e-e2e8-2b1f89b2c3bf	Leave and Attendance Policy.pdf	IMP	Harsh Nair	Harsh Nair uploaded Leave and Attendance Policy.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+112e2d3c-91a6-4d6b-baf2-69a76eee25e4	Uploaded	b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	Nikhil Khanna	Nikhil Khanna uploaded Security Incident Response Plan.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+50fb80b0-9bd4-44b7-9c5f-d96d3afb5c25	Uploaded	b90b20d5-4a19-40be-123d-17d74762e2b7	Timesheet Submission Process.pdf	PMS	Kavya Desai	Kavya Desai uploaded Timesheet Submission Process.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+568d9221-2331-4e91-804f-ed096870c14b	Uploaded	303c6e5f-2413-0ae7-b7c6-85aaa53e19fe	Code of Conduct 2026.pdf	IMP	Ankit Verma	Ankit Verma uploaded Code of Conduct 2026.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+6abc0e6e-1207-4b06-a9bd-478138cd07c4	Uploaded	c16772d2-8353-a212-0e4d-7068fb9f4207	API Gateway Configuration Guide.pdf	Tech	Rahul Sharma	Rahul Sharma uploaded API Gateway Configuration Guide.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+786a9eef-61bd-492f-a368-b6e101d1c84f	Uploaded	0373b2cd-af08-ffa7-1773-e781671f7500	CI CD Pipeline Setup Procedures.docx	Tech	Sneha Iyer	Sneha Iyer uploaded CI CD Pipeline Setup Procedures.docx	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+918f5751-2823-4cc9-bcc9-9d5ad87466e4	Uploaded	aef197d2-4160-5d34-8c7a-04c6f140f681	Remote Work Policy.pdf	IMP	Arjun Shah	Arjun Shah uploaded Remote Work Policy.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+924ba339-74fc-4f29-a464-962c2ac302ef	Uploaded	40df639a-df99-7f51-f512-3207d21c1cf8	WBS Creation Guidelines.docx	PMS	Rahul Sharma	Rahul Sharma uploaded WBS Creation Guidelines.docx	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+96e82a4e-2ecb-4026-9e80-594ffe1ce32a	Uploaded	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	Pooja Menon	Pooja Menon uploaded Resource Allocation SOP.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+c22e951d-d3f4-4643-b2a7-974db176b428	Uploaded	f0fa2ce3-cf22-534b-952f-d2333884d1d6	Database Backup and Recovery SOP.pdf	Tech	Vikram Gupta	Vikram Gupta uploaded Database Backup and Recovery SOP.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+d192afd2-0878-442f-86fc-0127dad4a153	Uploaded	1d8b2ea8-542c-0bc9-2983-529a7c2b4bd4	Data Privacy and GDPR Guidelines.pdf	IMP	Rohan Mehta	Rohan Mehta uploaded Data Privacy and GDPR Guidelines.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+e4f2ec92-a167-4cf9-aee3-cc567c1319e0	Uploaded	81637e14-47fd-16df-e1b0-a3f2678a8710	Project Onboarding Checklist.pdf	PMS	Pooja Menon	Pooja Menon uploaded Project Onboarding Checklist.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+e7fce91d-4624-4e18-ba5d-8b510117a3bb	Uploaded	f23f909a-edfa-3d7a-d553-59fdd0d8690b	Change Request Management Process.docx	PMS	Ira Kapoor	Ira Kapoor uploaded Change Request Management Process.docx	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
+94d3b552-8e1c-4393-9592-a20f8d326264	Uploaded	e0c1cb36-139a-4fe9-a0ed-d28cfbb7076a	Sample_Architecture_Guide.pdf	Tech	Karthik Bose	Karthik Bose uploaded Sample_Architecture_Guide.pdf	2026-08-23 23:42:30.4294+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+82fa392e-de1b-4938-b218-26367672f93e	Uploaded	f4ec5e5f-7885-42cf-b1fc-b76c6bdd1a22	PMS_Workflow_Spec.docx	PMS	Rohan Mehta	Rohan Mehta uploaded PMS_Workflow_Spec.docx	2026-08-23 23:42:46.312803+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+108da6bd-194b-4607-a35b-97bb4d293708	Uploaded	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Sneha Iyer	Sneha Iyer uploaded Company_Compliance_Policy.pdf	2026-08-23 23:42:46.39232+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+fc0662da-358a-4eb6-9a77-919358b4cb06	Uploaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Samar Patel	Samar Patel uploaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-24 00:01:21.564645+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+14f1c2f2-42c4-4ef3-bb84-5357fbc9be22	Downloaded	0373b2cd-af08-ffa7-1773-e781671f7500	CI CD Pipeline Setup Procedures.docx	Tech	Rahul Sharma	Rahul Sharma downloaded CI CD Pipeline Setup Procedures.docx	2026-08-22 17:11:48.449326+05:30	\N	\N	\N	\N
+c3fb58a8-01a8-4fe1-9a67-553739f4b2d2	Downloaded	0373b2cd-af08-ffa7-1773-e781671f7500	CI CD Pipeline Setup Procedures.docx	Tech	Priya Sharma	Priya Sharma downloaded CI CD Pipeline Setup Procedures.docx	2026-08-21 16:11:48.449326+05:30	\N	\N	\N	\N
+5a4e602f-dbc4-463f-a1f6-29de06c8b6ce	Downloaded	0373b2cd-af08-ffa7-1773-e781671f7500	CI CD Pipeline Setup Procedures.docx	Tech	Neha Kulkarni	Neha Kulkarni downloaded CI CD Pipeline Setup Procedures.docx	2026-08-22 20:11:48.449326+05:30	\N	\N	\N	\N
+204837d6-5ec2-450a-99ed-92293f421b87	Downloaded	1d8b2ea8-542c-0bc9-2983-529a7c2b4bd4	Data Privacy and GDPR Guidelines.pdf	IMP	Ishita Bansal	Ishita Bansal downloaded Data Privacy and GDPR Guidelines.pdf	2026-08-21 02:11:48.449326+05:30	\N	\N	\N	\N
+931015f2-0bed-43a5-b934-ca024860b3d2	Downloaded	1d8b2ea8-542c-0bc9-2983-529a7c2b4bd4	Data Privacy and GDPR Guidelines.pdf	IMP	Divya Rao	Divya Rao downloaded Data Privacy and GDPR Guidelines.pdf	2026-08-22 14:11:48.449326+05:30	\N	\N	\N	\N
+5e5d2408-91b4-4214-acac-7b9b1826e31a	Downloaded	1d8b2ea8-542c-0bc9-2983-529a7c2b4bd4	Data Privacy and GDPR Guidelines.pdf	IMP	Arjun Mehta	Arjun Mehta downloaded Data Privacy and GDPR Guidelines.pdf	2026-08-22 12:11:48.449326+05:30	\N	\N	\N	\N
+8b2808e5-53b8-4aef-beb8-512679d9c20d	Downloaded	303c6e5f-2413-0ae7-b7c6-85aaa53e19fe	Code of Conduct 2026.pdf	IMP	Sneha Iyer	Sneha Iyer downloaded Code of Conduct 2026.pdf	2026-08-23 15:11:48.449326+05:30	\N	\N	\N	\N
+d10c04f1-d038-4dda-9231-c03ac2e46843	Downloaded	303c6e5f-2413-0ae7-b7c6-85aaa53e19fe	Code of Conduct 2026.pdf	IMP	Karthik Bose	Karthik Bose downloaded Code of Conduct 2026.pdf	2026-08-21 17:11:48.449326+05:30	\N	\N	\N	\N
+2e680325-0b10-48f6-9d10-67875d929aca	Downloaded	303c6e5f-2413-0ae7-b7c6-85aaa53e19fe	Code of Conduct 2026.pdf	IMP	Sneha Iyer	Sneha Iyer downloaded Code of Conduct 2026.pdf	2026-08-21 22:11:48.449326+05:30	\N	\N	\N	\N
+76cb1f18-aff6-4a29-afd8-c68c46bcbd9b	Downloaded	40df639a-df99-7f51-f512-3207d21c1cf8	WBS Creation Guidelines.docx	PMS	Arjun Shah	Arjun Shah downloaded WBS Creation Guidelines.docx	2026-08-22 17:11:48.449326+05:30	\N	\N	\N	\N
+8b7a084c-1b75-4117-a2f4-01ce5ef6edd8	Downloaded	40df639a-df99-7f51-f512-3207d21c1cf8	WBS Creation Guidelines.docx	PMS	Vikram Gupta	Vikram Gupta downloaded WBS Creation Guidelines.docx	2026-08-21 07:11:48.449326+05:30	\N	\N	\N	\N
+3e58d5a1-b5ff-4f5c-b22e-f9bda728a3db	Downloaded	40df639a-df99-7f51-f512-3207d21c1cf8	WBS Creation Guidelines.docx	PMS	Neha Kulkarni	Neha Kulkarni downloaded WBS Creation Guidelines.docx	2026-08-21 20:11:48.449326+05:30	\N	\N	\N	\N
+8ff68488-7f36-4304-9bc3-ed8b8ae53c56	Downloaded	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	Karthik Bose	Karthik Bose downloaded Resource Allocation SOP.pdf	2026-08-23 08:11:48.449326+05:30	\N	\N	\N	\N
+47d0a623-9a3c-444c-a84e-dd86e1d7e39b	Downloaded	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	Ira Kapoor	Ira Kapoor downloaded Resource Allocation SOP.pdf	2026-08-23 18:11:48.449326+05:30	\N	\N	\N	\N
+0b691530-b686-407e-863a-e7524e3a55b8	Downloaded	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	Harsh Nair	Harsh Nair downloaded Resource Allocation SOP.pdf	2026-08-22 15:11:48.449326+05:30	\N	\N	\N	\N
+9f162188-c142-49bb-a480-f9e705c6381f	Downloaded	81637e14-47fd-16df-e1b0-a3f2678a8710	Project Onboarding Checklist.pdf	PMS	Divya Rao	Divya Rao downloaded Project Onboarding Checklist.pdf	2026-08-23 08:11:48.449326+05:30	\N	\N	\N	\N
+e69045d6-8df3-4310-86a9-d2d6d9235252	Downloaded	81637e14-47fd-16df-e1b0-a3f2678a8710	Project Onboarding Checklist.pdf	PMS	Pooja Menon	Pooja Menon downloaded Project Onboarding Checklist.pdf	2026-08-22 04:11:48.449326+05:30	\N	\N	\N	\N
+4cf570a5-8da5-4120-95f9-dfcc84b79fe5	Downloaded	81637e14-47fd-16df-e1b0-a3f2678a8710	Project Onboarding Checklist.pdf	PMS	Rahul Sharma	Rahul Sharma downloaded Project Onboarding Checklist.pdf	2026-08-22 17:11:48.449326+05:30	\N	\N	\N	\N
+fde22c76-4ebb-4c2a-aa18-6bf857643c65	Downloaded	aef197d2-4160-5d34-8c7a-04c6f140f681	Remote Work Policy.pdf	IMP	Pradeep Singh	Pradeep Singh downloaded Remote Work Policy.pdf	2026-08-23 04:11:48.449326+05:30	\N	\N	\N	\N
+b64886f3-6b93-4f46-9b7d-31d2c9da4f0f	Downloaded	aef197d2-4160-5d34-8c7a-04c6f140f681	Remote Work Policy.pdf	IMP	Neha Kulkarni	Neha Kulkarni downloaded Remote Work Policy.pdf	2026-08-23 07:11:48.449326+05:30	\N	\N	\N	\N
+c214d841-a6a9-4cbc-9054-e9cb3bcd87d4	Downloaded	aef197d2-4160-5d34-8c7a-04c6f140f681	Remote Work Policy.pdf	IMP	Rohan Mehta	Rohan Mehta downloaded Remote Work Policy.pdf	2026-08-22 08:11:48.449326+05:30	\N	\N	\N	\N
+00583c50-650f-44b0-a4ad-75986cd3929b	Downloaded	b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	Samar Patel	Samar Patel downloaded Security Incident Response Plan.pdf	2026-08-22 17:11:48.449326+05:30	\N	\N	\N	\N
+7fb16b97-ed39-4216-a827-56bd931fcb09	Downloaded	b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	Ishita Bansal	Ishita Bansal downloaded Security Incident Response Plan.pdf	2026-08-21 20:11:48.449326+05:30	\N	\N	\N	\N
+a97f6af6-1da1-48f7-a1e5-d962030d7a19	Downloaded	b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	Rohan Mehta	Rohan Mehta downloaded Security Incident Response Plan.pdf	2026-08-23 08:11:48.449326+05:30	\N	\N	\N	\N
+9951c65b-1f9a-4b0f-be32-04c1e28d3c12	Downloaded	b90b20d5-4a19-40be-123d-17d74762e2b7	Timesheet Submission Process.pdf	PMS	Ishita Bansal	Ishita Bansal downloaded Timesheet Submission Process.pdf	2026-08-21 11:11:48.449326+05:30	\N	\N	\N	\N
+9ff8c2cf-ba00-4cf4-a7f8-7bf710ecdb54	Downloaded	b90b20d5-4a19-40be-123d-17d74762e2b7	Timesheet Submission Process.pdf	PMS	Ankit Verma	Ankit Verma downloaded Timesheet Submission Process.pdf	2026-08-22 14:11:48.449326+05:30	\N	\N	\N	\N
+a9cf4a0f-3de3-4262-b01b-9bb80e11963d	Downloaded	b90b20d5-4a19-40be-123d-17d74762e2b7	Timesheet Submission Process.pdf	PMS	Arjun Shah	Arjun Shah downloaded Timesheet Submission Process.pdf	2026-08-22 19:11:48.449326+05:30	\N	\N	\N	\N
+58e524dc-3c76-4855-9f76-f7acab052fe7	Downloaded	c16772d2-8353-a212-0e4d-7068fb9f4207	API Gateway Configuration Guide.pdf	Tech	Ankit Verma	Ankit Verma downloaded API Gateway Configuration Guide.pdf	2026-08-22 05:11:48.449326+05:30	\N	\N	\N	\N
+065f4cd9-a880-4433-9137-84ce5716de56	Downloaded	c16772d2-8353-a212-0e4d-7068fb9f4207	API Gateway Configuration Guide.pdf	Tech	Kavya Desai	Kavya Desai downloaded API Gateway Configuration Guide.pdf	2026-08-23 20:11:48.449326+05:30	\N	\N	\N	\N
+538c7860-92f7-442a-bde7-0e531217b7d3	Downloaded	c16772d2-8353-a212-0e4d-7068fb9f4207	API Gateway Configuration Guide.pdf	Tech	Sneha Iyer	Sneha Iyer downloaded API Gateway Configuration Guide.pdf	2026-08-22 01:11:48.449326+05:30	\N	\N	\N	\N
+f50e9eae-8198-4ed6-b645-93fec5aa6426	Downloaded	f0fa2ce3-cf22-534b-952f-d2333884d1d6	Database Backup and Recovery SOP.pdf	Tech	Nikhil Khanna	Nikhil Khanna downloaded Database Backup and Recovery SOP.pdf	2026-08-21 19:11:48.449326+05:30	\N	\N	\N	\N
+1b1700b3-2ee8-448d-8935-78a1f59ad7ac	Downloaded	f0fa2ce3-cf22-534b-952f-d2333884d1d6	Database Backup and Recovery SOP.pdf	Tech	Arjun Shah	Arjun Shah downloaded Database Backup and Recovery SOP.pdf	2026-08-22 03:11:48.449326+05:30	\N	\N	\N	\N
+25a35454-d9d7-4e75-86c9-12aaefec0e03	Downloaded	f0fa2ce3-cf22-534b-952f-d2333884d1d6	Database Backup and Recovery SOP.pdf	Tech	Samar Patel	Samar Patel downloaded Database Backup and Recovery SOP.pdf	2026-08-23 12:11:48.449326+05:30	\N	\N	\N	\N
+98a015b6-4a84-4d48-8365-6348fdcba34c	Downloaded	f17d9e84-8528-813e-e2e8-2b1f89b2c3bf	Leave and Attendance Policy.pdf	IMP	Arjun Mehta	Arjun Mehta downloaded Leave and Attendance Policy.pdf	2026-08-22 16:11:48.449326+05:30	\N	\N	\N	\N
+caa35459-c646-4738-a213-e29d6d0ff204	Downloaded	f17d9e84-8528-813e-e2e8-2b1f89b2c3bf	Leave and Attendance Policy.pdf	IMP	Ishita Bansal	Ishita Bansal downloaded Leave and Attendance Policy.pdf	2026-08-22 22:11:48.449326+05:30	\N	\N	\N	\N
+2c966bba-8921-4ca6-83dc-841e191162e1	Downloaded	f17d9e84-8528-813e-e2e8-2b1f89b2c3bf	Leave and Attendance Policy.pdf	IMP	Aanya Joshi	Aanya Joshi downloaded Leave and Attendance Policy.pdf	2026-08-22 13:11:48.449326+05:30	\N	\N	\N	\N
+97a5e3fc-b3c3-46d2-917e-0268fb734405	Downloaded	f23f909a-edfa-3d7a-d553-59fdd0d8690b	Change Request Management Process.docx	PMS	Arjun Mehta	Arjun Mehta downloaded Change Request Management Process.docx	2026-08-21 12:11:48.449326+05:30	\N	\N	\N	\N
+0e193cda-8b76-4b0c-aab1-76dd15b57ef0	Downloaded	f23f909a-edfa-3d7a-d553-59fdd0d8690b	Change Request Management Process.docx	PMS	Dhanshree Pansare	Dhanshree Pansare downloaded Change Request Management Process.docx	2026-08-21 07:11:48.449326+05:30	\N	\N	\N	\N
+0d6a12da-9d19-4f2f-acdf-eb36c780957d	Downloaded	f23f909a-edfa-3d7a-d553-59fdd0d8690b	Change Request Management Process.docx	PMS	Kavya Desai	Kavya Desai downloaded Change Request Management Process.docx	2026-08-21 04:11:48.449326+05:30	\N	\N	\N	\N
+0796c02f-863e-4720-99d0-08e1d22aca4b	Downloaded	e0c1cb36-139a-4fe9-a0ed-d28cfbb7076a	Sample_Architecture_Guide.pdf	Tech	Ira Kapoor	Ira Kapoor downloaded Sample_Architecture_Guide.pdf	2026-08-23 19:11:48.449326+05:30	\N	\N	\N	\N
+6705fed4-e7f1-4da3-a994-d1459c40b2d1	Downloaded	e0c1cb36-139a-4fe9-a0ed-d28cfbb7076a	Sample_Architecture_Guide.pdf	Tech	Neha Kulkarni	Neha Kulkarni downloaded Sample_Architecture_Guide.pdf	2026-08-22 02:11:48.449326+05:30	\N	\N	\N	\N
+1766f944-696d-49e9-b78b-dc1b2b2f8f38	Downloaded	e0c1cb36-139a-4fe9-a0ed-d28cfbb7076a	Sample_Architecture_Guide.pdf	Tech	Pradeep Singh	Pradeep Singh downloaded Sample_Architecture_Guide.pdf	2026-08-22 05:11:48.449326+05:30	\N	\N	\N	\N
+324a41e8-43f5-4a6d-8786-e97437465e21	Downloaded	f4ec5e5f-7885-42cf-b1fc-b76c6bdd1a22	PMS_Workflow_Spec.docx	PMS	Dhanshree Pansare	Dhanshree Pansare downloaded PMS_Workflow_Spec.docx	2026-08-22 05:11:48.449326+05:30	\N	\N	\N	\N
+9f4438a2-9b6a-4497-9af1-52ef09bb48b3	Downloaded	f4ec5e5f-7885-42cf-b1fc-b76c6bdd1a22	PMS_Workflow_Spec.docx	PMS	Yash Malik	Yash Malik downloaded PMS_Workflow_Spec.docx	2026-08-23 09:11:48.449326+05:30	\N	\N	\N	\N
+2307ba67-c2f2-4277-a088-ce40ae3e6548	Downloaded	f4ec5e5f-7885-42cf-b1fc-b76c6bdd1a22	PMS_Workflow_Spec.docx	PMS	Riya Kapoor	Riya Kapoor downloaded PMS_Workflow_Spec.docx	2026-08-22 22:11:48.449326+05:30	\N	\N	\N	\N
+7d1ddbc4-c10a-49c7-83e4-f7c584ecb7ec	Downloaded	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Kavya Desai	Kavya Desai downloaded Company_Compliance_Policy.pdf	2026-08-21 03:11:48.449326+05:30	\N	\N	\N	\N
+4403c271-c17e-4e4f-846f-9059df1dd29c	Downloaded	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Priya Sharma	Priya Sharma downloaded Company_Compliance_Policy.pdf	2026-08-22 12:11:48.449326+05:30	\N	\N	\N	\N
+92ec2d47-797d-4afc-ac63-ad550c376c19	Downloaded	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Aanya Joshi	Aanya Joshi downloaded Company_Compliance_Policy.pdf	2026-08-23 21:11:48.449326+05:30	\N	\N	\N	\N
+acb77d89-1c0a-4a1a-9b79-f8ac8d8f556a	Downloaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Arjun Shah	Arjun Shah downloaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-22 16:11:48.449326+05:30	\N	\N	\N	\N
+c3c9370c-6208-4109-9701-5d81e63f86f7	Downloaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Priya Sharma	Priya Sharma downloaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-22 13:11:48.449326+05:30	\N	\N	\N	\N
+8ecc0a49-ff0e-47b1-b816-5d6152f9e186	Downloaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Divya Rao	Divya Rao downloaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-23 18:11:48.449326+05:30	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.role_permission_audits ("Id", "RoleId", "RoleName", "ModuleKey", "ModuleLabel", "SubmoduleKey", "SubmoduleLabel", "PermissionKey", "ActionLabel", "ChangeType", "PreviousValue", "NewValue", "ChangedById", "ChangedByName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1792,11 +2020,14 @@ a920b5fd-0845-4ac9-8d3c-a20969d7fe23	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	Projec
 d157430d-9b8c-4ada-b791-139015514bc6	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	Project Manager	resources	Resources	\N	\N	resources:read	View	revoked	Allowed	Denied	40517b71-5e62-182e-73b5-d4070e20a3c2	Dhanshree	2026-08-13 12:12:59.550831+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N
 d490836a-53a8-4878-a274-7406d1f0276f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	Project Manager	projects	Projects	\N	\N	projects.edit	Edit	revoked	Allowed	Denied	40517b71-5e62-182e-73b5-d4070e20a3c2	Dhanshree	2026-08-13 12:12:59.550831+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N
 dbeb83dc-772f-4df2-833f-8154a02d3955	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	Project Manager	approvals	Approvals	\N	\N	approvals.approve	Approve	revoked	Allowed	Denied	40517b71-5e62-182e-73b5-d4070e20a3c2	Dhanshree	2026-08-13 12:12:59.550831+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N
+42e77664-6b61-460c-b6c7-a2e9f8a84932	cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	action-center	Action Center	\N	\N	action-center.view	View	granted	Denied	Allowed	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Admin User	2026-08-23 21:46:27.51142+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6fcb0cb4-f657-41b7-aa02-c7e5f6c961b3	cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	projects	Projects	\N	\N	projects:read	View	granted	Denied	Allowed	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Admin User	2026-08-23 21:46:27.51142+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+bb07b6db-6e82-4d0e-8bfe-fe780955635b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	resources	Resources	\N	\N	resources:read	View	granted	Denied	Allowed	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Admin User	2026-08-23 21:46:27.51142+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
 --
--- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.roles ("Id", "DisplayName", "Permissions", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Name", "Description", "IsActive", "IsSystemRole") FROM stdin;
@@ -1812,12 +2043,12 @@ a5023c9e-367f-41e1-ba02-bdb2929edc89	Engagement Manager	["dashboard.view", "acti
 da95514a-1975-456d-ad0f-06fe33227e9b	Senior Project Manager	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.communication.view", "projects.communication.create", "resources.view", "resources.directory.view", "resources.kpi.view", "customers.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "clients:read", "projects:read", "projects:write", "projects:close", "issues:raise", "issues:manage", "timesheets:approve"]	2026-08-07 13:19:59.669429+05:30	2026-08-10 17:53:35.786937+05:30	\N	\N	\N	SeniorPm	Owns delivery of assigned projects; approves PM timesheets.	t	t
 fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	PMO	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.budget.view", "reports.view", "reports.export", "resources.view", "resources.directory.view", "customers.view", "repository.view", "my-team.dashboard.view", "approvals.view", "wbs.view", "wbs.allocate", "clients:read", "projects:read", "wbs:read", "wbs:allocate", "timesheets:monitor", "issues:manage", "resources:read", "reports:read", "approvals:manage"]	2026-08-07 13:19:59.669429+05:30	2026-08-10 17:53:35.786937+05:30	\N	\N	\N	Pmo	Governance, WBS allocation and timesheet monitoring (view-oriented).	t	t
 4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	Admin	["dashboard.view", "action-center.view", "projects.view", "projects:read", "projects.create", "projects:write", "projects.edit", "projects:write", "projects.delete", "projects:write", "projects.close", "projects:close", "projects.approve", "projects.assign", "projects.export", "projects.import", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "issues:raise", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health.manage", "issues:manage", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.communication.view", "projects.communication.create", "projects.pmo.view", "projects.pmo.manage", "projects.prerequisite.view", "projects.prerequisite.manage", "projects.services-deliverables.view", "projects.services-deliverables.manage", "projects.invoice-schedule.view", "projects.invoice-schedule.manage", "invoices:raise", "invoices:payment", "projects.assigned-projects.view", "reports.view", "reports:read", "reports.export", "reports.finance.view", "resources.view", "resources:read", "resources.manage", "resources:manage", "resources.directory.view", "resources.kpi.view", "customers.view", "clients:read", "customers.create", "clients:write", "customers.edit", "clients:write", "customers.delete", "clients:write", "customers.approve", "clients:approve", "customers.assign", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "timesheets:monitor", "my-team.timesheet-approval.approve", "timesheets:approve", "my-team.timesheet-approval.reject", "timesheets:approve", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "timesheets:submit", "my-team.my-timesheet.edit", "wbs.view", "wbs:read", "wbs.allocate", "wbs:allocate", "approvals.view", "approvals:manage", "approvals.approve", "timesheets:approve", "approvals.reject", "timesheets:approve", "portfolio.view", "settings.view", "settings.roles.view", "settings.roles.manage", "roles:manage", "settings.permissions.view", "settings.permissions.manage", "users:manage", "settings.audit.view", "audit:read"]	2026-08-10 17:53:35.786937+05:30	2026-08-10 18:10:14.170813+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	Admin	Super-admin — full access to every module, submodule and action.	t	t
-cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	["dashboard.view", "projects.view", "projects.overview.view", "projects.health.view", "projects.invoice-schedule.view", "projects.invoice-schedule.manage", "reports.view", "reports.export", "reports.finance.view", "resources.view", "resources.directory.view", "resources.kpi.view", "customers.view", "repository.view", "clients:read", "invoices:raise", "invoices:payment", "reports:read"]	2026-08-07 13:19:59.669429+05:30	2026-08-11 18:32:05.847002+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	Accounts	Finance — invoices, payments and finance reports.	t	t
+cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	["action-center.view", "clients:read", "customers.view", "dashboard.view", "invoices:payment", "invoices:raise", "projects:read", "projects.health.view", "projects.invoice-schedule.manage", "projects.invoice-schedule.view", "projects.overview.view", "projects.view", "reports:read", "reports.export", "reports.finance.view", "reports.view", "repository.view", "resources:read", "resources.directory.view", "resources.kpi.view", "resources.view"]	2026-08-07 13:19:59.669429+05:30	2026-08-23 21:46:27.401283+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	Accounts	Finance — invoices, payments and finance reports.	t	t
 \.
 
 
 --
--- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.sub_ventures ("Id", "ClientId", "Name", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Notes") FROM stdin;
@@ -1882,36 +2113,36 @@ a69fe228-de12-44e5-9128-dc3898f67e5c	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	IT	202
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Department", "SubDepartment", "Avatar", "Designation", "IsActive", "MustChangePassword", "RoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "FailedLoginAttempts", "LastLoginAtUtc", "LockedUntilUtc", "PasswordChangedAtUtc") FROM stdin;
 cf106b1b-6a96-464f-aa63-ddcb77a737e0	new.pm@acme.co	$2a$12$p.MfI7wlBAX2LZkpEvPoEunU.q5UljNMmswtXsI80UcJj8X2CVWM.	New PM	u99	\N	\N	\N	PM	t	t	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:25:45.951114+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
 30d629ff-3076-40f8-9c12-fb385b8c2600	admin2@acme.co	$2a$12$aqJIdIL9tzPW5DFE.zVFVurFkCUE0knMbU7.A0A1pBtjA7K4Qk7wS	Test Admin Two	A2	\N	\N	\N	\N	f	t	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:45:16.235641+05:30	2026-08-07 13:45:23.702021+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	0	\N	\N	\N
 a1878763-b174-41b0-88db-f2ebba76af83	sdsa@gmail.com	$2a$12$.bzyuW3FFq2Uau84IyFnYO1LXxDLXkbxtjVyvzVs71KECK6u2CONy	sadas	ads	sda	\N	\N	sda	t	t	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 15:00:46.654787+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
-111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$on1TvggHwb.9EuBd/zre5O1ZdO72NkiC2nE4iKucoIeIONSzsutsq	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
-1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$oiwbzKykmH0AUVPuhCOTju8XP10KNDfOtkbsKoiTO/P6Q2l1mUkyi	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
-2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$EYPIY1Nh2bu9s8PzP4yRYel2WltvY8t0cTiySyzl22sRJKcOU6HX.	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
-304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$61XieSPx2eJtWb5A8stGveP4CMgLai/av7It6uVW9SLjhhwsTE7ny	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-21 22:15:24.911658+05:30	\N	\N
-47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$VsUzyNkW1tnH4DAsvRQRQO4vT10KqbEuIKNmHzNLbM/yKzfMN2j1W	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-20 12:01:20.644786+05:30	\N	\N
-49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$DHbKZ1h/63M3qnVmQjHfsek8CjjT674JrU7wTiOrYLoV6lYl/tCEa	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	\N	\N	\N
-65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$0n7AECINy3F9Sv5yldTZVucKrKKYafBsscJ26sbPJkgSXOvy1fsmK	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
-730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$EpQesLxE6Rt8woZQMJM14e6PgeMQZKkV3NpQ6pKxJs.QJ2rn.mKLe	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
-9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$xsTnpsm8s7Wg7/SftAfCdueZGtpMexD.XHFBoo9/TNmIc5rPtKduy	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
-a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$Yb3Gc1WSRQp9D2xkaArWGOoLybN16P5ZWpbAPthgZTFty3JxPgLkK	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-21 22:15:42.227714+05:30	\N	\N
-a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$bcBZwdwOgzbEvICI45tpTOk0.dUjp0uhJNAZ5TF1krn6E1UVQbrIy	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
-a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$8VjdibmK5X2//F2fPNGZPOC5TFUaSxL4ufbb6PDMpPnK/xn1dzWEG	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
-b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$uwgzvzWD5rVzI9Eb9hAVIu4D1Zl6ixfFdPWyB86rsgHqFNYJb.yR6	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
-b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$2evQss8DeLlRtSqzje4E1Olkz1ijujOTmu.HMnXD3o.Eo/2U4QL7i	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-18 12:39:23.505267+05:30	\N	\N
-dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$W7Fx8abfmfsps5BN/.Gbse8QLmcGi37R6vghKvuY810rmVaBTZXRW	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	\N	\N	\N
-40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$dUZpVD3ohM2X5zkbYxd8.eNU6NSLgtEVuw4zw6zx0mnH.Xs9bzcdO	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-22 12:12:50.703952+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-08-22 12:12:50.7026+05:30	\N	2026-08-10 12:32:04.244561+05:30
-e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$CpIr22b9nTczfFt5gLZTdeqrcGoVHMI3JulgQ7V1ee.tT6nk5.ape	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
-f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$EANToQthuN0ITD/VJ27PaeBuRhuMJ8E3yshw16uJDRmfy.qqPa.W6	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-22 11:40:27.760361+05:30	\N	\N	\N	0	2026-08-21 22:14:07.051033+05:30	\N	\N
+111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$SYNzShg664HlxtvLd3prv.9lFqNSgx..LEu1FYz1NwlSaOuAwedHS	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
+1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$phAtBYpfJ81xMpgllpDYo.d0XHC7wQzSvE0c7jssAy.5g3.3rb.XC	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
+2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$TexKcsBP2kXmG4NRbRCQhey4u1Z/bKd6QkzBplvW08h2CK2ZD44je	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
+304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$QO9/rML0z6BMp3JG2ks.zu1VBj9yfKqdaZpbRbPtUT0RnRmZuI3D6	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-21 22:15:24.911658+05:30	\N	\N
+40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$cQtABBuYldIaJ0r7V38cau8eCP1nya/ApD6L0twIKDXJRJ5Wssdsu	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-22 12:12:50.7026+05:30	\N	2026-08-10 12:32:04.244561+05:30
+49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$eEOPw.TxxsFphlGSV1i2/O7hv.iv9wIuM3mdkJ17TB9ulxLWZcWkm	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	\N	\N	\N
+65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$POrRQPFpiDZXglo33kOpluhHK881HEwwCjUMUPS6UArjg5gEUDsqy	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
+730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$Urtl333E2W2tHW1b9QA56uzUvllgN/PVeyGbRR.3mbH11Xa/8.bWq	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
+9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$a3JexKxq8KjY77omI4WPK.NjNgSzYBrsIKGisRvmVL37WpybN/iyi	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
+f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$E0MQ5HS4iGIg5ybn5hNxEeZuPppH.p66RRQNhOw5NbX.wehxL5cGe	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:34:57.910054+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-08-24 00:34:56.651229+05:30	\N	\N
+a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$rEvJ9jopdtwsN5MrjoCvBe1r.YfPHCYh6B0SKIH2fSoql6zMHssqy	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
+a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$iVN4.dApPGTSsbgn6UNIWu8trEeD2Ik.A./4SBPyVgLBAm/tTz5B2	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
+b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$ApPGgSlTznocLnqr49qeO.qwHld5i3/i.r9/f./0hfmHdhpwZpW7y	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
+b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$hA3QixnhzYJP4Jz6hSA0uO3QNpKsMQ7Nc2jnlyRO1qbO1UCn14msm	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:37:26.076124+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-08-24 00:37:26.049628+05:30	\N	\N
+47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$R9nNEMaYqVdic1GO17mMI.5PO1KkpZNuJKnh2n0./K4bQCqyyfAJa	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-24 00:38:08.050534+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-08-24 00:38:08.012239+05:30	\N	\N
+dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$yurfuXS2e7Jb5.UgxlO3U.Otbr86xHA15unFPfU6Tum8K/OeVMG22	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-23 21:47:59.549139+05:30	\N	\N
+a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$XJSiv2BC9ld8oUW1EEHOJuFYrPVIMTSXy35RQ.7nkTuub/1yjQvim	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-24 00:38:30.992134+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-08-24 00:38:30.965089+05:30	\N	\N
+e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$I8rl7j4ZJXs45gVVYfEOMuKciyonn8px68PJ.tobyGlXTXxALU9yG	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-24 00:13:44.431995+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
 \.
 
 
 --
--- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."__EFMigrationsHistory"
@@ -1919,7 +2150,7 @@ ALTER TABLE ONLY public."__EFMigrationsHistory"
 
 
 --
--- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -1927,7 +2158,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -1935,7 +2166,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -1943,7 +2174,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -1951,7 +2182,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.exited_employees
@@ -1959,7 +2190,7 @@ ALTER TABLE ONLY public.exited_employees
 
 
 --
--- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -1967,7 +2198,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_countries
@@ -1975,7 +2206,7 @@ ALTER TABLE ONLY public.mst_countries
 
 
 --
--- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_departments
@@ -1983,7 +2214,7 @@ ALTER TABLE ONLY public.mst_departments
 
 
 --
--- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -1991,7 +2222,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_industries
@@ -1999,7 +2230,7 @@ ALTER TABLE ONLY public.mst_industries
 
 
 --
--- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_nationalities
@@ -2007,7 +2238,7 @@ ALTER TABLE ONLY public.mst_nationalities
 
 
 --
--- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -2015,7 +2246,7 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_salary_bands
@@ -2023,7 +2254,7 @@ ALTER TABLE ONLY public.mst_salary_bands
 
 
 --
--- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -2031,7 +2262,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -2039,7 +2270,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.roles
@@ -2047,7 +2278,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -2055,7 +2286,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.users
@@ -2063,7 +2294,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -2071,7 +2302,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -2079,7 +2310,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_email_domains
@@ -2087,7 +2318,7 @@ ALTER TABLE ONLY public.mst_email_domains
 
 
 --
--- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2095,7 +2326,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2103,7 +2334,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -2111,7 +2342,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -2119,7 +2350,7 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -2127,329 +2358,366 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: -
+-- Name: repository_activity_logs repository_activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.repository_activity_logs
+    ADD CONSTRAINT repository_activity_logs_pkey PRIMARY KEY ("Id");
+
+
+--
+-- Name: repository repository_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.repository
+    ADD CONSTRAINT repository_pkey PRIMARY KEY ("Id");
+
+
+--
+-- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_client_assignments_UserId" ON public.client_assignments USING btree ("UserId");
 
 
 --
--- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_client_contacts_ClientId" ON public.client_contacts USING btree ("ClientId");
 
 
 --
--- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_client_contacts_SubVentureId" ON public.client_contacts USING btree ("SubVentureId");
 
 
 --
--- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_CityId" ON public.clients USING btree ("CityId");
 
 
 --
--- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_CountryId" ON public.clients USING btree ("CountryId");
 
 
 --
--- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_EngagementManagerId" ON public.clients USING btree ("EngagementManagerId");
 
 
 --
--- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_IndustryId" ON public.clients USING btree ("IndustryId");
 
 
 --
--- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_clients_Name" ON public.clients USING btree ("Name");
 
 
 --
--- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_DepartmentId" ON public.employees USING btree ("DepartmentId");
 
 
 --
--- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_DesignationId" ON public.employees USING btree ("DesignationId");
 
 
 --
--- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_employees_EmployeeCode" ON public.employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_JobRoleId" ON public.employees USING btree ("JobRoleId");
 
 
 --
--- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_NationalityId" ON public.employees USING btree ("NationalityId");
 
 
 --
--- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_ReportingManagerId" ON public.employees USING btree ("ReportingManagerId");
 
 
 --
--- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_SalaryBandId" ON public.employees USING btree ("SalaryBandId");
 
 
 --
--- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_employees_UserId" ON public.employees USING btree ("UserId");
 
 
 --
--- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_employees_WorkEmail" ON public.employees USING btree ("WorkEmail");
 
 
 --
--- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_exited_employees_EmployeeCode" ON public.exited_employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_exited_employees_OriginalEmployeeId" ON public.exited_employees USING btree ("OriginalEmployeeId");
 
 
 --
--- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_Code" ON public.mst_cities USING btree ("Code");
 
 
 --
--- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_CountryId_Name" ON public.mst_cities USING btree ("CountryId", "Name");
 
 
 --
--- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Code" ON public.mst_countries USING btree ("Code");
 
 
 --
--- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Name" ON public.mst_countries USING btree ("Name");
 
 
 --
--- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Code" ON public.mst_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Name" ON public.mst_departments USING btree ("Name");
 
 
 --
--- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_Code" ON public.mst_designations USING btree ("Code");
 
 
 --
--- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_DepartmentId_Name" ON public.mst_designations USING btree ("DepartmentId", "Name");
 
 
 --
--- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_email_domains_DomainName" ON public.mst_email_domains USING btree ("DomainName");
 
 
 --
--- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Code" ON public.mst_industries USING btree ("Code");
 
 
 --
--- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Name" ON public.mst_industries USING btree ("Name");
 
 
 --
--- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Code" ON public.mst_nationalities USING btree ("Code");
 
 
 --
--- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Name" ON public.mst_nationalities USING btree ("Name");
 
 
 --
--- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_reporting_managers_Code" ON public.mst_reporting_managers USING btree ("Code");
 
 
 --
--- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_Code" ON public.mst_roles USING btree ("Code");
 
 
 --
--- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_DesignationId_Name" ON public.mst_roles USING btree ("DesignationId", "Name");
 
 
 --
--- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Code" ON public.mst_salary_bands USING btree ("Code");
 
 
 --
--- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Name" ON public.mst_salary_bands USING btree ("Name");
 
 
 --
--- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_refresh_tokens_TokenHash" ON public.refresh_tokens USING btree ("TokenHash");
 
 
 --
--- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_refresh_tokens_UserId" ON public.refresh_tokens USING btree ("UserId");
 
 
 --
--- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_repository_Category; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "IX_repository_Category" ON public.repository USING btree ("Category");
+
+
+--
+-- Name: IX_repository_DeletedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "IX_repository_DeletedAtUtc" ON public.repository USING btree ("DeletedAtUtc");
+
+
+--
+-- Name: IX_repository_activity_logs_CreatedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "IX_repository_activity_logs_CreatedAtUtc" ON public.repository_activity_logs USING btree ("CreatedAtUtc");
+
+
+--
+-- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_role_permission_audits_CreatedAtUtc" ON public.role_permission_audits USING btree ("CreatedAtUtc");
 
 
 --
--- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_role_permission_audits_RoleId" ON public.role_permission_audits USING btree ("RoleId");
 
 
 --
--- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_roles_Name" ON public.roles USING btree ("Name");
 
 
 --
--- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_sub_ventures_ClientId" ON public.sub_ventures USING btree ("ClientId");
 
 
 --
--- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_users_Email" ON public.users USING btree ("Email");
 
 
 --
--- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_users_EmployeeId" ON public.users USING btree ("EmployeeId");
 
 
 --
--- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: -
+-- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "IX_users_RoleId" ON public.users USING btree ("RoleId");
 
 
 --
--- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2457,7 +2725,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2465,7 +2733,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2473,7 +2741,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2481,7 +2749,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -2489,7 +2757,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -2497,7 +2765,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -2505,7 +2773,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.clients
@@ -2513,7 +2781,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2521,7 +2789,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2529,7 +2797,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2537,7 +2805,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2545,7 +2813,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2553,7 +2821,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2561,7 +2829,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.employees
@@ -2569,7 +2837,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -2577,7 +2845,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -2585,7 +2853,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -2593,7 +2861,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -2601,7 +2869,7 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -2609,7 +2877,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -2617,7 +2885,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -2625,7 +2893,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.users
@@ -2633,7 +2901,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2641,8 +2909,204 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
+--
+
+GRANT ALL ON SCHEMA public TO trackerpro;
+
+
+--
+-- Name: TABLE "__EFMigrationsHistory"; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public."__EFMigrationsHistory" TO trackerpro;
+
+
+--
+-- Name: TABLE client_assignments; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.client_assignments TO trackerpro;
+
+
+--
+-- Name: TABLE client_contacts; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.client_contacts TO trackerpro;
+
+
+--
+-- Name: TABLE clients; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.clients TO trackerpro;
+
+
+--
+-- Name: TABLE employees; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.employees TO trackerpro;
+
+
+--
+-- Name: TABLE exited_employees; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.exited_employees TO trackerpro;
+
+
+--
+-- Name: TABLE mst_business_units; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_business_units TO trackerpro;
+
+
+--
+-- Name: TABLE mst_cities; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_cities TO trackerpro;
+
+
+--
+-- Name: TABLE mst_countries; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_countries TO trackerpro;
+
+
+--
+-- Name: TABLE mst_departments; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_departments TO trackerpro;
+
+
+--
+-- Name: TABLE mst_designations; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_designations TO trackerpro;
+
+
+--
+-- Name: TABLE mst_email_domains; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_email_domains TO trackerpro;
+
+
+--
+-- Name: TABLE mst_industries; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_industries TO trackerpro;
+
+
+--
+-- Name: TABLE mst_nationalities; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_nationalities TO trackerpro;
+
+
+--
+-- Name: TABLE mst_offices; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_offices TO trackerpro;
+
+
+--
+-- Name: TABLE mst_reporting_managers; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_reporting_managers TO trackerpro;
+
+
+--
+-- Name: TABLE mst_roles; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_roles TO trackerpro;
+
+
+--
+-- Name: TABLE mst_salary_bands; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_salary_bands TO trackerpro;
+
+
+--
+-- Name: TABLE mst_work_locations; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.mst_work_locations TO trackerpro;
+
+
+--
+-- Name: TABLE refresh_tokens; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.refresh_tokens TO trackerpro;
+
+
+--
+-- Name: TABLE repository; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.repository TO trackerpro;
+
+
+--
+-- Name: TABLE repository_activity_logs; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.repository_activity_logs TO trackerpro;
+
+
+--
+-- Name: TABLE role_permission_audits; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.role_permission_audits TO trackerpro;
+
+
+--
+-- Name: TABLE roles; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.roles TO trackerpro;
+
+
+--
+-- Name: TABLE sub_ventures; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.sub_ventures TO trackerpro;
+
+
+--
+-- Name: TABLE users; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.users TO trackerpro;
+
+
+--
+-- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: postgres
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO trackerpro;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ENaGz11fKKcKdBJSJWHVLYxuhfBYAQhiaxlCSilnoB30EvJjJuOsgBYgBXhuC7n
+\unrestrict zQPHOv2VAZOL7W14EELFOybhvt4grh3apJIPCTyqeF1CWLS75UPXDHQKYYRDglo
 

@@ -30,6 +30,9 @@ public sealed partial class FileStorageService : IFileStorageService
         Directory.CreateDirectory(Path.Combine(_storageRoot, "customers"));
         Directory.CreateDirectory(Path.Combine(_storageRoot, "projects"));
         Directory.CreateDirectory(Path.Combine(_storageRoot, "general"));
+        Directory.CreateDirectory(Path.Combine(_storageRoot, "repository", "tech"));
+        Directory.CreateDirectory(Path.Combine(_storageRoot, "repository", "pms"));
+        Directory.CreateDirectory(Path.Combine(_storageRoot, "repository", "imp"));
 
         _logger.LogInformation("FileStorageService initialized with root directory: {StorageRoot}", _storageRoot);
     }
@@ -136,6 +139,118 @@ public sealed partial class FileStorageService : IFileStorageService
         }
 
         return Task.FromResult<IReadOnlyList<StoredFileInfo>>(results.OrderByDescending(r => r.UploadedAtUtc).ToList());
+    }
+
+    public async Task<StoredRepositoryFileInfo> SaveRepositoryDocumentAsync(
+        string category,
+        IFormFile file,
+        CancellationToken ct = default)
+    {
+        var rawOriginalName = Path.GetFileName(file.FileName);
+        var ext = Path.GetExtension(rawOriginalName).ToLowerInvariant();
+
+        // STRICT FILE EXTENSION VALIDATION: Only .pdf and .docx allowed
+        if (ext != ".pdf" && ext != ".docx")
+        {
+            throw new InvalidOperationException($"Invalid file format '{ext}'. Only .pdf and .docx file formats are allowed.");
+        }
+
+        // Map and validate category to tech, pms, imp
+        var folderCategory = NormalizeRepositoryCategoryFolder(category);
+        var displayCategory = NormalizeRepositoryCategoryDisplay(category);
+
+        var targetDir = Path.Combine(_storageRoot, "repository", folderCategory);
+        Directory.CreateDirectory(targetDir);
+
+        var baseName = Path.GetFileNameWithoutExtension(rawOriginalName);
+        var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
+        if (string.IsNullOrWhiteSpace(cleanBaseName)) cleanBaseName = "document";
+        if (cleanBaseName.Length > 80) cleanBaseName = cleanBaseName[..80];
+
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff");
+        var savedFileName = $"{timestamp}_{cleanBaseName}{ext}";
+        var fullPath = Path.Combine(targetDir, savedFileName);
+
+        await using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await file.CopyToAsync(stream, ct);
+        }
+
+        var relativePath = Path.Combine("repository", folderCategory, savedFileName).Replace('\\', '/');
+        var completePath = fullPath.Replace('\\', '/');
+
+        return new StoredRepositoryFileInfo(
+            FileName: rawOriginalName,
+            OriginalFileName: rawOriginalName,
+            ContentType: file.ContentType ?? GetContentType(ext),
+            SizeBytes: file.Length,
+            RelativePath: relativePath,
+            CompleteFilePath: completePath,
+            Category: displayCategory,
+            UploadedAtUtc: DateTime.UtcNow
+        );
+    }
+
+    public (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath)) return null;
+
+        var fullPath = Path.IsPathRooted(filePath)
+            ? filePath
+            : Path.Combine(_storageRoot, filePath);
+
+        if (!File.Exists(fullPath)) return null;
+
+        var ext = Path.GetExtension(fullPath);
+        var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var downloadName = ExtractOriginalName(Path.GetFileName(fullPath));
+
+        return (stream, GetContentType(ext), downloadName);
+    }
+
+    public bool DeleteRepositoryFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath)) return false;
+
+        try
+        {
+            var fullPath = Path.IsPathRooted(filePath)
+                ? filePath
+                : Path.Combine(_storageRoot, filePath);
+
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete physical repository file: {FilePath}", filePath);
+        }
+
+        return false;
+    }
+
+    public static string NormalizeRepositoryCategoryFolder(string category)
+    {
+        var clean = (category ?? "").Trim().ToLowerInvariant();
+        if (clean.Contains("tech")) return "tech";
+        if (clean.Contains("pms")) return "pms";
+        if (clean.Contains("imp") || clean.Contains("policy") || clean.Contains("template")) return "imp";
+        return "tech"; // default fallback to tech
+    }
+
+    public static string NormalizeRepositoryCategoryDisplay(string category)
+    {
+        var folder = NormalizeRepositoryCategoryFolder(category);
+        return folder switch
+        {
+            "tech" => "Tech",
+            "pms" => "PMS",
+            "imp" => "IMP",
+            _ => "Tech"
+        };
     }
 
     private static async Task<StoredFileInfo> SaveFileInternalAsync(
