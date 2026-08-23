@@ -248,7 +248,7 @@ function CustomersPage() {
             const metrics = [
               { label: "New", value: newCount },
               { label: "Ongoing", value: ongoing },
-              { label: "Done", value: completed },
+              { label: "Completed", value: completed },
               { label: "Hold", value: onHold },
               { label: "Archive", value: archived },
             ] as const;
