@@ -13,6 +13,4 @@ public class RepositoryItem : BaseEntity
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 
     public string UploadedBy { get; set; } = string.Empty;
-
-    public string FilePath { get; set; } = string.Empty;
 }

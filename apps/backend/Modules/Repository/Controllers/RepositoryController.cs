@@ -84,7 +84,7 @@ public class RepositoryController(
             return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Document not found."));
         }
 
-        var fileResult = storageService.GetRepositoryFileStream(doc.FilePath);
+        var fileResult = storageService.GetRepositoryFileStream(doc.Category, doc.FileName);
         if (fileResult == null)
         {
             return NotFound(ApiResponse<object>.Fail("FILE_NOT_FOUND", "Physical document file not found on server."));

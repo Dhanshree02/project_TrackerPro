@@ -1097,8 +1097,6 @@ public static class DbSeeder
                 await File.WriteAllTextAsync(filePath, item.Content, ct);
             }
 
-            var completePath = filePath.Replace('\\', '/');
-
             var doc = new RepositoryItem
             {
                 Id = StableGuid("repo-" + item.FileName),
@@ -1107,7 +1105,6 @@ public static class DbSeeder
                 Size = item.Size,
                 LastUpdated = DateTime.UtcNow.AddDays(-Random.Shared.Next(2, 60)),
                 UploadedBy = item.UploadedBy,
-                FilePath = completePath,
                 CreatedAtUtc = DateTime.UtcNow.AddDays(-Random.Shared.Next(2, 60))
             };
 

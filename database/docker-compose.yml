@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trackerpro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: trackerpro
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clockit
+    ports:
+      - "5433:5432"
+    volumes:
+      - trackerpro_pgdata:/var/lib/postgresql/data
+      - ./trackerpro-final.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d trackerpro"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: trackerpro-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@trackerpro.com
+      PGADMIN_DEFAULT_PASSWORD: clockit
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - ./servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  trackerpro_pgdata:

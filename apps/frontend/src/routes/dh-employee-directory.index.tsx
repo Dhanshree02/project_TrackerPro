@@ -23,8 +23,11 @@ import { useRoleContext } from "@/lib/role-context";
 import { Avatar, ProgressBar } from "@/components/pills";
 import { cn } from "@/lib/utils";
 import {
+  ALLOWED_WORK_EMAIL_DOMAINS,
+  ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS,
   FIELD_MAX,
   emailError,
+  isAllowedWorkEmailDomain,
   isoDateToday,
   isoDateYearsAgo,
   isLettersName,
@@ -1154,13 +1157,20 @@ function OnboardingPanel({
       .catch(() => toast.error("Could not load reporting managers"));
     void fetchEmailDomainOptions()
       .then((domains) => {
-        setEmailDomainOptions(domains ?? []);
-        if (domains && domains.length > 0) {
-          const firstDomain = domains[0].code.replace(/^@/, "");
+        const filtered = (domains ?? []).filter((d) =>
+          isAllowedWorkEmailDomain(d.code.replace(/^@/, ""))
+        );
+        const list = filtered.length > 0 ? filtered : ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS;
+        setEmailDomainOptions(list);
+        if (list.length > 0) {
+          const firstDomain = list[0].code.replace(/^@/, "");
           setWorkEmailDomain(firstDomain);
         }
       })
-      .catch(() => toast.error("Could not load email domains"));
+      .catch(() => {
+        setEmailDomainOptions(ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS);
+        setWorkEmailDomain("talakunchi.com");
+      });
   }, [open, managers]);
 
   useEffect(() => {

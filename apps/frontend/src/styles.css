@@ -153,6 +153,41 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+
+  /* Ensure all interactive and clickable elements have pointer cursor (hand icon) */
+  button,
+  a,
+  select,
+  summary,
+  [role="button"],
+  [role="link"],
+  [role="tab"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="menuitem"],
+  [role="option"],
+  [role="switch"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  label[for],
+  label:has(input[type="checkbox"]),
+  label:has(input[type="radio"]),
+  label:has(input[type="file"]) {
+    cursor: pointer;
+  }
+
+  /* Disabled states */
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 @layer components {

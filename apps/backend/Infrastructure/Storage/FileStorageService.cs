@@ -191,6 +191,73 @@ public sealed partial class FileStorageService : IFileStorageService
         );
     }
 
+    public (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string category, string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return null;
+
+        var folderCategory = NormalizeRepositoryCategoryFolder(category);
+        var targetDir = Path.Combine(_storageRoot, "repository", folderCategory);
+
+        if (Directory.Exists(targetDir))
+        {
+            // 1. Direct match with fileName or sanitized filename
+            var directPath = Path.Combine(targetDir, fileName);
+            if (File.Exists(directPath))
+            {
+                var ext = Path.GetExtension(directPath);
+                var stream = new FileStream(directPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return (stream, GetContentType(ext), fileName);
+            }
+
+            var underscoreName = fileName.Replace(' ', '_');
+            var underscorePath = Path.Combine(targetDir, underscoreName);
+            if (File.Exists(underscorePath))
+            {
+                var ext = Path.GetExtension(underscorePath);
+                var stream = new FileStream(underscorePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return (stream, GetContentType(ext), fileName);
+            }
+
+            // 2. Timestamp prefix match (*_cleanBaseName.ext)
+            var baseName = Path.GetFileNameWithoutExtension(fileName);
+            var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
+            var extPattern = Path.GetExtension(fileName);
+            var matchingFiles = Directory.GetFiles(targetDir, $"*{cleanBaseName}*{extPattern}");
+            if (matchingFiles.Length > 0)
+            {
+                var foundPath = matchingFiles[0];
+                var ext = Path.GetExtension(foundPath);
+                var stream = new FileStream(foundPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return (stream, GetContentType(ext), fileName);
+            }
+        }
+
+        // 3. Fallback search in all repository folders
+        foreach (var subDir in new[] { "tech", "pms", "imp" })
+        {
+            var fallbackDir = Path.Combine(_storageRoot, "repository", subDir);
+            if (!Directory.Exists(fallbackDir)) continue;
+
+            var directMatch = Path.Combine(fallbackDir, fileName);
+            if (File.Exists(directMatch))
+            {
+                var ext = Path.GetExtension(directMatch);
+                var stream = new FileStream(directMatch, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return (stream, GetContentType(ext), fileName);
+            }
+
+            var underscoreMatch = Path.Combine(fallbackDir, fileName.Replace(' ', '_'));
+            if (File.Exists(underscoreMatch))
+            {
+                var ext = Path.GetExtension(underscoreMatch);
+                var stream = new FileStream(underscoreMatch, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return (stream, GetContentType(ext), fileName);
+            }
+        }
+
+        return null;
+    }
+
     public (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath)) return null;
@@ -199,13 +266,61 @@ public sealed partial class FileStorageService : IFileStorageService
             ? filePath
             : Path.Combine(_storageRoot, filePath);
 
-        if (!File.Exists(fullPath)) return null;
+        if (File.Exists(fullPath))
+        {
+            var ext = Path.GetExtension(fullPath);
+            var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var downloadName = ExtractOriginalName(Path.GetFileName(fullPath));
+            return (stream, GetContentType(ext), downloadName);
+        }
 
-        var ext = Path.GetExtension(fullPath);
-        var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        var downloadName = ExtractOriginalName(Path.GetFileName(fullPath));
+        // Try searching by filename across categories
+        var fileName = Path.GetFileName(filePath);
+        return GetRepositoryFileStream("", fileName);
+    }
 
-        return (stream, GetContentType(ext), downloadName);
+    public bool DeleteRepositoryFile(string category, string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return false;
+
+        try
+        {
+            var folderCategory = NormalizeRepositoryCategoryFolder(category);
+            var targetDir = Path.Combine(_storageRoot, "repository", folderCategory);
+
+            if (Directory.Exists(targetDir))
+            {
+                var directPath = Path.Combine(targetDir, fileName);
+                if (File.Exists(directPath))
+                {
+                    File.Delete(directPath);
+                    return true;
+                }
+
+                var underscorePath = Path.Combine(targetDir, fileName.Replace(' ', '_'));
+                if (File.Exists(underscorePath))
+                {
+                    File.Delete(underscorePath);
+                    return true;
+                }
+
+                var baseName = Path.GetFileNameWithoutExtension(fileName);
+                var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
+                var extPattern = Path.GetExtension(fileName);
+                var matchingFiles = Directory.GetFiles(targetDir, $"*{cleanBaseName}*{extPattern}");
+                foreach (var match in matchingFiles)
+                {
+                    if (File.Exists(match)) File.Delete(match);
+                }
+                return matchingFiles.Length > 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete physical repository file: {Category} / {FileName}", category, fileName);
+        }
+
+        return false;
     }
 
     public bool DeleteRepositoryFile(string filePath)
@@ -223,6 +338,9 @@ public sealed partial class FileStorageService : IFileStorageService
                 File.Delete(fullPath);
                 return true;
             }
+
+            var fileName = Path.GetFileName(filePath);
+            return DeleteRepositoryFile("", fileName);
         }
         catch (Exception ex)
         {

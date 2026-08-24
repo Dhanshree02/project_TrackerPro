@@ -7,14 +7,29 @@ import { useRoleContext } from "@/lib/role-context";
 import { Avatar, ProgressBar } from "@/components/pills";
 import { cn } from "@/lib/utils";
 import {
+  ALLOWED_WORK_EMAIL_DOMAINS,
+  ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS,
   FIELD_MAX,
   emailError,
   fieldInputCls,
+  isAllowedWorkEmailDomain,
   isoDateToday,
+  isoDateYearsAgo,
+  isLettersName,
   phoneError,
+  toDigits,
   toEmailInput,
+  toEmailLocalPart,
+  isValidEmailLocalPart,
+  toLettersName,
   toTenDigitPhone,
 } from "@/lib/form-validation";
+import {
+  MAX_ADULT_DOB,
+  MIN_DOB,
+  digitsOnly,
+  isValidPan,
+} from "@/lib/onboard-validation";
 import { toast } from "sonner";
 import {
   fetchEmployee,
@@ -23,6 +38,7 @@ import {
   updateEmployee,
   fetchDepartmentOptions,
   fetchDesignationOptions,
+  fetchEmailDomainOptions,
   fetchNationalityOptions,
   fetchJobRoleOptions,
   fetchSalaryBandOptions,
@@ -340,7 +356,13 @@ function EditProfilePanel({
   }, [open]);
 
   const [formData, setFormData] = useState<Employee>({ ...employee });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  // Work Email parts
+  const [workEmailPrefix, setWorkEmailPrefix] = useState("");
+  const [workEmailDomain, setWorkEmailDomain] = useState("");
+  const [emailDomainOptions, setEmailDomainOptions] = useState<ApiMetaOption[]>([]);
 
   // Metadata catalogs
   const [nationalities, setNationalities] = useState<ApiMetaOption[]>([]);
@@ -355,13 +377,42 @@ function EditProfilePanel({
   useEffect(() => {
     if (open) {
       setFormData({ ...employee });
+      setErrors({});
       setIsSaving(false);
+
+      // Split existing work email
+      const rawEmail = (employee.email || "").trim();
+      const atIdx = rawEmail.indexOf("@");
+      const initPrefix = atIdx >= 0 ? rawEmail.slice(0, atIdx) : rawEmail;
+      const rawDomain = atIdx >= 0 ? rawEmail.slice(atIdx + 1).toLowerCase() : "";
+      const initDomain = isAllowedWorkEmailDomain(rawDomain) ? rawDomain : "talakunchi.com";
+      setWorkEmailPrefix(toEmailLocalPart(initPrefix));
+      setWorkEmailDomain(initDomain);
+
       void fetchNationalityOptions().then(setNationalities).catch(() => {});
       void fetchDepartmentOptions().then(setDepartmentsList).catch(() => {});
       void fetchBusinessUnitOptions().then(setBusinessUnitsList).catch(() => {});
       void fetchWorkLocationOptions().then(setWorkLocationsList).catch(() => {});
       void fetchSalaryBandOptions().then(setSalaryBandsList).catch(() => {});
       void fetchReportingManagerOptions().then(setReportingManagersList).catch(() => {});
+
+      void fetchEmailDomainOptions()
+        .then((domains) => {
+          const filtered = (domains ?? []).filter((d) =>
+            isAllowedWorkEmailDomain(d.code.replace(/^@/, ""))
+          );
+          const list = filtered.length > 0 ? filtered : ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS;
+          setEmailDomainOptions(list);
+          if (initDomain && isAllowedWorkEmailDomain(initDomain)) {
+            setWorkEmailDomain(initDomain);
+          } else if (list.length > 0) {
+            setWorkEmailDomain(list[0].code.replace(/^@/, ""));
+          }
+        })
+        .catch(() => {
+          setEmailDomainOptions(ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS);
+          setWorkEmailDomain("talakunchi.com");
+        });
     }
   }, [open, employee]);
 
@@ -384,26 +435,181 @@ function EditProfilePanel({
   const inputCls =
     "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring text-foreground";
 
+  // Strict domain options limited only to @talakunchi.com, @talakunchi.in, @squad1.io
+  const computedDomainOptions = ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS;
+
+  const validateField = (field: string, value: any, currentData = formData): string | undefined => {
+    switch (field) {
+      case "firstName": {
+        const v = String(value || "").trim();
+        if (!v) return "First name is required";
+        if (v.length > FIELD_MAX.firstName) return `First name must be ${FIELD_MAX.firstName} characters or less`;
+        if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
+        return undefined;
+      }
+      case "lastName": {
+        const v = String(value || "").trim();
+        if (!v) return "Last name is required";
+        if (v.length > FIELD_MAX.lastName) return `Last name must be ${FIELD_MAX.lastName} characters or less`;
+        if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
+        return undefined;
+      }
+      case "workEmail": {
+        const prefix = String(value || "").trim();
+        if (!prefix) return "Work email username is required";
+        if (!isValidEmailLocalPart(prefix)) return "Username can only contain letters, numbers, and '.'";
+        if (!workEmailDomain || !isAllowedWorkEmailDomain(workEmailDomain)) {
+          return "Only @talakunchi.com, @talakunchi.in, and @squad1.io domains are allowed";
+        }
+        const full = `${prefix}@${workEmailDomain}`;
+        return emailError(full, true);
+      }
+      case "personalEmail": {
+        const v = String(value || "").trim();
+        if (!v) return undefined;
+        const err = emailError(v, false);
+        if (err) return err;
+        const currentWork = workEmailPrefix && workEmailDomain ? `${workEmailPrefix}@${workEmailDomain}` : currentData.email;
+        if (currentWork && v.toLowerCase() === currentWork.trim().toLowerCase()) {
+          return "Personal email should be different from work email";
+        }
+        return undefined;
+      }
+      case "phone": {
+        return phoneError(value, true);
+      }
+      case "altPhone": {
+        return phoneError(value, false);
+      }
+      case "emergencyContact": {
+        return phoneError(value, true);
+      }
+      case "gender": {
+        return !value ? "Gender is required" : undefined;
+      }
+      case "dob": {
+        const v = String(value || "").trim();
+        if (!v) return "Date of birth is required";
+        if (v > MAX_ADULT_DOB) return "Employee must be at least 18 years old";
+        if (v < MIN_DOB) return "Enter a valid date of birth";
+        return undefined;
+      }
+      case "nationality": {
+        return !value ? "Nationality is required" : undefined;
+      }
+      case "address": {
+        const v = String(value || "").trim();
+        if (!v) return "Residential address is required";
+        if (v.length > FIELD_MAX.address) return `Address must be ${FIELD_MAX.address} characters or less`;
+        return undefined;
+      }
+      case "department": {
+        return !value ? "Department is required" : undefined;
+      }
+      case "designation": {
+        return !value ? "Designation is required" : undefined;
+      }
+      case "reportingManager": {
+        return !value ? "Reporting manager is required" : undefined;
+      }
+      case "workLocation": {
+        return !value ? "Work location is required" : undefined;
+      }
+      case "officeBranch": {
+        return !value ? "Office branch is required" : undefined;
+      }
+      case "joiningDate": {
+        return !value ? "Date of joining is required" : undefined;
+      }
+      case "status": {
+        return !value ? "Employment status is required" : undefined;
+      }
+      case "employmentType": {
+        return !value ? "Employment type is required" : undefined;
+      }
+      case "salaryBand": {
+        return !value ? "Salary band is required" : undefined;
+      }
+      case "pan": {
+        const v = String(value || "").trim();
+        if (!v) return "PAN number is required";
+        if (!isValidPan(v)) return "Enter a valid PAN (e.g. ABCDE1234F)";
+        return undefined;
+      }
+      case "bankAccount": {
+        const v = String(value || "").trim();
+        if (!v) return "Bank account number is required";
+        if (/\D/.test(v)) return "Only numbers are allowed";
+        const digits = digitsOnly(v);
+        if (digits.length < 9 || digits.length > 18) return "Enter a valid bank account number (9–18 digits)";
+        return undefined;
+      }
+      case "pfUan": {
+        const v = String(value || "").trim();
+        if (!v) return undefined;
+        if (/\D/.test(v)) return "Only numbers are allowed";
+        if (digitsOnly(v).length !== 12) return "UAN must be a valid 12-digit number";
+        return undefined;
+      }
+      default:
+        return undefined;
+    }
+  };
+
+  const handleFieldBlur = (field: string, val?: any) => {
+    const value = val !== undefined ? val : formData[field as keyof Employee];
+    const err = validateField(field, value);
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (err) next[field] = err;
+      else delete next[field];
+      return next;
+    });
+  };
+
   const handleChange = (field: keyof Employee, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]:
-        field === "phone" || field === "altPhone" || field === "emergencyContact"
-          ? toTenDigitPhone(String(value))
-          : field === "pan"
-            ? String(value).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)
-            : field === "pfUan"
-              ? String(value).replace(/\D/g, "").slice(0, 12)
-              : field === "bankAccount"
-                ? String(value).replace(/\D/g, "").slice(0, 18)
-                : value,
-    }));
+    let sanitized = value;
+    if (field === "firstName" || field === "lastName") {
+      sanitized = toLettersName(String(value)).slice(0, FIELD_MAX[field]);
+    } else if (field === "phone" || field === "altPhone" || field === "emergencyContact") {
+      sanitized = toTenDigitPhone(String(value));
+    } else if (field === "personalEmail") {
+      sanitized = toEmailInput(String(value)).slice(0, FIELD_MAX.email);
+    } else if (field === "pan") {
+      sanitized = String(value).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, FIELD_MAX.pan);
+    } else if (field === "pfUan") {
+      sanitized = String(value).replace(/\D/g, "").slice(0, FIELD_MAX.pfUan);
+    } else if (field === "bankAccount") {
+      sanitized = String(value).replace(/\D/g, "").slice(0, FIELD_MAX.bankAccount);
+    } else if (field === "address") {
+      sanitized = String(value).slice(0, FIELD_MAX.address);
+    } else if (field === "role" || field === "team" || field === "assetId") {
+      sanitized = String(value).slice(0, FIELD_MAX.text);
+    } else if (field === "education" || field === "experience" || field === "previousCompany") {
+      sanitized = String(value).slice(0, FIELD_MAX.text);
+    }
+
+    const updated = { ...formData, [field]: sanitized };
+    setFormData(updated);
+
+    // Live validation update
+    const liveFields = ["firstName", "lastName", "personalEmail", "phone", "altPhone", "emergencyContact", "pan", "bankAccount", "pfUan", "dob", "address"];
+    if (liveFields.includes(field) || errors[field]) {
+      const err = validateField(field, sanitized, updated);
+      setErrors((prev) => {
+        const next = { ...prev };
+        if (err) next[field] = err;
+        else delete next[field];
+        return next;
+      });
+    }
   };
 
   const handleSkillsChange = (val: string) => {
+    const clean = val.slice(0, FIELD_MAX.skills);
     setFormData((prev) => ({
       ...prev,
-      skills: val
+      skills: clean
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
@@ -411,9 +617,10 @@ function EditProfilePanel({
   };
 
   const handleLanguagesChange = (val: string) => {
+    const clean = val.slice(0, FIELD_MAX.skills);
     setFormData((prev) => ({
       ...prev,
-      languages: val
+      languages: clean
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
@@ -421,94 +628,76 @@ function EditProfilePanel({
   };
 
   const handleCertificationsChange = (val: string) => {
+    const clean = val.slice(0, FIELD_MAX.certifications);
     setFormData((prev) => ({
       ...prev,
-      certifications: val
+      certifications: clean
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
     }));
   };
 
+  const validateAll = (data: Employee, prefix: string, domain: string): Record<string, string> => {
+    const validationErrors: Record<string, string> = {};
+    const fullWorkEmail = prefix && domain ? `${prefix}@${domain}` : "";
+
+    const check = (field: string, val: any) => {
+      const err = validateField(field, val, data);
+      if (err) validationErrors[field] = err;
+    };
+
+    check("firstName", data.firstName);
+    check("lastName", data.lastName);
+    check("workEmail", prefix);
+    check("personalEmail", data.personalEmail);
+    check("phone", data.phone);
+    check("altPhone", data.altPhone);
+    check("emergencyContact", data.emergencyContact);
+    check("gender", data.gender);
+    check("dob", data.dob);
+    check("nationality", data.nationality);
+    check("address", data.address);
+    check("department", data.department);
+    check("designation", data.designation);
+    check("reportingManager", data.reportingManager);
+    check("workLocation", data.workLocation);
+    check("officeBranch", data.officeBranch);
+    check("joiningDate", data.joiningDate);
+    check("status", data.status);
+    check("employmentType", data.employmentType);
+    check("salaryBand", data.salaryBand);
+    check("pan", data.pan);
+    check("bankAccount", data.bankAccount);
+    check("pfUan", data.pfUan);
+
+    return validationErrors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Required Field Validations
-    if (!formData.firstName.trim()) {
-      toast.error("First Name is required");
-      return;
-    }
-    if (!formData.lastName.trim()) {
-      toast.error("Last Name is required");
-      return;
-    }
-    const mailErr = emailError(formData.email, true);
-    if (mailErr) {
-      toast.error(mailErr);
-      return;
-    }
-    if (formData.personalEmail) {
-      const personalMailErr = emailError(formData.personalEmail);
-      if (personalMailErr) {
-        toast.error(personalMailErr);
-        return;
-      }
-    }
-    const mobileErr = phoneError(formData.phone ?? "");
-    if (mobileErr) {
-      toast.error(mobileErr);
-      return;
-    }
-    if (formData.altPhone) {
-      const altErr = phoneError(formData.altPhone);
-      if (altErr) {
-        toast.error(`Alternate Contact: ${altErr}`);
-        return;
-      }
-    }
-    if (formData.emergencyContact) {
-      const emErr = phoneError(formData.emergencyContact);
-      if (emErr) {
-        toast.error(`Emergency Contact: ${emErr}`);
-        return;
-      }
-    }
-    if (!formData.gender) {
-      toast.error("Gender is required");
-      return;
-    }
-    if (!formData.dob) {
-      toast.error("Date of Birth is required");
-      return;
-    }
-    if (!formData.department) {
-      toast.error("Department is required");
-      return;
-    }
-    if (!formData.designation) {
-      toast.error("Designation is required");
-      return;
-    }
-    if (!formData.workLocation) {
-      toast.error("Work Location is required");
-      return;
-    }
-    if (!formData.officeBranch) {
-      toast.error("Office Branch is required");
-      return;
-    }
-    if (!formData.joiningDate) {
-      toast.error("Date of Joining is required");
+    const fullWorkEmail = workEmailPrefix && workEmailDomain ? `${workEmailPrefix}@${workEmailDomain}` : "";
+    const updatedData: Employee = {
+      ...formData,
+      email: fullWorkEmail,
+      firstName: (formData.firstName || "").trim(),
+      lastName: (formData.lastName || "").trim(),
+      personalEmail: (formData.personalEmail ?? "").trim(),
+    };
+
+    const nextErrors = validateAll(updatedData, workEmailPrefix, workEmailDomain);
+    setErrors(nextErrors);
+
+    const firstError = Object.values(nextErrors)[0];
+    if (firstError) {
+      toast.error(firstError);
       return;
     }
 
     setIsSaving(true);
     try {
-      await onSave({
-        ...formData,
-        email: formData.email.trim(),
-        personalEmail: (formData.personalEmail ?? "").trim(),
-      });
+      await onSave(updatedData);
       toast.success("Profile updated successfully!");
       onClose();
     } catch (error: any) {
@@ -560,10 +749,15 @@ function EditProfilePanel({
                   value={formData.firstName}
                   maxLength={FIELD_MAX.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
-                  className={inputCls}
+                  onBlur={() => handleFieldBlur("firstName")}
+                  className={fieldInputCls(inputCls, Boolean(errors.firstName))}
                   required
                 />
+                {errors.firstName ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.firstName}</p>
+                ) : null}
               </label>
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Last Name <span className="text-destructive">*</span>
@@ -574,29 +768,91 @@ function EditProfilePanel({
                   value={formData.lastName}
                   maxLength={FIELD_MAX.lastName}
                   onChange={(e) => handleChange("lastName", e.target.value)}
-                  className={inputCls}
+                  onBlur={() => handleFieldBlur("lastName")}
+                  className={fieldInputCls(inputCls, Boolean(errors.lastName))}
                   required
                 />
+                {errors.lastName ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.lastName}</p>
+                ) : null}
               </label>
+
+              {/* Work Email with Prefix + Domain Select like Onboarding form */}
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Work Email <span className="text-destructive">*</span>
                 </span>
-                <input
-                  type="text"
-                  inputMode="email"
-                  autoComplete="off"
-                  value={formData.email}
-                  maxLength={FIELD_MAX.email}
-                  onChange={(e) => handleChange("email", toEmailInput(e.target.value))}
-                  onBlur={() => handleChange("email", formData.email.trim())}
-                  className={fieldInputCls(inputCls, Boolean(emailError(formData.email, true)))}
-                  required
-                />
-                {emailError(formData.email, true) ? (
-                  <p className="mt-1 text-[11px] text-destructive">{emailError(formData.email, true)}</p>
+                <div className="relative flex rounded-md">
+                  <input
+                    type="text"
+                    inputMode="text"
+                    placeholder="john.doe"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    maxLength={64}
+                    value={workEmailPrefix}
+                    onChange={(e) => {
+                      const cleanPrefix = toEmailLocalPart(e.target.value);
+                      setWorkEmailPrefix(cleanPrefix);
+                      const fullEmail = cleanPrefix && workEmailDomain ? `${cleanPrefix}@${workEmailDomain}` : "";
+                      setFormData((prev) => ({ ...prev, email: fullEmail }));
+
+                      const err = validateField("workEmail", cleanPrefix);
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        if (err) next.workEmail = err;
+                        else delete next.workEmail;
+                        return next;
+                      });
+                    }}
+                    onBlur={() => handleFieldBlur("workEmail", workEmailPrefix)}
+                    className={cn(
+                      inputCls,
+                      "rounded-r-none pr-2",
+                      errors.workEmail && "border-destructive focus-visible:ring-destructive",
+                    )}
+                    aria-label="Email username"
+                  />
+                  <select
+                    value={workEmailDomain}
+                    onChange={(e) => {
+                      const newDomain = e.target.value;
+                      setWorkEmailDomain(newDomain);
+                      const fullEmail = workEmailPrefix && newDomain ? `${workEmailPrefix}@${newDomain}` : "";
+                      setFormData((prev) => ({ ...prev, email: fullEmail }));
+
+                      if (workEmailPrefix && isValidEmailLocalPart(workEmailPrefix)) {
+                        setErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.workEmail;
+                          return next;
+                        });
+                      }
+                    }}
+                    className="h-9 shrink-0 rounded-r-md border border-l-0 border-input bg-muted/70 pl-2.5 pr-8 min-w-[130px] text-xs font-semibold text-foreground outline-none hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors"
+                    aria-label="Email domain"
+                  >
+                    {computedDomainOptions.length === 0 ? (
+                      <option value="" disabled>Loading domains…</option>
+                    ) : (
+                      computedDomainOptions.map((opt) => {
+                        const domainVal = opt.code.replace(/^@/, "");
+                        return (
+                          <option key={opt.id || opt.code} value={domainVal}>
+                            {opt.name.startsWith("@") ? opt.name : `@${opt.name}`}
+                          </option>
+                        );
+                      })
+                    )}
+                  </select>
+                </div>
+                {errors.workEmail ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.workEmail}</p>
                 ) : null}
               </label>
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Personal Email
@@ -605,18 +861,20 @@ function EditProfilePanel({
                   type="text"
                   inputMode="email"
                   autoComplete="off"
-                  value={formData.personalEmail}
+                  placeholder="name@example.com"
+                  value={formData.personalEmail ?? ""}
                   maxLength={FIELD_MAX.email}
-                  onChange={(e) => handleChange("personalEmail", toEmailInput(e.target.value))}
-                  onBlur={() => handleChange("personalEmail", formData.personalEmail.trim())}
-                  className={fieldInputCls(inputCls, Boolean(emailError(formData.personalEmail ?? "")))}
+                  onChange={(e) => handleChange("personalEmail", e.target.value)}
+                  onBlur={() => handleFieldBlur("personalEmail")}
+                  className={fieldInputCls(inputCls, Boolean(errors.personalEmail))}
                 />
-                {emailError(formData.personalEmail ?? "") ? (
+                {errors.personalEmail ? (
                   <p className="mt-1 text-[11px] text-destructive">
-                    {emailError(formData.personalEmail ?? "")}
+                    {errors.personalEmail}
                   </p>
                 ) : null}
               </label>
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Mobile Number <span className="text-destructive">*</span>
@@ -633,16 +891,18 @@ function EditProfilePanel({
                     placeholder="9876543210"
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
+                    onBlur={() => handleFieldBlur("phone")}
                     className={cn(
-                      fieldInputCls(inputCls, Boolean(phoneError(formData.phone ?? ""))),
+                      fieldInputCls(inputCls, Boolean(errors.phone)),
                       "rounded-l-none",
                     )}
                   />
                 </div>
-                {phoneError(formData.phone ?? "") ? (
-                  <p className="mt-1 text-[11px] text-destructive">{phoneError(formData.phone ?? "")}</p>
+                {errors.phone ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.phone}</p>
                 ) : null}
               </label>
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Alternate Contact
@@ -659,18 +919,20 @@ function EditProfilePanel({
                     placeholder="9876543210"
                     value={formData.altPhone}
                     onChange={(e) => handleChange("altPhone", e.target.value)}
+                    onBlur={() => handleFieldBlur("altPhone")}
                     className={cn(
-                      fieldInputCls(inputCls, Boolean(phoneError(formData.altPhone ?? ""))),
+                      fieldInputCls(inputCls, Boolean(errors.altPhone)),
                       "rounded-l-none",
                     )}
                   />
                 </div>
-                {phoneError(formData.altPhone ?? "") ? (
+                {errors.altPhone ? (
                   <p className="mt-1 text-[11px] text-destructive">
-                    {phoneError(formData.altPhone ?? "")}
+                    {errors.altPhone}
                   </p>
                 ) : null}
               </label>
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Emergency Contact <span className="text-destructive">*</span>
@@ -687,26 +949,35 @@ function EditProfilePanel({
                     placeholder="9876543210"
                     value={formData.emergencyContact}
                     onChange={(e) => handleChange("emergencyContact", e.target.value)}
+                    onBlur={() => handleFieldBlur("emergencyContact")}
                     className={cn(
-                      fieldInputCls(inputCls, Boolean(phoneError(formData.emergencyContact ?? ""))),
+                      fieldInputCls(inputCls, Boolean(errors.emergencyContact)),
                       "rounded-l-none",
                     )}
                   />
                 </div>
-                {phoneError(formData.emergencyContact ?? "") ? (
+                {errors.emergencyContact ? (
                   <p className="mt-1 text-[11px] text-destructive">
-                    {phoneError(formData.emergencyContact ?? "")}
+                    {errors.emergencyContact}
                   </p>
                 ) : null}
               </label>
+
               <SearchableSelect
                 label="Gender"
                 required
                 options={["Male", "Female", "Other"]}
                 value={formData.gender}
-                onChange={(v) => handleChange("gender", v)}
+                onChange={(v) => {
+                  handleChange("gender", v);
+                  handleFieldBlur("gender", v);
+                }}
                 placeholder="Select gender…"
               />
+              {errors.gender ? (
+                <p className="mt-1 text-[11px] text-destructive">{errors.gender}</p>
+              ) : null}
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Date of Birth <span className="text-destructive">*</span>
@@ -714,11 +985,19 @@ function EditProfilePanel({
                 <input
                   autoComplete="off"
                   type="date"
+                  min={MIN_DOB}
+                  max={MAX_ADULT_DOB}
                   value={formData.dob}
                   onChange={(e) => handleChange("dob", e.target.value)}
-                  className={inputCls}
+                  onBlur={() => handleFieldBlur("dob")}
+                  className={fieldInputCls(inputCls, Boolean(errors.dob))}
+                  required
                 />
+                {errors.dob ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.dob}</p>
+                ) : null}
               </label>
+
               <SearchableSelect
                 label="Marital Status"
                 options={["Single", "Married", "Other"]}
@@ -726,14 +1005,24 @@ function EditProfilePanel({
                 onChange={(v) => handleChange("maritalStatus", v)}
                 placeholder="Select marital status…"
               />
-              <SearchableSelect
-                label="Nationality"
-                required
-                options={nationalities.map((n) => ({ value: n.name, label: n.name }))}
-                value={formData.nationality}
-                onChange={(v) => handleChange("nationality", v)}
-                placeholder="Select nationality…"
-              />
+
+              <div>
+                <SearchableSelect
+                  label="Nationality"
+                  required
+                  options={nationalities.map((n) => ({ value: n.name, label: n.name }))}
+                  value={formData.nationality}
+                  onChange={(v) => {
+                    handleChange("nationality", v);
+                    handleFieldBlur("nationality", v);
+                  }}
+                  placeholder="Select nationality…"
+                />
+                {errors.nationality ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.nationality}</p>
+                ) : null}
+              </div>
+
               <div className="md:col-span-2 lg:col-span-2">
                 <label className="block">
                   <span className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -745,8 +1034,15 @@ function EditProfilePanel({
                     value={formData.address}
                     maxLength={FIELD_MAX.address}
                     onChange={(e) => handleChange("address", e.target.value)}
-                    className={cn(inputCls, "h-auto min-h-[64px] py-2 resize-y leading-relaxed")}
+                    onBlur={() => handleFieldBlur("address")}
+                    className={cn(
+                      fieldInputCls(inputCls, Boolean(errors.address)),
+                      "h-auto min-h-[64px] py-2 resize-y leading-relaxed",
+                    )}
                   />
+                  {errors.address ? (
+                    <p className="mt-1 text-[11px] text-destructive">{errors.address}</p>
+                  ) : null}
                 </label>
               </div>
             </div>
@@ -771,23 +1067,39 @@ function EditProfilePanel({
                 />
               </label>
 
-              <SearchableSelect
-                label="Department"
-                required
-                options={departmentsList.map((d) => ({ value: d.name, label: d.name }))}
-                value={formData.department}
-                onChange={(v) => handleChange("department", v)}
-                placeholder="Select department…"
-              />
+              <div>
+                <SearchableSelect
+                  label="Department"
+                  required
+                  options={departmentsList.map((d) => ({ value: d.name, label: d.name }))}
+                  value={formData.department}
+                  onChange={(v) => {
+                    handleChange("department", v);
+                    handleFieldBlur("department", v);
+                  }}
+                  placeholder="Select department…"
+                />
+                {errors.department ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.department}</p>
+                ) : null}
+              </div>
 
-              <SearchableSelect
-                label="Designation"
-                required
-                options={designationsList.map((d) => ({ value: d.name, label: d.name }))}
-                value={formData.designation}
-                onChange={(v) => handleChange("designation", v)}
-                placeholder="Select designation…"
-              />
+              <div>
+                <SearchableSelect
+                  label="Designation"
+                  required
+                  options={designationsList.map((d) => ({ value: d.name, label: d.name }))}
+                  value={formData.designation}
+                  onChange={(v) => {
+                    handleChange("designation", v);
+                    handleFieldBlur("designation", v);
+                  }}
+                  placeholder="Select designation…"
+                />
+                {errors.designation ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.designation}</p>
+                ) : null}
+              </div>
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">Job Role</span>
@@ -795,19 +1107,28 @@ function EditProfilePanel({
                   autoComplete="off"
                   type="text"
                   value={formData.role}
+                  maxLength={FIELD_MAX.text}
                   onChange={(e) => handleChange("role", e.target.value)}
                   className={inputCls}
                 />
               </label>
 
-              <SearchableSelect
-                label="Reporting Manager"
-                required
-                options={reportingManagersList.map((m) => ({ value: m.name, label: m.name }))}
-                value={formData.reportingManager}
-                onChange={(v) => handleChange("reportingManager", v)}
-                placeholder="Select reporting manager…"
-              />
+              <div>
+                <SearchableSelect
+                  label="Reporting Manager"
+                  required
+                  options={reportingManagersList.map((m) => ({ value: m.name, label: m.name }))}
+                  value={formData.reportingManager}
+                  onChange={(v) => {
+                    handleChange("reportingManager", v);
+                    handleFieldBlur("reportingManager", v);
+                  }}
+                  placeholder="Select reporting manager…"
+                />
+                {errors.reportingManager ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.reportingManager}</p>
+                ) : null}
+              </div>
 
               <SearchableSelect
                 label="Business Unit"
@@ -823,6 +1144,7 @@ function EditProfilePanel({
                   autoComplete="off"
                   type="text"
                   value={formData.team}
+                  maxLength={FIELD_MAX.team}
                   onChange={(e) => handleChange("team", e.target.value)}
                   className={inputCls}
                 />
@@ -836,23 +1158,39 @@ function EditProfilePanel({
                 placeholder="Select project site…"
               />
 
-              <SearchableSelect
-                label="Work Location"
-                required
-                options={workLocationsList.map((l) => ({ value: l.name, label: l.name }))}
-                value={formData.workLocation}
-                onChange={(v) => handleChange("workLocation", v)}
-                placeholder="Select work location…"
-              />
+              <div>
+                <SearchableSelect
+                  label="Work Location"
+                  required
+                  options={workLocationsList.map((l) => ({ value: l.name, label: l.name }))}
+                  value={formData.workLocation}
+                  onChange={(v) => {
+                    handleChange("workLocation", v);
+                    handleFieldBlur("workLocation", v);
+                  }}
+                  placeholder="Select work location…"
+                />
+                {errors.workLocation ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.workLocation}</p>
+                ) : null}
+              </div>
 
-              <SearchableSelect
-                label="Office Branch"
-                required
-                options={officesList.map((o) => ({ value: o.name, label: o.name }))}
-                value={formData.officeBranch}
-                onChange={(v) => handleChange("officeBranch", v)}
-                placeholder="Select office branch…"
-              />
+              <div>
+                <SearchableSelect
+                  label="Office Branch"
+                  required
+                  options={officesList.map((o) => ({ value: o.name, label: o.name }))}
+                  value={formData.officeBranch}
+                  onChange={(v) => {
+                    handleChange("officeBranch", v);
+                    handleFieldBlur("officeBranch", v);
+                  }}
+                  placeholder="Select office branch…"
+                />
+                {errors.officeBranch ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.officeBranch}</p>
+                ) : null}
+              </div>
             </div>
           </section>
 
@@ -871,9 +1209,13 @@ function EditProfilePanel({
                   type="date"
                   value={formData.joiningDate}
                   onChange={(e) => handleChange("joiningDate", e.target.value)}
-                  className={inputCls}
+                  onBlur={() => handleFieldBlur("joiningDate")}
+                  className={fieldInputCls(inputCls, Boolean(errors.joiningDate))}
                   required
                 />
+                {errors.joiningDate ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.joiningDate}</p>
+                ) : null}
               </label>
 
               <SearchableSelect
@@ -890,14 +1232,22 @@ function EditProfilePanel({
                 placeholder="Select category…"
               />
 
-              <SearchableSelect
-                label="Employment Status"
-                required
-                options={["Active - Probation", "Active"]}
-                value={formData.status}
-                onChange={(v) => handleChange("status", v)}
-                placeholder="Select status…"
-              />
+              <div>
+                <SearchableSelect
+                  label="Employment Status"
+                  required
+                  options={["Active - Probation", "Active"]}
+                  value={formData.status}
+                  onChange={(v) => {
+                    handleChange("status", v);
+                    handleFieldBlur("status", v);
+                  }}
+                  placeholder="Select status…"
+                />
+                {errors.status ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.status}</p>
+                ) : null}
+              </div>
 
               <SearchableSelect
                 label="Confirmation Status"
@@ -913,14 +1263,22 @@ function EditProfilePanel({
                 placeholder="Select confirmation status…"
               />
 
-              <SearchableSelect
-                label="Employment Type"
-                required
-                options={["Full-time", "Part-time", "Contract"]}
-                value={formData.employmentType}
-                onChange={(v) => handleChange("employmentType", v)}
-                placeholder="Select employment type…"
-              />
+              <div>
+                <SearchableSelect
+                  label="Employment Type"
+                  required
+                  options={["Full-Time", "Part-Time", "Contract"]}
+                  value={formData.employmentType}
+                  onChange={(v) => {
+                    handleChange("employmentType", v);
+                    handleFieldBlur("employmentType", v);
+                  }}
+                  placeholder="Select employment type…"
+                />
+                {errors.employmentType ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.employmentType}</p>
+                ) : null}
+              </div>
 
               <SearchableSelect
                 label="Contract Type"
@@ -954,6 +1312,7 @@ function EditProfilePanel({
                   autoComplete="off"
                   type="text"
                   value={formData.assetId}
+                  maxLength={FIELD_MAX.assetId}
                   onChange={(e) => handleChange("assetId", e.target.value)}
                   className={inputCls}
                   placeholder="e.g. TK-LAP-1024"
@@ -984,6 +1343,7 @@ function EditProfilePanel({
                   autoComplete="off"
                   type="text"
                   value={formData.education}
+                  maxLength={FIELD_MAX.education}
                   onChange={(e) => handleChange("education", e.target.value)}
                   className={inputCls}
                 />
@@ -996,6 +1356,7 @@ function EditProfilePanel({
                   autoComplete="off"
                   type="text"
                   value={formData.skills.join(", ")}
+                  maxLength={FIELD_MAX.skills}
                   onChange={(e) => handleSkillsChange(e.target.value)}
                   className={inputCls}
                 />
@@ -1008,6 +1369,7 @@ function EditProfilePanel({
                   autoComplete="off"
                   type="text"
                   value={formData.languages.join(", ")}
+                  maxLength={FIELD_MAX.skills}
                   onChange={(e) => handleLanguagesChange(e.target.value)}
                   className={inputCls}
                 />
@@ -1020,6 +1382,7 @@ function EditProfilePanel({
                   autoComplete="off"
                   type="text"
                   value={formData.certifications.join(", ")}
+                  maxLength={FIELD_MAX.certifications}
                   onChange={(e) => handleCertificationsChange(e.target.value)}
                   className={inputCls}
                 />
@@ -1032,6 +1395,7 @@ function EditProfilePanel({
                   autoComplete="off"
                   type="text"
                   value={formData.experience}
+                  maxLength={FIELD_MAX.experience}
                   onChange={(e) => handleChange("experience", e.target.value)}
                   className={inputCls}
                   placeholder="e.g. 4.5 Years"
@@ -1045,6 +1409,7 @@ function EditProfilePanel({
                   autoComplete="off"
                   type="text"
                   value={formData.previousCompany}
+                  maxLength={FIELD_MAX.previousCompany}
                   onChange={(e) => handleChange("previousCompany", e.target.value)}
                   className={inputCls}
                   placeholder="e.g. Infosys Ltd"
@@ -1066,14 +1431,19 @@ function EditProfilePanel({
                 <input
                   autoComplete="off"
                   type="text"
-                  maxLength={10}
+                  maxLength={FIELD_MAX.pan}
                   placeholder="e.g. ABCDE1234F"
                   value={formData.pan}
                   onChange={(e) => handleChange("pan", e.target.value)}
-                  className={inputCls}
+                  onBlur={() => handleFieldBlur("pan")}
+                  className={fieldInputCls(inputCls, Boolean(errors.pan))}
                   required
                 />
+                {errors.pan ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.pan}</p>
+                ) : null}
               </label>
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Bank Account Number <span className="text-destructive">*</span>
@@ -1081,14 +1451,19 @@ function EditProfilePanel({
                 <input
                   autoComplete="off"
                   type="text"
-                  maxLength={18}
+                  maxLength={FIELD_MAX.bankAccount}
                   placeholder="Enter bank account number"
                   value={formData.bankAccount}
                   onChange={(e) => handleChange("bankAccount", e.target.value)}
-                  className={inputCls}
+                  onBlur={() => handleFieldBlur("bankAccount")}
+                  className={fieldInputCls(inputCls, Boolean(errors.bankAccount))}
                   required
                 />
+                {errors.bankAccount ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.bankAccount}</p>
+                ) : null}
               </label>
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   PF/UAN Number
@@ -1096,21 +1471,35 @@ function EditProfilePanel({
                 <input
                   autoComplete="off"
                   type="text"
-                  maxLength={12}
+                  maxLength={FIELD_MAX.pfUan}
                   placeholder="Enter 12-digit UAN"
                   value={formData.pfUan}
                   onChange={(e) => handleChange("pfUan", e.target.value)}
-                  className={inputCls}
+                  onBlur={() => handleFieldBlur("pfUan")}
+                  className={fieldInputCls(inputCls, Boolean(errors.pfUan))}
                 />
+                {errors.pfUan ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.pfUan}</p>
+                ) : null}
               </label>
-              <SearchableSelect
-                label="Salary Band"
-                required
-                options={salaryBandsList.map((s) => ({ value: s.name, label: s.name }))}
-                value={formData.salaryBand}
-                onChange={(v) => handleChange("salaryBand", v)}
-                placeholder="Select salary band…"
-              />
+
+              <div>
+                <SearchableSelect
+                  label="Salary Band"
+                  required
+                  options={salaryBandsList.map((s) => ({ value: s.name, label: s.name }))}
+                  value={formData.salaryBand}
+                  onChange={(v) => {
+                    handleChange("salaryBand", v);
+                    handleFieldBlur("salaryBand", v);
+                  }}
+                  placeholder="Select salary band…"
+                />
+                {errors.salaryBand ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.salaryBand}</p>
+                ) : null}
+              </div>
+
               <SearchableSelect
                 label="Tax Regime"
                 options={["New Regime", "Old Regime"]}
