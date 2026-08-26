@@ -48,6 +48,20 @@ export async function openDocumentInNewTab(doc: RepositoryItem) {
   try {
     const res = await fetch(previewUrl);
     if (!res.ok) throw new Error("Failed to fetch document stream");
+    const contentType = res.headers.get("content-type") || "";
+
+    // If backend returned PDF stream (e.g. converted PPT or native PDF)
+    if (contentType.includes("application/pdf")) {
+      const blob = await res.blob();
+      const pdfBlobUrl = URL.createObjectURL(blob);
+      if (newWindow) {
+        newWindow.location.href = pdfBlobUrl;
+      } else {
+        window.open(pdfBlobUrl, "_blank");
+      }
+      return;
+    }
+
     const arrayBuffer = await res.arrayBuffer();
 
     // ── 1. PowerPoint Presentations -> Converted to Landscape PDF ────────────

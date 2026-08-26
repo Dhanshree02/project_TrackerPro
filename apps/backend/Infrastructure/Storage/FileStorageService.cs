@@ -191,6 +191,9 @@ public sealed partial class FileStorageService : IFileStorageService
         );
     }
 
+    private static FileStream OpenReadStream(string path) =>
+        new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
     public (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string category, string fileName)
     {
         if (string.IsNullOrWhiteSpace(fileName)) return null;
@@ -205,8 +208,7 @@ public sealed partial class FileStorageService : IFileStorageService
             if (File.Exists(directPath))
             {
                 var ext = Path.GetExtension(directPath);
-                var stream = new FileStream(directPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return (stream, GetContentType(ext), fileName);
+                return (OpenReadStream(directPath), GetContentType(ext), fileName);
             }
 
             var underscoreName = fileName.Replace(' ', '_');
@@ -214,8 +216,7 @@ public sealed partial class FileStorageService : IFileStorageService
             if (File.Exists(underscorePath))
             {
                 var ext = Path.GetExtension(underscorePath);
-                var stream = new FileStream(underscorePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return (stream, GetContentType(ext), fileName);
+                return (OpenReadStream(underscorePath), GetContentType(ext), fileName);
             }
 
             // 2. Timestamp prefix match (*_cleanBaseName.ext)
@@ -227,8 +228,7 @@ public sealed partial class FileStorageService : IFileStorageService
             {
                 var foundPath = matchingFiles[0];
                 var ext = Path.GetExtension(foundPath);
-                var stream = new FileStream(foundPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return (stream, GetContentType(ext), fileName);
+                return (OpenReadStream(foundPath), GetContentType(ext), fileName);
             }
         }
 
@@ -242,16 +242,14 @@ public sealed partial class FileStorageService : IFileStorageService
             if (File.Exists(directMatch))
             {
                 var ext = Path.GetExtension(directMatch);
-                var stream = new FileStream(directMatch, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return (stream, GetContentType(ext), fileName);
+                return (OpenReadStream(directMatch), GetContentType(ext), fileName);
             }
 
             var underscoreMatch = Path.Combine(fallbackDir, fileName.Replace(' ', '_'));
             if (File.Exists(underscoreMatch))
             {
                 var ext = Path.GetExtension(underscoreMatch);
-                var stream = new FileStream(underscoreMatch, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return (stream, GetContentType(ext), fileName);
+                return (OpenReadStream(underscoreMatch), GetContentType(ext), fileName);
             }
         }
 
@@ -269,9 +267,8 @@ public sealed partial class FileStorageService : IFileStorageService
         if (File.Exists(fullPath))
         {
             var ext = Path.GetExtension(fullPath);
-            var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
             var downloadName = ExtractOriginalName(Path.GetFileName(fullPath));
-            return (stream, GetContentType(ext), downloadName);
+            return (OpenReadStream(fullPath), GetContentType(ext), downloadName);
         }
 
         // Try searching by filename across categories
