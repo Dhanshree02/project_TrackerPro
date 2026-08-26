@@ -47,8 +47,12 @@ export function MobileTabs() {
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center gap-1 py-2 text-[10px] outline-none",
-                isParentActive ? "text-primary" : "text-muted-foreground",
+                "flex flex-col items-center gap-1 py-2 text-[10px] outline-none transition-colors",
+                isParentActive
+                  ? "text-blue-600 dark:text-blue-400 font-semibold"
+                  : isResourceRoute
+                    ? "text-blue-950/70 dark:text-blue-200/70 hover:text-blue-600"
+                    : "text-muted-foreground hover:text-foreground",
               )}
             >
               <it.icon className="h-5 w-5" />
@@ -87,8 +91,12 @@ export function MobileTabs() {
         key={it.to}
         to={it.to!}
         className={cn(
-          "flex flex-col items-center gap-1 py-2 text-[10px]",
-          active ? "text-primary" : "text-muted-foreground",
+          "flex flex-col items-center gap-1 py-2 text-[10px] transition-colors",
+          active
+            ? "text-blue-600 dark:text-blue-400 font-semibold"
+            : isResourceRoute
+              ? "text-blue-950/70 dark:text-blue-200/70 hover:text-blue-600"
+              : "text-muted-foreground hover:text-foreground",
         )}
       >
         <it.icon className="h-5 w-5" />
@@ -97,10 +105,18 @@ export function MobileTabs() {
     );
   };
 
+  const isResourceRoute =
+    pathname.startsWith("/dh-employee-directory") ||
+    pathname.startsWith("/resources") ||
+    pathname.startsWith("/dh-exit-summary");
+
   return (
     <nav
       className={cn(
-        "md:hidden sticky bottom-0 z-20 grid border-t border-border bg-background",
+        "md:hidden sticky bottom-0 z-20 grid backdrop-blur-xl transition-colors",
+        isResourceRoute
+          ? "border-t border-slate-300 dark:border-slate-700 bg-blue-50/85 dark:bg-blue-950/60"
+          : "border-t border-border/80 bg-background/85",
         overflow.length > 0
           ? "grid-cols-6"
           : items.length === 6

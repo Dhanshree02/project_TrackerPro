@@ -12,7 +12,7 @@ public sealed partial class FileStorageService : IFileStorageService
         _logger = logger;
         // Check configuration or fallback to project-level storage folder
         var configPath = configuration["Storage:RootPath"];
-        if (!string.IsNullOrWhiteSpace(configPath))
+        if (!string.IsNullOrWhiteSpace(configPath) && (!configPath.Contains(":\\") || OperatingSystem.IsWindows()))
         {
             _storageRoot = Path.IsPathRooted(configPath)
                 ? configPath

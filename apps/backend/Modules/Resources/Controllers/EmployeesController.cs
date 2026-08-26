@@ -216,6 +216,43 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         return Ok(ApiResponse<MetaOptionDto>.Ok(created));
     }
 
+    [HttpGet("bulk/sample")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public IActionResult BulkSample()
+    {
+        var bytes = employees.GetBulkSampleExcel();
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "employee-bulk-upload-sample.xlsx");
+    }
+
+    [HttpPost("bulk")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<ActionResult<ApiResponse<EmployeeBulkUploadResult>>> BulkUpload(
+        [FromForm] IFormFile file,
+        CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(ApiResponse<EmployeeBulkUploadResult>.Fail(
+                "VALIDATION_ERROR", "Please upload an Excel file (.xlsx)."));
+
+        var ext = Path.GetExtension(file.FileName);
+        if (!string.Equals(ext, ".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(ApiResponse<EmployeeBulkUploadResult>.Fail(
+                "VALIDATION_ERROR", "Only Excel (.xlsx) files are allowed."));
+
+        if (file.Length > EmployeeBulkWorkbook.MaxBytes)
+            return BadRequest(ApiResponse<EmployeeBulkUploadResult>.Fail(
+                "VALIDATION_ERROR", "The Excel file must be 5 MB or smaller."));
+
+        await using var stream = file.OpenReadStream();
+        var result = await employees.BulkUploadAsync(stream, ct);
+        return Ok(ApiResponse<EmployeeBulkUploadResult>.Ok(result));
+    }
+
     [HttpPost]
     [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Create(CreateEmployeeRequest request, CancellationToken ct)

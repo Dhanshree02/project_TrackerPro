@@ -61,6 +61,7 @@ export interface Employee {
   managerFeedback: string;
   // finance
   pan: string;
+  aadhaar: string;
   bankAccount: string;
   salaryBand: string;
   pfUan: string;
@@ -276,6 +277,7 @@ export const employees: Employee[] = Array.from({ length: 48 }, (_, i) => {
     promotionReadiness: pick(["Ready Now","Ready in 6 months","Ready in 1 year","Not Yet"]),
     managerFeedback: pick(feedbacks),
     pan: `${String.fromCharCode(65 + Math.floor(r() * 26))}${String.fromCharCode(65 + Math.floor(r() * 26))}${String.fromCharCode(65 + Math.floor(r() * 26))}P${String.fromCharCode(65 + Math.floor(r() * 26))}${Math.floor(1000 + r() * 9000)}${String.fromCharCode(65 + Math.floor(r() * 26))}`,
+    aadhaar: "",
     bankAccount: `XXXX-XXXX-${Math.floor(1000 + r() * 9000)}`,
     salaryBand: pick(["L3","L4","L5","L6","L7"]),
     pfUan: `1001${Math.floor(10000000 + r() * 90000000)}`,

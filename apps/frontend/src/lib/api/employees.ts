@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, apiDownload } from "@/lib/api-client";
 import type { Employee } from "@/lib/employee-data";
 
 export interface ApiEmployeeListItem {
@@ -24,6 +24,7 @@ export interface ApiEmployeeListItem {
   pan?: string | null;
   bankAccount?: string | null;
   pfUan?: string | null;
+  aadhaar?: string | null;
   education?: string | null;
   skills?: string[] | null;
   certifications?: string[] | null;
@@ -87,6 +88,7 @@ export interface ApiEmployeeDetail {
   promotionReadiness?: string | null;
   managerFeedback?: string | null;
   pan?: string | null;
+  aadhaar?: string | null;
   bankAccount?: string | null;
   salaryBand?: string | null;
   pfUan?: string | null;
@@ -149,6 +151,35 @@ export async function createEmployee(input: Record<string, unknown>): Promise<Ap
   return apiFetch<ApiEmployeeDetail>("/api/v1/employees", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export interface EmployeeBulkRowError {
+  row: number;
+  employeeCode?: string | null;
+  message: string;
+}
+
+export interface EmployeeBulkUploadResult {
+  created: number;
+  failed: number;
+  errors: EmployeeBulkRowError[];
+}
+
+export async function downloadEmployeeBulkSample(): Promise<void> {
+  await apiDownload("/api/v1/employees/bulk/sample", "employee-bulk-upload-sample.xlsx");
+}
+
+export async function uploadEmployeeBulk(file: File): Promise<EmployeeBulkUploadResult> {
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (ext !== "xlsx") {
+    throw new Error("Only Excel (.xlsx) files are allowed");
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiFetch<EmployeeBulkUploadResult>("/api/v1/employees/bulk", {
+    method: "POST",
+    body: formData,
   });
 }
 
@@ -366,6 +397,7 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     promotionReadiness: "",
     managerFeedback: "",
     pan: item.pan ?? "",
+    aadhaar: "",
     bankAccount: item.bankAccount ?? "",
     salaryBand: "",
     pfUan: item.pfUan ?? "",
@@ -425,6 +457,7 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     promotionReadiness: detail.promotionReadiness ?? "",
     managerFeedback: detail.managerFeedback ?? "",
     pan: detail.pan ?? "",
+    aadhaar: detail.aadhaar ?? "",
     bankAccount: detail.bankAccount ?? "",
     salaryBand: detail.salaryBand ?? "",
     pfUan: detail.pfUan ?? "",

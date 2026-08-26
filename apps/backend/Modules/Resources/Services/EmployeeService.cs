@@ -116,7 +116,18 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         return entity is null ? null : MapDetail(entity);
     }
 
-    public async Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, CancellationToken ct = default)
+    public byte[] GetBulkSampleExcel() => EmployeeBulkWorkbook.BuildSample();
+
+    public Task<EmployeeBulkUploadResult> BulkUploadAsync(Stream stream, CancellationToken ct = default) =>
+        new EmployeeBulkImporter(db, this).ImportAsync(stream, ct);
+
+    public Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, CancellationToken ct = default) =>
+        CreateEmployeeAsync(request, checkIdentity: true, ct);
+
+    public async Task<EmployeeDetailDto> CreateEmployeeAsync(
+        CreateEmployeeRequest request,
+        bool checkIdentity,
+        CancellationToken ct)
     {
         var entity = new Employee
         {
@@ -125,8 +136,8 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
             LastName = request.LastName.Trim(),
             WorkEmail = EmailRules.Normalize(request.WorkEmail).ToLowerInvariant(),
             PersonalEmail = EmailRules.NullIfEmpty(request.PersonalEmail),
-            Phone = request.Phone,
-            AltPhone = request.AltPhone,
+            Phone = PhoneRules.NullIfEmpty(request.Phone),
+            AltPhone = PhoneRules.NullIfEmpty(request.AltPhone),
             Gender = request.Gender,
             DateOfBirth = request.DateOfBirth,
             Address = request.Address,
@@ -170,20 +181,33 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
             ReportingEfficiency = request.ReportingEfficiency,
             PromotionReadiness = request.PromotionReadiness,
             ManagerFeedback = request.ManagerFeedback,
-            Pan = request.Pan,
+            Pan = EmployeeIdentityGuard.NormalizePan(request.Pan),
+            Aadhaar = EmployeeIdentityGuard.NormalizeAadhaar(request.Aadhaar),
             BankAccount = request.BankAccount,
             SalaryBand = request.SalaryBand,
             SalaryBandId = request.SalaryBandId,
             ProbationPeriod = request.ProbationPeriod,
-            PfUan = request.PfUan,
+            PfUan = EmployeeIdentityGuard.NormalizeUan(request.PfUan),
             TaxRegime = request.TaxRegime,
             ComplianceStatus = request.ComplianceStatus,
         };
 
+        if (checkIdentity)
+            await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), null, ct);
+
         await ApplyCatalogNamesAsync(entity, ct);
 
         db.Employees.Add(entity);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            throw new ConflictException(
+                "Duplicate employee data. Work email, personal email, phone number, PAN, Aadhaar, and UAN must be unique.");
+        }
+
         return (await GetEmployeeAsync(entity.Id.ToString(), ct))!;
     }
 
@@ -196,8 +220,8 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         if (request.LastName is not null) entity.LastName = request.LastName.Trim();
         if (request.WorkEmail is not null) entity.WorkEmail = EmailRules.Normalize(request.WorkEmail).ToLowerInvariant();
         if (request.PersonalEmail is not null) entity.PersonalEmail = EmailRules.NullIfEmpty(request.PersonalEmail);
-        if (request.Phone is not null) entity.Phone = request.Phone;
-        if (request.AltPhone is not null) entity.AltPhone = request.AltPhone;
+        if (request.Phone is not null) entity.Phone = PhoneRules.NullIfEmpty(request.Phone);
+        if (request.AltPhone is not null) entity.AltPhone = PhoneRules.NullIfEmpty(request.AltPhone);
         if (request.Gender is not null) entity.Gender = request.Gender;
         if (request.DateOfBirth.HasValue) entity.DateOfBirth = request.DateOfBirth;
         if (request.Address is not null) entity.Address = request.Address;
@@ -253,17 +277,28 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         if (request.ReportingEfficiency.HasValue) entity.ReportingEfficiency = request.ReportingEfficiency;
         if (request.PromotionReadiness is not null) entity.PromotionReadiness = request.PromotionReadiness;
         if (request.ManagerFeedback is not null) entity.ManagerFeedback = request.ManagerFeedback;
-        if (request.Pan is not null) entity.Pan = request.Pan;
+        if (request.Pan is not null) entity.Pan = EmployeeIdentityGuard.NormalizePan(request.Pan);
+        if (request.Aadhaar is not null) entity.Aadhaar = EmployeeIdentityGuard.NormalizeAadhaar(request.Aadhaar);
         if (request.BankAccount is not null) entity.BankAccount = request.BankAccount;
         if (request.SalaryBand is not null) entity.SalaryBand = request.SalaryBand;
         if (request.SalaryBandId.HasValue) entity.SalaryBandId = request.SalaryBandId;
         if (request.ProbationPeriod is not null) entity.ProbationPeriod = request.ProbationPeriod;
-        if (request.PfUan is not null) entity.PfUan = request.PfUan;
+        if (request.PfUan is not null) entity.PfUan = EmployeeIdentityGuard.NormalizeUan(request.PfUan);
         if (request.TaxRegime is not null) entity.TaxRegime = request.TaxRegime;
         if (request.ComplianceStatus is not null) entity.ComplianceStatus = request.ComplianceStatus;
 
+        await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), entity.Id, ct);
         await ApplyCatalogNamesAsync(entity, ct);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            throw new ConflictException(
+                "Duplicate employee data. Work email, personal email, phone number, PAN, Aadhaar, and UAN must be unique.");
+        }
+
         return await GetEmployeeAsync(entity.Id.ToString(), ct);
     }
 
@@ -787,6 +822,7 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         e.PromotionReadiness,
         e.ManagerFeedback,
         e.Pan,
+        e.Aadhaar,
         e.BankAccount,
         e.SalaryBandRef?.Name ?? e.SalaryBand,
         e.PfUan,
@@ -826,6 +862,9 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
             n => n.Name == trimmed || n.Code == trimmed, ct);
         return existing?.Id;
     }
+
+    private static bool IsUniqueViolation(DbUpdateException ex) =>
+        ex.InnerException is Npgsql.PostgresException { SqlState: "23505" };
 
     private static string RequireName(string name)
     {

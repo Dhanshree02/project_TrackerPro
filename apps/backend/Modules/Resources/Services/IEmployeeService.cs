@@ -20,6 +20,10 @@ public interface IEmployeeService
 
     Task<EmployeeDetailDto?> UpdateEmployeeAsync(string idOrCode, UpdateEmployeeRequest request, CancellationToken ct = default);
 
+    byte[] GetBulkSampleExcel();
+
+    Task<EmployeeBulkUploadResult> BulkUploadAsync(Stream stream, CancellationToken ct = default);
+
     Task<ExitedEmployeeDto?> OffboardEmployeeAsync(string idOrCode, OffboardEmployeeRequest request, CancellationToken ct = default);
 
     Task<PagedResult<ExitedEmployeeDto>> GetExitedEmployeesAsync(int page, int perPage, string? search, CancellationToken ct = default);

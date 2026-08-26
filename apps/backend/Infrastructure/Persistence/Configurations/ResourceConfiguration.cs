@@ -165,6 +165,7 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(x => x.PromotionReadiness).HasMaxLength(120);
         builder.Property(x => x.ManagerFeedback).HasMaxLength(500);
         builder.Property(x => x.Pan).HasMaxLength(40);
+        builder.Property(x => x.Aadhaar).HasMaxLength(12);
         builder.Property(x => x.BankAccount).HasMaxLength(80);
         builder.Property(x => x.SalaryBand).HasMaxLength(40);
         builder.Property(x => x.PfUan).HasMaxLength(40);

@@ -29,6 +29,7 @@ import {
   MIN_DOB,
   digitsOnly,
   isValidPan,
+  isValidAadhaar,
 } from "@/lib/onboard-validation";
 import { toast } from "sonner";
 import {
@@ -536,6 +537,13 @@ function EditProfilePanel({
         if (!isValidPan(v)) return "Enter a valid PAN (e.g. ABCDE1234F)";
         return undefined;
       }
+      case "aadhaar": {
+        const v = String(value || "").trim();
+        if (!v) return undefined;
+        if (/\D/.test(v.replace(/\s/g, ""))) return "Only numbers are allowed";
+        if (!isValidAadhaar(v)) return "Enter a valid 12-digit Aadhaar number";
+        return undefined;
+      }
       case "bankAccount": {
         const v = String(value || "").trim();
         if (!v) return "Bank account number is required";
@@ -577,6 +585,8 @@ function EditProfilePanel({
       sanitized = toEmailInput(String(value)).slice(0, FIELD_MAX.email);
     } else if (field === "pan") {
       sanitized = String(value).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, FIELD_MAX.pan);
+    } else if (field === "aadhaar") {
+      sanitized = String(value).replace(/\D/g, "").slice(0, FIELD_MAX.aadhaar);
     } else if (field === "pfUan") {
       sanitized = String(value).replace(/\D/g, "").slice(0, FIELD_MAX.pfUan);
     } else if (field === "bankAccount") {
@@ -593,7 +603,7 @@ function EditProfilePanel({
     setFormData(updated);
 
     // Live validation update
-    const liveFields = ["firstName", "lastName", "personalEmail", "phone", "altPhone", "emergencyContact", "pan", "bankAccount", "pfUan", "dob", "address"];
+    const liveFields = ["firstName", "lastName", "personalEmail", "phone", "altPhone", "emergencyContact", "pan", "aadhaar", "bankAccount", "pfUan", "dob", "address"];
     if (liveFields.includes(field) || errors[field]) {
       const err = validateField(field, sanitized, updated);
       setErrors((prev) => {
@@ -668,6 +678,7 @@ function EditProfilePanel({
     check("employmentType", data.employmentType);
     check("salaryBand", data.salaryBand);
     check("pan", data.pan);
+    check("aadhaar", data.aadhaar);
     check("bankAccount", data.bankAccount);
     check("pfUan", data.pfUan);
 
@@ -1446,6 +1457,26 @@ function EditProfilePanel({
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Aadhaar Number
+                </span>
+                <input
+                  autoComplete="off"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={FIELD_MAX.aadhaar}
+                  placeholder="Enter 12-digit Aadhaar number"
+                  value={formData.aadhaar}
+                  onChange={(e) => handleChange("aadhaar", e.target.value)}
+                  onBlur={() => handleFieldBlur("aadhaar")}
+                  className={fieldInputCls(inputCls, Boolean(errors.aadhaar))}
+                />
+                {errors.aadhaar ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.aadhaar}</p>
+                ) : null}
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Bank Account Number <span className="text-destructive">*</span>
                 </span>
                 <input
@@ -1693,6 +1724,7 @@ function EmployeeProfilePage() {
       promotionReadiness: updatedEmp.promotionReadiness || null,
       managerFeedback: updatedEmp.managerFeedback || null,
       pan: updatedEmp.pan || null,
+      aadhaar: (updatedEmp.aadhaar || "").replace(/\D/g, "") || null,
       bankAccount: updatedEmp.bankAccount || null,
       salaryBand: updatedEmp.salaryBand || null,
       salaryBandId,
@@ -2116,6 +2148,7 @@ function EmployeeProfilePage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <Grid>
                 <Row label="PAN Number" value={emp.pan} />
+                <Row label="Aadhaar Number" value={emp.aadhaar} />
                 <Row label="Bank Account" value={emp.bankAccount} />
                 <Row label="Salary Band" value={emp.salaryBand} />
                 <Row label="PF/UAN Number" value={emp.pfUan} />
