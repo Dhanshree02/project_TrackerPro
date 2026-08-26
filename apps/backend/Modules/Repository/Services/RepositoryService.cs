@@ -83,6 +83,7 @@ public class RepositoryService(
             Size = stored.SizeBytes,
             LastUpdated = DateTime.UtcNow,
             UploadedBy = uploader,
+            FilePath = stored.RelativePath,
             CreatedAtUtc = DateTime.UtcNow,
             CreatedBy = currentUser.UserId
         };
@@ -198,6 +199,26 @@ public class RepositoryService(
             .AsNoTracking()
             .OrderByDescending(l => l.CreatedAtUtc)
             .Take(limit)
+            .Select(l => new RepositoryActivityLogDto(
+                l.Id,
+                l.Action,
+                l.DocumentId,
+                l.FileName,
+                l.Category,
+                l.PerformedBy,
+                l.Details,
+                l.CreatedAtUtc))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<RepositoryActivityLogDto>> GetDocumentLogsAsync(
+        Guid documentId,
+        CancellationToken ct = default)
+    {
+        return await db.RepositoryActivityLogs
+            .AsNoTracking()
+            .Where(l => l.DocumentId == documentId)
+            .OrderByDescending(l => l.CreatedAtUtc)
             .Select(l => new RepositoryActivityLogDto(
                 l.Id,
                 l.Action,

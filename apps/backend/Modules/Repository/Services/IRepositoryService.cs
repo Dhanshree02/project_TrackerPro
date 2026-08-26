@@ -38,6 +38,10 @@ public interface IRepositoryService
         int limit = 100,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<RepositoryActivityLogDto>> GetDocumentLogsAsync(
+        Guid documentId,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<DocumentAccessSummaryDto>> GetDocumentAccessSummariesAsync(
         string? category = null,
         string? search = null,

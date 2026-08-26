@@ -30,6 +30,10 @@ public class RepositoryItemConfiguration : IEntityTypeConfiguration<RepositoryIt
             .IsRequired()
             .HasMaxLength(150);
 
+        builder.Property(r => r.FilePath)
+            .IsRequired()
+            .HasMaxLength(1000);
+
         builder.HasIndex(r => r.Category);
         builder.HasIndex(r => r.DeletedAtUtc);
     }

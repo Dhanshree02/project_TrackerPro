@@ -53,14 +53,39 @@ export async function fetchRepositoryDocuments(params: {
   return apiFetch<PagedRepositoryResult>(`/api/v1/repository${qs ? `?${qs}` : ""}`);
 }
 
+export const ALLOWED_REPOSITORY_EXTENSIONS = [
+  "pdf",
+  "doc",
+  "docx",
+  "docm",
+  "xls",
+  "xlsx",
+  "xlsm",
+  "xlsb",
+  "csv",
+  "ppt",
+  "pptx",
+  "pptm",
+  "txt",
+  "png",
+  "jpg",
+  "jpeg",
+] as const;
+
+export function isAllowedRepositoryFile(fileName: string): boolean {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  return ext ? (ALLOWED_REPOSITORY_EXTENSIONS as readonly string[]).includes(ext) : false;
+}
+
 export async function uploadRepositoryDocument(
   file: File,
   category: string,
   uploadedBy?: string,
 ): Promise<RepositoryItem> {
-  const ext = file.name.split(".").pop()?.toLowerCase();
-  if (ext !== "pdf" && ext !== "docx") {
-    throw new Error("Only .pdf and .docx file formats are allowed. Rejecting other file types.");
+  if (!isAllowedRepositoryFile(file.name)) {
+    throw new Error(
+      "Allowed file formats: PDF (.pdf), Word (.doc, .docx), Excel (.xls, .xlsx, .xlsm, .csv), and PowerPoint (.ppt, .pptx).",
+    );
   }
 
   const formData = new FormData();
@@ -76,6 +101,14 @@ export async function uploadRepositoryDocument(
 
 export function getRepositoryDownloadUrl(id: string): string {
   return `${API_BASE}/api/v1/repository/${id}/download`;
+}
+
+export function getRepositoryPreviewUrl(id: string): string {
+  return `${API_BASE}/api/v1/repository/${id}/preview`;
+}
+
+export async function fetchDocumentLogs(id: string): Promise<RepositoryActivityLog[]> {
+  return apiFetch<RepositoryActivityLog[]>(`/api/v1/repository/${id}/logs`);
 }
 
 export async function deleteRepositoryDocument(id: string, deletedBy?: string): Promise<boolean> {
