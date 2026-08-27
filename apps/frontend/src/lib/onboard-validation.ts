@@ -1,6 +1,7 @@
 import {
   FIELD_MAX,
   emailError,
+  isAllowedWorkEmailDomain,
   isoDateToday,
   isoDateYearsAgo,
   isLettersName,
@@ -341,6 +342,10 @@ export function validateOnboardField(
       if (atIdx <= 0) return "Enter a valid username (e.g. john.doe)";
       const local = v.slice(0, atIdx);
       if (!isValidEmailLocalPart(local)) return "Username can only contain letters, numbers, and '.'";
+      const domain = v.slice(atIdx + 1);
+      if (!isAllowedWorkEmailDomain(domain)) {
+        return "Only @talakunchi.com, @talakunchi.in, and @squad1.io domains are allowed";
+      }
       return emailError(v, true);
     }
     case "personalEmail": {

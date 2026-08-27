@@ -63,6 +63,7 @@ public class Employee : BaseEntity
     public string? ManagerFeedback { get; set; }
 
     public string? Pan { get; set; }
+    public string? Aadhaar { get; set; }
     public string? BankAccount { get; set; }
     public string? SalaryBand { get; set; }
     public Guid? SalaryBandId { get; set; }

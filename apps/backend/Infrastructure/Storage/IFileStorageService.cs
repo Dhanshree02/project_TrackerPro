@@ -55,7 +55,11 @@ public interface IFileStorageService
         IFormFile file,
         CancellationToken ct = default);
 
+    (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string category, string fileName);
+
     (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string filePath);
+
+    bool DeleteRepositoryFile(string category, string fileName);
 
     bool DeleteRepositoryFile(string filePath);
 

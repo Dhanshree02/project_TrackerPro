@@ -43,6 +43,14 @@ public sealed class CreateEmployeeRequestValidator : AbstractValidator<CreateEmp
         RuleForEach(x => x.Skills).MaximumLength(120);
         RuleForEach(x => x.Certifications).MaximumLength(120);
         RuleForEach(x => x.Languages).MaximumLength(120);
+        RuleFor(x => x.Aadhaar)
+            .Matches(@"^\d{12}$")
+            .When(x => !string.IsNullOrWhiteSpace(x.Aadhaar))
+            .WithMessage("Aadhaar must be a 12-digit number");
+        RuleFor(x => x.PfUan)
+            .Matches(@"^\d{12}$")
+            .When(x => !string.IsNullOrWhiteSpace(x.PfUan))
+            .WithMessage("UAN must be a 12-digit number");
     }
 
     private static DateOnly TodayInIst()
@@ -99,6 +107,14 @@ public sealed class UpdateEmployeeRequestValidator : AbstractValidator<UpdateEmp
         RuleForEach(x => x.Skills).MaximumLength(120);
         RuleForEach(x => x.Certifications).MaximumLength(120);
         RuleForEach(x => x.Languages).MaximumLength(120);
+        RuleFor(x => x.Aadhaar)
+            .Matches(@"^\d{12}$")
+            .When(x => !string.IsNullOrWhiteSpace(x.Aadhaar))
+            .WithMessage("Aadhaar must be a 12-digit number");
+        RuleFor(x => x.PfUan)
+            .Matches(@"^\d{12}$")
+            .When(x => !string.IsNullOrWhiteSpace(x.PfUan))
+            .WithMessage("UAN must be a 12-digit number");
     }
 }
 

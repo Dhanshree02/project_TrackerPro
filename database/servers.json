@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "TrackerPro DB",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "trackerpro",
+      "Username": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}

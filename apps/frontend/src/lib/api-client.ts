@@ -160,6 +160,44 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return result.envelope.data as T;
 }
 
+/** Authenticated file download (Excel sample, etc.). */
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  await ensureAuthenticated();
+
+  const doFetch = async () => {
+    const headers = new Headers();
+    if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+    return fetch(`${API_BASE}${path}`, { headers, credentials: "include" });
+  };
+
+  let res = await doFetch();
+  if (res.status === 401) {
+    const refreshed = await refreshViaCookie();
+    if (refreshed) res = await doFetch();
+  }
+
+  if (!res.ok) {
+    let message = `Download failed (${res.status})`;
+    try {
+      const envelope = (await res.json()) as ApiEnvelope<unknown>;
+      message = envelope.errors?.[0]?.message ?? message;
+    } catch {
+      // non-JSON error body
+    }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 /** Single-flight refresh — only one request at a time; concurrent callers share it. */
 function refreshViaCookie(): Promise<boolean> {
   if (refreshInFlight) return refreshInFlight;

@@ -114,21 +114,42 @@ function ResourcesPage() {
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card shadow-sm min-h-[460px]">
         <table className="w-full min-w-[650px] text-sm">
-          <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
             {isEmployee ? (
               <tr>
-                <th className="px-4 py-3 font-medium">Employee ID</th>
-                <th className="px-4 py-3 font-medium">Employee Name</th>
-                <th className="px-4 py-3 font-medium">Department</th>
-                <th className="px-4 py-3 font-medium">Designation</th>
+                <th className="relative px-4 py-3 font-semibold">
+                  Employee ID
+                  <span className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none" />
+                </th>
+                <th className="relative px-4 py-3 font-semibold">
+                  Employee Name
+                  <span className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none" />
+                </th>
+                <th className="relative px-4 py-3 font-semibold">
+                  Department
+                  <span className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none" />
+                </th>
+                <th className="px-4 py-3 font-semibold">Designation</th>
               </tr>
             ) : (
               <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Active projects</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="relative px-4 py-3 font-semibold">
+                  Name
+                  <span className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none" />
+                </th>
+                <th className="relative px-4 py-3 font-semibold">
+                  Role
+                  <span className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none" />
+                </th>
+                <th className="relative px-4 py-3 font-semibold">
+                  Email
+                  <span className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none" />
+                </th>
+                <th className="relative px-4 py-3 font-semibold">
+                  Active projects
+                  <span className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none" />
+                </th>
+                <th className="px-4 py-3 font-semibold">Status</th>
               </tr>
             )}
           </thead>

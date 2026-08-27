@@ -11,6 +11,10 @@ import {
   ChevronRight,
   Check,
   UserRound,
+  Eye,
+  Download,
+  Info,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -28,6 +32,7 @@ import { fetchCities, fetchCountries, type CatalogOption, type CityCatalogOption
 import { useAuth } from "@/lib/auth-context";
 import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
 import { Modal } from "@/routes/projects.index";
+import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Field } from "@/components/form-row";
 import { dhStore, useDhStore, allClients, allProjects } from "@/lib/dh-store";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
@@ -38,6 +43,7 @@ import {
   fieldInputCls,
   isCompletePhone,
   phoneError,
+  toEmailInput,
   toTenDigitPhone,
 } from "@/lib/form-validation";
 
@@ -267,11 +273,13 @@ function CustomersPage() {
                 }}
                 className={cn(
                   "group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl",
-                  "border border-border/80 bg-card",
-                  "shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
+                  "border border-slate-200/90 dark:border-border/80",
+                  "bg-gradient-to-b from-slate-50/95 via-blue-50/20 to-slate-100/70 dark:from-card dark:via-card/95 dark:to-muted/30",
+                  "shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06),0_1px_3px_rgba(15,23,42,0.04)]",
                   "transition-[transform,box-shadow,border-color] duration-200 ease-out",
-                  "hover:-translate-y-0.5 hover:border-border hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]",
+                  "hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_12px_28px_-4px_rgba(15,23,42,0.12),0_4px_10px_-2px_rgba(15,23,42,0.06)]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-primary before:to-info before:opacity-0 group-hover:before:opacity-100 before:transition-opacity before:duration-200",
                 )}
               >
                 {/* Identity — clear primary content */}
@@ -280,7 +288,7 @@ function CustomersPage() {
                     className={cn(
                       "flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]",
                       "bg-gradient-to-br from-primary to-info text-[15px] font-semibold tracking-tight text-primary-foreground",
-                      "shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]",
+                      "shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] shadow-md",
                     )}
                     aria-hidden
                   >
@@ -288,23 +296,23 @@ function CustomersPage() {
                   </div>
                   <div className="min-w-0 flex-1 pt-0.5">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="truncate text-[15px] font-semibold leading-snug tracking-tight text-foreground">
+                      <h3 className="truncate text-[15px] font-semibold leading-snug tracking-tight text-foreground group-hover:text-primary transition-colors">
                         {c.name}
                       </h3>
                       <ChevronRight
-                        className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-muted-foreground"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary"
                         aria-hidden
                       />
                     </div>
-                    <p className="mt-0.5 truncate text-[13px] leading-snug text-muted-foreground">
+                    <p className="mt-0.5 truncate text-[13px] leading-snug text-muted-foreground font-medium">
                       {c.industry || "—"}
                     </p>
                   </div>
                 </div>
 
                 {/* Engagement Manager — secondary metadata, deferred chrome */}
-                <div className="mx-5 mb-4 flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm ring-1 ring-border/60">
+                <div className="mx-5 mb-4 flex items-center gap-2 rounded-xl bg-white/90 dark:bg-card/90 border border-slate-200/80 dark:border-border/60 shadow-2xs px-3 py-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-background text-muted-foreground shadow-2xs ring-1 ring-border/60">
                     <UserRound className="h-3.5 w-3.5" aria-hidden />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -314,7 +322,7 @@ function CustomersPage() {
                     <p
                       className={cn(
                         "truncate text-[13px] font-medium leading-tight",
-                        c.engagementManager?.trim() ? "text-foreground" : "text-muted-foreground",
+                        c.engagementManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground",
                       )}
                       title={emName}
                     >
@@ -324,25 +332,25 @@ function CustomersPage() {
                 </div>
 
                 {/* Project metrics — one job: status breakdown */}
-                <div className="mt-auto border-t border-border/70 bg-muted/20 px-5 py-4">
+                <div className="mt-auto border-t border-slate-200/80 dark:border-border/70 bg-slate-100/60 dark:bg-muted/30 px-5 py-4">
                   <div className="mb-3 flex items-baseline justify-between gap-2">
-                    <span className="text-[11px] font-medium tracking-wide text-muted-foreground">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                       Projects
                     </span>
-                    <span className="text-xl font-semibold tabular-nums tracking-tight text-foreground">
+                    <span className="text-xl font-bold tabular-nums tracking-tight text-foreground">
                       {total}
                     </span>
                   </div>
-                  <div className="grid grid-cols-5 gap-px overflow-hidden rounded-xl bg-border/60 ring-1 ring-border/60">
+                  <div className="grid grid-cols-5 gap-px overflow-hidden rounded-xl bg-slate-200/80 dark:bg-border/60 ring-1 ring-slate-200/80 dark:ring-border/60">
                     {metrics.map(({ label, value }) => (
                       <div
                         key={label}
-                        className="flex flex-col items-center justify-center gap-0.5 bg-card px-1 py-2.5"
+                        className="flex flex-col items-center justify-center gap-0.5 bg-white/95 dark:bg-card/95 px-1 py-2.5"
                       >
-                        <span className="text-[13px] font-semibold tabular-nums tracking-tight text-foreground">
+                        <span className="text-[13px] font-bold tabular-nums tracking-tight text-foreground">
                           {value}
                         </span>
-                        <span className="text-[9px] font-medium leading-none text-muted-foreground">
+                        <span className="text-[9px] font-semibold leading-none text-muted-foreground">
                           {label}
                         </span>
                       </div>
@@ -509,6 +517,7 @@ function NewClientModal({
     contacts: [{ name: "", email: "", phone: "", designation: "", contactType: "" }],
     notes: "",
   }));
+  const [previewKyc, setPreviewKyc] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -1290,15 +1299,16 @@ function NewClientModal({
                     ))}
                   </select>
                 </Field>
-                <Field label="Email" required error={emailError(ct.email)}>
+                <Field label="Email" required error={emailError(ct.email, true)}>
                   <input
-                    type="email"
-                    className={fieldInputCls(inputCls, Boolean(emailError(ct.email)))}
+                    type="text"
+                    inputMode="email"
+                    className={fieldInputCls(inputCls, Boolean(emailError(ct.email, true)))}
                     value={ct.email}
                     maxLength={FIELD_MAX.email}
                     placeholder="name@company.com"
                     onChange={(e) =>
-                      updateContact(idx, "email", e.target.value.slice(0, FIELD_MAX.email))
+                      updateContact(idx, "email", toEmailInput(e.target.value))
                     }
                     onBlur={() => updateContact(idx, "email", ct.email.trim())}
                   />
@@ -1379,9 +1389,22 @@ function NewClientModal({
                         type="button"
                         onClick={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
+                          setPreviewKyc(true);
+                        }}
+                        className="ml-1 inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                        title="Preview KYC document"
+                      >
+                        <Eye className="h-3 w-3" /> Preview
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setS((p) => ({ ...p, kycFile: null }));
                         }}
-                        className="ml-1 rounded p-0.5 hover:bg-destructive/10 hover:text-destructive"
+                        className="ml-1 rounded p-0.5 hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                         aria-label="Remove file"
                       >
                         <X className="h-3 w-3" />
@@ -1439,7 +1462,28 @@ function NewClientModal({
             )}
             <Row label="Created At" v={format(new Date(s.createdAt), "dd MMM yyyy, HH:mm")} />
             <Row label="Created By" v={s.createdBy} />
-            <Row label="KYC Document" v={s.kycFile ? s.kycFile.name : "—"} />
+            
+            {/* Clickable KYC Document Row with Preview button */}
+            <div className="col-span-2 flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs">
+              <div className="min-w-0 flex-1 pr-2">
+                <dt className="text-muted-foreground font-medium flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5 text-primary" /> KYC Document
+                </dt>
+                <dd className="truncate font-mono font-medium text-foreground mt-0.5">
+                  {s.kycFile ? s.kycFile.name : "—"}
+                </dd>
+              </div>
+              {s.kycFile && (
+                <button
+                  type="button"
+                  onClick={() => setPreviewKyc(true)}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer shadow-2xs"
+                  title="Preview KYC Document in popup window"
+                >
+                  <Eye className="h-3.5 w-3.5" /> Preview KYC
+                </button>
+              )}
+            </div>
           </dl>
           <div className="mt-3 space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Contacts</p>
@@ -1469,14 +1513,14 @@ function NewClientModal({
       <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
         <button
           onClick={() => (step === 1 ? onClose() : setStep(step - 1))}
-          className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent"
+          className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent cursor-pointer"
         >
           {step === 1 ? "Cancel" : "Back"}
         </button>
         {step < 3 ? (
           <button
             onClick={handleNext}
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
           >
             Next <ArrowRight className="h-3 w-3" />
           </button>
@@ -1484,12 +1528,21 @@ function NewClientModal({
           <button
             disabled={submitting}
             onClick={() => void submit()}
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
           >
             {submitting ? "Submitting…" : "Submit"}
           </button>
         )}
       </div>
+
+      <KycDocPreviewModal
+        open={previewKyc}
+        onClose={() => setPreviewKyc(false)}
+        file={s.kycFile}
+        fileName={s.kycFile?.name}
+        clientName={s.clientName || s.subVentureName || "New Customer"}
+        subVentureName={s.subVentureName}
+      />
     </Modal>
   );
 }

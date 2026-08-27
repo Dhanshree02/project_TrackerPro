@@ -49,9 +49,9 @@ public class RepositoryController(
         }
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (ext != ".pdf" && ext != ".docx")
+        if (!FileStorageService.IsAllowedRepositoryExtension(ext))
         {
-            return BadRequest(ApiResponse<RepositoryItemDto>.Fail("INVALID_FORMAT", "Only .pdf and .docx file formats are allowed. Rejecting all other file types."));
+            return BadRequest(ApiResponse<RepositoryItemDto>.Fail("INVALID_FORMAT", "Allowed file formats: PDF (.pdf), Word (.doc, .docx), Excel (.xls, .xlsx, .xlsm, .csv), and PowerPoint (.ppt, .pptx)."));
         }
 
         if (string.IsNullOrWhiteSpace(category))
@@ -75,6 +75,56 @@ public class RepositoryController(
         }
     }
 
+    [HttpGet("{id:guid}/preview")]
+    public async Task<IActionResult> Preview(Guid id, [FromQuery] string? viewer = null, CancellationToken ct = default)
+    {
+        var doc = await repositoryService.GetDocumentByIdAsync(id, ct);
+        if (doc == null)
+        {
+            return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Document not found."));
+        }
+
+        var fileResult = (!string.IsNullOrWhiteSpace(doc.FilePath) ? storageService.GetRepositoryFileStream(doc.FilePath) : null)
+            ?? storageService.GetRepositoryFileStream(doc.Category, doc.FileName);
+
+        if (fileResult == null)
+        {
+            return NotFound(ApiResponse<object>.Fail("FILE_NOT_FOUND", "Physical document file not found on server."));
+        }
+
+        var (stream, contentType, _) = fileResult.Value;
+        var cleanFileName = string.IsNullOrWhiteSpace(doc.FileName) ? "document" : doc.FileName.Replace("\"", "");
+        var ext = Path.GetExtension(doc.FileName).ToLowerInvariant();
+
+        // If PowerPoint presentation, convert slides directly to real multi-page PDF
+        if (ext is ".pptx" or ".ppt" or ".pptm")
+        {
+            try
+            {
+                using var ppt = new Spire.Presentation.Presentation();
+                ppt.LoadFromStream(stream, Spire.Presentation.FileFormat.Auto);
+                var pdfStream = new MemoryStream();
+                ppt.SaveToFile(pdfStream, Spire.Presentation.FileFormat.PDF);
+                pdfStream.Position = 0;
+                stream.Dispose();
+
+                var pdfFileName = Path.ChangeExtension(cleanFileName, ".pdf");
+                Response.Headers["Content-Disposition"] = $"inline; filename=\"{pdfFileName}\"";
+                return File(pdfStream, "application/pdf");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to convert PPT to PDF on the fly: {FileName}", doc.FileName);
+                if (stream.CanSeek) stream.Position = 0;
+                Response.Headers["Content-Disposition"] = $"inline; filename=\"{cleanFileName}\"";
+                return File(stream, contentType);
+            }
+        }
+
+        Response.Headers["Content-Disposition"] = $"inline; filename=\"{cleanFileName}\"";
+        return File(stream, contentType);
+    }
+
     [HttpGet("{id:guid}/download")]
     public async Task<IActionResult> Download(Guid id, [FromQuery] string? viewer = null, CancellationToken ct = default)
     {
@@ -84,7 +134,9 @@ public class RepositoryController(
             return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Document not found."));
         }
 
-        var fileResult = storageService.GetRepositoryFileStream(doc.FilePath);
+        var fileResult = (!string.IsNullOrWhiteSpace(doc.FilePath) ? storageService.GetRepositoryFileStream(doc.FilePath) : null)
+            ?? storageService.GetRepositoryFileStream(doc.Category, doc.FileName);
+
         if (fileResult == null)
         {
             return NotFound(ApiResponse<object>.Fail("FILE_NOT_FOUND", "Physical document file not found on server."));
@@ -95,6 +147,15 @@ public class RepositoryController(
 
         var (stream, contentType, downloadName) = fileResult.Value;
         return File(stream, contentType, string.IsNullOrWhiteSpace(doc.FileName) ? downloadName : doc.FileName);
+    }
+
+    [HttpGet("{id:guid}/logs")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RepositoryActivityLogDto>>>> GetDocumentLogs(
+        Guid id,
+        CancellationToken ct = default)
+    {
+        var logs = await repositoryService.GetDocumentLogsAsync(id, ct);
+        return Ok(ApiResponse<IReadOnlyList<RepositoryActivityLogDto>>.Ok(logs));
     }
 
     [HttpPost("{id:guid}/view")]

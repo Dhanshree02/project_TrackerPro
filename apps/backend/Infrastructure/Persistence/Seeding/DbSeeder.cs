@@ -863,6 +863,7 @@ public static class DbSeeder
                 PromotionReadiness = i % 4 == 0 ? "Ready Now" : "Ready in 1 year",
                 ManagerFeedback = "Solid contributor on current assignments.",
                 Pan = $"ABCDE{(1234 + n):0000}F",
+                Aadhaar = (234567890000 + n).ToString(),
                 BankAccount = (501234567800 + n).ToString(),
                 SalaryBand = i < 4 ? "L5" : "L4",
                 PfUan = (100112345000 + n).ToString(),
@@ -922,6 +923,8 @@ public static class DbSeeder
             {
                 employee.ReportingManagerId = lead.Id;
             }
+            if (string.IsNullOrWhiteSpace(employee.Aadhaar))
+                employee.Aadhaar = (234567890000 + (i + 1)).ToString();
         }
     }
 
@@ -1097,8 +1100,6 @@ public static class DbSeeder
                 await File.WriteAllTextAsync(filePath, item.Content, ct);
             }
 
-            var completePath = filePath.Replace('\\', '/');
-
             var doc = new RepositoryItem
             {
                 Id = StableGuid("repo-" + item.FileName),
@@ -1107,7 +1108,6 @@ public static class DbSeeder
                 Size = item.Size,
                 LastUpdated = DateTime.UtcNow.AddDays(-Random.Shared.Next(2, 60)),
                 UploadedBy = item.UploadedBy,
-                FilePath = completePath,
                 CreatedAtUtc = DateTime.UtcNow.AddDays(-Random.Shared.Next(2, 60))
             };
 

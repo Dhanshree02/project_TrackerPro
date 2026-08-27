@@ -85,6 +85,7 @@ public sealed record EmployeeDetailDto(
     string? PromotionReadiness,
     string? ManagerFeedback,
     string? Pan,
+    string? Aadhaar,
     string? BankAccount,
     string? SalaryBand,
     string? PfUan,
@@ -175,7 +176,8 @@ public sealed record CreateEmployeeRequest(
     string? TaxRegime,
     string? ComplianceStatus,
     Guid? SalaryBandId = null,
-    string? ProbationPeriod = null);
+    string? ProbationPeriod = null,
+    string? Aadhaar = null);
 
 public sealed record UpdateEmployeeRequest(
     string? FirstName,
@@ -236,7 +238,15 @@ public sealed record UpdateEmployeeRequest(
     string? TaxRegime,
     string? ComplianceStatus,
     Guid? SalaryBandId = null,
-    string? ProbationPeriod = null);
+    string? ProbationPeriod = null,
+    string? Aadhaar = null);
+
+public sealed record EmployeeBulkRowError(int Row, string? EmployeeCode, string Message);
+
+public sealed record EmployeeBulkUploadResult(
+    int Created,
+    int Failed,
+    IReadOnlyList<EmployeeBulkRowError> Errors);
 
 public sealed record OffboardEmployeeRequest(
     DateOnly? ResignationDate,

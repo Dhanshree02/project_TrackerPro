@@ -12,7 +12,7 @@ public sealed partial class FileStorageService : IFileStorageService
         _logger = logger;
         // Check configuration or fallback to project-level storage folder
         var configPath = configuration["Storage:RootPath"];
-        if (!string.IsNullOrWhiteSpace(configPath))
+        if (!string.IsNullOrWhiteSpace(configPath) && (!configPath.Contains(":\\") || OperatingSystem.IsWindows()))
         {
             _storageRoot = Path.IsPathRooted(configPath)
                 ? configPath
@@ -149,10 +149,10 @@ public sealed partial class FileStorageService : IFileStorageService
         var rawOriginalName = Path.GetFileName(file.FileName);
         var ext = Path.GetExtension(rawOriginalName).ToLowerInvariant();
 
-        // STRICT FILE EXTENSION VALIDATION: Only .pdf and .docx allowed
-        if (ext != ".pdf" && ext != ".docx")
+        // Allowed file extensions: PDF, Word (.doc, .docx), Excel (.xls, .xlsx, .xlsm, .xlsb, .csv), PowerPoint (.ppt, .pptx), Text (.txt)
+        if (!IsAllowedRepositoryExtension(ext))
         {
-            throw new InvalidOperationException($"Invalid file format '{ext}'. Only .pdf and .docx file formats are allowed.");
+            throw new InvalidOperationException($"Invalid file format '{ext}'. Allowed file formats: PDF (.pdf), Word (.doc, .docx), Excel (.xls, .xlsx, .xlsm, .csv), and PowerPoint (.ppt, .pptx).");
         }
 
         // Map and validate category to tech, pms, imp
@@ -191,6 +191,71 @@ public sealed partial class FileStorageService : IFileStorageService
         );
     }
 
+    private static FileStream OpenReadStream(string path) =>
+        new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
+    public (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string category, string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return null;
+
+        var folderCategory = NormalizeRepositoryCategoryFolder(category);
+        var targetDir = Path.Combine(_storageRoot, "repository", folderCategory);
+
+        if (Directory.Exists(targetDir))
+        {
+            // 1. Direct match with fileName or sanitized filename
+            var directPath = Path.Combine(targetDir, fileName);
+            if (File.Exists(directPath))
+            {
+                var ext = Path.GetExtension(directPath);
+                return (OpenReadStream(directPath), GetContentType(ext), fileName);
+            }
+
+            var underscoreName = fileName.Replace(' ', '_');
+            var underscorePath = Path.Combine(targetDir, underscoreName);
+            if (File.Exists(underscorePath))
+            {
+                var ext = Path.GetExtension(underscorePath);
+                return (OpenReadStream(underscorePath), GetContentType(ext), fileName);
+            }
+
+            // 2. Timestamp prefix match (*_cleanBaseName.ext)
+            var baseName = Path.GetFileNameWithoutExtension(fileName);
+            var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
+            var extPattern = Path.GetExtension(fileName);
+            var matchingFiles = Directory.GetFiles(targetDir, $"*{cleanBaseName}*{extPattern}");
+            if (matchingFiles.Length > 0)
+            {
+                var foundPath = matchingFiles[0];
+                var ext = Path.GetExtension(foundPath);
+                return (OpenReadStream(foundPath), GetContentType(ext), fileName);
+            }
+        }
+
+        // 3. Fallback search in all repository folders
+        foreach (var subDir in new[] { "tech", "pms", "imp" })
+        {
+            var fallbackDir = Path.Combine(_storageRoot, "repository", subDir);
+            if (!Directory.Exists(fallbackDir)) continue;
+
+            var directMatch = Path.Combine(fallbackDir, fileName);
+            if (File.Exists(directMatch))
+            {
+                var ext = Path.GetExtension(directMatch);
+                return (OpenReadStream(directMatch), GetContentType(ext), fileName);
+            }
+
+            var underscoreMatch = Path.Combine(fallbackDir, fileName.Replace(' ', '_'));
+            if (File.Exists(underscoreMatch))
+            {
+                var ext = Path.GetExtension(underscoreMatch);
+                return (OpenReadStream(underscoreMatch), GetContentType(ext), fileName);
+            }
+        }
+
+        return null;
+    }
+
     public (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath)) return null;
@@ -199,13 +264,60 @@ public sealed partial class FileStorageService : IFileStorageService
             ? filePath
             : Path.Combine(_storageRoot, filePath);
 
-        if (!File.Exists(fullPath)) return null;
+        if (File.Exists(fullPath))
+        {
+            var ext = Path.GetExtension(fullPath);
+            var downloadName = ExtractOriginalName(Path.GetFileName(fullPath));
+            return (OpenReadStream(fullPath), GetContentType(ext), downloadName);
+        }
 
-        var ext = Path.GetExtension(fullPath);
-        var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        var downloadName = ExtractOriginalName(Path.GetFileName(fullPath));
+        // Try searching by filename across categories
+        var fileName = Path.GetFileName(filePath);
+        return GetRepositoryFileStream("", fileName);
+    }
 
-        return (stream, GetContentType(ext), downloadName);
+    public bool DeleteRepositoryFile(string category, string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return false;
+
+        try
+        {
+            var folderCategory = NormalizeRepositoryCategoryFolder(category);
+            var targetDir = Path.Combine(_storageRoot, "repository", folderCategory);
+
+            if (Directory.Exists(targetDir))
+            {
+                var directPath = Path.Combine(targetDir, fileName);
+                if (File.Exists(directPath))
+                {
+                    File.Delete(directPath);
+                    return true;
+                }
+
+                var underscorePath = Path.Combine(targetDir, fileName.Replace(' ', '_'));
+                if (File.Exists(underscorePath))
+                {
+                    File.Delete(underscorePath);
+                    return true;
+                }
+
+                var baseName = Path.GetFileNameWithoutExtension(fileName);
+                var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
+                var extPattern = Path.GetExtension(fileName);
+                var matchingFiles = Directory.GetFiles(targetDir, $"*{cleanBaseName}*{extPattern}");
+                foreach (var match in matchingFiles)
+                {
+                    if (File.Exists(match)) File.Delete(match);
+                }
+                return matchingFiles.Length > 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete physical repository file: {Category} / {FileName}", category, fileName);
+        }
+
+        return false;
     }
 
     public bool DeleteRepositoryFile(string filePath)
@@ -223,6 +335,9 @@ public sealed partial class FileStorageService : IFileStorageService
                 File.Delete(fullPath);
                 return true;
             }
+
+            var fileName = Path.GetFileName(filePath);
+            return DeleteRepositoryFile("", fileName);
         }
         catch (Exception ex)
         {
@@ -320,14 +435,43 @@ public sealed partial class FileStorageService : IFileStorageService
         return match.Success ? savedName[match.Length..] : savedName;
     }
 
+    private static readonly HashSet<string> AllowedRepositoryExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf",
+        ".doc", ".docx", ".docm",
+        ".xls", ".xlsx", ".xlsm", ".xlsb", ".csv",
+        ".ppt", ".pptx", ".pptm",
+        ".txt",
+        ".png", ".jpg", ".jpeg"
+    };
+
+    public static bool IsAllowedRepositoryExtension(string? ext)
+    {
+        if (string.IsNullOrWhiteSpace(ext)) return false;
+        var normalized = ext.StartsWith('.') ? ext : $".{ext}";
+        return AllowedRepositoryExtensions.Contains(normalized);
+    }
+
     private static string GetContentType(string ext) => ext.ToLowerInvariant() switch
     {
         ".pdf" => "application/pdf",
         ".jpg" or ".jpeg" => "image/jpeg",
         ".png" => "image/png",
+        ".gif" => "image/gif",
+        ".webp" => "image/webp",
+        ".svg" => "image/svg+xml",
         ".doc" => "application/msword",
         ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ".xls" or ".xlsx" => "application/vnd.ms-excel",
+        ".docm" => "application/vnd.ms-word.document.macroEnabled.12",
+        ".xls" => "application/vnd.ms-excel",
+        ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".xlsm" => "application/vnd.ms-excel.sheet.macroEnabled.12",
+        ".xlsb" => "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
+        ".csv" => "text/csv",
+        ".ppt" => "application/vnd.ms-powerpoint",
+        ".pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".pptm" => "application/vnd.ms-powerpoint.presentation.macroEnabled.12",
+        ".txt" => "text/plain",
         _ => "application/octet-stream"
     };
 

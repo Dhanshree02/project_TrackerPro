@@ -61,12 +61,12 @@ type ExitSortKey =
 type SortDir = "asc" | "desc";
 
 const EXIT_COLUMNS: { label: string; key: ExitSortKey; className?: string }[] = [
-  { label: "Emp ID", key: "employeeCode", className: "w-28 min-w-[100px]" },
+  { label: "Emp ID", key: "employeeCode", className: "w-36 min-w-[125px]" },
   { label: "Employee", key: "fullName", className: "w-64 min-w-[200px]" },
   { label: "Department & Role", key: "departmentName", className: "w-56 min-w-[180px]" },
   { label: "Exit Type", key: "exitType", className: "w-36 min-w-[130px]" },
   { label: "Exit Reason", key: "exitReason", className: "w-64 min-w-[200px]" },
-  { label: "Last Working Day", key: "lastWorkingDay", className: "w-36 min-w-[130px]" },
+  { label: "Last Working Day", key: "lastWorkingDay", className: "w-48 min-w-[170px]" },
   { label: "Exited On", key: "exitedAtUtc", className: "w-36 min-w-[130px]" },
 ];
 
@@ -108,6 +108,7 @@ function SortableTh({
   sortDir,
   className,
   onSort,
+  isLast,
 }: {
   label: string;
   column: ExitSortKey;
@@ -115,24 +116,34 @@ function SortableTh({
   sortDir: SortDir;
   className?: string;
   onSort: (column: ExitSortKey) => void;
+  isLast?: boolean;
 }) {
   const active = sortKey === column;
   return (
-    <th className={cn("whitespace-nowrap px-4 py-3 font-semibold", className)}>
+    <th
+      className={cn(
+        "relative whitespace-nowrap px-4 py-3 font-semibold",
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-left text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground",
-          active && "text-foreground font-bold",
+          "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
+          active
+            ? "text-blue-600 dark:text-blue-400 font-bold"
+            : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
       >
         <span>{label}</span>
         <span
           className={cn(
-            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-colors",
-            active ? "text-primary" : "text-muted-foreground/50 opacity-0 group-hover:opacity-100",
+            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
+            active
+              ? "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-400"
+              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
           )}
         >
           {active && sortDir === "desc" ? (
@@ -142,6 +153,14 @@ function SortableTh({
           )}
         </span>
       </button>
+
+      {/* Explicit Apple macOS-style vertical column divider */}
+      {!isLast && (
+        <span
+          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none"
+          aria-hidden="true"
+        />
+      )}
     </th>
   );
 }
@@ -532,9 +551,9 @@ function ExitSummaryPage() {
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
             <table className="w-full min-w-[1080px] table-fixed text-sm">
-              <thead className="sticky top-0 z-10 border-b border-border bg-card text-left text-xs uppercase tracking-wide text-muted-foreground shadow-2xs">
+              <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
                 <tr>
-                  {EXIT_COLUMNS.map((col) => (
+                  {EXIT_COLUMNS.map((col, idx, arr) => (
                     <SortableTh
                       key={col.key}
                       label={col.label}
@@ -542,6 +561,7 @@ function ExitSummaryPage() {
                       sortKey={sortKey}
                       sortDir={sortDir}
                       className={col.className}
+                      isLast={idx === arr.length - 1}
                       onSort={(next) => {
                         if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
                         else {
@@ -687,22 +707,22 @@ function ExitSummaryPage() {
 
           {/* Frozen / Sticky Pagination Footer */}
           {!isLoading && filtered.length > 0 && (
-            <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground shadow-xs">
+            <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
               <div className="flex items-center gap-3">
                 <span>
-                  Showing <strong className="font-semibold text-foreground">{(currentPage - 1) * pageSize + 1}</strong>–
-                  <strong className="font-semibold text-foreground">
+                  Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{(currentPage - 1) * pageSize + 1}</strong>–
+                  <strong className="font-semibold text-blue-950 dark:text-blue-100">
                     {Math.min(currentPage * pageSize, filtered.length)}
                   </strong>{" "}
-                  of <strong className="font-semibold text-foreground">{filtered.length}</strong> records
+                  of <strong className="font-semibold text-blue-950 dark:text-blue-100">{filtered.length}</strong> records
                 </span>
-                <span className="text-muted-foreground/40">|</span>
+                <span className="text-slate-300 dark:text-slate-600">|</span>
                 <div className="flex items-center gap-1.5">
                   <span>Per page:</span>
                   <select
                     value={pageSize}
                     onChange={(e) => setPageSize(Number(e.target.value))}
-                    className="h-7 w-14 rounded-md border border-input bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
+                    className="h-7 w-14 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
                     aria-label="Rows per page"
                   >
                     <option value={10}>10</option>
@@ -719,18 +739,18 @@ function ExitSummaryPage() {
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" /> Previous
                 </button>
-                <span className="px-2 tabular-nums font-semibold text-foreground">
+                <span className="px-2 tabular-nums font-semibold text-blue-950 dark:text-blue-100">
                   {currentPage} / {totalPages}
                 </span>
                 <button
                   type="button"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
                 >
                   Next <ChevronRight className="h-3.5 w-3.5" />
                 </button>

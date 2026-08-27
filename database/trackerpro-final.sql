@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
--- \restrict bVg64eacDGAn7Wne8TESIp6ZaYHQqYFACumLJfNwYgVm3cAl7HoFkqYb65dh85c
+-- \restrict N5Hm8I3A6k3i2M4zaOV7KSqwATYeYL31ZLjjeXFtEci2WiEYrlux4OQOGhRYvtd
 
--- Dumped from database version 18.6
--- Dumped by pg_dump version 18.6
+-- Dumped from database version 18.4
+-- Dumped by pg_dump version 18.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -152,7 +152,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: postgres
+-- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."__EFMigrationsHistory" (
@@ -161,10 +161,8 @@ CREATE TABLE public."__EFMigrationsHistory" (
 );
 
 
-ALTER TABLE public."__EFMigrationsHistory" OWNER TO postgres;
-
 --
--- Name: client_assignments; Type: TABLE; Schema: public; Owner: postgres
+-- Name: client_assignments; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.client_assignments (
@@ -173,10 +171,8 @@ CREATE TABLE public.client_assignments (
 );
 
 
-ALTER TABLE public.client_assignments OWNER TO postgres;
-
 --
--- Name: client_contacts; Type: TABLE; Schema: public; Owner: postgres
+-- Name: client_contacts; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.client_contacts (
@@ -198,10 +194,8 @@ CREATE TABLE public.client_contacts (
 );
 
 
-ALTER TABLE public.client_contacts OWNER TO postgres;
-
 --
--- Name: clients; Type: TABLE; Schema: public; Owner: postgres
+-- Name: clients; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.clients (
@@ -235,10 +229,8 @@ CREATE TABLE public.clients (
 );
 
 
-ALTER TABLE public.clients OWNER TO postgres;
-
 --
--- Name: employees; Type: TABLE; Schema: public; Owner: postgres
+-- Name: employees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.employees (
@@ -310,10 +302,8 @@ CREATE TABLE public.employees (
 );
 
 
-ALTER TABLE public.employees OWNER TO postgres;
-
 --
--- Name: exited_employees; Type: TABLE; Schema: public; Owner: postgres
+-- Name: exited_employees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.exited_employees (
@@ -346,10 +336,8 @@ CREATE TABLE public.exited_employees (
 );
 
 
-ALTER TABLE public.exited_employees OWNER TO postgres;
-
 --
--- Name: mst_business_units; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_business_units; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_business_units (
@@ -366,10 +354,8 @@ CREATE TABLE public.mst_business_units (
 );
 
 
-ALTER TABLE public.mst_business_units OWNER TO postgres;
-
 --
--- Name: mst_cities; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_cities; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_cities (
@@ -386,10 +372,8 @@ CREATE TABLE public.mst_cities (
 );
 
 
-ALTER TABLE public.mst_cities OWNER TO postgres;
-
 --
--- Name: mst_countries; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_countries; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_countries (
@@ -405,10 +389,8 @@ CREATE TABLE public.mst_countries (
 );
 
 
-ALTER TABLE public.mst_countries OWNER TO postgres;
-
 --
--- Name: mst_departments; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_departments; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_departments (
@@ -424,10 +406,8 @@ CREATE TABLE public.mst_departments (
 );
 
 
-ALTER TABLE public.mst_departments OWNER TO postgres;
-
 --
--- Name: mst_designations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_designations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_designations (
@@ -444,10 +424,8 @@ CREATE TABLE public.mst_designations (
 );
 
 
-ALTER TABLE public.mst_designations OWNER TO postgres;
-
 --
--- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_email_domains (
@@ -465,10 +443,8 @@ CREATE TABLE public.mst_email_domains (
 );
 
 
-ALTER TABLE public.mst_email_domains OWNER TO postgres;
-
 --
--- Name: mst_industries; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_industries; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_industries (
@@ -484,10 +460,8 @@ CREATE TABLE public.mst_industries (
 );
 
 
-ALTER TABLE public.mst_industries OWNER TO postgres;
-
 --
--- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_nationalities (
@@ -503,10 +477,8 @@ CREATE TABLE public.mst_nationalities (
 );
 
 
-ALTER TABLE public.mst_nationalities OWNER TO postgres;
-
 --
--- Name: mst_offices; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_offices; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_offices (
@@ -524,10 +496,8 @@ CREATE TABLE public.mst_offices (
 );
 
 
-ALTER TABLE public.mst_offices OWNER TO postgres;
-
 --
--- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_reporting_managers (
@@ -547,10 +517,8 @@ CREATE TABLE public.mst_reporting_managers (
 );
 
 
-ALTER TABLE public.mst_reporting_managers OWNER TO postgres;
-
 --
--- Name: mst_roles; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_roles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_roles (
@@ -567,10 +535,8 @@ CREATE TABLE public.mst_roles (
 );
 
 
-ALTER TABLE public.mst_roles OWNER TO postgres;
-
 --
--- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_salary_bands (
@@ -586,10 +552,8 @@ CREATE TABLE public.mst_salary_bands (
 );
 
 
-ALTER TABLE public.mst_salary_bands OWNER TO postgres;
-
 --
--- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_work_locations (
@@ -606,10 +570,8 @@ CREATE TABLE public.mst_work_locations (
 );
 
 
-ALTER TABLE public.mst_work_locations OWNER TO postgres;
-
 --
--- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: postgres
+-- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.refresh_tokens (
@@ -627,10 +589,8 @@ CREATE TABLE public.refresh_tokens (
 );
 
 
-ALTER TABLE public.refresh_tokens OWNER TO postgres;
-
 --
--- Name: repository; Type: TABLE; Schema: public; Owner: postgres
+-- Name: repository; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.repository (
@@ -649,10 +609,8 @@ CREATE TABLE public.repository (
 );
 
 
-ALTER TABLE public.repository OWNER TO postgres;
-
 --
--- Name: repository_activity_logs; Type: TABLE; Schema: public; Owner: postgres
+-- Name: repository_activity_logs; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.repository_activity_logs (
@@ -671,10 +629,8 @@ CREATE TABLE public.repository_activity_logs (
 );
 
 
-ALTER TABLE public.repository_activity_logs OWNER TO postgres;
-
 --
--- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: postgres
+-- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.role_permission_audits (
@@ -700,10 +656,8 @@ CREATE TABLE public.role_permission_audits (
 );
 
 
-ALTER TABLE public.role_permission_audits OWNER TO postgres;
-
 --
--- Name: roles; Type: TABLE; Schema: public; Owner: postgres
+-- Name: roles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.roles (
@@ -722,10 +676,8 @@ CREATE TABLE public.roles (
 );
 
 
-ALTER TABLE public.roles OWNER TO postgres;
-
 --
--- Name: sub_ventures; Type: TABLE; Schema: public; Owner: postgres
+-- Name: sub_ventures; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.sub_ventures (
@@ -741,10 +693,8 @@ CREATE TABLE public.sub_ventures (
 );
 
 
-ALTER TABLE public.sub_ventures OWNER TO postgres;
-
 --
--- Name: users; Type: TABLE; Schema: public; Owner: postgres
+-- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.users (
@@ -772,10 +722,8 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO postgres;
-
 --
--- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin;
@@ -795,7 +743,7 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 
 
 --
--- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.client_assignments ("ClientId", "UserId") FROM stdin;
@@ -807,7 +755,7 @@ f61741ca-2c63-917f-ee7f-ae00cdbc08cb	e7554ba2-e546-93ce-1e88-a073badd78a2
 
 
 --
--- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -834,7 +782,7 @@ d8e9f1ce-ac14-4a5a-899a-5d87963e99d2	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omk
 
 
 --
--- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince") FROM stdin;
@@ -854,7 +802,7 @@ f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Solutions	Environment	ES	projects@
 
 
 --
--- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "ProjectSite", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "JobRoleId", "NationalityId", "ProbationPeriod", "SalaryBandId") FROM stdin;
@@ -894,7 +842,7 @@ fc06e810-3e2d-4510-bfc1-669ccf579da2	EMP-1006	Ankit	Verma	ankit.verma@acme.co	an
 
 
 --
--- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.exited_employees ("Id", "OriginalEmployeeId", "EmployeeCode", "FullName", "DepartmentName", "DesignationName", "WorkEmail", "PersonalEmail", "Phone", "StatusAtExit", "ExitType", "ExitReason", "ResignationDate", "LastWorkingDay", "ReasonForLeaving", "NoticePeriodServed", "ExitChecklistJson", "AssetReturnJson", "FinalSettlementJson", "ExitedAtUtc", "ExitedBy", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -912,7 +860,7 @@ c86dbb9b-4d96-4e3a-b74a-a94fa9992605	96425efc-9b0e-4f2b-8fd6-ec3b77161547	EMP-34
 
 
 --
--- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -924,7 +872,7 @@ cd3c05b0-fc85-49fe-adcc-e7d2dcde28df	cloud_platform	Cloud Platform	t	1	2026-08-2
 
 
 --
--- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_cities ("Id", "Code", "Name", "IsActive", "CountryId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1069,7 +1017,7 @@ fe6526bc-a57b-4c6e-8094-be6327614409	in_tiruchirappalli	Tiruchirappalli	t	f6f989
 
 
 --
--- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_countries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1117,7 +1065,7 @@ f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	IN	India	t	2026-08-20 17:07:05.749911+05:30
 
 
 --
--- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_departments ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1136,7 +1084,7 @@ e91e9aa5-1cbb-4d1e-99fe-d7aefedd9f87	finance	Finance	t	2026-08-21 11:01:26.96365
 
 
 --
--- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1167,7 +1115,7 @@ f9aa2b6e-26a3-40db-bb37-9c88a1249304	engagement_manager	Engagement Manager	t	c21
 
 
 --
--- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_email_domains ("Id", "Code", "DomainName", "DisplayName", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1178,7 +1126,7 @@ fb66fff9-7911-47de-bde7-ab5fb5ab0757	squad1_io	squad1.io	@squad1.io	t	3	2026-08-
 
 
 --
--- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_industries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1198,7 +1146,7 @@ ff5e83cc-9c1c-4056-ab0b-42a70714ddd3	media	Media	t	2026-08-20 11:45:51.759149+05
 
 
 --
--- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_nationalities ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1246,7 +1194,7 @@ fe29360e-bc38-4557-8653-98b749b34fe0	indonesian	Indonesian	t	2026-08-20 17:55:01
 
 
 --
--- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1263,7 +1211,7 @@ f26ab4c4-8824-480f-bbfe-1e08a855f21c	pune_cyber_city_tower	Cyber City Tower	1427
 
 
 --
--- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email", "EmployeeId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1298,7 +1246,7 @@ a72d8337-b9ca-41b7-add3-33420d5fa811	priya_shah	Priya Shah	Onboard Role f918b0f6
 
 
 --
--- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1355,7 +1303,7 @@ fbd9d8c8-1fb6-4757-a095-a9f1ec77336b	ux_designer_designer	Designer	t	84f01f23-58
 
 
 --
--- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_salary_bands ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1368,7 +1316,7 @@ ebed343e-301f-4984-b292-fa8d1cb1623c	l2	L2	t	2026-08-20 18:21:10.222702+05:30	\N
 
 
 --
--- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1383,7 +1331,7 @@ f93f660f-db88-4f46-8df8-ade0e93d3eaf	mumbai	Mumbai	f	6	2026-08-22 01:27:33.55667
 
 
 --
--- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.refresh_tokens ("Id", "UserId", "TokenHash", "ExpiresAtUtc", "RevokedAtUtc", "ReplacedByTokenHash", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1886,42 +1834,149 @@ eae7fffc-c267-4ff9-80dc-84f7feb74cbb	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	KAh6Xm
 378303ce-6c57-4a7e-9a1d-d3962480f7fb	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ampYsxKLHxfnACqnoaFyGf1Yi6Su7bUekwv0gs2iJ4w=	2026-08-31 00:35:36.412719+05:30	2026-08-24 00:38:30.981674+05:30	\N	2026-08-24 00:35:36.413014+05:30	2026-08-24 00:38:30.992134+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 fea861d0-47d1-414f-ba9d-33f1ba40efd7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	vwmtVWksGsZoMMX4znPPUJsgepiyTjUrCuctunS1Jgs=	2026-08-31 00:38:30.982714+05:30	2026-08-24 00:41:15.161028+05:30	\N	2026-08-24 00:38:30.992134+05:30	2026-08-24 00:41:15.177592+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 f0901941-f404-4542-ac88-1d2555169cc7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Dn6Aj/kRV7/qRhBJzHgspv5JULaODvvY7mgXbJtIwNY=	2026-08-31 00:41:15.17156+05:30	2026-08-24 00:41:21.636677+05:30	\N	2026-08-24 00:41:15.177592+05:30	2026-08-24 00:41:21.640383+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-eda1d94a-066d-4ba9-862a-bb344eb416c3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qrPAvv7HV/IidNmtgESzjzmIfKx4mSU1S+hburO68mM=	2026-08-31 00:41:21.639868+05:30	2026-08-24 00:53:22.971514+05:30	\N	2026-08-24 00:41:21.640383+05:30	2026-08-24 00:53:22.982+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-ca9d57b5-fb71-4e3a-8c66-54fdc10c6af9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qkGzkHedCsH7pXXKxt4m+tgVnWPAk9BPE7qBGrLLW+I=	2026-08-31 00:53:22.978134+05:30	2026-08-24 01:00:11.077054+05:30	\N	2026-08-24 00:53:22.982+05:30	2026-08-24 01:00:11.078089+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-ed285684-c8d2-4226-980c-2a494d866140	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	dhvBs9KGbAHvENLYTIHlPqBL5JjtVdq/yZS6cbrhW7A=	2026-08-31 01:00:11.077353+05:30	\N	\N	2026-08-24 01:00:11.078089+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+eda1d94a-066d-4ba9-862a-bb344eb416c3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qrPAvv7HV/IidNmtgESzjzmIfKx4mSU1S+hburO68mM=	2026-08-31 00:41:21.639868+05:30	2026-08-24 00:49:42.193124+05:30	\N	2026-08-24 00:41:21.640383+05:30	2026-08-24 00:49:42.194124+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+321a7993-fb4e-468e-a1aa-504acc260114	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ILwhPYalP8rQiAfk4qh/gkzuqei1CbOOZTZIjK4MANY=	2026-08-31 00:49:43.014749+05:30	2026-08-24 10:28:30.252362+05:30	\N	2026-08-24 00:49:43.020634+05:30	2026-08-24 10:28:30.261043+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+8bb478cb-edb8-4166-b550-cf91c4b6b8bb	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	5aDBd3S5ap3bgDzwG9e4LnQdk7hkZ7daUkjPVDfsJqk=	2026-08-31 10:28:31.426401+05:30	2026-08-24 10:30:12.795418+05:30	\N	2026-08-24 10:28:31.449129+05:30	2026-08-24 10:30:12.798316+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+dbabe0e2-6bd3-4d1b-a18c-456f70c61f8f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	s0PODLxIHRJERRPVS6XuTtmk1PzX27PV86tpu2hwZ0I=	2026-08-31 10:30:12.796425+05:30	2026-08-24 10:33:22.585124+05:30	\N	2026-08-24 10:30:12.798316+05:30	2026-08-24 10:33:22.58649+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+00d6e713-04ed-4804-babf-899eced58937	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	mWFwUEVqS1s6Wngfw9fD51JpdxBySzPCIRjHtDOJT6A=	2026-08-31 10:33:22.585618+05:30	2026-08-24 10:33:59.595582+05:30	\N	2026-08-24 10:33:22.58649+05:30	2026-08-24 10:33:59.596089+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+076fbe5b-ed82-4e90-b673-7d192546dc10	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	+uZqfwIto88O4XhQouxIJq3vr0QxHSnI54RpdMudvfw=	2026-08-31 10:33:59.595888+05:30	2026-08-24 10:34:31.265311+05:30	\N	2026-08-24 10:33:59.596089+05:30	2026-08-24 10:34:31.266146+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+61936eae-81f1-46a2-a504-3b4493d50646	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	bgtPKBN5+nbejXLW9H/hxFRfFPfWZnV4VgYIIbsRrVU=	2026-08-31 10:34:31.265818+05:30	2026-08-24 10:37:54.091536+05:30	\N	2026-08-24 10:34:31.266146+05:30	2026-08-24 10:37:54.09454+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+17557c7a-d860-4f2f-9b03-09580dc9c943	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	B+gk0BTwJWyzPOYarAh/nBL5Pu+i3k9ycZO967VuLCg=	2026-08-31 10:37:54.09415+05:30	2026-08-24 10:55:44.019502+05:30	\N	2026-08-24 10:37:54.09454+05:30	2026-08-24 10:55:44.020188+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f1ae02ba-2301-4495-a9ed-a2b9cd267175	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Z1vWS6Lq/Qyq2Nw3Ucmo8o1g9ysYV7AyFYly9PRmi5E=	2026-08-31 10:55:44.019955+05:30	2026-08-24 10:55:45.040188+05:30	\N	2026-08-24 10:55:44.020188+05:30	2026-08-24 10:55:45.045033+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ace13860-9bb4-40d6-bcb8-ed601ec4d29a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	67xG+jjZqBCylOZQG3mnPku8RafStDngtXA5NGYEiGU=	2026-08-31 10:55:45.044759+05:30	2026-08-24 10:59:19.975581+05:30	\N	2026-08-24 10:55:45.045033+05:30	2026-08-24 10:59:19.976291+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e67a76ff-7666-457c-b064-16c757cb4cc6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	vbKPCaWRfg9iIr10ZyFTTfDk/nBFd7uKl8nMf34Nl8U=	2026-08-31 10:59:19.975923+05:30	2026-08-25 11:33:11.853296+05:30	\N	2026-08-24 10:59:19.976291+05:30	2026-08-25 11:33:12.058601+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+7d7d11a6-bfbc-4a3c-b15f-e0732905dea9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	EwockIwIkgHAeq+wmHD22c43qwxi+3T/GDwyznriO+U=	2026-09-01 11:33:12.014934+05:30	2026-08-25 12:06:52.102417+05:30	\N	2026-08-25 11:33:12.058601+05:30	2026-08-25 12:06:52.109027+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ddbf2904-bcce-4db2-ac70-8abcb85921c5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	chYV4ticDL5eNftOFmUMu23ljkigBbDBToCHduCbcss=	2026-09-01 12:06:52.10317+05:30	2026-08-25 12:31:03.249498+05:30	\N	2026-08-25 12:06:52.109027+05:30	2026-08-25 12:31:03.25+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+dcd819a0-bb4c-4cd4-9bbd-c2423a602cff	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2quE5CA7jlTn2LE/pk3I2aG0vgv5s69P9ylp0zKAGA8=	2026-09-01 12:31:03.249787+05:30	2026-08-25 12:43:20.349114+05:30	\N	2026-08-25 12:31:03.25+05:30	2026-08-25 12:43:20.350439+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+eb122ab2-04a9-4d7c-a9d7-acb866be1f1b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	/BKcdQDS+CxVeYq6Ks+WACgPVnWaxunkeWoz5a69OhU=	2026-09-01 12:43:20.349612+05:30	2026-08-25 12:45:16.516529+05:30	\N	2026-08-25 12:43:20.350439+05:30	2026-08-25 12:45:16.641954+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+68d0a972-7ce0-4a6b-9adf-e22ade796128	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	+zNSw1JzVv2koXp+m/mHeR8qMlynNkmZ7W8NXCGatIc=	2026-09-01 12:45:16.600571+05:30	2026-08-25 12:46:03.27494+05:30	\N	2026-08-25 12:45:16.641954+05:30	2026-08-25 12:46:03.280389+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+eb36b54c-1908-4062-abf1-5f70f3eb0de4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	/nYH6bMBu8KJotdBcB7O4TrMl1Cp4omHP+/yx/d3iR4=	2026-09-01 12:46:03.27719+05:30	2026-08-25 12:46:26.046492+05:30	\N	2026-08-25 12:46:03.280389+05:30	2026-08-25 12:46:26.047689+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+485ce7df-ba8f-4b09-9053-e85dc94a96dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	GOGmZ4IMFx3yKfjnvFqkRh8cXGSdbWzENEsoLNPVChk=	2026-09-01 12:46:26.047191+05:30	2026-08-25 12:47:48.546365+05:30	\N	2026-08-25 12:46:26.047689+05:30	2026-08-25 12:47:48.546904+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+22586770-4bdc-49f5-8705-1b933a88252a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Dz0DPVf5xOkFcQ7jZ+DOcLcp4RhGz0ratK8HoTeO7ZU=	2026-09-01 12:47:48.546687+05:30	2026-08-25 12:48:18.245472+05:30	\N	2026-08-25 12:47:48.546904+05:30	2026-08-25 12:48:18.246198+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2174789d-4d9d-4c23-818d-0f53f3dd5642	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	IiF5xRh63xfndTYc9bATB8nuw+wGqZ9Wb4Ybb4GV13U=	2026-09-01 12:48:18.245936+05:30	2026-08-25 12:48:59.166466+05:30	\N	2026-08-25 12:48:18.246198+05:30	2026-08-25 12:48:59.167424+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+95c5fd06-4796-485e-8808-dcc6cb06b112	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	PJrlkG7sAg+Ehk2RpI7s9VoK1rNJ7e6NZqkeeLN5/ZE=	2026-09-01 12:48:59.167058+05:30	2026-08-25 12:54:16.912023+05:30	\N	2026-08-25 12:48:59.167424+05:30	2026-08-25 12:54:17.052523+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0a2737a2-085b-47a6-929d-4bdf424252dd	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	CoFY3zoqvtHEdEqYBRiEpP+TtYPPK8YSAnL35QMsgr4=	2026-09-01 12:54:17.031632+05:30	2026-08-25 12:54:17.665322+05:30	\N	2026-08-25 12:54:17.052523+05:30	2026-08-25 12:54:17.666815+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bd8ff7b3-6289-4ae1-b159-d50053d7c902	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	JdJIo7H7PcSDfGg17gurE+2ZqUaFxNOjpdOcYKROS9I=	2026-09-01 12:54:17.666292+05:30	2026-08-25 12:56:18.014317+05:30	\N	2026-08-25 12:54:17.666815+05:30	2026-08-25 12:56:18.028326+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c2d3875f-824b-452c-8337-f84ab87d1e2f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	9l9yxaXScZW+OfI5ale27BwdR5axG+ZgIT2+lE0z9zk=	2026-09-01 12:56:18.015809+05:30	2026-08-25 13:00:28.169656+05:30	\N	2026-08-25 12:56:18.028326+05:30	2026-08-25 13:00:28.169712+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+df930987-ad78-445d-afa2-497c1cefe42f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	sjaNC8QCNAI8gGlwIZdgEQ0yjFLNxnuDwAOcmFuJPMc=	2026-09-01 13:00:28.783862+05:30	2026-08-25 14:59:09.359059+05:30	\N	2026-08-25 13:00:28.784141+05:30	2026-08-25 14:59:09.359201+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+921ee17c-d4e9-4ea4-b953-c595d10c065a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	zQ6S0RGtadMcrloFkhE9n35Cfx5QxSYoms7C3dM21Sw=	2026-09-01 14:59:10.208817+05:30	2026-08-25 14:59:39.520468+05:30	\N	2026-08-25 14:59:10.215188+05:30	2026-08-25 14:59:39.521263+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b042ed0f-a3e3-4b12-8c06-104e414bbd53	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	CAVp1tm5vhAYZqoiKdUhvSuFE3qwYS00qvB0c5gK6tU=	2026-09-01 14:59:39.52094+05:30	2026-08-25 15:00:02.826469+05:30	\N	2026-08-25 14:59:39.521263+05:30	2026-08-25 15:00:02.826957+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b1ede194-1361-4e1b-9e36-2b0df5d27793	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	zmobMrTux/dODX6QGzLhCDxbKNWrFN5/CkNROgkW7uk=	2026-09-01 15:00:02.82681+05:30	2026-08-25 15:02:34.222612+05:30	\N	2026-08-25 15:00:02.826957+05:30	2026-08-25 15:02:34.223674+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fa0bed9f-8794-4a5d-92c3-be3b039f736c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	K3QSbq/pEzkqg8jqrVbUWiSEkzhxYSOW+DkEwS7sSuk=	2026-09-01 15:02:34.223398+05:30	2026-08-25 15:09:44.655259+05:30	\N	2026-08-25 15:02:34.223674+05:30	2026-08-25 15:09:44.681767+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6495faf7-f15d-4124-8679-319dd6489ad6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	DlIgKhaoyqPW6V/ifuUEE5Tf06Tumhl3gczGghUxOc0=	2026-09-01 15:09:44.672192+05:30	2026-08-25 15:15:26.050963+05:30	\N	2026-08-25 15:09:44.681767+05:30	2026-08-25 15:15:26.052514+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+387e98e2-938a-432f-a57a-bb8a4d642481	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	4ElPK0Qa/l8tEron0OFS357a999cvi9u+zfGUE6KXS4=	2026-09-01 15:15:26.051695+05:30	2026-08-25 15:49:16.152563+05:30	\N	2026-08-25 15:15:26.052514+05:30	2026-08-25 15:49:16.383231+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d1970e47-16e9-4c59-ad1c-ee915fc081e6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	hSgMB7Lv5itwOLC9Y4P1ddyE4vEMXyLVxLMFGg2jj20=	2026-09-01 15:49:16.349012+05:30	2026-08-25 16:02:54.419464+05:30	\N	2026-08-25 15:49:16.383231+05:30	2026-08-25 16:02:54.432286+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b4519eca-5f54-493d-87c6-ae0ee566dcf3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	o0lQ8Rznsw1fKmcCey3R7JCUaERkzvYg4Ym9AhguP3s=	2026-09-01 16:02:54.428388+05:30	2026-08-25 16:03:04.774008+05:30	\N	2026-08-25 16:02:54.432286+05:30	2026-08-25 16:03:04.777553+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c83292c8-a2c5-4e36-bdc6-436b5bd17912	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	8w4g/sNN1ZysVFHTPDQ/CfoIgd4NyrgpyAIsxNNbnRE=	2026-09-01 16:03:04.777361+05:30	2026-08-25 16:56:17.168665+05:30	\N	2026-08-25 16:03:04.777553+05:30	2026-08-25 16:56:17.55126+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+32d30f4c-c163-46a3-8ea8-5b0bc227dac0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	0NykrY/c+E0MnWwFOVy6nb74BRi3RUNwf6BkXk17zYg=	2026-09-01 16:56:17.488055+05:30	2026-08-26 11:07:00.813729+05:30	\N	2026-08-25 16:56:17.55126+05:30	2026-08-26 11:07:00.831686+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f528dfa4-3925-413c-8cda-a2688deb0292	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	HO0/YTCDfjRZsbcw9eZ6b0tGmhd63+nuSUDzngkNiBA=	2026-09-02 11:07:00.827266+05:30	2026-08-26 11:07:31.088951+05:30	\N	2026-08-26 11:07:00.831686+05:30	2026-08-26 11:07:31.099391+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+faae4bd0-c6d3-435d-b6c4-3849a8266346	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	PbaibS0EmZscPSVvzykvLXe2/vlY6LOCzR4DcHXI/LI=	2026-09-02 11:07:31.099182+05:30	2026-08-26 11:07:54.273081+05:30	\N	2026-08-26 11:07:31.099391+05:30	2026-08-26 11:07:54.273092+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+48b4025a-faff-4b23-b207-36507a21f7dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	UFZGG1zvVzn/oLQ9JzVawvquv3zIv+jUNh4lKa0W4NA=	2026-09-02 11:07:54.9817+05:30	2026-08-26 11:22:01.942307+05:30	\N	2026-08-26 11:07:54.981849+05:30	2026-08-26 11:22:01.970635+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d4ca6c41-cc61-4277-b3f2-09f9d15d4e5d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YtCOfHi7hel46I6mEzmfs69xPWVxvxLJ/aqbEMeW8z4=	2026-09-02 11:22:01.962366+05:30	2026-08-26 11:22:07.196096+05:30	\N	2026-08-26 11:22:01.970635+05:30	2026-08-26 11:22:07.196892+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+326ea601-235a-45ca-a553-ce3346ada060	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	JNvKcmj1/AXS77UTVFOCqd42t2xtUs/9ybjbW5vtZfE=	2026-09-02 11:22:07.196689+05:30	2026-08-26 11:23:56.106669+05:30	\N	2026-08-26 11:22:07.196892+05:30	2026-08-26 11:23:56.141835+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+483c6c63-4514-4bf3-8cac-bf92461d777e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	UfGhdBBEKhinx7SI5RQD3J+PJY3KuTR0kdf2+CtEMUs=	2026-09-02 11:23:56.136539+05:30	2026-08-26 11:23:58.542152+05:30	\N	2026-08-26 11:23:56.141835+05:30	2026-08-26 11:23:58.546497+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+7896a328-85a1-4dd6-985b-b13156d41e40	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	85ltcFMtqY5Y1CCatF+8tRPtQZNIv8McKRs3jiCsANQ=	2026-09-02 11:23:58.54635+05:30	2026-08-26 11:32:22.993+05:30	\N	2026-08-26 11:23:58.546497+05:30	2026-08-26 11:32:23.002206+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+46ce1981-12bb-484f-add0-af0a47411ec3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2vbJLHTzJFt4rTVjv50BIzRYyC5oa176BoLwGkaix/4=	2026-09-02 11:32:23.0011+05:30	2026-08-26 11:32:32.54037+05:30	\N	2026-08-26 11:32:23.002206+05:30	2026-08-26 11:32:32.542883+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+85a37037-867f-4399-b05f-5d8be45c0306	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	GEjgTCj7dXnpg0/Vg3tFgtDpd/WkVrf6sMDTvlOLcXg=	2026-09-02 11:32:32.542679+05:30	2026-08-26 12:02:52.138781+05:30	\N	2026-08-26 11:32:32.542883+05:30	2026-08-26 12:02:52.140006+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d9f1adc7-383c-420e-91fa-14abc43b428b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	EZBSKhx+/U3wZA+s/yi/N/03LbMbysRXcVqv4xEz5/4=	2026-09-02 12:02:54.60495+05:30	2026-08-26 12:31:06.435151+05:30	\N	2026-08-26 12:02:54.619937+05:30	2026-08-26 12:31:06.444742+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+81e52c44-a414-41a0-9ff1-27dd258cacf4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	CL/SHhyBlArAJuYReNT05CJX+59SUOeFCEhOk9gvueY=	2026-09-02 12:31:07.290007+05:30	2026-08-26 12:42:23.57384+05:30	\N	2026-08-26 12:31:07.326124+05:30	2026-08-26 12:42:23.573884+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a27a0c11-838c-4f16-95b8-9b6ccc9917ae	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	PJHv6sSKnmw8076w6BYG1YyjHJWQmXLJLc4R2XrppKA=	2026-09-02 12:42:24.181757+05:30	2026-08-26 13:04:20.994914+05:30	\N	2026-08-26 12:42:24.18252+05:30	2026-08-26 13:04:20.994943+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+11da5ba9-118d-477d-8185-eefda92466f4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	B4XUo0gvOF0csO/zQxEBhSSbQ4wAKcjHVjOMfi4Z5W0=	2026-09-02 13:04:22.203606+05:30	2026-08-26 13:04:35.084539+05:30	\N	2026-08-26 13:04:22.203981+05:30	2026-08-26 13:04:35.084561+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2f41c4a0-c5a2-4b94-8647-93f79cc318d5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	f/SFut0LpBz2Mlo6yzSFOWexFG5qo6GbtzARglAv6kI=	2026-09-02 13:04:36.012578+05:30	\N	\N	2026-08-26 13:04:36.01329+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
 --
--- Data for Name: repository; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: repository; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.repository ("Id", "FileName", "Category", "Size", "LastUpdated", "UploadedBy", "FilePath", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-f17d9e84-8528-813e-e2e8-2b1f89b2c3bf	Leave and Attendance Policy.pdf	IMP	819200	2026-08-07 23:40:16.325637+05:30	Harsh Nair	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Leave_and_Attendance_Policy.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	1572864	2026-08-17 23:40:16.325141+05:30	Nikhil Khanna	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/Security_Incident_Response_Plan.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-b90b20d5-4a19-40be-123d-17d74762e2b7	Timesheet Submission Process.pdf	PMS	409600	2026-07-05 23:40:16.325322+05:30	Kavya Desai	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Timesheet_Submission_Process.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-303c6e5f-2413-0ae7-b7c6-85aaa53e19fe	Code of Conduct 2026.pdf	IMP	1048576	2026-07-07 23:40:16.325485+05:30	Ankit Verma	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Code_of_Conduct_2026.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-c16772d2-8353-a212-0e4d-7068fb9f4207	API Gateway Configuration Guide.pdf	Tech	2457600	2026-07-02 23:40:16.247186+05:30	Rahul Sharma	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/API_Gateway_Configuration_Guide.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-0373b2cd-af08-ffa7-1773-e781671f7500	CI CD Pipeline Setup Procedures.docx	Tech	1048576	2026-07-07 23:40:16.324056+05:30	Sneha Iyer	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/CI_CD_Pipeline_Setup_Procedures.docx	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-aef197d2-4160-5d34-8c7a-04c6f140f681	Remote Work Policy.pdf	IMP	614400	2026-08-15 23:40:16.325536+05:30	Arjun Shah	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Remote_Work_Policy.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-40df639a-df99-7f51-f512-3207d21c1cf8	WBS Creation Guidelines.docx	PMS	786432	2026-07-07 23:40:16.325269+05:30	Rahul Sharma	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/WBS_Creation_Guidelines.docx	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	655360	2026-08-15 23:40:16.325375+05:30	Pooja Menon	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Resource_Allocation_SOP.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-f0fa2ce3-cf22-534b-952f-d2333884d1d6	Database Backup and Recovery SOP.pdf	Tech	3145728	2026-07-27 23:40:16.325014+05:30	Vikram Gupta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/Database_Backup_and_Recovery_SOP.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-1d8b2ea8-542c-0bc9-2983-529a7c2b4bd4	Data Privacy and GDPR Guidelines.pdf	IMP	2097152	2026-06-28 23:40:16.325588+05:30	Rohan Mehta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Data_Privacy_and_GDPR_Guidelines.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-81637e14-47fd-16df-e1b0-a3f2678a8710	Project Onboarding Checklist.pdf	PMS	524288	2026-07-26 23:40:16.32521+05:30	Pooja Menon	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Project_Onboarding_Checklist.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-f23f909a-edfa-3d7a-d553-59fdd0d8690b	Change Request Management Process.docx	PMS	327680	2026-08-02 23:40:16.325432+05:30	Ira Kapoor	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Change_Request_Management_Process.docx	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
-e0c1cb36-139a-4fe9-a0ed-d28cfbb7076a	Sample_Architecture_Guide.pdf	Tech	33	2026-08-23 23:42:30.416433+05:30	Karthik Bose	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/20260823_181230_394_Sample_Architecture_Guide.pdf	2026-08-23 23:42:30.4294+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-f4ec5e5f-7885-42cf-b1fc-b76c6bdd1a22	PMS_Workflow_Spec.docx	PMS	16	2026-08-23 23:42:46.310679+05:30	Rohan Mehta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/20260823_181246_304_PMS_Workflow_Spec.docx	2026-08-23 23:42:46.312803+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	27	2026-08-23 23:42:46.368514+05:30	Sneha Iyer	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/20260823_181246_366_Company_Compliance_Policy.pdf	2026-08-23 23:42:46.39232+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	17754568	2026-08-24 00:01:21.474426+05:30	Samar Patel	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/20260823_183121_383_document.pdf	2026-08-24 00:01:21.564645+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	25	2026-08-25 12:52:47.738454+05:30	Dhanshree Pansare	repository/pms/20260825_072247_718_financial_report.xlsx	2026-08-25 12:52:47.810202+05:30	2026-08-25 15:10:43.668112+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:43.668112+05:30
+2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	17754568	2026-08-24 00:01:21.474426+05:30	Admin User	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/20260823_183121_383_document.pdf	2026-08-24 00:01:21.564645+05:30	2026-08-25 15:10:45.54175+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:45.54175+05:30
+06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	27	2026-08-23 23:42:46.368514+05:30	Compliance Officer	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/20260823_181246_366_Company_Compliance_Policy.pdf	2026-08-23 23:42:46.39232+05:30	2026-08-25 15:10:47.36039+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:47.36039+05:30
+f4ec5e5f-7885-42cf-b1fc-b76c6bdd1a22	PMS_Workflow_Spec.docx	PMS	16	2026-08-23 23:42:46.310679+05:30	PMS Manager	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/20260823_181246_304_PMS_Workflow_Spec.docx	2026-08-23 23:42:46.312803+05:30	2026-08-25 15:10:49.106488+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:49.106488+05:30
+e0c1cb36-139a-4fe9-a0ed-d28cfbb7076a	Sample_Architecture_Guide.pdf	Tech	33	2026-08-23 23:42:30.416433+05:30	Curl Tester	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/20260823_181230_394_Sample_Architecture_Guide.pdf	2026-08-23 23:42:30.4294+05:30	2026-08-25 15:10:52.374735+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:52.374735+05:30
+b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	1572864	2026-08-17 23:40:16.325141+05:30	Rahul Gupta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/Security_Incident_Response_Plan.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:10:55.367843+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:55.367843+05:30
+aef197d2-4160-5d34-8c7a-04c6f140f681	Remote Work Policy.pdf	IMP	614400	2026-08-15 23:40:16.325536+05:30	Vikrant Malhotra	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Remote_Work_Policy.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:10:57.192443+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:57.192443+05:30
+706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	655360	2026-08-15 23:40:16.325375+05:30	Rahul Gupta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Resource_Allocation_SOP.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:10:58.873408+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:58.873408+05:30
+f17d9e84-8528-813e-e2e8-2b1f89b2c3bf	Leave and Attendance Policy.pdf	IMP	819200	2026-08-07 23:40:16.325637+05:30	Anita Desai	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Leave_and_Attendance_Policy.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:11:00.896423+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:11:00.896423+05:30
+f23f909a-edfa-3d7a-d553-59fdd0d8690b	Change Request Management Process.docx	PMS	327680	2026-08-02 23:40:16.325432+05:30	Aarav Mehta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Change_Request_Management_Process.docx	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:11:02.745863+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:11:02.745863+05:30
+81637e14-47fd-16df-e1b0-a3f2678a8710	Project Onboarding Checklist.pdf	PMS	524288	2026-07-26 23:40:16.32521+05:30	Riya Kapoor	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Project_Onboarding_Checklist.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:11:04.865657+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:11:04.865657+05:30
+303c6e5f-2413-0ae7-b7c6-85aaa53e19fe	Code of Conduct 2026.pdf	IMP	1048576	2026-07-07 23:40:16.325485+05:30	Vikrant Malhotra	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Code_of_Conduct_2026.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:11:08.982288+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:11:08.982288+05:30
+40df639a-df99-7f51-f512-3207d21c1cf8	WBS Creation Guidelines.docx	PMS	786432	2026-07-07 23:40:16.325269+05:30	Aarav Mehta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/WBS_Creation_Guidelines.docx	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:11:11.173993+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:11:11.173993+05:30
+0373b2cd-af08-ffa7-1773-e781671f7500	CI CD Pipeline Setup Procedures.docx	Tech	1048576	2026-07-07 23:40:16.324056+05:30	Vikram Shah	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/CI_CD_Pipeline_Setup_Procedures.docx	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:11:13.552185+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:11:13.552185+05:30
+b90b20d5-4a19-40be-123d-17d74762e2b7	Timesheet Submission Process.pdf	PMS	409600	2026-07-05 23:40:16.325322+05:30	Riya Kapoor	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/pms/Timesheet_Submission_Process.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:11:15.5612+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:11:15.5612+05:30
+c16772d2-8353-a212-0e4d-7068fb9f4207	API Gateway Configuration Guide.pdf	Tech	2457600	2026-07-02 23:40:16.247186+05:30	Rahul Gupta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/API_Gateway_Configuration_Guide.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:11:17.889839+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:11:17.889839+05:30
+1d8b2ea8-542c-0bc9-2983-529a7c2b4bd4	Data Privacy and GDPR Guidelines.pdf	IMP	2097152	2026-06-28 23:40:16.325588+05:30	Anita Desai	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/imp/Data_Privacy_and_GDPR_Guidelines.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 15:11:20.130903+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:11:20.130903+05:30
+f0fa2ce3-cf22-534b-952f-d2333884d1d6	Database Backup and Recovery SOP.pdf	Tech	3145728	2026-07-27 23:40:16.325014+05:30	Aarav Mehta	C:/Users/Pradnya Kamble/Downloads/Talakunchi/project_TrackerPro/storage/repository/tech/Database_Backup_and_Recovery_SOP.pdf	2026-08-23 23:40:16.325673+05:30	2026-08-25 13:11:58.113952+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 13:11:58.113952+05:30
+ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	34	2026-08-25 14:58:11.650702+05:30	Dhanshree Pansare	repository/tech/20260825_092811_639_devops_guidelines.pdf	2026-08-25 14:58:11.712525+05:30	2026-08-25 15:10:38.242373+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:38.242373+05:30
+3c3d760e-c9b1-4aef-9ddf-d18b7374065f	TK I PMS Tool I Timeline I V01 (1).xlsx	IMP	21506	2026-08-25 13:08:51.55257+05:30	Admin User	repository/imp/20260825_073851_528_TK_I_PMS_Tool_I_Timeline_I_V01__1.xlsx	2026-08-25 13:08:51.554397+05:30	2026-08-25 15:10:41.563467+05:30	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-25 15:10:41.563467+05:30
+cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	13161	2026-08-25 15:11:56.891164+05:30	Admin User	repository/imp/20260825_094156_853_TK_I_PMS-Tool_I_Roles___Processes_1.xlsx	2026-08-25 15:11:56.894914+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	8176221	2026-08-25 15:14:59.377826+05:30	Admin User	repository/pms/20260825_094459_333_KEKA_-_PMS_Module_guide.pdf	2026-08-25 15:14:59.379004+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	187688	2026-08-25 15:16:52.823561+05:30	Admin User	repository/tech/20260825_094652_817_RFP_2026_7206600_Report__2.pptx	2026-08-25 15:16:52.824368+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	16	2026-08-25 15:23:45.564045+05:30	Admin User	repository/tech/20260825_095345_527_PMS_Workflow_Spec.docx	2026-08-25 15:23:45.566515+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	458969	2026-08-25 16:57:29.149632+05:30	Admin User	repository/pms/20260825_112729_130_TK_Tender_Summary_template__071223.pptx	2026-08-25 16:57:29.151008+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
 --
--- Data for Name: repository_activity_logs; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: repository_activity_logs; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.repository_activity_logs ("Id", "Action", "DocumentId", "FileName", "Category", "PerformedBy", "Details", "CreatedAtUtc", "DeletedAtUtc", "CreatedBy", "UpdatedBy", "UpdatedAtUtc") FROM stdin;
+d607a02c-2ed9-488d-a606-d9fd47a439e9	Uploaded	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Dhanshree Pansare	Dhanshree Pansare uploaded financial_report.xlsx	2026-08-25 12:52:47.810202+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+281f8c04-8e17-4c42-b856-e67ce0b8a0af	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	admin@acme.co	admin@acme.co viewed financial_report.xlsx	2026-08-25 12:53:00.745697+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+78b454bc-6152-47a6-8662-b9d95a57581d	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	admin@acme.co	admin@acme.co viewed financial_report.xlsx	2026-08-25 12:53:24.952618+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6554b6e5-2bed-4ee7-b6d0-f7e459c5b582	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 13:01:11.043031+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d26a4058-4793-45f3-be4e-c987d05b9754	Viewed	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Admin User	Admin User viewed Company_Compliance_Policy.pdf	2026-08-25 13:01:15.165521+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a28b7611-1533-4c98-8ee7-e4e8f421c855	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 13:02:28.926641+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+e83225de-cf2a-43c6-89e5-f48d11036851	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 13:03:14.559786+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+10ef4d3b-c8e1-456b-b6a4-68df639d440b	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:30:41.238362+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+28faca31-dce1-4ea8-8c95-e50366d9cb18	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:31:19.114777+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+4b9f4a36-4cd1-4a1f-8d85-df03842e45b8	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:31:24.103884+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+73eaf7b9-b2c1-40d3-b7b8-d447e9d584c7	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:49:06.78787+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+02f475ec-54fc-4fd4-b9f1-eadcbae842a1	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:51:04.064861+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+765e1131-5007-41d5-a0e9-d1388d35805b	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:52:48.385103+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+3b51ab42-d7ea-4f29-925a-384eb4c455cc	Downloaded	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	admin@acme.co	admin@acme.co downloaded devops_guidelines.pdf	2026-08-25 14:59:29.989454+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d7604a59-0aac-45de-89ff-a8a73d7fe619	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	Admin User	Admin User viewed devops_guidelines.pdf	2026-08-25 15:02:36.020934+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+12bde8dc-dd37-434f-8a33-de22b69388c6	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	admin@acme.co	admin@acme.co viewed devops_guidelines.pdf	2026-08-25 15:02:36.039749+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8a504a55-9279-4cc9-bcf0-6eebb19e849a	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 15:02:39.499136+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ddb08c36-c3a4-4937-ae9a-3fda9262e589	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	admin@acme.co	admin@acme.co viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 15:02:39.513797+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+4818b1e2-5560-4cc2-9393-50fecec70c73	Viewed	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Admin User	Admin User viewed Company_Compliance_Policy.pdf	2026-08-25 15:03:49.744384+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+c426f146-df7f-414a-b734-2735098bd633	Viewed	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	admin@acme.co	admin@acme.co viewed Company_Compliance_Policy.pdf	2026-08-25 15:03:49.764944+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+68bb1487-dc9b-47de-b1bd-bfb55172e82f	Deleted	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	Admin User	Deleted devops_guidelines.pdf from Tech	2026-08-25 15:10:38.242373+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7ebf97ee-50be-4352-ae21-cf6a8853be1a	Deleted	3c3d760e-c9b1-4aef-9ddf-d18b7374065f	TK I PMS Tool I Timeline I V01 (1).xlsx	IMP	Admin User	Deleted TK I PMS Tool I Timeline I V01 (1).xlsx from IMP	2026-08-25 15:10:41.563467+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a10068e1-ef46-4818-9a1b-a664722b020d	Deleted	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Deleted financial_report.xlsx from PMS	2026-08-25 15:10:43.668112+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+9af86e4f-24a3-489a-83b5-0cc59b9118d5	Deleted	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Deleted 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf from Tech	2026-08-25 15:10:45.54175+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+192d9d10-513f-42cf-8439-47c7bcfc0639	Deleted	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Admin User	Deleted Company_Compliance_Policy.pdf from IMP	2026-08-25 15:10:47.36039+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+31dd3381-5245-4b77-aa91-56130b0b22af	Deleted	f4ec5e5f-7885-42cf-b1fc-b76c6bdd1a22	PMS_Workflow_Spec.docx	PMS	Admin User	Deleted PMS_Workflow_Spec.docx from PMS	2026-08-25 15:10:49.106488+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+89ea88b5-2245-4e4e-9e91-ad2ae18f6651	Deleted	e0c1cb36-139a-4fe9-a0ed-d28cfbb7076a	Sample_Architecture_Guide.pdf	Tech	Admin User	Deleted Sample_Architecture_Guide.pdf from Tech	2026-08-25 15:10:52.374735+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7a435d55-8a3e-4a7d-923e-ba77b07d79a6	Deleted	b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	Admin User	Deleted Security Incident Response Plan.pdf from Tech	2026-08-25 15:10:55.367843+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d9c640bb-3779-4e25-bcfc-4aa406a06390	Deleted	aef197d2-4160-5d34-8c7a-04c6f140f681	Remote Work Policy.pdf	IMP	Admin User	Deleted Remote Work Policy.pdf from IMP	2026-08-25 15:10:57.192443+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+b980db78-d1df-4564-a97a-1ae5b1f9405d	Deleted	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	Admin User	Deleted Resource Allocation SOP.pdf from PMS	2026-08-25 15:10:58.873408+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+053cbb7e-50f7-445a-ac2c-bf05a715f166	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 12:58:24.734245+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+38187c14-5450-48e1-b655-04122a7513b7	Viewed	f4ec5e5f-7885-42cf-b1fc-b76c6bdd1a22	PMS_Workflow_Spec.docx	PMS	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 13:00:35.456428+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d6277cfd-f5b1-490b-a065-6a45d4c167c7	Viewed	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Admin User	Admin User viewed Company_Compliance_Policy.pdf	2026-08-25 13:00:40.183188+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+4dc4a04e-6c73-4b7c-bff7-6dc7331cf6da	Viewed	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Admin User	Admin User viewed Company_Compliance_Policy.pdf	2026-08-25 13:00:50.005183+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+c44a4ce2-826b-4292-af6b-e21a77a53cab	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 13:00:58.776721+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a4da1efe-8c23-4c36-9d98-bccc69b1771d	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 13:02:17.759537+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+f576c7d9-d2ab-4467-a20a-1d2e4eb205c7	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	admin@acme.co	admin@acme.co viewed financial_report.xlsx	2026-08-25 13:02:31.547912+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2f8fa037-364f-4d31-9f64-3cb73ed3fa66	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 13:04:15.428053+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+b7180df7-87ce-47f8-b479-9f3a018acd11	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 13:04:23.975146+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a4704e1e-f1e5-429d-81ae-9ded78a0e033	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	admin@acme.co	admin@acme.co viewed financial_report.xlsx	2026-08-25 13:04:26.701891+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8f70b43b-6596-4e7b-8585-6f9cdaf6962f	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 13:04:29.146682+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+f78002ab-88dd-482a-bc40-170aaf61c61a	Downloaded	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	admin@acme.co	admin@acme.co downloaded financial_report.xlsx	2026-08-25 13:04:29.220377+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+189f8e28-0ba8-4f05-a0d5-f11b0d3771d4	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	admin@acme.co	admin@acme.co viewed financial_report.xlsx	2026-08-25 13:04:33.882275+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+01822590-be49-4714-8e58-486ed760f957	Uploaded	3c3d760e-c9b1-4aef-9ddf-d18b7374065f	TK I PMS Tool I Timeline I V01 (1).xlsx	IMP	Admin User	Admin User uploaded TK I PMS Tool I Timeline I V01 (1).xlsx	2026-08-25 13:08:51.554397+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+cc4e9fb1-9d59-427a-a4a4-57142dae140f	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:31:17.704572+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2fb79b63-cbeb-4127-9d38-46d296fb6d1f	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:31:20.121812+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8990236f-a815-4c1f-b387-ffa218ccbaf9	Uploaded	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	Dhanshree Pansare	Dhanshree Pansare uploaded devops_guidelines.pdf	2026-08-25 14:58:11.712525+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+fcca003f-8bf1-4599-857d-9a545d955846	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	admin@acme.co	admin@acme.co viewed devops_guidelines.pdf	2026-08-25 14:58:20.040809+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+1b80144c-92d2-4b78-8b5a-91f701b911d1	Downloaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	admin@acme.co	admin@acme.co downloaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:58:34.337088+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+081ef346-a707-4de2-8fcd-94876f718c1f	Downloaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	admin@acme.co	admin@acme.co downloaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:58:34.413384+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ad51b550-0084-499d-832e-6bdb27f64e94	Downloaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	admin@acme.co	admin@acme.co downloaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:58:34.889886+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+56025732-9e30-4676-a82f-be1a205d674c	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	admin@acme.co	admin@acme.co viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:58:54.174345+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7ce0515d-7388-40bd-8448-629506b4da69	Viewed	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	Admin User	Admin User viewed Resource Allocation SOP.pdf	2026-08-25 15:02:49.583916+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 0cb574ba-87a9-408b-869e-0a3def818770	Uploaded	f17d9e84-8528-813e-e2e8-2b1f89b2c3bf	Leave and Attendance Policy.pdf	IMP	Harsh Nair	Harsh Nair uploaded Leave and Attendance Policy.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
 112e2d3c-91a6-4d6b-baf2-69a76eee25e4	Uploaded	b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	Nikhil Khanna	Nikhil Khanna uploaded Security Incident Response Plan.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
 50fb80b0-9bd4-44b7-9c5f-d96d3afb5c25	Uploaded	b90b20d5-4a19-40be-123d-17d74762e2b7	Timesheet Submission Process.pdf	PMS	Kavya Desai	Kavya Desai uploaded Timesheet Submission Process.pdf	2026-08-23 23:40:16.325673+05:30	\N	\N	\N	\N
@@ -1990,11 +2045,231 @@ caa35459-c646-4738-a213-e29d6d0ff204	Downloaded	f17d9e84-8528-813e-e2e8-2b1f89b2
 acb77d89-1c0a-4a1a-9b79-f8ac8d8f556a	Downloaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Arjun Shah	Arjun Shah downloaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-22 16:11:48.449326+05:30	\N	\N	\N	\N
 c3c9370c-6208-4109-9701-5d81e63f86f7	Downloaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Priya Sharma	Priya Sharma downloaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-22 13:11:48.449326+05:30	\N	\N	\N	\N
 8ecc0a49-ff0e-47b1-b816-5d6152f9e186	Downloaded	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Divya Rao	Divya Rao downloaded 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-23 18:11:48.449326+05:30	\N	\N	\N	\N
+e1976767-5cbf-4a2a-8eb7-12d9bf2171db	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	admin@acme.co	admin@acme.co viewed financial_report.xlsx	2026-08-25 13:01:01.811418+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+79fdeb96-8e1f-4a2a-bf5b-7543a93fc3c5	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 13:01:23.916218+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8547e788-8e0b-454c-a4fa-f61638428977	Viewed	bd31b2d4-98e1-43ab-aeeb-3a19daa58060	financial_report.xlsx	PMS	Admin User	Admin User viewed financial_report.xlsx	2026-08-25 13:02:25.133528+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+662a1376-a1d8-4009-a417-d6e81270c795	Viewed	b3e0cf16-f134-eaca-fb38-4717e89e9d0c	Security Incident Response Plan.pdf	Tech	Admin User	Admin User viewed Security Incident Response Plan.pdf	2026-08-25 13:11:46.409617+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0ad0ac8e-d84a-4cbe-a569-c132efa6c789	Deleted	f0fa2ce3-cf22-534b-952f-d2333884d1d6	Database Backup and Recovery SOP.pdf	Tech	Admin User	Deleted Database Backup and Recovery SOP.pdf from Tech	2026-08-25 13:11:58.113952+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+80237877-9098-4deb-82ab-a29626b523b1	Viewed	e0c1cb36-139a-4fe9-a0ed-d28cfbb7076a	Sample_Architecture_Guide.pdf	Tech	Admin User	Admin User viewed Sample_Architecture_Guide.pdf	2026-08-25 14:48:26.48448+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0cd99fda-7446-4501-9a44-21b9e7c5345f	Viewed	2738fefc-b486-4e4f-9d16-355283602733	𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	Tech	Admin User	Admin User viewed 𝙸𝚗𝚍𝚒𝚊𝚗_𝙿𝚘𝚕𝚒𝚝𝚢𝟖𝐭𝐡_𝐞𝐝𝐢𝐭𝐢𝐨𝐧𝚋𝚢_𝙼_𝙻𝚊𝚡𝚖𝚒𝚔𝚊𝚗𝚝𝚑.pdf	2026-08-25 14:58:54.401342+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+afa1dda6-ee8d-4c89-bb5f-02d3374daef2	Viewed	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	Admin User	Admin User viewed Company_Compliance_Policy.pdf	2026-08-25 14:59:07.192633+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d1c9d3e5-ca61-440f-ac7d-9bedec688a9a	Viewed	06445854-5708-42c3-a25d-045c4cc88f6a	Company_Compliance_Policy.pdf	IMP	admin@acme.co	admin@acme.co viewed Company_Compliance_Policy.pdf	2026-08-25 14:59:07.398809+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+98679e92-935d-43bc-8176-f28b6f132455	Viewed	3c3d760e-c9b1-4aef-9ddf-d18b7374065f	TK I PMS Tool I Timeline I V01 (1).xlsx	IMP	Admin User	Admin User viewed TK I PMS Tool I Timeline I V01 (1).xlsx	2026-08-25 14:59:10.575624+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+bbebca19-6a76-4e9d-a7ed-cdd4a88c3b6a	Viewed	3c3d760e-c9b1-4aef-9ddf-d18b7374065f	TK I PMS Tool I Timeline I V01 (1).xlsx	IMP	Admin User	Admin User viewed TK I PMS Tool I Timeline I V01 (1).xlsx	2026-08-25 14:59:22.595684+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ccfbcfa7-9f8e-488f-b4b7-e3210de0dc85	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	Admin User	Admin User viewed devops_guidelines.pdf	2026-08-25 14:59:29.914392+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+678b19a0-9623-453c-a810-36fdfff02608	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	Admin User	Admin User viewed devops_guidelines.pdf	2026-08-25 14:59:35.246396+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+9f4bcdc2-099e-4850-8b3b-dbd4adf3d1f1	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	admin@acme.co	admin@acme.co viewed devops_guidelines.pdf	2026-08-25 14:59:35.257521+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+9a5a15a0-3736-4457-8ac3-3cfaa5a51470	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	Admin User	Admin User viewed devops_guidelines.pdf	2026-08-25 14:59:41.530449+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a5f9eb34-3383-4155-9a4d-c0fa468bfa81	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	admin@acme.co	admin@acme.co viewed devops_guidelines.pdf	2026-08-25 14:59:41.537485+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+22afe7ad-e277-4f73-a191-e73f2aa64864	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	Admin User	Admin User viewed devops_guidelines.pdf	2026-08-25 15:02:29.417641+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+58f55140-5857-4b9a-9c34-a95b5f71c98b	Viewed	ed476e20-1ec6-4d89-9020-8fc8666884ef	devops_guidelines.pdf	Tech	admin@acme.co	admin@acme.co viewed devops_guidelines.pdf	2026-08-25 15:02:29.533271+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7bbc408f-729a-4ec2-8838-5ab635073bb4	Viewed	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	admin@acme.co	admin@acme.co viewed Resource Allocation SOP.pdf	2026-08-25 15:02:49.629901+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+9c0ae3a9-9a60-401a-80d9-b663aec330c0	Deleted	f17d9e84-8528-813e-e2e8-2b1f89b2c3bf	Leave and Attendance Policy.pdf	IMP	Admin User	Deleted Leave and Attendance Policy.pdf from IMP	2026-08-25 15:11:00.896423+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+77658d09-c027-4cd5-abd7-5ff05d566906	Deleted	81637e14-47fd-16df-e1b0-a3f2678a8710	Project Onboarding Checklist.pdf	PMS	Admin User	Deleted Project Onboarding Checklist.pdf from PMS	2026-08-25 15:11:04.865657+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+85ab957e-bc29-4f7e-9c6a-4e0138a56e9a	Deleted	0373b2cd-af08-ffa7-1773-e781671f7500	CI CD Pipeline Setup Procedures.docx	Tech	Admin User	Deleted CI CD Pipeline Setup Procedures.docx from Tech	2026-08-25 15:11:13.552185+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+96cfd7fa-153e-4549-b6cd-ca19cd0d30be	Deleted	c16772d2-8353-a212-0e4d-7068fb9f4207	API Gateway Configuration Guide.pdf	Tech	Admin User	Deleted API Gateway Configuration Guide.pdf from Tech	2026-08-25 15:11:17.889839+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+baa936a5-71fd-4af7-a670-cba65d304036	Uploaded	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User uploaded TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:11:56.894914+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7d4ad808-e905-4826-a86b-53a100d137ff	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:12:32.014802+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+55f25191-957c-44cb-ba92-a88bd3c8a253	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:13:14.913729+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+b62faa12-819e-4134-a29f-eadbb372a9d7	Deleted	f23f909a-edfa-3d7a-d553-59fdd0d8690b	Change Request Management Process.docx	PMS	Admin User	Deleted Change Request Management Process.docx from PMS	2026-08-25 15:11:02.745863+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+861174aa-1f5d-4349-be18-db9e1ad9c3d8	Deleted	303c6e5f-2413-0ae7-b7c6-85aaa53e19fe	Code of Conduct 2026.pdf	IMP	Admin User	Deleted Code of Conduct 2026.pdf from IMP	2026-08-25 15:11:08.982288+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+dfb05e96-62eb-45c5-ba1f-25ccffce0edd	Deleted	b90b20d5-4a19-40be-123d-17d74762e2b7	Timesheet Submission Process.pdf	PMS	Admin User	Deleted Timesheet Submission Process.pdf from PMS	2026-08-25 15:11:15.5612+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+55f66c36-3381-4464-bdf1-098a82f79422	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:12:05.265142+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0fefb687-e315-491a-b99a-dc5425975355	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:12:34.420151+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+40831c73-372b-4648-affc-eef432a3d821	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:13:26.424949+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+c340d0c3-754f-4c4a-8a26-a19a85963036	Deleted	40df639a-df99-7f51-f512-3207d21c1cf8	WBS Creation Guidelines.docx	PMS	Admin User	Deleted WBS Creation Guidelines.docx from PMS	2026-08-25 15:11:11.173993+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+dc74bed8-ad2e-472e-b268-9104b89ff799	Deleted	1d8b2ea8-542c-0bc9-2983-529a7c2b4bd4	Data Privacy and GDPR Guidelines.pdf	IMP	Admin User	Deleted Data Privacy and GDPR Guidelines.pdf from IMP	2026-08-25 15:11:20.130903+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+166d6a4c-7975-4fa1-9079-103667b96021	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:13:12.716785+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+63119738-3449-4669-986d-f7be4b14bfd6	Uploaded	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User uploaded KEKA - PMS Module guide.pdf	2026-08-25 15:14:59.379004+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2cddcb3c-bdaf-45db-a8e2-63623f4854b7	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-25 15:15:28.006251+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+c1d22924-270f-4dfc-9914-d9923c46b8a4	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 15:15:28.019102+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ddd7a886-508a-4041-9e00-3e439b511d03	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 15:15:43.375295+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+5a979174-3789-49bb-a7c5-8249a4cbb241	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-25 15:16:12.952363+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+dd53f5be-e101-4866-937b-b7ae93d9e20a	Downloaded	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co downloaded KEKA - PMS Module guide.pdf	2026-08-25 15:16:13.026526+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+82260265-8670-4b53-bfb2-4d77fa52f463	Uploaded	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User uploaded RFP_2026_7206600_Report (2).pptx	2026-08-25 15:16:52.824368+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2593dcb5-39c6-4c73-806f-b9c545ebe3bf	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:16:55.305783+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+e036b4f1-2e2c-4e56-9b29-f45eb2aba4e4	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:21:59.615623+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8f89d3c0-5e28-4661-bc05-c4b443247e19	Downloaded	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co downloaded RFP_2026_7206600_Report (2).pptx	2026-08-25 15:21:59.797282+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+fb040c03-e9bb-461d-a22f-b8983302e65d	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:22:48.055362+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+eefbdc38-f6d4-4886-b593-fad8e56f3e7e	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:22:49.787115+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d7ea8ee8-4df9-4c0f-b298-7adf654b9112	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-25 15:22:59.733263+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+e0ecc121-d960-4338-8571-8735cccb3cc3	Downloaded	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co downloaded KEKA - PMS Module guide.pdf	2026-08-25 15:22:59.802979+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+1016be0f-7764-40e3-b9c8-f925ea570cc8	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:23:10.729817+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+f5670105-e58b-4148-b77a-08ad0682f656	Downloaded	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co downloaded TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:23:10.789418+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+86e9eebd-9f43-4432-9104-6809f78717b3	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:23:14.523679+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+4e9e9cdc-85b8-4d76-863d-dceac06aee4a	Uploaded	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User uploaded PMS_Workflow_Spec.docx	2026-08-25 15:23:45.566515+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+90d1f14a-00e7-4286-afa0-a6ffaaf770fc	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 15:23:49.375175+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d0454ed3-a0d3-4afe-bd17-d8c4c1454717	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 15:23:52.177791+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+4f2b0996-6d0e-4044-843f-a45d93dba347	Downloaded	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co downloaded PMS_Workflow_Spec.docx	2026-08-25 15:23:52.246431+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+805e42dd-90cd-4ac5-a5dc-c867f25734bf	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:24:05.608742+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+dd00f3d4-2684-4b69-8097-546c0a58654f	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 15:24:40.344188+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0c170afc-883b-41ff-853a-2ecf0ee512c4	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-25 15:24:43.574818+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+e7cf6413-2452-4dba-89a6-6b10acac1be6	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 15:24:43.591183+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ead84d4e-9f2d-49b0-ad5d-4642492e8c88	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 15:24:46.240741+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+cfc96161-41e1-4b0c-b2c4-ac1070b761c7	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 15:38:04.052948+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+cf5b4d22-a5fd-4c00-8527-7de4b30a05ae	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:38:08.823387+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+fe8ad6e1-230a-4cbc-913d-db93531035cc	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:38:11.240409+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+bce401c0-8bd2-4aae-9131-cdf62bcd8e3b	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-25 15:38:15.566642+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2e2a1851-cdfd-440a-99d8-486cadd650ea	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 15:38:15.707582+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ccebe2f6-f78e-487c-b8e9-a94d1a8ae6db	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:38:18.981614+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+243bf1ec-2729-405c-bfc6-0173fa1652c0	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 15:45:43.270085+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a8969dfc-18c9-495c-ba95-f764c598de46	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-25 15:45:58.53812+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+c6fdd864-84ba-41ba-8941-d9443ed6775f	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:46:23.393287+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2baa02b8-0548-4563-99f4-3e4a46f3e216	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:46:31.895412+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ac59c5ff-5fa4-469a-a4d2-2111f8253657	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 15:47:02.747015+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+89944e55-6d09-45d9-a966-b19a142ab2ef	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-25 15:47:03.073767+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+f712d046-7f9b-4ad7-89f7-6b5e14a85a65	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:47:42.151705+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+fd1ea963-a12c-4ba5-9d7e-25d943fab0b9	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 15:49:25.434206+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+f12b0758-c2fc-494c-854b-4811e6b654b7	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-25 15:49:25.983006+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+121e452c-f266-41c2-8477-9b467729fdb7	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-25 15:49:26.306866+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+07324d87-2331-4f4a-97c4-7fc7ffa07e0e	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:52:11.654033+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6323453a-909d-481b-b925-a31da395101a	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:52:12.052126+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+457d7006-60c0-4e22-9778-2de25e4ddf13	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 15:52:13.166877+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+73820f36-e896-489f-b1ca-277173fecbca	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:52:54.03256+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+185872e4-b944-48cb-8ee8-cb4a1cfbb996	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:52:54.092568+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6aaa74de-1486-4b02-bdaf-1b5ce4b44d96	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 15:52:54.47585+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+31135774-baf9-4a98-bce0-99a5e2dbb68f	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 16:03:07.517139+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7f73b402-0f99-46f7-9f17-c9c8769e0ac4	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-25 16:03:07.610611+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0857b4af-1891-4dcd-9734-83a4b573b9e7	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-25 16:03:07.690007+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+43115495-48f2-489c-974c-c14c32f54578	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:03:14.407586+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+be2cbcae-c71d-42bf-97fc-f9e69d2d5c6a	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:03:14.426153+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+b9725752-aa22-4e58-b387-2165aac776c8	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:03:14.51003+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+91e5a29b-0fd3-498e-b9b2-67dce3c306b4	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:03:18.973814+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+dcccdba8-9d66-4a9b-934c-730aa12b15c8	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:03:29.150048+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+aa4f13fa-9866-43b8-b608-d7101e2d8b6f	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-25 16:07:21.297157+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+e35b0e28-2be0-4830-b314-b1331e73026d	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 16:07:21.403725+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+f11d237c-4cd4-4496-856c-cec927d7cda7	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-25 16:07:36.442934+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+24a963b1-fa21-40fe-bacb-1af6d7b603f8	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 16:07:36.478415+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+9615f70a-ac9c-4e1b-9015-49afe6d9f19f	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 16:07:38.958459+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+845473b6-f13f-4e6e-bbbd-24c309a273b6	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:07:56.200884+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+cd236f92-58c3-417f-bc0b-4d1c0432400b	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:07:56.250204+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+1b72ce86-4cfa-4566-b1fc-6f185bad536b	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:07:56.374437+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+46a27324-6cc6-4c51-af43-a9aabdd217ea	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 16:08:12.263691+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+78c588fe-f5a5-403c-9913-9baad2b95afa	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-25 16:08:12.34976+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+750dca96-db72-4486-9e91-1e755c5872c5	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-25 16:08:12.538335+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+02828fa0-6070-4e3d-8ab8-68f12cb1a1c7	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-25 16:56:29.669986+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7e1b4796-beab-4b26-b5a1-56de3c94d7c4	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-25 16:56:29.762743+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+3a643d69-a8c1-45d6-adaa-d84746b99ead	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-25 16:56:29.828306+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+fef1f54f-fc74-422f-8d63-595d7f167bd9	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 16:56:36.78937+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+4b8830a0-5002-4236-b16e-6263e47e3d6c	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 16:56:36.814021+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+647d4778-5c2c-4236-b4e1-e427f7b632c1	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-25 16:56:36.855745+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+deb24f3d-d15a-4389-922a-c78f41fb688b	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-25 16:56:51.123859+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0b7c5e96-7400-45ac-b12f-ce40568f78e4	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-25 16:56:51.155422+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0235a23c-6831-401c-b5f0-3f02e9652722	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:57:03.714348+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+24c04d56-fbe1-4bb1-b120-6e5f24d71f1d	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:57:03.761883+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+605cc084-58dd-475e-9589-4eb54cb3c975	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-25 16:57:03.803806+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+9d853117-1071-49b0-a1b7-bc97b0aad13e	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-25 16:57:34.906326+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+54ccf973-994c-4338-9247-8df2ba703013	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-25 16:57:34.967357+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+74dccc36-5427-4d09-a301-792d75bbefc2	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-25 16:57:48.217366+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+cb5e6e9e-5479-4907-be5c-a2e2297bca6d	Uploaded	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User uploaded TK_Tender Summary(template)_071223.pptx	2026-08-25 16:57:29.151008+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+47534ae8-037c-4879-9760-fbbaded81d40	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-25 16:57:34.913529+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+774a0f34-6568-4b28-99ac-15ac95fbc2a6	Downloaded	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co downloaded TK_Tender Summary(template)_071223.pptx	2026-08-25 16:57:48.292788+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+410cfb6e-69a7-44da-b2ef-5809ef258417	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:08:03.869477+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+5f743625-51f4-46d1-bea8-315c87527fd6	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:08:03.946995+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+87c308c0-ec86-4416-abcd-b01784d2ed9f	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:08:03.975032+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ece54adc-cbc8-4ed4-a092-dd92deba0ca3	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:08:20.507985+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6ea5f9bb-36cd-4d7b-bc22-a23300f0e002	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:08:20.559969+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+88c9fd85-c12b-4667-8f0d-d6473e59cd53	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:08:20.581054+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8a972620-ffc4-430b-af56-04b275ebbc90	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 11:08:24.268304+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ed712d63-fa8e-4887-9088-99bde24b004b	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 11:08:24.278756+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+bf5473b2-a0c1-4aed-87fc-d22961ad8e52	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 11:08:24.315774+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+088d7b9d-e3ab-40e0-8cde-1c0fe93098d3	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 11:08:30.908259+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+c59d2698-1bf2-4c07-a18a-9bbaaa902e2e	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 11:08:30.948993+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+f45a3fdf-995d-4810-a7f4-ff0ee607b12f	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 11:08:31.033289+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+5a6d9e16-3c21-4aae-888f-378261c475e7	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 11:10:23.817558+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d9e26b1f-af26-46b8-bb18-4eb962a2d163	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 11:10:23.962961+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+78c1ebe7-6f26-4f08-af3f-04a66fc7c68a	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 11:10:24.004388+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0ec62ecb-7997-4c11-849b-a537a7d07675	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:11:26.546864+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+47d4e402-16d4-4874-bb7e-23441b99d7c7	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:11:26.575294+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7bdc5e3e-60e8-420f-95d9-82874b9be348	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:11:26.608684+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+21f9f97a-3b92-459f-81a3-914d1c469c7a	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 11:25:02.256697+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8979f331-8fdb-48f6-8ae5-7b594b51851a	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 11:25:02.317883+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+cbba69c4-5500-4099-97ac-c61be4c28834	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 11:25:02.367779+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ac044be6-0927-436f-aad1-55d96134a60a	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:25:20.453504+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+747e9cc1-9afb-4d8d-83fe-3dd1eadf4f9d	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:25:20.472359+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+b2463079-dffe-4ffc-9cc2-62254466aae5	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:25:20.525795+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0cda26d4-f711-41a2-b168-fd35ef9287fd	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:25:27.198822+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+022ce174-82aa-40ad-9456-317eb7c5328b	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:25:33.949538+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2552c00c-ae7a-4598-8a9b-f850d7e5b798	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:25:33.961086+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+9eedb6d1-ddbb-4f37-bde9-e512c64d9f53	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:25:34.007894+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+aa7c3e3e-f57c-48c4-85fe-57e46a33c7a4	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:38:04.07947+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a5c7508d-e177-4af9-a724-5dcdbadb20a3	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:38:04.289378+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8930eb8d-5b4d-4237-9697-d04138bd5aeb	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	admin@acme.co	admin@acme.co viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:38:04.354599+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+99704101-7c16-4e36-9dc0-e92741e08d13	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 11:40:07.721884+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a27993b1-5d1b-4587-b112-b15e825eb07d	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 11:40:40.44335+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+192f273b-541b-4fe3-9726-f24134f9bae5	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 11:40:40.50201+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+08397ced-2238-4264-987e-d1b5b2a05081	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 11:40:40.586178+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+bf4ebb3c-d21b-4d88-9117-44be7d6624dd	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 11:41:03.923606+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+b9f67a26-1504-4cf7-a7db-f5bc59fa11ea	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 11:41:36.836605+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8925e46d-1a06-4098-abbb-36756ad93ecb	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 11:42:11.194744+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+66d8d6ff-b3a0-4b7c-af92-7490d6f5d768	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 11:42:55.071071+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+55e68b44-123a-49bf-a966-0813ace2e605	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 11:42:55.194389+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8f360a1d-3739-4b6c-a20c-6907c6556af0	Downloaded	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co downloaded PMS_Workflow_Spec.docx	2026-08-26 11:41:37.140386+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6a1d93e6-3f64-46cc-af9b-fecfe35d335b	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 11:42:09.97824+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+1e216072-a1d2-44f3-8849-9e1b7c822f33	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 11:42:10.931598+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a91588ee-8ea2-47c0-b4cd-39b1fddeb83a	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 11:42:28.534994+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+68e1ce94-6ad6-43bd-915d-2e588840ea27	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 11:42:55.33586+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+52fd825e-ffed-495e-ac52-39c5cfa92d58	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 11:43:14.345015+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+cf92f987-6f78-4ab2-8a6c-2915e9492d33	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:00:15.446747+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+142fab88-fdbf-403b-b949-1089ebebe9bf	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:00:15.446747+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+1520051e-bc7e-4c5c-b0e8-69e3f228ec85	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:00:15.745874+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a06db79f-53a6-4aee-908f-07378efa4361	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:00:26.122159+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+ff2b4d4d-1438-4f12-bb33-4732284af09d	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:01:58.277165+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+3c602d6c-51b0-4cb0-88c2-c59156872786	Downloaded	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co downloaded PMS_Workflow_Spec.docx	2026-08-26 12:01:58.45281+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+b1053847-e27b-4cdf-9182-18af83a040c0	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:02:40.844379+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6cbf768e-9bd0-4168-8615-906620bfae14	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:02:41.065567+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+1ce5dbeb-5844-4cf6-b138-d4ddba93990a	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:02:41.182796+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+59d0090e-3831-4b15-ab2d-2d07ddf6f47c	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:03:05.385389+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a8c8dd9f-ace8-47b3-95b6-6b7fa2a13526	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:03:57.863265+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+af959843-363e-4dc1-81ba-003ca40ff8de	Downloaded	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co downloaded TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:03:58.661822+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+e208611c-5491-4f82-b97a-acf47039d9e5	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:17:40.85102+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+34f8398a-09c3-4a92-ab58-6aeeafc4adc7	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:17:40.884004+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+c7597099-a9dd-4c48-a435-c4353f572a84	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:17:40.955719+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d1976852-c76a-49c5-92db-c1cc6bac8d89	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:17:44.42441+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a066da1f-befc-4952-84b7-03d04cbd5a7a	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-26 12:17:56.236311+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+57627851-785f-4e70-8e4f-346c7c0f63ce	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-26 12:17:56.278716+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+aa9fa0af-d20f-4bb7-bb97-42f90118772b	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	admin@acme.co	admin@acme.co viewed KEKA - PMS Module guide.pdf	2026-08-26 12:18:00.022366+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+671c8ca7-8b0b-4b0b-bef0-e30a87438acb	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:18:07.351564+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d274ce57-8c3e-492d-8a1f-15fffdb94317	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:18:07.353482+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+0b782a22-080a-44b1-8a50-0b01683def65	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:18:07.381911+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+e19bd9f4-613a-4151-9356-cad0d83d208f	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:18:09.181425+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+cd2935a6-f51b-47e7-aa9e-cfda165d086e	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:18:17.043903+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+70199401-bf22-4fc2-a692-d0f4e9365208	Downloaded	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co downloaded PMS_Workflow_Spec.docx	2026-08-26 12:18:17.101603+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+4beccdc2-a3f2-46c4-a1c0-794c07b06873	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 12:18:35.106282+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+f310e881-34be-40ce-a873-33bd209f04a7	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:18:46.160135+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d34da8b0-cca9-4fa7-9627-9d6c41a25f37	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:18:46.1597+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+da6735a3-15c6-4eca-ad72-a9e8cdf8c35e	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:18:46.197638+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+8e5014ce-3f1d-4b96-9fb2-af7bf0985b83	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 12:18:50.122341+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+e09d3bba-41f7-42e2-9875-65aa0f8114d3	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:21:03.171062+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+5d90332b-07c5-44c4-9f57-3858c0d9a3c1	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:21:03.174398+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+04419bb8-0929-4029-80d2-a8d8969cd9d0	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	admin@acme.co	admin@acme.co viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:21:03.216259+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+17a3acf3-9aea-4923-b5fd-8b30d8a7828d	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:22:07.669494+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2e2266a5-a910-4236-bf3f-888c283c4301	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:22:07.672485+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+635ac707-54a3-4b3f-a037-aa21c119b183	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:22:07.722655+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6a567300-9a24-4dcb-a80b-41e0d2ecb5dd	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:23:05.309637+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a0cbcabc-1685-4575-93e8-7553e41443a2	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:23:05.339903+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+01efd667-d0b2-4321-b8b2-26b3dbe889f5	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	admin@acme.co	admin@acme.co viewed PMS_Workflow_Spec.docx	2026-08-26 12:23:05.377538+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+eec7820a-d21a-4a26-b3ac-432d02c8ffb4	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 12:23:30.964212+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2671f831-a91c-448b-8f97-c9a02b751870	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:23:34.679863+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d46d4631-0d26-4e2f-970f-cbcbe29f7873	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:23:34.686517+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+99565cd1-6d12-4667-a38d-b2300ff1e1bf	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	admin@acme.co	admin@acme.co viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:23:34.732891+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+da74af41-ac9d-4622-a334-dae31d8570bd	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 12:31:08.67231+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+a6125343-7dc9-48dc-b4a1-dbbee505d03d	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:31:42.42592+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+76dab2dd-3886-4b0e-a4ef-dababe8d812a	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:32:41.032275+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+332f1901-fb11-4028-b123-3cb858d0dadf	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:33:18.429198+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+de74766c-f174-4c47-a674-43cbf3d4ca63	Viewed	7f3a2b6c-a28e-40b1-823f-933cadce5134	TK_Tender Summary(template)_071223.pptx	PMS	Admin User	Admin User viewed TK_Tender Summary(template)_071223.pptx	2026-08-26 12:35:19.158471+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+688a848c-3dbf-45e7-802c-b992c8fe2258	Viewed	e727d6eb-22ac-4fc7-82e1-d642cc5e98f9	RFP_2026_7206600_Report (2).pptx	Tech	Admin User	Admin User viewed RFP_2026_7206600_Report (2).pptx	2026-08-26 12:35:23.425039+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+59dc2d63-de4e-4e08-b4f8-613845c50952	Viewed	cf2e75c2-0390-495b-9fbb-dfe4f3b3c0c5	TK I PMS-Tool I Roles & Processes 1.xlsx	IMP	Admin User	Admin User viewed TK I PMS-Tool I Roles & Processes 1.xlsx	2026-08-26 12:36:18.096394+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+aa83339d-a9ac-4762-bd89-23a66c5b2db5	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-26 12:36:22.001862+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+2237747f-eac3-431d-88e7-0cd8342d9e4d	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:39:55.891849+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6ec6afda-d74b-42b9-8844-e5f930be7516	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:40:11.132866+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+9971ded1-71cb-406c-981e-3758a3cee1ca	Viewed	657d6a93-a755-4592-9878-bd42f7a5411f	PMS_Workflow_Spec.docx	Tech	Admin User	Admin User viewed PMS_Workflow_Spec.docx	2026-08-26 12:41:34.870294+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+6ac0cb87-3a8c-421f-88c2-c41a70ee1215	Viewed	93541430-e7ad-4149-8632-2fad8758943c	KEKA - PMS Module guide.pdf	PMS	Admin User	Admin User viewed KEKA - PMS Module guide.pdf	2026-08-26 12:41:39.663556+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
 --
--- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.role_permission_audits ("Id", "RoleId", "RoleName", "ModuleKey", "ModuleLabel", "SubmoduleKey", "SubmoduleLabel", "PermissionKey", "ActionLabel", "ChangeType", "PreviousValue", "NewValue", "ChangedById", "ChangedByName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -2029,7 +2304,7 @@ bb07b6db-6e82-4d0e-8bfe-fe780955635b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accoun
 
 
 --
--- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.roles ("Id", "DisplayName", "Permissions", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Name", "Description", "IsActive", "IsSystemRole") FROM stdin;
@@ -2050,7 +2325,7 @@ cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	["action-center.view", "
 
 
 --
--- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.sub_ventures ("Id", "ClientId", "Name", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Notes") FROM stdin;
@@ -2115,36 +2390,36 @@ a69fe228-de12-44e5-9128-dc3898f67e5c	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	IT	202
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Department", "SubDepartment", "Avatar", "Designation", "IsActive", "MustChangePassword", "RoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "FailedLoginAttempts", "LastLoginAtUtc", "LockedUntilUtc", "PasswordChangedAtUtc") FROM stdin;
 cf106b1b-6a96-464f-aa63-ddcb77a737e0	new.pm@acme.co	$2a$12$p.MfI7wlBAX2LZkpEvPoEunU.q5UljNMmswtXsI80UcJj8X2CVWM.	New PM	u99	\N	\N	\N	PM	t	t	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:25:45.951114+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
 30d629ff-3076-40f8-9c12-fb385b8c2600	admin2@acme.co	$2a$12$aqJIdIL9tzPW5DFE.zVFVurFkCUE0knMbU7.A0A1pBtjA7K4Qk7wS	Test Admin Two	A2	\N	\N	\N	\N	f	t	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:45:16.235641+05:30	2026-08-07 13:45:23.702021+05:30	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	0	\N	\N	\N
 a1878763-b174-41b0-88db-f2ebba76af83	sdsa@gmail.com	$2a$12$.bzyuW3FFq2Uau84IyFnYO1LXxDLXkbxtjVyvzVs71KECK6u2CONy	sadas	ads	sda	\N	\N	sda	t	t	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 15:00:46.654787+05:30	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N
-dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$WHEL1WobqYcd35QXxZ3cFeksSxiZe9DpyNC8eARIhS6xa8O2ELFHC	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-23 21:47:59.549139+05:30	\N	\N
-111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$kEsP/dT5s16oi6wdMt/gpeNswkGttj9vYqFW1BvIjskxfluJ0xyeK	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
-1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$hnE5Kx2wKO.fN8fEX6S83O41vP3NdBtnJN3o75SSu4zVQsXXRlIGy	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
-2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$UnuPBLlVwlOhlJIwZT6tr.Bwv4JvLjIXijHujm29MrAUMJso1j5US	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
-304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$AxHcR3JWf7LP79Pgqbm2MOrR2bS5SX1Hp4iKMNm0QsXjHk1CEtipK	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-21 22:15:24.911658+05:30	\N	\N
-40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$uH8fxem.J5Q438dClCNK2.DxdemrQkZtPMpfv5Ga1yAoOuXBixfRq	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-22 12:12:50.7026+05:30	\N	2026-08-10 12:32:04.244561+05:30
-47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$sAsJp/fwLzp6g1bqlwSs2OuRHYHWnxORCOowCZLjfHpst3HyZRr3K	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-24 00:38:08.012239+05:30	\N	\N
-49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$siICwDjqX9BLnL9KWrPlgesK0ucR9Wq1Oty/XHVgvV6SHI0asfAwm	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	\N	\N	\N
-65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$lgXJiFSjlPOioiSXXjVyoeCm4nmL0U5RSI/knAG84Yj2F6IYn08dW	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
-730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$qNXTPxK5WJxl34/xHfQgNuI6oz1PV1YJ2kF7mx9Mvy.xLfJsX2.L6	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
-9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$lZOj0LZIeWpG8UXB0MHWfOIfG61gUQpKu9QRdOzGUnObxh6jNq.uO	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
-a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$u1jLSrgbUdGpwzLIXKc7DukM/ZAh5IZ204Hz7sKbmrD7TVQa3OAoW	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-24 00:53:22.963759+05:30	\N	\N
-a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$RB4T0OQ2cACfXtcGkaoCZ.IE1jkmJmMVImeDtuzxSg3gICFM1dBrK	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
-a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$tgQ0eDUvnqpqoAKIAbefMO596eZAm1BlrgZ1cw3X6mbNcjG7lzYWW	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
-b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$fzJCjYokePjOncVro8QSO.Oabi5VbW2MgmDAyN59rtDF..6Plg/7W	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
-b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$Y7khEhbkr3DlVVJLJgd1WuRdRMlZZq9N0gafLeReZc.Izywt36yN2	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-24 00:37:26.049628+05:30	\N	\N
-e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$PdAexR92NV3UwrU.60rOSe/Kkc0MtY1D3rAapWrTesaA1v7Ay5j5m	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
-f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$/ugXMY9R758xYr6.6lYeS.g2XOxUSCaaxxkfsjUMqPCK.VJXybCH.	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-24 01:14:04.061444+05:30	\N	\N	\N	0	2026-08-24 00:34:56.651229+05:30	\N	\N
+111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$DxBLJ93eSArdoPADZD1h..hzw7Qqf7lLa5fEYxvWgBKggY5iAs.y6	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-11 16:55:29.999149+05:30	\N	\N
+1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$6vQkhNuFFUATCV3QYepdpeVJQDSX1P8EFJkNeo7TlmFduiUpCpOli	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-17 17:52:51.492258+05:30	\N	\N
+2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$lghHDZkIx176JrkqCj0Co./0KtKfIq2oGKJk7g95PXn9VPmzF8Oqq	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-10 12:29:34.903769+05:30	\N	2026-08-10 12:29:52.170405+05:30
+304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$WNatznuuG0h/V0AJrZj0S.pdUdFkxDUxXnEyQ5h8LAgj1FM8.jfqq	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-21 22:15:24.911658+05:30	\N	\N
+40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$l1NRHXmAr13NkFss9H5U4eOWtAaD4/4S7QBqQNKRK3iCDYOCz8OV.	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-22 12:12:50.7026+05:30	\N	2026-08-10 12:32:04.244561+05:30
+47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$zwL.9wBjS2/MccjyxzTlbuQHqN89R1mnQswxTIl2QcXrmzHh5iima	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 17:53:35.786937+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-24 00:38:08.012239+05:30	\N	\N
+49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$imyyVEgFfAG4IgcV5pCLe.kJlBq45Y67JyJXkduuGXDEXGnBjwKzC	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	\N	\N	\N
+65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$18PTQkxDWaHhAAoe175c/emwSZqXz0Lrv8oa3Ax6aTUov1RdyoQ/W	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-10 18:27:13.729958+05:30	\N	\N
+730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$hW.vZVEa5ofsvSThm29R0.ZCuQBF6tycjEIS.qSIe2t6fhWfz8ByG	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 17:53:35.786937+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-20 11:21:54.138041+05:30	\N	\N
+9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$JLtt1Ed7UEwcsY7ug6ILJOeAsB0fjiosMbVcJ9ytnKzqtevAlYdZ2	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-11 11:50:37.412783+05:30	\N	2026-08-10 12:27:47.765224+05:30
+a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$MwVsN9X1yZmARm7L4KdAme1RoK7NSzL0QOjBce9uBKwbglRGiQj/u	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 17:53:35.786937+05:30	2026-08-26 13:04:36.01329+05:30	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-08-26 13:04:36.007292+05:30	\N	\N
+a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$vyaeeF3qzhh8k2K/RiXXDOumqsBUh7fNxV48yKPWg8Jquhnysj4aK	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-20 10:52:57.26898+05:30	\N	\N
+a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$6aU.Q2vhW4CL1DDnZaaFFOenaakjEfD7mglqc3UUpRSTpjtMAhV2i	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-17 12:39:47.329355+05:30	\N	\N
+b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$t9IyF1zMfBmmFmZL./9uUe.esv8cWg8.vumYirsxyzMFffTkFX2wq	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-11 17:21:44.284921+05:30	\N	\N
+b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$F2OajmFqaeJsBOyf.2SCL.6Fn6pTN5HoK3MhAz1TOG1SH4M59LiPu	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-24 00:37:26.049628+05:30	\N	\N
+dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$VZg.sRlf9zWR54/blo9bxeQbPdL0BwlmyBUG3hTK6NxsjlImSSKoW	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 17:53:35.786937+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-23 21:47:59.549139+05:30	\N	\N
+e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$EfbUcnQ1qVhsr75LQlCZquRFGsaR10CergguITGQddJSRoHuX7fM6	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-07 13:27:04.148765+05:30	\N	2026-08-07 13:27:03.565302+05:30
+f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$dNJzlbXPbbNZ51RN3Lq/VuBx4kcoDbYwyRIoNx.SjGxa5W5gTXFSq	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 13:19:59.669429+05:30	2026-08-26 12:28:00.479487+05:30	\N	\N	\N	0	2026-08-24 00:34:56.651229+05:30	\N	\N
 \.
 
 
 --
--- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."__EFMigrationsHistory"
@@ -2152,7 +2427,7 @@ ALTER TABLE ONLY public."__EFMigrationsHistory"
 
 
 --
--- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2160,7 +2435,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2168,7 +2443,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2176,7 +2451,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2184,7 +2459,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.exited_employees
@@ -2192,7 +2467,7 @@ ALTER TABLE ONLY public.exited_employees
 
 
 --
--- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -2200,7 +2475,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_countries
@@ -2208,7 +2483,7 @@ ALTER TABLE ONLY public.mst_countries
 
 
 --
--- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_departments
@@ -2216,7 +2491,7 @@ ALTER TABLE ONLY public.mst_departments
 
 
 --
--- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -2224,7 +2499,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_industries
@@ -2232,7 +2507,7 @@ ALTER TABLE ONLY public.mst_industries
 
 
 --
--- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_nationalities
@@ -2240,7 +2515,7 @@ ALTER TABLE ONLY public.mst_nationalities
 
 
 --
--- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -2248,7 +2523,7 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_salary_bands
@@ -2256,7 +2531,7 @@ ALTER TABLE ONLY public.mst_salary_bands
 
 
 --
--- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -2264,7 +2539,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -2272,7 +2547,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.roles
@@ -2280,7 +2555,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -2288,7 +2563,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -2296,7 +2571,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -2304,7 +2579,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -2312,7 +2587,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_email_domains
@@ -2320,7 +2595,7 @@ ALTER TABLE ONLY public.mst_email_domains
 
 
 --
--- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2328,7 +2603,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2336,7 +2611,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -2344,7 +2619,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -2352,7 +2627,7 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -2360,7 +2635,7 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: repository_activity_logs repository_activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: repository_activity_logs repository_activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.repository_activity_logs
@@ -2368,7 +2643,7 @@ ALTER TABLE ONLY public.repository_activity_logs
 
 
 --
--- Name: repository repository_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: repository repository_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.repository
@@ -2376,350 +2651,350 @@ ALTER TABLE ONLY public.repository
 
 
 --
--- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_client_assignments_UserId" ON public.client_assignments USING btree ("UserId");
 
 
 --
--- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_client_contacts_ClientId" ON public.client_contacts USING btree ("ClientId");
 
 
 --
--- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_client_contacts_SubVentureId" ON public.client_contacts USING btree ("SubVentureId");
 
 
 --
--- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_CityId" ON public.clients USING btree ("CityId");
 
 
 --
--- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_CountryId" ON public.clients USING btree ("CountryId");
 
 
 --
--- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_EngagementManagerId" ON public.clients USING btree ("EngagementManagerId");
 
 
 --
--- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_IndustryId" ON public.clients USING btree ("IndustryId");
 
 
 --
--- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_Name" ON public.clients USING btree ("Name");
 
 
 --
--- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_DepartmentId" ON public.employees USING btree ("DepartmentId");
 
 
 --
--- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_DesignationId" ON public.employees USING btree ("DesignationId");
 
 
 --
--- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_employees_EmployeeCode" ON public.employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_JobRoleId" ON public.employees USING btree ("JobRoleId");
 
 
 --
--- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_NationalityId" ON public.employees USING btree ("NationalityId");
 
 
 --
--- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_ReportingManagerId" ON public.employees USING btree ("ReportingManagerId");
 
 
 --
--- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_SalaryBandId" ON public.employees USING btree ("SalaryBandId");
 
 
 --
--- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_UserId" ON public.employees USING btree ("UserId");
 
 
 --
--- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_employees_WorkEmail" ON public.employees USING btree ("WorkEmail");
 
 
 --
--- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_exited_employees_EmployeeCode" ON public.exited_employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_exited_employees_OriginalEmployeeId" ON public.exited_employees USING btree ("OriginalEmployeeId");
 
 
 --
--- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_Code" ON public.mst_cities USING btree ("Code");
 
 
 --
--- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_CountryId_Name" ON public.mst_cities USING btree ("CountryId", "Name");
 
 
 --
--- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Code" ON public.mst_countries USING btree ("Code");
 
 
 --
--- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Name" ON public.mst_countries USING btree ("Name");
 
 
 --
--- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Code" ON public.mst_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Name" ON public.mst_departments USING btree ("Name");
 
 
 --
--- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_Code" ON public.mst_designations USING btree ("Code");
 
 
 --
--- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_DepartmentId_Name" ON public.mst_designations USING btree ("DepartmentId", "Name");
 
 
 --
--- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_email_domains_DomainName" ON public.mst_email_domains USING btree ("DomainName");
 
 
 --
--- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Code" ON public.mst_industries USING btree ("Code");
 
 
 --
--- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Name" ON public.mst_industries USING btree ("Name");
 
 
 --
--- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Code" ON public.mst_nationalities USING btree ("Code");
 
 
 --
--- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Name" ON public.mst_nationalities USING btree ("Name");
 
 
 --
--- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_reporting_managers_Code" ON public.mst_reporting_managers USING btree ("Code");
 
 
 --
--- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_Code" ON public.mst_roles USING btree ("Code");
 
 
 --
--- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_DesignationId_Name" ON public.mst_roles USING btree ("DesignationId", "Name");
 
 
 --
--- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Code" ON public.mst_salary_bands USING btree ("Code");
 
 
 --
--- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Name" ON public.mst_salary_bands USING btree ("Name");
 
 
 --
--- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_refresh_tokens_TokenHash" ON public.refresh_tokens USING btree ("TokenHash");
 
 
 --
--- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_refresh_tokens_UserId" ON public.refresh_tokens USING btree ("UserId");
 
 
 --
--- Name: IX_repository_Category; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_repository_Category; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_repository_Category" ON public.repository USING btree ("Category");
 
 
 --
--- Name: IX_repository_DeletedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_repository_DeletedAtUtc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_repository_DeletedAtUtc" ON public.repository USING btree ("DeletedAtUtc");
 
 
 --
--- Name: IX_repository_activity_logs_CreatedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_repository_activity_logs_CreatedAtUtc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_repository_activity_logs_CreatedAtUtc" ON public.repository_activity_logs USING btree ("CreatedAtUtc");
 
 
 --
--- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_role_permission_audits_CreatedAtUtc" ON public.role_permission_audits USING btree ("CreatedAtUtc");
 
 
 --
--- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_role_permission_audits_RoleId" ON public.role_permission_audits USING btree ("RoleId");
 
 
 --
--- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_roles_Name" ON public.roles USING btree ("Name");
 
 
 --
--- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_sub_ventures_ClientId" ON public.sub_ventures USING btree ("ClientId");
 
 
 --
--- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_users_Email" ON public.users USING btree ("Email");
 
 
 --
--- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_users_EmployeeId" ON public.users USING btree ("EmployeeId");
 
 
 --
--- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_users_RoleId" ON public.users USING btree ("RoleId");
 
 
 --
--- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2727,7 +3002,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2735,7 +3010,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2743,7 +3018,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2751,7 +3026,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2759,7 +3034,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2767,7 +3042,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2775,7 +3050,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2783,7 +3058,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2791,7 +3066,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2799,7 +3074,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2807,7 +3082,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2815,7 +3090,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2823,7 +3098,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2831,7 +3106,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2839,7 +3114,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -2847,7 +3122,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -2855,7 +3130,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -2863,7 +3138,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -2871,7 +3146,7 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -2879,7 +3154,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -2887,7 +3162,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -2895,7 +3170,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -2903,7 +3178,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -2911,204 +3186,8 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
---
-
-GRANT ALL ON SCHEMA public TO trackerpro;
-
-
---
--- Name: TABLE "__EFMigrationsHistory"; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public."__EFMigrationsHistory" TO trackerpro;
-
-
---
--- Name: TABLE client_assignments; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.client_assignments TO trackerpro;
-
-
---
--- Name: TABLE client_contacts; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.client_contacts TO trackerpro;
-
-
---
--- Name: TABLE clients; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.clients TO trackerpro;
-
-
---
--- Name: TABLE employees; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.employees TO trackerpro;
-
-
---
--- Name: TABLE exited_employees; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.exited_employees TO trackerpro;
-
-
---
--- Name: TABLE mst_business_units; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_business_units TO trackerpro;
-
-
---
--- Name: TABLE mst_cities; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_cities TO trackerpro;
-
-
---
--- Name: TABLE mst_countries; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_countries TO trackerpro;
-
-
---
--- Name: TABLE mst_departments; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_departments TO trackerpro;
-
-
---
--- Name: TABLE mst_designations; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_designations TO trackerpro;
-
-
---
--- Name: TABLE mst_email_domains; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_email_domains TO trackerpro;
-
-
---
--- Name: TABLE mst_industries; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_industries TO trackerpro;
-
-
---
--- Name: TABLE mst_nationalities; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_nationalities TO trackerpro;
-
-
---
--- Name: TABLE mst_offices; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_offices TO trackerpro;
-
-
---
--- Name: TABLE mst_reporting_managers; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_reporting_managers TO trackerpro;
-
-
---
--- Name: TABLE mst_roles; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_roles TO trackerpro;
-
-
---
--- Name: TABLE mst_salary_bands; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_salary_bands TO trackerpro;
-
-
---
--- Name: TABLE mst_work_locations; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mst_work_locations TO trackerpro;
-
-
---
--- Name: TABLE refresh_tokens; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.refresh_tokens TO trackerpro;
-
-
---
--- Name: TABLE repository; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.repository TO trackerpro;
-
-
---
--- Name: TABLE repository_activity_logs; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.repository_activity_logs TO trackerpro;
-
-
---
--- Name: TABLE role_permission_audits; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.role_permission_audits TO trackerpro;
-
-
---
--- Name: TABLE roles; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.roles TO trackerpro;
-
-
---
--- Name: TABLE sub_ventures; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.sub_ventures TO trackerpro;
-
-
---
--- Name: TABLE users; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.users TO trackerpro;
-
-
---
--- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: postgres
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO trackerpro;
-
-
---
 -- PostgreSQL database dump complete
 --
 
--- \unrestrict bVg64eacDGAn7Wne8TESIp6ZaYHQqYFACumLJfNwYgVm3cAl7HoFkqYb65dh85c
+-- \unrestrict N5Hm8I3A6k3i2M4zaOV7KSqwATYeYL31ZLjjeXFtEci2WiEYrlux4OQOGhRYvtd
 

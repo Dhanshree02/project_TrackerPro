@@ -7,7 +7,6 @@ public sealed record RepositoryItemDto(
     long Size,
     DateTime LastUpdated,
     string UploadedBy,
-    string FilePath,
     DateTime CreatedAtUtc);
 
 public sealed record RepositoryActivityLogDto(

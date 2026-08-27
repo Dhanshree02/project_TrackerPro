@@ -6,6 +6,9 @@ import {
   Folder,
   FolderOpen,
   FileText,
+  FileSpreadsheet,
+  Presentation,
+  Image as ImageIcon,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -22,6 +25,9 @@ import {
   ArrowUpDown,
   Filter,
   CheckCircle2,
+  Eye,
+  History,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -29,15 +35,22 @@ import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { DocumentContentViewer } from "@/modules/my-org/components/DocumentContentViewer";
+import { openDocumentInNewTab } from "@/lib/document-tab-viewer";
 import {
   fetchRepositoryDocuments,
   fetchRepositoryCategoryCounts,
   fetchRepositoryAccessSummaries,
+  fetchDocumentLogs,
   uploadRepositoryDocument,
   deleteRepositoryDocument,
   recordRepositoryDocumentView,
   getRepositoryDownloadUrl,
+  getRepositoryPreviewUrl,
+  isAllowedRepositoryFile,
+  ALLOWED_REPOSITORY_EXTENSIONS,
   type RepositoryItem,
+  type RepositoryActivityLog,
   type DocumentAccessSummary,
   type DocumentAccessEntry,
 } from "@/lib/api/repository";
@@ -137,43 +150,100 @@ const FILE_TYPE_COLORS: Record<string, string> = {
   pdf: "text-red-500",
   docx: "text-blue-500",
   doc: "text-blue-500",
+  docm: "text-blue-500",
+  xlsx: "text-emerald-500",
+  xls: "text-emerald-500",
+  xlsm: "text-emerald-500",
+  xlsb: "text-emerald-500",
+  csv: "text-emerald-500",
+  pptx: "text-amber-500",
+  ppt: "text-amber-500",
+  pptm: "text-amber-500",
+  txt: "text-slate-500",
+  png: "text-purple-500",
+  jpg: "text-purple-500",
+  jpeg: "text-purple-500",
 };
 
-const AVATAR_PALETTE = [
-  "bg-blue-600 text-white ring-blue-700/20",
-  "bg-emerald-600 text-white ring-emerald-700/20",
-  "bg-violet-600 text-white ring-violet-700/20",
-  "bg-amber-600 text-white ring-amber-700/20",
-  "bg-rose-600 text-white ring-rose-700/20",
-  "bg-indigo-600 text-white ring-indigo-700/20",
-  "bg-teal-600 text-white ring-teal-700/20",
-  "bg-orange-600 text-white ring-orange-700/20",
-  "bg-cyan-600 text-white ring-cyan-700/20",
-  "bg-pink-600 text-white ring-pink-700/20",
-];
+function getFileIconInfo(fileName: string) {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  switch (ext) {
+    case "pdf":
+      return { Icon: FileText, color: "text-red-500", bg: "bg-red-500/10", label: "PDF" };
+    case "doc":
+    case "docx":
+    case "docm":
+      return { Icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10", label: "Word" };
+    case "xls":
+    case "xlsx":
+    case "xlsm":
+    case "xlsb":
+    case "csv":
+      return {
+        Icon: FileSpreadsheet,
+        color: "text-emerald-600 dark:text-emerald-400",
+        bg: "bg-emerald-500/10",
+        label: ext === "csv" ? "CSV" : "Excel",
+      };
+    case "ppt":
+    case "pptx":
+    case "pptm":
+      return {
+        Icon: Presentation,
+        color: "text-amber-600 dark:text-amber-400",
+        bg: "bg-amber-500/10",
+        label: "PowerPoint",
+      };
+    case "png":
+    case "jpg":
+    case "jpeg":
+    case "webp":
+    case "gif":
+    case "svg":
+      return {
+        Icon: ImageIcon,
+        color: "text-purple-600 dark:text-purple-400",
+        bg: "bg-purple-500/10",
+        label: "Image",
+      };
+    default:
+      return {
+        Icon: FileText,
+        color: "text-muted-foreground",
+        bg: "bg-muted",
+        label: ext.toUpperCase() || "File",
+      };
+  }
+}
 
-// ─── Utilities ────────────────────────────────────────────────────────────────
+function isValidFileType(fileName: string): boolean {
+  return isAllowedRepositoryFile(fileName);
+}
 
 function formatFileSize(bytes: number): string {
   if (!bytes || bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"] as const;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i] || "B"}`;
 }
 
 function formatLastUpdated(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function formatExactDateTime(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-GB", {
+  return d.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -186,40 +256,43 @@ function formatExactDateTime(iso: string): string {
 function formatRelativeTime(iso: string): string {
   if (!iso) return "";
   const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (isNaN(d.getTime())) return "";
+  const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diffSec < 60) return "just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDays = Math.floor(diffHr / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
   return formatLastUpdated(iso);
+}
+
+const AVATAR_COLORS = [
+  "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30",
+  "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30",
+  "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30",
+  "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30",
+  "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30",
+  "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30",
+  "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30",
+];
+
+function getAvatarColorClass(name: string): string {
+  if (!name) return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
 }
 
 function getInitials(name: string): string {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function getAvatarColorClass(name: string): string {
-  if (!name) return AVATAR_PALETTE[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % AVATAR_PALETTE.length;
-  return AVATAR_PALETTE[index];
-}
-
-function isValidFileType(fileName: string): boolean {
-  const ext = fileName.split(".").pop()?.toLowerCase();
-  return ext === "pdf" || ext === "docx";
 }
 
 // ─── Collaborative Avatar Stack Component (Web Word Style) ───────────────────
@@ -505,346 +578,200 @@ function DeleteConfirmDialog({
 
 // ─── Document Access & Download Logs Modal (Collaborative View) ───────────────
 
-function DocumentAccessLogModal({
-  summaries,
-  isLoading,
+// ─── Single Document Logs & History Modal ───────────────────────────────────────
+function SingleDocumentLogsModal({
+  document,
   onClose,
-  onDownloadDoc,
+  onDownload,
+  onPreview,
 }: {
-  summaries: DocumentAccessSummary[];
-  isLoading: boolean;
+  document: RepositoryItem;
   onClose: () => void;
-  onDownloadDoc: (docId: string, fileName: string) => void;
+  onDownload: (docId: string, fileName: string) => void;
+  onPreview: (doc: RepositoryItem) => void;
 }) {
-  const [modalSearch, setModalSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
+  const [logs, setLogs] = useState<RepositoryActivityLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const fileInfo = getFileIconInfo(document.fileName);
+  const FileIcon = fileInfo.Icon;
 
-  // Compute summary stats
-  const totalDownloads = useMemo(
-    () => summaries.reduce((acc, s) => acc + s.totalDownloads, 0),
-    [summaries],
-  );
-
-  const totalUniqueAccessors = useMemo(() => {
-    const set = new Set<string>();
-    summaries.forEach((s) => {
-      s.accessors.forEach((a) => {
-        if (a.employeeName) set.add(a.employeeName.trim().toLowerCase());
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    fetchDocumentLogs(document.id)
+      .then((data) => {
+        if (isMounted) setLogs(data || []);
+      })
+      .catch(() => {
+        if (isMounted) setLogs([]);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
       });
-    });
-    return set.size;
-  }, [summaries]);
+    return () => {
+      isMounted = false;
+    };
+  }, [document.id]);
 
-  // Filter summaries
-  const filteredSummaries = useMemo(() => {
-    return summaries.filter((s) => {
-      const matchCat =
-        selectedCategory === "all" ||
-        s.category.toLowerCase() === selectedCategory.toLowerCase();
-
-      const searchLower = modalSearch.trim().toLowerCase();
-      const matchSearch =
-        !searchLower ||
-        s.fileName.toLowerCase().includes(searchLower) ||
-        s.uploadedBy.toLowerCase().includes(searchLower) ||
-        s.accessors.some((a) =>
-          a.employeeName.toLowerCase().includes(searchLower),
-        );
-
-      return matchCat && matchSearch;
-    });
-  }, [summaries, selectedCategory, modalSearch]);
-
-  const toggleExpand = (docId: string) => {
-    setExpandedDocId((prev) => (prev === docId ? null : docId));
-  };
+  const filteredLogs = useMemo(() => {
+    if (!searchTerm.trim()) return logs;
+    const term = searchTerm.toLowerCase();
+    return logs.filter(
+      (l) =>
+        l.performedBy.toLowerCase().includes(term) ||
+        l.action.toLowerCase().includes(term) ||
+        (l.details && l.details.toLowerCase().includes(term)),
+    );
+  }, [logs, searchTerm]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
       <div
-        className="relative flex w-full max-w-4xl flex-col rounded-2xl border border-border bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden"
+        className="relative flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden"
         style={{ maxHeight: "88vh" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="border-b border-border bg-muted/20 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Users className="h-5 w-5" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", fileInfo.bg)}>
+                <FileIcon className={cn("h-5 w-5", fileInfo.color)} />
               </div>
-              <div>
-                <h2 className="text-base font-semibold text-foreground">
-                  Document Access & Download Logs
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Track uploaded documents and employees accessing or downloading each file.
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-foreground truncate max-w-md" title={document.fileName}>
+                    {document.fileName}
+                  </h2>
+                  <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {document.category}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Uploaded by <strong className="font-medium text-foreground">{document.uploadedBy}</strong> · {formatFileSize(document.size)} · {formatLastUpdated(document.lastUpdated)}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border/60 pt-3">
-            <div className="flex items-center gap-2.5 rounded-lg border border-border/80 bg-background/80 px-3 py-2">
-              <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-              <div>
-                <p className="text-[11px] text-muted-foreground">Uploaded Documents</p>
-                <p className="text-sm font-bold text-foreground tabular-nums">
-                  {summaries.length}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 rounded-lg border border-border/80 bg-background/80 px-3 py-2">
-              <Download className="h-4 w-4 text-emerald-500 shrink-0" />
-              <div>
-                <p className="text-[11px] text-muted-foreground">Total Downloads</p>
-                <p className="text-sm font-bold text-foreground tabular-nums">
-                  {totalDownloads}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 rounded-lg border border-border/80 bg-background/80 px-3 py-2">
-              <Users className="h-4 w-4 text-purple-500 shrink-0" />
-              <div>
-                <p className="text-[11px] text-muted-foreground">Active Employees</p>
-                <p className="text-sm font-bold text-foreground tabular-nums">
-                  {totalUniqueAccessors}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Controls: Search & Category Filter */}
-          <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2.5">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={modalSearch}
-                onChange={(e) => setModalSearch(e.target.value)}
-                placeholder="Search by document name or employee..."
-                className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              {(["all", "Tech", "PMS", "IMP"] as const).map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={cn(
-                    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                    selectedCategory === cat
-                      ? "bg-primary text-primary-foreground shadow-2xs"
-                      : "bg-muted/60 text-muted-foreground hover:bg-accent hover:text-foreground",
-                  )}
-                >
-                  {cat === "all" ? "All Categories" : cat}
-                </button>
-              ))}
-            </div>
+          {/* Search */}
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by employee name or action..."
+              className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
           </div>
         </div>
 
-        {/* Content Body: List of Uploaded Documents with Collaborative Access Stacks */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-2">
           {isLoading ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">
+            <div className="py-12 text-center text-sm text-muted-foreground">
               <div className="inline-flex items-center gap-2">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                Loading document access history...
+                Loading activity history...
               </div>
             </div>
-          ) : filteredSummaries.length === 0 ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">
-              No matching documents or download logs found.
+          ) : filteredLogs.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              No activity logs recorded for this document yet.
             </div>
           ) : (
-            filteredSummaries.map((doc) => {
-              const isExpanded = expandedDocId === doc.documentId;
-              const ext = doc.fileName.split(".").pop()?.toLowerCase() ?? "";
-              const isDocx = ext === "docx";
+            <div className="divide-y divide-border/60 rounded-xl border border-border/80 bg-card overflow-hidden">
+              {filteredLogs.map((log) => {
+                const isUpload = log.action === "Uploaded";
+                const isDownload = log.action === "Downloaded";
+                const isView = log.action === "Viewed";
+                const isDelete = log.action === "Deleted";
 
-              return (
-                <div
-                  key={doc.documentId}
-                  className={cn(
-                    "rounded-xl border border-border bg-card transition-all overflow-hidden",
-                    isExpanded ? "ring-1 ring-primary/30 shadow-sm" : "hover:border-border/80",
-                  )}
-                >
-                  {/* Summary Bar */}
-                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    {/* Document Meta */}
-                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 mt-0.5">
-                        <FileText
-                          className={cn(
-                            "h-4 w-4",
-                            isDocx ? "text-blue-500" : "text-red-500",
-                          )}
-                        />
+                return (
+                  <div
+                    key={log.id}
+                    className="flex items-center justify-between gap-3 px-4 py-3 text-xs hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={cn(
+                          "flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold shrink-0 shadow-xs",
+                          getAvatarColorClass(log.performedBy),
+                        )}
+                      >
+                        {getInitials(log.performedBy)}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p
-                            className="text-sm font-semibold text-foreground truncate max-w-sm"
-                            title={doc.fileName}
-                          >
-                            {doc.fileName}
-                          </p>
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                              doc.category.toUpperCase().includes("TECH")
-                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                                : doc.category.toUpperCase().includes("PMS")
-                                  ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
-                                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
-                            )}
-                          >
-                            {doc.category}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          Uploaded by <strong className="font-medium text-foreground">{doc.uploadedBy}</strong> · {formatFileSize(doc.size)} · {formatLastUpdated(doc.lastUpdated)}
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground truncate">
+                          {log.performedBy}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {log.details || `${log.performedBy} ${log.action.toLowerCase()} this document`}
                         </p>
                       </div>
                     </div>
 
-                    {/* Collaborative User Avatar Stack (Web Word style) */}
-                    <div className="flex items-center justify-between sm:justify-end gap-3 pl-12 sm:pl-0">
-                      <CollaborativeAvatarStack
-                        accessors={doc.accessors}
-                        onOpenDetails={() => toggleExpand(doc.documentId)}
-                      />
-
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => onDownloadDoc(doc.documentId, doc.fileName)}
-                          title="Download file"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(doc.documentId)}
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors border",
-                            isExpanded
-                              ? "bg-accent text-foreground border-border"
-                              : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-accent hover:text-foreground",
-                          )}
-                        >
-                          {isExpanded ? (
-                            <>
-                              Hide Log <ChevronUp className="h-3.5 w-3.5" />
-                            </>
-                          ) : (
-                            <>
-                              View History <ChevronDown className="h-3.5 w-3.5" />
-                            </>
-                          )}
-                        </button>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+                          isDownload
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                            : isUpload
+                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                              : isView
+                                ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                                : isDelete
+                                  ? "bg-destructive/10 text-destructive border border-destructive/20"
+                                  : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {log.action}
+                      </span>
+                      <div className="text-right">
+                        <p className="font-medium text-foreground tabular-nums text-[11px]">
+                          {formatExactDateTime(log.createdAtUtc)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatRelativeTime(log.createdAtUtc)}
+                        </p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Expanded Detailed Access History Table & Timestamps */}
-                  {isExpanded && (
-                    <div className="border-t border-border bg-muted/20 px-4 py-3 sm:px-6 sm:py-4 animate-in fade-in duration-150">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                          Complete Access & Download History ({doc.accessors.length})
-                        </p>
-                      </div>
-
-                      {doc.accessors.length === 0 ? (
-                        <p className="py-4 text-center text-xs text-muted-foreground">
-                          No employee access logs recorded for this document yet.
-                        </p>
-                      ) : (
-                        <div className="divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
-                          {doc.accessors.map((log) => {
-                            const isUpload = log.action === "Uploaded";
-                            const isDownload = log.action === "Downloaded";
-
-                            return (
-                              <div
-                                key={log.logId}
-                                className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs hover:bg-muted/30 transition-colors"
-                              >
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div
-                                    className={cn(
-                                      "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold shrink-0",
-                                      getAvatarColorClass(log.employeeName),
-                                    )}
-                                  >
-                                    {getInitials(log.employeeName)}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-foreground truncate">
-                                      {log.employeeName}
-                                    </p>
-                                    <p className="text-[11px] text-muted-foreground truncate">
-                                      {log.details || `${log.employeeName} ${log.action.toLowerCase()} this file`}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-3 shrink-0">
-                                  <span
-                                    className={cn(
-                                      "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-                                      isDownload
-                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                        : isUpload
-                                          ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                                          : "bg-muted text-muted-foreground",
-                                    )}
-                                  >
-                                    {log.action}
-                                  </span>
-                                  <div className="text-right">
-                                    <p className="font-medium text-foreground tabular-nums text-[11px]">
-                                      {formatExactDateTime(log.accessedAtUtc)}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground">
-                                      {formatRelativeTime(log.accessedAtUtc)}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="flex items-center justify-between border-t border-border bg-muted/10 px-6 py-3 text-xs text-muted-foreground">
-          <span>
-            Showing <strong>{filteredSummaries.length}</strong> of{" "}
-            <strong>{summaries.length}</strong> repository documents
-          </span>
+        {/* Footer with Quick Actions */}
+        <div className="flex items-center justify-between border-t border-border bg-muted/10 px-6 py-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onPreview(document)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors shadow-2xs"
+            >
+              <Eye className="h-3.5 w-3.5 text-primary" />
+              Preview
+            </button>
+            <button
+              type="button"
+              onClick={() => onDownload(document.id, document.fileName)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors shadow-2xs"
+            >
+              <Download className="h-3.5 w-3.5 text-emerald-600" />
+              Download
+            </button>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -852,6 +779,199 @@ function DocumentAccessLogModal({
           >
             Close
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Document Preview Modal ───────────────────────────────────────────────────
+function DocumentPreviewModal({
+  document,
+  onClose,
+  onDownload,
+}: {
+  document: RepositoryItem;
+  onClose: () => void;
+  onDownload: (docId: string, fileName: string) => void;
+}) {
+  const ext = document.fileName.split(".").pop()?.toLowerCase() ?? "";
+  const isPdf = ext === "pdf" || ["pptx", "ppt", "pptm"].includes(ext);
+  const isImage = ["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext);
+  const isOfficeDoc = [
+    "docx",
+    "doc",
+    "docm",
+    "xlsx",
+    "xls",
+    "xlsm",
+    "xlsb",
+    "csv",
+  ].includes(ext);
+  const isText = ["txt", "log", "json", "xml", "md"].includes(ext);
+  const previewUrl = getRepositoryPreviewUrl(document.id);
+  const fileInfo = getFileIconInfo(document.fileName);
+  const FileIcon = fileInfo.Icon;
+
+  const [textContent, setTextContent] = useState<string | null>(null);
+  const [isLoadingText, setIsLoadingText] = useState(isText);
+
+  useEffect(() => {
+    if (isText) {
+      setIsLoadingText(true);
+      fetch(previewUrl)
+        .then((res) => (res.ok ? res.text() : Promise.reject(new Error("Failed to load text"))))
+        .then((txt) => setTextContent(txt))
+        .catch(() => setTextContent(null))
+        .finally(() => setIsLoadingText(false));
+    }
+  }, [isText, previewUrl]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div
+        className={cn(
+          "relative flex w-full flex-col rounded-2xl border border-border bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden",
+          isPdf || isOfficeDoc ? "max-w-5xl h-[90vh]" : isImage ? "max-w-3xl max-h-[88vh]" : "max-w-3xl max-h-[85vh]",
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3.5 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", fileInfo.bg)}>
+              <FileIcon className={cn("h-4 w-4", fileInfo.color)} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-foreground truncate max-w-md" title={document.fileName}>
+                {document.fileName}
+              </h2>
+              <p className="text-[11px] text-muted-foreground">
+                {fileInfo.label} · {formatFileSize(document.size)} · {document.category}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                void openDocumentInNewTab(document);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors shadow-2xs cursor-pointer"
+              title="Open full document in a new browser tab"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Open in Tab
+            </button>
+            <button
+              type="button"
+              onClick={() => onDownload(document.id, document.fileName)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-2xs cursor-pointer"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content Body */}
+        <div className="flex-1 overflow-auto bg-muted/10 flex items-stretch justify-center min-h-[300px]">
+          {isPdf ? (
+            <div className="w-full h-full p-3">
+              <iframe
+                src={`${previewUrl}#toolbar=1`}
+                title={document.fileName}
+                className="w-full h-full min-h-[520px] rounded-lg border border-border bg-white shadow-xs"
+              />
+            </div>
+          ) : isImage ? (
+            <div className="flex items-center justify-center p-4">
+              <img
+                src={previewUrl}
+                alt={document.fileName}
+                className="max-h-[68vh] max-w-full rounded-lg border border-border object-contain shadow-sm bg-background"
+              />
+            </div>
+          ) : isOfficeDoc ? (
+            <DocumentContentViewer
+              previewUrl={previewUrl}
+              fileName={document.fileName}
+              onDownload={() => onDownload(document.id, document.fileName)}
+            />
+          ) : isText ? (
+            <div className="w-full p-4">
+              {isLoadingText ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  <div className="inline-flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    Loading document preview...
+                  </div>
+                </div>
+              ) : textContent !== null ? (
+                <div className="w-full h-full max-h-[60vh] overflow-auto rounded-lg border border-border bg-background p-4 font-mono text-xs text-foreground whitespace-pre-wrap">
+                  {textContent}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  Failed to load text preview. Please use the Download button.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-sm text-center my-auto">
+              <div className={cn("mx-auto flex h-16 w-16 items-center justify-center rounded-2xl", fileInfo.bg, "mb-4")}>
+                <FileIcon className={cn("h-8 w-8", fileInfo.color)} />
+              </div>
+              <h3 className="text-base font-semibold text-foreground truncate px-2" title={document.fileName}>
+                {document.fileName}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {fileInfo.label} Document · {formatFileSize(document.size)}
+              </p>
+              <div className="my-5 rounded-xl border border-border/80 bg-muted/30 p-3 text-left text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Category:</span>
+                  <span className="font-semibold text-foreground">{document.category}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Uploaded By:</span>
+                  <span className="font-semibold text-foreground">{document.uploadedBy}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Last Updated:</span>
+                  <span className="font-semibold text-foreground">{formatExactDateTime(document.lastUpdated)}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void openDocumentInNewTab(document);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-input bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent transition-all cursor-pointer"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open in Tab
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDownload(document.id, document.fileName)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-all cursor-pointer"
+                >
+                  <Download className="h-4 w-4" />
+                  Download File
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -971,10 +1091,11 @@ function MyOrgPage() {
   const [pendingDeleteDoc, setPendingDeleteDoc] = useState<RepositoryItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Document Access Logs (Collaborative View) modal state
-  const [showLog, setShowLog] = useState(false);
-  const [accessSummaries, setAccessSummaries] = useState<DocumentAccessSummary[]>([]);
-  const [isLoadingAccessSummaries, setIsLoadingAccessSummaries] = useState(false);
+  // Per-document History Logs modal state
+  const [selectedDocForLogs, setSelectedDocForLogs] = useState<RepositoryItem | null>(null);
+
+  // Document Preview modal state
+  const [selectedDocForPreview, setSelectedDocForPreview] = useState<RepositoryItem | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1025,22 +1146,8 @@ function MyOrgPage() {
     }
   };
 
-  // Load Document Access Summaries for the Collaborative View Log
-  const loadAccessSummaries = async () => {
-    setIsLoadingAccessSummaries(true);
-    try {
-      const res = await fetchRepositoryAccessSummaries();
-      setAccessSummaries(res || []);
-    } catch {
-      // Best effort
-    } finally {
-      setIsLoadingAccessSummaries(false);
-    }
-  };
-
   useEffect(() => {
     void loadCategories();
-    void loadAccessSummaries();
   }, []);
 
   useEffect(() => {
@@ -1060,7 +1167,8 @@ function MyOrgPage() {
 
     if (!isValidFileType(file.name)) {
       toast.error("Invalid file format", {
-        description: "Only .pdf and .docx file formats are allowed.",
+        description:
+          "Allowed formats: PDF (.pdf), Word (.doc, .docx), Excel (.xls, .xlsx, .xlsm, .csv), and PowerPoint (.ppt, .pptx).",
       });
       return;
     }
@@ -1081,7 +1189,6 @@ function MyOrgPage() {
       setUploadedFile(null);
       void loadCategories();
       void loadDocuments();
-      void loadAccessSummaries();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -1098,7 +1205,6 @@ function MyOrgPage() {
       setPendingDeleteDoc(null);
       void loadCategories();
       void loadDocuments();
-      void loadAccessSummaries();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
     } finally {
@@ -1110,7 +1216,6 @@ function MyOrgPage() {
     try {
       // Record download activity with current employee
       await recordRepositoryDocumentView(docId, user?.name || "Employee");
-      void loadAccessSummaries();
     } catch {
       // Best-effort
     }
@@ -1122,6 +1227,19 @@ function MyOrgPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handlePreviewDoc = async (doc: RepositoryItem) => {
+    setSelectedDocForPreview(doc);
+    try {
+      await recordRepositoryDocumentView(doc.id, user?.name || "Employee");
+    } catch {
+      // Best-effort
+    }
+  };
+
+  const handleOpenDocLogs = (doc: RepositoryItem) => {
+    setSelectedDocForLogs(doc);
   };
 
   const handleSelectCategory = (id: string | null) => {
@@ -1138,28 +1256,20 @@ function MyOrgPage() {
     });
   };
 
-  const handleOpenLogs = () => {
-    setShowLog(true);
-    void loadAccessSummaries();
-  };
-
   const canDeleteDoc = (doc: RepositoryItem) =>
     isDhanshree || doc.uploadedBy === user?.name || doc.uploadedBy === user?.email;
 
   const totalRepoDocuments = categories.reduce((sum, c) => sum + c.count, 0);
 
-  // Total downloads count across all documents for button badge
-  const totalDownloadsBadge = accessSummaries.reduce((sum, s) => sum + s.totalDownloads, 0);
-
   return (
     <AppShell title="Repository" subtitle="Organization documents, SOPs & policies">
-      {/* Hidden file input */}
+      {/* Hidden file input supporting PDF, Word, Excel, PowerPoint, Text, Image formats */}
       <input
         ref={fileInputRef}
         type="file"
         className="hidden"
         onChange={handleFileChange}
-        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        accept=".pdf,.doc,.docx,.docm,.xls,.xlsx,.xlsm,.xlsb,.csv,.ppt,.pptx,.pptm,.txt,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/csv,text/plain"
       />
 
       {/* Action header */}
@@ -1169,36 +1279,19 @@ function MyOrgPage() {
         </p>
         <div className="flex items-center gap-2">
           {!isReadOnlyViewer && (
-            <>
-              {/* View Log button */}
-              <button
-                type="button"
-                onClick={handleOpenLogs}
-                className="inline-flex items-center gap-2 rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-accent"
-              >
-                <ScrollText className="h-4 w-4" />
-                View Log
-                {totalDownloadsBadge > 0 && (
-                  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                    {totalDownloadsBadge}
-                  </span>
-                )}
-              </button>
-              {/* Upload Document button */}
-              <button
-                type="button"
-                onClick={handleUploadClick}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
-              >
-                <Upload className="h-4 w-4" />
-                Upload Document
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={handleUploadClick}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+            >
+              <Upload className="h-4 w-4" />
+              Upload Document
+            </button>
           )}
         </div>
       </div>
 
-      {/* Category cards (Resized back to original KPI dimensions) */}
+      {/* Category cards */}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {categories.map((cat) => (
           <CategoryCard
@@ -1233,7 +1326,7 @@ function MyOrgPage() {
                     <th className="px-4 py-3 font-semibold">Size</th>
                     <th className="px-4 py-3 font-semibold">Last Updated</th>
                     <th className="px-4 py-3 font-semibold">Uploaded By</th>
-                    <th className="px-4 py-3 text-right font-semibold"></th>
+                    <th className="px-4 py-3 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -1251,8 +1344,21 @@ function MyOrgPage() {
                     </tr>
                   ) : (
                     documents.map((doc) => {
-                      const ext = doc.fileName.split(".").pop()?.toLowerCase() ?? "";
-                      const iconColor = FILE_TYPE_COLORS[ext] ?? "text-muted-foreground";
+                      const fileInfo = getFileIconInfo(doc.fileName);
+                      const FileIcon = fileInfo.Icon;
+                      const docExt = doc.fileName.split(".").pop()?.toLowerCase() ?? "";
+                      const isOfficeDoc = [
+                        "doc",
+                        "docx",
+                        "docm",
+                        "xls",
+                        "xlsx",
+                        "xlsm",
+                        "xlsb",
+                        "ppt",
+                        "pptx",
+                        "pptm",
+                      ].includes(docExt);
 
                       return (
                         <tr
@@ -1261,8 +1367,12 @@ function MyOrgPage() {
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
-                              <FileText className={cn("h-4 w-4 shrink-0", iconColor)} />
-                              <span className="text-sm font-medium text-foreground">{doc.fileName}</span>
+                              <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md", fileInfo.bg)}>
+                                <FileIcon className={cn("h-4 w-4", fileInfo.color)} />
+                              </div>
+                              <span className="text-sm font-medium text-foreground truncate max-w-xs sm:max-w-sm" title={doc.fileName}>
+                                {doc.fileName}
+                              </span>
                             </div>
                           </td>
                           <td className="whitespace-nowrap px-4 py-3">
@@ -1280,94 +1390,117 @@ function MyOrgPage() {
                             {doc.uploadedBy}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-right">
-                            <div className="inline-flex items-center justify-end gap-0.5">
+                            <div className="inline-flex items-center justify-end gap-1">
+                              {/* 1. Preview Eye button */}
+                              <button
+                                type="button"
+                                title={isOfficeDoc ? "Open in new tab" : "Preview document"}
+                                onClick={() => handlePreviewDoc(doc)}
+                                className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+
+                              {/* 2. View History / Logs button */}
+                              <button
+                                type="button"
+                                title="View document history & logs"
+                                onClick={() => handleOpenDocLogs(doc)}
+                                className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400"
+                              >
+                                <History className="h-4 w-4" />
+                              </button>
+
+                              {/* 3. Download button */}
                               <button
                                 type="button"
                                 title="Download document"
                                 onClick={() => handleDownload(doc.id, doc.fileName)}
-                                className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400"
                               >
-                                <Download className="h-3.5 w-3.5" />
+                                <Download className="h-4 w-4" />
                               </button>
+
+                              {/* 4. Delete button */}
                               {canDeleteDoc(doc) && (
                                 <button
-                                type="button"
-                                title="Delete document"
-                                onClick={() => setPendingDeleteDoc(doc)}
-                                className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Frozen / Sticky Pagination Footer */}
-          <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground shadow-xs">
-            <div className="flex items-center gap-3">
-              <span>
-                Showing{" "}
-                <strong className="font-semibold text-foreground">
-                  {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}
-                </strong>
-                –
-                <strong className="font-semibold text-foreground">
-                  {Math.min(page * pageSize, totalCount)}
-                </strong>{" "}
-                of <strong className="font-semibold text-foreground">{totalCount}</strong> documents
-              </span>
-              <span className="text-muted-foreground/40">|</span>
-              <div className="flex items-center gap-1.5">
-                <span>Per page:</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  className="h-7 w-14 rounded-md border border-input bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
-                  aria-label="Rows per page"
-                >
-                  <option value={10}>10</option>
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
+                                  type="button"
+                                  title="Delete document"
+                                  onClick={() => setPendingDeleteDoc(doc)}
+                                  className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" /> Previous
-              </button>
-              <span className="px-2 tabular-nums font-semibold text-foreground">
-                {page} / {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
-              >
-                Next <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+            {/* Frozen / Sticky Pagination Footer */}
+            <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground shadow-xs">
+              <div className="flex items-center gap-3">
+                <span>
+                  Showing{" "}
+                  <strong className="font-semibold text-foreground">
+                    {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}
+                  </strong>
+                  –
+                  <strong className="font-semibold text-foreground">
+                    {Math.min(page * pageSize, totalCount)}
+                  </strong>{" "}
+                  of <strong className="font-semibold text-foreground">{totalCount}</strong> documents
+                </span>
+                <span className="text-muted-foreground/40">|</span>
+                <div className="flex items-center gap-1.5">
+                  <span>Per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setPage(1);
+                    }}
+                    className="h-7 w-14 rounded-md border border-input bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
+                    aria-label="Rows per page"
+                  >
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                </button>
+                <span className="px-2 tabular-nums font-semibold text-foreground">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                >
+                  Next <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
       </div>
 
       {/* Upload assignment modal */}
@@ -1391,13 +1524,25 @@ function MyOrgPage() {
         />
       )}
 
-      {/* Document Access Logs Modal (Web Word Collaborative Style) */}
-      {showLog && (
-        <DocumentAccessLogModal
-          summaries={accessSummaries}
-          isLoading={isLoadingAccessSummaries}
-          onClose={() => setShowLog(false)}
-          onDownloadDoc={handleDownload}
+      {/* Document-Specific History Logs Modal */}
+      {selectedDocForLogs && (
+        <SingleDocumentLogsModal
+          document={selectedDocForLogs}
+          onClose={() => setSelectedDocForLogs(null)}
+          onDownload={handleDownload}
+          onPreview={(doc) => {
+            setSelectedDocForLogs(null);
+            void handlePreviewDoc(doc);
+          }}
+        />
+      )}
+
+      {/* Document Preview Modal */}
+      {selectedDocForPreview && (
+        <DocumentPreviewModal
+          document={selectedDocForPreview}
+          onClose={() => setSelectedDocForPreview(null)}
+          onDownload={handleDownload}
         />
       )}
     </AppShell>

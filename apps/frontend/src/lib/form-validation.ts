@@ -174,6 +174,26 @@ export function isValidEmailLocalPart(value: string): boolean {
   return /^[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*$/.test(v);
 }
 
+/** Strict allowed domains for company work emails: @talakunchi.com, @talakunchi.in, @squad1.io */
+export const ALLOWED_WORK_EMAIL_DOMAINS = [
+  "talakunchi.com",
+  "talakunchi.in",
+  "squad1.io",
+] as const;
+
+export type AllowedWorkEmailDomain = (typeof ALLOWED_WORK_EMAIL_DOMAINS)[number];
+
+export const ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS = [
+  { id: "talakunchi_com", code: "@talakunchi.com", name: "talakunchi.com" },
+  { id: "talakunchi_in", code: "@talakunchi.in", name: "talakunchi.in" },
+  { id: "squad1_io", code: "@squad1.io", name: "squad1.io" },
+];
+
+export function isAllowedWorkEmailDomain(domain: string): boolean {
+  const clean = domain.replace(/^@/, "").toLowerCase().trim();
+  return ALLOWED_WORK_EMAIL_DOMAINS.includes(clean as AllowedWorkEmailDomain);
+}
+
 /** Local calendar date as `YYYY-MM-DD`. */
 export function isoDateToday(from = new Date()): string {
   return isoDateYearsAgo(0, from);
@@ -187,3 +207,4 @@ export function isoDateYearsAgo(years: number, from = new Date()): string {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
+

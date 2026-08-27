@@ -5,11 +5,14 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-08-21
+**Last updated:** 2026-08-27
 
 ## Latest
 
-- Onboard New Employee form fields share one control style (height, border, bg, labels, select chevrons). Department / Designation / Role all use select + `+ Add`; disabled fields use opacity instead of a different background.
+- Resource Directory & Resource Pool: **Bulk Upload** next to Add Employee, with **Upload** (.xlsx only) and **Sample download**. Valid rows are inserted; duplicate/invalid rows are skipped and listed. Duplicate checks cover work email, personal email, phone, PAN, Aadhaar, and UAN — same rules on single Add Employee (409, no insert, error toast).
+- Aadhaar is stored on `employees."Aadhaar"` (migration `20260826185721_AddEmployeeAadhaarAndUniqueIdentity`) and sent from onboard + profile save. Onboard form already collected it but did not persist it.
+- Integration tests: `CreateEmployee_RejectsDuplicateWorkEmailAndPhone`, `EmployeeBulk_SampleDownload_And_DuplicateUploadRejected`.
+
 - Add Employee catalog fields (Department / Designation / Role): `+ Add` button beside the select (not “+ Add new…” inside the dropdown).
 - Regenerated `database/trackerpro-full.sql` from live Postgres (`trackerpro`) via pg_dump — includes `clients."CustomerSince"` and `sub_ventures."Notes"`.
 - Customer detail Notes: always under Customer Information; scoped per sub-venture; Notes + All Projects cards share height — only the projects table scrolls. Sub-venture `Notes` column + create/add-client save notes onto that SV.
@@ -46,7 +49,7 @@ Canonical spine: `employees -> clients -> projects -> tasks/timesheets -> approv
 - Resources: `employees`, `exited_employees`, `EmployeesController` at `/api/v1/employees` (list/get/create/update/offboard/exited + catalog GET/POST)
 - Customers: `client_contacts`; `clients` still has string `Industry`/`EngagementManager`/`City`/`Country` plus FKs `IndustryId`/`EngagementManagerId`/`CountryId`/`CityId`
 - Dev: `DotEnvLoader`, `DevelopmentAuthBypassMiddleware` (unauthenticated → seeded Admin). Frontend demo role switcher still in topbar (`demo-roles.ts`); API live for clients/employees/users
-- Migrations: `20260818075129_AddMasterCatalogs`, `20260820113531_AddGeoCatalogs`, `20260820122343_AddEmployeeCatalogs`, `20260820124931_AddSalaryBands`
+- Migrations: `20260818075129_AddMasterCatalogs`, `20260820113531_AddGeoCatalogs`, `20260820122343_AddEmployeeCatalogs`, `20260820124931_AddSalaryBands`, `20260826185721_AddEmployeeAadhaarAndUniqueIdentity`
 
 **Deferred:** pool/allocation until Action Centre; projects, timesheets, approvals, repository, analytics.
 

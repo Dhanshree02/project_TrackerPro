@@ -464,4 +464,91 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
         var response = await _client.PostAsJsonAsync("/api/v1/employees", payload);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task CreateEmployee_RejectsDuplicateWorkEmailAndPhone()
+    {
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var workEmail = $"dup.identity.{suffix}@acme.co";
+        var phone = "9" + Random.Shared.Next(100000000, 999999999).ToString();
+        var aadhaar = "2" + Random.Shared.Next(100000000, 999999999).ToString() + Random.Shared.Next(10, 99).ToString();
+        var uan = "1" + Random.Shared.Next(100000000, 999999999).ToString() + Random.Shared.Next(10, 99).ToString();
+
+        var first = new
+        {
+            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            firstName = "Dup",
+            lastName = "One",
+            workEmail,
+            phone,
+            pan = $"BBBBB{Random.Shared.Next(1000, 9999)}B",
+            aadhaar,
+            pfUan = uan,
+        };
+        var firstResponse = await _client.PostAsJsonAsync("/api/v1/employees", first);
+        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+
+        var dupEmail = new
+        {
+            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            firstName = "Dup",
+            lastName = "Two",
+            workEmail,
+            phone = "8" + phone[1..],
+        };
+        var emailResponse = await _client.PostAsJsonAsync("/api/v1/employees", dupEmail);
+        Assert.Equal(HttpStatusCode.Conflict, emailResponse.StatusCode);
+        var emailJson = await emailResponse.Content.ReadAsStringAsync();
+        Assert.Contains("work email", emailJson, StringComparison.OrdinalIgnoreCase);
+
+        var dupPhone = new
+        {
+            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            firstName = "Dup",
+            lastName = "Three",
+            workEmail = $"dup.phone.{suffix}@acme.co",
+            phone,
+        };
+        var phoneResponse = await _client.PostAsJsonAsync("/api/v1/employees", dupPhone);
+        Assert.Equal(HttpStatusCode.Conflict, phoneResponse.StatusCode);
+        var phoneJson = await phoneResponse.Content.ReadAsStringAsync();
+        Assert.Contains("phone", phoneJson, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task EmployeeBulk_SampleDownload_And_DuplicateUploadRejected()
+    {
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+
+        var sample = await _client.GetAsync("/api/v1/employees/bulk/sample");
+        Assert.Equal(HttpStatusCode.OK, sample.StatusCode);
+        Assert.Contains("spreadsheetml.sheet", sample.Content.Headers.ContentType?.MediaType ?? "");
+        var bytes = await sample.Content.ReadAsByteArrayAsync();
+        Assert.True(bytes.Length > 0);
+
+        async Task<ApiResponse<EmployeeBulkUploadResult>> UploadAsync()
+        {
+            using var content = new MultipartFormDataContent();
+            var file = new ByteArrayContent(bytes);
+            file.Headers.ContentType = new MediaTypeHeaderValue(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            content.Add(file, "file", "employee-bulk-upload-sample.xlsx");
+            var response = await _client.PostAsync("/api/v1/employees/bulk", content);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            return (await response.Content.ReadFromJsonAsync<ApiResponse<EmployeeBulkUploadResult>>())!;
+        }
+
+        var first = await UploadAsync();
+        Assert.NotNull(first.Data);
+        var second = await UploadAsync();
+        Assert.NotNull(second.Data);
+        Assert.Equal(0, second.Data!.Created);
+        Assert.True(second.Data.Failed >= 1);
+        Assert.Contains(second.Data.Errors, e =>
+            e.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase));
+    }
 }

@@ -35,8 +35,7 @@ public class RepositoryService(
             query = query.Where(r =>
                 EF.Functions.ILike(r.FileName, $"%{s}%") ||
                 EF.Functions.ILike(r.UploadedBy, $"%{s}%") ||
-                EF.Functions.ILike(r.Category, $"%{s}%") ||
-                EF.Functions.ILike(r.FilePath, $"%{s}%"));
+                EF.Functions.ILike(r.Category, $"%{s}%"));
         }
 
         var total = await query.CountAsync(ct);
@@ -53,7 +52,6 @@ public class RepositoryService(
                 r.Size,
                 r.LastUpdated,
                 r.UploadedBy,
-                r.FilePath,
                 r.CreatedAtUtc))
             .ToListAsync(ct);
 
@@ -71,7 +69,7 @@ public class RepositoryService(
             throw new ArgumentException("No file provided for upload.");
         }
 
-        // Save file physically into category folder and get complete file path
+        // Save file physically into category folder
         var stored = await storage.SaveRepositoryDocumentAsync(category, file, ct);
 
         // Resolve uploader name from active employees
@@ -85,7 +83,7 @@ public class RepositoryService(
             Size = stored.SizeBytes,
             LastUpdated = DateTime.UtcNow,
             UploadedBy = uploader,
-            FilePath = stored.CompleteFilePath,
+            FilePath = stored.RelativePath,
             CreatedAtUtc = DateTime.UtcNow,
             CreatedBy = currentUser.UserId
         };
@@ -118,7 +116,6 @@ public class RepositoryService(
             doc.Size,
             doc.LastUpdated,
             doc.UploadedBy,
-            doc.FilePath,
             doc.CreatedAtUtc);
     }
 
@@ -162,8 +159,8 @@ public class RepositoryService(
         var doc = await db.RepositoryItems.FirstOrDefaultAsync(r => r.Id == id, ct);
         if (doc == null) return false;
 
-        // Try physical file deletion
-        storage.DeleteRepositoryFile(doc.FilePath);
+        // Try physical file deletion by category and filename
+        storage.DeleteRepositoryFile(doc.Category, doc.FileName);
 
         // Soft delete from database
         db.RepositoryItems.Remove(doc);
@@ -202,6 +199,26 @@ public class RepositoryService(
             .AsNoTracking()
             .OrderByDescending(l => l.CreatedAtUtc)
             .Take(limit)
+            .Select(l => new RepositoryActivityLogDto(
+                l.Id,
+                l.Action,
+                l.DocumentId,
+                l.FileName,
+                l.Category,
+                l.PerformedBy,
+                l.Details,
+                l.CreatedAtUtc))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<RepositoryActivityLogDto>> GetDocumentLogsAsync(
+        Guid documentId,
+        CancellationToken ct = default)
+    {
+        return await db.RepositoryActivityLogs
+            .AsNoTracking()
+            .Where(l => l.DocumentId == documentId)
+            .OrderByDescending(l => l.CreatedAtUtc)
             .Select(l => new RepositoryActivityLogDto(
                 l.Id,
                 l.Action,
