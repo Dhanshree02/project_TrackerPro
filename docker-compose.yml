@@ -1,0 +1,83 @@
+services:
+  # ----------------------------------------------------
+  # 1. SHARED DATABASE (PostgreSQL)
+  # ----------------------------------------------------
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: pms_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clockit
+      POSTGRES_DB: trackerpro
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/trackerpro-final.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    networks:
+      - pms_network
+
+  # ----------------------------------------------------
+  # 2. PGADMIN 4 (Web Interface)
+  # ----------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pms_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: clockit
+    ports:
+      - "5050:80"
+    networks:
+      - pms_network
+    depends_on:
+      - postgres_db
+
+  # ----------------------------------------------------
+  # 3. BACKEND API (.NET Core)
+  # ----------------------------------------------------
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: pms_backend
+    restart: always
+    depends_on:
+      - postgres_db
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=trackerpro;Username=postgres;Password=clockit
+    ports:
+      - "5194:8080"
+    networks:
+      - pms_network
+
+  # ----------------------------------------------------
+  # 4. FRONTEND (Vite / React UI)
+  # ----------------------------------------------------
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: pms_frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      - VITE_BACKEND_URL=http://backend:8080
+    ports:
+      - "3000:3000"
+      - "80:3000"
+    networks:
+      - pms_network
+
+networks:
+  pms_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

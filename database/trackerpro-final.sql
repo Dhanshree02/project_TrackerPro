@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bVg64eacDGAn7Wne8TESIp6ZaYHQqYFACumLJfNwYgVm3cAl7HoFkqYb65dh85c
+-- \restrict bVg64eacDGAn7Wne8TESIp6ZaYHQqYFACumLJfNwYgVm3cAl7HoFkqYb65dh85c
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -10,7 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
+-- SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -3110,5 +3110,5 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES 
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bVg64eacDGAn7Wne8TESIp6ZaYHQqYFACumLJfNwYgVm3cAl7HoFkqYb65dh85c
+-- \unrestrict bVg64eacDGAn7Wne8TESIp6ZaYHQqYFACumLJfNwYgVm3cAl7HoFkqYb65dh85c
 

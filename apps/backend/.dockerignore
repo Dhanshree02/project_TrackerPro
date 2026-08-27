@@ -1,0 +1,8 @@
+bin/
+obj/
+.vs/
+.vscode/
+tests/
+Log/
+.git/
+*.user

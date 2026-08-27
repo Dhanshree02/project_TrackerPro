@@ -16,7 +16,7 @@ export default defineConfig({
       allowedHosts: true,
       proxy: {
         "/api": {
-          target: "http://localhost:5194",
+          target: process.env.VITE_BACKEND_URL || "http://backend:8080",
           changeOrigin: true,
         },
       },
