@@ -7,6 +7,7 @@ import { usePermissions } from "@/lib/permissions";
 import { people, projects, benchResourceIds } from "@/lib/mock-data";
 import { getDept } from "@/lib/dh-helpers";
 import { Avatar } from "@/components/pills";
+import { EmployeeBulkUploadMenu } from "@/components/employee-bulk-upload";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/resources/")({
@@ -98,9 +99,14 @@ function ResourcesPage() {
           </div>
         )}
         {!isEmployee && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] text-muted-foreground shrink-0 self-start md:self-auto">
-            <Lock className="h-3 w-3" /> Tracking only · no shuffle/replace
-          </span>
+          <div className="flex items-center gap-2">
+            {(isPMO || isHOD || isBO || hasPermission("resources.manage")) && (
+              <EmployeeBulkUploadMenu onImported={() => navigate({ to: "/dh-employee-directory" })} />
+            )}
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] text-muted-foreground shrink-0 self-start md:self-auto">
+              <Lock className="h-3 w-3" /> Tracking only · no shuffle/replace
+            </span>
+          </div>
         )}
       </div>
 

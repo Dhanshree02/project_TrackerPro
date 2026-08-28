@@ -26,6 +26,7 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
             .When(x => !string.IsNullOrWhiteSpace(x.ContactPhone));
 
         RuleFor(x => x.EngagementManager).MaximumLength(120);
+        RuleFor(x => x.SalesManager).MaximumLength(120);
 
         RuleFor(x => x.ClientType)
             .Must(t => t is null || t is "NEW" or "OLD")
@@ -77,6 +78,8 @@ public sealed class UpdateClientRequestValidator : AbstractValidator<UpdateClien
         RuleFor(x => x.ContactEmail)
             .MustBeValidEmail()
             .When(x => !string.IsNullOrWhiteSpace(x.ContactEmail));
+        RuleFor(x => x.EngagementManager).MaximumLength(120);
+        RuleFor(x => x.SalesManager).MaximumLength(120);
         RuleFor(x => x.Status)
             .Must(s => s is null or "Active" or "Inactive" or "Onboarding")
             .WithMessage("Status must be Active, Inactive or Onboarding");

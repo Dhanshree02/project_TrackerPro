@@ -1,5 +1,12 @@
 namespace PMS.API.Modules.Repository.DTOs;
 
+public sealed class UploadRepositoryDocumentRequest
+{
+    public string Category { get; set; } = string.Empty;
+    public IFormFile File { get; set; } = null!;
+    public string? UploadedBy { get; set; }
+}
+
 public sealed record RepositoryItemDto(
     Guid Id,
     string FileName,

@@ -204,6 +204,7 @@ export interface Client {
   clientType?: "NEW" | "OLD";
   previousPmIds?: string[];
   engagementManager?: string;
+  salesManager?: string;
   subVentures?: ClientSubVenture[]; // list of sub-ventures / end-customer divisions
   contactName?: string;
   contactPhone?: string;

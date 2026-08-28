@@ -16,13 +16,16 @@ import {
   Download,
   Info,
   FileText,
+  Briefcase,
+  MapPin,
+  Tag,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
-import { fetchClient, mapApiClient, updateClient } from "@/lib/api/clients";
+import { fetchClient, mapApiClient, updateClient, formatCustomerId } from "@/lib/api/clients";
 import {
   fetchAllEmployees,
   fetchDesignationOptions,
@@ -377,10 +380,10 @@ This document confirms the verified identity and KYC onboarding status for ${cli
   return (
     <AppShell
       title={client.name}
-      subtitle={`${fmtClientId(client.id)} · ${client.industry} · 360° Client View`}
+      subtitle={`${formatCustomerId(client.id)} · ${client.industry} · 360° Client View`}
     >
       {/* Breadcrumb */}
-      <nav className="mb-4 flex items-center gap-1 text-xs text-muted-foreground">
+      <nav className="mb-3 flex items-center gap-1 text-xs text-muted-foreground">
         <Link to="/customers" className="hover:text-foreground">
           Customers
         </Link>
@@ -388,67 +391,139 @@ This document confirms the verified identity and KYC onboarding status for ${cli
         <span className="text-foreground font-medium">{client.name}</span>
       </nav>
 
-      {/* ── CLIENT HEADER BANNER ── */}
-      <div className="mb-4 rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-wrap items-center gap-4 p-5">
-          {/* Logo */}
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-info text-lg font-bold text-primary-foreground">
-            {client.logo}
+      {/* ── REDESIGNED CLIENT HEADER BANNER ── */}
+      <div className="mb-4 rounded-2xl border border-slate-200/90 dark:border-border/80 bg-card p-5 shadow-sm space-y-4">
+        {/* Top Tier: Identity & Stakeholders */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-border/60">
+          {/* Left: Customer Identity & Badges */}
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-info text-lg font-bold text-primary-foreground shadow-sm">
+              {client.logo}
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
+                  {client.name}
+                </h1>
+                
+                {/* Clearly Labeled Customer ID */}
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-muted border border-border text-foreground">
+                  <Tag className="h-3 w-3 text-muted-foreground" />
+                  {formatCustomerId(client.id)}
+                </span>
+
+                {/* Customer Type Badge */}
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                    client.clientType === "NEW"
+                      ? "border border-primary/30 bg-primary/10 text-primary"
+                      : "border border-slate-200 dark:border-border bg-muted/60 text-muted-foreground",
+                  )}
+                >
+                  {client.clientType === "NEW" ? "New Customer" : "Existing Customer"}
+                </span>
+
+                {/* Active Status */}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Active
+                </span>
+              </div>
+
+              {/* Secondary Identity Details */}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                {client.industry && (
+                  <div className="flex items-center gap-1 font-medium">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground/70" />
+                    <span>{client.industry}</span>
+                  </div>
+                )}
+                {client.contact && (
+                  <div className="flex items-center gap-1">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground/70" />
+                    <span>{client.contact}</span>
+                  </div>
+                )}
+                {client.city && (
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground/70" />
+                    <span>
+                      {client.city}
+                      {client.country ? `, ${client.country}` : ""}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Identity */}
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-base font-bold text-foreground">{client.name}</h1>
-              <span
-                className={cn(
-                  "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                  client.clientType === "NEW"
-                    ? "border-primary/30 bg-primary/10 text-primary"
-                    : "border-success/30 bg-success/10 text-success",
-                )}
-              >
-                {client.clientType === "NEW" ? "New Customer" : "Existing Customer"}
+          {/* Right: Key Stakeholders Card (Engagement Manager & Sales Manager) */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0 rounded-xl bg-slate-50/90 dark:bg-muted/30 border border-slate-200/80 dark:border-border/60 p-2.5 shadow-2xs">
+            {/* Engagement Manager */}
+            <div className="flex items-center gap-2.5 min-w-[175px] pr-2.5 sm:border-r sm:border-slate-200/80 dark:sm:border-border/60">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold text-xs shadow-2xs ring-1 ring-blue-300/60 dark:ring-blue-700/60">
+                <User className="h-4 w-4" />
               </span>
-              <span className="inline-flex rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
-                Active
-              </span>
-
-              {/* EM Name + Change button */}
-              {(isDhanshree || hasPermission("customers.edit")) && (
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-info/30 bg-info/10 px-2.5 py-0.5 text-[11px] font-semibold text-info">
-                    <User className="h-3 w-3" />
-                    {emName !== "—" ? emName : "No EM assigned"}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Engagement Manager
                   </span>
-                  {!isSales && (
+                  {(isDhanshree || hasPermission("customers.edit")) && !isSales && (
                     <button
                       type="button"
                       onClick={openEmPicker}
-                      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      className="text-[9px] text-primary hover:underline font-semibold cursor-pointer"
+                      title="Change Engagement Manager"
                     >
-                      <Pencil className="h-2.5 w-2.5" /> Change EM
+                      Change
                     </button>
                   )}
                 </div>
-              )}
+                <p
+                  className={cn(
+                    "truncate text-xs font-semibold leading-tight mt-0.5",
+                    emName !== "—" ? "text-foreground" : "text-muted-foreground font-normal italic",
+                  )}
+                  title={emName}
+                >
+                  {emName !== "—" ? emName : "Unassigned"}
+                </p>
+              </div>
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span className="font-mono font-semibold text-foreground">
-                {fmtClientId(client.id)}
+
+            {/* Sales Manager */}
+            <div className="flex items-center gap-2.5 min-w-[165px] pl-1">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold text-xs shadow-2xs ring-1 ring-emerald-300/60 dark:ring-emerald-700/60">
+                <Briefcase className="h-4 w-4" />
               </span>
-              <span>·</span>
-              <span>{client.industry}</span>
-              <span>·</span>
-              <span className="flex items-center gap-1">
-                <Mail className="h-3 w-3" />
-                {client.contact}
-              </span>
+              <div className="min-w-0 flex-1">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Sales Manager
+                </span>
+                <p
+                  className={cn(
+                    "truncate text-xs font-semibold leading-tight mt-0.5",
+                    client.salesManager?.trim() ? "text-foreground" : "text-muted-foreground font-normal italic",
+                  )}
+                  title={client.salesManager || "Unassigned"}
+                >
+                  {client.salesManager?.trim() || "Unassigned"}
+                </p>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Clickable stat cards — act as filter buttons */}
-          <div className="flex flex-wrap gap-2">
+        {/* Bottom Tier: Project Portfolio Metric Filter Strip */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            Project Portfolio
+          </span>
+
+          <div className="flex flex-wrap items-center gap-1.5">
             {(
               [
                 {
@@ -456,7 +531,7 @@ This document confirms the verified identity and KYC onboarding status for ${cli
                   label: "Total",
                   value: buckets.total,
                   color: "text-foreground",
-                  ring: "ring-border",
+                  ring: "ring-primary",
                 },
                 {
                   id: "new" as FilterTab,
@@ -499,14 +574,14 @@ This document confirms the verified identity and KYC onboarding status for ${cli
                 key={id}
                 onClick={() => setFilter(id)}
                 className={cn(
-                  "rounded-lg border bg-muted/30 px-4 py-2 text-center min-w-[72px] transition-all hover:bg-muted/60",
-                  filter === id ? `border-transparent ring-2 ${ring} bg-muted/50` : "border-border",
+                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-center transition-all cursor-pointer",
+                  filter === id
+                    ? `border-transparent ring-2 ${ring} bg-primary/10 text-primary font-semibold shadow-2xs`
+                    : "border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                 )}
               >
-                <div className={cn("text-xl font-bold tabular-nums", color)}>{value}</div>
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-                  {label}
-                </div>
+                <span className="text-xs font-bold tabular-nums">{value}</span>
+                <span className="text-[10px] uppercase tracking-wide font-medium">{label}</span>
               </button>
             ))}
           </div>
@@ -672,7 +747,7 @@ This document confirms the verified identity and KYC onboarding status for ${cli
                 <select
                   value={healthFilter}
                   onChange={(e) => setHealthFilter(e.target.value as HealthFilter)}
-                  className="h-8 rounded-md border border-input bg-card px-2 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="h-8 min-w-[115px] rounded-md border border-input bg-card pl-2.5 pr-8 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <option value="all">All</option>
@@ -827,7 +902,7 @@ This document confirms the verified identity and KYC onboarding status for ${cli
             </div>
             <dl className="divide-y divide-border">
               {[
-                { label: "Customer ID", value: fmtClientId(client.id), mono: true },
+                { label: "Customer ID", value: formatCustomerId(client.id), mono: true },
                 { label: "Customer Name", value: client.name },
                 { label: "Industry", value: client.industry },
                 {
@@ -835,6 +910,8 @@ This document confirms the verified identity and KYC onboarding status for ${cli
                   value: client.clientType === "NEW" ? "New Customer" : "Existing Customer",
                 },
                 { label: "Customer Since", value: clientSinceDate },
+                { label: "Engagement Manager", value: client.engagementManager || "—" },
+                { label: "Sales Manager", value: client.salesManager || "—" },
                 { label: "First Project", value: firstProjectName },
                 { label: "First Project ID", value: firstProjectId, mono: true },
                 { label: "City", value: client.city || "—" },

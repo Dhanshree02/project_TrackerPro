@@ -2119,6 +2119,7 @@ export const dhStore = {
       contact: input.contact,
       logo,
       engagementManager: input.engagementManager,
+      salesManager: input.salesManager,
       // Sub-ventures (with their own contacts) come through in the payload already.
       subVentures: input.subVentures ?? [],
       contactName: input.contactName,

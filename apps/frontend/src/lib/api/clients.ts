@@ -6,6 +6,20 @@ import {
   type ClientSubVenture,
 } from "@/lib/mock-data";
 
+/** Formats a deterministic, consistent, and readable Customer ID e.g. CUST-C8E5EC6B */
+export function formatCustomerId(id?: string | null): string {
+  if (!id) return "—";
+  const trimmed = id.trim();
+  if (trimmed.startsWith("CUST-") || trimmed.startsWith("CL-") || trimmed.startsWith("C-")) {
+    return trimmed;
+  }
+  if (/^\d+$/.test(trimmed)) {
+    return `CUST-${trimmed.padStart(4, "0")}`;
+  }
+  const clean = trimmed.replace(/-/g, "").toUpperCase();
+  return `CUST-${clean.slice(0, 8)}`;
+}
+
 /** Wire shape returned by GET /api/v1/clients (camelCase JSON). */
 export interface ApiClientContact {
   name?: string | null;
@@ -31,6 +45,7 @@ export interface ApiClient {
   clientType: "NEW" | "OLD";
   status: string;
   engagementManager?: string | null;
+  salesManager?: string | null;
   contactName?: string | null;
   contactPhone?: string | null;
   contactDesignation?: string | null;
@@ -65,6 +80,7 @@ export function mapApiClient(c: ApiClient): Client {
     contact: c.contactEmail ?? "",
     clientType: c.clientType,
     engagementManager: c.engagementManager ?? undefined,
+    salesManager: c.salesManager ?? undefined,
     contactName: c.contactName ?? undefined,
     contactPhone: c.contactPhone ?? undefined,
     contactDesignation: c.contactDesignation ?? undefined,
@@ -133,6 +149,7 @@ export interface CreateClientInput {
   clientType?: "NEW" | "OLD";
   contactEmail?: string | null;
   engagementManager?: string | null;
+  salesManager?: string | null;
   contactName?: string | null;
   contactPhone?: string | null;
   contactDesignation?: string | null;

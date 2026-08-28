@@ -49,6 +49,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
                 (c.Country != null && c.Country.ToLower().Contains(needle)) ||
                 (c.Notes != null && c.Notes.ToLower().Contains(needle)) ||
                 (c.EngagementManager != null && c.EngagementManager.ToLower().Contains(needle)) ||
+                (c.SalesManager != null && c.SalesManager.ToLower().Contains(needle)) ||
                 c.Contacts.Any(ct =>
                     (ct.Name != null && ct.Name.ToLower().Contains(needle)) ||
                     (ct.Email != null && ct.Email.ToLower().Contains(needle)) ||
@@ -71,6 +72,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             .Include(c => c.CountryRef)
             .Include(c => c.CityRef)
             .Include(c => c.EngagementManagerRef)
+            .Include(c => c.SalesManagerRef)
             .Include(c => c.Contacts)
             .Include(c => c.SubVentures)
             .ThenInclude(s => s.Contacts)
@@ -90,6 +92,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             .Include(c => c.CountryRef)
             .Include(c => c.CityRef)
             .Include(c => c.EngagementManagerRef)
+            .Include(c => c.SalesManagerRef)
             .Include(c => c.Contacts)
             .Include(c => c.SubVentures)
             .ThenInclude(s => s.Contacts)
@@ -111,6 +114,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             ClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New,
             EngagementManager = request.EngagementManager,
             EngagementManagerId = await ResolveEngagementManagerIdAsync(request.EngagementManager, ct),
+            SalesManager = request.SalesManager,
+            SalesManagerId = await ResolveSalesManagerIdAsync(request.SalesManager, ct),
             ContactName = request.ContactName,
             ContactPhone = request.ContactPhone,
             ContactDesignation = request.ContactDesignation,
@@ -150,6 +155,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             .Include(c => c.CountryRef)
             .Include(c => c.CityRef)
             .Include(c => c.EngagementManagerRef)
+            .Include(c => c.SalesManagerRef)
             .Include(c => c.Contacts)
             .Include(c => c.SubVentures)
             .ThenInclude(s => s.Contacts)
@@ -179,6 +185,11 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         {
             client.EngagementManager = request.EngagementManager;
             client.EngagementManagerId = await ResolveEngagementManagerIdAsync(request.EngagementManager, ct);
+        }
+        if (request.SalesManager is not null)
+        {
+            client.SalesManager = request.SalesManager;
+            client.SalesManagerId = await ResolveSalesManagerIdAsync(request.SalesManager, ct);
         }
         if (request.ContactName is not null) client.ContactName = request.ContactName;
         if (request.ContactPhone is not null) client.ContactPhone = request.ContactPhone;
@@ -459,6 +470,26 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         return employee?.Id;
     }
 
+    private async Task<Guid?> ResolveSalesManagerIdAsync(string? managerName, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(managerName)) return null;
+        var trimmed = managerName.Trim();
+        var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return null;
+        var first = parts[0];
+        var last = parts.Length > 1 ? string.Join(' ', parts.Skip(1)) : string.Empty;
+
+        var employee = await db.Employees
+            .Include(e => e.Designation)
+            .Where(e =>
+                (e.FirstName + " " + e.LastName).Trim().ToLower() == trimmed.ToLower() ||
+                (e.FirstName == first && (last.Length == 0 || e.LastName == last)))
+            .OrderByDescending(e =>
+                e.Designation != null && (e.Designation.Name == "Sales Manager" || e.Designation.Name.Contains("Sales")))
+            .FirstOrDefaultAsync(ct);
+
+        return employee?.Id;
+    }
 
     private static ClientDto MapToDto(Client c) => new(
         c.Id,
@@ -469,6 +500,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         c.ClientType == ClientType.Old ? "OLD" : "NEW",
         c.Status.ToString(),
         c.EngagementManagerRef is null ? c.EngagementManager : $"{c.EngagementManagerRef.FirstName} {c.EngagementManagerRef.LastName}",
+        c.SalesManagerRef is null ? c.SalesManager : $"{c.SalesManagerRef.FirstName} {c.SalesManagerRef.LastName}",
         c.ContactName,
         c.ContactPhone,
         c.ContactDesignation,

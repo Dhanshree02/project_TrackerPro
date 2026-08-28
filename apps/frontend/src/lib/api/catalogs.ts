@@ -5,6 +5,8 @@ export interface CatalogOption {
   id: string;
   code: string;
   name: string;
+  phoneCode?: string;
+  phoneDigits?: number;
 }
 
 export interface CityCatalogOption extends CatalogOption {

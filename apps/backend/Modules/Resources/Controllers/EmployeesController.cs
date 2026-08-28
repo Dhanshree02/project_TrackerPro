@@ -232,9 +232,10 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<ActionResult<ApiResponse<EmployeeBulkUploadResult>>> BulkUpload(
-        [FromForm] IFormFile file,
+        [FromForm] EmployeeBulkUploadRequest request,
         CancellationToken ct)
     {
+        var file = request?.File;
         if (file is null || file.Length == 0)
             return BadRequest(ApiResponse<EmployeeBulkUploadResult>.Fail(
                 "VALIDATION_ERROR", "Please upload an Excel file (.xlsx)."));

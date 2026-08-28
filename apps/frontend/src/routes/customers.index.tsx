@@ -15,6 +15,13 @@ import {
   Download,
   Info,
   FileText,
+  UploadCloud,
+  CheckCircle2,
+  AlertCircle,
+  MapPin,
+  Users,
+  Briefcase,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -26,6 +33,7 @@ import {
   fetchClients,
   mapApiClient,
   updateClient,
+  formatCustomerId,
   type CreateClientInput,
 } from "@/lib/api/clients";
 import { fetchCities, fetchCountries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
@@ -162,6 +170,7 @@ function CustomersPage() {
       c.industry,
       c.clientType,
       c.engagementManager,
+      c.salesManager,
       c.contact,
       c.contactName,
       c.contactPhone,
@@ -251,6 +260,8 @@ function CustomersPage() {
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map(({ client: c, total, newCount, ongoing, completed, onHold, archived }) => {
             const emName = c.engagementManager?.trim() || "Unassigned";
+            const smName = c.salesManager?.trim() || "Unassigned";
+            const custCode = formatCustomerId(c.id);
             const metrics = [
               { label: "New", value: newCount },
               { label: "Ongoing", value: ongoing },
@@ -282,8 +293,8 @@ function CustomersPage() {
                   "before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-primary before:to-info before:opacity-0 group-hover:before:opacity-100 before:transition-opacity before:duration-200",
                 )}
               >
-                {/* Identity — clear primary content */}
-                <div className="flex items-start gap-3.5 px-5 pt-5 pb-4">
+                {/* Identity — clear primary content with consistent ID */}
+                <div className="flex items-start gap-3.5 px-5 pt-5 pb-3">
                   <div
                     className={cn(
                       "flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]",
@@ -296,38 +307,68 @@ function CustomersPage() {
                   </div>
                   <div className="min-w-0 flex-1 pt-0.5">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="truncate text-[15px] font-semibold leading-snug tracking-tight text-foreground group-hover:text-primary transition-colors">
-                        {c.name}
-                      </h3>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-[15px] font-semibold leading-snug tracking-tight text-foreground group-hover:text-primary transition-colors">
+                          {c.name}
+                        </h3>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                          <span className="font-mono text-[10px] font-bold text-foreground/90 bg-slate-100 dark:bg-muted px-1.5 py-0.5 rounded border border-border/70">
+                            {custCode}
+                          </span>
+                          <span>·</span>
+                          <span className="truncate">{c.industry || "—"}</span>
+                        </div>
+                      </div>
                       <ChevronRight
                         className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary"
                         aria-hidden
                       />
                     </div>
-                    <p className="mt-0.5 truncate text-[13px] leading-snug text-muted-foreground font-medium">
-                      {c.industry || "—"}
-                    </p>
                   </div>
                 </div>
 
-                {/* Engagement Manager — secondary metadata, deferred chrome */}
-                <div className="mx-5 mb-4 flex items-center gap-2 rounded-xl bg-white/90 dark:bg-card/90 border border-slate-200/80 dark:border-border/60 shadow-2xs px-3 py-2">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-background text-muted-foreground shadow-2xs ring-1 ring-border/60">
-                    <UserRound className="h-3.5 w-3.5" aria-hidden />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-                      Engagement Manager
-                    </p>
-                    <p
-                      className={cn(
-                        "truncate text-[13px] font-medium leading-tight",
-                        c.engagementManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground",
-                      )}
-                      title={emName}
-                    >
-                      {emName}
-                    </p>
+                {/* Key Stakeholders Section: Engagement Manager & Sales Manager */}
+                <div className="mx-5 mb-4 grid grid-cols-2 gap-2 rounded-xl bg-white/90 dark:bg-card/90 border border-slate-200/80 dark:border-border/60 shadow-2xs p-2.5">
+                  {/* Engagement Manager */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shadow-2xs ring-1 ring-blue-200/60 dark:ring-blue-800/60">
+                      <UserRound className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                        Engagement Mgr
+                      </p>
+                      <p
+                        className={cn(
+                          "truncate text-[12px] font-medium leading-tight",
+                          c.engagementManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground",
+                        )}
+                        title={emName}
+                      >
+                        {emName}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Sales Manager */}
+                  <div className="flex items-center gap-2 min-w-0 border-l border-slate-200/80 dark:border-border/60 pl-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 shadow-2xs ring-1 ring-emerald-200/60 dark:ring-emerald-800/60">
+                      <Briefcase className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                        Sales Mgr
+                      </p>
+                      <p
+                        className={cn(
+                          "truncate text-[12px] font-medium leading-tight",
+                          c.salesManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground",
+                        )}
+                        title={smName}
+                      >
+                        {smName}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -368,6 +409,8 @@ function CustomersPage() {
               <tr>
                 <th className="px-3 py-2 font-medium">Customer</th>
                 <th className="px-3 py-2 font-medium">Industry</th>
+                <th className="px-3 py-2 font-medium">Engagement Mgr</th>
+                <th className="px-3 py-2 font-medium">Sales Mgr</th>
                 <th className="px-3 py-2 font-medium">Total</th>
                 <th className="px-3 py-2 font-medium">New</th>
                 <th className="px-3 py-2 font-medium">Ongoing</th>
@@ -388,16 +431,23 @@ function CustomersPage() {
                   className="hover:bg-accent/50 cursor-pointer transition-colors group"
                 >
                   <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
                         {c.logo}
                       </span>
-                      <span className="font-medium group-hover:text-primary transition-colors">
-                        {c.name}
-                      </span>
+                      <div className="min-w-0">
+                        <span className="font-medium group-hover:text-primary transition-colors truncate block">
+                          {c.name}
+                        </span>
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {formatCustomerId(c.id)}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">{c.industry}</td>
+                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.engagementManager || "—"}</td>
+                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.salesManager || "—"}</td>
                   <td className="px-3 py-2.5 tabular-nums">{total}</td>
                   <td className="px-3 py-2.5 tabular-nums text-primary">{newCount}</td>
                   <td className="px-3 py-2.5 tabular-nums text-info">{ongoing}</td>
@@ -445,6 +495,7 @@ interface NewClientState {
   subVentureName: string;
   customerId: string;
   engagementManager: string;
+  salesManager: string;
   phoneNumber: string;
   city: string;
   country: string;
@@ -479,9 +530,7 @@ function NewClientModal({
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── TK Customer search state — API-backed clients only (no mock data) ──
-  // The onboarding search must only look up real clients from the backend, never
-  // the in-memory mock/dh-store seed list.
+  // ── TK Customer search state — API-backed clients only ──
   const existingClients = useMemo(() => apiClients ?? [], [apiClients]);
   const [tkSearch, setTkSearch] = useState("");
   const [tkDropOpen, setTkDropOpen] = useState(false);
@@ -506,6 +555,7 @@ function NewClientModal({
     subVentureName: "",
     customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
     engagementManager: "",
+    salesManager: "",
     phoneNumber: "",
     city: "",
     country: "",
@@ -580,17 +630,23 @@ function NewClientModal({
       contacts: p.contacts.map((c, i) => (i === idx ? { ...c, [field]: val } : c)),
     }));
 
+  const selectedCountryObj = countries.find((c) => c.name === s.country);
+  const countryDialCode = selectedCountryObj?.phoneCode || "+91";
+  const countryPhoneDigits = selectedCountryObj?.phoneDigits || 10;
+
   // Returns the first missing required field label, or null if all valid
   const getStep1Error = (): string | null => {
     if (!s.subVentureName.trim()) return "End Customer / Sub-venture Name is required";
     if (selectedExisting) return null; // existing client — rest auto-filled
     if (!s.clientName.trim()) return "TK Customer / Partner Name is required";
     if (!s.engagementManager.trim()) return "Engagement Manager is required";
-    if (!s.phoneNumber.trim()) return "Phone Number is required";
-    const phErr = phoneError(s.phoneNumber, true);
-    if (phErr) return phErr;
-    if (!s.city.trim()) return "City is required";
     if (!s.country.trim()) return "Country is required";
+    if (!s.city.trim()) return "City is required";
+    if (!s.phoneNumber.trim()) return "Group SPOC Contact is required";
+    const cleanPhone = s.phoneNumber.replace(/\D/g, "");
+    if (cleanPhone.length !== countryPhoneDigits) {
+      return `Group SPOC Contact must be exactly ${countryPhoneDigits} digits for ${s.country || "selected country"}`;
+    }
     if (!s.industry.trim()) return "Industry is required";
     return null;
   };
@@ -610,9 +666,6 @@ function NewClientModal({
     if (!s.kycFile) return "KYC Document is required";
     return null;
   };
-
-  const isStep1Valid = () => getStep1Error() === null;
-  const isStep2Valid = () => getStep2Error() === null;
 
   const handleNext = () => {
     if (step === 1) {
@@ -634,15 +687,11 @@ function NewClientModal({
 
   const readOnlyCls = cn(inputCls, "bg-muted text-muted-foreground cursor-not-allowed");
 
-  // Backend responded with an error (validation / 403) — a real error to surface.
-  // Requests that never reached the server (offline, network) have no status.
   const isApiError = (err: unknown): err is Error & { status?: number } =>
     err instanceof Error && "status" in err;
   const isSessionError = (err: unknown): boolean =>
     err instanceof Error && /not authenticated|unauthorized/i.test(err.message);
 
-  // Builds both the API payload and the local-store shape from the form state so
-  // the offline fallback always mirrors what would have been sent to the backend.
   const buildNewClientPayload = () => {
     const validContacts = s.contacts.filter((c) => c.name.trim() && c.email.trim());
     const primary = validContacts[0] ?? s.contacts[0];
@@ -665,10 +714,10 @@ function NewClientModal({
         city: s.city?.trim() || null,
         country: s.country?.trim() || null,
         businessType: s.businessType?.trim() || null,
-        // Keep client-level notes empty; each sub-venture owns its onboarding notes.
         notes: null,
         kycDocumentName: s.kycFile?.name || null,
         engagementManager: s.engagementManager?.trim() || null,
+        salesManager: s.salesManager?.trim() || null,
         subVentures,
         contacts: validContacts.map((c) => ({
           name: c.name.trim(),
@@ -693,6 +742,7 @@ function NewClientModal({
         kycDocumentName: s.kycFile?.name || undefined,
         contacts: validContacts.length > 0 ? validContacts : undefined,
         engagementManager: s.engagementManager,
+        salesManager: s.salesManager,
         subVentures,
       },
     };
@@ -706,7 +756,6 @@ function NewClientModal({
       // ── Existing TK customer → add a sub-venture ──
       if (selectedExisting) {
         if (svAlreadyExists) {
-          // Sub-venture already exists — nothing to add, just acknowledge
           toast.info("Sub-venture already exists", {
             description: `${s.subVentureName} is already under ${selectedExisting.name}.`,
           });
@@ -716,8 +765,6 @@ function NewClientModal({
 
         const isApiClient = apiClients?.some((c) => c.id === selectedExisting.id) ?? false;
         if (isApiClient) {
-          // Backend-owned client → persist the new sub-venture (with its contacts)
-          // to the database.
           try {
             await updateClient(selectedExisting.id, {
               subVentures: [
@@ -737,13 +784,12 @@ function NewClientModal({
           } catch (err) {
             if (isSessionError(err)) {
               toast.error("Your session has expired. Please sign in again.");
-              return; // keep the modal open so the user can fix it
+              return;
             }
             if (isApiError(err)) {
               toast.error(err.message || "Failed to save the sub-venture.");
-              return; // keep the modal open so the user can fix it
+              return;
             }
-            // Backend unreachable → keep the in-memory behaviour so nothing breaks.
             dhStore.addSubVenture(selectedExisting.id, s.subVentureName.trim(), store.contacts, s.notes);
             toast.warning("Backend unreachable — sub-venture saved locally", {
               description: `${s.subVentureName} added under ${selectedExisting.name} in your local directory.`,
@@ -753,7 +799,6 @@ function NewClientModal({
           }
         }
 
-        // Local demo client (mock id) → in-memory behaviour as before.
         dhStore.addSubVenture(selectedExisting.id, s.subVentureName.trim(), store.contacts, s.notes);
         toast.success("Sub-venture added", {
           description: `${s.subVentureName} added under ${selectedExisting.name}.`,
@@ -771,14 +816,12 @@ function NewClientModal({
       } catch (err) {
         if (isSessionError(err)) {
           toast.error("Your session has expired. Please sign in again.");
-          return; // keep the modal open so the user can fix it
+          return;
         }
         if (isApiError(err)) {
-          // Real backend error (validation / permission) — surface it.
           toast.error(err.message || "Failed to save the client.");
-          return; // keep the modal open so the user can fix it
+          return;
         }
-        // Backend offline → fall back to the local directory so onboarding never blocks.
         dhStore.addClient(store);
         toast.warning("Backend unreachable — client saved locally", {
           description: `${store.name} added to your local directory.`,
@@ -842,11 +885,9 @@ function NewClientModal({
                 value={tkSearch}
                 onFocus={() => setTkDropOpen(true)}
                 onChange={(e) => {
-                  // Only allow alphabets, spaces, hyphens, and apostrophes
                   const filtered = e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.clientName);
                   setTkSearch(filtered);
                   setTkDropOpen(true);
-                  // If user edits after selecting, deselect
                   if (selectedExisting && filtered !== selectedExisting.name) {
                     setSelectedExisting(null);
                     setSvSearch("");
@@ -857,6 +898,7 @@ function NewClientModal({
                       clientName: filtered,
                       subVentureName: "",
                       engagementManager: "",
+                      salesManager: "",
                       phoneNumber: "",
                       city: "",
                       country: "",
@@ -881,6 +923,7 @@ function NewClientModal({
                       ...p,
                       clientName: "",
                       engagementManager: "",
+                      salesManager: "",
                       phoneNumber: "",
                       city: "",
                       country: "",
@@ -918,13 +961,13 @@ function NewClientModal({
                               clientName: c.name,
                               customerId: c.id,
                               engagementManager: c.engagementManager ?? p.engagementManager,
+                              salesManager: c.salesManager ?? p.salesManager,
                               phoneNumber:
                                 (c as { phoneNumber?: string }).phoneNumber ?? p.phoneNumber,
                               city: c.city ?? p.city,
                               country: c.country ?? p.country,
                               industry: c.industry ?? p.industry,
                               businessType: c.businessType ?? p.businessType,
-                              // Do NOT pre-fill contacts — user should enter fresh SPOC details
                               contacts: [
                                 {
                                   name: "",
@@ -967,8 +1010,7 @@ function NewClientModal({
                       }}
                     >
                       <Plus className="h-3.5 w-3.5" />
-                      Add <span className="font-semibold">"{tkSearch.trim()}"</span> as new TK
-                      Customer
+                      Add <span className="font-semibold">"{tkSearch.trim()}"</span> as new TK Customer
                     </button>
                   )}
                 </div>
@@ -991,6 +1033,9 @@ function NewClientModal({
               {selectedExisting.engagementManager && (
                 <p className="text-muted-foreground">EM: {selectedExisting.engagementManager}</p>
               )}
+              {selectedExisting.salesManager && (
+                <p className="text-muted-foreground">SM: {selectedExisting.salesManager}</p>
+              )}
             </div>
           )}
 
@@ -1000,53 +1045,46 @@ function NewClientModal({
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
                 End Customer Name / Sub-venture Name <span className="text-destructive">*</span>
               </span>
-              {/* Existing sub-ventures of this client */}
               {(selectedExisting.subVentures?.length ?? 0) > 0 && (
                 <p className="mb-1.5 text-[11px] text-muted-foreground">
-                  {selectedExisting.subVentures!.length} sub-venture(s) already under{" "}
-                  {selectedExisting.name}
+                  Existing sub-ventures:{" "}
+                  {selectedExisting.subVentures!.map((sv) => sv.name).join(", ")}
                 </p>
               )}
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className={cn(
-                    "h-9 w-full rounded-md border border-input bg-card pl-8 pr-8 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    !s.subVentureName.trim() && "border-destructive/60",
-                  )}
-                  placeholder="Search existing or type new sub-venture name…"
+                  className="h-9 w-full rounded-md border border-input bg-card pl-8 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Search existing sub-ventures or enter a new one…"
                   maxLength={FIELD_MAX.subVentureName}
-                  value={svSearch}
+                  value={svSearch || s.subVentureName}
                   onFocus={() => setSvDropOpen(true)}
                   onChange={(e) => {
-                    const next = e.target.value.slice(0, FIELD_MAX.subVentureName);
-                    setSvSearch(next);
+                    const val = e.target.value.slice(0, FIELD_MAX.subVentureName);
+                    setSvSearch(val);
                     setSvDropOpen(true);
-                    setSvAlreadyExists(false);
-                    setS((p) => ({ ...p, subVentureName: next }));
+                    const match = (selectedExisting.subVentures ?? []).find(
+                      (sv) => sv.name.toLowerCase() === val.trim().toLowerCase(),
+                    );
+                    if (match) {
+                      setSvAlreadyExists(true);
+                      setS((p) => ({ ...p, subVentureName: match.name }));
+                    } else {
+                      setSvAlreadyExists(false);
+                      setS((p) => ({ ...p, subVentureName: val }));
+                    }
                   }}
                   onBlur={() => setTimeout(() => setSvDropOpen(false), 150)}
                 />
-                {s.subVentureName && (
-                  <button
-                    type="button"
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      setSvSearch("");
-                      setSvAlreadyExists(false);
-                      setS((p) => ({ ...p, subVentureName: "" }));
-                    }}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                {svDropOpen && (
-                  <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
-                    {/* Existing sub-ventures matching search */}
-                    {(selectedExisting.subVentures ?? [])
-                      .filter(
+                {svDropOpen && (selectedExisting.subVentures?.length ?? 0) > 0 && (
+                  <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
+                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Existing Sub-ventures
+                    </div>
+                    {selectedExisting
+                      .subVentures!.filter(
                         (sv) =>
-                          !svSearch.trim() ||
+                          svSearch.trim() === "" ||
                           sv.name.toLowerCase().includes(svSearch.toLowerCase()),
                       )
                       .map((sv) => (
@@ -1056,49 +1094,37 @@ function NewClientModal({
                           className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent"
                           onMouseDown={() => {
                             setSvSearch(sv.name);
+                            setS((p) => ({ ...p, subVentureName: sv.name }));
                             setSvAlreadyExists(true);
                             setSvDropOpen(false);
-                            setS((p) => ({ ...p, subVentureName: sv.name }));
                           }}
                         >
-                          <span>{sv.name}</span>
-                          <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning-foreground">
+                          <span className="font-medium">{sv.name}</span>
+                          <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">
                             Already exists
                           </span>
                         </button>
                       ))}
-                    {/* Create new option when typed name not in list */}
-                    {svSearch.trim() &&
-                      !(selectedExisting.subVentures ?? []).some(
-                        (sv) => sv.name.toLowerCase() === svSearch.trim().toLowerCase(),
-                      ) && (
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-sm text-primary hover:bg-accent"
-                          onMouseDown={() => {
-                            setSvAlreadyExists(false);
-                            setSvDropOpen(false);
-                            setS((p) => ({ ...p, subVentureName: svSearch.trim() }));
-                          }}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          Create <span className="font-semibold">"{svSearch.trim()}"</span> as new
-                          sub-venture
-                        </button>
-                      )}
-                    {/* Empty state */}
-                    {!svSearch.trim() && (selectedExisting.subVentures ?? []).length === 0 && (
-                      <div className="px-3 py-3 text-xs text-muted-foreground">
-                        No sub-ventures yet — type a name to create the first one
-                      </div>
+                    {svSearch.trim() && !svAlreadyExists && (
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-sm text-primary hover:bg-accent"
+                        onMouseDown={() => {
+                          setS((p) => ({ ...p, subVentureName: svSearch.trim() }));
+                          setSvAlreadyExists(false);
+                          setSvDropOpen(false);
+                        }}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add <span className="font-semibold">"{svSearch.trim()}"</span> as new sub-venture
+                      </button>
                     )}
                   </div>
                 )}
               </div>
               {svAlreadyExists && (
-                <p className="mt-1 text-[11px] text-warning-foreground">
-                  ⚠ This sub-venture already exists under {selectedExisting.name}. Proceeding will
-                  not create a duplicate.
+                <p className="mt-1 text-[11px] text-warning">
+                  ⚠ This sub-venture already exists under {selectedExisting.name}.
                 </p>
               )}
               {!svAlreadyExists && s.subVentureName.trim() && (
@@ -1123,13 +1149,18 @@ function NewClientModal({
           {!selectedExisting && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Customer ID">
-                <input className={readOnlyCls} value={s.customerId} readOnly />
+                <input
+                  className={cn(readOnlyCls, "font-mono")}
+                  value="Auto-generated on creation"
+                  readOnly
+                />
               </Field>
               <Field label="Engagement Manager" required>
                 <input
                   className={inputCls}
                   maxLength={FIELD_MAX.engagementManager}
                   value={s.engagementManager}
+                  placeholder="Enter engagement manager name…"
                   onChange={(e) =>
                     u(
                       "engagementManager",
@@ -1138,28 +1169,19 @@ function NewClientModal({
                   }
                 />
               </Field>
-              <Field
-                label="Phone Number"
-                required
-                error={phoneError(s.phoneNumber)}
-              >
-                <div className="relative flex rounded-md">
-                  <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
-                    +91
-                  </span>
-                  <input
-                    className={cn(
-                      fieldInputCls(inputCls, Boolean(phoneError(s.phoneNumber))),
-                      "rounded-l-none",
-                    )}
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={FIELD_MAX.phone}
-                    placeholder="9876543210"
-                    value={s.phoneNumber}
-                    onChange={(e) => u("phoneNumber", toTenDigitPhone(e.target.value))}
-                  />
-                </div>
+              <Field label="Sales Manager">
+                <input
+                  className={inputCls}
+                  maxLength={FIELD_MAX.salesManager}
+                  value={s.salesManager}
+                  placeholder="Enter sales manager name…"
+                  onChange={(e) =>
+                    u(
+                      "salesManager",
+                      e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.salesManager),
+                    )
+                  }
+                />
               </Field>
               <Field label="Country / Region" required>
                 <select
@@ -1167,7 +1189,7 @@ function NewClientModal({
                   value={s.country}
                   onChange={(e) => {
                     const next = e.target.value;
-                    setS((p) => ({ ...p, country: next, city: "" }));
+                    setS((p) => ({ ...p, country: next, city: "", phoneNumber: "" }));
                   }}
                 >
                   <option value="">Select country</option>
@@ -1194,6 +1216,37 @@ function NewClientModal({
                     </option>
                   ))}
                 </select>
+              </Field>
+              <Field
+                label="Group SPOC Contact"
+                required
+                error={
+                  s.phoneNumber && s.phoneNumber.length !== countryPhoneDigits
+                    ? `Group SPOC Contact must be ${countryPhoneDigits} digits for ${s.country || "selected country"}`
+                    : null
+                }
+              >
+                <div className="relative flex rounded-md">
+                  <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
+                    {countryDialCode}
+                  </span>
+                  <input
+                    className={cn(
+                      fieldInputCls(inputCls, Boolean(s.phoneNumber && s.phoneNumber.length !== countryPhoneDigits)),
+                      "rounded-l-none",
+                    )}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={countryPhoneDigits}
+                    placeholder={s.country ? "9".repeat(countryPhoneDigits) : "Select country first"}
+                    value={s.phoneNumber}
+                    disabled={!s.country}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, countryPhoneDigits);
+                      u("phoneNumber", digits);
+                    }}
+                  />
+                </div>
               </Field>
               <Field label="Industry" required>
                 <select
@@ -1450,11 +1503,19 @@ function NewClientModal({
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <Row label="TK Customer" v={s.clientName || selectedExisting?.name || "—"} />
             <Row label="Sub-venture Name" v={s.subVentureName} />
-            <Row label="Customer ID" v={selectedExisting ? selectedExisting.id : s.customerId} />
+            <Row
+              label="Customer ID"
+              v={
+                selectedExisting
+                  ? formatCustomerId(selectedExisting.id)
+                  : "Auto-assigned on creation"
+              }
+            />
             {!selectedExisting && (
               <>
                 <Row label="Engagement Manager" v={s.engagementManager} />
-                <Row label="Phone Number" v={s.phoneNumber ? `+91 ${s.phoneNumber}` : "—"} />
+                <Row label="Sales Manager" v={s.salesManager} />
+                <Row label="Group SPOC Contact" v={s.phoneNumber ? `${countryDialCode} ${s.phoneNumber}` : "—"} />
                 <Row label="City" v={s.city} />
                 <Row label="Country / Region" v={s.country} />
                 <Row label="Industry" v={s.industry} />
@@ -1530,19 +1591,21 @@ function NewClientModal({
             onClick={() => void submit()}
             className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
           >
-            {submitting ? "Submitting…" : "Submit"}
+            {submitting ? "Saving…" : "Save Customer"}
           </button>
         )}
       </div>
 
-      <KycDocPreviewModal
-        open={previewKyc}
-        onClose={() => setPreviewKyc(false)}
-        file={s.kycFile}
-        fileName={s.kycFile?.name}
-        clientName={s.clientName || s.subVentureName || "New Customer"}
-        subVentureName={s.subVentureName}
-      />
+      {/* KYC Document Preview Modal */}
+      {previewKyc && s.kycFile && (
+        <KycDocPreviewModal
+          onClose={() => setPreviewKyc(false)}
+          file={s.kycFile}
+          fileName={s.kycFile?.name}
+          clientName={s.clientName || s.subVentureName || "New Customer"}
+          subVentureName={s.subVentureName}
+        />
+      )}
     </Modal>
   );
 }

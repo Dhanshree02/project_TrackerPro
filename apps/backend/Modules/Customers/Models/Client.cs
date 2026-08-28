@@ -30,6 +30,10 @@ public class Client : BaseEntity
 
     public Guid? EngagementManagerId { get; set; }
 
+    public string? SalesManager { get; set; }
+
+    public Guid? SalesManagerId { get; set; }
+
     public string? ContactName { get; set; }
 
     public string? ContactPhone { get; set; }
@@ -90,6 +94,8 @@ public class Client : BaseEntity
     public MstIndustry? IndustryRef { get; set; }
 
     public Employee? EngagementManagerRef { get; set; }
+
+    public Employee? SalesManagerRef { get; set; }
 
     public MstCountry? CountryRef { get; set; }
 

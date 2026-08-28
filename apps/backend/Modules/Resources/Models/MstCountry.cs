@@ -9,6 +9,10 @@ public class MstCountry : BaseEntity
 
     public string Name { get; set; } = string.Empty;
 
+    public string PhoneCode { get; set; } = "+91";
+
+    public int PhoneDigits { get; set; } = 10;
+
     public bool IsActive { get; set; } = true;
 
     public ICollection<MstCity> Cities { get; set; } = [];

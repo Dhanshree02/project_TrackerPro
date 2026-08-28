@@ -71,6 +71,9 @@ services:
     ports:
       - "3000:3000"
       - "80:3000"
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
     networks:
       - pms_network
 

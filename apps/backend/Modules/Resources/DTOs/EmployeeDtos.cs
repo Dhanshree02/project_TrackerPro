@@ -243,6 +243,11 @@ public sealed record UpdateEmployeeRequest(
 
 public sealed record EmployeeBulkRowError(int Row, string? EmployeeCode, string Message);
 
+public sealed class EmployeeBulkUploadRequest
+{
+    public IFormFile File { get; set; } = null!;
+}
+
 public sealed record EmployeeBulkUploadResult(
     int Created,
     int Failed,

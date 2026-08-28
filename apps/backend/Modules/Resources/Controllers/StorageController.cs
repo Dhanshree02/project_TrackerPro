@@ -4,6 +4,18 @@ using PMS.API.Shared.Common.Wrappers;
 
 namespace PMS.API.Modules.Resources.Controllers;
 
+public sealed class UploadMultipleDocumentsRequest
+{
+    public string Category { get; set; } = string.Empty;
+    public List<IFormFile> Files { get; set; } = [];
+}
+
+public sealed class UploadSingleDocumentRequest
+{
+    public string Category { get; set; } = string.Empty;
+    public IFormFile File { get; set; } = null!;
+}
+
 [ApiController]
 [Route("api/v1/storage")]
 public class StorageController(IFileStorageService storage) : ControllerBase
@@ -12,10 +24,12 @@ public class StorageController(IFileStorageService storage) : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<StoredFileInfo>>>> UploadEmployeeDocuments(
         string employeeCode,
-        [FromForm] string category,
-        [FromForm] List<IFormFile> files,
+        [FromForm] UploadMultipleDocumentsRequest request,
         CancellationToken ct)
     {
+        var files = request?.Files;
+        var category = request?.Category ?? string.Empty;
+
         if (files == null || files.Count == 0)
         {
             return BadRequest(ApiResponse<IReadOnlyList<StoredFileInfo>>.Fail("NO_FILES", "No files were uploaded."));
@@ -39,10 +53,12 @@ public class StorageController(IFileStorageService storage) : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<StoredFileInfo>>> UploadCustomerDocument(
         string clientCode,
-        [FromForm] string category,
-        [FromForm] IFormFile file,
+        [FromForm] UploadSingleDocumentRequest request,
         CancellationToken ct)
     {
+        var file = request?.File;
+        var category = request?.Category ?? string.Empty;
+
         if (file == null || file.Length == 0)
         {
             return BadRequest(ApiResponse<StoredFileInfo>.Fail("NO_FILES", "No file was uploaded."));
@@ -56,10 +72,12 @@ public class StorageController(IFileStorageService storage) : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<StoredFileInfo>>> UploadProjectDocument(
         string projectCode,
-        [FromForm] string category,
-        [FromForm] IFormFile file,
+        [FromForm] UploadSingleDocumentRequest request,
         CancellationToken ct)
     {
+        var file = request?.File;
+        var category = request?.Category ?? string.Empty;
+
         if (file == null || file.Length == 0)
         {
             return BadRequest(ApiResponse<StoredFileInfo>.Fail("NO_FILES", "No file was uploaded."));

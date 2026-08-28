@@ -38,6 +38,7 @@ ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employ
 ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "FK_clients_mst_industries_IndustryId";
 ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "FK_clients_mst_countries_CountryId";
 ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "FK_clients_mst_cities_CityId";
+ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "FK_clients_employees_SalesManagerId";
 ALTER TABLE IF EXISTS ONLY public.clients DROP CONSTRAINT IF EXISTS "FK_clients_employees_EngagementManagerId";
 ALTER TABLE IF EXISTS ONLY public.client_contacts DROP CONSTRAINT IF EXISTS "FK_client_contacts_sub_ventures_SubVentureId";
 ALTER TABLE IF EXISTS ONLY public.client_contacts DROP CONSTRAINT IF EXISTS "FK_client_contacts_clients_ClientId";
@@ -225,7 +226,9 @@ CREATE TABLE public.clients (
     "IndustryId" uuid,
     "CityId" uuid,
     "CountryId" uuid,
-    "CustomerSince" date
+    "CustomerSince" date,
+    "SalesManager" character varying(120),
+    "SalesManagerId" uuid
 );
 
 
@@ -3031,6 +3034,14 @@ ALTER TABLE ONLY public.client_contacts
 
 ALTER TABLE ONLY public.clients
     ADD CONSTRAINT "FK_clients_employees_EngagementManagerId" FOREIGN KEY ("EngagementManagerId") REFERENCES public.employees("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: clients FK_clients_employees_SalesManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clients
+    ADD CONSTRAINT "FK_clients_employees_SalesManagerId" FOREIGN KEY ("SalesManagerId") REFERENCES public.employees("Id") ON DELETE SET NULL;
 
 
 --

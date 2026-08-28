@@ -38,11 +38,13 @@ public class RepositoryController(
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<RepositoryItemDto>>> UploadDocument(
-        [FromForm] string category,
-        [FromForm] IFormFile file,
-        [FromForm] string? uploadedBy,
+        [FromForm] UploadRepositoryDocumentRequest request,
         CancellationToken ct = default)
     {
+        var file = request?.File;
+        var category = request?.Category ?? string.Empty;
+        var uploadedBy = request?.UploadedBy;
+
         if (file == null || file.Length == 0)
         {
             return BadRequest(ApiResponse<RepositoryItemDto>.Fail("NO_FILE", "Please select a file to upload."));

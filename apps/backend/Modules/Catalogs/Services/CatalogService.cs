@@ -11,7 +11,7 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
         return await db.Countries
             .Where(c => c.IsActive)
             .OrderBy(c => c.Name)
-            .Select(c => new CatalogOptionDto(c.Id, c.Code, c.Name))
+            .Select(c => new CatalogOptionDto(c.Id, c.Code, c.Name, c.PhoneCode, c.PhoneDigits))
             .ToListAsync(ct);
     }
 
@@ -20,7 +20,7 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
         return await db.Nationalities
             .Where(n => n.IsActive)
             .OrderBy(n => n.Name)
-            .Select(n => new CatalogOptionDto(n.Id, n.Code, n.Name))
+            .Select(n => new CatalogOptionDto(n.Id, n.Code, n.Name, null, null))
             .ToListAsync(ct);
     }
 

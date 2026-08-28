@@ -18,6 +18,7 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.Logo).HasMaxLength(10);
         builder.Property(c => c.ContactEmail).HasMaxLength(255);
         builder.Property(c => c.EngagementManager).HasMaxLength(120);
+        builder.Property(c => c.SalesManager).HasMaxLength(120);
         builder.Property(c => c.ContactName).HasMaxLength(150);
         builder.Property(c => c.ContactPhone).HasMaxLength(40);
         builder.Property(c => c.ContactDesignation).HasMaxLength(120);
@@ -32,6 +33,7 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(c => c.IndustryId);
         builder.Property(c => c.EngagementManagerId);
+        builder.Property(c => c.SalesManagerId);
         builder.Property(c => c.CountryId);
         builder.Property(c => c.CityId);
 
@@ -43,6 +45,11 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.HasOne(c => c.EngagementManagerRef)
             .WithMany()
             .HasForeignKey(c => c.EngagementManagerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(c => c.SalesManagerRef)
+            .WithMany()
+            .HasForeignKey(c => c.SalesManagerId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(c => c.CountryRef)
