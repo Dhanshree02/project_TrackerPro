@@ -1,7 +1,3 @@
-import * as mammoth from "mammoth";
-import * as XLSX from "xlsx";
-import JSZip from "jszip";
-import { jsPDF } from "jspdf";
 import { getRepositoryPreviewUrl, type RepositoryItem } from "@/lib/api/repository";
 
 /**
@@ -66,6 +62,8 @@ export async function openDocumentInNewTab(doc: RepositoryItem) {
 
     // ── 1. PowerPoint Presentations -> Converted to Landscape PDF ────────────
     if (["pptx", "ppt", "pptm"].includes(ext)) {
+      const JSZip = (await import("jszip")).default;
+      const { jsPDF } = await import("jspdf");
       const zip = await JSZip.loadAsync(arrayBuffer);
       const slideFiles = Object.keys(zip.files).filter((path) =>
         /^ppt\/slides\/slide\d+\.xml$/i.test(path),
@@ -181,6 +179,7 @@ export async function openDocumentInNewTab(doc: RepositoryItem) {
     if (["docx", "doc", "docm"].includes(ext)) {
       let htmlContent = "";
       try {
+        const mammoth = await import("mammoth");
         const result = await mammoth.convertToHtml({ arrayBuffer });
         htmlContent = result.value;
       } catch {
@@ -235,6 +234,7 @@ export async function openDocumentInNewTab(doc: RepositoryItem) {
 
     // ── 3. Excel Spreadsheets -> Interactive Tabbed Data Grid ────────────────
     if (["xlsx", "xls", "xlsm", "xlsb", "csv"].includes(ext)) {
+      const XLSX = await import("xlsx");
       const wb = XLSX.read(arrayBuffer, { type: "array" });
       const sheetNames = wb.SheetNames || [];
       const sheetsHtml = sheetNames

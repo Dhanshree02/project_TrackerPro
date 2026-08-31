@@ -9,6 +9,8 @@ import {
   Building2,
   Plus,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Check,
   UserRound,
   Eye,
@@ -65,6 +67,136 @@ export const Route = createFileRoute("/customers/")({
   component: CustomersPage,
 });
 
+type CustomerListSortKey =
+  | "name"
+  | "industry"
+  | "engagementManager"
+  | "salesManager"
+  | "total"
+  | "newCount"
+  | "ongoing"
+  | "completed"
+  | "onHold"
+  | "archived"
+  | "status";
+type SortDir = "asc" | "desc";
+
+type CustomerListRow = {
+  client: Client;
+  total: number;
+  newCount: number;
+  ongoing: number;
+  completed: number;
+  onHold: number;
+  archived: number;
+  active: number;
+};
+
+const CUSTOMER_LIST_COLUMNS: { label: string; key: CustomerListSortKey }[] = [
+  { label: "Customer", key: "name" },
+  { label: "Industry", key: "industry" },
+  { label: "Engagement Manager", key: "engagementManager" },
+  { label: "Sales Manager", key: "salesManager" },
+  { label: "Total", key: "total" },
+  { label: "New", key: "newCount" },
+  { label: "Ongoing", key: "ongoing" },
+  { label: "Completed", key: "completed" },
+  { label: "On Hold", key: "onHold" },
+  { label: "Archived", key: "archived" },
+  { label: "Status", key: "status" },
+];
+
+function sortBlank(value: string): string {
+  return !value || value === "—" ? "" : value;
+}
+
+function compareCustomerListRows(a: CustomerListRow, b: CustomerListRow, key: CustomerListSortKey): number {
+  if (
+    key === "total" ||
+    key === "newCount" ||
+    key === "ongoing" ||
+    key === "completed" ||
+    key === "onHold" ||
+    key === "archived"
+  ) {
+    return a[key] - b[key];
+  }
+  const textFor = (row: CustomerListRow): string => {
+    switch (key) {
+      case "name":
+        return row.client.name;
+      case "industry":
+        return row.client.industry ?? "";
+      case "engagementManager":
+        return row.client.engagementManager ?? "";
+      case "salesManager":
+        return row.client.salesManager ?? "";
+      case "status":
+        return "Active";
+    }
+  };
+  return sortBlank(textFor(a)).localeCompare(sortBlank(textFor(b)), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function SortableTh<T extends string>({
+  label,
+  column,
+  sortKey,
+  sortDir,
+  onSort,
+  isLast,
+}: {
+  label: string;
+  column: T;
+  sortKey: T;
+  sortDir: SortDir;
+  onSort: (column: T) => void;
+  isLast?: boolean;
+}) {
+  const active = sortKey === column;
+  return (
+    <th className="relative whitespace-nowrap px-3 py-2.5 font-semibold">
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={cn(
+          "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
+          active
+            ? "text-blue-600 dark:text-blue-400 font-bold"
+            : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
+        )}
+        aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+        aria-label={`Sort by ${label}`}
+      >
+        <span>{label}</span>
+        <span
+          className={cn(
+            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
+            active
+              ? "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-400"
+              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
+          )}
+        >
+          {active && sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronUp className="h-3.5 w-3.5" />
+          )}
+        </span>
+      </button>
+      {!isLast ? (
+        <span
+          className="pointer-events-none absolute right-0 top-2.5 bottom-2.5 w-px bg-blue-300/80 dark:bg-blue-700"
+          aria-hidden="true"
+        />
+      ) : null}
+    </th>
+  );
+}
+
 function CustomersPage() {
   const { isDhanshree, isBO, assignedProjects } = useRoleContext();
   const navigate = useNavigate();
@@ -85,6 +217,8 @@ function CustomersPage() {
 
   const { user: authUser } = useAuth();
   const [q, setQ] = useState("");
+  const [sortKey, setSortKey] = useState<CustomerListSortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [openId, setOpenId] = useState<string | null>(null);
   const [openNew, setOpenNew] = useState(false);
 
@@ -198,6 +332,14 @@ function CustomersPage() {
   };
 
   const filtered = enriched.filter(({ client: c }) => matchesClientSearch(c, q));
+  const sorted = useMemo(() => {
+    const rows = [...filtered];
+    rows.sort((a, b) => {
+      const cmp = compareCustomerListRows(a, b, sortKey);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return rows;
+  }, [filtered, sortKey, sortDir]);
 
   const open = openId ? clients.find((c) => c.id === openId) : null;
 
@@ -404,41 +546,45 @@ function CustomersPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+          <table className="w-full border-separate border-spacing-0 text-sm">
+            <thead className="sticky top-0 z-10 bg-blue-100/80 text-left text-xs text-slate-700 shadow-[inset_0_-2px_0_0_#93c5fd] dark:bg-blue-950/55 dark:text-blue-100 dark:shadow-[inset_0_-2px_0_0_#1e3a8a]">
               <tr>
-                <th className="px-3 py-2 font-medium">Customer</th>
-                <th className="px-3 py-2 font-medium">Industry</th>
-                <th className="px-3 py-2 font-medium">Engagement Mgr</th>
-                <th className="px-3 py-2 font-medium">Sales Mgr</th>
-                <th className="px-3 py-2 font-medium">Total</th>
-                <th className="px-3 py-2 font-medium">New</th>
-                <th className="px-3 py-2 font-medium">Ongoing</th>
-                <th className="px-3 py-2 font-medium">Completed</th>
-                <th className="px-3 py-2 font-medium">On Hold</th>
-                <th className="px-3 py-2 font-medium">Archived</th>
-                <th className="px-3 py-2 font-medium">Status</th>
+                {CUSTOMER_LIST_COLUMNS.map((col, idx, cols) => (
+                  <SortableTh
+                    key={col.key}
+                    label={col.label}
+                    column={col.key}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    isLast={idx === cols.length - 1}
+                    onSort={(next) => {
+                      if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                      else {
+                        setSortKey(next);
+                        setSortDir("asc");
+                      }
+                    }}
+                  />
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map(
+            <tbody className="bg-card [&>tr>td]:border-b [&>tr>td]:border-slate-200 dark:[&>tr>td]:border-border">
+              {sorted.map(
                 ({ client: c, total, newCount, ongoing, completed, onHold, archived }) => (
-                <tr
-                  key={c.id}
-                  onClick={() =>
-                    navigate({ to: "/customers/$clientId", params: { clientId: c.id } })
-                  }
-                  className="hover:bg-accent/50 cursor-pointer transition-colors group"
-                >
+                <tr key={c.id} className="bg-card">
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2.5">
                       <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
                         {c.logo}
                       </span>
                       <div className="min-w-0">
-                        <span className="font-medium group-hover:text-primary transition-colors truncate block">
+                        <Link
+                          to="/customers/$clientId"
+                          params={{ clientId: c.id }}
+                          className="block truncate font-medium text-foreground hover:text-primary hover:underline"
+                        >
                           {c.name}
-                        </span>
+                        </Link>
                         <span className="font-mono text-[10px] text-muted-foreground">
                           {formatCustomerId(c.id)}
                         </span>
@@ -634,11 +780,23 @@ function NewClientModal({
   const countryDialCode = selectedCountryObj?.phoneCode || "+91";
   const countryPhoneDigits = selectedCountryObj?.phoneDigits || 10;
 
-  // Returns the first missing required field label, or null if all valid
+  const namesEq = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  const matchingExistingClient =
+    selectedExisting ??
+    existingClients.find((c) => namesEq(c.name, s.clientName || tkSearch)) ??
+    null;
+  const duplicatePairExists = Boolean(
+    matchingExistingClient &&
+      s.subVentureName.trim() &&
+      (matchingExistingClient.subVentures ?? []).some((sv) => namesEq(sv.name, s.subVentureName)),
+  );
+
+  // Returns the first missing required field (top-to-bottom), or null if all valid
   const getStep1Error = (): string | null => {
+    if (!selectedExisting && !s.clientName.trim()) return "TK Customer / Partner Name is required";
     if (!s.subVentureName.trim()) return "End Customer / Sub-venture Name is required";
+    if (duplicatePairExists) return "Client and sub-venture already exist";
     if (selectedExisting) return null; // existing client — rest auto-filled
-    if (!s.clientName.trim()) return "TK Customer / Partner Name is required";
     if (!s.engagementManager.trim()) return "Engagement Manager is required";
     if (!s.country.trim()) return "Country is required";
     if (!s.city.trim()) return "City is required";
@@ -753,15 +911,15 @@ function NewClientModal({
     try {
       const { api, store } = buildNewClientPayload();
 
+      if (duplicatePairExists && matchingExistingClient) {
+        toast.error("Client and sub-venture already exist", {
+          description: `${s.subVentureName.trim()} is already under ${matchingExistingClient.name}.`,
+        });
+        return;
+      }
+
       // ── Existing TK customer → add a sub-venture ──
       if (selectedExisting) {
-        if (svAlreadyExists) {
-          toast.info("Sub-venture already exists", {
-            description: `${s.subVentureName} is already under ${selectedExisting.name}.`,
-          });
-          onCreated();
-          return;
-        }
 
         const isApiClient = apiClients?.some((c) => c.id === selectedExisting.id) ?? false;
         if (isApiClient) {
@@ -836,6 +994,7 @@ function NewClientModal({
   };
 
   return (
+    <>
     <Modal title="New Customer Onboarding" onClose={onClose} wide draggable>
       {/* Stepper */}
       <div className="mb-5 flex items-center gap-2 text-xs">
@@ -1122,19 +1281,27 @@ function NewClientModal({
                   </div>
                 )}
               </div>
-              {svAlreadyExists && (
-                <p className="mt-1 text-[11px] text-warning">
-                  ⚠ This sub-venture already exists under {selectedExisting.name}.
+              {(svAlreadyExists || duplicatePairExists) && matchingExistingClient && (
+                <p className="mt-1 text-[11px] text-destructive">
+                  Client and sub-venture already exist under {matchingExistingClient.name}.
                 </p>
               )}
-              {!svAlreadyExists && s.subVentureName.trim() && (
+              {!duplicatePairExists && selectedExisting && s.subVentureName.trim() && (
                 <p className="mt-1 text-[11px] text-success">
                   ✓ New sub-venture will be added under {selectedExisting.name}
                 </p>
               )}
             </div>
           ) : (
-            <Field label="End Customer Name / Sub-venture Name" required>
+            <Field
+              label="End Customer Name / Sub-venture Name"
+              required
+              error={
+                duplicatePairExists && matchingExistingClient
+                  ? `Client and sub-venture already exist under ${matchingExistingClient.name}.`
+                  : undefined
+              }
+            >
               <input
                 className={inputCls}
                 value={s.subVentureName}
@@ -1352,11 +1519,14 @@ function NewClientModal({
                     ))}
                   </select>
                 </Field>
-                <Field label="Email" required error={emailError(ct.email, true)}>
+                <Field label="Email" required error={ct.email.trim() ? emailError(ct.email, false) : undefined}>
                   <input
                     type="text"
                     inputMode="email"
-                    className={fieldInputCls(inputCls, Boolean(emailError(ct.email, true)))}
+                    className={fieldInputCls(
+                      inputCls,
+                      Boolean(ct.email.trim() && emailError(ct.email, false)),
+                    )}
                     value={ct.email}
                     maxLength={FIELD_MAX.email}
                     placeholder="name@company.com"
@@ -1438,18 +1608,6 @@ function NewClientModal({
                       <span className="text-[10px] text-muted-foreground">
                         {(s.kycFile.size / 1024).toFixed(0)} KB
                       </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setPreviewKyc(true);
-                        }}
-                        className="ml-1 inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                        title="Preview KYC document"
-                      >
-                        <Eye className="h-3 w-3" /> Preview
-                      </button>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1595,18 +1753,16 @@ function NewClientModal({
           </button>
         )}
       </div>
-
-      {/* KYC Document Preview Modal */}
-      {previewKyc && s.kycFile && (
-        <KycDocPreviewModal
-          onClose={() => setPreviewKyc(false)}
-          file={s.kycFile}
-          fileName={s.kycFile?.name}
-          clientName={s.clientName || s.subVentureName || "New Customer"}
-          subVentureName={s.subVentureName}
-        />
-      )}
     </Modal>
+    <KycDocPreviewModal
+      open={previewKyc && Boolean(s.kycFile)}
+      onClose={() => setPreviewKyc(false)}
+      file={s.kycFile}
+      fileName={s.kycFile?.name}
+      clientName={s.clientName || s.subVentureName || "New Customer"}
+      subVentureName={s.subVentureName}
+    />
+    </>
   );
 }
 

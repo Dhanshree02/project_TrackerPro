@@ -146,6 +146,13 @@ namespace PMS.API.Migrations
                     b.Property<Guid?>("IndustryId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("SalesManager")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid?>("SalesManagerId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("KycDocumentName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -185,6 +192,8 @@ namespace PMS.API.Migrations
                     b.HasIndex("IndustryId");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("SalesManagerId");
 
                     b.ToTable("clients", (string)null);
                 });
@@ -913,6 +922,14 @@ namespace PMS.API.Migrations
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
+
+                    b.Property<string>("PhoneCode")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<int>("PhoneDigits")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -1671,6 +1688,11 @@ namespace PMS.API.Migrations
                         .HasForeignKey("IndustryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("PMS.API.Modules.Resources.Models.Employee", "SalesManagerRef")
+                        .WithMany()
+                        .HasForeignKey("SalesManagerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CityRef");
 
                     b.Navigation("CountryRef");
@@ -1678,6 +1700,8 @@ namespace PMS.API.Migrations
                     b.Navigation("EngagementManagerRef");
 
                     b.Navigation("IndustryRef");
+
+                    b.Navigation("SalesManagerRef");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Customers.Models.ClientAssignment", b =>

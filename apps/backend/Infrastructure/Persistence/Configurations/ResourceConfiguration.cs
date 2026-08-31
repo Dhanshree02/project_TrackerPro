@@ -58,6 +58,8 @@ public sealed class MstCountryConfiguration : IEntityTypeConfiguration<MstCountr
         builder.HasIndex(x => x.Name).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(8).IsRequired();
         builder.Property(x => x.Name).HasMaxLength(120).IsRequired();
+        builder.Property(x => x.PhoneCode).HasMaxLength(8).IsRequired();
+        builder.Property(x => x.PhoneDigits).IsRequired();
     }
 }
 

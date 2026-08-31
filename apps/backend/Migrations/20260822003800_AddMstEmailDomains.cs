@@ -1,42 +1,45 @@
-using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using PMS.API.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace PMS.API.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260822003800_AddMstEmailDomains")]
     public partial class AddMstEmailDomains : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "mst_email_domains",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Code = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
-                    DomainName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    DisplayName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    DeletedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_mst_email_domains", x => x.Id);
-                });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_mst_email_domains_DomainName",
-                table: "mst_email_domains",
-                column: "DomainName",
-                unique: true);
+            // Idempotent: trackerpro-final.sql already creates this table on fresh Docker volumes.
+            migrationBuilder.Sql(
+                """
+                CREATE TABLE IF NOT EXISTS mst_email_domains (
+                    "Id" uuid NOT NULL,
+                    "Code" character varying(80) NOT NULL,
+                    "DomainName" character varying(150) NOT NULL,
+                    "DisplayName" character varying(150) NOT NULL,
+                    "IsActive" boolean NOT NULL,
+                    "SortOrder" integer NOT NULL,
+                    "CreatedAtUtc" timestamp with time zone NOT NULL,
+                    "UpdatedAtUtc" timestamp with time zone,
+                    "CreatedBy" uuid,
+                    "UpdatedBy" uuid,
+                    "DeletedAtUtc" timestamp with time zone
+                );
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint WHERE conname IN ('PK_mst_email_domains', 'mst_email_domains_pkey')
+                    ) THEN
+                        ALTER TABLE mst_email_domains ADD CONSTRAINT "PK_mst_email_domains" PRIMARY KEY ("Id");
+                    END IF;
+                END $$;
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_mst_email_domains_DomainName"
+                    ON mst_email_domains ("DomainName");
+                """);
         }
 
         /// <inheritdoc />

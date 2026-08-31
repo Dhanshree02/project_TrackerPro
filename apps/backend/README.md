@@ -52,7 +52,8 @@ apps/backend/
 - [.NET SDK 10](https://dotnet.microsoft.com/download) (verified: 10.0.302)
 - PostgreSQL on this machine (`trackerpro` database)
 - Connection string in `appsettings.json` / `.env`:
-  `Host=localhost;Port=5432;Database=trackerpro;Username=trackerpro;Password=trackerpro_dev`
+  `Host=10.50.30.189;Port=5432;Database=trackerpro;Username=postgres;Password=clockit`
+  (shared Docker host; use `Host=postgres_db` only when the API runs inside Compose on that host)
 
 ## Run
 

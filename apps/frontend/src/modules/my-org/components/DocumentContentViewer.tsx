@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import * as mammoth from "mammoth";
-import * as XLSX from "xlsx";
 import {
   FileText,
   FileSpreadsheet,
@@ -35,7 +33,10 @@ export function DocumentContentViewer({
   const [excelSheets, setExcelSheets] = useState<string[]>([]);
   const [activeSheetIndex, setActiveSheetIndex] = useState(0);
   const [sheetData, setSheetData] = useState<string[][]>([]);
-  const [workbookRef, setWorkbookRef] = useState<XLSX.WorkBook | null>(null);
+  const [workbookRef, setWorkbookRef] = useState<{
+    Sheets: Record<string, unknown>;
+    SheetNames: string[];
+  } | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -53,6 +54,7 @@ export function DocumentContentViewer({
         // ── 1. Word Handling ────────────────────────────────────────────────
         if (isWord) {
           try {
+            const mammoth = await import("mammoth");
             const result = await mammoth.convertToHtml({ arrayBuffer });
             if (!isCancelled) {
               if (result.value && result.value.trim().length > 0) {
@@ -97,6 +99,7 @@ export function DocumentContentViewer({
         // ── 2. Excel Handling ───────────────────────────────────────────────
         else if (isExcel) {
           try {
+            const XLSX = await import("xlsx");
             const wb = XLSX.read(arrayBuffer, { type: "array" });
             if (!isCancelled) {
               setWorkbookRef(wb);
@@ -126,13 +129,20 @@ export function DocumentContentViewer({
     };
   }, [previewUrl, isWord, isExcel]);
 
-  const loadExcelSheet = (wb: XLSX.WorkBook, sheetName: string) => {
+  const loadExcelSheet = async (
+    wb: { Sheets: Record<string, unknown>; SheetNames: string[] },
+    sheetName: string,
+  ) => {
+    const XLSX = await import("xlsx");
     const ws = wb.Sheets[sheetName];
     if (!ws) {
       setSheetData([]);
       return;
     }
-    const jsonData = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: "" });
+    const jsonData = XLSX.utils.sheet_to_json<string[]>(ws as Parameters<typeof XLSX.utils.sheet_to_json>[0], {
+      header: 1,
+      defval: "",
+    });
     setSheetData(jsonData);
   };
 

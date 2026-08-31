@@ -29,6 +29,13 @@ public sealed class DbInitializerHostedService(
         try
         {
             await db.Database.MigrateAsync(cancellationToken);
+            // Dump-initialized DBs can lag the model (PhoneCode was added in code before a migration ran).
+            await db.Database.ExecuteSqlRawAsync(
+                """ALTER TABLE mst_countries ADD COLUMN IF NOT EXISTS "PhoneCode" character varying(8) NOT NULL DEFAULT '+91';""",
+                cancellationToken);
+            await db.Database.ExecuteSqlRawAsync(
+                """ALTER TABLE mst_countries ADD COLUMN IF NOT EXISTS "PhoneDigits" integer NOT NULL DEFAULT 10;""",
+                cancellationToken);
         }
         catch (Exception ex)
         {
