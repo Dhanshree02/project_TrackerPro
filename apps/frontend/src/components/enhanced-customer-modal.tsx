@@ -198,8 +198,22 @@ export function EnhancedNewClientModal({
   const countryDialCode = selectedCountryObj?.phoneCode || "+91";
   const countryPhoneDigits = selectedCountryObj?.phoneDigits || 10;
 
+  const namesEq = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  const matchingExistingClient =
+    selectedExisting ??
+    existingClients.find((c) => namesEq(c.name, s.clientName || tkSearch)) ??
+    null;
+  const duplicatePairExists = Boolean(
+    matchingExistingClient &&
+      s.subVentureName.trim() &&
+      (matchingExistingClient.subVentures ?? []).some((sv) => namesEq(sv.name, s.subVentureName)),
+  );
+
+  const getClientNameError = () =>
+    !s.clientName.trim() && !selectedExisting ? "TK Customer / Partner Name is required" : null;
   const getSubVentureError = () => (!s.subVentureName.trim() ? "End Customer / Sub-venture Name is required" : null);
-  const getClientNameError = () => (!s.clientName.trim() && !selectedExisting ? "TK Customer Name is required" : null);
+  const getDuplicatePairError = () =>
+    duplicatePairExists ? "Client and sub-venture already exist" : null;
   const getEngagementManagerError = () => (!s.engagementManager.trim() && !selectedExisting ? "Engagement Manager is required" : null);
   const getCountryError = () => (!s.country.trim() && !selectedExisting ? "Country is required" : null);
   const getCityError = () => (!s.city.trim() && !selectedExisting ? "City is required" : null);
@@ -216,13 +230,14 @@ export function EnhancedNewClientModal({
 
   const getStep1Error = (): string | null => {
     return (
-      getSubVentureError() ||
       getClientNameError() ||
+      getSubVentureError() ||
+      getDuplicatePairError() ||
+      getIndustryError() ||
       getEngagementManagerError() ||
       getCountryError() ||
       getCityError() ||
-      getPhoneError() ||
-      getIndustryError()
+      getPhoneError()
     );
   };
 
@@ -246,13 +261,13 @@ export function EnhancedNewClientModal({
     if (step === 1) {
       setTouched((prev) => ({
         ...prev,
-        subVentureName: true,
         clientName: true,
+        subVentureName: true,
+        industry: true,
         engagementManager: true,
         country: true,
         city: true,
         phoneNumber: true,
-        industry: true,
       }));
       const err = getStep1Error();
       if (err) {
@@ -349,14 +364,14 @@ export function EnhancedNewClientModal({
     try {
       const { api, store } = buildNewClientPayload();
 
+      if (duplicatePairExists && matchingExistingClient) {
+        toast.error("Client and sub-venture already exist", {
+          description: `${s.subVentureName.trim()} is already under ${matchingExistingClient.name}.`,
+        });
+        return;
+      }
+
       if (selectedExisting) {
-        if (svAlreadyExists) {
-          toast.info("Sub-venture already exists", {
-            description: `${s.subVentureName} is already under ${selectedExisting.name}.`,
-          });
-          onCreated();
-          return;
-        }
 
         const isApiClient = apiClients?.some((c) => c.id === selectedExisting.id) ?? false;
         if (isApiClient) {
@@ -432,6 +447,7 @@ export function EnhancedNewClientModal({
   const stepProgress = step === 1 ? "w-1/3" : step === 2 ? "w-2/3" : "w-full";
 
   return (
+    <>
     <Modal title="New Customer Onboarding" onClose={onClose} wide draggable>
       {/* Visual Stepper */}
       <div className="mb-6">
@@ -739,12 +755,12 @@ export function EnhancedNewClientModal({
                       onBlur={() => setTimeout(() => setSvDropOpen(false), 150)}
                     />
                   </div>
-                  {svAlreadyExists && (
-                    <p className="mt-1 text-[11px] text-warning flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" /> Sub-venture already exists under this customer.
+                  {duplicatePairExists && matchingExistingClient && (
+                    <p className="mt-1 text-[11px] text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> Client and sub-venture already exist under {matchingExistingClient.name}.
                     </p>
                   )}
-                  {!svAlreadyExists && s.subVentureName.trim() && (
+                  {!duplicatePairExists && s.subVentureName.trim() && (
                     <p className="mt-1 text-[11px] text-success flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3" /> New sub-venture will be registered under {selectedExisting.name}
                     </p>
@@ -766,6 +782,11 @@ export function EnhancedNewClientModal({
                   {touched.subVentureName && getSubVentureError() && (
                     <p className="mt-1 flex items-center gap-1 text-[11px] text-destructive">
                       <AlertCircle className="h-3 w-3" /> {getSubVentureError()}
+                    </p>
+                  )}
+                  {duplicatePairExists && matchingExistingClient && (
+                    <p className="mt-1 flex items-center gap-1 text-[11px] text-destructive">
+                      <AlertCircle className="h-3 w-3" /> Client and sub-venture already exist under {matchingExistingClient.name}.
                     </p>
                   )}
                 </div>
@@ -1196,17 +1217,6 @@ export function EnhancedNewClientModal({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setPreviewKyc(true);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer shadow-2xs"
-                    >
-                      <Eye className="h-3.5 w-3.5" /> Preview
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
                         setS((p) => ({ ...p, kycFile: null }));
                       }}
                       className="rounded-md p-1 hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-colors cursor-pointer"
@@ -1365,16 +1375,15 @@ export function EnhancedNewClientModal({
           </button>
         )}
       </div>
-
-      {previewKyc && s.kycFile && (
-        <KycDocPreviewModal
-          onClose={() => setPreviewKyc(false)}
-          file={s.kycFile}
-          fileName={s.kycFile?.name}
-          clientName={s.clientName || s.subVentureName || "New Customer"}
-          subVentureName={s.subVentureName}
-        />
-      )}
     </Modal>
+    <KycDocPreviewModal
+      open={previewKyc && Boolean(s.kycFile)}
+      onClose={() => setPreviewKyc(false)}
+      file={s.kycFile}
+      fileName={s.kycFile?.name}
+      clientName={s.clientName || s.subVentureName || "New Customer"}
+      subVentureName={s.subVentureName}
+    />
+    </>
   );
 }

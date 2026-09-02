@@ -5,10 +5,21 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-31
 
 ## Latest
 
+- Customers list view: click any column header to sort A→Z / Z→A like Resource Directory (chevron, active column). Headers are **Engagement Manager** / **Sales Manager**. Only the customer name is a link.
+- Customer onboarding contact step no longer shows **Email is required** before the field is filled. KYC attach row no longer has a Preview eye; Review **Preview KYC** now opens the document (was missing `open` and nested inside the clipped modal).
+- Customer onboarding **Next** blocks a TK customer + sub-venture pair that already exists in the database (error toast, stay on step 1). Duplicate check matches by name even if the existing client was typed instead of picked from the list. Submit no longer treats that pair as success.
+- Customer onboarding **Next** validation now runs top-to-bottom: TK Customer / Partner Name first, then End Customer / Sub-venture, then EM / country / city / SPOC / industry. Empty-form Next no longer jumps to sub-venture.
+- Frontend branded error **"This page didn't load"** was an SSR/Vite crash, not the API. `mammoth` / `xlsx` / `jszip` / `jspdf` were listed in `package.json` but missing from `node_modules`, and they were imported at the top of repository viewer files (loaded on every route via the route tree). Fix: `npm install` in `apps/frontend`, lazy-load those libs, and point the Vite `/api` proxy default at `http://localhost:5194` (Docker still sets `VITE_BACKEND_URL=http://backend:8080`). Dashboard, Resources (29 employees), Customers, customer detail, and Repository now load.
+
+- Shared Docker Postgres is on host `10.50.30.189` (pgAdmin `http://10.50.30.189:5050`). Developers do **not** run `docker compose` locally. API connection: `Host=10.50.30.189;Port=5432;Database=trackerpro;Username=postgres;Password=clockit`. Inside that host’s Compose network the hostname is `postgres_db`.
+- Storage root is relative `storage` (was hardcoded to `C:\Users\Pradnya Kamble\settings`).
+- Backend startup crash `column m.PhoneCode does not exist`: dump schema lagged the `MstCountry` model. Migration `20260831133000_AddCountryPhoneFields` adds `PhoneCode` / `PhoneDigits`. Email-domain and sales-manager migrations are now discoverable and idempotent so they do not collide with `trackerpro-final.sql`.
+- Follow-on startup crash `relation "mst_business_units" does not exist`: catalog tables (`mst_business_units`, `mst_work_locations`, `mst_offices`, `mst_reporting_managers`, `repository`) were in the EF model but never created by a migration. Migration `20260831150000_AddResourceCatalogTables` creates them if missing.
+- SeedRepositoryAsync crashed on EF translating `WorkEmail.Split` — names are now computed in memory after a simple employee query.
 - Resource Directory & Resource Pool: **Bulk Upload** next to Add Employee, with **Upload** (.xlsx only) and **Sample download**. Valid rows are inserted; duplicate/invalid rows are skipped and listed. Duplicate checks cover work email, personal email, phone, PAN, Aadhaar, and UAN — same rules on single Add Employee (409, no insert, error toast).
 - Aadhaar is stored on `employees."Aadhaar"` (migration `20260826185721_AddEmployeeAadhaarAndUniqueIdentity`) and sent from onboard + profile save. Onboard form already collected it but did not persist it.
 - Integration tests: `CreateEmployee_RejectsDuplicateWorkEmailAndPhone`, `EmployeeBulk_SampleDownload_And_DuplicateUploadRejected`.
@@ -49,7 +60,7 @@ Canonical spine: `employees -> clients -> projects -> tasks/timesheets -> approv
 - Resources: `employees`, `exited_employees`, `EmployeesController` at `/api/v1/employees` (list/get/create/update/offboard/exited + catalog GET/POST)
 - Customers: `client_contacts`; `clients` still has string `Industry`/`EngagementManager`/`City`/`Country` plus FKs `IndustryId`/`EngagementManagerId`/`CountryId`/`CityId`
 - Dev: `DotEnvLoader`, `DevelopmentAuthBypassMiddleware` (unauthenticated → seeded Admin). Frontend demo role switcher still in topbar (`demo-roles.ts`); API live for clients/employees/users
-- Migrations: `20260818075129_AddMasterCatalogs`, `20260820113531_AddGeoCatalogs`, `20260820122343_AddEmployeeCatalogs`, `20260820124931_AddSalaryBands`, `20260826185721_AddEmployeeAadhaarAndUniqueIdentity`
+- Migrations: `20260818075129_AddMasterCatalogs`, `20260820113531_AddGeoCatalogs`, `20260820122343_AddEmployeeCatalogs`, `20260820124931_AddSalaryBands`, `20260826185721_AddEmployeeAadhaarAndUniqueIdentity`, `20260822003800_AddMstEmailDomains`, `20260828104500_AddClientSalesManager`, `20260831133000_AddCountryPhoneFields`
 
 **Deferred:** pool/allocation until Action Centre; projects, timesheets, approvals, repository, analytics.
 
@@ -61,5 +72,5 @@ Keep wiring frontend Resources/Customers to `/api/v1/*` (see `apps/frontend/src/
 
 ## Local
 
-- DB: `Host=localhost;Port=5432;Database=trackerpro;Username=trackerpro;Password=trackerpro_dev`
+- DB: `Host=10.50.30.189;Port=5432;Database=trackerpro;Username=postgres;Password=clockit` (pgAdmin: `http://10.50.30.189:5050`, login `admin@admin.com` / `clockit`).
 - Demo: `dhanshree@acme.co` / `Password@123` (also `admin@acme.co`). Frontend `VITE_DEMO_LOGIN=true` by default.

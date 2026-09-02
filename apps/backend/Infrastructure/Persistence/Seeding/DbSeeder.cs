@@ -705,14 +705,44 @@ public static class DbSeeder
             ("PT", "Portugal", ["Lisbon"]),
         };
 
+        var dialByCode = new Dictionary<string, (string PhoneCode, int PhoneDigits)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["IN"] = ("+91", 10), ["US"] = ("+1", 10), ["GB"] = ("+44", 10),
+            ["AE"] = ("+971", 9), ["SG"] = ("+65", 8), ["DE"] = ("+49", 11),
+            ["AU"] = ("+61", 9), ["CA"] = ("+1", 10), ["NL"] = ("+31", 9),
+            ["JP"] = ("+81", 10), ["FR"] = ("+33", 9), ["SA"] = ("+966", 9),
+            ["QA"] = ("+974", 8), ["MY"] = ("+60", 9), ["ZA"] = ("+27", 9),
+            ["IE"] = ("+353", 9), ["CH"] = ("+41", 9), ["SE"] = ("+46", 9),
+            ["CN"] = ("+86", 11), ["KR"] = ("+82", 10), ["NZ"] = ("+64", 9),
+            ["PH"] = ("+63", 10), ["ID"] = ("+62", 10), ["TH"] = ("+66", 9),
+            ["VN"] = ("+84", 9), ["BD"] = ("+880", 10), ["LK"] = ("+94", 9),
+            ["NP"] = ("+977", 10), ["PK"] = ("+92", 10), ["BR"] = ("+55", 11),
+            ["MX"] = ("+52", 10), ["IT"] = ("+39", 10), ["ES"] = ("+34", 9),
+            ["PL"] = ("+48", 9), ["AT"] = ("+43", 10), ["BE"] = ("+32", 9),
+            ["DK"] = ("+45", 8), ["NO"] = ("+47", 8), ["FI"] = ("+358", 9),
+            ["PT"] = ("+351", 9),
+        };
+
         var existingCountries = await db.Countries.ToDictionaryAsync(c => c.Code, ct);
         foreach (var (code, name, _) in geo)
         {
-            if (existingCountries.ContainsKey(code)) continue;
+            dialByCode.TryGetValue(code, out var dial);
+            var phoneCode = string.IsNullOrWhiteSpace(dial.PhoneCode) ? "+91" : dial.PhoneCode;
+            var phoneDigits = dial.PhoneDigits == 0 ? 10 : dial.PhoneDigits;
+
+            if (existingCountries.TryGetValue(code, out var existing))
+            {
+                existing.PhoneCode = phoneCode;
+                existing.PhoneDigits = phoneDigits;
+                continue;
+            }
+
             var country = new MstCountry
             {
                 Code = code,
                 Name = name,
+                PhoneCode = phoneCode,
+                PhoneDigits = phoneDigits,
                 IsActive = true,
             };
             db.Countries.Add(country);
@@ -1077,14 +1107,22 @@ public static class DbSeeder
             ("Leave_and_Attendance_Policy.pdf", "IMP", "imp", 819200, "Harsh Nair", "%PDF-1.4 TrackerPro Leave and Attendance Policy 2026")
         };
 
-        var activeEmployeeNames = await db.Employees
+        var employees = await db.Employees
             .AsNoTracking()
-            .Where(e => e.DeletedAtUtc == null && e.Status == "Active")
-            .Select(e => (!string.IsNullOrWhiteSpace(e.FirstName) 
-                ? (e.FirstName + " " + e.LastName).Trim() 
-                : e.WorkEmail.Split('@', StringSplitOptions.None)[0].Replace('.', ' ')))
-            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Where(e => e.Status == "Active")
+            .Select(e => new { e.FirstName, e.LastName, e.WorkEmail })
             .ToListAsync(ct);
+
+        var activeEmployeeNames = employees
+            .Select(e =>
+            {
+                var fullName = $"{e.FirstName} {e.LastName}".Trim();
+                if (!string.IsNullOrWhiteSpace(fullName)) return fullName;
+                var local = e.WorkEmail.Split('@')[0].Replace('.', ' ');
+                return local;
+            })
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToList();
 
         if (activeEmployeeNames.Count == 0)
         {
@@ -1108,6 +1146,7 @@ public static class DbSeeder
                 Size = item.Size,
                 LastUpdated = DateTime.UtcNow.AddDays(-Random.Shared.Next(2, 60)),
                 UploadedBy = item.UploadedBy,
+                FilePath = Path.Combine("repository", item.SubDir, item.FileName).Replace('\\', '/'),
                 CreatedAtUtc = DateTime.UtcNow.AddDays(-Random.Shared.Next(2, 60))
             };
 

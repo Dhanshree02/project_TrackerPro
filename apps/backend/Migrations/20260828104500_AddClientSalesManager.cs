@@ -1,41 +1,35 @@
-using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using PMS.API.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace PMS.API.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260828104500_AddClientSalesManager")]
     public partial class AddClientSalesManager : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "SalesManager",
-                table: "clients",
-                type: "character varying(120)",
-                maxLength: 120,
-                nullable: true);
-
-            migrationBuilder.AddColumn<Guid>(
-                name: "SalesManagerId",
-                table: "clients",
-                type: "uuid",
-                nullable: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_clients_SalesManagerId",
-                table: "clients",
-                column: "SalesManagerId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_clients_employees_SalesManagerId",
-                table: "clients",
-                column: "SalesManagerId",
-                principalTable: "employees",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+            // Idempotent: trackerpro-final.sql already has these columns/FK on fresh Docker volumes.
+            migrationBuilder.Sql(
+                """
+                ALTER TABLE clients ADD COLUMN IF NOT EXISTS "SalesManager" character varying(120);
+                ALTER TABLE clients ADD COLUMN IF NOT EXISTS "SalesManagerId" uuid;
+                CREATE INDEX IF NOT EXISTS "IX_clients_SalesManagerId" ON clients ("SalesManagerId");
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint WHERE conname = 'FK_clients_employees_SalesManagerId'
+                    ) THEN
+                        ALTER TABLE clients
+                            ADD CONSTRAINT "FK_clients_employees_SalesManagerId"
+                            FOREIGN KEY ("SalesManagerId") REFERENCES employees("Id") ON DELETE SET NULL;
+                    END IF;
+                END $$;
+                """);
         }
 
         /// <inheritdoc />

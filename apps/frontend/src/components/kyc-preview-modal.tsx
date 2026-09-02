@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { X, Download, FileText, CheckCircle2, ShieldCheck, Building2, Check, QrCode } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { X, FileText, CheckCircle2, ShieldCheck, Check } from "lucide-react";
 
 export interface KycDocPreviewModalProps {
   open: boolean;
@@ -80,68 +78,6 @@ export function KycDocPreviewModal({
 
   if (!open) return null;
 
-  const handleDownload = () => {
-    try {
-      if (objectUrl && file) {
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = resolvedName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success("Document downloaded", { description: resolvedName });
-        return;
-      }
-
-      // Generate a formal KYC document file for download
-      const content = `================================================================================
-                    TALAKUNCHI NETWORKS & CONSULTING
-               KNOW YOUR CUSTOMER (KYC) VERIFICATION CERTIFICATE
-================================================================================
-
-CERTIFICATE NUMBER : ${certNumber}
-DATE ISSUED        : ${uploadDate || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-DOCUMENT FILE      : ${resolvedName}
-STATUS             : VERIFIED & COMPLIANT
-
---------------------------------------------------------------------------------
-1. ENTITY IDENTIFICATION
---------------------------------------------------------------------------------
-Customer Name      : ${clientName}
-Sub-Venture / Unit : ${subVentureName || "Primary Corporate Entity"}
-Registration Type  : Corporate Customer
-Document Class     : Identity & Commercial Registration Proof
-Verification Engine: Pulse PMO Compliance & Risk Management
-
---------------------------------------------------------------------------------
-2. COMPLIANCE & LEGAL ATTESTATION
---------------------------------------------------------------------------------
-The customer documentation for ${clientName} has undergone verification
-against standard compliance and corporate registry protocols. All mandatory
-statutory credentials, signatory authority, and KYC guidelines are satisfied.
-
-Authorized Signatory: Compliance Officer, Pulse PMO
-Security Signature  : SHA256-KYC-AUTH-${Math.random().toString(36).substring(2, 10).toUpperCase()}
-
-================================================================================
-          This document is electronically verified and legally binding.
-================================================================================`;
-
-      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-      const dlUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = dlUrl;
-      link.download = resolvedName.endsWith(".txt") || resolvedName.endsWith(".pdf") ? resolvedName : `${resolvedName}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(dlUrl);
-      toast.success("Document downloaded", { description: resolvedName });
-    } catch {
-      toast.error("Failed to download document");
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
       {/* Backdrop */}
@@ -178,16 +114,6 @@ Security Signature  : SHA256-KYC-AUTH-${Math.random().toString(36).substring(2, 
           </div>
 
           <div className="flex items-center gap-2 shrink-0 ml-2">
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer shadow-sm"
-              title="Download Document"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span>Download</span>
-            </button>
-
             <button
               type="button"
               onClick={onClose}
@@ -334,17 +260,10 @@ Security Signature  : SHA256-KYC-AUTH-${Math.random().toString(36).substring(2, 
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border/80 bg-slate-50 dark:bg-muted/40 px-5 py-2.5 text-xs text-muted-foreground">
+        <div className="flex items-center border-t border-border/80 bg-slate-50 dark:bg-muted/40 px-5 py-2.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-1 text-[11px]">
             <ShieldCheck className="h-3.5 w-3.5 text-success" /> Validated under Pulse PMO Customer Compliance
           </span>
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-1 text-primary hover:underline font-semibold text-xs cursor-pointer"
-          >
-            <Download className="h-3.5 w-3.5" /> Download document copy
-          </button>
         </div>
       </div>
     </div>
