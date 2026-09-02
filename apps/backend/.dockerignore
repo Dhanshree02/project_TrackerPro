@@ -4,5 +4,7 @@ obj/
 .vscode/
 tests/
 Log/
+storage/
 .git/
+.env
 *.user
