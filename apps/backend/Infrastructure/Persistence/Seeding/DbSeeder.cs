@@ -195,16 +195,16 @@ public static class DbSeeder
     {
         var departments = new[]
         {
-            ("product", "Product"),
-            ("design", "Design"),
-            ("marketing", "Marketing"),
-            ("sales", "Sales"),
-            ("finance", "Finance"),
-            ("human_resources", "Human Resources"),
-            ("operations", "Operations"),
-            ("engineering", "Engineering"),
-            ("delivery", "Delivery"),
-            ("leadership", "Leadership"),
+            ("core", "Core"),
+            ("functional_it_administration", "Functional - IT Administration"),
+            ("functional_accounts", "Functional - Accounts"),
+            ("functional_hr", "Functional - HR"),
+            ("functional_sales", "Functional - Sales"),
+            ("functional_project_management", "Functional - Project Management"),
+            ("rd_research_and_development", "R&D (Research & Development)"),
+            ("services_operations", "Services - Operations"),
+            ("services_consulting", "Services - Consulting"),
+            ("services_testing", "Services - Testing"),
         };
 
         var existingDepartments = await db.Departments.ToDictionaryAsync(d => d.Code, ct);
@@ -221,48 +221,11 @@ public static class DbSeeder
             existingDepartments[code] = department;
         }
 
-        var designations = new (string Code, string Name, string DepartmentCode)[]
+        var oldSampleCodes = new[] { "product", "design", "marketing", "sales", "finance", "human_resources", "operations", "engineering", "delivery", "leadership" };
+        var obsoleteDepts = await db.Departments.Where(d => oldSampleCodes.Contains(d.Code)).ToListAsync(ct);
+        if (obsoleteDepts.Count > 0)
         {
-            ("engineering_manager", "Engineering Manager", "engineering"),
-            ("product_manager", "Product Manager", "product"),
-            ("ux_designer", "UX Designer", "design"),
-            ("marketing_lead", "Marketing Lead", "marketing"),
-            ("sales_executive", "Sales Executive", "sales"),
-            ("finance_analyst", "Finance Analyst", "finance"),
-            ("hr_business_partner", "HR Business Partner", "human_resources"),
-            ("software_engineer", "Software Engineer", "engineering"),
-            ("senior_software_engineer", "Senior Software Engineer", "engineering"),
-            ("tech_lead", "Tech Lead", "engineering"),
-            ("devops_engineer", "DevOps Engineer", "engineering"),
-            ("qa_engineer", "QA Engineer", "engineering"),
-            ("data_analyst", "Data Analyst", "engineering"),
-            ("content_strategist", "Content Strategist", "marketing"),
-            ("business_analyst", "Business Analyst", "operations"),
-            ("project_manager", "Project Manager", "operations"),
-            ("engagement_manager", "Engagement Manager", "delivery"),
-            ("senior_project_manager", "Senior Project Manager", "delivery"),
-            ("head_of_department", "Head of Department", "leadership"),
-        };
-        var existingDesignations = await db.Designations.ToDictionaryAsync(d => d.Code, ct);
-        foreach (var (code, name, departmentCode) in designations)
-        {
-            existingDepartments.TryGetValue(departmentCode, out var department);
-            if (existingDesignations.TryGetValue(code, out var existing))
-            {
-                if (existing.DepartmentId is null && department is not null)
-                    existing.DepartmentId = department.Id;
-                continue;
-            }
-
-            var designation = new MstDesignation
-            {
-                Code = code,
-                Name = name,
-                DepartmentId = department?.Id,
-                IsActive = true,
-            };
-            db.Designations.Add(designation);
-            existingDesignations[code] = designation;
+            db.Departments.RemoveRange(obsoleteDepts);
         }
 
         var existingIndustries = await db.Industries.ToDictionaryAsync(i => i.Code, ct);
@@ -291,6 +254,7 @@ public static class DbSeeder
 
         await SeedNationalitiesAsync(db, ct);
         await SeedSalaryBandsAsync(db, ct);
+        var existingDesignations = await db.Designations.ToDictionaryAsync(d => d.Code, ct);
         await SeedJobRolesAsync(db, existingDesignations, ct);
         await SeedGeoCatalogsAsync(db, ct);
         await SeedEmailDomainsAsync(db, ct);
