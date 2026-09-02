@@ -18,14 +18,10 @@ if /i "%CONFIRM%" neq "Y" (
 
 echo.
 echo Stopping and removing tester containers and database volume...
-docker compose -f docker-compose.tester.yml down -v
+docker compose -f docker-compose.tester-port3001.yml down -v >nul 2>&1
+docker compose -f docker-compose.tester.yml down -v >nul 2>&1
 
 echo.
-echo Starting fresh database and application stack...
-docker compose -f docker-compose.tester.yml up -d
-
-echo.
-echo Database has been reset and seeded fresh!
-echo Frontend: http://localhost:3000
+echo Database has been reset! Run your start script (tester-start.bat or tester-start-port3001.bat) to launch fresh.
 echo.
 pause

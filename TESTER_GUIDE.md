@@ -22,10 +22,15 @@ This guide enables QA / Testers to run and test the full **PMS TrackerPro** appl
    ```
 
 2. Run the start script:
-   - **On Windows**: Double-click `scripts\tester-start.bat` (or run it in Command Prompt).
+   - **Default (Port 3000)**: Double-click `scripts\tester-start.bat` (UI at `http://localhost:3000`).
+   - **If Port 3000 is busy**: Double-click `scripts\tester-start-port3001.bat` (UI at `http://localhost:3001`).
    - **On Mac/Linux**:
      ```bash
+     # Default (Port 3000):
      docker compose -f docker-compose.tester.yml up -d --build
+
+     # Or if Port 3000 is busy (Port 3001):
+     docker compose -f docker-compose.tester-port3001.yml up -d --build
      ```
 
 Docker will download the images, compile the code, automatically seed the PostgreSQL database from `trackerpro-final.sql`, and start all services.
@@ -36,7 +41,7 @@ Docker will download the images, compile the code, automatically seed the Postgr
 
 | Service | URL | Credentials / Notes |
 | :--- | :--- | :--- |
-| **Frontend Web App** | [http://localhost:3000](http://localhost:3000) | Main application UI |
+| **Frontend Web App** | [http://localhost:3000](http://localhost:3000) *(or [http://localhost:3001](http://localhost:3001))* | Main application UI |
 | **Backend Swagger API** | [http://localhost:5194/swagger](http://localhost:5194/swagger) | Interactive API documentation |
 | **pgAdmin (DB Viewer)** | [http://localhost:5050](http://localhost:5050) | Email: `admin@admin.com`<br>Password: `clockit` |
 | **PostgreSQL Database** | `localhost:5432` | DB: `trackerpro`<br>User: `postgres`<br>Password: `clockit` |
