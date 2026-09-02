@@ -15,6 +15,12 @@ public class SubVenture : BaseEntity
     /// <summary>Free-text notes captured for this sub-venture during onboarding.</summary>
     public string? Notes { get; set; }
 
+    /// <summary>Name of the KYC document attached to this sub-venture during onboarding.</summary>
+    public string? KycDocumentName { get; set; }
+
+    /// <summary>Relative path (under the Documents/ root) to this sub-venture's stored KYC file.</summary>
+    public string? KycDocumentPath { get; set; }
+
     /// <summary>SPOC persons specific to this sub-venture.</summary>
     public ICollection<ClientContactEntity> Contacts { get; set; } = [];
 

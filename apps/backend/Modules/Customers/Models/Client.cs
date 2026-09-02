@@ -61,6 +61,9 @@ public class Client : BaseEntity
     /// <summary>Name of the KYC document attached during onboarding.</summary>
     public string? KycDocumentName { get; set; }
 
+    /// <summary>Relative path (under the Documents/ root) to the stored KYC file, e.g. "KYC/2026..._acme_kyc.pdf".</summary>
+    public string? KycDocumentPath { get; set; }
+
     /// <summary>Business date the customer relationship started (set to today on create).</summary>
     public DateOnly? CustomerSince { get; set; }
 

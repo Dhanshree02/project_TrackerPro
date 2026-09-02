@@ -36,6 +36,7 @@ import {
   fetchClients,
   mapApiClient,
   updateClient,
+  uploadSubVentureKyc,
   formatCustomerId,
   type CreateClientInput,
 } from "@/lib/api/clients";
@@ -1059,7 +1060,7 @@ function NewClientModal({
         const isApiClient = apiClients?.some((c) => c.id === selectedExisting.id) ?? false;
         if (isApiClient) {
           try {
-            await updateClient(selectedExisting.id, {
+            const updated = await updateClient(selectedExisting.id, {
               ...managerPatch,
               subVentures: [
                 ...(selectedExisting.subVentures ?? []),
@@ -1070,6 +1071,22 @@ function NewClientModal({
                 },
               ],
             });
+            // KYC is per sub-venture — attach it to the sub-venture just added.
+            if (s.kycFile) {
+              const svName = s.subVentureName.trim().toLowerCase();
+              const targetSv = updated.subVentures?.find(
+                (sv) => sv.name.trim().toLowerCase() === svName,
+              );
+              if (targetSv?.id) {
+                try {
+                  await uploadSubVentureKyc(selectedExisting.id, targetSv.id, s.kycFile);
+                } catch (kycErr) {
+                  toast.warning("Sub-venture saved, but the KYC document didn't upload", {
+                    description: kycErr instanceof Error ? kycErr.message : "Please re-upload the KYC document from the customer page.",
+                  });
+                }
+              }
+            }
             toast.success("Sub-venture added", {
               description: `${s.subVentureName} added under ${selectedExisting.name} in the database.`,
             });
@@ -1103,7 +1120,23 @@ function NewClientModal({
 
       // ── Brand new TK customer → create it in the database ──
       try {
-        await createClient(api);
+        const created = await createClient(api);
+        // KYC is per sub-venture — attach it to the sub-venture created in this onboarding.
+        if (s.kycFile && created?.id) {
+          const svName = s.subVentureName.trim().toLowerCase();
+          const targetSv =
+            created.subVentures?.find((sv) => sv.name.trim().toLowerCase() === svName) ??
+            created.subVentures?.[0];
+          if (targetSv?.id) {
+            try {
+              await uploadSubVentureKyc(created.id, targetSv.id, s.kycFile);
+            } catch (kycErr) {
+              toast.warning("Customer saved, but the KYC document didn't upload", {
+                description: kycErr instanceof Error ? kycErr.message : "Please re-upload the KYC document from the customer page.",
+              });
+            }
+          }
+        }
         toast.success("Customer onboarded", {
           description: `${api.name} saved to the database.`,
         });

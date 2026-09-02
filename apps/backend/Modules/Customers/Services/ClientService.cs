@@ -484,6 +484,64 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         ApplyClientGraphIncludes(db.Clients)
             .FirstAsync(c => c.Id == id, ct);
 
+    public async Task<ClientDto?> SetClientKycAsync(Guid id, string fileName, string relativePath, CancellationToken ct = default)
+    {
+        var client = await ApplyClientGraphIncludes(BuildScopedQuery())
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (client is null) return null;
+
+        client.KycDocumentName = string.IsNullOrWhiteSpace(fileName) ? client.KycDocumentName : fileName.Trim();
+        client.KycDocumentPath = string.IsNullOrWhiteSpace(relativePath) ? client.KycDocumentPath : relativePath.Trim();
+        await db.SaveChangesAsync(ct);
+
+        var reloaded = await LoadClientGraphAsync(client.Id, ct);
+        return MapToDto(reloaded);
+    }
+
+    public async Task<(string ClientName, string? KycName, string? KycPath)?> GetClientKycRefAsync(Guid id, CancellationToken ct = default)
+    {
+        var client = await BuildScopedQuery()
+            .Where(c => c.Id == id)
+            .Select(c => new { c.Name, c.KycDocumentName, c.KycDocumentPath })
+            .FirstOrDefaultAsync(ct);
+        if (client is null) return null;
+        return (client.Name, client.KycDocumentName, client.KycDocumentPath);
+    }
+
+    public async Task<ClientDto?> SetSubVentureKycAsync(Guid clientId, Guid subVentureId, string fileName, string relativePath, CancellationToken ct = default)
+    {
+        // Scope through the parent client so role-based visibility still applies.
+        var client = await BuildScopedQuery().FirstOrDefaultAsync(c => c.Id == clientId, ct);
+        if (client is null) return null;
+
+        var sv = await db.SubVentures.FirstOrDefaultAsync(s => s.Id == subVentureId && s.ClientId == clientId, ct);
+        if (sv is null) return null;
+
+        sv.KycDocumentName = string.IsNullOrWhiteSpace(fileName) ? sv.KycDocumentName : fileName.Trim();
+        sv.KycDocumentPath = string.IsNullOrWhiteSpace(relativePath) ? sv.KycDocumentPath : relativePath.Trim();
+        await db.SaveChangesAsync(ct);
+
+        var reloaded = await LoadClientGraphAsync(clientId, ct);
+        return MapToDto(reloaded);
+    }
+
+    public async Task<(string ClientName, string SubVentureName, string? KycName, string? KycPath)?> GetSubVentureKycRefAsync(Guid clientId, Guid subVentureId, CancellationToken ct = default)
+    {
+        var client = await BuildScopedQuery()
+            .Where(c => c.Id == clientId)
+            .Select(c => new { c.Name })
+            .FirstOrDefaultAsync(ct);
+        if (client is null) return null;
+
+        var sv = await db.SubVentures
+            .Where(s => s.Id == subVentureId && s.ClientId == clientId)
+            .Select(s => new { s.Name, s.KycDocumentName, s.KycDocumentPath })
+            .FirstOrDefaultAsync(ct);
+        if (sv is null) return null;
+
+        return (client.Name, sv.Name, sv.KycDocumentName, sv.KycDocumentPath);
+    }
+
     private static string? NormalizeManagerName(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
@@ -514,10 +572,14 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         c.BusinessType,
         c.Notes,
         c.KycDocumentName,
+        c.KycDocumentPath,
         c.SubVentures.Select(s => new SubVentureDto(
+            s.Id,
             s.Name,
             s.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType)).ToList(),
-            s.Notes)).ToList(),
+            s.Notes,
+            s.KycDocumentName,
+            s.KycDocumentPath)).ToList(),
         c.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType)).ToList(),
         c.CustomerSince,
         c.CreatedAtUtc);

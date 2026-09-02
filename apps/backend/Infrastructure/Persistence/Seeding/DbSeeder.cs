@@ -207,7 +207,14 @@ public static class DbSeeder
             ("leadership", "Leadership"),
         };
 
-        var existingDepartments = await db.Departments.ToDictionaryAsync(d => d.Code, ct);
+        // Ignore the soft-delete query filter when checking existence: a seed
+        // department the user has since removed is soft-deleted (DeletedAtUtc set)
+        // but still occupies its unique Code, so a plain insert would collide with
+        // IX_mst_departments_Code. Skip any code that already exists in any state —
+        // we never resurrect a department the user intentionally deleted.
+        var existingDepartments = await db.Departments
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(d => d.Code, ct);
         foreach (var (code, name) in departments)
         {
             if (existingDepartments.ContainsKey(code)) continue;
@@ -790,8 +797,14 @@ public static class DbSeeder
 
     private static async Task SeedDirectoryEmployeesAsync(AppDbContext db, CancellationToken ct)
     {
-        var departments = await db.Departments.ToDictionaryAsync(d => d.Name, ct);
-        var designations = await db.Designations.ToDictionaryAsync(d => d.Name, ct);
+        // Designation/department Names are not unique (e.g. many departments each have an
+        // "Intern" designation with distinct codes), so dedup by name and keep the first match.
+        var departments = (await db.Departments.ToListAsync(ct))
+            .GroupBy(d => d.Name)
+            .ToDictionary(g => g.Key, g => g.First());
+        var designations = (await db.Designations.ToListAsync(ct))
+            .GroupBy(d => d.Name)
+            .ToDictionary(g => g.Key, g => g.First());
         var indian = await db.Nationalities.FirstOrDefaultAsync(n => n.Code == "indian", ct);
         var jobRoles = await db.JobRoles.ToListAsync(ct);
 
@@ -828,11 +841,20 @@ public static class DbSeeder
             .Select(e => e.EmployeeCode)
             .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, ct);
 
+        // WorkEmail is unique-constrained (including soft-deleted rows). A seed
+        // employee whose email already belongs to another row must be skipped,
+        // otherwise the insert collides with IX_employees_WorkEmail.
+        var existingEmails = await db.Employees
+            .IgnoreQueryFilters()
+            .Select(e => e.WorkEmail)
+            .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, ct);
+
         var entities = new List<Employee>();
         for (var i = 0; i < seed.Length; i++)
         {
             var row = seed[i];
-            if (existingCodes.Contains(row.Code)) continue;
+            var workEmail = $"{row.FirstName.ToLowerInvariant()}.{row.LastName.ToLowerInvariant()}@acme.co";
+            if (existingCodes.Contains(row.Code) || existingEmails.Contains(workEmail)) continue;
             departments.TryGetValue(row.Department, out var dept);
             designations.TryGetValue(row.Designation, out var desig);
             var andheri = i % 2 == 0;
@@ -845,7 +867,7 @@ public static class DbSeeder
                 EmployeeCode = row.Code,
                 FirstName = row.FirstName,
                 LastName = row.LastName,
-                WorkEmail = $"{row.FirstName.ToLowerInvariant()}.{row.LastName.ToLowerInvariant()}@acme.co",
+                WorkEmail = workEmail,
                 PersonalEmail = $"{row.FirstName.ToLowerInvariant()}{1000 + n}@gmail.com",
                 Phone = (9876501000 + n).ToString(),
                 AltPhone = (9866501000 + n).ToString(),

@@ -25,7 +25,7 @@ import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
-import { fetchClient, mapApiClient, updateClient, formatCustomerId } from "@/lib/api/clients";
+import { fetchClient, mapApiClient, updateClient, formatCustomerId, getSubVentureKycUrl, getSubVentureKycDownloadUrl } from "@/lib/api/clients";
 import { fetchClientForRoute } from "@/lib/client-route-id";
 import {
   fetchAllEmployees,
@@ -128,28 +128,19 @@ function CustomerDetailPage() {
   // so hard loads show a spinner instead of a flash of "not found".
   const [clientLoading, setClientLoading] = useState(!routeClient);
 
-  const handleDirectDownloadKyc = () => {
-    const docName = client?.kycDocumentName || `${client?.name ? client.name.replace(/\s+/g, "_") : "Customer"}_KYC_Document.pdf`;
-    const dummyContent = `KYC COMPLIANCE VERIFICATION DOCUMENT
-----------------------------------------
-Document Name: ${docName}
-Entity Name:   ${client?.name || "Customer"}
-Verification:  VERIFIED & COMPLIANT
-Date Issued:   ${client?.customerSince || new Date().toLocaleDateString()}
-Document Type: KYC Identification & Legal Registry
-Security Hash: SHA256-KYC-${client?.id?.slice(0, 8).toUpperCase() || "VERIFIED"}
-----------------------------------------
-This document confirms the verified identity and KYC onboarding status for ${client?.name || "Customer"} under Pulse PMO.`;
-
-    const blob = new Blob([dummyContent], { type: "text/plain;charset=utf-8" });
-    const dlUrl = URL.createObjectURL(blob);
+  // KYC is per sub-venture — download the stored file for the selected sub-venture.
+  const handleDirectDownloadKyc = (sv?: { id?: string; kycDocumentName?: string; kycDocumentPath?: string }) => {
+    if (!sv?.id || !sv.kycDocumentPath || !client?.id) {
+      toast.error("No KYC document", { description: "This sub-venture has no KYC document on file." });
+      return;
+    }
+    const docName = sv.kycDocumentName || `${client.name.replace(/\s+/g, "_")}_KYC.pdf`;
     const link = document.createElement("a");
-    link.href = dlUrl;
-    link.download = docName.endsWith(".txt") || docName.endsWith(".pdf") ? docName : `${docName}.txt`;
+    link.href = getSubVentureKycDownloadUrl(client.id, sv.id);
+    link.download = docName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(dlUrl);
     toast.success("KYC Document downloaded", { description: docName });
   };
   useEffect(() => {
@@ -337,6 +328,17 @@ This document confirms the verified identity and KYC onboarding status for ${cli
   const subVentures = client.subVentures ?? [];
   const activeSubVenture =
     svFilter !== "all" ? subVentures.find((sv) => sv.name === svFilter) : undefined;
+
+  // KYC is stored per sub-venture. It's only meaningful once a sub-venture is
+  // selected; the row then reflects that sub-venture's own document.
+  const activeKycHasFile = Boolean(activeSubVenture?.id && activeSubVenture?.kycDocumentPath);
+  const activeKycName =
+    activeSubVenture?.kycDocumentName ||
+    (activeSubVenture ? `${activeSubVenture.name.replace(/\s+/g, "_")}_KYC.pdf` : "");
+  const activeKycPreviewUrl =
+    activeKycHasFile && client.id && activeSubVenture?.id
+      ? getSubVentureKycUrl(client.id, activeSubVenture.id)
+      : undefined;
   const displaySpocs = activeSubVenture
     ? (activeSubVenture.contacts ?? []).map((c) => ({
         name: c.name,
@@ -932,40 +934,57 @@ This document confirms the verified identity and KYC onboarding status for ${cli
                 </div>
               ))}
 
-              {/* KYC Document Row with View and Download */}
+              {/* KYC Document Row — scoped to the selected sub-venture */}
               <div className="px-4 py-2.5 text-xs">
                 <div className="flex items-center justify-between gap-1 mb-1.5">
                   <dt className="font-medium text-muted-foreground flex items-center gap-1.5">
                     <FileText className="h-3.5 w-3.5 text-primary" /> KYC Document
+                    {activeSubVenture && (
+                      <span className="truncate text-[10px] font-normal normal-case text-muted-foreground/80">
+                        — {activeSubVenture.name}
+                      </span>
+                    )}
                   </dt>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setKycPreviewOpen(true)}
-                      className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer shadow-2xs"
-                      title="Preview KYC Document"
-                    >
-                      <Eye className="h-3 w-3" /> View
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDirectDownloadKyc}
-                      className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer shadow-2xs"
-                      title="Download KYC Document"
-                      aria-label="Download KYC Document"
-                    >
-                      <Download className="h-3 w-3 text-primary" /> Download
-                    </button>
-                  </div>
+                  {activeKycHasFile && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setKycPreviewOpen(true)}
+                        className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer shadow-2xs"
+                        title="Preview KYC Document"
+                      >
+                        <Eye className="h-3 w-3" /> View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDirectDownloadKyc(activeSubVenture)}
+                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer shadow-2xs"
+                        title="Download KYC Document"
+                        aria-label="Download KYC Document"
+                      >
+                        <Download className="h-3 w-3 text-primary" /> Download
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <dd className="flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span className="truncate font-mono font-medium text-foreground">
-                    {client.kycDocumentName || `${client.name.replace(/\s+/g, "_")}_KYC.pdf`}
-                  </span>
-                  <span className="shrink-0 ml-2 rounded-full border border-success/30 bg-success/10 px-1.5 py-0.2 text-[9px] font-semibold text-success uppercase">
-                    Verified
-                  </span>
-                </dd>
+                {!activeSubVenture ? (
+                  <dd className="text-[11px] text-muted-foreground">
+                    Select a sub-venture to view its KYC document.
+                  </dd>
+                ) : activeKycHasFile ? (
+                  <dd className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="truncate font-mono font-medium text-foreground">
+                      {activeKycName}
+                    </span>
+                    <span className="shrink-0 ml-2 rounded-full border border-success/30 bg-success/10 px-1.5 py-0.2 text-[9px] font-semibold text-success uppercase">
+                      Verified
+                    </span>
+                  </dd>
+                ) : (
+                  <dd className="text-[11px] text-muted-foreground">
+                    No KYC document uploaded for this sub-venture.
+                  </dd>
+                )}
               </div>
             </dl>
           </div>
@@ -1094,8 +1113,9 @@ This document confirms the verified identity and KYC onboarding status for ${cli
         <KycDocPreviewModal
           open={kycPreviewOpen}
           onClose={() => setKycPreviewOpen(false)}
-          fileName={client.kycDocumentName || `${client.name.replace(/\s+/g, "_")}_KYC_Document.pdf`}
-          clientName={client.name}
+          previewUrl={activeKycPreviewUrl}
+          fileName={activeKycName || `${client.name.replace(/\s+/g, "_")}_KYC_Document.pdf`}
+          clientName={activeSubVenture ? `${client.name} — ${activeSubVenture.name}` : client.name}
           uploadDate={clientSinceDate}
         />
       )}

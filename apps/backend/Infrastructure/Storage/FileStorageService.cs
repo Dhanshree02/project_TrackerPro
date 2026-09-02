@@ -5,7 +5,14 @@ namespace PMS.API.Infrastructure.Storage;
 public sealed partial class FileStorageService : IFileStorageService
 {
     private readonly string _storageRoot;
+    private readonly string _documentsRoot;
     private readonly ILogger<FileStorageService> _logger;
+
+    // Human-readable document folders under the repo-root Documents/ tree.
+    public const string KycFolder = "KYC";
+    public const string TechFolder = "Tech. SOPs";
+    public const string PmsFolder = "PMS. SOPs";
+    public const string ImpFolder = "IMP Templates";
 
     public FileStorageService(IConfiguration configuration, IWebHostEnvironment env, ILogger<FileStorageService> logger)
     {
@@ -25,19 +32,39 @@ public sealed partial class FileStorageService : IFileStorageService
             _storageRoot = Path.Combine(solutionDir, "storage");
         }
 
+        // Repo-root Documents/ tree (sits alongside apps/backend + apps/frontend).
+        // Holds human-readable KYC + repository (SOP/template) folders.
+        var documentsConfig = configuration["Storage:DocumentsPath"];
+        if (!string.IsNullOrWhiteSpace(documentsConfig) && (!documentsConfig.Contains(":\\") || OperatingSystem.IsWindows()))
+        {
+            _documentsRoot = Path.IsPathRooted(documentsConfig)
+                ? documentsConfig
+                : Path.Combine(env.ContentRootPath, documentsConfig);
+        }
+        else
+        {
+            var repoRoot = Directory.GetParent(env.ContentRootPath)?.Parent?.FullName ?? env.ContentRootPath;
+            _documentsRoot = Path.Combine(repoRoot, "Documents");
+        }
+
         Directory.CreateDirectory(_storageRoot);
         Directory.CreateDirectory(Path.Combine(_storageRoot, "employees"));
         Directory.CreateDirectory(Path.Combine(_storageRoot, "customers"));
         Directory.CreateDirectory(Path.Combine(_storageRoot, "projects"));
         Directory.CreateDirectory(Path.Combine(_storageRoot, "general"));
-        Directory.CreateDirectory(Path.Combine(_storageRoot, "repository", "tech"));
-        Directory.CreateDirectory(Path.Combine(_storageRoot, "repository", "pms"));
-        Directory.CreateDirectory(Path.Combine(_storageRoot, "repository", "imp"));
 
-        _logger.LogInformation("FileStorageService initialized with root directory: {StorageRoot}", _storageRoot);
+        Directory.CreateDirectory(_documentsRoot);
+        Directory.CreateDirectory(Path.Combine(_documentsRoot, KycFolder));
+        Directory.CreateDirectory(Path.Combine(_documentsRoot, TechFolder));
+        Directory.CreateDirectory(Path.Combine(_documentsRoot, PmsFolder));
+        Directory.CreateDirectory(Path.Combine(_documentsRoot, ImpFolder));
+
+        _logger.LogInformation("FileStorageService initialized. Storage root: {StorageRoot}; Documents root: {DocumentsRoot}", _storageRoot, _documentsRoot);
     }
 
     public string GetStorageRootPath() => _storageRoot;
+
+    public string GetDocumentsRootPath() => _documentsRoot;
 
     public async Task<StoredFileInfo> SaveEmployeeDocumentAsync(
         string employeeCode,
@@ -155,11 +182,11 @@ public sealed partial class FileStorageService : IFileStorageService
             throw new InvalidOperationException($"Invalid file format '{ext}'. Allowed file formats: PDF (.pdf), Word (.doc, .docx), Excel (.xls, .xlsx, .xlsm, .csv), and PowerPoint (.ppt, .pptx).");
         }
 
-        // Map and validate category to tech, pms, imp
+        // Map category to its human-readable folder under Documents/ and its DB display value.
         var folderCategory = NormalizeRepositoryCategoryFolder(category);
         var displayCategory = NormalizeRepositoryCategoryDisplay(category);
 
-        var targetDir = Path.Combine(_storageRoot, "repository", folderCategory);
+        var targetDir = Path.Combine(_documentsRoot, folderCategory);
         Directory.CreateDirectory(targetDir);
 
         var baseName = Path.GetFileNameWithoutExtension(rawOriginalName);
@@ -176,7 +203,8 @@ public sealed partial class FileStorageService : IFileStorageService
             await file.CopyToAsync(stream, ct);
         }
 
-        var relativePath = Path.Combine("repository", folderCategory, savedFileName).Replace('\\', '/');
+        // RelativePath is relative to the Documents/ root, e.g. "Tech. SOPs/2026..._file.pdf".
+        var relativePath = Path.Combine(folderCategory, savedFileName).Replace('\\', '/');
         var completePath = fullPath.Replace('\\', '/');
 
         return new StoredRepositoryFileInfo(
@@ -191,6 +219,76 @@ public sealed partial class FileStorageService : IFileStorageService
         );
     }
 
+    public async Task<StoredRepositoryFileInfo> SaveKycDocumentAsync(
+        string clientName,
+        IFormFile file,
+        CancellationToken ct = default)
+    {
+        var rawOriginalName = Path.GetFileName(file.FileName);
+        var ext = Path.GetExtension(rawOriginalName).ToLowerInvariant();
+
+        var targetDir = Path.Combine(_documentsRoot, KycFolder);
+        Directory.CreateDirectory(targetDir);
+
+        var clientPart = SafeFileNameRegex().Replace(clientName ?? "", "_").Trim('_');
+        if (string.IsNullOrWhiteSpace(clientPart)) clientPart = "client";
+        if (clientPart.Length > 60) clientPart = clientPart[..60];
+
+        var baseName = Path.GetFileNameWithoutExtension(rawOriginalName);
+        var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
+        if (string.IsNullOrWhiteSpace(cleanBaseName)) cleanBaseName = "kyc";
+        if (cleanBaseName.Length > 60) cleanBaseName = cleanBaseName[..60];
+
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff");
+        var savedFileName = $"{timestamp}_{clientPart}_{cleanBaseName}{ext}";
+        var fullPath = Path.Combine(targetDir, savedFileName);
+
+        await using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await file.CopyToAsync(stream, ct);
+        }
+
+        var relativePath = Path.Combine(KycFolder, savedFileName).Replace('\\', '/');
+
+        return new StoredRepositoryFileInfo(
+            FileName: rawOriginalName,
+            OriginalFileName: rawOriginalName,
+            ContentType: file.ContentType ?? GetContentType(ext),
+            SizeBytes: file.Length,
+            RelativePath: relativePath,
+            CompleteFilePath: fullPath.Replace('\\', '/'),
+            Category: KycFolder,
+            UploadedAtUtc: DateTime.UtcNow
+        );
+    }
+
+    public (Stream Stream, string ContentType, string DownloadFileName)? GetKycFileStream(string relativePathOrFileName)
+    {
+        if (string.IsNullOrWhiteSpace(relativePathOrFileName)) return null;
+
+        // Absolute or Documents-relative path.
+        var candidate = Path.IsPathRooted(relativePathOrFileName)
+            ? relativePathOrFileName
+            : Path.Combine(_documentsRoot, relativePathOrFileName);
+        if (File.Exists(candidate))
+        {
+            var ext = Path.GetExtension(candidate);
+            return (OpenReadStream(candidate), GetContentType(ext), ExtractOriginalName(Path.GetFileName(candidate)));
+        }
+
+        // Filename lookup inside the KYC folder.
+        var kycDir = Path.Combine(_documentsRoot, KycFolder);
+        var fileName = Path.GetFileName(relativePathOrFileName);
+        var directPath = Path.Combine(kycDir, fileName);
+        if (File.Exists(directPath))
+        {
+            var ext = Path.GetExtension(directPath);
+            return (OpenReadStream(directPath), GetContentType(ext), ExtractOriginalName(fileName));
+        }
+
+        return null;
+    }
+
     private static FileStream OpenReadStream(string path) =>
         new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
 
@@ -198,59 +296,54 @@ public sealed partial class FileStorageService : IFileStorageService
     {
         if (string.IsNullOrWhiteSpace(fileName)) return null;
 
+        // 1. New location: Documents/<display folder> (e.g. "Tech. SOPs").
         var folderCategory = NormalizeRepositoryCategoryFolder(category);
-        var targetDir = Path.Combine(_storageRoot, "repository", folderCategory);
+        var found = FindInDirectory(Path.Combine(_documentsRoot, folderCategory), fileName);
+        if (found != null) return found;
 
-        if (Directory.Exists(targetDir))
+        // 2. New location — search across all Documents repository folders.
+        foreach (var subDir in new[] { TechFolder, PmsFolder, ImpFolder })
         {
-            // 1. Direct match with fileName or sanitized filename
-            var directPath = Path.Combine(targetDir, fileName);
-            if (File.Exists(directPath))
-            {
-                var ext = Path.GetExtension(directPath);
-                return (OpenReadStream(directPath), GetContentType(ext), fileName);
-            }
-
-            var underscoreName = fileName.Replace(' ', '_');
-            var underscorePath = Path.Combine(targetDir, underscoreName);
-            if (File.Exists(underscorePath))
-            {
-                var ext = Path.GetExtension(underscorePath);
-                return (OpenReadStream(underscorePath), GetContentType(ext), fileName);
-            }
-
-            // 2. Timestamp prefix match (*_cleanBaseName.ext)
-            var baseName = Path.GetFileNameWithoutExtension(fileName);
-            var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
-            var extPattern = Path.GetExtension(fileName);
-            var matchingFiles = Directory.GetFiles(targetDir, $"*{cleanBaseName}*{extPattern}");
-            if (matchingFiles.Length > 0)
-            {
-                var foundPath = matchingFiles[0];
-                var ext = Path.GetExtension(foundPath);
-                return (OpenReadStream(foundPath), GetContentType(ext), fileName);
-            }
+            found = FindInDirectory(Path.Combine(_documentsRoot, subDir), fileName);
+            if (found != null) return found;
         }
 
-        // 3. Fallback search in all repository folders
+        // 3. Back-compat: legacy storage/repository/{tech|pms|imp} folders.
         foreach (var subDir in new[] { "tech", "pms", "imp" })
         {
-            var fallbackDir = Path.Combine(_storageRoot, "repository", subDir);
-            if (!Directory.Exists(fallbackDir)) continue;
+            found = FindInDirectory(Path.Combine(_storageRoot, "repository", subDir), fileName);
+            if (found != null) return found;
+        }
 
-            var directMatch = Path.Combine(fallbackDir, fileName);
-            if (File.Exists(directMatch))
-            {
-                var ext = Path.GetExtension(directMatch);
-                return (OpenReadStream(directMatch), GetContentType(ext), fileName);
-            }
+        return null;
+    }
 
-            var underscoreMatch = Path.Combine(fallbackDir, fileName.Replace(' ', '_'));
-            if (File.Exists(underscoreMatch))
-            {
-                var ext = Path.GetExtension(underscoreMatch);
-                return (OpenReadStream(underscoreMatch), GetContentType(ext), fileName);
-            }
+    private (Stream Stream, string ContentType, string DownloadFileName)? FindInDirectory(string targetDir, string fileName)
+    {
+        if (!Directory.Exists(targetDir)) return null;
+
+        // 1. Direct match with fileName or sanitized filename
+        var directPath = Path.Combine(targetDir, fileName);
+        if (File.Exists(directPath))
+        {
+            return (OpenReadStream(directPath), GetContentType(Path.GetExtension(directPath)), fileName);
+        }
+
+        var underscorePath = Path.Combine(targetDir, fileName.Replace(' ', '_'));
+        if (File.Exists(underscorePath))
+        {
+            return (OpenReadStream(underscorePath), GetContentType(Path.GetExtension(underscorePath)), fileName);
+        }
+
+        // 2. Timestamp prefix match (*_cleanBaseName.ext)
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
+        var extPattern = Path.GetExtension(fileName);
+        var matchingFiles = Directory.GetFiles(targetDir, $"*{cleanBaseName}*{extPattern}");
+        if (matchingFiles.Length > 0)
+        {
+            var foundPath = matchingFiles[0];
+            return (OpenReadStream(foundPath), GetContentType(Path.GetExtension(foundPath)), fileName);
         }
 
         return null;
@@ -260,15 +353,22 @@ public sealed partial class FileStorageService : IFileStorageService
     {
         if (string.IsNullOrWhiteSpace(filePath)) return null;
 
-        var fullPath = Path.IsPathRooted(filePath)
-            ? filePath
-            : Path.Combine(_storageRoot, filePath);
-
-        if (File.Exists(fullPath))
+        if (Path.IsPathRooted(filePath) && File.Exists(filePath))
         {
-            var ext = Path.GetExtension(fullPath);
-            var downloadName = ExtractOriginalName(Path.GetFileName(fullPath));
-            return (OpenReadStream(fullPath), GetContentType(ext), downloadName);
+            var ext = Path.GetExtension(filePath);
+            return (OpenReadStream(filePath), GetContentType(ext), ExtractOriginalName(Path.GetFileName(filePath)));
+        }
+
+        // New relative paths are relative to Documents/ (e.g. "Tech. SOPs/xxx.pdf");
+        // legacy relative paths are relative to storage/ (e.g. "repository/tech/xxx.pdf").
+        foreach (var root in new[] { _documentsRoot, _storageRoot })
+        {
+            var fullPath = Path.Combine(root, filePath);
+            if (File.Exists(fullPath))
+            {
+                var ext = Path.GetExtension(fullPath);
+                return (OpenReadStream(fullPath), GetContentType(ext), ExtractOriginalName(Path.GetFileName(fullPath)));
+            }
         }
 
         // Try searching by filename across categories
@@ -283,33 +383,24 @@ public sealed partial class FileStorageService : IFileStorageService
         try
         {
             var folderCategory = NormalizeRepositoryCategoryFolder(category);
-            var targetDir = Path.Combine(_storageRoot, "repository", folderCategory);
 
-            if (Directory.Exists(targetDir))
+            // New Documents/ folder for this category, plus legacy storage/repository slug.
+            var candidateDirs = new List<string>
             {
-                var directPath = Path.Combine(targetDir, fileName);
-                if (File.Exists(directPath))
-                {
-                    File.Delete(directPath);
-                    return true;
-                }
+                Path.Combine(_documentsRoot, folderCategory),
+            };
+            foreach (var subDir in new[] { TechFolder, PmsFolder, ImpFolder })
+            {
+                candidateDirs.Add(Path.Combine(_documentsRoot, subDir));
+            }
+            foreach (var subDir in new[] { "tech", "pms", "imp" })
+            {
+                candidateDirs.Add(Path.Combine(_storageRoot, "repository", subDir));
+            }
 
-                var underscorePath = Path.Combine(targetDir, fileName.Replace(' ', '_'));
-                if (File.Exists(underscorePath))
-                {
-                    File.Delete(underscorePath);
-                    return true;
-                }
-
-                var baseName = Path.GetFileNameWithoutExtension(fileName);
-                var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
-                var extPattern = Path.GetExtension(fileName);
-                var matchingFiles = Directory.GetFiles(targetDir, $"*{cleanBaseName}*{extPattern}");
-                foreach (var match in matchingFiles)
-                {
-                    if (File.Exists(match)) File.Delete(match);
-                }
-                return matchingFiles.Length > 0;
+            foreach (var targetDir in candidateDirs.Distinct())
+            {
+                if (DeleteFromDirectory(targetDir, fileName)) return true;
             }
         }
         catch (Exception ex)
@@ -320,20 +411,55 @@ public sealed partial class FileStorageService : IFileStorageService
         return false;
     }
 
+    private bool DeleteFromDirectory(string targetDir, string fileName)
+    {
+        if (!Directory.Exists(targetDir)) return false;
+
+        var directPath = Path.Combine(targetDir, fileName);
+        if (File.Exists(directPath))
+        {
+            File.Delete(directPath);
+            return true;
+        }
+
+        var underscorePath = Path.Combine(targetDir, fileName.Replace(' ', '_'));
+        if (File.Exists(underscorePath))
+        {
+            File.Delete(underscorePath);
+            return true;
+        }
+
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
+        var extPattern = Path.GetExtension(fileName);
+        var matchingFiles = Directory.GetFiles(targetDir, $"*{cleanBaseName}*{extPattern}");
+        foreach (var match in matchingFiles)
+        {
+            if (File.Exists(match)) File.Delete(match);
+        }
+        return matchingFiles.Length > 0;
+    }
+
     public bool DeleteRepositoryFile(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath)) return false;
 
         try
         {
-            var fullPath = Path.IsPathRooted(filePath)
-                ? filePath
-                : Path.Combine(_storageRoot, filePath);
-
-            if (File.Exists(fullPath))
+            if (Path.IsPathRooted(filePath) && File.Exists(filePath))
             {
-                File.Delete(fullPath);
+                File.Delete(filePath);
                 return true;
+            }
+
+            foreach (var root in new[] { _documentsRoot, _storageRoot })
+            {
+                var fullPath = Path.Combine(root, filePath);
+                if (File.Exists(fullPath))
+                {
+                    File.Delete(fullPath);
+                    return true;
+                }
             }
 
             var fileName = Path.GetFileName(filePath);
@@ -347,25 +473,24 @@ public sealed partial class FileStorageService : IFileStorageService
         return false;
     }
 
+    /// <summary>Maps a category (Tech/PMS/IMP or free text) to its human-readable Documents/ folder name.</summary>
     public static string NormalizeRepositoryCategoryFolder(string category)
     {
         var clean = (category ?? "").Trim().ToLowerInvariant();
-        if (clean.Contains("tech")) return "tech";
-        if (clean.Contains("pms")) return "pms";
-        if (clean.Contains("imp") || clean.Contains("policy") || clean.Contains("template")) return "imp";
-        return "tech"; // default fallback to tech
+        if (clean.Contains("tech")) return TechFolder;
+        if (clean.Contains("pms")) return PmsFolder;
+        if (clean.Contains("imp") || clean.Contains("policy") || clean.Contains("template")) return ImpFolder;
+        return TechFolder; // default fallback to Tech. SOPs
     }
 
+    /// <summary>Maps a category (Tech/PMS/IMP, a Documents folder name, or free text) to its DB display value.</summary>
     public static string NormalizeRepositoryCategoryDisplay(string category)
     {
-        var folder = NormalizeRepositoryCategoryFolder(category);
-        return folder switch
-        {
-            "tech" => "Tech",
-            "pms" => "PMS",
-            "imp" => "IMP",
-            _ => "Tech"
-        };
+        var clean = (category ?? "").Trim().ToLowerInvariant();
+        if (clean.Contains("tech")) return "Tech";
+        if (clean.Contains("pms")) return "PMS";
+        if (clean.Contains("imp") || clean.Contains("policy") || clean.Contains("template")) return "IMP";
+        return "Tech";
     }
 
     private static async Task<StoredFileInfo> SaveFileInternalAsync(

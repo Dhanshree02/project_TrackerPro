@@ -55,6 +55,13 @@ public interface IFileStorageService
         IFormFile file,
         CancellationToken ct = default);
 
+    Task<StoredRepositoryFileInfo> SaveKycDocumentAsync(
+        string clientName,
+        IFormFile file,
+        CancellationToken ct = default);
+
+    (Stream Stream, string ContentType, string DownloadFileName)? GetKycFileStream(string relativePathOrFileName);
+
     (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string category, string fileName);
 
     (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string filePath);
@@ -64,4 +71,6 @@ public interface IFileStorageService
     bool DeleteRepositoryFile(string filePath);
 
     string GetStorageRootPath();
+
+    string GetDocumentsRootPath();
 }
