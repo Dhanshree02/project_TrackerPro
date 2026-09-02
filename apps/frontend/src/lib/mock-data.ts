@@ -4,7 +4,12 @@ export type Role =
   | "pmo"
   | "hod"
   | "business_owner"
-  | "dhanshree";
+  | "dhanshree"
+  | "employee"
+  | "pm"
+  | "hr"
+  | "accounts_finance"
+  | "sales_bd";
 
 export type ProjectStatus = "ongoing" | "completed" | "on_hold" | "archived";
 export type HealthStatus = "green" | "amber" | "red";
@@ -584,6 +589,11 @@ export const assignments: Record<Role, string[]> = {
   hod: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
   business_owner: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
   dhanshree: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
+  employee: [],
+  pm: ["c1", "c2", "c3"],
+  hr: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
+  accounts_finance: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
+  sales_bd: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
 };
 
 // PM "buckets" — capacity tracking

@@ -3,6 +3,8 @@ import { Shield, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 
+import { usePermissions } from "@/lib/permissions";
+
 export const Route = createFileRoute("/dh-settings")({
   head: () => ({
     meta: [
@@ -14,8 +16,10 @@ export const Route = createFileRoute("/dh-settings")({
 });
 
 function SettingsPage() {
-  const { can } = useRoleContext();
-  if (!can("settings.view")) return <Navigate to="/" />;
+  const { can, isDhanshree } = useRoleContext();
+  const { hasAny } = usePermissions();
+  const allowed = isDhanshree || (can ? can("settings.view") : false) || hasAny("settings.view", "users:manage", "roles:manage", "settings.manage_roles");
+  if (!allowed) return <Navigate to="/" />;
 
   return (
     <AppShell title="Settings" subtitle="Manage application configuration">

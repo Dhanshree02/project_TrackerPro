@@ -58,11 +58,15 @@ const SCOPE_LABEL: Record<string, string> = {
   all: "All company projects",
 };
 
+import { usePermissions } from "@/lib/permissions";
+
 function SecurityRolesPage() {
-  const { can } = useRoleContext();
+  const { can, isDhanshree } = useRoleContext();
+  const { hasAny } = usePermissions();
   const [activeTab, setActiveTab] = useState<"users" | "modules">("modules");
 
-  if (!can("settings.manage_roles")) return <Navigate to="/" />;
+  const allowed = isDhanshree || (can ? can("settings.manage_roles") : false) || hasAny("settings.manage_roles", "roles:manage", "settings.view");
+  if (!allowed) return <Navigate to="/" />;
 
   return (
     <AppShell title="Roles & Permissions" subtitle="Who can see and do what — across every module">
@@ -208,7 +212,10 @@ function UserRoleAccessTab() {
 }
 
 function ModuleAccessTab() {
-  const { getPermissionsFor, setRolePermissions, resetRolePermissions } = useRoleContext();
+  const ctx = useRoleContext();
+  const getPermissionsFor = ctx.getPermissionsFor ?? ((r: Role) => DEFAULT_ROLE_PERMISSIONS[r] ?? []);
+  const setRolePermissions = ctx.setRolePermissions ?? (() => {});
+  const resetRolePermissions = ctx.resetRolePermissions ?? (() => {});
   const [selectedRole, setSelectedRole] = useState<Role>("employee");
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({ Projects: true });
   const [draft, setDraft] = useState<PermissionKey[]>(() => getPermissionsFor("employee"));
