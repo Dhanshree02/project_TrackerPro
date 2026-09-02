@@ -287,8 +287,8 @@ function CustomersPage() {
                   "border border-slate-200/90 dark:border-border/80",
                   "bg-gradient-to-b from-slate-50/95 via-blue-50/20 to-slate-100/70 dark:from-card dark:via-card/95 dark:to-muted/30",
                   "shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06),0_1px_3px_rgba(15,23,42,0.04)]",
-                  "transition-[transform,box-shadow,border-color] duration-200 ease-out",
-                  "hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_12px_28px_-4px_rgba(15,23,42,0.12),0_4px_10px_-2px_rgba(15,23,42,0.06)]",
+                  "transition-all duration-200 ease-out",
+                  "hover:border-primary/50 hover:shadow-[0_12px_28px_-4px_rgba(15,23,42,0.12),0_4px_10px_-2px_rgba(15,23,42,0.06)]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   "before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-primary before:to-info before:opacity-0 group-hover:before:opacity-100 before:transition-opacity before:duration-200",
                 )}
@@ -299,7 +299,7 @@ function CustomersPage() {
                     className={cn(
                       "flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]",
                       "bg-gradient-to-br from-primary to-info text-[15px] font-semibold tracking-tight text-primary-foreground",
-                      "shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] shadow-md",
+                      "shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] shadow-md group-hover:scale-105 transition-transform duration-200",
                     )}
                     aria-hidden
                   >

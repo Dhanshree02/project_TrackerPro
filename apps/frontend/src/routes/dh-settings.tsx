@@ -2,7 +2,6 @@ import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { Shield, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
-import { usePermissions } from "@/lib/permissions";
 
 export const Route = createFileRoute("/dh-settings")({
   head: () => ({
@@ -15,10 +14,8 @@ export const Route = createFileRoute("/dh-settings")({
 });
 
 function SettingsPage() {
-  const { isDhanshree } = useRoleContext();
-  const { hasAny } = usePermissions();
-  const canManage = isDhanshree || hasAny("settings.view", "users:manage", "roles:manage");
-  if (!canManage) return <Navigate to="/" />;
+  const { can } = useRoleContext();
+  if (!can("settings.view")) return <Navigate to="/" />;
 
   return (
     <AppShell title="Settings" subtitle="Manage application configuration">
@@ -32,9 +29,9 @@ function SettingsPage() {
             <Shield className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-foreground">Role &amp; Access Management</h3>
+            <h3 className="text-sm font-semibold text-foreground">Roles & Permissions</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Manage roles, module/submodule permissions and user role assignments
+              Manage user roles and module permissions
             </p>
           </div>
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />

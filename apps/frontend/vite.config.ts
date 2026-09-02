@@ -12,6 +12,9 @@ export default defineConfig({
   tanstackStart: {},
   vite: {
     server: {
+      watch: {
+        usePolling: true,
+      },
       port: 6002,
       allowedHosts: true,
       proxy: {
