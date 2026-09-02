@@ -189,7 +189,7 @@ function InterviewDetail({
         <h2 className="mt-2 text-lg font-semibold">{interview.interviewRound}</h2>
         <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
           <Field label="Resource" value={resource.name} />
-          <Field label="Employee ID" value={interview.employeeId} />
+          <Field label="TK ID" value={interview.employeeId} />
           <Field label="Customer" value={interview.clientName} />
           <Field label="Project" value={interview.projectName} />
           <Field label="Interview Date" value={new Date(interview.interviewDate).toLocaleDateString()} />
@@ -302,7 +302,7 @@ function NewInterviewDialog({
             </select>
           </FormRow>
           {resource && (
-            <FormRow label="Employee ID">
+            <FormRow label="TK ID">
               <input type="text" value={resourceId} readOnly className="form-input bg-muted/50" placeholder="Auto-filled" />
             </FormRow>
           )}

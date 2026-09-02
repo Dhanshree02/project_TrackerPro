@@ -344,7 +344,7 @@ function ExitSummaryPage() {
       return;
     }
     const header = [
-      "Employee ID",
+      "TK ID",
       "Full Name",
       "Department",
       "Designation",

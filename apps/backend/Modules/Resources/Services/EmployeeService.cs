@@ -129,9 +129,16 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         bool checkIdentity,
         CancellationToken ct)
     {
+        var empCode = request.EmployeeCode.Trim();
+        if (string.IsNullOrWhiteSpace(empCode))
+        {
+            var isIntern = request.EmploymentType?.Equals("intern", StringComparison.OrdinalIgnoreCase) == true;
+            empCode = await GetNextEmployeeCodeAsync(isIntern, ct);
+        }
+
         var entity = new Employee
         {
-            EmployeeCode = request.EmployeeCode.Trim(),
+            EmployeeCode = empCode,
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
             WorkEmail = EmailRules.Normalize(request.WorkEmail).ToLowerInvariant(),
@@ -885,6 +892,26 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         while (slug.Contains("__", StringComparison.Ordinal))
             slug = slug.Replace("__", "_", StringComparison.Ordinal);
         return slug.Trim('_');
+    }
+
+    public async Task<string> GetNextEmployeeCodeAsync(bool isIntern, CancellationToken ct = default)
+    {
+        var prefix = isIntern ? "TKI-" : "TK-";
+        var codes = await db.Employees
+            .IgnoreQueryFilters()
+            .Where(e => e.EmployeeCode.StartsWith(prefix))
+            .Select(e => e.EmployeeCode)
+            .ToListAsync(ct);
+
+        var maxNum = 0;
+        foreach (var c in codes)
+        {
+            var part = c[prefix.Length..];
+            if (int.TryParse(part, out var n) && n > maxNum)
+                maxNum = n;
+        }
+
+        return $"{prefix}{(maxNum + 1):D4}";
     }
 
     private static string Truncate(string value, int max) =>

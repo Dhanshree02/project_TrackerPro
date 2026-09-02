@@ -16,7 +16,7 @@ internal static class EmployeeBulkWorkbook
 
     public static readonly string[] Headers =
     [
-        "Employee Code",
+        "TK ID",
         "First Name",
         "Last Name",
         "Work Email",
@@ -66,7 +66,7 @@ internal static class EmployeeBulkWorkbook
 
         var example = new[]
         {
-            "EMP-SAMPLE",
+            "TK-0001",
             "Sample",
             "Employee",
             "sample.employee@talakunchi.com",
@@ -79,10 +79,10 @@ internal static class EmployeeBulkWorkbook
             "9876543210",
             "Single",
             "Indian",
-            "Engineering",
-            "Software Engineer",
-            "Developer",
-            "EMP-1003",
+            "Services - Testing",
+            "PenTester - I",
+            "Employee",
+            "TK-0004",
             "Enterprise",
             "Andheri",
             "Suvidha Square",
@@ -404,6 +404,10 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             map[key] = col;
         }
 
+        if (map.TryGetValue("tkid", out var tkCol)) map.TryAdd("employeecode", tkCol);
+        if (map.TryGetValue("employeeid", out var empIdCol)) map.TryAdd("employeecode", empIdCol);
+        if (map.TryGetValue("reportingmanagertkid", out var mgrTkCol)) map.TryAdd("reportingmanagercode", mgrTkCol);
+        if (map.TryGetValue("reportingmanagerid", out var mgrEmpIdCol)) map.TryAdd("reportingmanagercode", mgrEmpIdCol);
         if (map.TryGetValue("pfuan", out var pfCol)) map.TryAdd("uan", pfCol);
         if (map.TryGetValue("aadhar", out var aadharCol)) map.TryAdd("aadhaar", aadharCol);
         if (map.TryGetValue("mobile", out var mobileCol)) map.TryAdd("phone", mobileCol);

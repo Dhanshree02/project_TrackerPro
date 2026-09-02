@@ -18,6 +18,8 @@ public interface IEmployeeService
 
     Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, CancellationToken ct = default);
 
+    Task<string> GetNextEmployeeCodeAsync(bool isIntern, CancellationToken ct = default);
+
     Task<EmployeeDetailDto?> UpdateEmployeeAsync(string idOrCode, UpdateEmployeeRequest request, CancellationToken ct = default);
 
     byte[] GetBulkSampleExcel();

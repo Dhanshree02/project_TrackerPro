@@ -124,7 +124,7 @@ function ResourcesPage() {
             {isEmployee ? (
               <tr>
                 <th className="relative px-4 py-3 font-semibold">
-                  Employee ID
+                  TK ID
                   <span className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none" />
                 </th>
                 <th className="relative px-4 py-3 font-semibold">

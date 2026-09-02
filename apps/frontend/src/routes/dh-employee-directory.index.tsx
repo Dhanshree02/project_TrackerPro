@@ -134,7 +134,7 @@ type PoolSortKey =
 type SortDir = "asc" | "desc";
 
 const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
-  { label: "Employee ID", key: "id", className: "w-40 min-w-[145px]" },
+  { label: "TK ID", key: "id", className: "w-40 min-w-[145px]" },
   { label: "Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-52 min-w-[185px]" },
@@ -147,7 +147,7 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: str
 ];
 
 const BASIC_DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
-  { label: "Employee ID", key: "id", className: "w-40 min-w-[145px]" },
+  { label: "TK ID", key: "id", className: "w-40 min-w-[145px]" },
   { label: "Employee Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-64 min-w-[210px]" },
@@ -1786,10 +1786,10 @@ function OnboardingPanel({
 
             <FormSection title="2. Organization Assignment">
               <FormField
-                label="Employee ID"
+                label="TK ID"
                 name="employeeCode"
                 required
-                placeholder="e.g. EMP-1001"
+                placeholder="e.g. TK-0001 (or TKI-0001 for Intern)"
                 maxLength={FIELD_MAX.employeeCode}
                 value={form.employeeCode}
                 onChange={(v) => setField("employeeCode", v)}

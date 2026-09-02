@@ -139,6 +139,15 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetSalaryBandsAsync(ct)));
     }
 
+    [HttpGet("meta/next-code")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<string>>> NextCode(
+        [FromQuery] bool isIntern = false,
+        CancellationToken ct = default)
+    {
+        return Ok(ApiResponse<string>.Ok(await employees.GetNextEmployeeCodeAsync(isIntern, ct)));
+    }
+
     [HttpGet("meta/email-domains")]
     [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmailDomains(CancellationToken ct)

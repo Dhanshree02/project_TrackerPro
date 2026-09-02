@@ -360,13 +360,13 @@ export function validateOnboardField(
     }
     case "employeeCode": {
       const v = (values.employeeCode || "").trim();
-      if (!v) return "Employee ID is required";
-      if (v.length > 20) return "Employee ID must be 20 characters or less";
+      if (!v) return "TK ID is required";
+      if (v.length > 20) return "TK ID must be 20 characters or less";
       if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(v)) {
         return "Use letters, numbers, dot, hyphen or underscore";
       }
       if (existingCodes.some((c) => c.toLowerCase() === v.toLowerCase())) {
-        return "This employee ID already exists";
+        return "This TK ID already exists";
       }
       return undefined;
     }

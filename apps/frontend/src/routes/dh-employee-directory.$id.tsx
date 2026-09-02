@@ -1067,7 +1067,7 @@ function EditProfilePanel({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Employee ID
+                  TK ID
                 </span>
                 <input
                   autoComplete="off"
@@ -1884,7 +1884,7 @@ function EmployeeProfilePage() {
           {tab === "basic" && (
             <div className="rounded-lg border border-border bg-card p-6">
               <Grid>
-                <Row label="Employee ID" value={emp.id} />
+                <Row label="TK ID" value={emp.id} />
                 <Row label="First Name" value={emp.firstName} />
                 <Row label="Last Name" value={emp.lastName} />
                 <Row label="Email ID" value={emp.email} />
