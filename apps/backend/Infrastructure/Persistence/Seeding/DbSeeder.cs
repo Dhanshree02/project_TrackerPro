@@ -754,8 +754,12 @@ public static class DbSeeder
 
     private static async Task SeedDirectoryEmployeesAsync(AppDbContext db, CancellationToken ct)
     {
-        var departments = await db.Departments.ToDictionaryAsync(d => d.Name, ct);
-        var designations = await db.Designations.ToDictionaryAsync(d => d.Name, ct);
+        var departments = (await db.Departments.ToListAsync(ct))
+            .GroupBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var designations = (await db.Designations.ToListAsync(ct))
+            .GroupBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var indian = await db.Nationalities.FirstOrDefaultAsync(n => n.Code == "indian", ct);
         var jobRoles = await db.JobRoles.ToListAsync(ct);
 
