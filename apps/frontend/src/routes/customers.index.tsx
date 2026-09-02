@@ -452,8 +452,8 @@ function CustomersPage() {
                             {c.industry || "—"}
                           </p>
                         </div>
-                        <ArrowUpRight
-                          className="h-4 w-4 text-muted-foreground/50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary shrink-0"
+                        <ChevronRight
+                          className="h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary shrink-0 mt-0.5"
                           aria-hidden
                         />
                       </div>
@@ -502,21 +502,26 @@ function CustomersPage() {
                   </div>
                 </div>
 
-                {/* SECTION 2: Project Metrics (Separated bottom section) */}
-                <div className="mt-auto border-t border-slate-200/80 bg-slate-50/40 px-5 py-3.5 dark:border-border/70 dark:bg-muted/20">
+                {/* SECTION 2: Project Metrics (Bottom Section matching reference design) */}
+                <div className="mt-auto border-t border-slate-200/80 bg-slate-50/40 px-4 py-3 dark:border-border/70 dark:bg-muted/20">
                   <div className="flex items-center gap-2.5">
-                    {/* Total Project Ring Gauge Button */}
+                    {/* Total Project Ring Gauge Button (Filters by All) */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate({ to: "/customers/$clientId", params: { clientId: c.id } });
+                        navigate({
+                          to: "/customers/$clientId",
+                          params: { clientId: c.id },
+                          search: { status: "all" },
+                        });
                       }}
-                      className="group/gauge relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200 hover:scale-110 hover:shadow-xs cursor-pointer"
+                      className="group/gauge relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all duration-200 hover:scale-105 hover:shadow-xs cursor-pointer select-none"
                       title={`View all ${total} projects for ${c.name}`}
+                      aria-label={`View all ${total} projects for ${c.name}`}
                     >
                       <div
-                        className="absolute inset-0 rounded-full"
+                        className="absolute inset-0 rounded-full shadow-2xs"
                         style={{
                           background:
                             total > 0
@@ -527,124 +532,149 @@ function CustomersPage() {
                                   #f59e0b ${(((newCount || 0) + (ongoing || 0) + (completed || 0)) / Math.max(total, 1)) * 360}deg ${(((newCount || 0) + (ongoing || 0) + (completed || 0) + (onHold || 0)) / Math.max(total, 1)) * 360}deg,
                                   #94a3b8 ${(((newCount || 0) + (ongoing || 0) + (completed || 0) + (onHold || 0)) / Math.max(total, 1)) * 360}deg 360deg
                                 )`
-                              : "conic-gradient(#94a3b8 0deg 360deg)",
+                              : "conic-gradient(#cbd5e1 0deg 360deg)",
                         }}
                       />
-                      <div className="absolute inset-[2.5px] rounded-full bg-white dark:bg-card flex items-center justify-center shadow-2xs group-hover/gauge:bg-slate-100 dark:group-hover/gauge:bg-slate-800 transition-colors">
+                      <div className="absolute inset-[3px] rounded-full bg-white dark:bg-card flex items-center justify-center shadow-2xs group-hover/gauge:bg-slate-50 dark:group-hover/gauge:bg-slate-800 transition-colors">
                         <span className="text-sm font-extrabold tabular-nums text-foreground group-hover/gauge:text-primary transition-colors">
                           {total}
                         </span>
                       </div>
                     </button>
 
-                    {/* Status breakdown pills (White in Normal State, Soft Light Color Fill on Hover) */}
+                    {/* Status breakdown filter buttons */}
                     <div className="grid flex-1 grid-cols-5 gap-1.5 min-w-0">
-                      {/* New (Soft Light Blue on hover) */}
+                      {/* New */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate({ to: "/customers/$clientId", params: { clientId: c.id } });
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "new" },
+                          });
                         }}
                         className={cn(
                           "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
-                          "border-slate-200 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
-                          "hover:border-blue-300 hover:bg-blue-50/90 active:bg-blue-100 hover:shadow-xs hover:scale-105 dark:hover:bg-blue-950/50 dark:hover:border-blue-800",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-blue-400 hover:bg-blue-50/80 active:bg-blue-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-blue-950/50 dark:hover:border-blue-800",
                         )}
-                        title={`${newCount} New Projects`}
+                        title={`Filter: ${newCount} New Project${newCount === 1 ? "" : "s"}`}
+                        aria-label={`Filter by New (${newCount} projects)`}
                       >
-                        <span className="text-xs font-bold tabular-nums text-blue-600 dark:text-blue-400 group-hover/btn:text-blue-700 dark:group-hover/btn:text-blue-300 leading-tight transition-colors">
+                        <span className="text-sm font-bold tabular-nums text-blue-600 dark:text-blue-400 group-hover/btn:text-blue-700 dark:group-hover/btn:text-blue-300 leading-tight transition-colors">
                           {newCount}
                         </span>
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover/btn:text-blue-600 dark:group-hover/btn:text-blue-300 leading-tight truncate transition-colors">
+                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-blue-600 dark:group-hover/btn:text-blue-300 leading-tight truncate transition-colors">
                           New
                         </span>
                       </button>
 
-                      {/* Ongoing (Soft Light Purple on hover) */}
+                      {/* Ongoing */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate({ to: "/customers/$clientId", params: { clientId: c.id } });
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "ongoing" },
+                          });
                         }}
                         className={cn(
                           "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
-                          "border-slate-200 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
-                          "hover:border-purple-300 hover:bg-purple-50/90 active:bg-purple-100 hover:shadow-xs hover:scale-105 dark:hover:bg-purple-950/50 dark:hover:border-purple-800",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-purple-400 hover:bg-purple-50/80 active:bg-purple-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-purple-950/50 dark:hover:border-purple-800",
                         )}
-                        title={`${ongoing} Ongoing Projects`}
+                        title={`Filter: ${ongoing} Ongoing Project${ongoing === 1 ? "" : "s"}`}
+                        aria-label={`Filter by Ongoing (${ongoing} projects)`}
                       >
-                        <span className="text-xs font-bold tabular-nums text-purple-600 dark:text-purple-400 group-hover/btn:text-purple-700 dark:group-hover/btn:text-purple-300 leading-tight transition-colors">
+                        <span className="text-sm font-bold tabular-nums text-purple-600 dark:text-purple-400 group-hover/btn:text-purple-700 dark:group-hover/btn:text-purple-300 leading-tight transition-colors">
                           {ongoing}
                         </span>
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover/btn:text-purple-600 dark:group-hover/btn:text-purple-300 leading-tight truncate transition-colors">
+                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-purple-600 dark:group-hover/btn:text-purple-300 leading-tight truncate transition-colors">
                           Ongoing
                         </span>
                       </button>
 
-                      {/* Completed (Soft Light Emerald on hover) */}
+                      {/* Completed */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate({ to: "/customers/$clientId", params: { clientId: c.id } });
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "completed" },
+                          });
                         }}
                         className={cn(
                           "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
-                          "border-slate-200 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
-                          "hover:border-emerald-300 hover:bg-emerald-50/90 active:bg-emerald-100 hover:shadow-xs hover:scale-105 dark:hover:bg-emerald-950/50 dark:hover:border-emerald-800",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-emerald-400 hover:bg-emerald-50/80 active:bg-emerald-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-emerald-950/50 dark:hover:border-emerald-800",
                         )}
-                        title={`${completed} Completed Projects`}
+                        title={`Filter: ${completed} Completed Project${completed === 1 ? "" : "s"}`}
+                        aria-label={`Filter by Completed (${completed} projects)`}
                       >
-                        <span className="text-xs font-bold tabular-nums text-emerald-600 dark:text-emerald-400 group-hover/btn:text-emerald-700 dark:group-hover/btn:text-emerald-300 leading-tight transition-colors">
+                        <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400 group-hover/btn:text-emerald-700 dark:group-hover/btn:text-emerald-300 leading-tight transition-colors">
                           {completed}
                         </span>
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover/btn:text-emerald-600 dark:group-hover/btn:text-emerald-300 leading-tight truncate transition-colors">
+                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-emerald-600 dark:group-hover/btn:text-emerald-300 leading-tight truncate transition-colors">
                           Completed
                         </span>
                       </button>
 
-                      {/* On Hold (Soft Light Amber on hover) */}
+                      {/* On Hold */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate({ to: "/customers/$clientId", params: { clientId: c.id } });
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "on_hold" },
+                          });
                         }}
                         className={cn(
                           "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
-                          "border-slate-200 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
-                          "hover:border-amber-300 hover:bg-amber-50/90 active:bg-amber-100 hover:shadow-xs hover:scale-105 dark:hover:bg-amber-950/50 dark:hover:border-amber-800",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-amber-400 hover:bg-amber-50/80 active:bg-amber-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-amber-950/50 dark:hover:border-amber-800",
                         )}
-                        title={`${onHold} On Hold Projects`}
+                        title={`Filter: ${onHold} On Hold Project${onHold === 1 ? "" : "s"}`}
+                        aria-label={`Filter by On Hold (${onHold} projects)`}
                       >
-                        <span className="text-xs font-bold tabular-nums text-amber-600 dark:text-amber-400 group-hover/btn:text-amber-700 dark:group-hover/btn:text-amber-300 leading-tight transition-colors">
+                        <span className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400 group-hover/btn:text-amber-700 dark:group-hover/btn:text-amber-300 leading-tight transition-colors">
                           {onHold}
                         </span>
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover/btn:text-amber-600 dark:group-hover/btn:text-amber-300 leading-tight truncate transition-colors">
+                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-amber-600 dark:group-hover/btn:text-amber-300 leading-tight truncate transition-colors">
                           On Hold
                         </span>
                       </button>
 
-                      {/* Archived (Soft Light Slate on hover) */}
+                      {/* Archived */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate({ to: "/customers/$clientId", params: { clientId: c.id } });
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "archived" },
+                          });
                         }}
                         className={cn(
                           "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
-                          "border-slate-200 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
-                          "hover:border-slate-300 hover:bg-slate-100 active:bg-slate-200/80 hover:shadow-xs hover:scale-105 dark:hover:bg-slate-800/60 dark:hover:border-slate-700",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-slate-400 hover:bg-slate-100 active:bg-slate-200/80 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-slate-800/60 dark:hover:border-slate-700",
                         )}
-                        title={`${archived} Archived Projects`}
+                        title={`Filter: ${archived} Archived Project${archived === 1 ? "" : "s"}`}
+                        aria-label={`Filter by Archived (${archived} projects)`}
                       >
-                        <span className="text-xs font-bold tabular-nums text-slate-700 dark:text-slate-300 group-hover/btn:text-slate-900 dark:group-hover/btn:text-slate-100 leading-tight transition-colors">
+                        <span className="text-sm font-bold tabular-nums text-slate-700 dark:text-slate-300 group-hover/btn:text-slate-900 dark:group-hover/btn:text-slate-100 leading-tight transition-colors">
                           {archived}
                         </span>
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover/btn:text-slate-800 dark:group-hover/btn:text-slate-200 leading-tight truncate transition-colors">
+                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-slate-800 dark:group-hover/btn:text-slate-200 leading-tight truncate transition-colors">
                           Archived
                         </span>
                       </button>
@@ -705,12 +735,66 @@ function CustomersPage() {
                   <td className="px-3 py-2.5 text-muted-foreground">{c.industry}</td>
                   <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.engagementManager || "—"}</td>
                   <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.salesManager || "—"}</td>
-                  <td className="px-3 py-2.5 tabular-nums">{total}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-primary">{newCount}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-info">{ongoing}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-success">{completed}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-warning-foreground">{onHold}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-muted-foreground">{archived}</td>
+                  <td className="px-3 py-2.5 tabular-nums">
+                    <Link
+                      to="/customers/$clientId"
+                      params={{ clientId: c.id }}
+                      search={{ status: "all" }}
+                      className="hover:underline font-semibold"
+                    >
+                      {total}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2.5 tabular-nums text-primary font-semibold">
+                    <Link
+                      to="/customers/$clientId"
+                      params={{ clientId: c.id }}
+                      search={{ status: "new" }}
+                      className="hover:underline"
+                    >
+                      {newCount}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2.5 tabular-nums text-info font-semibold">
+                    <Link
+                      to="/customers/$clientId"
+                      params={{ clientId: c.id }}
+                      search={{ status: "ongoing" }}
+                      className="hover:underline"
+                    >
+                      {ongoing}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2.5 tabular-nums text-success font-semibold">
+                    <Link
+                      to="/customers/$clientId"
+                      params={{ clientId: c.id }}
+                      search={{ status: "completed" }}
+                      className="hover:underline"
+                    >
+                      {completed}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2.5 tabular-nums text-warning-foreground font-semibold">
+                    <Link
+                      to="/customers/$clientId"
+                      params={{ clientId: c.id }}
+                      search={{ status: "on_hold" }}
+                      className="hover:underline"
+                    >
+                      {onHold}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2.5 tabular-nums text-muted-foreground font-semibold">
+                    <Link
+                      to="/customers/$clientId"
+                      params={{ clientId: c.id }}
+                      search={{ status: "archived" }}
+                      className="hover:underline"
+                    >
+                      {archived}
+                    </Link>
+                  </td>
                   <td className="px-3 py-2.5">
                     <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
                       Active

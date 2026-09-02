@@ -65,7 +65,21 @@ function AvatarBubble({ name, size = 22 }: { name: string; size?: number }) {
   );
 }
 
+type FilterTab = "all" | "new" | "ongoing" | "completed" | "archived" | "on_hold";
+type HealthFilter = "all" | "healthy" | "at_risk" | "critical";
+
+type CustomerDetailSearch = {
+  status?: FilterTab;
+};
+
 export const Route = createFileRoute("/customers/$clientId")({
+  validateSearch: (search: Record<string, unknown>): CustomerDetailSearch => {
+    const validTabs: FilterTab[] = ["all", "new", "ongoing", "completed", "archived", "on_hold"];
+    const status = search.status as FilterTab | undefined;
+    return {
+      status: status && validTabs.includes(status) ? status : undefined,
+    };
+  },
   loader: async ({ params }) => {
     // Customer records are Postgres-only — always resolve from the API.
     // (Mock/dh-store clients are intentionally NOT used in the customer module.)
@@ -95,12 +109,10 @@ export const Route = createFileRoute("/customers/$clientId")({
 const fmtClientId = (id: string) => `CL-${id.replace(/\D/g, "").padStart(6, "0")}`;
 const fmtProjectId = (id: string) => `PR-${id.replace(/\D/g, "").padStart(6, "0")}`;
 
-type FilterTab = "all" | "new" | "ongoing" | "completed" | "archived" | "on_hold";
-type HealthFilter = "all" | "healthy" | "at_risk" | "critical";
-
 function CustomerDetailPage() {
   const { client: routeClient } = Route.useLoaderData();
   const { clientId } = Route.useParams();
+  const searchParams = Route.useSearch();
   const { isDhanshree, isSales } = useRoleContext();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
@@ -108,11 +120,17 @@ function CustomerDetailPage() {
   // Live subscription to store — any client/project addition triggers re-render
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
 
-  const [filter, setFilter] = useState<FilterTab>("all");
+  const [filter, setFilter] = useState<FilterTab>(searchParams.status || "all");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
   const [selectedSpoc, setSelectedSpoc] = useState<number | null>(null);
   const [svFilter, setSvFilter] = useState<string>("all");
   const [kycPreviewOpen, setKycPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.status) {
+      setFilter(searchParams.status);
+    }
+  }, [searchParams.status]);
 
   useEffect(() => {
     setSvFilter("all");
@@ -528,62 +546,61 @@ This document confirms the verified identity and KYC onboarding status for ${cli
               [
                 {
                   id: "all" as FilterTab,
-                  label: "Total",
+                  label: "TOTAL",
                   value: buckets.total,
-                  color: "text-foreground",
-                  ring: "ring-primary",
                 },
                 {
                   id: "new" as FilterTab,
-                  label: "New",
+                  label: "NEW",
                   value: newProjs.length,
-                  color: "text-primary",
-                  ring: "ring-primary",
                 },
                 {
                   id: "ongoing" as FilterTab,
-                  label: "Ongoing",
+                  label: "ONGOING",
                   value: ongoingProjs.length,
-                  color: "text-info",
-                  ring: "ring-info",
                 },
                 {
                   id: "completed" as FilterTab,
-                  label: "Completed",
+                  label: "COMPLETED",
                   value: completedProjs.length,
-                  color: "text-success",
-                  ring: "ring-success",
                 },
                 {
                   id: "on_hold" as FilterTab,
-                  label: "On Hold",
+                  label: "ON HOLD",
                   value: onHoldProjs.length,
-                  color: "text-warning-foreground",
-                  ring: "ring-warning",
                 },
                 {
                   id: "archived" as FilterTab,
-                  label: "Archived",
+                  label: "ARCHIVED",
                   value: archivedProjs.length,
-                  color: "text-muted-foreground",
-                  ring: "ring-muted-foreground",
                 },
-              ] as { id: FilterTab; label: string; value: number; color: string; ring: string }[]
-            ).map(({ id, label, value, color, ring }) => (
-              <button
-                key={id}
-                onClick={() => setFilter(id)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-center transition-all cursor-pointer",
-                  filter === id
-                    ? `border-transparent ring-2 ${ring} bg-primary/10 text-primary font-semibold shadow-2xs`
-                    : "border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                )}
-              >
-                <span className="text-xs font-bold tabular-nums">{value}</span>
-                <span className="text-[10px] uppercase tracking-wide font-medium">{label}</span>
-              </button>
-            ))}
+              ] as { id: FilterTab; label: string; value: number }[]
+            ).map(({ id, label, value }) => {
+              const active = filter === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => {
+                    setFilter(id);
+                    navigate({
+                      to: "/customers/$clientId",
+                      params: { clientId },
+                      search: { status: id === "all" ? undefined : id },
+                      replace: true,
+                    });
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-center transition-all cursor-pointer select-none",
+                    active
+                      ? "border-blue-500 bg-blue-50/90 text-blue-600 font-semibold ring-2 ring-blue-500/25 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400"
+                      : "border-slate-200 bg-white text-slate-600 font-medium hover:border-slate-300 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-muted-foreground dark:hover:text-foreground",
+                  )}
+                >
+                  <span className="text-xs font-bold tabular-nums">{value}</span>
+                  <span className="text-[10px] uppercase tracking-wider font-semibold">{label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
