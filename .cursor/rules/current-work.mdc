@@ -5,9 +5,12 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-02
 
 ## Latest
+
+- **Resource module field revamp (in progress, one field at a time with Harshada).** Item 1 done — **TK ID** on onboard + edit forms is `[TK | TKI]` dropdown + 4-digit box (`components/tk-id-field.tsx`, helpers `splitTkId`/`joinTkId`/`isValidTkId` in `lib/form-validation.ts`). Edit form TK ID is now editable: PUT sends `employeeCode`, page navigates to the new code. Backend: `EmployeeCodeRules` (`Validators/EmployeeValidators.cs`) enforces `^(TK|TKI)-\d{4}$` on create/update/bulk (uppercased); `UpdateEmployeeRequest.EmployeeCode` added; `FileStorageService.MoveEmployeeDocuments` renames `storage/employees/{code}` on code change. Migration `20260902180000_AddEmployeeCodeFormatCheck` adds CHECK constraint `NOT VALID`. Test `EmployeeCode_MustBeTkFormat_And_IsEditable`. Pre-existing failing tests `EmployeeCatalogs_Filter_And_Create` / `CreateEmployee_PersistsOnboardProfileFields` expect a department code `engineering` that the current seed no longer has.
+- Local dev now runs on **native PostgreSQL 18** (`localhost:5432`, `postgres`/`clockit`) restored from `database/trackerpro-final.sql`. That file is **UTF-16**: `iconv -f UTF-16LE -t UTF-8` before `psql -f`. `apps/backend/.env` + `appsettings*.json` point at 5432; `apps/frontend/.env` sets `VITE_API_URL=http://localhost:5194`. `dotnet` is at `~/.dotnet/dotnet`.
 
 - Customers list view: click any column header to sort A→Z / Z→A like Resource Directory (chevron, active column). Headers are **Engagement Manager** / **Sales Manager**. Only the customer name is a link.
 - Customer onboarding contact step no longer shows **Email is required** before the field is filled. KYC attach row no longer has a Preview eye; Review **Preview KYC** now opens the document (was missing `open` and nested inside the clipped modal).

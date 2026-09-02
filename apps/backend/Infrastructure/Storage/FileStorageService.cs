@@ -99,6 +99,37 @@ public sealed partial class FileStorageService : IFileStorageService
         return await SaveFileInternalAsync(targetDir, file, Path.Combine("projects", sanitizedCode, sanitizedCategory), sanitizedCategory, ct);
     }
 
+    public void MoveEmployeeDocuments(string oldEmployeeCode, string newEmployeeCode)
+    {
+        var oldDir = Path.Combine(_storageRoot, "employees", SanitizeIdentifier(oldEmployeeCode));
+        var newDir = Path.Combine(_storageRoot, "employees", SanitizeIdentifier(newEmployeeCode));
+        if (string.Equals(oldDir, newDir, StringComparison.Ordinal) || !Directory.Exists(oldDir))
+            return;
+
+        try
+        {
+            if (!Directory.Exists(newDir))
+            {
+                Directory.Move(oldDir, newDir);
+                return;
+            }
+
+            // Target already has files (e.g. code reused): merge category folders instead of failing.
+            foreach (var categoryDir in Directory.GetDirectories(oldDir))
+            {
+                var targetCategory = Path.Combine(newDir, Path.GetFileName(categoryDir));
+                Directory.CreateDirectory(targetCategory);
+                foreach (var file in Directory.GetFiles(categoryDir))
+                    File.Move(file, Path.Combine(targetCategory, Path.GetFileName(file)), overwrite: false);
+            }
+            Directory.Delete(oldDir, recursive: true);
+        }
+        catch (IOException ex)
+        {
+            _logger.LogWarning(ex, "Could not move employee documents from {Old} to {New}", oldDir, newDir);
+        }
+    }
+
     public Task<IReadOnlyList<StoredFileInfo>> GetEmployeeDocumentsAsync(
         string employeeCode,
         string? category = null,

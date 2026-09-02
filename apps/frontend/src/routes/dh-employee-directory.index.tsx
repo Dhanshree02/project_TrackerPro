@@ -36,9 +36,13 @@ import {
   toEmailInput,
   toEmailLocalPart,
   isValidEmailLocalPart,
+  joinTkId,
+  splitTkId,
   toTenDigitPhone,
+  type TkIdPrefix,
 } from "@/lib/form-validation";
 import { CreatableCatalogSelect, SearchableSelect } from "@/components/creatable-catalog-select";
+import { TkIdField } from "@/components/tk-id-field";
 import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import { EmployeeBulkUploadMenu } from "@/components/employee-bulk-upload";
 import {
@@ -1123,6 +1127,7 @@ function OnboardingPanel({
   const [officeOptions, setOfficeOptions] = useState<ApiMetaOption[]>([]);
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
   const [workEmailDomain, setWorkEmailDomain] = useState("");
+  const [tkPrefix, setTkPrefix] = useState<TkIdPrefix>("TK");
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -1151,6 +1156,7 @@ function OnboardingPanel({
       setOfficeOptions([]);
       setWorkEmailPrefix("");
       setWorkEmailDomain("");
+      setTkPrefix("TK");
       return;
     }
     void fetchNationalityOptions()
@@ -1785,14 +1791,14 @@ function OnboardingPanel({
             </FormSection>
 
             <FormSection title="2. Organization Assignment">
-              <FormField
-                label="TK ID"
-                name="employeeCode"
+              <TkIdField
                 required
-                placeholder="e.g. TK-0001 (or TKI-0001 for Intern)"
-                maxLength={FIELD_MAX.employeeCode}
-                value={form.employeeCode}
-                onChange={(v) => setField("employeeCode", v)}
+                prefix={tkPrefix}
+                digits={splitTkId(form.employeeCode).digits}
+                onChange={(prefix, digits) => {
+                  setTkPrefix(prefix);
+                  setField("employeeCode", joinTkId(prefix, digits));
+                }}
                 onBlur={() => blurField("employeeCode")}
                 error={errors.employeeCode}
               />

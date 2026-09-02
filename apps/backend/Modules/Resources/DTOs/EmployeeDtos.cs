@@ -239,7 +239,8 @@ public sealed record UpdateEmployeeRequest(
     string? ComplianceStatus,
     Guid? SalaryBandId = null,
     string? ProbationPeriod = null,
-    string? Aadhaar = null);
+    string? Aadhaar = null,
+    string? EmployeeCode = null);
 
 public sealed record EmployeeBulkRowError(int Row, string? EmployeeCode, string Message);
 

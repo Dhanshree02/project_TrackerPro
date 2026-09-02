@@ -2,13 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.Resources.DTOs;
 using PMS.API.Modules.Resources.Models;
+using PMS.API.Modules.Resources.Validators;
+using PMS.API.Infrastructure.Storage;
 using PMS.API.Shared.Common.Wrappers;
 using PMS.API.Shared.Exceptions;
 using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Resources.Services;
 
-public sealed class EmployeeService(AppDbContext db) : IEmployeeService
+public sealed class EmployeeService(AppDbContext db, IFileStorageService storage) : IEmployeeService
 {
     public async Task<PagedResult<EmployeeListItemDto>> GetEmployeesAsync(
         int page,
@@ -129,11 +131,15 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         bool checkIdentity,
         CancellationToken ct)
     {
-        var empCode = request.EmployeeCode.Trim();
+        var empCode = EmployeeCodeRules.Normalize(request.EmployeeCode);
         if (string.IsNullOrWhiteSpace(empCode))
         {
             var isIntern = request.EmploymentType?.Equals("intern", StringComparison.OrdinalIgnoreCase) == true;
             empCode = await GetNextEmployeeCodeAsync(isIntern, ct);
+        }
+        else if (!EmployeeCodeRules.IsValid(empCode))
+        {
+            throw EmployeeCodeRules.FormatException();
         }
 
         var entity = new Employee
@@ -223,6 +229,15 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         var entity = await BuildEmployeeLookupQuery(idOrCode).FirstOrDefaultAsync(ct);
         if (entity is null) return null;
 
+        var previousCode = entity.EmployeeCode;
+        if (!string.IsNullOrWhiteSpace(request.EmployeeCode))
+        {
+            var newCode = EmployeeCodeRules.Normalize(request.EmployeeCode);
+            if (!EmployeeCodeRules.IsValid(newCode))
+                throw EmployeeCodeRules.FormatException();
+            entity.EmployeeCode = newCode;
+        }
+
         if (request.FirstName is not null) entity.FirstName = request.FirstName.Trim();
         if (request.LastName is not null) entity.LastName = request.LastName.Trim();
         if (request.WorkEmail is not null) entity.WorkEmail = EmailRules.Normalize(request.WorkEmail).ToLowerInvariant();
@@ -303,8 +318,12 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
             throw new ConflictException(
-                "Duplicate employee data. Work email, personal email, phone number, PAN, Aadhaar, and UAN must be unique.");
+                "Duplicate employee data. TK ID, work email, personal email, phone number, PAN, Aadhaar, and UAN must be unique.");
         }
+
+        // Uploaded documents live under storage/employees/{code}; keep them reachable after a TK ID change.
+        if (!string.Equals(previousCode, entity.EmployeeCode, StringComparison.Ordinal))
+            storage.MoveEmployeeDocuments(previousCode, entity.EmployeeCode);
 
         return await GetEmployeeAsync(entity.Id.ToString(), ct);
     }

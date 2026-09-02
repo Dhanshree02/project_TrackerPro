@@ -50,6 +50,9 @@ public interface IFileStorageService
         string? category = null,
         CancellationToken ct = default);
 
+    /// <summary>Renames the per-employee document folder when a TK ID changes. No-op if nothing was uploaded.</summary>
+    void MoveEmployeeDocuments(string oldEmployeeCode, string newEmployeeCode);
+
     Task<StoredRepositoryFileInfo> SaveRepositoryDocumentAsync(
         string category,
         IFormFile file,

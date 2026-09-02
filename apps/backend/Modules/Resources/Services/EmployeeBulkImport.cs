@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.Resources.DTOs;
 using PMS.API.Modules.Resources.Models;
+using PMS.API.Modules.Resources.Validators;
 using PMS.API.Shared.Exceptions;
 using PMS.API.Shared.Validation;
 
@@ -204,7 +205,8 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
 
                 var rowErrors = new List<string>();
-                if (string.IsNullOrWhiteSpace(code)) rowErrors.Add("Employee Code is required.");
+                if (string.IsNullOrWhiteSpace(code)) rowErrors.Add("TK ID is required.");
+                else if (!EmployeeCodeRules.IsValid(code)) rowErrors.Add(EmployeeCodeRules.FormatMessage + ".");
                 if (string.IsNullOrWhiteSpace(firstName)) rowErrors.Add("First Name is required.");
                 if (string.IsNullOrWhiteSpace(lastName)) rowErrors.Add("Last Name is required.");
                 if (string.IsNullOrWhiteSpace(workEmail)) rowErrors.Add("Work Email is required.");

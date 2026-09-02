@@ -21,9 +21,14 @@ import {
   toEmailInput,
   toEmailLocalPart,
   isValidEmailLocalPart,
+  isValidTkId,
+  joinTkId,
+  splitTkId,
   toLettersName,
   toTenDigitPhone,
+  type TkIdPrefix,
 } from "@/lib/form-validation";
+import { TkIdField } from "@/components/tk-id-field";
 import {
   MAX_ADULT_DOB,
   MIN_DOB,
@@ -365,6 +370,10 @@ function EditProfilePanel({
   const [workEmailDomain, setWorkEmailDomain] = useState("");
   const [emailDomainOptions, setEmailDomainOptions] = useState<ApiMetaOption[]>([]);
 
+  // TK ID parts
+  const [tkPrefix, setTkPrefix] = useState<TkIdPrefix>("TK");
+  const [tkDigits, setTkDigits] = useState("");
+
   // Metadata catalogs
   const [nationalities, setNationalities] = useState<ApiMetaOption[]>([]);
   const [departmentsList, setDepartmentsList] = useState<ApiMetaOption[]>([]);
@@ -389,6 +398,10 @@ function EditProfilePanel({
       const initDomain = isAllowedWorkEmailDomain(rawDomain) ? rawDomain : "talakunchi.com";
       setWorkEmailPrefix(toEmailLocalPart(initPrefix));
       setWorkEmailDomain(initDomain);
+
+      const tk = splitTkId(employee.id);
+      setTkPrefix(tk.prefix);
+      setTkDigits(tk.digits);
 
       void fetchNationalityOptions().then(setNationalities).catch(() => {});
       void fetchDepartmentOptions().then(setDepartmentsList).catch(() => {});
@@ -453,6 +466,12 @@ function EditProfilePanel({
         if (!v) return "Last name is required";
         if (v.length > FIELD_MAX.lastName) return `Last name must be ${FIELD_MAX.lastName} characters or less`;
         if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
+        return undefined;
+      }
+      case "employeeCode": {
+        const v = String(value || "").trim();
+        if (!v) return "TK ID is required";
+        if (!isValidTkId(v)) return "Enter a 4-digit number (e.g. TK-0001)";
         return undefined;
       }
       case "workEmail": {
@@ -659,6 +678,7 @@ function EditProfilePanel({
 
     check("firstName", data.firstName);
     check("lastName", data.lastName);
+    check("employeeCode", data.id);
     check("workEmail", prefix);
     check("personalEmail", data.personalEmail);
     check("phone", data.phone);
@@ -691,6 +711,7 @@ function EditProfilePanel({
     const fullWorkEmail = workEmailPrefix && workEmailDomain ? `${workEmailPrefix}@${workEmailDomain}` : "";
     const updatedData: Employee = {
       ...formData,
+      id: joinTkId(tkPrefix, tkDigits),
       email: fullWorkEmail,
       firstName: (formData.firstName || "").trim(),
       lastName: (formData.lastName || "").trim(),
@@ -1065,18 +1086,21 @@ function EditProfilePanel({
               2. Organization Assignment
             </h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  TK ID
-                </span>
-                <input
-                  autoComplete="off"
-                  type="text"
-                  value={formData.id}
-                  disabled
-                  className={cn(inputCls, "bg-muted cursor-not-allowed font-mono text-xs")}
-                />
-              </label>
+              <TkIdField
+                required
+                prefix={tkPrefix}
+                digits={tkDigits}
+                inputClassName="bg-card"
+                onChange={(prefix, digits) => {
+                  setTkPrefix(prefix);
+                  setTkDigits(digits);
+                  if (errors.employeeCode) {
+                    handleFieldBlur("employeeCode", joinTkId(prefix, digits));
+                  }
+                }}
+                onBlur={() => handleFieldBlur("employeeCode", joinTkId(tkPrefix, tkDigits))}
+                error={errors.employeeCode}
+              />
 
               <div>
                 <SearchableSelect
@@ -1673,7 +1697,9 @@ function EmployeeProfilePage() {
     const designationId = desigs.find((d) => d.name === updatedEmp.designation)?.id ?? null;
     const salaryBandId = bands.find((b) => b.name === updatedEmp.salaryBand)?.id ?? null;
 
-    const saved = await updateEmployee(updatedEmp.id, {
+    const previousCode = emp.id;
+    const saved = await updateEmployee(previousCode, {
+      employeeCode: updatedEmp.id,
       firstName: updatedEmp.firstName,
       lastName: updatedEmp.lastName,
       workEmail: updatedEmp.email.trim(),
@@ -1733,8 +1759,16 @@ function EmployeeProfilePage() {
       complianceStatus: updatedEmp.complianceStatus,
     });
 
-    setEmp(toUiEmployee(saved));
-    setLocalAssetId(toUiEmployee(saved).assetId);
+    const savedUi = toUiEmployee(saved);
+    setEmp(savedUi);
+    setLocalAssetId(savedUi.assetId);
+    if (savedUi.id !== previousCode) {
+      await navigate({
+        to: "/dh-employee-directory/$id",
+        params: { id: savedUi.id },
+        replace: true,
+      });
+    }
   };
 
   const handleOffboard = async (details: {

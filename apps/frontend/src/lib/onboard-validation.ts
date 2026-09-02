@@ -6,6 +6,7 @@ import {
   isoDateYearsAgo,
   isLettersName,
   isValidEmailLocalPart,
+  isValidTkId,
   phoneError,
 } from "@/lib/form-validation";
 
@@ -361,10 +362,7 @@ export function validateOnboardField(
     case "employeeCode": {
       const v = (values.employeeCode || "").trim();
       if (!v) return "TK ID is required";
-      if (v.length > 20) return "TK ID must be 20 characters or less";
-      if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(v)) {
-        return "Use letters, numbers, dot, hyphen or underscore";
-      }
+      if (!isValidTkId(v)) return "Enter a 4-digit number (e.g. TK-0001)";
       if (existingCodes.some((c) => c.toLowerCase() === v.toLowerCase())) {
         return "This TK ID already exists";
       }
