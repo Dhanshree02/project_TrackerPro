@@ -18,7 +18,10 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Email).HasMaxLength(255).IsRequired();
         builder.Property(u => u.Name).HasMaxLength(255).IsRequired();
         builder.Property(u => u.EmployeeId).HasMaxLength(20).IsRequired();
-        builder.Property(u => u.PasswordHash).HasMaxLength(255).IsRequired();
+        builder.Property(u => u.PasswordHash).HasMaxLength(255).IsRequired(false);
+        builder.Property(u => u.AuthProvider).HasMaxLength(50).HasDefaultValue("Local");
+        builder.Property(u => u.MicrosoftOid).HasMaxLength(100);
+        builder.HasIndex(u => u.MicrosoftOid).IsUnique();
 
         builder.HasOne(u => u.Role)
             .WithMany(r => r.Users)

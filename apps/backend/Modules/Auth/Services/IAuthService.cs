@@ -10,6 +10,8 @@ public interface IAuthService
 {
     Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken ct = default);
 
+    Task<AuthResult> LoginWithMicrosoftAsync(MicrosoftLoginRequest request, CancellationToken ct = default);
+
     Task<AuthResult> RefreshAsync(RefreshTokenRequest request, CancellationToken ct = default);
 
     Task LogoutAsync(string refreshToken, CancellationToken ct = default);

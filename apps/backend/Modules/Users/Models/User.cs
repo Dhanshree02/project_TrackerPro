@@ -11,8 +11,14 @@ public class User : BaseEntity
 {
     public string Email { get; set; } = string.Empty;
 
-    /// <summary>BCrypt hash — never store plaintext passwords.</summary>
-    public string PasswordHash { get; set; } = string.Empty;
+    /// <summary>BCrypt hash — null for SSO-only users who do not have a local password.</summary>
+    public string? PasswordHash { get; set; }
+
+    /// <summary>Authentication method: 'Local' or 'Microsoft'.</summary>
+    public string AuthProvider { get; set; } = "Local";
+
+    /// <summary>Unique Object ID from Microsoft Entra ID (Azure AD).</summary>
+    public string? MicrosoftOid { get; set; }
 
     public string Name { get; set; } = string.Empty;
 

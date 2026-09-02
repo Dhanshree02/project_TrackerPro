@@ -3,6 +3,7 @@ import {
   changePassword as apiChangePassword,
   getMe,
   login as apiLogin,
+  loginWithMicrosoft as apiLoginWithMicrosoft,
   logout as apiLogout,
   restoreSession,
   type AuthUser,
@@ -24,6 +25,7 @@ interface AuthContextValue {
   demoRole: DemoRoleKey;
   switchDemoRole: (role: DemoRoleKey) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  loginWithMicrosoft: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
@@ -105,6 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("authed");
   };
 
+  const loginWithMicrosoft = async (idToken: string) => {
+    await apiLoginWithMicrosoft(idToken);
+    const me = await getMe();
+    setUser({ ...me, mustChangePassword: false });
+    setStatus("authed");
+  };
+
   const switchDemoRole = async (role: DemoRoleKey) => {
     if (role === demoRole && status === "authed") return;
     setStoredDemoRole(role);
@@ -150,7 +159,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ status, user, demoRole, switchDemoRole, login, logout, changePassword }}
+      value={{
+        status,
+        user,
+        demoRole,
+        switchDemoRole,
+        login,
+        loginWithMicrosoft,
+        logout,
+        changePassword,
+      }}
     >
       {children}
     </AuthContext.Provider>

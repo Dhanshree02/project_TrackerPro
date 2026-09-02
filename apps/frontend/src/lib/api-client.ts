@@ -88,6 +88,18 @@ export async function login(email: string, password: string): Promise<void> {
   accessToken = res.envelope.data.accessToken;
 }
 
+/** Logs in with Microsoft Entra ID token. */
+export async function loginWithMicrosoft(idToken: string): Promise<void> {
+  const res = await rawFetch<ApiEnvelope<SessionPayload>>("/api/v1/auth/microsoft", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+  if (!res.ok || !res.envelope?.data?.accessToken) {
+    throw new Error(res.envelope?.errors?.[0]?.message ?? "Microsoft sign-in failed");
+  }
+  accessToken = res.envelope.data.accessToken;
+}
+
 /** Changes the password of the signed-in user. Throws on validation errors. */
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   await apiFetch("/api/v1/auth/change-password", {

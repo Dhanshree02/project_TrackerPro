@@ -36,6 +36,18 @@ public sealed class DbInitializerHostedService(
             await db.Database.ExecuteSqlRawAsync(
                 """ALTER TABLE mst_countries ADD COLUMN IF NOT EXISTS "PhoneDigits" integer NOT NULL DEFAULT 10;""",
                 cancellationToken);
+            await db.Database.ExecuteSqlRawAsync(
+                """ALTER TABLE users ADD COLUMN IF NOT EXISTS "AuthProvider" character varying(50) NOT NULL DEFAULT 'Local';""",
+                cancellationToken);
+            await db.Database.ExecuteSqlRawAsync(
+                """ALTER TABLE users ADD COLUMN IF NOT EXISTS "MicrosoftOid" character varying(100);""",
+                cancellationToken);
+            await db.Database.ExecuteSqlRawAsync(
+                """ALTER TABLE users ALTER COLUMN "PasswordHash" DROP NOT NULL;""",
+                cancellationToken);
+            await db.Database.ExecuteSqlRawAsync(
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_users_MicrosoftOid" ON users ("MicrosoftOid") WHERE "MicrosoftOid" IS NOT NULL;""",
+                cancellationToken);
         }
         catch (Exception ex)
         {

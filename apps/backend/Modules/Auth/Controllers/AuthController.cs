@@ -32,6 +32,23 @@ public class AuthController(
         return Ok(ApiResponse<AuthResult>.Ok(result));
     }
 
+    [HttpPost("microsoft")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<AuthResult>>> LoginWithMicrosoft(
+        MicrosoftLoginRequest request,
+        CancellationToken ct)
+    {
+        if (!rateLimiter.Allow(ClientKey()))
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                ApiResponse<AuthResult>.Fail("RATE_LIMITED", "Too many login attempts. Try again later."));
+        }
+
+        var result = await authService.LoginWithMicrosoftAsync(request, ct);
+        rateLimiter.Reset(ClientKey());
+        return Ok(ApiResponse<AuthResult>.Ok(result));
+    }
+
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<AuthResult>>> Refresh(

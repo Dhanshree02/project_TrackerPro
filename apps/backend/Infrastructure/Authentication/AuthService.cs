@@ -20,13 +20,71 @@ public sealed class AuthService(
     IPasswordHasher passwordHasher,
     IOptions<JwtOptions> options,
     IHttpContextAccessor httpContextAccessor,
-    RefreshTokenCookie refreshCookie) : IAuthService
+    RefreshTokenCookie refreshCookie,
+    MicrosoftTokenValidator microsoftTokenValidator) : IAuthService
 {
     private readonly JwtOptions _options = options.Value;
 
     public const int MaxFailedAttempts = 5;
 
     public static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+
+    public async Task<AuthResult> LoginWithMicrosoftAsync(MicrosoftLoginRequest request, CancellationToken ct = default)
+    {
+        var msUser = await microsoftTokenValidator.ValidateAsync(request.IdToken, ct);
+
+        // Lookup user by Microsoft OID or by Email
+        var user = await db.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.MicrosoftOid == msUser.Oid || u.Email.ToLower() == msUser.Email, ct);
+
+        if (user is null)
+        {
+            // Auto-provision user with default employee / resource role
+            var defaultRole = await db.Roles.FirstOrDefaultAsync(r => r.Name == "employee" || r.Name == "resource", ct)
+                ?? await db.Roles.OrderBy(r => r.CreatedAtUtc).FirstOrDefaultAsync(ct);
+
+            var count = await db.Users.CountAsync(ct) + 1;
+            var empCode = $"EMP-{count:D4}";
+
+            user = new User
+            {
+                Email = msUser.Email,
+                Name = string.IsNullOrWhiteSpace(msUser.Name) ? msUser.Email.Split('@')[0] : msUser.Name,
+                EmployeeId = empCode,
+                AuthProvider = "Microsoft",
+                MicrosoftOid = msUser.Oid,
+                RoleId = defaultRole?.Id,
+                Role = defaultRole,
+                IsActive = true,
+                MustChangePassword = false,
+                LastLoginAtUtc = DateTime.UtcNow,
+            };
+            db.Users.Add(user);
+            await db.SaveChangesAsync(ct);
+        }
+        else
+        {
+            if (!user.IsActive)
+                throw new UnauthorizedException("Account is disabled. Contact your administrator.");
+
+            // Link Microsoft OID if not already linked
+            if (string.IsNullOrEmpty(user.MicrosoftOid))
+            {
+                user.MicrosoftOid = msUser.Oid;
+            }
+            user.FailedLoginAttempts = 0;
+            user.LockedUntilUtc = null;
+            user.LastLoginAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
+
+        // Invalidate previous refresh tokens
+        var oldTokens = await db.RefreshTokens.Where(t => t.UserId == user.Id && t.RevokedAtUtc == null).ToListAsync(ct);
+        foreach (var t in oldTokens) t.RevokedAtUtc = DateTime.UtcNow;
+
+        return await IssueTokensAsync(user, ct);
+    }
 
     public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
@@ -40,7 +98,7 @@ public sealed class AuthService(
             throw new UnauthorizedException($"Account locked. Try again in {minutes} minute(s).");
         }
 
-        if (!passwordHasher.Verify(request.Password, user.PasswordHash))
+        if (string.IsNullOrEmpty(user.PasswordHash) || !passwordHasher.Verify(request.Password, user.PasswordHash))
         {
             user.FailedLoginAttempts += 1;
             if (user.FailedLoginAttempts >= MaxFailedAttempts)
@@ -80,7 +138,7 @@ public sealed class AuthService(
         var user = await LoadUserAsync(userId: userId, ct: ct)
             ?? throw new UnauthorizedException("User not found.");
 
-        if (!passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
+        if (string.IsNullOrEmpty(user.PasswordHash) || !passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
             throw new UnauthorizedException("Current password is incorrect.");
 
         user.PasswordHash = passwordHasher.Hash(request.NewPassword);

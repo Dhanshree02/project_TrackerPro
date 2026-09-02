@@ -36,6 +36,8 @@ public static class DependencyInjectionExtensions
         // ---- Security / Authentication ----
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<RefreshCookieOptions>(configuration.GetSection(RefreshCookieOptions.SectionName));
+        services.Configure<MicrosoftAuthOptions>(configuration.GetSection(MicrosoftAuthOptions.SectionName));
+        services.AddSingleton<MicrosoftTokenValidator>();
         services.AddSingleton<JwtTokenService>();
         services.AddSingleton<RefreshTokenCookie>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
