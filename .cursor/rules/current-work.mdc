@@ -5,10 +5,15 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-02
 
 ## Latest
 
+- Project detail breadcrumb customer name (e.g. **AutoDrive Systems**) now links to the real API customer page instead of mock `/customers/c10` (404). Shared helper `lib/client-route-id.ts` resolves mock ids by name; customer detail loader uses the same fallback.
+- Project detail **header subtitle** customer name is plain text (not a link); breadcrumb and Overview tab still link when the API customer exists.
+- Root `.env` `ConnectionStrings__DefaultConnection` now points at shared Docker Postgres (`10.50.30.189`) instead of local `localhost`/`trackerpro_dev`. Local `dotnet run` was reading a different DB than pgAdmin — e.g. **cust test** visible in pgAdmin but not in Customers until this fix. Restart backend after `.env` changes.
+- Customer onboarding **Sales Manager** now persists and shows in Customer Information: SM/EM fields always visible on step 1, sub-venture updates send `salesManager`, backend `ManagerDisplay` prefers stored onboarding name over employee FK ref.
+- Customer onboarding **Engagement Manager** uses `SearchableSelect` (same dropdown style as Resources → onboard → Department) loaded from employees with designation Engagement Manager.
 - Customers list view: click any column header to sort A→Z / Z→A like Resource Directory (chevron, active column). Headers are **Engagement Manager** / **Sales Manager**. Only the customer name is a link.
 - Customer onboarding contact step no longer shows **Email is required** before the field is filled. KYC attach row no longer has a Preview eye; Review **Preview KYC** now opens the document (was missing `open` and nested inside the clipped modal).
 - Customer onboarding **Next** blocks a TK customer + sub-venture pair that already exists in the database (error toast, stay on step 1). Duplicate check matches by name even if the existing client was typed instead of picked from the list. Submit no longer treats that pair as success.

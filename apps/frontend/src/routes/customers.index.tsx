@@ -45,6 +45,7 @@ import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
 import { Modal } from "@/routes/projects.index";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Field } from "@/components/form-row";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { dhStore, useDhStore, allClients, allProjects } from "@/lib/dh-store";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ import {
   toEmailInput,
   toTenDigitPhone,
 } from "@/lib/form-validation";
+import { useEngagementManagers } from "@/lib/engagement-managers";
 
 export const Route = createFileRoute("/customers/")({
   head: () => ({
@@ -825,6 +827,16 @@ function NewClientModal({
     notes: "",
   }));
   const [previewKyc, setPreviewKyc] = useState(false);
+  const { pool: emPool, loading: emLoading } = useEngagementManagers();
+  const emOptions = useMemo(
+    () =>
+      emPool.map((p) => ({
+        value: p.fullName,
+        label: p.fullName,
+        subLabel: [p.designation ?? "Engagement Manager", p.workEmail].filter(Boolean).join(" · "),
+      })),
+    [emPool],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -909,6 +921,12 @@ function NewClientModal({
     if (duplicatePairExists) return "Client and sub-venture already exist";
     if (selectedExisting) return null; // existing client — rest auto-filled
     if (!s.engagementManager.trim()) return "Engagement Manager is required";
+    if (
+      emPool.length > 0 &&
+      !emPool.some((p) => p.fullName === s.engagementManager.trim())
+    ) {
+      return "Select an Engagement Manager from the list";
+    }
     if (!s.country.trim()) return "Country is required";
     if (!s.city.trim()) return "City is required";
     if (!s.phoneNumber.trim()) return "Group SPOC Contact is required";
@@ -970,6 +988,8 @@ function NewClientModal({
     const subVentures: ClientSubVenture[] = subVentureName
       ? [{ name: subVentureName, contacts: validContacts, notes: noteText }]
       : [];
+    const engagementManager = s.engagementManager?.trim() || null;
+    const salesManager = s.salesManager?.trim() || null;
     return {
       api: {
         name,
@@ -985,8 +1005,8 @@ function NewClientModal({
         businessType: s.businessType?.trim() || null,
         notes: null,
         kycDocumentName: s.kycFile?.name || null,
-        engagementManager: s.engagementManager?.trim() || null,
-        salesManager: s.salesManager?.trim() || null,
+        engagementManager,
+        salesManager,
         subVentures,
         contacts: validContacts.map((c) => ({
           name: c.name.trim(),
@@ -996,6 +1016,10 @@ function NewClientModal({
           contactType: c.contactType || "Primary",
         })),
       } satisfies CreateClientInput,
+      managerPatch: {
+        ...(engagementManager ? { engagementManager } : {}),
+        ...(salesManager ? { salesManager } : {}),
+      },
       store: {
         name,
         industry: s.industry || "Other",
@@ -1020,7 +1044,7 @@ function NewClientModal({
   const submit = async () => {
     setSubmitting(true);
     try {
-      const { api, store } = buildNewClientPayload();
+      const { api, store, managerPatch } = buildNewClientPayload();
 
       if (duplicatePairExists && matchingExistingClient) {
         toast.error("Client and sub-venture already exist", {
@@ -1036,6 +1060,7 @@ function NewClientModal({
         if (isApiClient) {
           try {
             await updateClient(selectedExisting.id, {
+              ...managerPatch,
               subVentures: [
                 ...(selectedExisting.subVentures ?? []),
                 {
@@ -1167,13 +1192,6 @@ function NewClientModal({
                       ...p,
                       clientName: filtered,
                       subVentureName: "",
-                      engagementManager: "",
-                      salesManager: "",
-                      phoneNumber: "",
-                      city: "",
-                      country: "",
-                      industry: "",
-                      businessType: "",
                       customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
                     }));
                   } else {
@@ -1230,8 +1248,8 @@ function NewClientModal({
                               ...p,
                               clientName: c.name,
                               customerId: c.id,
-                              engagementManager: c.engagementManager ?? p.engagementManager,
-                              salesManager: c.salesManager ?? p.salesManager,
+                              engagementManager: p.engagementManager.trim() || c.engagementManager || "",
+                              salesManager: p.salesManager.trim() || c.salesManager || "",
                               phoneNumber:
                                 (c as { phoneNumber?: string }).phoneNumber ?? p.phoneNumber,
                               city: c.city ?? p.city,
@@ -1423,6 +1441,35 @@ function NewClientModal({
             </Field>
           )}
 
+          {/* Stakeholders — always editable (new TK customer or existing + sub-venture) */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SearchableSelect
+              label="Engagement Manager"
+              required={!selectedExisting}
+              placeholder={emLoading ? "Loading engagement managers…" : "Select engagement manager…"}
+              searchPlaceholder="Search by name, email, or code…"
+              disabled={emLoading}
+              disabledHint="Loading engagement managers…"
+              options={emOptions}
+              value={s.engagementManager}
+              onChange={(name) => u("engagementManager", name)}
+            />
+            <Field label="Sales Manager">
+              <input
+                className={inputCls}
+                maxLength={FIELD_MAX.salesManager}
+                value={s.salesManager}
+                placeholder="Enter sales manager name…"
+                onChange={(e) =>
+                  u(
+                    "salesManager",
+                    e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.salesManager),
+                  )
+                }
+              />
+            </Field>
+          </div>
+
           {/* ── New TK customer fields — only shown when not selecting existing ── */}
           {!selectedExisting && (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1431,34 +1478,6 @@ function NewClientModal({
                   className={cn(readOnlyCls, "font-mono")}
                   value="Auto-generated on creation"
                   readOnly
-                />
-              </Field>
-              <Field label="Engagement Manager" required>
-                <input
-                  className={inputCls}
-                  maxLength={FIELD_MAX.engagementManager}
-                  value={s.engagementManager}
-                  placeholder="Enter engagement manager name…"
-                  onChange={(e) =>
-                    u(
-                      "engagementManager",
-                      e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.engagementManager),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Sales Manager">
-                <input
-                  className={inputCls}
-                  maxLength={FIELD_MAX.salesManager}
-                  value={s.salesManager}
-                  placeholder="Enter sales manager name…"
-                  onChange={(e) =>
-                    u(
-                      "salesManager",
-                      e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.salesManager),
-                    )
-                  }
                 />
               </Field>
               <Field label="Country / Region" required>
@@ -1788,6 +1807,12 @@ function NewClientModal({
                 <Row label="City" v={s.city} />
                 <Row label="Country / Region" v={s.country} />
                 <Row label="Industry" v={s.industry} />
+              </>
+            )}
+            {selectedExisting && (
+              <>
+                <Row label="Engagement Manager" v={s.engagementManager || selectedExisting.engagementManager || "—"} />
+                <Row label="Sales Manager" v={s.salesManager || selectedExisting.salesManager || "—"} />
               </>
             )}
             <Row label="Created At" v={format(new Date(s.createdAt), "dd MMM yyyy, HH:mm")} />

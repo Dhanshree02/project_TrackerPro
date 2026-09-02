@@ -9,7 +9,7 @@ export const FIELD_MAX = {
   firstName: 200,
   lastName: 200,
   engagementManager: 200,
-  salesManager: 200,
+  salesManager: 120,
   designation: 200,
   industry: 200,
   nationality: 200,

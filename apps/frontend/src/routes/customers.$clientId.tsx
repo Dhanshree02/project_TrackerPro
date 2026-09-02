@@ -26,6 +26,7 @@ import { usePermissions } from "@/lib/permissions";
 import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { fetchClient, mapApiClient, updateClient, formatCustomerId } from "@/lib/api/clients";
+import { fetchClientForRoute } from "@/lib/client-route-id";
 import {
   fetchAllEmployees,
   fetchDesignationOptions,
@@ -71,7 +72,7 @@ export const Route = createFileRoute("/customers/$clientId")({
     // (Mock/dh-store clients are intentionally NOT used in the customer module.)
     if (typeof window !== "undefined") {
       try {
-        const api = await fetchClient(params.clientId);
+        const api = await fetchClientForRoute(params.clientId);
         if (api) return { client: mapApiClient(api) };
       } catch {
         // backend offline or genuine 404 — the component renders not-found
@@ -158,7 +159,7 @@ This document confirms the verified identity and KYC onboarding status for ${cli
     }
     let cancelled = false;
     setClientLoading(true);
-    fetchClient(clientId)
+    fetchClientForRoute(clientId)
       .then((api) => {
         if (!cancelled) setClient(api ? mapApiClient(api) : undefined);
       })
