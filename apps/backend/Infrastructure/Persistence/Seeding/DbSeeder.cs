@@ -207,10 +207,14 @@ public static class DbSeeder
             ("leadership", "Leadership"),
         };
 
-        var existingDepartments = await db.Departments.ToDictionaryAsync(d => d.Code, ct);
+        var existingDeptList = await db.Departments.IgnoreQueryFilters().ToListAsync(ct);
+        var existingDepartments = existingDeptList
+            .GroupBy(d => d.Code.Trim().ToLowerInvariant())
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         foreach (var (code, name) in departments)
         {
-            if (existingDepartments.ContainsKey(code)) continue;
+            if (existingDepartments.ContainsKey(code) || existingDeptList.Any(d => d.Code.Equals(code, StringComparison.OrdinalIgnoreCase) || d.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                continue;
             var department = new MstDepartment
             {
                 Code = code,
@@ -219,6 +223,7 @@ public static class DbSeeder
             };
             db.Departments.Add(department);
             existingDepartments[code] = department;
+            existingDeptList.Add(department);
         }
 
         var designations = new (string Code, string Name, string DepartmentCode)[]
@@ -243,14 +248,18 @@ public static class DbSeeder
             ("senior_project_manager", "Senior Project Manager", "delivery"),
             ("head_of_department", "Head of Department", "leadership"),
         };
-        var existingDesignations = await db.Designations.ToDictionaryAsync(d => d.Code, ct);
+        var existingDesigList = await db.Designations.IgnoreQueryFilters().ToListAsync(ct);
+        var existingDesignations = existingDesigList
+            .GroupBy(d => d.Code.Trim().ToLowerInvariant())
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         foreach (var (code, name, departmentCode) in designations)
         {
             existingDepartments.TryGetValue(departmentCode, out var department);
-            if (existingDesignations.TryGetValue(code, out var existing))
+            var matched = existingDesigList.FirstOrDefault(d => d.Code.Equals(code, StringComparison.OrdinalIgnoreCase) || d.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (matched is not null)
             {
-                if (existing.DepartmentId is null && department is not null)
-                    existing.DepartmentId = department.Id;
+                if (matched.DepartmentId is null && department is not null)
+                    matched.DepartmentId = department.Id;
                 continue;
             }
 
@@ -263,9 +272,13 @@ public static class DbSeeder
             };
             db.Designations.Add(designation);
             existingDesignations[code] = designation;
+            existingDesigList.Add(designation);
         }
 
-        var existingIndustries = await db.Industries.ToDictionaryAsync(i => i.Code, ct);
+        var existingIndList = await db.Industries.IgnoreQueryFilters().ToListAsync(ct);
+        var existingIndustries = existingIndList
+            .GroupBy(i => i.Code.Trim().ToLowerInvariant())
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var industries = new[]
         {
             ("banking", "Banking"),
@@ -280,13 +293,17 @@ public static class DbSeeder
         };
         foreach (var (code, name) in industries)
         {
-            if (existingIndustries.ContainsKey(code)) continue;
-            db.Industries.Add(new MstIndustry
+            if (existingIndustries.ContainsKey(code) || existingIndList.Any(i => i.Code.Equals(code, StringComparison.OrdinalIgnoreCase) || i.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                continue;
+            var ind = new MstIndustry
             {
                 Code = code,
                 Name = name,
                 IsActive = true,
-            });
+            };
+            db.Industries.Add(ind);
+            existingIndustries[code] = ind;
+            existingIndList.Add(ind);
         }
 
         await SeedNationalitiesAsync(db, ct);
@@ -723,7 +740,10 @@ public static class DbSeeder
             ["PT"] = ("+351", 9),
         };
 
-        var existingCountries = await db.Countries.ToDictionaryAsync(c => c.Code, ct);
+        var existingCountryList = await db.Countries.IgnoreQueryFilters().ToListAsync(ct);
+        var existingCountries = existingCountryList
+            .GroupBy(c => c.Code.Trim().ToUpperInvariant())
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         foreach (var (code, name, _) in geo)
         {
             dialByCode.TryGetValue(code, out var dial);
@@ -747,6 +767,7 @@ public static class DbSeeder
             };
             db.Countries.Add(country);
             existingCountries[code] = country;
+            existingCountryList.Add(country);
         }
 
         if (db.ChangeTracker.HasChanges())
@@ -754,7 +775,9 @@ public static class DbSeeder
             await db.SaveChangesAsync(ct);
         }
 
-        var existingCityCodes = await db.Cities.Select(c => c.Code).ToHashSetAsync(ct);
+        var existingCityCodes = (await db.Cities.IgnoreQueryFilters().Select(c => c.Code).ToListAsync(ct))
+            .Select(c => c.Trim().ToLowerInvariant())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var (countryCode, _, cities) in geo)
         {
             if (!existingCountries.TryGetValue(countryCode, out var country)) continue;
