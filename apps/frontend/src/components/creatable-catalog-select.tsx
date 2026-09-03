@@ -30,6 +30,8 @@ export function SearchableSelect({
   error,
   required,
   className,
+  buttonClassName,
+  clearable,
   onCreate,
   showSearch: showSearchProp,
 }: {
@@ -44,6 +46,8 @@ export function SearchableSelect({
   error?: string;
   required?: boolean;
   className?: string;
+  buttonClassName?: string;
+  clearable?: boolean;
   onCreate?: (name: string) => Promise<{ id: string; name: string } | void>;
   showSearch?: boolean;
 }) {
@@ -149,6 +153,7 @@ export function SearchableSelect({
             disabled && "cursor-not-allowed opacity-60 bg-muted/40",
             isOpen && "border-primary ring-2 ring-primary/20",
             error && "border-destructive focus-visible:ring-destructive",
+            buttonClassName,
           )}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
@@ -161,7 +166,7 @@ export function SearchableSelect({
                 : placeholder}
           </span>
           <div className="flex shrink-0 items-center gap-1">
-            {value && !disabled && (
+            {value && !disabled && (clearable ?? true) && (
               <span
                 role="button"
                 tabIndex={0}

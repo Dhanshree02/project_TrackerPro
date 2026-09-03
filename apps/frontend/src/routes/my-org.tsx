@@ -36,9 +36,12 @@ import { usePermissions } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { DocumentContentViewer } from "@/modules/my-org/components/DocumentContentViewer";
+import { RowsPerPageSelect } from "@/components/rows-per-page-select";
+import { isAllPageSize, paginationRange } from "@/lib/pagination";
 import { openDocumentInNewTab } from "@/lib/document-tab-viewer";
 import {
   fetchRepositoryDocuments,
+  fetchAllRepositoryDocuments,
   fetchRepositoryCategoryCounts,
   fetchRepositoryAccessSummaries,
   fetchDocumentLogs,
@@ -1129,12 +1132,18 @@ function MyOrgPage() {
         ? categories.find((c) => c.id === activeCategoryId)?.backendKey
         : null;
 
-      const res = await fetchRepositoryDocuments({
-        page,
-        perPage: pageSize,
+      const query = {
         category: activeCat,
         search: searchQuery,
-      });
+      };
+
+      const res = isAllPageSize(pageSize)
+        ? await fetchAllRepositoryDocuments(query)
+        : await fetchRepositoryDocuments({
+            page,
+            perPage: pageSize,
+            ...query,
+          });
 
       setDocuments(res.items || []);
       setTotalCount(res.total || 0);
@@ -1153,6 +1162,8 @@ function MyOrgPage() {
   useEffect(() => {
     void loadDocuments();
   }, [page, pageSize, activeCategoryId, searchQuery]);
+
+  const docRange = paginationRange(page, pageSize, totalCount);
 
   const handleUploadClick = () => {
     if (fileInputRef.current) {
@@ -1448,32 +1459,24 @@ function MyOrgPage() {
                 <span>
                   Showing{" "}
                   <strong className="font-semibold text-foreground">
-                    {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}
+                    {docRange.from}
                   </strong>
                   –
                   <strong className="font-semibold text-foreground">
-                    {Math.min(page * pageSize, totalCount)}
+                    {docRange.to}
                   </strong>{" "}
                   of <strong className="font-semibold text-foreground">{totalCount}</strong> documents
                 </span>
                 <span className="text-muted-foreground/40">|</span>
                 <div className="flex items-center gap-1.5">
                   <span>Per page:</span>
-                  <select
+                  <RowsPerPageSelect
                     value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
+                    onChange={(nextSize) => {
+                      setPageSize(nextSize);
                       setPage(1);
                     }}
-                    className="h-7 w-14 rounded-md border border-input bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
-                    aria-label="Rows per page"
-                  >
-                    <option value={10}>10</option>
-                    <option value={15}>15</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
+                  />
                 </div>
               </div>
 

@@ -45,6 +45,8 @@ import { CreatableCatalogSelect, SearchableSelect } from "@/components/creatable
 import { TkIdField } from "@/components/tk-id-field";
 import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import { EmployeeBulkUploadMenu } from "@/components/employee-bulk-upload";
+import { RowsPerPageSelect } from "@/components/rows-per-page-select";
+import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import {
   createBusinessUnitOption,
   createDepartmentOption,
@@ -365,23 +367,19 @@ function FilterSelect({
   options: string[];
 }) {
   return (
-    <select
+    <SearchableSelect
+      placeholder={placeholder}
+      options={options}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={cn(
-        "h-9 w-full rounded-md border bg-card px-3 text-xs outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring cursor-pointer",
+      onChange={onChange}
+      className="w-full text-xs"
+      buttonClassName={cn(
+        "h-9 text-xs transition-all",
         value
           ? "border-blue-500/50 font-medium text-foreground bg-blue-500/5"
           : "border-input text-muted-foreground",
       )}
-    >
-      <option value="">{placeholder}</option>
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
-    </select>
+    />
   );
 }
 
@@ -2453,9 +2451,10 @@ function EmployeeDirectoryPage() {
   // Determine active rows based on tab
   const activeRows = tab === "directory" ? directoryRows : poolRows;
 
-  const totalPages = Math.max(1, Math.ceil(activeRows.length / pageSize));
+  const totalPages = totalPageCount(activeRows.length, pageSize);
   const currentPage = Math.min(page, totalPages);
-  const pageRows = activeRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pageRows = paginateSlice(activeRows, currentPage, pageSize);
+  const pageRange = paginationRange(currentPage, pageSize, activeRows.length);
 
   // Reset page when filters, tab, or pageSize change
   useEffect(() => {
@@ -2708,27 +2707,20 @@ function EmployeeDirectoryPage() {
           <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
             <div className="flex items-center gap-3">
               <span>
-                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong>–
+                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>–
                 <strong className="font-semibold text-blue-950 dark:text-blue-100">
-                  {Math.min(currentPage * pageSize, activeRows.length)}
+                  {pageRange.to}
                 </strong>{" "}
                 of <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length}</strong> employees
               </span>
               <span className="text-slate-300 dark:text-slate-600">|</span>
               <div className="flex items-center gap-1.5">
                 <span>Per page:</span>
-                <select
+                <RowsPerPageSelect
                   value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="h-7 w-14 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
-                  aria-label="Rows per page"
-                >
-                  <option value={10}>10</option>
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+                  onChange={setPageSize}
+                  className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                />
               </div>
             </div>
 
@@ -2895,27 +2887,20 @@ function EmployeeDirectoryPage() {
           <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
             <div className="flex items-center gap-3">
               <span>
-                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong>–
+                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>–
                 <strong className="font-semibold text-blue-950 dark:text-blue-100">
-                  {Math.min(currentPage * pageSize, activeRows.length)}
+                  {pageRange.to}
                 </strong>{" "}
                 of <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length}</strong> resources
               </span>
               <span className="text-slate-300 dark:text-slate-600">|</span>
               <div className="flex items-center gap-1.5">
                 <span>Per page:</span>
-                <select
+                <RowsPerPageSelect
                   value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="h-7 w-14 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
-                  aria-label="Rows per page"
-                >
-                  <option value={10}>10</option>
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+                  onChange={setPageSize}
+                  className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                />
               </div>
             </div>
 

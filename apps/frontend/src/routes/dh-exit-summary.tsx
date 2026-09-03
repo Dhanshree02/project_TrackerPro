@@ -26,6 +26,8 @@ import { useRoleContext } from "@/lib/role-context";
 import { Avatar } from "@/components/pills";
 import { cn } from "@/lib/utils";
 import { fetchAllExitedEmployees, type ApiExitedEmployee } from "@/lib/api/employees";
+import { RowsPerPageSelect } from "@/components/rows-per-page-select";
+import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 
 export const Route = createFileRoute("/dh-exit-summary")({
   head: () => ({
@@ -322,12 +324,13 @@ function ExitSummaryPage() {
     setPage(1);
   }, [q, deptFilter, typeFilter, datePeriodFilter, pageSize]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = totalPageCount(filtered.length, pageSize);
   const currentPage = Math.min(page, totalPages);
-  const pagedRows = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, currentPage, pageSize]);
+  const pagedRows = useMemo(
+    () => paginateSlice(filtered, currentPage, pageSize),
+    [filtered, currentPage, pageSize],
+  );
+  const pageRange = paginationRange(currentPage, pageSize, filtered.length);
 
   const hasActiveFilters = Boolean(q || deptFilter || typeFilter || datePeriodFilter !== "all");
 
@@ -710,27 +713,20 @@ function ExitSummaryPage() {
             <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
               <div className="flex items-center gap-3">
                 <span>
-                  Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{(currentPage - 1) * pageSize + 1}</strong>–
+                  Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>–
                   <strong className="font-semibold text-blue-950 dark:text-blue-100">
-                    {Math.min(currentPage * pageSize, filtered.length)}
+                    {pageRange.to}
                   </strong>{" "}
                   of <strong className="font-semibold text-blue-950 dark:text-blue-100">{filtered.length}</strong> records
                 </span>
                 <span className="text-slate-300 dark:text-slate-600">|</span>
                 <div className="flex items-center gap-1.5">
                   <span>Per page:</span>
-                  <select
+                  <RowsPerPageSelect
                     value={pageSize}
-                    onChange={(e) => setPageSize(Number(e.target.value))}
-                    className="h-7 w-14 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
-                    aria-label="Rows per page"
-                  >
-                    <option value={10}>10</option>
-                    <option value={15}>15</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
+                    onChange={setPageSize}
+                    className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                  />
                 </div>
               </div>
 

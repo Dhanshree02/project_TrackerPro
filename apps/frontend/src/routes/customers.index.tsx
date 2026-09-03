@@ -1513,47 +1513,33 @@ function NewClientModal({
                   readOnly
                 />
               </Field>
-              <Field label="Country / Region" required>
-                <select
-                  className={inputCls}
-                  value={s.country}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    setS((p) => ({ ...p, country: next, city: "", phoneNumber: "" }));
-                  }}
-                >
-                  <option value="">Select country</option>
-                  {countries.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="City" required>
-                <select
-                  className={inputCls}
-                  value={s.city}
-                  disabled={!s.country}
-                  onChange={(e) => u("city", e.target.value)}
-                >
-                  <option value="">
-                    {s.country ? "Select city" : "Select country first"}
-                  </option>
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <SearchableSelect
+                label="Country / Region"
+                required
+                placeholder="Select country…"
+                options={countries.map((c) => ({ value: c.name, label: c.name }))}
+                value={s.country}
+                onChange={(next) => {
+                  setS((p) => ({ ...p, country: next, city: "", phoneNumber: "" }));
+                }}
+              />
+              <SearchableSelect
+                label="City"
+                required
+                disabled={!s.country}
+                disabledHint="Select country first"
+                placeholder={s.country ? "Select city…" : "Select country first"}
+                options={cities.map((c) => ({ value: c.name, label: c.name }))}
+                value={s.city}
+                onChange={(val) => u("city", val)}
+              />
               <Field
                 label="Group SPOC Contact"
                 required
                 error={
                   s.phoneNumber && s.phoneNumber.length !== countryPhoneDigits
                     ? `Group SPOC Contact must be ${countryPhoneDigits} digits for ${s.country || "selected country"}`
-                    : null
+                    : undefined
                 }
               >
                 <div className="relative flex rounded-md">
@@ -1578,27 +1564,23 @@ function NewClientModal({
                   />
                 </div>
               </Field>
-              <Field label="Industry" required>
-                <select
-                  className={inputCls}
-                  value={s.industry}
-                  onChange={(e) => u("industry", e.target.value)}
-                >
-                  <option value="">Select industry</option>
-                  {[
-                    "Banking",
-                    "Healthcare",
-                    "Retail",
-                    "Logistics",
-                    "Energy",
-                    "Manufacturing",
-                    "Telecom",
-                    "Media",
-                  ].map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
-              </Field>
+              <SearchableSelect
+                label="Industry"
+                required
+                placeholder="Select industry…"
+                options={[
+                  "Banking",
+                  "Healthcare",
+                  "Retail",
+                  "Logistics",
+                  "Energy",
+                  "Manufacturing",
+                  "Telecom",
+                  "Media",
+                ]}
+                value={s.industry}
+                onChange={(val) => u("industry", val)}
+              />
               <Field label="Business Type">
                 <select className={readOnlyCls} value={s.businessType} disabled>
                   <option value="">Select business type</option>
@@ -1668,20 +1650,14 @@ function NewClientModal({
                     }}
                   />
                 </Field>
-                <Field label="Contact Type" required>
-                  <select
-                    className={inputCls}
-                    value={ct.contactType}
-                    onChange={(e) => updateContact(idx, "contactType", e.target.value)}
-                  >
-                    <option value="">Select contact type</option>
-                    {["Accounts", "Procurement", "Technical", "Legal"].map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <SearchableSelect
+                  label="Contact Type"
+                  required
+                  placeholder="Select contact type…"
+                  options={["Accounts", "Procurement", "Technical", "Legal"]}
+                  value={ct.contactType}
+                  onChange={(val) => updateContact(idx, "contactType", val)}
+                />
                 <Field label="Email" required error={ct.email.trim() ? emailError(ct.email, false) : undefined}>
                   <input
                     type="text"

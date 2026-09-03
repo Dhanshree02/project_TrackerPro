@@ -27,6 +27,7 @@ import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { fetchClient, mapApiClient, updateClient, formatCustomerId, getSubVentureKycUrl, getSubVentureKycDownloadUrl } from "@/lib/api/clients";
 import { fetchClientForRoute } from "@/lib/client-route-id";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import {
   fetchAllEmployees,
   fetchDesignationOptions,
@@ -684,21 +685,17 @@ function CustomerDetailPage() {
               </div>
               <div className="space-y-2 p-3">
                 {subVentures.length > 0 ? (
-                  <select
-                    value={svFilter}
-                    onChange={(e) => {
-                      setSvFilter(e.target.value);
+                  <SearchableSelect
+                    placeholder="Select sub-venture…"
+                    options={subVentures.map((sv) => ({ value: sv.name, label: sv.name }))}
+                    value={svFilter === "all" ? "" : svFilter}
+                    onChange={(val) => {
+                      setSvFilter(val || "all");
                       setSelectedSpoc(null);
                     }}
-                    className="h-8 w-full rounded-md border border-border bg-card py-0 pl-3 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                  >
-                    <option value="all">Select sub-venture…</option>
-                    {subVentures.map((sv) => (
-                      <option key={sv.name} value={sv.name}>
-                        {sv.name}
-                      </option>
-                    ))}
-                  </select>
+                    buttonClassName="h-8 text-xs"
+                    className="w-full"
+                  />
                 ) : (
                   <p className="text-xs text-muted-foreground">No sub-ventures for this client.</p>
                 )}
@@ -745,20 +742,22 @@ function CustomerDetailPage() {
                     }`}
                 </p>
               </div>
-              <label className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
+              <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
                 <span className="hidden sm:inline">Health</span>
-                <select
+                <SearchableSelect
+                  placeholder="All"
+                  options={[
+                    { value: "all", label: "All" },
+                    { value: "healthy", label: "Healthy" },
+                    { value: "at_risk", label: "At Risk" },
+                    { value: "critical", label: "Critical" },
+                  ]}
                   value={healthFilter}
-                  onChange={(e) => setHealthFilter(e.target.value as HealthFilter)}
-                  className="h-8 min-w-[115px] rounded-md border border-input bg-card pl-2.5 pr-8 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <option value="all">All</option>
-                  <option value="healthy">Healthy</option>
-                  <option value="at_risk">At Risk</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </label>
+                  onChange={(val) => setHealthFilter(((val || "all") as HealthFilter))}
+                  buttonClassName="h-8 min-w-[115px] text-xs font-medium"
+                  clearable={false}
+                />
+              </div>
             </header>
 
             {pool.length === 0 ? (

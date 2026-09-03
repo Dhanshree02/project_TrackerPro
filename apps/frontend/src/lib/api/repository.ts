@@ -53,6 +53,29 @@ export async function fetchRepositoryDocuments(params: {
   return apiFetch<PagedRepositoryResult>(`/api/v1/repository${qs ? `?${qs}` : ""}`);
 }
 
+export async function fetchAllRepositoryDocuments(params: {
+  category?: string | null;
+  search?: string | null;
+}): Promise<PagedRepositoryResult> {
+  const perPage = 100;
+  const first = await fetchRepositoryDocuments({ page: 1, perPage, ...params });
+  if (first.totalPages <= 1) return first;
+
+  const items = [...first.items];
+  for (let page = 2; page <= first.totalPages; page++) {
+    const next = await fetchRepositoryDocuments({ page, perPage, ...params });
+    items.push(...next.items);
+  }
+
+  return {
+    items,
+    page: 1,
+    perPage: items.length,
+    total: first.total,
+    totalPages: 1,
+  };
+}
+
 export const ALLOWED_REPOSITORY_EXTENSIONS = [
   "pdf",
   "doc",
