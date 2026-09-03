@@ -16,6 +16,7 @@ public class Employee : BaseEntity
     public DateOnly? DateOfBirth { get; set; }
     public string? Address { get; set; }
     public string? EmergencyContact { get; set; }
+    public string? EmergencyContactName { get; set; }
     public string? MaritalStatus { get; set; }
     public string? Nationality { get; set; }
 

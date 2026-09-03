@@ -14,6 +14,7 @@ export const FIELD_MAX = {
   industry: 200,
   nationality: 200,
   address: 200,
+  emergencyContactName: 100,
   email: 200,
   phone: 10,
   notes: 200,

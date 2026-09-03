@@ -319,6 +319,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     DateOfBirth: ParseDate(GetValue(values,"dateofbirth")),
                     Address: NullIfEmpty(GetValue(values,"address")),
                     EmergencyContact: PhoneRules.NullIfEmpty(GetValue(values,"emergencycontact")) ?? NullIfEmpty(GetValue(values,"emergencycontact")),
+                    EmergencyContactName: NullIfEmpty(GetValue(values,"emergencycontactname")),
                     MaritalStatus: NullIfEmpty(GetValue(values,"maritalstatus")),
                     Nationality: NullIfEmpty(nationalityName),
                     NationalityId: nationalityId,

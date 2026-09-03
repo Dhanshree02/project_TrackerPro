@@ -163,7 +163,7 @@ export function SearchableSelect({
               ? disabledHint ?? placeholder
               : selectedOption
                 ? selectedOption.label
-                : placeholder}
+                : value || placeholder}
           </span>
           <div className="flex shrink-0 items-center gap-1">
             {value && !disabled && (clearable ?? true) && (

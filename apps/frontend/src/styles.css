@@ -303,3 +303,21 @@
 [data-sonner-toast][data-type="error"] [data-description] {
   color: #fff !important;
 }
+
+/* Always keep native date picker indicator visible, accessible, and styled */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: block !important;
+  opacity: 0.75;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+}

@@ -35,6 +35,7 @@ export type OnboardField =
   | "phone"
   | "altPhone"
   | "emergencyContact"
+  | "emergencyContactName"
   | "gender"
   | "dateOfBirth"
   | "maritalStatus"
@@ -102,10 +103,11 @@ export const EMPTY_ONBOARD: OnboardValues = {
   nationalityId: "",
   address: "",
   emergencyContact: "",
+  emergencyContactName: "",
   departmentId: "",
   designationId: "",
   jobRoleId: "",
-  businessUnit: "",
+  businessUnit: "Talakunchi Networks Private Limited",
   team: "",
   projectSite: "",
   workLocation: "",
@@ -150,22 +152,17 @@ export const ONBOARD_FIELDS: OnboardField[] = [
   "firstName",
   "lastName",
   "workEmail",
-  "personalEmail",
   "employeeCode",
   "phone",
   "altPhone",
   "emergencyContact",
-  "gender",
-  "dateOfBirth",
-  "maritalStatus",
-  "nationalityId",
+  "emergencyContactName",
   "address",
   "departmentId",
   "designationId",
   "jobRoleId",
   "reportingManagerId",
   "workLocation",
-  "officeBranch",
   "joiningDate",
   "status",
   "employmentType",
@@ -252,26 +249,33 @@ export function validateOnboardField(
       if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
       return undefined;
     }
+    case "emergencyContactName": {
+      const v = (values.emergencyContactName || "").trim();
+      if (!v) return "Emergency contact name is required";
+      if (v.length < 2) return "Emergency contact name must be at least 2 characters";
+      if (v.length > 100) return "Emergency contact name must be 100 characters or less";
+      if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
+      return undefined;
+    }
     case "gender": {
-      const v = (values.gender || "").trim();
-      if (!v) return "Gender is required";
       return undefined;
     }
     case "dateOfBirth": {
       const v = (values.dateOfBirth || "").trim();
-      if (!v) return "Date of birth is required";
+      if (!v) return undefined;
       if (v > MAX_ADULT_DOB) return "Employee must be at least 18 years old";
       if (v < MIN_DOB) return "Enter a valid date of birth";
       return undefined;
     }
+    case "maritalStatus": {
+      return undefined;
+    }
     case "nationalityId": {
-      const v = (values.nationalityId || "").trim();
-      if (!v) return "Nationality is required";
       return undefined;
     }
     case "address": {
       const v = (values.address || "").trim();
-      if (!v) return "Residential address is required";
+      if (!v) return "Current Address - City is required";
       return undefined;
     }
     case "departmentId": {
@@ -295,8 +299,6 @@ export function validateOnboardField(
       return undefined;
     }
     case "officeBranch": {
-      const v = (values.officeBranch || "").trim();
-      if (!v) return "Office branch is required";
       return undefined;
     }
     case "joiningDate": {
@@ -411,7 +413,6 @@ export function validateOnboardField(
       if (!isValidIfsc(v)) return "Enter a valid IFSC (e.g. SBIN0001234)";
       return undefined;
     }
-    case "maritalStatus":
     case "businessUnit":
     case "team":
     case "projectSite":

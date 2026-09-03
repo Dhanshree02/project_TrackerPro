@@ -17,6 +17,7 @@ export interface Employee {
   dob: string;
   address: string;
   emergencyContact: string;
+  emergencyContactName?: string;
   maritalStatus: string;
   nationality: string;
   // org

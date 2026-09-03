@@ -7,6 +7,7 @@ import {
   Phone,
   Layers,
   User,
+  UserRound,
   Pencil,
   Check,
   X,
@@ -481,60 +482,63 @@ function CustomerDetailPage() {
             </div>
           </div>
 
-          {/* Right: Key Stakeholders Card (Engagement Manager & Sales Manager) */}
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0 rounded-xl bg-slate-50/90 dark:bg-muted/30 border border-slate-200/80 dark:border-border/60 p-2.5 shadow-2xs">
+          {/* Right: Key Stakeholders (Engagement Manager & Sales Manager) - Apple HIG Stacked */}
+          <div className="flex flex-col justify-center rounded-xl border border-slate-200/80 bg-white/75 shadow-[0_1px_4px_rgba(0,0,0,0.04)] backdrop-blur-xs px-3.5 py-2.5 min-w-[220px] space-y-2 dark:border-border/60 dark:bg-muted/20 dark:shadow-none">
             {/* Engagement Manager */}
-            <div className="flex items-center gap-2.5 min-w-[175px] pr-2.5 sm:border-r sm:border-slate-200/80 dark:sm:border-border/60">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold text-xs shadow-2xs ring-1 ring-blue-300/60 dark:ring-blue-700/60">
-                <User className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Engagement Manager
-                  </span>
-                  {(isDhanshree || hasPermission("customers.edit")) && !isSales && (
-                    <button
-                      type="button"
-                      onClick={openEmPicker}
-                      className="text-[9px] text-primary hover:underline font-semibold cursor-pointer"
-                      title="Change Engagement Manager"
-                    >
-                      Change
-                    </button>
-                  )}
-                </div>
-                <p
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground">
+                  <UserRound className="h-3 w-3" />
+                </span>
+                <span className="truncate text-xs font-normal text-muted-foreground">
+                  Engagement Manager
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span
                   className={cn(
-                    "truncate text-xs font-semibold leading-tight mt-0.5",
-                    emName !== "—" ? "text-foreground" : "text-muted-foreground font-normal italic",
+                    "truncate text-xs font-semibold text-right",
+                    emName !== "—" ? "text-foreground" : "text-muted-foreground/60 italic font-normal",
                   )}
                   title={emName}
                 >
                   {emName !== "—" ? emName : "Unassigned"}
-                </p>
+                </span>
+                {(isDhanshree || hasPermission("customers.edit")) && !isSales && (
+                  <button
+                    type="button"
+                    onClick={openEmPicker}
+                    className="text-[10px] text-muted-foreground hover:text-foreground hover:underline font-medium cursor-pointer transition-colors"
+                    title="Change Engagement Manager"
+                  >
+                    Change
+                  </button>
+                )}
               </div>
             </div>
 
+            {/* Hairline Divider */}
+            <div className="h-px bg-slate-200/60 dark:bg-border/40" />
+
             {/* Sales Manager */}
-            <div className="flex items-center gap-2.5 min-w-[165px] pl-1">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold text-xs shadow-2xs ring-1 ring-emerald-300/60 dark:ring-emerald-700/60">
-                <Briefcase className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground">
+                  <Briefcase className="h-3 w-3" />
+                </span>
+                <span className="truncate text-xs font-normal text-muted-foreground">
                   Sales Manager
                 </span>
-                <p
-                  className={cn(
-                    "truncate text-xs font-semibold leading-tight mt-0.5",
-                    client.salesManager?.trim() ? "text-foreground" : "text-muted-foreground font-normal italic",
-                  )}
-                  title={client.salesManager || "Unassigned"}
-                >
-                  {client.salesManager?.trim() || "Unassigned"}
-                </p>
               </div>
+              <span
+                className={cn(
+                  "truncate text-xs font-semibold text-right shrink-0",
+                  client.salesManager?.trim() ? "text-foreground" : "text-muted-foreground/60 italic font-normal",
+                )}
+                title={client.salesManager || "Unassigned"}
+              >
+                {client.salesManager?.trim() || "Unassigned"}
+              </span>
             </div>
           </div>
         </div>

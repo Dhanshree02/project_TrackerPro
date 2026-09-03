@@ -36,6 +36,7 @@ import {
   isValidPan,
   isValidAadhaar,
 } from "@/lib/onboard-validation";
+import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
 import { toast } from "sonner";
 import {
   fetchEmployee,
@@ -383,6 +384,7 @@ function EditProfilePanel({
   const [officesList, setOfficesList] = useState<ApiMetaOption[]>([]);
   const [salaryBandsList, setSalaryBandsList] = useState<ApiMetaOption[]>([]);
   const [reportingManagersList, setReportingManagersList] = useState<ApiMetaOption[]>([]);
+  const [onFloorRolesList, setOnFloorRolesList] = useState<ApiMetaOption[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -444,6 +446,17 @@ function EditProfilePanel({
     void fetchOfficeOptions(currentLoc?.id).then(setOfficesList).catch(() => {});
   }, [open, formData.workLocation, workLocationsList]);
 
+  // Scoped on-floor roles
+  useEffect(() => {
+    if (!open) return;
+    const currentDesig = designationsList.find((d) => d.name === formData.designation);
+    if (!currentDesig) {
+      setOnFloorRolesList([]);
+      return;
+    }
+    void fetchJobRoleOptions(currentDesig.id).then(setOnFloorRolesList).catch(() => setOnFloorRolesList([]));
+  }, [open, formData.designation, designationsList]);
+
   if (!open) return null;
 
   const inputCls =
@@ -484,15 +497,12 @@ function EditProfilePanel({
         const full = `${prefix}@${workEmailDomain}`;
         return emailError(full, true);
       }
-      case "personalEmail": {
+      case "emergencyContactName": {
         const v = String(value || "").trim();
-        if (!v) return undefined;
-        const err = emailError(v, false);
-        if (err) return err;
-        const currentWork = workEmailPrefix && workEmailDomain ? `${workEmailPrefix}@${workEmailDomain}` : currentData.email;
-        if (currentWork && v.toLowerCase() === currentWork.trim().toLowerCase()) {
-          return "Personal email should be different from work email";
-        }
+        if (!v) return "Emergency contact name is required";
+        if (v.length < 2) return "Emergency contact name must be at least 2 characters";
+        if (v.length > 100) return "Emergency contact name must be 100 characters or less";
+        if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
         return undefined;
       }
       case "phone": {
@@ -508,19 +518,14 @@ function EditProfilePanel({
         return !value ? "Gender is required" : undefined;
       }
       case "dob": {
-        const v = String(value || "").trim();
-        if (!v) return "Date of birth is required";
-        if (v > MAX_ADULT_DOB) return "Employee must be at least 18 years old";
-        if (v < MIN_DOB) return "Enter a valid date of birth";
         return undefined;
       }
       case "nationality": {
-        return !value ? "Nationality is required" : undefined;
+        return undefined;
       }
       case "address": {
         const v = String(value || "").trim();
-        if (!v) return "Residential address is required";
-        if (v.length > FIELD_MAX.address) return `Address must be ${FIELD_MAX.address} characters or less`;
+        if (!v) return "Current Address - City is required";
         return undefined;
       }
       case "department": {
@@ -536,7 +541,7 @@ function EditProfilePanel({
         return !value ? "Work location is required" : undefined;
       }
       case "officeBranch": {
-        return !value ? "Office branch is required" : undefined;
+        return undefined;
       }
       case "joiningDate": {
         return !value ? "Date of joining is required" : undefined;
@@ -596,12 +601,10 @@ function EditProfilePanel({
 
   const handleChange = (field: keyof Employee, value: any) => {
     let sanitized = value;
-    if (field === "firstName" || field === "lastName") {
-      sanitized = toLettersName(String(value)).slice(0, FIELD_MAX[field]);
+    if (field === "firstName" || field === "lastName" || field === "emergencyContactName") {
+      sanitized = toLettersName(String(value)).slice(0, FIELD_MAX.emergencyContactName ?? 100);
     } else if (field === "phone" || field === "altPhone" || field === "emergencyContact") {
       sanitized = toTenDigitPhone(String(value));
-    } else if (field === "personalEmail") {
-      sanitized = toEmailInput(String(value)).slice(0, FIELD_MAX.email);
     } else if (field === "pan") {
       sanitized = String(value).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, FIELD_MAX.pan);
     } else if (field === "aadhaar") {
@@ -622,7 +625,19 @@ function EditProfilePanel({
     setFormData(updated);
 
     // Live validation update
-    const liveFields = ["firstName", "lastName", "personalEmail", "phone", "altPhone", "emergencyContact", "pan", "aadhaar", "bankAccount", "pfUan", "dob", "address"];
+    const liveFields = [
+      "firstName",
+      "lastName",
+      "phone",
+      "altPhone",
+      "emergencyContactName",
+      "emergencyContact",
+      "pan",
+      "aadhaar",
+      "bankAccount",
+      "pfUan",
+      "address",
+    ];
     if (liveFields.includes(field) || errors[field]) {
       const err = validateField(field, sanitized, updated);
       setErrors((prev) => {
@@ -680,19 +695,15 @@ function EditProfilePanel({
     check("lastName", data.lastName);
     check("employeeCode", data.id);
     check("workEmail", prefix);
-    check("personalEmail", data.personalEmail);
     check("phone", data.phone);
     check("altPhone", data.altPhone);
+    check("emergencyContactName", data.emergencyContactName);
     check("emergencyContact", data.emergencyContact);
-    check("gender", data.gender);
-    check("dob", data.dob);
-    check("nationality", data.nationality);
     check("address", data.address);
     check("department", data.department);
     check("designation", data.designation);
     check("reportingManager", data.reportingManager);
     check("workLocation", data.workLocation);
-    check("officeBranch", data.officeBranch);
     check("joiningDate", data.joiningDate);
     check("status", data.status);
     check("employmentType", data.employmentType);
@@ -887,28 +898,6 @@ function EditProfilePanel({
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Personal Email
-                </span>
-                <input
-                  type="text"
-                  inputMode="email"
-                  autoComplete="off"
-                  placeholder="name@example.com"
-                  value={formData.personalEmail ?? ""}
-                  maxLength={FIELD_MAX.email}
-                  onChange={(e) => handleChange("personalEmail", e.target.value)}
-                  onBlur={() => handleFieldBlur("personalEmail")}
-                  className={fieldInputCls(inputCls, Boolean(errors.personalEmail))}
-                />
-                {errors.personalEmail ? (
-                  <p className="mt-1 text-[11px] text-destructive">
-                    {errors.personalEmail}
-                  </p>
-                ) : null}
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Mobile Number <span className="text-destructive">*</span>
                 </span>
                 <div className="relative flex rounded-md">
@@ -967,7 +956,28 @@ function EditProfilePanel({
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Emergency Contact <span className="text-destructive">*</span>
+                  Emergency Contact Name <span className="text-destructive">*</span>
+                </span>
+                <input
+                  autoComplete="off"
+                  type="text"
+                  maxLength={FIELD_MAX.emergencyContactName}
+                  placeholder="Full name of emergency contact"
+                  value={formData.emergencyContactName ?? ""}
+                  onChange={(e) => handleChange("emergencyContactName", e.target.value)}
+                  onBlur={() => handleFieldBlur("emergencyContactName")}
+                  className={fieldInputCls(inputCls, Boolean(errors.emergencyContactName))}
+                />
+                {errors.emergencyContactName ? (
+                  <p className="mt-1 text-[11px] text-destructive">
+                    {errors.emergencyContactName}
+                  </p>
+                ) : null}
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Emergency Contact Number <span className="text-destructive">*</span>
                 </span>
                 <div className="relative flex rounded-md">
                   <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
@@ -995,87 +1005,22 @@ function EditProfilePanel({
                 ) : null}
               </label>
 
-              <SearchableSelect
-                label="Gender"
-                required
-                options={["Male", "Female", "Other"]}
-                value={formData.gender}
-                onChange={(v) => {
-                  handleChange("gender", v);
-                  handleFieldBlur("gender", v);
-                }}
-                placeholder="Select gender…"
-              />
-              {errors.gender ? (
-                <p className="mt-1 text-[11px] text-destructive">{errors.gender}</p>
-              ) : null}
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Date of Birth <span className="text-destructive">*</span>
-                </span>
-                <input
-                  autoComplete="off"
-                  type="date"
-                  min={MIN_DOB}
-                  max={MAX_ADULT_DOB}
-                  value={formData.dob}
-                  onChange={(e) => handleChange("dob", e.target.value)}
-                  onBlur={() => handleFieldBlur("dob")}
-                  className={fieldInputCls(inputCls, Boolean(errors.dob))}
-                  required
-                />
-                {errors.dob ? (
-                  <p className="mt-1 text-[11px] text-destructive">{errors.dob}</p>
-                ) : null}
-              </label>
-
-              <SearchableSelect
-                label="Marital Status"
-                options={["Single", "Married", "Other"]}
-                value={formData.maritalStatus}
-                onChange={(v) => handleChange("maritalStatus", v)}
-                placeholder="Select marital status…"
-              />
-
-              <div>
+              <div className="md:col-span-1 lg:col-span-2">
                 <SearchableSelect
-                  label="Nationality"
+                  label="Current Address - City"
                   required
-                  options={nationalities.map((n) => ({ value: n.name, label: n.name }))}
-                  value={formData.nationality}
+                  options={MUMBAI_RAILWAY_STATIONS}
+                  value={formData.address}
                   onChange={(v) => {
-                    handleChange("nationality", v);
-                    handleFieldBlur("nationality", v);
+                    handleChange("address", v);
+                    handleFieldBlur("address", v);
                   }}
-                  placeholder="Select nationality…"
+                  placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
+                  showSearch
                 />
-                {errors.nationality ? (
-                  <p className="mt-1 text-[11px] text-destructive">{errors.nationality}</p>
+                {errors.address ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.address}</p>
                 ) : null}
-              </div>
-
-              <div className="md:col-span-2 lg:col-span-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Address <span className="text-destructive">*</span>
-                  </span>
-                  <textarea
-                    rows={2}
-                    autoComplete="off"
-                    value={formData.address}
-                    maxLength={FIELD_MAX.address}
-                    onChange={(e) => handleChange("address", e.target.value)}
-                    onBlur={() => handleFieldBlur("address")}
-                    className={cn(
-                      fieldInputCls(inputCls, Boolean(errors.address)),
-                      "h-auto min-h-[64px] py-2 resize-y leading-relaxed",
-                    )}
-                  />
-                  {errors.address ? (
-                    <p className="mt-1 text-[11px] text-destructive">{errors.address}</p>
-                  ) : null}
-                </label>
               </div>
             </div>
           </section>
@@ -1136,17 +1081,17 @@ function EditProfilePanel({
                 ) : null}
               </div>
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Job Role</span>
-                <input
-                  autoComplete="off"
-                  type="text"
+              <div>
+                <SearchableSelect
+                  label="On Floor Role"
+                  options={onFloorRolesList.map((r) => ({ value: r.name, label: r.name }))}
                   value={formData.role}
-                  maxLength={FIELD_MAX.text}
-                  onChange={(e) => handleChange("role", e.target.value)}
-                  className={inputCls}
+                  onChange={(v) => handleChange("role", v)}
+                  disabled={!formData.designation}
+                  disabledHint="Select a designation first"
+                  placeholder="Select on floor role…"
                 />
-              </label>
+              </div>
 
               <div>
                 <SearchableSelect
@@ -1173,26 +1118,6 @@ function EditProfilePanel({
                 placeholder="Select business unit…"
               />
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">Team</span>
-                <input
-                  autoComplete="off"
-                  type="text"
-                  value={formData.team}
-                  maxLength={FIELD_MAX.team}
-                  onChange={(e) => handleChange("team", e.target.value)}
-                  className={inputCls}
-                />
-              </label>
-
-              <SearchableSelect
-                label="Project Site"
-                options={["Onsite", "Offsite"]}
-                value={formData.projectSite}
-                onChange={(v) => handleChange("projectSite", v)}
-                placeholder="Select project site…"
-              />
-
               <div>
                 <SearchableSelect
                   label="Work Location"
@@ -1201,6 +1126,9 @@ function EditProfilePanel({
                   value={formData.workLocation}
                   onChange={(v) => {
                     handleChange("workLocation", v);
+                    if (v !== "Onsite") {
+                      handleChange("projectSite", "");
+                    }
                     handleFieldBlur("workLocation", v);
                   }}
                   placeholder="Select work location…"
@@ -1211,20 +1139,22 @@ function EditProfilePanel({
               </div>
 
               <div>
-                <SearchableSelect
-                  label="Office Branch"
-                  required
-                  options={officesList.map((o) => ({ value: o.name, label: o.name }))}
-                  value={formData.officeBranch}
-                  onChange={(v) => {
-                    handleChange("officeBranch", v);
-                    handleFieldBlur("officeBranch", v);
-                  }}
-                  placeholder="Select office branch…"
-                />
-                {errors.officeBranch ? (
-                  <p className="mt-1 text-[11px] text-destructive">{errors.officeBranch}</p>
-                ) : null}
+                <label className={cn("block", formData.workLocation !== "Onsite" && "cursor-not-allowed opacity-60")}>
+                  <span className="mb-1 block text-xs font-medium text-muted-foreground">Location</span>
+                  <input
+                    autoComplete="off"
+                    type="text"
+                    disabled={formData.workLocation !== "Onsite"}
+                    placeholder={formData.workLocation === "Onsite" ? "Enter onsite location…" : ""}
+                    value={formData.workLocation === "Onsite" ? (formData.projectSite || "") : ""}
+                    maxLength={FIELD_MAX.text}
+                    onChange={(e) => handleChange("projectSite", e.target.value)}
+                    className={cn(
+                      inputCls,
+                      formData.workLocation !== "Onsite" && "cursor-not-allowed bg-muted/60 text-muted-foreground select-none pointer-events-none",
+                    )}
+                  />
+                </label>
               </div>
             </div>
           </section>
@@ -1245,7 +1175,12 @@ function EditProfilePanel({
                   value={formData.joiningDate}
                   onChange={(e) => handleChange("joiningDate", e.target.value)}
                   onBlur={() => handleFieldBlur("joiningDate")}
-                  className={fieldInputCls(inputCls, Boolean(errors.joiningDate))}
+                  onClick={(e) => {
+                    if (typeof e.currentTarget.showPicker === "function") {
+                      try { e.currentTarget.showPicker(); } catch {}
+                    }
+                  }}
+                  className={cn(fieldInputCls(inputCls, Boolean(errors.joiningDate)), "cursor-pointer")}
                   required
                 />
                 {errors.joiningDate ? (
@@ -1703,15 +1638,16 @@ function EmployeeProfilePage() {
       firstName: updatedEmp.firstName,
       lastName: updatedEmp.lastName,
       workEmail: updatedEmp.email.trim(),
-      personalEmail: updatedEmp.personalEmail.trim() || null,
+      personalEmail: null,
       phone: updatedEmp.phone || null,
       altPhone: updatedEmp.altPhone || null,
-      gender: updatedEmp.gender || null,
-      dateOfBirth: updatedEmp.dob || null,
+      gender: null,
+      dateOfBirth: null,
       address: updatedEmp.address || null,
       emergencyContact: updatedEmp.emergencyContact || null,
-      maritalStatus: updatedEmp.maritalStatus || null,
-      nationality: updatedEmp.nationality || null,
+      emergencyContactName: updatedEmp.emergencyContactName?.trim() || null,
+      maritalStatus: null,
+      nationality: null,
       nationalityId,
       department: updatedEmp.department || null,
       departmentId,
@@ -1720,9 +1656,9 @@ function EmployeeProfilePage() {
       role: updatedEmp.role || null,
       businessUnit: updatedEmp.businessUnit || null,
       workLocation: updatedEmp.workLocation || null,
-      officeBranch: updatedEmp.officeBranch || null,
+      officeBranch: null,
       category: updatedEmp.category || null,
-      team: updatedEmp.team || null,
+      team: null,
       joiningDate: updatedEmp.joiningDate || null,
       status: updatedEmp.status,
       confirmationStatus: updatedEmp.confirmationStatus,
@@ -1733,7 +1669,7 @@ function EmployeeProfilePage() {
       contractType: updatedEmp.contractType || null,
       bondStatus: updatedEmp.bondStatus || null,
       noticePeriod: updatedEmp.noticePeriod || null,
-      projectSite: updatedEmp.projectSite || null,
+      projectSite: updatedEmp.workLocation === "Onsite" ? (updatedEmp.projectSite || null) : null,
       assetId: updatedEmp.assetId || null,
       exitType: updatedEmp.exitType || null,
       exitReason: updatedEmp.exitReason || null,
@@ -1922,15 +1858,11 @@ function EmployeeProfilePage() {
                 <Row label="First Name" value={emp.firstName} />
                 <Row label="Last Name" value={emp.lastName} />
                 <Row label="Email ID" value={emp.email} />
-                <Row label="Personal Email" value={emp.personalEmail} />
                 <Row label="Contact Number" value={emp.phone ? `+91 ${emp.phone}` : "—"} />
                 <Row label="Alternate Contact" value={emp.altPhone ? `+91 ${emp.altPhone}` : "—"} />
-                <Row label="Gender" value={emp.gender} />
-                <Row label="Date of Birth" value={emp.dob} />
-                <Row label="Address" value={emp.address} />
-                <Row label="Emergency Contact" value={emp.emergencyContact ? `+91 ${emp.emergencyContact}` : "—"} />
-                <Row label="Marital Status" value={emp.maritalStatus} />
-                <Row label="Nationality" value={emp.nationality} />
+                <Row label="Emergency Contact Name" value={emp.emergencyContactName} />
+                <Row label="Emergency Contact Number" value={emp.emergencyContact ? `+91 ${emp.emergencyContact}` : "—"} />
+                <Row label="Current Address - City" value={emp.address} />
                 <Row label="Employment Status" value={<EmpStatusBadge status={emp.status} />} />
               </Grid>
             </div>
@@ -1942,13 +1874,14 @@ function EmployeeProfilePage() {
               <Grid>
                 <Row label="Department" value={emp.department} />
                 <Row label="Designation" value={emp.designation} />
-                <Row label="Role" value={emp.role} />
+                <Row label="On Floor Role" value={emp.role} />
                 <Row label="Reporting Manager" value={emp.reportingManager} />
                 <Row label="Business Unit" value={emp.businessUnit} />
                 <Row label="Work Location" value={emp.workLocation} />
-                <Row label="Office" value={emp.officeBranch} />
+                {emp.workLocation === "Onsite" && (
+                  <Row label="Location" value={emp.projectSite || "—"} />
+                )}
                 <Row label="Employee Category" value={emp.category} />
-                <Row label="Team Name" value={emp.team} />
               </Grid>
             </div>
           )}

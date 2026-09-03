@@ -271,7 +271,7 @@ public static class DbSeeder
 
     private static async Task SeedBusinessUnitsAsync(AppDbContext db, CancellationToken ct)
     {
-        var bus = new[] { "Cloud Platform", "Consumer Apps", "Enterprise", "Digital Solutions" };
+        var bus = new[] { "Talakunchi Networks Private Limited" };
         var existing = await db.BusinessUnits.ToDictionaryAsync(b => b.Name.ToLower(), ct);
         var order = 1;
         foreach (var name in bus)
@@ -289,31 +289,27 @@ public static class DbSeeder
 
     private static async Task SeedWorkLocationsAndOfficesAsync(AppDbContext db, CancellationToken ct)
     {
-        var locations = new (string Code, string Name, string[] Offices)[]
+        var locations = new (string Code, string Name)[]
         {
-            ("andheri", "Andheri", ["Suvidha Square"]),
-            ("dombivli", "Dombivli", ["Navare Plaza"]),
+            ("onsite", "Onsite"),
+            ("suvidha_square_andheri", "Suvidha Square, Andheri"),
+            ("navare_plaza_dombivli", "Navare Plaza, Dombivli"),
         };
 
-        var existingLocations = await db.WorkLocations.Include(w => w.Offices).ToListAsync(ct);
+        var existingLocations = await db.WorkLocations.ToListAsync(ct);
         var allowedCodes = locations.Select(l => l.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // Deactivate any locations & offices that are not allowed
         foreach (var loc in existingLocations)
         {
             if (!allowedCodes.Contains(loc.Code))
             {
                 loc.IsActive = false;
-                foreach (var off in loc.Offices)
-                {
-                    off.IsActive = false;
-                }
             }
         }
 
         var locDict = existingLocations.ToDictionary(w => w.Code, StringComparer.OrdinalIgnoreCase);
         var locOrder = 1;
-        foreach (var (code, name, offices) in locations)
+        foreach (var (code, name) in locations)
         {
             if (!locDict.TryGetValue(code, out var loc))
             {
@@ -332,38 +328,6 @@ public static class DbSeeder
                 loc.Name = name;
                 loc.IsActive = true;
                 loc.SortOrder = locOrder++;
-            }
-
-            var officeOrder = 1;
-            var existingOffices = loc.Offices.ToDictionary(o => o.Name.ToLower(), StringComparer.OrdinalIgnoreCase);
-            var allowedOffices = offices.ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var off in loc.Offices)
-            {
-                if (!allowedOffices.Contains(off.Name))
-                {
-                    off.IsActive = false;
-                }
-            }
-
-            foreach (var offName in offices)
-            {
-                if (existingOffices.TryGetValue(offName.ToLower(), out var existingOff))
-                {
-                    existingOff.Name = offName;
-                    existingOff.IsActive = true;
-                    existingOff.SortOrder = officeOrder++;
-                }
-                else
-                {
-                    loc.Offices.Add(new MstOffice
-                    {
-                        Code = $"{code}_{Slug(offName)}",
-                        Name = offName,
-                        IsActive = true,
-                        SortOrder = officeOrder++,
-                    });
-                }
             }
         }
     }
@@ -553,29 +517,89 @@ public static class DbSeeder
         IReadOnlyDictionary<string, MstDesignation> designations,
         CancellationToken ct)
     {
-        var rolesByDesignation = new Dictionary<string, string[]>
+        var onFloorRolesByDesignation = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            ["software_engineer"] = ["Employee", "Developer", "Associate Engineer"],
-            ["senior_software_engineer"] = ["Employee", "Senior Developer", "Specialist"],
-            ["tech_lead"] = ["TeamLead", "Technical Lead", "Module Lead"],
-            ["devops_engineer"] = ["Employee", "DevOps Specialist", "SRE"],
-            ["qa_engineer"] = ["Employee", "QA Analyst", "Test Engineer"],
-            ["data_analyst"] = ["Employee", "Analyst", "Data Specialist"],
-            ["engineering_manager"] = ["Engineering Manager", "People Manager"],
-            ["product_manager"] = ["ProjectManager", "Product Owner", "Product Manager"],
-            ["ux_designer"] = ["Employee", "Designer", "UX Specialist"],
-            ["marketing_lead"] = ["Marketing Lead", "Campaign Lead"],
-            ["sales_executive"] = ["Sales", "Account Executive"],
-            ["finance_analyst"] = ["Accounts", "Analyst"],
-            ["hr_business_partner"] = ["Hr", "Business Partner"],
-            ["content_strategist"] = ["Employee", "Strategist"],
-            ["business_analyst"] = ["Pmo", "Analyst", "Consultant"],
-            ["project_manager"] = ["ProjectManager", "Delivery Manager"],
-            ["engagement_manager"] = ["Engagement Manager", "Client Partner"],
-            ["senior_project_manager"] = ["Senior Project Manager", "Program Manager"],
-            ["head_of_department"] = ["Head of Department", "Director"],
+            ["Director and Chief Executive Officer"] = ["Leader (L)"],
+            ["Director and Chief Operating Officer"] = ["Leader (L)"],
+            ["Director and Chief Technology Officer"] = ["Leader (L)"],
+            ["IT Admin"] = ["Team Member (TM)"],
+            ["Desktop Support Engineer - I"] = ["Team Member (TM)"],
+            ["Desktop Support Engineer - II"] = ["Team Member (TM)"],
+            ["Accountant - I"] = ["Manager (Mng.)"],
+            ["Accountant - II"] = ["Manager (Mng.)"],
+            ["Accountant - III"] = ["Manager (Mng.)"],
+            ["Senior Accountant - I"] = ["Manager (Mng.)"],
+            ["Senior Accountant - II"] = ["Manager (Mng.)"],
+            ["Senior Accountant - III"] = ["Manager (Mng.)"],
+            ["HR Head"] = ["HR"],
+            ["Recruitment Coordinator - I"] = ["HR"],
+            ["Recruitment Coordinator - II"] = ["HR"],
+            ["Senior HR Executive - I"] = ["HR"],
+            ["Senior HR Executive - II"] = ["HR"],
+            ["Business Development Associate - I"] = ["Manager (Mng.)"],
+            ["Customer Success Representative - II"] = ["Manager (Mng.)"],
+            ["Director - Product Sales"] = ["Team Member (TM)"],
+            ["Sales Associate"] = ["Team Member (TM)"],
+            ["Associate Customer Success Representative - I"] = ["Team Member (TM)"],
+            ["Associate Customer Success Representative - II"] = ["Team Member (TM)"],
+            ["Associate PMO - I"] = ["Team Member (TM)"],
+            ["Associate PMO - II"] = ["Team Member (TM)"],
+            ["Senior PMO - I"] = ["Team Leader (TL)"],
+            ["Senior PMO - II"] = ["Manager (Mng.)"],
+            ["Delivery Account Manager - I"] = ["Team Member (TM)"],
+            ["Delivery Account Manager - II"] = ["Team Member (TM)"],
+            ["Senior Delivery Account Manager - I"] = ["Team Leader (TL)"],
+            ["Senior Delivery Account Manager - II"] = ["Manager (Mng.)"],
+            ["Python Developer - I"] = ["Team Member (TM)"],
+            ["Python Developer - II"] = ["Team Member (TM)"],
+            ["Python Developer - III"] = ["Team Member (TM)"],
+            ["SOC Analyst - I"] = ["Team Member (TM)"],
+            ["SOC Analyst - II"] = ["Team Member (TM)"],
+            ["SOC Analyst - III"] = ["Team Member (TM)"],
+            ["SOC Analyst - IV"] = ["Team Member (TM)"],
+            ["SIEM Admin - I"] = ["Team Member (TM)"],
+            ["SIEM Admin - II"] = ["Team Member (TM)"],
+            ["SIEM Admin - III"] = ["Team Member (TM)"],
+            ["SIEM Admin - IV"] = ["Team Member (TM)"],
+            ["SOC Consultant - I"] = ["Team Member (TM)"],
+            ["SOC Consultant - II"] = ["Team Member (TM)"],
+            ["SOC Shift Lead - I"] = ["Team Leader (TL)"],
+            ["SOC Shift Lead - II"] = ["Team Leader (TL)"],
+            ["SOC Lead - I"] = ["Team Leader (TL)"],
+            ["SOC Lead - II"] = ["Team Leader (TL)"],
+            ["GRC Auditor - I"] = ["Team Member (TM)"],
+            ["GRC Auditor - II"] = ["Team Member (TM)"],
+            ["GRC Auditor - III"] = ["Team Member (TM)"],
+            ["GRC Auditor - IV"] = ["Team Member (TM)"],
+            ["Senior GRC Auditor - I"] = ["Team Leader (TL)"],
+            ["Senior GRC Auditor - II"] = ["Team Leader (TL)"],
+            ["Associate Manager - III"] = ["Manager (Mng.)", "Team Leader (TL)"],
+            ["Principal Manager - I"] = ["Sr. Manager (Sr.Mng.)"],
+            ["Senior Vice President - Principal Consultant"] = ["Head Of Department (HOD)"],
+            ["PenTester - I"] = ["Team Member (TM)"],
+            ["PenTester - II"] = ["Team Member (TM)"],
+            ["PenTester - III"] = ["Team Member (TM)"],
+            ["PenTester - IV"] = ["Team Member (TM)"],
+            ["Senior Pentester - I"] = ["Team Member (TM)"],
+            ["Senior Pentester - II"] = ["Team Member (TM)"],
+            ["Associate Manager - I"] = ["Team Leader (TL)"],
+            ["Associate Manager - II"] = ["Team Leader (TL)"],
+            ["Associate Project Manager"] = ["Manager (Mng.)"],
+            ["Manager - I"] = ["Sr. Manager (Sr.Mng.)"],
+            ["DevSecOps Practitioner - I"] = ["Team Member (TM)"],
+            ["DevSecOps Practitioner - II"] = ["Team Member (TM)"],
+            ["DevSecOps Practitioner - III"] = ["Team Member (TM)"],
+            ["DevSecOps Associate"] = ["Team Leader (TL)"],
+            ["DevSecOps Specialist - II"] = ["Manager (Mng.)"],
+            ["Red Team Practitioner - II"] = ["Team Member (TM)"],
+            ["Red Team Practitioner - III"] = ["Team Member (TM)"],
+            ["Red Team Specialist - II"] = ["Manager (Mng.)"],
+            ["Senior Cloud Security Consultant - I"] = ["Manager (Mng.)"],
+            ["Associate AI Engineer - Contractual"] = ["Team Member (TM)"],
+            ["Intern"] = ["Team Member (TM)"],
         };
 
+        var allDesignations = await db.Designations.ToListAsync(ct);
         var existingCodes = await db.JobRoles.Select(r => r.Code).ToHashSetAsync(ct);
         var existingPairs = await db.JobRoles
             .Select(r => new { r.DesignationId, r.Name })
@@ -584,18 +608,18 @@ public static class DbSeeder
             .Select(r => (r.DesignationId, r.Name))
             .ToHashSet();
 
-        foreach (var (designationCode, names) in rolesByDesignation)
+        foreach (var desig in allDesignations)
         {
-            if (!designations.TryGetValue(designationCode, out var designation)) continue;
+            if (!onFloorRolesByDesignation.TryGetValue(desig.Name.Trim(), out var names)) continue;
             foreach (var name in names)
             {
-                if (existingKeys.Contains((designation.Id, name))) continue;
-                var roleCode = Truncate($"{designationCode}_{Slug(name)}", 80);
+                if (existingKeys.Contains((desig.Id, name))) continue;
+                var roleCode = Truncate($"{desig.Code}_{Slug(name)}", 80);
                 var n = 2;
                 while (existingCodes.Contains(roleCode))
                 {
                     var suffix = $"_{n}";
-                    roleCode = Truncate(designationCode + "_" + Slug(name), 80 - suffix.Length) + suffix;
+                    roleCode = Truncate(desig.Code + "_" + Slug(name), 80 - suffix.Length) + suffix;
                     n++;
                 }
 
@@ -603,11 +627,11 @@ public static class DbSeeder
                 {
                     Code = roleCode,
                     Name = name,
-                    DesignationId = designation.Id,
+                    DesignationId = desig.Id,
                     IsActive = true,
                 });
                 existingCodes.Add(roleCode);
-                existingKeys.Add((designation.Id, name));
+                existingKeys.Add((desig.Id, name));
             }
         }
     }
@@ -823,8 +847,7 @@ public static class DbSeeder
             departments.TryGetValue(row.Department, out var dept);
             designations.TryGetValue(row.Designation, out var desig);
             var andheri = i % 2 == 0;
-            var location = andheri ? "Andheri" : "Dombivli";
-            var branch = andheri ? "Suvidha Square" : "Navare Plaza";
+            var location = andheri ? "Suvidha Square, Andheri" : "Navare Plaza, Dombivli";
             var n = i + 1;
 
             entities.Add(new Employee
@@ -833,10 +856,7 @@ public static class DbSeeder
                 FirstName = row.FirstName,
                 LastName = row.LastName,
                 WorkEmail = workEmail,
-                PersonalEmail = $"{row.FirstName.ToLowerInvariant()}{1000 + n}@gmail.com",
-                Phone = (9876501000 + n).ToString(),
-                AltPhone = (9866501000 + n).ToString(),
-                Gender = row.Gender,
+                Phone = (9820000000 + n).ToString(),
                 DateOfBirth = new DateOnly(1990 + (i % 8), 1 + (i % 12), 1 + (i % 27)),
                 Address = $"{120 + n}, {location}",
                 EmergencyContact = (9811101000 + n).ToString(),
@@ -848,12 +868,12 @@ public static class DbSeeder
                 Role = row.Role,
                 JobRoleId = jobRoles.FirstOrDefault(r =>
                     r.DesignationId == desig?.Id && r.Name == row.Role)?.Id,
-                BusinessUnit = i % 2 == 0 ? "Cloud Platform" : "Enterprise",
+                BusinessUnit = "Talakunchi Networks Private Limited",
                 WorkLocation = location,
-                OfficeBranch = branch,
+                OfficeBranch = null,
                 Category = i % 5 == 0 ? "Permanent - Bond" : "Permanent - Without Bond",
-                Team = $"Team {(char)('A' + (i % 6))}",
-                ProjectSite = i % 3 == 0 ? "Onsite" : "Offsite",
+                Team = null,
+                ProjectSite = null,
                 JoiningDate = new DateOnly(2019 + (i % 6), 1 + (i % 12), 10),
                 Status = "Active",
                 ConfirmationStatus = "Active",
@@ -910,14 +930,18 @@ public static class DbSeeder
             if (string.IsNullOrWhiteSpace(emp.WorkLocation) ||
                 emp.WorkLocation.Contains("Andheri", StringComparison.OrdinalIgnoreCase))
             {
-                emp.WorkLocation = "Andheri";
-                emp.OfficeBranch = "Suvidha Square";
+                emp.WorkLocation = "Suvidha Square, Andheri";
+            }
+            else if (emp.WorkLocation.Contains("Dombi", StringComparison.OrdinalIgnoreCase))
+            {
+                emp.WorkLocation = "Navare Plaza, Dombivli";
             }
             else
             {
-                emp.WorkLocation = "Dombivli";
-                emp.OfficeBranch = "Navare Plaza";
+                emp.WorkLocation = "Onsite";
             }
+            emp.OfficeBranch = null;
+            emp.Team = null;
         }
 
         var seedCodes = seed.Select(s => s.Code).ToArray();

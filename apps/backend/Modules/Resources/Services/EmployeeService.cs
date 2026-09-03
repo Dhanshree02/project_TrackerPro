@@ -85,6 +85,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.Phone,
                 e.AltPhone,
                 e.EmergencyContact,
+                e.EmergencyContactName,
                 e.Pan,
                 e.BankAccount,
                 e.PfUan,
@@ -155,6 +156,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             DateOfBirth = request.DateOfBirth,
             Address = request.Address,
             EmergencyContact = request.EmergencyContact,
+            EmergencyContactName = request.EmergencyContactName,
             MaritalStatus = request.MaritalStatus,
             Nationality = request.Nationality,
             NationalityId = request.NationalityId ?? await ResolveNationalityIdAsync(request.Nationality, ct),
@@ -248,6 +250,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         if (request.DateOfBirth.HasValue) entity.DateOfBirth = request.DateOfBirth;
         if (request.Address is not null) entity.Address = request.Address;
         if (request.EmergencyContact is not null) entity.EmergencyContact = request.EmergencyContact;
+        if (request.EmergencyContactName is not null) entity.EmergencyContactName = request.EmergencyContactName;
         if (request.MaritalStatus is not null) entity.MaritalStatus = request.MaritalStatus;
         if (request.Nationality is not null) entity.Nationality = request.Nationality;
         if (request.NationalityId.HasValue) entity.NationalityId = request.NationalityId;
@@ -809,6 +812,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.DateOfBirth,
         e.Address,
         e.EmergencyContact,
+        e.EmergencyContactName,
         e.MaritalStatus,
         e.NationalityRef?.Name ?? e.Nationality,
         e.Department?.Name,

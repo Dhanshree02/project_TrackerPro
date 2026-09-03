@@ -94,6 +94,7 @@ import {
   type OnboardValues,
 } from "@/lib/onboard-validation";
 import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
+import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
 import { Modal } from "@/routes/projects.index";
 
 export const Route = createFileRoute("/dh-employee-directory/")({
@@ -166,9 +167,7 @@ const POOL_COLUMNS: { label: string; key: PoolSortKey | null; className?: string
   { label: "Allocation Status", key: "allocationStatus", className: "w-48 min-w-[170px]" },
   { label: "Allocation Type", key: null, className: "w-44 min-w-[150px]" },
   { label: "Allocation Duration", key: null, className: "w-48 min-w-[170px]" },
-  { label: "Location", key: "workLocation", className: "w-36 min-w-[130px]" },
-  { label: "Office", key: "officeBranch", className: "w-44 min-w-[150px]" },
-  { label: "Project Site", key: "projectSite", className: "w-36 min-w-[130px]" },
+  { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
   { label: "Tasks", key: null, className: "w-28 min-w-[100px]", align: "right" },
 ];
 
@@ -764,6 +763,7 @@ function FormField({
   prefix,
   suffix,
   inputMode,
+  disabled,
 }: {
   label: string;
   type?: string;
@@ -782,6 +782,7 @@ function FormField({
   prefix?: string;
   suffix?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  disabled?: boolean;
 }) {
   const resolvedMaxLength =
     type === "date" || type === "number" ? maxLength : (maxLength ?? FIELD_MAX.text);
@@ -790,7 +791,7 @@ function FormField({
     el.removeAttribute("readonly");
   };
   return (
-    <label className={cn("block", className)}>
+    <label className={cn("block", className, disabled && "cursor-not-allowed opacity-60")}>
       <span className={FORM_LABEL_CLS}>
         {label}
         {required ? <span className="text-destructive"> *</span> : null}
@@ -804,12 +805,13 @@ function FormField({
         <input
           id={name ? `onboard-${name}` : undefined}
           type={type === "email" ? "text" : type}
-          placeholder={placeholder}
-          autoComplete="new-password"
+          placeholder={disabled ? "" : placeholder}
+          autoComplete={type === "date" ? "off" : "new-password"}
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          readOnly
+          readOnly={type !== "date" && !disabled}
+          disabled={disabled}
           data-lpignore="true"
           data-1p-ignore="true"
           data-bwignore="true"
@@ -822,17 +824,25 @@ function FormField({
             FORM_CONTROL_CLS,
             prefix && "rounded-l-none",
             suffix && "pr-16",
+            type === "date" && "cursor-pointer",
             error && "border-destructive focus-visible:ring-destructive",
+            disabled && "cursor-not-allowed bg-muted/60 text-muted-foreground select-none pointer-events-none",
           )}
           {...(value !== undefined
-            ? { value, onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange?.(e.target.value) }
+            ? { value: disabled ? "" : value, onChange: (e: React.ChangeEvent<HTMLInputElement>) => !disabled && onChange?.(e.target.value) }
             : {})}
-          onFocus={(e) => unlock(e.currentTarget)}
-          onMouseDown={(e) => unlock(e.currentTarget)}
+          onFocus={(e) => { if (!disabled && type !== "date") unlock(e.currentTarget); }}
+          onMouseDown={(e) => { if (!disabled && type !== "date") unlock(e.currentTarget); }}
+          onClick={(e) => {
+            if (type === "date" && !disabled && typeof e.currentTarget.showPicker === "function") {
+              try { e.currentTarget.showPicker(); } catch {}
+            }
+          }}
           onBlur={onBlur}
           aria-label={label}
           aria-invalid={Boolean(error)}
           aria-required={required}
+          aria-disabled={disabled}
         />
         {suffix ? (
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -1170,7 +1180,16 @@ function OnboardingPanel({
       .then(setSalaryBands)
       .catch(() => toast.error("Could not load salary bands"));
     void fetchBusinessUnitOptions()
-      .then(setBuOptions)
+      .then((bus) => {
+        const list = bus ?? [];
+        setBuOptions(list);
+        if (list.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            businessUnit: prev.businessUnit || list[0].name,
+          }));
+        }
+      })
       .catch(() => toast.error("Could not load business units"));
     void fetchWorkLocationOptions()
       .then((locs) => setWorkLocOptions(locs ?? []))
@@ -1241,9 +1260,9 @@ function OnboardingPanel({
     const nextValue =
       field === "phone" || field === "altPhone" || field === "emergencyContact"
         ? toTenDigitPhone(value)
-        : field === "firstName" || field === "lastName"
+        : field === "firstName" || field === "lastName" || field === "emergencyContactName"
           ? toLettersName(value)
-          : field === "workEmail" || field === "personalEmail"
+          : field === "workEmail"
             ? toEmailInput(value)
             : field === "probationPeriod"
               ? toDigits(value, FIELD_MAX.probationMonths)
@@ -1265,16 +1284,11 @@ function OnboardingPanel({
       field === "phone" ||
       field === "altPhone" ||
       field === "emergencyContact" ||
-      field === "workEmail" ||
-      field === "personalEmail";
+      field === "emergencyContactName" ||
+      field === "workEmail";
 
     setErrors((prev) => {
-      if (
-        !live &&
-        !prev[field] &&
-        !(field === "workEmail" && prev.personalEmail) &&
-        !(field === "personalEmail" && prev.workEmail)
-      ) {
+      if (!live && !prev[field]) {
         return prev;
       }
       const nextErrors = { ...prev };
@@ -1282,17 +1296,12 @@ function OnboardingPanel({
       const message = validateOnboardField(field, simulatedNext, existingCodes);
       if (message) nextErrors[field] = message;
       else delete nextErrors[field];
-      if (field === "workEmail" && simulatedNext.personalEmail.trim()) {
-        const personalMsg = validateOnboardField("personalEmail", simulatedNext, existingCodes);
-        if (personalMsg) nextErrors.personalEmail = personalMsg;
-        else delete nextErrors.personalEmail;
-      }
       return nextErrors;
     });
   };
 
   const blurField = (field: OnboardField) => {
-    if (field === "workEmail" || field === "personalEmail") {
+    if (field === "workEmail") {
       const trimmed = form[field].trim();
       if (trimmed !== form[field]) {
         setField(field, trimmed);
@@ -1470,16 +1479,17 @@ function OnboardingPanel({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         workEmail: form.workEmail.trim(),
-        personalEmail: blankToNull(form.personalEmail),
+        personalEmail: null,
         phone: blankToNull(form.phone),
         altPhone: blankToNull(form.altPhone),
-        gender: blankToNull(form.gender),
-        dateOfBirth: blankToNull(form.dateOfBirth),
+        gender: null,
+        dateOfBirth: null,
         address: blankToNull(form.address),
         emergencyContact: blankToNull(form.emergencyContact),
-        maritalStatus: blankToNull(form.maritalStatus),
-        nationality: nationalities.find((n) => n.id === form.nationalityId)?.name ?? null,
-        nationalityId: form.nationalityId || null,
+        emergencyContactName: blankToNull(form.emergencyContactName),
+        maritalStatus: null,
+        nationality: null,
+        nationalityId: null,
         departmentId: resolvedDepartmentId,
         designationId: resolvedDesignationId,
         jobRoleId: resolvedJobRoleId,
@@ -1487,9 +1497,9 @@ function OnboardingPanel({
         reportingManagerId: resolvedReportingManagerId,
         businessUnit: resolvedBusinessUnit,
         workLocation: resolvedWorkLocation,
-        officeBranch: resolvedOffice,
+        officeBranch: null,
         category: blankToNull(form.category),
-        team: blankToNull(form.team),
+        team: null,
         joiningDate: blankToNull(form.joiningDate),
         status: toDirectoryStatus(employmentStatus),
         confirmationStatus: employmentStatus,
@@ -1501,7 +1511,7 @@ function OnboardingPanel({
         contractType: blankToNull(form.contractType),
         bondStatus: blankToNull(form.bondStatus),
         noticePeriod: form.noticePeriod.trim() ? `${form.noticePeriod.trim()} days` : null,
-        projectSite: blankToNull(form.projectSite),
+        projectSite: resolvedWorkLocation === "Onsite" ? blankToNull(form.projectSite) : null,
         assetId: blankToNull(form.assetId),
         exitType: form.exitType.trim() || "NA",
         exitReason: blankToNull(form.exitReason) ?? "NA",
@@ -1696,17 +1706,6 @@ function OnboardingPanel({
                 </label>
               </div>
               <FormField
-                label="Personal Email"
-                name="personalEmail"
-                type="text"
-                maxLength={FIELD_MAX.email}
-                placeholder="name@example.com"
-                value={form.personalEmail}
-                onChange={(v) => setField("personalEmail", v)}
-                onBlur={() => blurField("personalEmail")}
-                error={errors.personalEmail}
-              />
-              <FormField
                 label="Phone (Personal)"
                 name="phone"
                 required
@@ -1732,7 +1731,18 @@ function OnboardingPanel({
                 error={errors.altPhone}
               />
               <FormField
-                label="Emergency Contact"
+                label="Emergency Contact Name"
+                name="emergencyContactName"
+                required
+                maxLength={FIELD_MAX.emergencyContactName}
+                placeholder="Full name of emergency contact"
+                value={form.emergencyContactName}
+                onChange={(v) => setField("emergencyContactName", v)}
+                onBlur={() => blurField("emergencyContactName")}
+                error={errors.emergencyContactName}
+              />
+              <FormField
+                label="Emergency Contact Number"
                 name="emergencyContact"
                 required
                 inputMode="numeric"
@@ -1744,49 +1754,19 @@ function OnboardingPanel({
                 onBlur={() => blurField("emergencyContact")}
                 error={errors.emergencyContact}
               />
-              <FormSelect
-                label="Gender"
-                required
-                error={errors.gender}
-                options={["Male", "Female", "Other"]}
-                value={form.gender}
-                onChange={(v) => setField("gender", v)}
-              />
-              <FormField
-                label="Date of Birth"
-                type="date"
-                required
-                value={form.dateOfBirth}
-                min={MIN_DOB}
-                max={MAX_ADULT_DOB}
-                onChange={(v) => setField("dateOfBirth", v)}
-                onBlur={() => blurField("dateOfBirth")}
-                error={errors.dateOfBirth}
-              />
-              <FormSelect
-                label="Marital Status"
-                options={["Single", "Married", "Other"]}
-                value={form.maritalStatus}
-                onChange={(v) => setField("maritalStatus", v)}
-              />
-              <FormSelect
-                label="Nationality"
-                required
-                error={errors.nationalityId}
-                options={nationalities.map((n) => ({ value: n.id, label: n.name }))}
-                value={form.nationalityId}
-                onChange={(v) => setField("nationalityId", v)}
-              />
-              <div className="md:col-span-2">
-                <FormTextarea
-                  label="Address"
-                  name="address"
+              <div className="md:col-span-1 lg:col-span-2">
+                <FormSelect
+                  label="Current Address - City"
                   required
                   error={errors.address}
-                  maxLength={FIELD_MAX.address}
-                  placeholder="Street address, city, state, PIN code"
+                  options={MUMBAI_RAILWAY_STATIONS}
                   value={form.address}
-                  onChange={(v) => setField("address", v)}
+                  onChange={(v) => {
+                    setField("address", v);
+                    blurField("address");
+                  }}
+                  placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
+                  showSearch
                 />
               </div>
             </FormSection>
@@ -1842,11 +1822,12 @@ function OnboardingPanel({
                 }}
               />
               <CreatableCatalogSelect
-                label="Role"
+                label="On Floor Role"
                 options={roleOptions}
                 valueId={form.jobRoleId}
                 disabled={!form.designationId}
                 disabledHint="Select a designation first"
+                placeholder="Select on floor role"
                 onSelect={(id) => setField("jobRoleId", id)}
                 onCreate={(name) => {
                   const trimmed = name.trim();
@@ -1893,19 +1874,6 @@ function OnboardingPanel({
                   return temp;
                 }}
               />
-              <FormField
-                label="Team"
-                placeholder="Enter team or squad name"
-                maxLength={FIELD_MAX.team}
-                value={form.team}
-                onChange={(v) => setField("team", v)}
-              />
-              <FormSelect
-                label="Project Site"
-                options={["Onsite", "Offsite"]}
-                value={form.projectSite}
-                onChange={(v) => setField("projectSite", v)}
-              />
               <CreatableCatalogSelect
                 label="Work Location"
                 required
@@ -1921,19 +1889,11 @@ function OnboardingPanel({
                       l.name.toLowerCase() === resolvedName.toLowerCase() ||
                       (l.code && l.code.toLowerCase() === resolvedName.toLowerCase()),
                   );
-                  const matchedOffices = loc ? officeOptions.filter((o) => o.parentId === loc.id) : [];
-                  const autoOffice =
-                    matchedOffices.length === 1
-                      ? matchedOffices[0].name
-                      : matchedOffices.some(
-                            (o) => o.name.toLowerCase() === form.officeBranch.toLowerCase(),
-                          )
-                        ? form.officeBranch
-                        : "";
+                  const selectedName = loc ? loc.name : resolvedName;
                   setForm((prev) => ({
                     ...prev,
-                    workLocation: loc ? loc.name : resolvedName,
-                    officeBranch: autoOffice,
+                    workLocation: selectedName,
+                    projectSite: selectedName === "Onsite" ? prev.projectSite : "",
                   }));
                 }}
                 onCreate={async (name) => {
@@ -1951,49 +1911,13 @@ function OnboardingPanel({
                   }
                 }}
               />
-              <CreatableCatalogSelect
-                label="Office"
-                required
-                error={errors.officeBranch}
-                options={availableOffices}
-                valueId={availableOffices.find((o) => o.name.toLowerCase() === form.officeBranch.toLowerCase() || o.id === form.officeBranch)?.id ?? form.officeBranch}
-                disabled={!selectedWorkLoc}
-                disabledHint="Select a work location first"
-                placeholder={selectedWorkLoc ? "Select office branch" : "Select a work location first"}
-                onSelect={(id, name) => {
-                  const resolvedName = name || id;
-                  const off = availableOffices.find(
-                    (o) =>
-                      o.id === id ||
-                      o.name.toLowerCase() === resolvedName.toLowerCase(),
-                  );
-                  setForm((prev) => ({
-                    ...prev,
-                    officeBranch: off ? off.name : resolvedName,
-                  }));
-                }}
-                onCreate={async (name) => {
-                  const trimmed = name.trim();
-                  const existing = availableOffices.find((o) => o.name.toLowerCase() === trimmed.toLowerCase());
-                  if (existing) return existing;
-                  if (selectedWorkLoc && !selectedWorkLoc.id.startsWith("__new__")) {
-                    try {
-                      const created = await createOfficeOption(trimmed, selectedWorkLoc.id);
-                      setOfficeOptions((prev) => [...prev, created]);
-                      return created;
-                    } catch {
-                      // fallback
-                    }
-                  }
-                  const temp = {
-                    id: `__new__${trimmed}`,
-                    code: `__new__${trimmed}`,
-                    name: trimmed,
-                    parentId: selectedWorkLoc?.id,
-                  };
-                  setOfficeOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
+              <FormField
+                label="Location"
+                disabled={form.workLocation !== "Onsite"}
+                placeholder="Enter onsite location"
+                maxLength={FIELD_MAX.projectSite}
+                value={form.workLocation === "Onsite" ? form.projectSite : ""}
+                onChange={(v) => setField("projectSite", v)}
               />
             </FormSection>
 
@@ -2826,26 +2750,16 @@ function EmployeeDirectoryPage() {
                       </td>
                       <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">—</td>
                       <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">—</td>
-                      <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
-                        {dash(e.workLocation)}
-                      </td>
-                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.officeBranch}>
-                        {dash(e.officeBranch)}
-                      </td>
-                      <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3.5">
-                        {e.projectSite === "Onsite" || e.projectSite === "Offsite" ? (
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                              e.projectSite === "Onsite"
-                                ? "border-info/30 bg-info/10 text-info"
-                                : "border-muted-foreground/30 bg-muted text-muted-foreground",
-                            )}
-                          >
-                            {e.projectSite}
+                      <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
+                        {e.workLocation === "Onsite" && e.projectSite ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
+                              Onsite
+                            </span>
+                            <span className="text-xs text-foreground truncate max-w-[120px]">{e.projectSite}</span>
                           </span>
                         ) : (
-                          "—"
+                          dash(e.workLocation)
                         )}
                       </td>
                       <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5 text-right">

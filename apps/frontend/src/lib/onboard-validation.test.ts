@@ -49,17 +49,12 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       );
     });
 
-    it("should require gender", () => {
-      expect(validateOnboardField("gender", { ...EMPTY_ONBOARD, gender: "" })).toBe(
-        "Gender is required",
-      );
-      expect(validateOnboardField("gender", { ...EMPTY_ONBOARD, gender: "Male" })).toBeUndefined();
+    it("should not require gender", () => {
+      expect(validateOnboardField("gender", { ...EMPTY_ONBOARD, gender: "" })).toBeUndefined();
     });
 
-    it("should require date of birth and enforce age limits", () => {
-      expect(validateOnboardField("dateOfBirth", { ...EMPTY_ONBOARD, dateOfBirth: "" })).toBe(
-        "Date of birth is required",
-      );
+    it("should enforce age limits if date of birth is provided", () => {
+      expect(validateOnboardField("dateOfBirth", { ...EMPTY_ONBOARD, dateOfBirth: "" })).toBeUndefined();
       const minorDob = isoDateYearsAgo(17);
       expect(
         validateOnboardField("dateOfBirth", { ...EMPTY_ONBOARD, dateOfBirth: minorDob }),
@@ -70,22 +65,23 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       ).toBeUndefined();
     });
 
-    it("should require nationality", () => {
-      expect(validateOnboardField("nationalityId", { ...EMPTY_ONBOARD, nationalityId: "" })).toBe(
-        "Nationality is required",
+    it("should require Current Address - City", () => {
+      expect(validateOnboardField("address", { ...EMPTY_ONBOARD, address: "" })).toBe(
+        "Current Address - City is required",
       );
       expect(
-        validateOnboardField("nationalityId", { ...EMPTY_ONBOARD, nationalityId: "IND" }),
+        validateOnboardField("address", { ...EMPTY_ONBOARD, address: "Andheri (Western Line)" }),
       ).toBeUndefined();
     });
 
-    it("should require address", () => {
-      expect(validateOnboardField("address", { ...EMPTY_ONBOARD, address: "" })).toBe(
-        "Residential address is required",
+    it("should require emergency contact name and phone", () => {
+      expect(validateOnboardField("emergencyContactName", { ...EMPTY_ONBOARD, emergencyContactName: "" })).toBe(
+        "Emergency contact name is required",
       );
-      expect(
-        validateOnboardField("address", { ...EMPTY_ONBOARD, address: "123 Main St, Mumbai" }),
-      ).toBeUndefined();
+      expect(validateOnboardField("emergencyContactName", { ...EMPTY_ONBOARD, emergencyContactName: "123" })).toBe(
+        "Only letters, spaces, hyphens, and apostrophes are allowed",
+      );
+      expect(validateOnboardField("emergencyContactName", { ...EMPTY_ONBOARD, emergencyContactName: "Pooja Sharma" })).toBeUndefined();
     });
 
     it("should require phone and emergency contact", () => {
@@ -102,7 +98,7 @@ describe("Onboarding Form Validation & Exception Handling", () => {
   });
 
   describe("Organizational Placement Validation", () => {
-    it("should require department, designation, manager, work location, and office", () => {
+    it("should require department, designation, manager, and work location (office is not required)", () => {
       expect(validateOnboardField("departmentId", { ...EMPTY_ONBOARD, departmentId: "" })).toBe(
         "Department is required",
       );
@@ -115,9 +111,7 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       expect(validateOnboardField("workLocation", { ...EMPTY_ONBOARD, workLocation: "" })).toBe(
         "Work location is required",
       );
-      expect(validateOnboardField("officeBranch", { ...EMPTY_ONBOARD, officeBranch: "" })).toBe(
-        "Office branch is required",
-      );
+      expect(validateOnboardField("officeBranch", { ...EMPTY_ONBOARD, officeBranch: "" })).toBeUndefined();
     });
   });
 
@@ -212,16 +206,15 @@ describe("Onboarding Form Validation & Exception Handling", () => {
         ...EMPTY_ONBOARD,
         firstName: "Rajesh",
         lastName: "Sharma",
-        workEmail: "rajesh.sharma@company.com",
-        personalEmail: "rajesh.personal@gmail.com",
-        employeeCode: "EMP-2045",
+        workEmail: "rajesh.sharma@talakunchi.com",
+        personalEmail: "",
+        employeeCode: "TK-2045",
         phone: "9876543210",
         altPhone: "9876543211",
         emergencyContact: "9876543212",
-        gender: "Male",
-        dateOfBirth: "1995-05-15",
-        nationalityId: "IND-01",
-        address: "Flat 402, Skyline Towers, Mumbai",
+        emergencyContactName: "Pooja Sharma",
+        gender: "",
+        address: "Andheri (Western Line)",
         departmentId: "DEPT-01",
         designationId: "DESIG-01",
         reportingManagerId: "MGR-01",
@@ -238,7 +231,7 @@ describe("Onboarding Form Validation & Exception Handling", () => {
         salaryBandId: "BAND-L3",
       };
 
-      const errors = validateOnboardForm(validForm, ["EMP-1001"]);
+      const errors = validateOnboardForm(validForm, ["TK-1001"]);
       expect(Object.keys(errors).length).toBe(0);
     });
   });

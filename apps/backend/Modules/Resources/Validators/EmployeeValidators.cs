@@ -60,6 +60,11 @@ public sealed class CreateEmployeeRequestValidator : AbstractValidator<CreateEmp
         RuleFor(x => x.AltPhone)
             .MustBeValidIndianPhone()
             .When(x => !string.IsNullOrWhiteSpace(x.AltPhone));
+        RuleFor(x => x.EmergencyContactName)
+            .MaximumLength(120)
+            .Matches(@"^[A-Za-z]+(?:['\s\-][A-Za-z]+)*$")
+            .WithMessage("Emergency contact name can only contain letters, spaces, hyphens, and apostrophes")
+            .When(x => !string.IsNullOrWhiteSpace(x.EmergencyContactName));
         RuleFor(x => x.DateOfBirth)
             .Must(d => !d.HasValue || d.Value <= DateOnly.FromDateTime(DateTime.UtcNow.Date.AddYears(-18)))
             .WithMessage("Employee must be at least 18 years old");
@@ -134,6 +139,11 @@ public sealed class UpdateEmployeeRequestValidator : AbstractValidator<UpdateEmp
         RuleFor(x => x.AltPhone)
             .MustBeValidIndianPhone()
             .When(x => !string.IsNullOrWhiteSpace(x.AltPhone));
+        RuleFor(x => x.EmergencyContactName)
+            .MaximumLength(120)
+            .Matches(@"^[A-Za-z]+(?:['\s\-][A-Za-z]+)*$")
+            .WithMessage("Emergency contact name can only contain letters, spaces, hyphens, and apostrophes")
+            .When(x => !string.IsNullOrWhiteSpace(x.EmergencyContactName));
         RuleFor(x => x.DateOfBirth)
             .Must(d => !d.HasValue || d.Value <= DateOnly.FromDateTime(DateTime.UtcNow.Date.AddYears(-18)))
             .WithMessage("Employee must be at least 18 years old");

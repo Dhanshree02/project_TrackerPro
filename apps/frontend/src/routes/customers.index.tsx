@@ -463,20 +463,22 @@ function CustomersPage() {
                     </div>
                   </div>
 
-                  {/* Stakeholders Section: Single unified box with Engagement Manager & Sales Manager stacked */}
-                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 space-y-2 dark:border-border/60 dark:bg-muted/30">
+                  {/* Stakeholders Section: Apple Inset Grouped with subtle shadow & normal icons */}
+                  <div className="rounded-xl border border-slate-200/80 bg-white/70 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-xs px-3 py-2.5 space-y-2 dark:border-border/60 dark:bg-muted/20 dark:shadow-none">
                     {/* Engagement Manager */}
                     <div className="flex items-center justify-between gap-3 text-xs">
-                      <div className="flex items-center gap-2 min-w-0 text-muted-foreground">
-                        <UserRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" aria-hidden />
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground">
+                          <UserRound className="h-3 w-3" />
+                        </span>
                         <span className="truncate text-xs font-normal text-muted-foreground">
                           Engagement Manager
                         </span>
                       </div>
                       <span
                         className={cn(
-                          "truncate text-xs font-semibold text-right max-w-[50%]",
-                          c.engagementManager?.trim() ? "text-foreground font-bold" : "text-muted-foreground/60 font-normal",
+                          "truncate text-xs text-right max-w-[50%]",
+                          c.engagementManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground/60 italic font-normal",
                         )}
                         title={emName}
                       >
@@ -484,18 +486,23 @@ function CustomersPage() {
                       </span>
                     </div>
 
+                    {/* Hairline Divider */}
+                    <div className="h-px bg-slate-200/60 dark:bg-border/40" />
+
                     {/* Sales Manager */}
-                    <div className="flex items-center justify-between gap-3 text-xs border-t border-slate-200/60 pt-2 dark:border-border/40">
-                      <div className="flex items-center gap-2 min-w-0 text-muted-foreground">
-                        <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" aria-hidden />
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground">
+                          <Briefcase className="h-3 w-3" />
+                        </span>
                         <span className="truncate text-xs font-normal text-muted-foreground">
                           Sales Manager
                         </span>
                       </div>
                       <span
                         className={cn(
-                          "truncate text-xs font-semibold text-right max-w-[50%]",
-                          c.salesManager?.trim() ? "text-foreground font-bold" : "text-muted-foreground/60 font-normal",
+                          "truncate text-xs text-right max-w-[50%]",
+                          c.salesManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground/60 italic font-normal",
                         )}
                         title={smName}
                       >
@@ -735,9 +742,12 @@ function CustomersPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{c.industry}</td>
-                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.engagementManager || "—"}</td>
-                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.salesManager || "—"}</td>
+                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">
+                    {c.engagementManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">
+                    {c.salesManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
+                  </td>
                   <td className="px-3 py-2.5 tabular-nums">
                     <Link
                       to="/customers/$clientId"
