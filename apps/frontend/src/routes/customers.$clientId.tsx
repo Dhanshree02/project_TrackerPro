@@ -415,7 +415,7 @@ function CustomerDetailPage() {
       </nav>
 
       {/* ── REDESIGNED CLIENT HEADER BANNER ── */}
-      <div className="mb-4 rounded-2xl border border-slate-200/90 dark:border-border/80 bg-card p-5 shadow-sm space-y-4">
+      <div className="mb-4 rounded-2xl border border-slate-300/90 dark:border-slate-700/80 bg-gradient-to-b from-slate-100/95 via-slate-100 to-blue-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950 p-5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)] space-y-4">
         {/* Top Tier: Identity & Stakeholders */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-border/60">
           {/* Left: Customer Identity & Badges */}
@@ -431,7 +431,7 @@ function CustomerDetailPage() {
                 </h1>
                 
                 {/* Clearly Labeled Customer ID */}
-                <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-muted border border-border text-foreground">
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-border text-foreground shadow-2xs">
                   <Tag className="h-3 w-3 text-muted-foreground" />
                   {formatCustomerId(client.id)}
                 </span>
@@ -442,7 +442,7 @@ function CustomerDetailPage() {
                     "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                     client.clientType === "NEW"
                       ? "border border-primary/30 bg-primary/10 text-primary"
-                      : "border border-slate-200 dark:border-border bg-muted/60 text-muted-foreground",
+                      : "border border-slate-200 dark:border-border bg-white/80 dark:bg-muted/60 text-muted-foreground",
                   )}
                 >
                   {client.clientType === "NEW" ? "New Customer" : "Existing Customer"}
@@ -482,63 +482,61 @@ function CustomerDetailPage() {
             </div>
           </div>
 
-          {/* Right: Key Stakeholders (Engagement Manager & Sales Manager) - Apple HIG Stacked */}
-          <div className="flex flex-col justify-center rounded-xl border border-slate-200/80 bg-white/75 shadow-[0_1px_4px_rgba(0,0,0,0.04)] backdrop-blur-xs px-3.5 py-2.5 min-w-[220px] space-y-2 dark:border-border/60 dark:bg-muted/20 dark:shadow-none">
+          {/* Right: Key Stakeholders (Engagement Manager & Sales Manager) - Side-by-Side Card */}
+          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/90 bg-white dark:bg-card dark:border-border/80 px-4 py-2.5 shadow-2xs">
             {/* Engagement Manager */}
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground">
-                  <UserRound className="h-3 w-3" />
-                </span>
-                <span className="truncate text-xs font-normal text-muted-foreground">
-                  Engagement Manager
-                </span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                <UserRound className="h-5 w-5" />
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <span>ENGAGEMENT MANAGER</span>
+                  {(isDhanshree || hasPermission("customers.edit")) && !isSales && (
+                    <button
+                      type="button"
+                      onClick={openEmPicker}
+                      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer transition-colors"
+                      title="Change Engagement Manager"
+                    >
+                      Change
+                    </button>
+                  )}
+                </div>
+                <div
                   className={cn(
-                    "truncate text-xs font-semibold text-right",
-                    emName !== "—" ? "text-foreground" : "text-muted-foreground/60 italic font-normal",
+                    "text-sm font-bold truncate max-w-[150px]",
+                    emName !== "—" ? "text-foreground" : "text-muted-foreground/60 italic font-normal text-xs",
                   )}
                   title={emName}
                 >
                   {emName !== "—" ? emName : "Unassigned"}
-                </span>
-                {(isDhanshree || hasPermission("customers.edit")) && !isSales && (
-                  <button
-                    type="button"
-                    onClick={openEmPicker}
-                    className="text-[10px] text-muted-foreground hover:text-foreground hover:underline font-medium cursor-pointer transition-colors"
-                    title="Change Engagement Manager"
-                  >
-                    Change
-                  </button>
-                )}
+                </div>
               </div>
             </div>
 
-            {/* Hairline Divider */}
-            <div className="h-px bg-slate-200/60 dark:bg-border/40" />
+            {/* Vertical Divider */}
+            <div className="h-8 w-px bg-slate-200 dark:bg-border/60 shrink-0" />
 
             {/* Sales Manager */}
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground">
-                  <Briefcase className="h-3 w-3" />
-                </span>
-                <span className="truncate text-xs font-normal text-muted-foreground">
-                  Sales Manager
-                </span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                <Briefcase className="h-5 w-5" />
               </div>
-              <span
-                className={cn(
-                  "truncate text-xs font-semibold text-right shrink-0",
-                  client.salesManager?.trim() ? "text-foreground" : "text-muted-foreground/60 italic font-normal",
-                )}
-                title={client.salesManager || "Unassigned"}
-              >
-                {client.salesManager?.trim() || "Unassigned"}
-              </span>
+              <div className="space-y-0.5 min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  SALES MANAGER
+                </div>
+                <div
+                  className={cn(
+                    "text-sm font-bold truncate max-w-[150px]",
+                    client.salesManager?.trim() ? "text-foreground" : "text-muted-foreground/60 italic font-normal text-xs",
+                  )}
+                  title={client.salesManager || "Unassigned"}
+                >
+                  {client.salesManager?.trim() || "Unassigned"}
+                </div>
+              </div>
             </div>
           </div>
         </div>

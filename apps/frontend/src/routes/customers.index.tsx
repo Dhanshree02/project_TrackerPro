@@ -96,18 +96,18 @@ type CustomerListRow = {
   active: number;
 };
 
-const CUSTOMER_LIST_COLUMNS: { label: string; key: CustomerListSortKey }[] = [
-  { label: "Customer", key: "name" },
-  { label: "Industry", key: "industry" },
-  { label: "Engagement Manager", key: "engagementManager" },
-  { label: "Sales Manager", key: "salesManager" },
-  { label: "Total", key: "total" },
-  { label: "New", key: "newCount" },
-  { label: "Ongoing", key: "ongoing" },
-  { label: "Completed", key: "completed" },
-  { label: "On Hold", key: "onHold" },
-  { label: "Archived", key: "archived" },
-  { label: "Status", key: "status" },
+const CUSTOMER_LIST_COLUMNS: { label: string; key: CustomerListSortKey; className?: string }[] = [
+  { label: "Customer", key: "name", className: "min-w-[200px]" },
+  { label: "Industry", key: "industry", className: "w-36 min-w-[120px]" },
+  { label: "Engagement Manager", key: "engagementManager", className: "w-44 min-w-[150px]" },
+  { label: "Sales Manager", key: "salesManager", className: "w-40 min-w-[140px]" },
+  { label: "Total", key: "total", className: "w-24 min-w-[96px] text-center" },
+  { label: "New", key: "newCount", className: "w-24 min-w-[96px] text-center" },
+  { label: "Ongoing", key: "ongoing", className: "w-24 min-w-[96px] text-center" },
+  { label: "Completed", key: "completed", className: "w-24 min-w-[96px] text-center" },
+  { label: "On Hold", key: "onHold", className: "w-24 min-w-[96px] text-center" },
+  { label: "Archived", key: "archived", className: "w-24 min-w-[96px] text-center" },
+  { label: "Status", key: "status", className: "w-24 min-w-[90px]" },
 ];
 
 function sortBlank(value: string): string {
@@ -152,6 +152,7 @@ function SortableTh<T extends string>({
   sortDir,
   onSort,
   isLast,
+  className,
 }: {
   label: string;
   column: T;
@@ -159,15 +160,17 @@ function SortableTh<T extends string>({
   sortDir: SortDir;
   onSort: (column: T) => void;
   isLast?: boolean;
+  className?: string;
 }) {
   const active = sortKey === column;
   return (
-    <th className="relative whitespace-nowrap px-3 py-2.5 font-semibold">
+    <th className={cn("relative whitespace-nowrap px-3 py-2.5 font-semibold", className)}>
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
+          "group inline-flex items-center gap-1.5 text-xs font-semibold transition-colors select-none",
+          className?.includes("text-center") ? "justify-center w-full" : "text-left",
           active
             ? "text-blue-600 dark:text-blue-400 font-bold"
             : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
@@ -422,11 +425,11 @@ function CustomersPage() {
                 }}
                 className={cn(
                   "group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl",
-                  "border border-slate-200/90 dark:border-border/80",
-                  "bg-white dark:bg-card",
-                  "shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06),0_1px_3px_rgba(15,23,42,0.04)]",
+                  "border border-slate-300/90 dark:border-slate-700/80",
+                  "bg-gradient-to-b from-slate-100/95 via-slate-100 to-blue-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950",
+                  "shadow-[0_4px_16px_-4px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)]",
                   "transition-all duration-200 ease-out",
-                  "hover:border-blue-500 hover:shadow-[0_12px_28px_-4px_rgba(37,99,235,0.14),0_4px_10px_-2px_rgba(15,23,42,0.06)]",
+                  "hover:border-blue-500 hover:shadow-[0_16px_32px_-6px_rgba(37,99,235,0.22),0_6px_14px_-2px_rgba(15,23,42,0.08)]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   "before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-blue-600 before:to-indigo-500 before:opacity-0 group-hover:before:opacity-100 before:transition-opacity before:duration-200",
                 )}
@@ -439,7 +442,7 @@ function CustomersPage() {
                       className={cn(
                         "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
                         "bg-blue-600 text-sm font-bold tracking-tight text-white",
-                        "shadow-xs group-hover:scale-105 transition-transform duration-200",
+                        "shadow-sm group-hover:scale-105 transition-transform duration-200",
                       )}
                       aria-hidden
                     >
@@ -456,19 +459,19 @@ function CustomersPage() {
                           </p>
                         </div>
                         <ChevronRight
-                          className="h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary shrink-0 mt-0.5"
+                          className="h-4 w-4 text-muted-foreground/70 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary shrink-0 mt-0.5"
                           aria-hidden
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Stakeholders Section: Apple Inset Grouped with subtle shadow & normal icons */}
-                  <div className="rounded-xl border border-slate-200/80 bg-white/70 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-xs px-3 py-2.5 space-y-2 dark:border-border/60 dark:bg-muted/20 dark:shadow-none">
+                  {/* Stakeholders Section: Crisp White Inset Card */}
+                  <div className="rounded-xl border border-slate-200/90 bg-white shadow-xs px-3.5 py-2.5 space-y-2 dark:border-slate-800 dark:bg-slate-950">
                     {/* Engagement Manager */}
                     <div className="flex items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
                           <UserRound className="h-3 w-3" />
                         </span>
                         <span className="truncate text-xs font-normal text-muted-foreground">
@@ -487,12 +490,12 @@ function CustomersPage() {
                     </div>
 
                     {/* Hairline Divider */}
-                    <div className="h-px bg-slate-200/60 dark:bg-border/40" />
+                    <div className="h-px bg-slate-100 dark:bg-slate-800" />
 
                     {/* Sales Manager */}
                     <div className="flex items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
                           <Briefcase className="h-3 w-3" />
                         </span>
                         <span className="truncate text-xs font-normal text-muted-foreground">
@@ -512,8 +515,8 @@ function CustomersPage() {
                   </div>
                 </div>
 
-                {/* SECTION 2: Project Metrics (Bottom Section matching reference design) */}
-                <div className="mt-auto border-t border-slate-200/80 bg-slate-50/40 px-4 py-3 dark:border-border/70 dark:bg-muted/20">
+                {/* SECTION 2: Project Metrics (Bottom Section) */}
+                <div className="mt-auto border-t border-slate-300/80 bg-slate-200/50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/60">
                   <div className="flex items-center gap-2.5">
                     {/* Total Project Ring Gauge Button (Filters by All) */}
                     <button
@@ -708,6 +711,7 @@ function CustomersPage() {
                     sortKey={sortKey}
                     sortDir={sortDir}
                     isLast={idx === cols.length - 1}
+                    className={col.className}
                     onSort={(next) => {
                       if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
                       else {
@@ -721,100 +725,171 @@ function CustomersPage() {
             </thead>
             <tbody className="bg-card [&>tr>td]:border-b [&>tr>td]:border-slate-200 dark:[&>tr>td]:border-border">
               {sorted.map(
-                ({ client: c, total, newCount, ongoing, completed, onHold, archived }) => (
-                <tr key={c.id} className="bg-card">
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
-                        {c.logo}
-                      </span>
-                      <div className="min-w-0">
-                        <Link
-                          to="/customers/$clientId"
-                          params={{ clientId: c.id }}
-                          className="block truncate font-medium text-foreground hover:text-primary hover:underline"
+                ({ client: c, total, newCount, ongoing, completed, onHold, archived }) => {
+                  const emName = c.engagementManager?.trim() || "Unassigned";
+                  const smName = c.salesManager?.trim() || "Unassigned";
+
+                  return (
+                    <tr
+                      key={c.id}
+                      onClick={() => navigate({ to: "/customers/$clientId", params: { clientId: c.id } })}
+                      className="group/row cursor-pointer bg-card hover:bg-blue-50/30 dark:hover:bg-muted/30 transition-colors"
+                    >
+                      {/* Customer */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
+                            {c.logo}
+                          </span>
+                          <div className="min-w-0">
+                            <span className="block truncate font-medium text-foreground hover:text-primary transition-colors">
+                              {c.name}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              {formatCustomerId(c.id)}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Industry */}
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                        {c.industry || "—"}
+                      </td>
+
+                      {/* Engagement Manager */}
+                      <td className="px-3 py-2.5 text-xs text-foreground font-medium">
+                        {c.engagementManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
+                      </td>
+
+                      {/* Sales Manager */}
+                      <td className="px-3 py-2.5 text-xs text-foreground font-medium">
+                        {c.salesManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
+                      </td>
+
+                      {/* Total */}
+                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "all" },
+                            });
+                          }}
+                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-muted font-bold text-xs text-foreground hover:border-blue-400 hover:bg-blue-50/80 hover:text-blue-600 transition-all cursor-pointer"
+                          title={`Filter: ${total} Total Projects`}
                         >
-                          {c.name}
-                        </Link>
-                        <span className="font-mono text-[10px] text-muted-foreground">
-                          {formatCustomerId(c.id)}
+                          {total}
+                        </button>
+                      </td>
+
+                      {/* New */}
+                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "new" },
+                            });
+                          }}
+                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-blue-50 dark:bg-blue-950/50 border border-blue-200/60 dark:border-blue-900/40 font-bold text-xs text-blue-700 dark:text-blue-300 hover:bg-blue-100 hover:scale-105 transition-all cursor-pointer"
+                          title={`Filter: ${newCount} New Projects`}
+                        >
+                          {newCount}
+                        </button>
+                      </td>
+
+                      {/* Ongoing */}
+                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "ongoing" },
+                            });
+                          }}
+                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-purple-50 dark:bg-purple-950/50 border border-purple-200/60 dark:border-purple-900/40 font-bold text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-100 hover:scale-105 transition-all cursor-pointer"
+                          title={`Filter: ${ongoing} Ongoing Projects`}
+                        >
+                          {ongoing}
+                        </button>
+                      </td>
+
+                      {/* Completed */}
+                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "completed" },
+                            });
+                          }}
+                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-900/40 font-bold text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-105 transition-all cursor-pointer"
+                          title={`Filter: ${completed} Completed Projects`}
+                        >
+                          {completed}
+                        </button>
+                      </td>
+
+                      {/* On Hold */}
+                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "on_hold" },
+                            });
+                          }}
+                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-amber-50 dark:bg-amber-950/50 border border-amber-200/60 dark:border-amber-900/40 font-bold text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-100 hover:scale-105 transition-all cursor-pointer"
+                          title={`Filter: ${onHold} On Hold Projects`}
+                        >
+                          {onHold}
+                        </button>
+                      </td>
+
+                      {/* Archived */}
+                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "archived" },
+                            });
+                          }}
+                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:scale-105 transition-all cursor-pointer"
+                          title={`Filter: ${archived} Archived Projects`}
+                        >
+                          {archived}
+                        </button>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-3 py-2.5">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
+                          Active
                         </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">
-                    {c.engagementManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">
-                    {c.salesManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "all" }}
-                      className="hover:underline font-semibold"
-                    >
-                      {total}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-primary font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "new" }}
-                      className="hover:underline"
-                    >
-                      {newCount}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-info font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "ongoing" }}
-                      className="hover:underline"
-                    >
-                      {ongoing}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-success font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "completed" }}
-                      className="hover:underline"
-                    >
-                      {completed}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-warning-foreground font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "on_hold" }}
-                      className="hover:underline"
-                    >
-                      {onHold}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-muted-foreground font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "archived" }}
-                      className="hover:underline"
-                    >
-                      {archived}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
-                      Active
-                    </span>
-                  </td>
-                </tr>
-              ),
+                      </td>
+                    </tr>
+                  );
+                },
               )}
             </tbody>
           </table>
