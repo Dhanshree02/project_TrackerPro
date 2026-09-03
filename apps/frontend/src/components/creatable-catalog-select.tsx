@@ -31,6 +31,7 @@ export function SearchableSelect({
   required,
   className,
   onCreate,
+  showSearch: showSearchProp,
 }: {
   label?: string;
   options: Array<string | SearchableSelectOption>;
@@ -44,6 +45,7 @@ export function SearchableSelect({
   required?: boolean;
   className?: string;
   onCreate?: (name: string) => Promise<{ id: string; name: string } | void>;
+  showSearch?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -59,12 +61,15 @@ export function SearchableSelect({
     [options],
   );
 
+  const showSearch = showSearchProp !== undefined ? showSearchProp : normalizedOptions.length >= 5;
+
   const selectedOption = useMemo(
     () => normalizedOptions.find((o) => o.value === value),
     [normalizedOptions, value],
   );
 
   const filteredOptions = useMemo(() => {
+    if (!showSearch) return normalizedOptions;
     const q = search.trim().toLowerCase();
     if (!q) return normalizedOptions;
     return normalizedOptions.filter(
@@ -73,7 +78,7 @@ export function SearchableSelect({
         (o.subLabel && o.subLabel.toLowerCase().includes(q)) ||
         o.value.toLowerCase().includes(q),
     );
-  }, [normalizedOptions, search]);
+  }, [normalizedOptions, search, showSearch]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -90,12 +95,12 @@ export function SearchableSelect({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && showSearch) {
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 50);
     }
-  }, [isOpen]);
+  }, [isOpen, showSearch]);
 
   const handleSelect = (val: string) => {
     onChange?.(val);
@@ -185,36 +190,38 @@ export function SearchableSelect({
             role="listbox"
           >
             {/* Search Input */}
-            <div className="sticky top-0 z-10 border-b border-border bg-popover p-1.5">
-              <div className="relative flex items-center">
-                <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  maxLength={200}
-                  placeholder={searchPlaceholder ?? `Search ${label ? label.toLowerCase() : "options"}…`}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value.slice(0, 200))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setIsOpen(false);
-                    } else if (e.key === "Enter" && filteredOptions.length === 1) {
-                      e.preventDefault();
-                      handleSelect(filteredOptions[0].value);
-                    } else if (
-                      e.key === "Enter" &&
-                      filteredOptions.length === 0 &&
-                      onCreate &&
-                      search.trim()
-                    ) {
-                      e.preventDefault();
-                      void handleCreate();
-                    }
-                  }}
-                  className="h-8 w-full rounded-md bg-muted/50 pl-8 pr-2 text-xs font-normal text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+            {showSearch && (
+              <div className="sticky top-0 z-10 border-b border-border bg-popover p-1.5">
+                <div className="relative flex items-center">
+                  <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    maxLength={200}
+                    placeholder={searchPlaceholder ?? `Search ${label ? label.toLowerCase() : "options"}…`}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value.slice(0, 200))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setIsOpen(false);
+                      } else if (e.key === "Enter" && filteredOptions.length === 1) {
+                        e.preventDefault();
+                        handleSelect(filteredOptions[0].value);
+                      } else if (
+                        e.key === "Enter" &&
+                        filteredOptions.length === 0 &&
+                        onCreate &&
+                        search.trim()
+                      ) {
+                        e.preventDefault();
+                        void handleCreate();
+                      }
+                    }}
+                    className="h-8 w-full rounded-md bg-muted/50 pl-8 pr-2 text-xs font-normal text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Options List */}
             <div className="flex-1 overflow-y-auto p-1 text-xs">

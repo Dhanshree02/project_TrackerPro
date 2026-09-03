@@ -909,6 +909,7 @@ function FormSelect({
   required,
   disabled,
   placeholder = "Select…",
+  showSearch,
 }: {
   label: string;
   options: Array<string | { value: string; label: string; subLabel?: string }>;
@@ -918,6 +919,7 @@ function FormSelect({
   required?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  showSearch?: boolean;
 }) {
   return (
     <SearchableSelect
@@ -929,6 +931,7 @@ function FormSelect({
       required={required}
       disabled={disabled}
       placeholder={placeholder}
+      showSearch={showSearch}
     />
   );
 }
