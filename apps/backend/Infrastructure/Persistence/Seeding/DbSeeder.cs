@@ -151,6 +151,12 @@ public static class DbSeeder
             ("u18", "Sales User", "sales@acme.co", "SU", nameof(UserRole.Sales)),
         };
 
+        // Some imported/legacy user rows have NULL PasswordHash. The User entity
+        // maps it as non-nullable string, so materializing those rows crashes startup.
+        await db.Database.ExecuteSqlRawAsync(
+            """UPDATE users SET "PasswordHash" = '' WHERE "PasswordHash" IS NULL""",
+            ct);
+
         var existing = await db.Users.ToDictionaryAsync(u => u.EmployeeId, ct);
         var users = new Dictionary<string, User>();
 

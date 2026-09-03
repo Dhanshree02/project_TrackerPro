@@ -9,6 +9,13 @@ export interface RepositoryItem {
   uploadedBy: string;
   filePath: string;
   createdAtUtc: string;
+  departments?: { id: string; name: string }[];
+}
+
+export interface RepositoryDepartmentOption {
+  id: string;
+  code: string;
+  name: string;
 }
 
 export interface RepositoryActivityLog {
@@ -81,6 +88,7 @@ export async function uploadRepositoryDocument(
   file: File,
   category: string,
   uploadedBy?: string,
+  departmentIds?: string[],
 ): Promise<RepositoryItem> {
   if (!isAllowedRepositoryFile(file.name)) {
     throw new Error(
@@ -88,15 +96,26 @@ export async function uploadRepositoryDocument(
     );
   }
 
+  if (!departmentIds?.length) {
+    throw new Error("Select at least one department that may view this document.");
+  }
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("category", category);
   if (uploadedBy) formData.append("uploadedBy", uploadedBy);
+  for (const id of departmentIds) {
+    formData.append("departmentIds", id);
+  }
 
   return apiFetch<RepositoryItem>("/api/v1/repository/upload", {
     method: "POST",
     body: formData,
   });
+}
+
+export async function fetchRepositoryDepartments(): Promise<RepositoryDepartmentOption[]> {
+  return (await apiFetch<RepositoryDepartmentOption[]>("/api/v1/repository/departments")) ?? [];
 }
 
 export function getRepositoryDownloadUrl(id: string): string {

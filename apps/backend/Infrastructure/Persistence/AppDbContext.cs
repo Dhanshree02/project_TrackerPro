@@ -63,6 +63,8 @@ public class AppDbContext(
 
     public DbSet<RepositoryActivityLog> RepositoryActivityLogs => Set<RepositoryActivityLog>();
 
+    public DbSet<RepositoryDepartment> RepositoryDepartments => Set<RepositoryDepartment>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
