@@ -286,6 +286,53 @@ public class CustomerModuleTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
+    public async Task CreateClient_PersistsSalesManager()
+    {
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+
+        var name = "SalesManagerTest-" + Guid.NewGuid().ToString("N")[..8];
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/clients",
+            new CreateClientRequest(
+                Name: name,
+                Industry: "Technology",
+                Logo: null,
+                ContactEmail: null,
+                ClientType: "NEW",
+                EngagementManager: "Riya Kapoor",
+                SalesManager: "Jane Sales",
+                ContactName: null,
+                ContactPhone: null,
+                ContactDesignation: null,
+                ContactType: null,
+                City: null,
+                Country: null,
+                BusinessType: null,
+                Notes: null,
+                KycDocumentName: null,
+                SubVentures: null,
+                Contacts: null));
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<ClientDto>>();
+        Assert.NotNull(created?.Data);
+        Assert.Equal("Jane Sales", created!.Data!.SalesManager);
+
+        var id = created.Data!.Id;
+        try
+        {
+            var getResponse = await _client.GetAsync($"/api/v1/clients/{id}");
+            Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+            var fetched = await getResponse.Content.ReadFromJsonAsync<ApiResponse<ClientDto>>();
+            Assert.Equal("Jane Sales", fetched!.Data!.SalesManager);
+        }
+        finally
+        {
+            await _client.DeleteAsync($"/api/v1/clients/{id}");
+        }
+    }
+
+    [Fact]
     public async Task Create_WithEmptyName_ReturnsValidationError()
     {
         _client.DefaultRequestHeaders.Authorization =

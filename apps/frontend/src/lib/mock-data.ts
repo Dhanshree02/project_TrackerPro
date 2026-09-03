@@ -178,10 +178,15 @@ export interface ClientContact {
 }
 
 export interface ClientSubVenture {
+  /** API sub-venture id (GUID). Absent for mock/local sub-ventures. */
+  id?: string;
   name: string;
   contacts?: ClientContact[]; // SPOC contacts specific to this sub-venture
   /** Onboarding notes for this sub-venture (not shared across SVs). */
   notes?: string;
+  /** KYC document is per sub-venture (each end-customer division has its own). */
+  kycDocumentName?: string;
+  kycDocumentPath?: string;
 }
 
 /**
@@ -220,6 +225,8 @@ export interface Client {
   businessType?: string;
   notes?: string;
   kycDocumentName?: string;
+  /** Relative path (under Documents/) of the stored KYC file; present when uploaded to the server. */
+  kycDocumentPath?: string;
   /** ISO date (yyyy-mm-dd) when the customer relationship started. */
   customerSince?: string;
   contacts?: ClientContact[]; // full list of SPOC persons

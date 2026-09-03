@@ -19,6 +19,7 @@ public sealed record ClientDto(
     string? BusinessType,
     string? Notes,
     string? KycDocumentName,
+    string? KycDocumentPath,
     IReadOnlyList<SubVentureDto> SubVentures,
     IReadOnlyList<ClientContactDto> Contacts,
     DateOnly? CustomerSince,
@@ -31,17 +32,21 @@ public sealed record ClientContactDto(
     string? Designation,
     string? ContactType);
 
-/// <summary>A sub-venture with its own SPOC contacts and onboarding notes.</summary>
+/// <summary>A sub-venture with its own SPOC contacts, onboarding notes, and KYC document.</summary>
 public sealed record SubVentureDto(
+    Guid Id,
     string Name,
     IReadOnlyList<ClientContactDto> Contacts,
-    string? Notes = null);
+    string? Notes = null,
+    string? KycDocumentName = null,
+    string? KycDocumentPath = null);
 
 /// <summary>Sub-venture payload for create/update requests.</summary>
 public sealed record SubVentureInput(
     string Name,
     List<ClientContactDto>? Contacts,
-    string? Notes = null);
+    string? Notes = null,
+    string? KycDocumentName = null);
 
 public sealed record CreateClientRequest(
     string Name,
