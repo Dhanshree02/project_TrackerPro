@@ -45,6 +45,7 @@ ALTER TABLE IF EXISTS ONLY public.client_contacts DROP CONSTRAINT IF EXISTS "FK_
 ALTER TABLE IF EXISTS ONLY public.client_assignments DROP CONSTRAINT IF EXISTS "FK_client_assignments_users_UserId";
 ALTER TABLE IF EXISTS ONLY public.client_assignments DROP CONSTRAINT IF EXISTS "FK_client_assignments_clients_ClientId";
 DROP INDEX IF EXISTS public."IX_users_RoleId";
+DROP INDEX IF EXISTS public."IX_users_MicrosoftOid";
 DROP INDEX IF EXISTS public."IX_users_EmployeeId";
 DROP INDEX IF EXISTS public."IX_users_Email";
 DROP INDEX IF EXISTS public."IX_sub_ventures_ClientId";
@@ -703,7 +704,7 @@ CREATE TABLE public.sub_ventures (
 CREATE TABLE public.users (
     "Id" uuid NOT NULL,
     "Email" character varying(255) NOT NULL,
-    "PasswordHash" character varying(255) NOT NULL,
+    "PasswordHash" character varying(255),
     "Name" character varying(255) NOT NULL,
     "EmployeeId" character varying(20) NOT NULL,
     "Department" text,
@@ -713,6 +714,8 @@ CREATE TABLE public.users (
     "IsActive" boolean NOT NULL,
     "MustChangePassword" boolean NOT NULL,
     "RoleId" uuid,
+    "AuthProvider" character varying(50) DEFAULT 'Local'::character varying NOT NULL,
+    "MicrosoftOid" character varying(100),
     "CreatedAtUtc" timestamp with time zone NOT NULL,
     "UpdatedAtUtc" timestamp with time zone,
     "CreatedBy" uuid,
@@ -2994,6 +2997,13 @@ CREATE UNIQUE INDEX "IX_users_EmployeeId" ON public.users USING btree ("Employee
 --
 
 CREATE INDEX "IX_users_RoleId" ON public.users USING btree ("RoleId");
+
+
+--
+-- Name: IX_users_MicrosoftOid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_users_MicrosoftOid" ON public.users USING btree ("MicrosoftOid") WHERE ("MicrosoftOid" IS NOT NULL);
 
 
 --
