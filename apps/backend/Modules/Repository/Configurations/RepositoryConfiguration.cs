@@ -36,6 +36,28 @@ public class RepositoryItemConfiguration : IEntityTypeConfiguration<RepositoryIt
 
         builder.HasIndex(r => r.Category);
         builder.HasIndex(r => r.DeletedAtUtc);
+
+        builder.HasMany(r => r.Departments)
+            .WithOne(d => d.RepositoryItem)
+            .HasForeignKey(d => d.RepositoryItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class RepositoryDepartmentConfiguration : IEntityTypeConfiguration<RepositoryDepartment>
+{
+    public void Configure(EntityTypeBuilder<RepositoryDepartment> builder)
+    {
+        builder.ToTable("repository_departments");
+
+        builder.HasKey(d => new { d.RepositoryItemId, d.DepartmentId });
+
+        builder.HasIndex(d => d.DepartmentId);
+
+        builder.HasOne(d => d.Department)
+            .WithMany()
+            .HasForeignKey(d => d.DepartmentId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

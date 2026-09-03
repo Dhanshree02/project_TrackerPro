@@ -15,4 +15,7 @@ public class RepositoryItem : BaseEntity
     public string UploadedBy { get; set; } = string.Empty;
 
     public string FilePath { get; set; } = string.Empty;
+
+    /// <summary>Departments whose employees may view this document.</summary>
+    public ICollection<RepositoryDepartment> Departments { get; set; } = [];
 }
