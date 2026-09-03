@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { Shield, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 
 export const Route = createFileRoute("/dh-settings")({
@@ -14,8 +15,9 @@ export const Route = createFileRoute("/dh-settings")({
 });
 
 function SettingsPage() {
-  const { can } = useRoleContext();
-  if (!can("settings.view")) return <Navigate to="/" />;
+  const { isDhanshree } = useRoleContext();
+  const { hasPermission } = usePermissions();
+  if (!isDhanshree && !hasPermission("settings.view")) return <Navigate to="/" />;
 
   return (
     <AppShell title="Settings" subtitle="Manage application configuration">

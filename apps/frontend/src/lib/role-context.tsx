@@ -42,6 +42,7 @@ interface RoleContextValue {
   assignedProjects: typeof projects;
   assignedIssues: typeof issues;
   pendingTimesheets: typeof timesheets;
+  can: (permission: string) => boolean;
 }
 
 const RoleContext = createContext<RoleContextValue | null>(null);
@@ -140,9 +141,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const isViewOnly = isBO || isHOD;
   const hideBudget = isPmoFamily;
 
-  const directoryPersonId = people.find(
-    (p) => p.email.toLowerCase() === (authUser?.email ?? "").toLowerCase(),
-  )?.id ?? null;
+  const directoryPersonId =
+    people.find((p) => p.email.toLowerCase() === (authUser?.email ?? "").toLowerCase())?.id ?? null;
   const employeePersonId = isEmployee ? directoryPersonId : null;
   const pmPersonId = isProjectManager ? directoryPersonId : null;
 
@@ -265,6 +265,12 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         return t.userRole === "PM";
       });
 
+  const can = (permission: string): boolean => {
+    if (isDhanshree) return true;
+    const userPerms = authUser?.permissions ?? [];
+    return userPerms.includes(permission);
+  };
+
   return (
     <RoleContext.Provider
       value={{
@@ -294,6 +300,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         assignedProjects,
         assignedIssues,
         pendingTimesheets,
+        can,
       }}
     >
       {children}

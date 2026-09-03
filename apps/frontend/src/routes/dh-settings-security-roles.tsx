@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Search, ChevronRight, ChevronDown, Save, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/mock-data";
@@ -35,7 +36,12 @@ interface UserRow {
 
 const initialUsers: UserRow[] = [
   { id: "r1", name: "Aarav Mehta", email: "aarav.mehta@talakunchi.com", currentRole: "senior_pm" },
-  { id: "r2", name: "Riya Kapoor", email: "riya.kapoor@talakunchi.com", currentRole: "engagement_manager" },
+  {
+    id: "r2",
+    name: "Riya Kapoor",
+    email: "riya.kapoor@talakunchi.com",
+    currentRole: "engagement_manager",
+  },
   { id: "r3", name: "Vikram Shah", email: "vikram.shah@talakunchi.com", currentRole: "pm" },
   { id: "r4", name: "Sana Iyer", email: "sana.iyer@talakunchi.com", currentRole: "pm" },
   { id: "r7", name: "Arjun Singh", email: "arjun.singh@talakunchi.com", currentRole: "employee" },
@@ -44,9 +50,24 @@ const initialUsers: UserRow[] = [
   { id: "r10", name: "Kavya Nair", email: "kavya.nair@talakunchi.com", currentRole: "hr" },
   { id: "r11", name: "Rahul Gupta", email: "rahul.gupta@talakunchi.com", currentRole: "pmo" },
   { id: "r12", name: "Anita Desai", email: "anita.desai@talakunchi.com", currentRole: "hod" },
-  { id: "r13", name: "Vikrant Malhotra", email: "vikrant.malhotra@talakunchi.com", currentRole: "business_owner" },
-  { id: "r14", name: "Sneha Kulkarni", email: "sneha.kulkarni@talakunchi.com", currentRole: "accounts_finance" },
-  { id: "r15", name: "Rohan Sharma", email: "rohan.sharma@talakunchi.com", currentRole: "sales_bd" },
+  {
+    id: "r13",
+    name: "Vikrant Malhotra",
+    email: "vikrant.malhotra@talakunchi.com",
+    currentRole: "business_owner",
+  },
+  {
+    id: "r14",
+    name: "Sneha Kulkarni",
+    email: "sneha.kulkarni@talakunchi.com",
+    currentRole: "accounts_finance",
+  },
+  {
+    id: "r15",
+    name: "Rohan Sharma",
+    email: "rohan.sharma@talakunchi.com",
+    currentRole: "sales_bd",
+  },
   { id: "r16", name: "Dhanshree", email: "dhanshree@talakunchi.com", currentRole: "dhanshree" },
 ];
 
@@ -59,14 +80,18 @@ const SCOPE_LABEL: Record<string, string> = {
 };
 
 function SecurityRolesPage() {
-  const { can } = useRoleContext();
+  const { isDhanshree } = useRoleContext();
+  const { hasPermission } = usePermissions();
   const [activeTab, setActiveTab] = useState<"users" | "modules">("modules");
 
-  if (!can("settings.manage_roles")) return <Navigate to="/" />;
+  if (!isDhanshree && !hasPermission("settings.manage_roles")) return <Navigate to="/" />;
 
   return (
     <AppShell title="Roles & Permissions" subtitle="Who can see and do what — across every module">
-      <nav className="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
+      <nav
+        className="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground"
+        aria-label="Breadcrumb"
+      >
         <Link to="/dh-settings" className="hover:text-foreground transition-colors">
           Settings
         </Link>
@@ -79,7 +104,9 @@ function SecurityRolesPage() {
           onClick={() => setActiveTab("modules")}
           className={cn(
             "relative px-4 py-2.5 text-sm font-medium transition-colors",
-            activeTab === "modules" ? "text-primary" : "text-muted-foreground hover:text-foreground",
+            activeTab === "modules"
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           Module Access
@@ -116,7 +143,9 @@ function UserRoleAccessTab() {
     if (roleFilter !== "all") list = list.filter((u) => u.currentRole === roleFilter);
     if (q.trim()) {
       const term = q.toLowerCase();
-      list = list.filter((u) => u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term));
+      list = list.filter(
+        (u) => u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term),
+      );
     }
     return list;
   }, [users, q, roleFilter]);
@@ -150,7 +179,11 @@ function UserRoleAccessTab() {
           ))}
         </select>
         <button
-          onClick={() => toast.success("Roles updated", { description: `${users.length} user role assignments saved.` })}
+          onClick={() =>
+            toast.success("Roles updated", {
+              description: `${users.length} user role assignments saved.`,
+            })
+          }
           className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <Save className="h-3.5 w-3.5" />
@@ -174,7 +207,11 @@ function UserRoleAccessTab() {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                      {u.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
+                      {u.name
+                        .split(" ")
+                        .map((w) => w[0])
+                        .join("")
+                        .slice(0, 2)}
                     </span>
                     <span className="font-medium">{u.name}</span>
                   </div>
@@ -208,9 +245,40 @@ function UserRoleAccessTab() {
 }
 
 function ModuleAccessTab() {
-  const { getPermissionsFor, setRolePermissions, resetRolePermissions } = useRoleContext();
   const [selectedRole, setSelectedRole] = useState<Role>("employee");
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({ Projects: true });
+
+  const [overrides, setOverrides] = useState<Partial<Record<Role, PermissionKey[]>>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = localStorage.getItem(RBAC_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const getPermissionsFor = (r: Role): PermissionKey[] => {
+    return overrides[r] ?? DEFAULT_ROLE_PERMISSIONS[r] ?? [];
+  };
+
+  const setRolePermissions = (r: Role, perms: PermissionKey[]) => {
+    const next = { ...overrides, [r]: perms };
+    setOverrides(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
+    }
+  };
+
+  const resetRolePermissions = (r: Role) => {
+    const next = { ...overrides };
+    delete next[r];
+    setOverrides(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
+    }
+  };
+
   const [draft, setDraft] = useState<PermissionKey[]>(() => getPermissionsFor("employee"));
 
   const switchRole = (role: Role) => {
@@ -237,8 +305,8 @@ function ModuleAccessTab() {
   return (
     <>
       <p className="mb-4 text-xs text-muted-foreground">
-        Defaults match the agreed access for each role. Saving applies immediately in this workspace (until the backend is live).
-        Use the role switcher in the top bar to preview.
+        Defaults match the agreed access for each role. Saving applies immediately in this workspace
+        (until the backend is live). Use the role switcher in the top bar to preview.
       </p>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -287,12 +355,20 @@ function ModuleAccessTab() {
           const open = openModules[module] ?? false;
           const onCount = items.filter((i) => granted.has(i.key)).length;
           return (
-            <div key={module} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div
+              key={module}
+              className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+            >
               <button
                 onClick={() => setOpenModules((p) => ({ ...p, [module]: !open }))}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent/30"
               >
-                <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform",
+                    open && "rotate-180",
+                  )}
+                />
                 <span className="text-sm font-semibold">{module}</span>
                 <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
                   {onCount}/{items.length} enabled
@@ -327,7 +403,9 @@ function ModuleAccessTab() {
                     </div>
                   ))}
                   {selectedRole === "dhanshree" && (
-                    <p className="text-[11px] text-muted-foreground">Admin always has full access.</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Admin always has full access.
+                    </p>
                   )}
                 </div>
               )}
