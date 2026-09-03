@@ -40,7 +40,7 @@ public sealed class AuthService(
             throw new UnauthorizedException($"Account locked. Try again in {minutes} minute(s).");
         }
 
-        if (!passwordHasher.Verify(request.Password, user.PasswordHash))
+        if (string.IsNullOrEmpty(user.PasswordHash) || !passwordHasher.Verify(request.Password, user.PasswordHash))
         {
             user.FailedLoginAttempts += 1;
             if (user.FailedLoginAttempts >= MaxFailedAttempts)
@@ -80,7 +80,7 @@ public sealed class AuthService(
         var user = await LoadUserAsync(userId: userId, ct: ct)
             ?? throw new UnauthorizedException("User not found.");
 
-        if (!passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
+        if (string.IsNullOrEmpty(user.PasswordHash) || !passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
             throw new UnauthorizedException("Current password is incorrect.");
 
         user.PasswordHash = passwordHasher.Hash(request.NewPassword);
