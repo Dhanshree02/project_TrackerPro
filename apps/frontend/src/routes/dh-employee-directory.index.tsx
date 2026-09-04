@@ -146,7 +146,7 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: str
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-52 min-w-[185px]" },
   { label: "Reporting Manager", key: "reportingManager", className: "w-48 min-w-[170px]" },
-  { label: "Location", key: "workLocation", className: "w-36 min-w-[130px]" },
+  { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
   { label: "Category", key: "category", className: "w-60 min-w-[210px]" },
   { label: "Joining Date", key: "joiningDate", className: "w-40 min-w-[145px]" },
   { label: "Status", key: "status", className: "w-36 min-w-[125px]" },
@@ -2540,7 +2540,7 @@ function EmployeeDirectoryPage() {
       {tab === "directory" ? (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
-            <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[800px]" : "min-w-[1440px]")}>
+            <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[800px]" : "min-w-[1480px]")}>
               <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
                 <tr>
                   {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col, idx, arr) => (
@@ -2598,8 +2598,17 @@ function EmployeeDirectoryPage() {
                         <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
                           {dash(e.reportingManager)}
                         </td>
-                        <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
-                          {dash(e.workLocation)}
+                        <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
+                          {e.workLocation === "Onsite" && e.projectSite ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
+                                Onsite
+                              </span>
+                              <span className="text-xs text-foreground truncate max-w-[120px]">{e.projectSite}</span>
+                            </span>
+                          ) : (
+                            dash(e.workLocation)
+                          )}
                         </td>
                         <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.category}>
                           {dash(e.category)}
