@@ -2457,16 +2457,18 @@ function EmployeeDirectoryPage() {
             />
           </div>
 
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAllFilters}
-              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            >
-              <RotateCcw className="h-3 w-3" />
-              Reset
-            </button>
-          )}
+          <div className="w-20 shrink-0 flex items-center">
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Right Side: Tab Switcher (with BLUE active pill) & Add Button */}
