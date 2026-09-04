@@ -2405,81 +2405,17 @@ function EmployeeDirectoryPage() {
 
   return (
     <AppShell title={title} subtitle={subtitle}>
-      {/* Search & Filters (Left) + View Switcher & Add Button (Right) */}
-      <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        {/* Left Side: Search & Filters */}
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-          <div className="relative w-full sm:w-56 shrink-0">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name, role, or ID..."
-              className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-            />
-            {q && (
-              <button
-                type="button"
-                onClick={() => setQ("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="w-full sm:w-40 shrink-0">
-            <FilterSelect
-              value={dept}
-              onChange={(value) => {
-                setDept(value);
-                setDesig("");
-              }}
-              placeholder="All Departments"
-              options={departmentFilterOptions}
-            />
-          </div>
-          <div className="w-full sm:w-44 shrink-0">
-            <FilterSelect
-              value={desig}
-              onChange={setDesig}
-              placeholder="All Designations"
-              options={designationFilterOptions}
-            />
-          </div>
-          <div className="w-full sm:w-36 shrink-0">
-            <FilterSelect
-              value={status}
-              onChange={setStatus}
-              placeholder="All Statuses"
-              options={DIRECTORY_STATUSES}
-            />
-          </div>
-
-          <div className="w-20 shrink-0 flex items-center">
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearAllFilters}
-                className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              >
-                <RotateCcw className="h-3 w-3" />
-                Reset
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Right Side: Tab Switcher (with BLUE active pill) & Add Button */}
-        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 shrink-0">
+      {/* Row 1 (Views & Global Actions) */}
+      <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Left: [📁 Directory] / [⚡ Resource Pool] view switcher */}
+        <div>
           {!basicDirectoryView && ENABLE_RESOURCE_POOL && (
             <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
               <button
                 onClick={() => setTab("directory")}
                 aria-label="Directory view"
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
                   tab === "directory"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-muted-foreground hover:text-foreground",
@@ -2492,7 +2428,7 @@ function EmployeeDirectoryPage() {
                 onClick={() => setTab("pool")}
                 aria-label="Pool view"
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
                   tab === "pool"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-muted-foreground hover:text-foreground",
@@ -2503,24 +2439,89 @@ function EmployeeDirectoryPage() {
               </button>
             </div>
           )}
+        </div>
 
-          {(isDhanshree || isHr) && (
-            <>
-              <EmployeeBulkUploadMenu
-                onImported={() => {
-                  void loadEmployees();
-                  void fetchDepartmentOptions().then(setDeptCatalog).catch(() => undefined);
-                  void fetchDesignationOptions().then(setDesigCatalog).catch(() => undefined);
-                }}
-              />
-              <button
-                onClick={() => setOnboardOpen(true)}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"
-              >
-                <Plus className="h-4 w-4" />
-                Add Employee
-              </button>
-            </>
+        {/* Right: Bulk upload menu (📥) and [+ Add Employee] button */}
+        {(isDhanshree || isHr) && (
+          <div className="flex items-center gap-2.5 shrink-0">
+            <EmployeeBulkUploadMenu
+              onImported={() => {
+                void loadEmployees();
+                void fetchDepartmentOptions().then(setDeptCatalog).catch(() => undefined);
+                void fetchDesignationOptions().then(setDesigCatalog).catch(() => undefined);
+              }}
+            />
+            <button
+              onClick={() => setOnboardOpen(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              Add Employee
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Row 2 (Search & Filters) */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-56 shrink-0">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search by name, role, or ID..."
+            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={() => setQ("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="w-full sm:w-40 shrink-0">
+          <FilterSelect
+            value={dept}
+            onChange={(value) => {
+              setDept(value);
+              setDesig("");
+            }}
+            placeholder="All Departments"
+            options={departmentFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-44 shrink-0">
+          <FilterSelect
+            value={desig}
+            onChange={setDesig}
+            placeholder="All Designations"
+            options={designationFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-36 shrink-0">
+          <FilterSelect
+            value={status}
+            onChange={setStatus}
+            placeholder="All Statuses"
+            options={DIRECTORY_STATUSES}
+          />
+        </div>
+
+        <div className="w-20 shrink-0 flex items-center">
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset
+            </button>
           )}
         </div>
       </div>
