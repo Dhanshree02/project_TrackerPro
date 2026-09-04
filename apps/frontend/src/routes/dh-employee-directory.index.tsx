@@ -2462,67 +2462,77 @@ function EmployeeDirectoryPage() {
         )}
       </div>
 
-      {/* Row 2 (Search & Filters) */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative w-full sm:w-56 shrink-0">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name, role, or ID..."
-            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-          />
-          {q && (
-            <button
-              type="button"
-              onClick={() => setQ("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+      {/* Row 2: Filter and Search Bar (matching Exit Summary card design) */}
+      <div className="mb-4 rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+          {/* Search input */}
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name, role, or ID..."
+              className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-8 text-xs font-normal text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary transition-all"
+            />
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
 
-        <div className="w-full sm:w-40 shrink-0">
-          <FilterSelect
-            value={dept}
-            onChange={(value) => {
-              setDept(value);
-              setDesig("");
-            }}
-            placeholder="All Departments"
-            options={departmentFilterOptions}
-          />
-        </div>
-        <div className="w-full sm:w-44 shrink-0">
-          <FilterSelect
-            value={desig}
-            onChange={setDesig}
-            placeholder="All Designations"
-            options={designationFilterOptions}
-          />
-        </div>
-        <div className="w-full sm:w-36 shrink-0">
-          <FilterSelect
-            value={status}
-            onChange={setStatus}
-            placeholder="All Statuses"
-            options={DIRECTORY_STATUSES}
-          />
-        </div>
+          {/* Department Filter */}
+          <div className="w-full md:w-44 shrink-0">
+            <FilterSelect
+              value={dept}
+              onChange={(value) => {
+                setDept(value);
+                setDesig("");
+              }}
+              placeholder="All Departments"
+              options={departmentFilterOptions}
+            />
+          </div>
 
-        <div className="w-20 shrink-0 flex items-center">
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAllFilters}
-              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            >
-              <RotateCcw className="h-3 w-3" />
-              Reset
-            </button>
-          )}
+          {/* Designation Filter */}
+          <div className="w-full md:w-48 shrink-0">
+            <FilterSelect
+              value={desig}
+              onChange={setDesig}
+              placeholder="All Designations"
+              options={designationFilterOptions}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="w-full md:w-36 shrink-0">
+            <FilterSelect
+              value={status}
+              onChange={setStatus}
+              placeholder="All Statuses"
+              options={DIRECTORY_STATUSES}
+            />
+          </div>
+
+          {/* Reset Button */}
+          <div className="w-20 shrink-0 flex items-center">
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="h-9 inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
