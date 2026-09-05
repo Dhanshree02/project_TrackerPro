@@ -36,6 +36,7 @@ public class Employee : BaseEntity
 
     public DateOnly? JoiningDate { get; set; }
     public string? Status { get; set; }
+    public Guid? EmployeeStatusId { get; set; }
     public string? ConfirmationStatus { get; set; }
     public string? ProbationStatus { get; set; }
     public string? ProbationPeriod { get; set; }
@@ -43,6 +44,9 @@ public class Employee : BaseEntity
     public string? PreviousCompany { get; set; }
     public string? EmploymentType { get; set; }
     public string? ContractType { get; set; }
+    public string? BondDelivered { get; set; }
+    public int? BondDurationMonths { get; set; }
+    public DateOnly? BondExpiryDate { get; set; }
     public string? BondStatus { get; set; }
     public string? NoticePeriod { get; set; }
     public string? AssetId { get; set; }
@@ -79,5 +83,6 @@ public class Employee : BaseEntity
     public MstNationality? NationalityRef { get; set; }
     public MstRole? JobRole { get; set; }
     public MstSalaryBand? SalaryBandRef { get; set; }
+    public MstEmployeeStatus? EmployeeStatus { get; set; }
     public Employee? ReportingManager { get; set; }
 }

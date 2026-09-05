@@ -24,6 +24,16 @@ public static class DbSeeder
 {
     public const string DevPassword = "Password@123";
 
+    /// <summary>
+    /// Ensures <c>mst_employee_statuses</c> catalog rows exist. Runs on every API boot
+    /// (not only full demo seed) so onboarding can load statuses from the DB.
+    /// </summary>
+    public static async Task EnsureEmployeeStatusesAsync(AppDbContext db, CancellationToken ct = default)
+    {
+        await SeedEmployeeStatusesAsync(db, ct);
+        await db.SaveChangesAsync(ct);
+    }
+
     public static async Task SeedAsync(AppDbContext db, IPasswordHasher hasher, CancellationToken ct = default)
     {
         // Each Seed* method is individually idempotent, so partial seeds self-heal.
@@ -272,7 +282,37 @@ public static class DbSeeder
         await SeedGeoCatalogsAsync(db, ct);
         await SeedEmailDomainsAsync(db, ct);
         await SeedBusinessUnitsAsync(db, ct);
+        await SeedEmployeeStatusesAsync(db, ct);
         await SeedWorkLocationsAndOfficesAsync(db, ct);
+    }
+
+    private static async Task SeedEmployeeStatusesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var statuses = new (string Code, string Name, bool AllowOnboarding, int SortOrder)[]
+        {
+            ("active", "Active", true, 1),
+            ("terminated", "Terminated", false, 2),
+            ("absconded", "Absconded", false, 3),
+            ("resigned", "Resigned", false, 4),
+            ("resignation_under_review", "Resignation Under Review", false, 5),
+        };
+
+        var existing = await db.EmployeeStatuses
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(s => s.Code, StringComparer.OrdinalIgnoreCase, ct);
+
+        foreach (var (code, name, allowOnboarding, sortOrder) in statuses)
+        {
+            if (existing.ContainsKey(code)) continue;
+            db.EmployeeStatuses.Add(new MstEmployeeStatus
+            {
+                Code = code,
+                Name = name,
+                IsActive = true,
+                AllowOnboarding = allowOnboarding,
+                SortOrder = sortOrder,
+            });
+        }
     }
 
     private static async Task SeedBusinessUnitsAsync(AppDbContext db, CancellationToken ct)

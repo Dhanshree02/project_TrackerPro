@@ -180,7 +180,11 @@ public sealed record CreateEmployeeRequest(
     string? ComplianceStatus,
     Guid? SalaryBandId = null,
     string? ProbationPeriod = null,
-    string? Aadhaar = null);
+    string? Aadhaar = null,
+    Guid? EmployeeStatusId = null,
+    string? BondDelivered = null,
+    int? BondDurationMonths = null,
+    DateOnly? BondExpiryDate = null);
 
 public sealed record UpdateEmployeeRequest(
     string? FirstName,

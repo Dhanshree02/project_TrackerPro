@@ -116,16 +116,29 @@ describe("Onboarding Form Validation & Exception Handling", () => {
   });
 
   describe("Employment Terms Validation", () => {
-    it("should require joining date, employment status, and employment type", () => {
+    it("should require joining date, employee status, worker type, and bond fields", () => {
       expect(validateOnboardField("joiningDate", { ...EMPTY_ONBOARD, joiningDate: "" })).toBe(
         "Joining date is required",
       );
-      expect(validateOnboardField("status", { ...EMPTY_ONBOARD, status: "" })).toBe(
-        "Employment status is required",
+      expect(validateOnboardField("employeeStatusId", { ...EMPTY_ONBOARD, employeeStatusId: "" })).toBe(
+        "Employee status is required",
       );
-      expect(validateOnboardField("employmentType", { ...EMPTY_ONBOARD, employmentType: "" })).toBe(
-        "Employment type is required",
+      expect(validateOnboardField("workerType", { ...EMPTY_ONBOARD, workerType: "" })).toBe(
+        "Worker type is required",
       );
+      expect(validateOnboardField("bondDelivered", { ...EMPTY_ONBOARD, bondDelivered: "" })).toBe(
+        "Bond delivered is required",
+      );
+    });
+
+    it("should require bond duration when bond is delivered", () => {
+      expect(
+        validateOnboardField("bondDurationMonths", {
+          ...EMPTY_ONBOARD,
+          bondDelivered: "Yes",
+          bondDurationMonths: "",
+        }),
+      ).toBe("Bond duration is required when bond is delivered");
     });
 
     it("should reject past joining dates", () => {
@@ -137,7 +150,7 @@ describe("Onboarding Form Validation & Exception Handling", () => {
   });
 
   describe("Payroll & Statutory Details Validation", () => {
-    it("should require PAN, Aadhaar, Bank Account, IFSC, and Salary Band", () => {
+    it("should require PAN, Aadhaar, Bank Account, and IFSC", () => {
       expect(validateOnboardField("pan", { ...EMPTY_ONBOARD, pan: "" })).toBe(
         "PAN number is required",
       );
@@ -149,9 +162,6 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       );
       expect(validateOnboardField("ifsc", { ...EMPTY_ONBOARD, ifsc: "" })).toBe(
         "IFSC code is required",
-      );
-      expect(validateOnboardField("salaryBandId", { ...EMPTY_ONBOARD, salaryBandId: "" })).toBe(
-        "Salary band is required",
       );
     });
 
@@ -221,14 +231,15 @@ describe("Onboarding Form Validation & Exception Handling", () => {
         workLocation: "Mumbai",
         officeBranch: "Andheri East",
         joiningDate: isoDateToday(),
-        status: "Active",
-        employmentType: "Full-Time",
+        employeeStatusId: "status-active",
+        workerType: "Permanent",
+        bondDelivered: "No",
+        bondDurationMonths: "0",
         pan: "ABCDE1234F",
         aadhaar: "234567890124",
         pfUan: "100987654321",
         bankAccount: "123456789012",
         ifsc: "SBIN0001234",
-        salaryBandId: "BAND-L3",
       };
 
       const errors = validateOnboardForm(validForm, ["TK-1001"]);

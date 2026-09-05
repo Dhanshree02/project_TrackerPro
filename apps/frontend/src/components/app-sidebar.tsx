@@ -93,7 +93,7 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "relative hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300 z-40",
+        "relative hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-[width] duration-300 z-50",
         isCollapsed ? "w-16" : "w-60",
       )}
     >
@@ -105,15 +105,20 @@ export function AppSidebar() {
       >
         {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </button>
-      <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4 justify-between">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
+      <div
+        className={cn(
+          "flex h-14 shrink-0 items-center border-b border-sidebar-border",
+          isCollapsed ? "justify-center px-2" : "gap-2 px-4",
+        )}
+      >
+        <div className={cn("flex items-center", isCollapsed ? "" : "min-w-0 gap-2")}>
+          <div className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
             P
           </div>
           {!isCollapsed && (
-            <div className="flex flex-col leading-tight animate-in fade-in duration-300">
-              <span className="text-sm font-semibold truncate">Pulse PMO</span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+            <div className="flex min-w-0 flex-col overflow-hidden leading-tight animate-in fade-in duration-300">
+              <span className="truncate text-sm font-semibold">Pulse PMO</span>
+              <span className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
                 Enterprise
               </span>
             </div>

@@ -266,6 +266,19 @@
     padding-right: 1.4rem;
   }
 
+  /* Legacy inline-form pages (e.g. projects.new WBS) — avoid clipping vs fixed select height */
+  select.legacy-inline-field:not([multiple]),
+  input.legacy-inline-field[type="text"],
+  input.legacy-inline-field[type="date"],
+  input.legacy-inline-field[type="number"],
+  input.legacy-inline-field[type="email"] {
+    height: auto;
+    min-height: 2.5rem;
+    line-height: 1.35;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
   /* Hide number input spinners for custom payment % fields */
   input.no-spinner::-webkit-inner-spin-button,
   input.no-spinner::-webkit-outer-spin-button {

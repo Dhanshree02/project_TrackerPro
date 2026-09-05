@@ -55,6 +55,8 @@ public class AppDbContext(
 
     public DbSet<MstOffice> Offices => Set<MstOffice>();
 
+    public DbSet<MstEmployeeStatus> EmployeeStatuses => Set<MstEmployeeStatus>();
+
     public DbSet<Employee> Employees => Set<Employee>();
 
     public DbSet<ExitedEmployee> ExitedEmployees => Set<ExitedEmployee>();

@@ -143,6 +143,20 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             throw EmployeeCodeRules.FormatException();
         }
 
+        var employeeStatus = request.EmployeeStatusId.HasValue
+            ? await db.EmployeeStatuses.FirstOrDefaultAsync(s => s.Id == request.EmployeeStatusId.Value, ct)
+            : null;
+        var bondDelivered = string.IsNullOrWhiteSpace(request.BondDelivered) ? null : request.BondDelivered.Trim();
+        var bondDurationMonths = bondDelivered?.Equals("Yes", StringComparison.OrdinalIgnoreCase) == true
+            ? request.BondDurationMonths
+            : 0;
+        var bondExpiryDate = request.BondExpiryDate
+            ?? BondRules.ComputeBondExpiry(request.JoiningDate, bondDelivered, bondDurationMonths);
+        var bondStatus = BondRules.ComputeBondStatus(bondDelivered, bondExpiryDate);
+        var confirmationStatus = employeeStatus?.Name ?? request.ConfirmationStatus;
+        var directoryStatus = request.Status
+            ?? (string.Equals(confirmationStatus, "Active", StringComparison.OrdinalIgnoreCase) ? "Active" : "Inactive");
+
         var entity = new Employee
         {
             EmployeeCode = empCode,
@@ -171,14 +185,18 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             Category = request.Category,
             Team = request.Team,
             JoiningDate = request.JoiningDate,
-            Status = request.Status,
-            ConfirmationStatus = request.ConfirmationStatus,
+            Status = directoryStatus,
+            EmployeeStatusId = employeeStatus?.Id ?? request.EmployeeStatusId,
+            ConfirmationStatus = confirmationStatus,
             ProbationStatus = request.ProbationStatus,
             Experience = request.Experience,
             PreviousCompany = request.PreviousCompany,
             EmploymentType = request.EmploymentType,
             ContractType = request.ContractType,
-            BondStatus = request.BondStatus,
+            BondDelivered = bondDelivered,
+            BondDurationMonths = bondDurationMonths,
+            BondExpiryDate = bondExpiryDate,
+            BondStatus = bondStatus,
             NoticePeriod = request.NoticePeriod,
             ProjectSite = request.ProjectSite,
             AssetId = request.AssetId,
@@ -543,6 +561,21 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             .OrderBy(o => o.SortOrder)
             .ThenBy(o => o.Name)
             .Select(o => new MetaOptionDto(o.Id, o.Code, o.Name, o.WorkLocationId))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetEmployeeStatusesAsync(
+        bool onboardingOnly = false,
+        CancellationToken ct = default)
+    {
+        var query = db.EmployeeStatuses.Where(s => s.IsActive);
+        if (onboardingOnly)
+            query = query.Where(s => s.AllowOnboarding);
+
+        return await query
+            .OrderBy(s => s.SortOrder)
+            .ThenBy(s => s.Name)
+            .Select(s => new MetaOptionDto(s.Id, s.Code, s.Name, null))
             .ToListAsync(ct);
     }
 

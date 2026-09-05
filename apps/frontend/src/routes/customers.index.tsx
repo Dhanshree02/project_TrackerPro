@@ -24,7 +24,6 @@ import {
   Users,
   Briefcase,
   ShieldCheck,
-  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -96,19 +95,60 @@ type CustomerListRow = {
   active: number;
 };
 
-const CUSTOMER_LIST_COLUMNS: { label: string; key: CustomerListSortKey; className?: string }[] = [
-  { label: "Customer", key: "name", className: "min-w-[200px]" },
-  { label: "Industry", key: "industry", className: "w-36 min-w-[120px]" },
-  { label: "Engagement Manager", key: "engagementManager", className: "w-44 min-w-[150px]" },
-  { label: "Sales Manager", key: "salesManager", className: "w-40 min-w-[140px]" },
-  { label: "Total", key: "total", className: "w-24 min-w-[96px] text-center" },
-  { label: "New", key: "newCount", className: "w-24 min-w-[96px] text-center" },
-  { label: "Ongoing", key: "ongoing", className: "w-24 min-w-[96px] text-center" },
-  { label: "Completed", key: "completed", className: "w-24 min-w-[96px] text-center" },
-  { label: "On Hold", key: "onHold", className: "w-24 min-w-[96px] text-center" },
-  { label: "Archived", key: "archived", className: "w-24 min-w-[96px] text-center" },
-  { label: "Status", key: "status", className: "w-24 min-w-[90px]" },
+const CUSTOMER_METRIC_TD_CLS = "px-2 text-center";
+const CUSTOMER_HEADER_CELL_CLS = "px-3 text-left";
+const CUSTOMER_METRIC_COL_WIDTH = "6.25rem"; /* 100px — fits "Completed" + sort icon */
+
+/** Fixed column widths so metric headers stay evenly spaced (table-fixed redistributes slack otherwise). */
+const CUSTOMER_LIST_COL_WIDTHS = [
+  "16rem", /* Customer */
+  "7.5rem", /* Industry */
+  "10rem", /* Engagement Manager */
+  "9rem", /* Sales Manager */
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH, /* Status */
+] as const;
+
+const CUSTOMER_LIST_COLUMNS: {
+  label: string;
+  key: CustomerListSortKey;
+}[] = [
+  { label: "Customer", key: "name" },
+  { label: "Industry", key: "industry" },
+  { label: "Engagement Manager", key: "engagementManager" },
+  { label: "Sales Manager", key: "salesManager" },
+  { label: "Total", key: "total" },
+  { label: "New", key: "newCount" },
+  { label: "Ongoing", key: "ongoing" },
+  { label: "Completed", key: "completed" },
+  { label: "On Hold", key: "onHold" },
+  { label: "Archived", key: "archived" },
+  { label: "Status", key: "status" },
 ];
+
+/** Grid card status label — full text, no ellipsis (two lines when needed). */
+function GridMetricLabel({ lines }: { lines: string | [string, string] }) {
+  const size =
+    typeof lines === "string" && lines.length >= 8 ? "text-[8px]" : "text-[9px]";
+  const base = cn(
+    "px-0.5 text-center font-medium tracking-tight text-slate-600 dark:text-slate-400 transition-colors",
+    size,
+  );
+  if (Array.isArray(lines)) {
+    return (
+      <span className={cn("flex flex-col items-center leading-[1.1]", base)}>
+        <span>{lines[0]}</span>
+        <span>{lines[1]}</span>
+      </span>
+    );
+  }
+  return <span className={cn("leading-none", base)}>{lines}</span>;
+}
 
 function sortBlank(value: string): string {
   return !value || value === "—" ? "" : value;
@@ -152,7 +192,6 @@ function SortableTh<T extends string>({
   sortDir,
   onSort,
   isLast,
-  className,
 }: {
   label: string;
   column: T;
@@ -160,17 +199,20 @@ function SortableTh<T extends string>({
   sortDir: SortDir;
   onSort: (column: T) => void;
   isLast?: boolean;
-  className?: string;
 }) {
   const active = sortKey === column;
   return (
-    <th className={cn("relative whitespace-nowrap px-3 py-2.5 font-semibold", className)}>
+    <th
+      className={cn(
+        "relative whitespace-nowrap py-2.5 font-semibold",
+        CUSTOMER_HEADER_CELL_CLS,
+      )}
+    >
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-xs font-semibold transition-colors select-none",
-          className?.includes("text-center") ? "justify-center w-full" : "text-left",
+          "group inline-flex items-center gap-1 text-left text-xs font-semibold transition-colors select-none",
           active
             ? "text-blue-600 dark:text-blue-400 font-bold"
             : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
@@ -428,8 +470,8 @@ function CustomersPage() {
                   "border border-slate-300/90 dark:border-slate-700/80",
                   "bg-gradient-to-b from-slate-100/95 via-slate-100 to-blue-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950",
                   "shadow-[0_4px_16px_-4px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)]",
-                  "transition-all duration-200 ease-out",
-                  "hover:border-blue-500 hover:shadow-[0_16px_32px_-6px_rgba(37,99,235,0.22),0_6px_14px_-2px_rgba(15,23,42,0.08)]",
+                  "transition-colors duration-200 ease-out",
+                  "hover:border-blue-500",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   "before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-blue-600 before:to-indigo-500 before:opacity-0 group-hover:before:opacity-100 before:transition-opacity before:duration-200",
                 )}
@@ -437,18 +479,18 @@ function CustomersPage() {
                 {/* SECTION 1: Client Identity & Stakeholders */}
                 <div className="flex flex-col p-5 pb-4">
                   {/* Header: Logo, Name, Industry, and top-right arrow */}
-                  <div className="flex items-start gap-3.5 mb-3.5">
+                  <div className="relative z-10 mb-3.5 flex items-start gap-3.5">
                     <div
                       className={cn(
-                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
-                        "bg-blue-600 text-sm font-bold tracking-tight text-white",
-                        "shadow-sm group-hover:scale-105 transition-transform duration-200",
+                        "relative z-10 flex size-11 shrink-0 items-center justify-center rounded-xl",
+                        "bg-blue-600 text-xs font-bold tracking-tight text-white shadow-sm",
                       )}
+                      style={{ minWidth: 44, minHeight: 44 }}
                       aria-hidden
                     >
                       {c.logo}
                     </div>
-                    <div className="min-w-0 flex-1 pt-0.5">
+                    <div className="relative z-0 min-w-0 flex-1 pt-0.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate text-[15px] font-bold leading-snug tracking-tight text-foreground group-hover:text-primary transition-colors">
@@ -516,7 +558,7 @@ function CustomersPage() {
                 </div>
 
                 {/* SECTION 2: Project Metrics (Bottom Section) */}
-                <div className="mt-auto border-t border-slate-300/80 bg-slate-200/50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/60">
+                <div className="mt-auto rounded-b-2xl border-t border-slate-300/80 bg-slate-200/50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/60">
                   <div className="flex items-center gap-2.5">
                     {/* Total Project Ring Gauge Button (Filters by All) */}
                     <button
@@ -556,7 +598,7 @@ function CustomersPage() {
                     </button>
 
                     {/* Status breakdown filter buttons */}
-                    <div className="grid flex-1 grid-cols-5 gap-1.5 min-w-0">
+                    <div className="grid min-w-0 flex-1 grid-cols-5 gap-2">
                       {/* New */}
                       <button
                         type="button"
@@ -569,19 +611,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-blue-400 hover:bg-blue-50/80 active:bg-blue-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-blue-950/50 dark:hover:border-blue-800",
                         )}
                         title={`Filter: ${newCount} New Project${newCount === 1 ? "" : "s"}`}
                         aria-label={`Filter by New (${newCount} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-blue-600 dark:text-blue-400 group-hover/btn:text-blue-700 dark:group-hover/btn:text-blue-300 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-blue-600 dark:text-blue-400 group-hover/btn:text-blue-700 dark:group-hover/btn:text-blue-300 transition-colors">
                           {newCount}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-blue-600 dark:group-hover/btn:text-blue-300 leading-tight truncate transition-colors">
-                          New
-                        </span>
+                        <GridMetricLabel lines="New" />
                       </button>
 
                       {/* Ongoing */}
@@ -596,19 +636,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-purple-400 hover:bg-purple-50/80 active:bg-purple-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-purple-950/50 dark:hover:border-purple-800",
                         )}
                         title={`Filter: ${ongoing} Ongoing Project${ongoing === 1 ? "" : "s"}`}
                         aria-label={`Filter by Ongoing (${ongoing} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-purple-600 dark:text-purple-400 group-hover/btn:text-purple-700 dark:group-hover/btn:text-purple-300 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-purple-600 dark:text-purple-400 group-hover/btn:text-purple-700 dark:group-hover/btn:text-purple-300 transition-colors">
                           {ongoing}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-purple-600 dark:group-hover/btn:text-purple-300 leading-tight truncate transition-colors">
-                          Ongoing
-                        </span>
+                        <GridMetricLabel lines="Ongoing" />
                       </button>
 
                       {/* Completed */}
@@ -623,19 +661,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-emerald-400 hover:bg-emerald-50/80 active:bg-emerald-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-emerald-950/50 dark:hover:border-emerald-800",
                         )}
                         title={`Filter: ${completed} Completed Project${completed === 1 ? "" : "s"}`}
                         aria-label={`Filter by Completed (${completed} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400 group-hover/btn:text-emerald-700 dark:group-hover/btn:text-emerald-300 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-emerald-600 dark:text-emerald-400 group-hover/btn:text-emerald-700 dark:group-hover/btn:text-emerald-300 transition-colors">
                           {completed}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-emerald-600 dark:group-hover/btn:text-emerald-300 leading-tight truncate transition-colors">
-                          Completed
-                        </span>
+                        <GridMetricLabel lines="Completed" />
                       </button>
 
                       {/* On Hold */}
@@ -650,19 +686,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-amber-400 hover:bg-amber-50/80 active:bg-amber-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-amber-950/50 dark:hover:border-amber-800",
                         )}
                         title={`Filter: ${onHold} On Hold Project${onHold === 1 ? "" : "s"}`}
                         aria-label={`Filter by On Hold (${onHold} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400 group-hover/btn:text-amber-700 dark:group-hover/btn:text-amber-300 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-amber-600 dark:text-amber-400 group-hover/btn:text-amber-700 dark:group-hover/btn:text-amber-300 transition-colors">
                           {onHold}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-amber-600 dark:group-hover/btn:text-amber-300 leading-tight truncate transition-colors">
-                          On Hold
-                        </span>
+                        <GridMetricLabel lines="On Hold" />
                       </button>
 
                       {/* Archived */}
@@ -677,19 +711,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-slate-400 hover:bg-slate-100 active:bg-slate-200/80 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-slate-800/60 dark:hover:border-slate-700",
                         )}
                         title={`Filter: ${archived} Archived Project${archived === 1 ? "" : "s"}`}
                         aria-label={`Filter by Archived (${archived} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-slate-700 dark:text-slate-300 group-hover/btn:text-slate-900 dark:group-hover/btn:text-slate-100 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-slate-700 dark:text-slate-300 group-hover/btn:text-slate-900 dark:group-hover/btn:text-slate-100 transition-colors">
                           {archived}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-slate-800 dark:group-hover/btn:text-slate-200 leading-tight truncate transition-colors">
-                          Archived
-                        </span>
+                        <GridMetricLabel lines="Archived" />
                       </button>
                     </div>
                   </div>
@@ -700,7 +732,12 @@ function CustomersPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-          <table className="w-full border-separate border-spacing-0 text-sm">
+          <table className="w-full min-w-[1280px] table-fixed border-separate border-spacing-0 text-sm">
+            <colgroup>
+              {CUSTOMER_LIST_COL_WIDTHS.map((width, idx) => (
+                <col key={CUSTOMER_LIST_COLUMNS[idx].key} style={{ width }} />
+              ))}
+            </colgroup>
             <thead className="sticky top-0 z-10 bg-blue-100/80 text-left text-xs text-slate-700 shadow-[inset_0_-2px_0_0_#93c5fd] dark:bg-blue-950/55 dark:text-blue-100 dark:shadow-[inset_0_-2px_0_0_#1e3a8a]">
               <tr>
                 {CUSTOMER_LIST_COLUMNS.map((col, idx, cols) => (
@@ -711,7 +748,6 @@ function CustomersPage() {
                     sortKey={sortKey}
                     sortDir={sortDir}
                     isLast={idx === cols.length - 1}
-                    className={col.className}
                     onSort={(next) => {
                       if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
                       else {
@@ -768,7 +804,7 @@ function CustomersPage() {
                       </td>
 
                       {/* Total */}
-                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -779,15 +815,23 @@ function CustomersPage() {
                               search: { status: "all" },
                             });
                           }}
-                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-muted font-bold text-xs text-foreground hover:border-blue-400 hover:bg-blue-50/80 hover:text-blue-600 transition-all cursor-pointer"
-                          title={`Filter: ${total} Total Projects`}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-slate-300 dark:border-slate-600 bg-slate-100/90 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200",
+                            "hover:bg-[#1d1d1f] hover:text-white hover:border-[#1d1d1f] dark:hover:bg-white dark:hover:text-[#1d1d1f] dark:hover:border-white",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            total === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${total} Total Projects`}
                         >
                           {total}
                         </button>
                       </td>
 
                       {/* New */}
-                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -798,15 +842,23 @@ function CustomersPage() {
                               search: { status: "new" },
                             });
                           }}
-                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-blue-50 dark:bg-blue-950/50 border border-blue-200/60 dark:border-blue-900/40 font-bold text-xs text-blue-700 dark:text-blue-300 hover:bg-blue-100 hover:scale-105 transition-all cursor-pointer"
-                          title={`Filter: ${newCount} New Projects`}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#0071e3]/60 bg-[#0071e3]/10 text-[#0071e3] dark:border-[#0071e3]/70 dark:bg-[#0071e3]/20 dark:text-[#388bfd]",
+                            "hover:bg-[#0071e3] hover:text-white hover:border-[#0071e3]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            newCount === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${newCount} New Projects`}
                         >
                           {newCount}
                         </button>
                       </td>
 
                       {/* Ongoing */}
-                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -817,15 +869,23 @@ function CustomersPage() {
                               search: { status: "ongoing" },
                             });
                           }}
-                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-purple-50 dark:bg-purple-950/50 border border-purple-200/60 dark:border-purple-900/40 font-bold text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-100 hover:scale-105 transition-all cursor-pointer"
-                          title={`Filter: ${ongoing} Ongoing Projects`}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#5856d6]/60 bg-[#5856d6]/10 text-[#5856d6] dark:border-[#5856d6]/70 dark:bg-[#5856d6]/20 dark:text-[#8b89f7]",
+                            "hover:bg-[#5856d6] hover:text-white hover:border-[#5856d6]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            ongoing === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${ongoing} Ongoing Projects`}
                         >
                           {ongoing}
                         </button>
                       </td>
 
                       {/* Completed */}
-                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -836,15 +896,23 @@ function CustomersPage() {
                               search: { status: "completed" },
                             });
                           }}
-                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-900/40 font-bold text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:scale-105 transition-all cursor-pointer"
-                          title={`Filter: ${completed} Completed Projects`}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#34c759]/60 bg-[#34c759]/10 text-[#248a3d] dark:border-[#34c759]/70 dark:bg-[#34c759]/20 dark:text-[#3cdb63]",
+                            "hover:bg-[#34c759] hover:text-white hover:border-[#34c759]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            completed === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${completed} Completed Projects`}
                         >
                           {completed}
                         </button>
                       </td>
 
                       {/* On Hold */}
-                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -855,15 +923,23 @@ function CustomersPage() {
                               search: { status: "on_hold" },
                             });
                           }}
-                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-amber-50 dark:bg-amber-950/50 border border-amber-200/60 dark:border-amber-900/40 font-bold text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-100 hover:scale-105 transition-all cursor-pointer"
-                          title={`Filter: ${onHold} On Hold Projects`}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#ff9500]/60 bg-[#ff9500]/10 text-[#cc7700] dark:border-[#ff9500]/70 dark:bg-[#ff9500]/20 dark:text-[#ff9500]",
+                            "hover:bg-[#ff9500] hover:text-white hover:border-[#ff9500]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            onHold === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${onHold} On Hold Projects`}
                         >
                           {onHold}
                         </button>
                       </td>
 
                       {/* Archived */}
-                      <td className="w-24 min-w-[96px] px-2 py-2 text-center tabular-nums">
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -874,8 +950,16 @@ function CustomersPage() {
                               search: { status: "archived" },
                             });
                           }}
-                          className="inline-flex items-center justify-center w-full h-7 px-2 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:scale-105 transition-all cursor-pointer"
-                          title={`Filter: ${archived} Archived Projects`}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#8e8e93]/60 bg-[#8e8e93]/10 text-[#636366] dark:border-[#8e8e93]/70 dark:bg-[#8e8e93]/20 dark:text-[#a0a0a5]",
+                            "hover:bg-[#8e8e93] hover:text-white hover:border-[#8e8e93]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            archived === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${archived} Archived Projects`}
                         >
                           {archived}
                         </button>

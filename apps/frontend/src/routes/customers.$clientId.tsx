@@ -415,12 +415,12 @@ function CustomerDetailPage() {
       </nav>
 
       {/* ── REDESIGNED CLIENT HEADER BANNER ── */}
-      <div className="mb-4 rounded-2xl border border-slate-300/90 dark:border-slate-700/80 bg-gradient-to-b from-slate-100/95 via-slate-100 to-blue-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950 p-5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)] space-y-4">
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-300/90 dark:border-slate-700/80 bg-gradient-to-b from-slate-100/95 via-slate-100 to-blue-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950 p-5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)] space-y-4">
         {/* Top Tier: Identity & Stakeholders */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-border/60">
           {/* Left: Customer Identity & Badges */}
           <div className="flex items-start gap-3.5 min-w-0">
-            <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-info text-lg font-bold text-primary-foreground shadow-sm">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-info text-sm font-bold text-primary-foreground shadow-sm">
               {client.logo}
             </div>
 

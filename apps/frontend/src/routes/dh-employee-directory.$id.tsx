@@ -29,6 +29,7 @@ import {
   type TkIdPrefix,
 } from "@/lib/form-validation";
 import { TkIdField } from "@/components/tk-id-field";
+import { WorkEmailField } from "@/components/work-email-field";
 import {
   MAX_ADULT_DOB,
   MIN_DOB,
@@ -820,81 +821,43 @@ function EditProfilePanel({
                 ) : null}
               </label>
 
-              {/* Work Email with Prefix + Domain Select like Onboarding form */}
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Work Email <span className="text-destructive">*</span>
-                </span>
-                <div className="relative flex rounded-md">
-                  <input
-                    type="text"
-                    inputMode="text"
-                    placeholder="john.doe"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    maxLength={64}
-                    value={workEmailPrefix}
-                    onChange={(e) => {
-                      const cleanPrefix = toEmailLocalPart(e.target.value);
-                      setWorkEmailPrefix(cleanPrefix);
-                      const fullEmail = cleanPrefix && workEmailDomain ? `${cleanPrefix}@${workEmailDomain}` : "";
-                      setFormData((prev) => ({ ...prev, email: fullEmail }));
+              <WorkEmailField
+                required
+                prefix={workEmailPrefix}
+                domain={workEmailDomain}
+                domainOptions={computedDomainOptions}
+                error={errors.workEmail}
+                onPrefixChange={(raw) => {
+                  const cleanPrefix = toEmailLocalPart(raw);
+                  setWorkEmailPrefix(cleanPrefix);
+                  const fullEmail =
+                    cleanPrefix && workEmailDomain ? `${cleanPrefix}@${workEmailDomain}` : "";
+                  setFormData((prev) => ({ ...prev, email: fullEmail }));
 
-                      const err = validateField("workEmail", cleanPrefix);
-                      setErrors((prev) => {
-                        const next = { ...prev };
-                        if (err) next.workEmail = err;
-                        else delete next.workEmail;
-                        return next;
-                      });
-                    }}
-                    onBlur={() => handleFieldBlur("workEmail", workEmailPrefix)}
-                    className={cn(
-                      inputCls,
-                      "rounded-r-none pr-2",
-                      errors.workEmail && "border-destructive focus-visible:ring-destructive",
-                    )}
-                    aria-label="Email username"
-                  />
-                  <select
-                    value={workEmailDomain}
-                    onChange={(e) => {
-                      const newDomain = e.target.value;
-                      setWorkEmailDomain(newDomain);
-                      const fullEmail = workEmailPrefix && newDomain ? `${workEmailPrefix}@${newDomain}` : "";
-                      setFormData((prev) => ({ ...prev, email: fullEmail }));
+                  const err = validateField("workEmail", cleanPrefix);
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    if (err) next.workEmail = err;
+                    else delete next.workEmail;
+                    return next;
+                  });
+                }}
+                onDomainChange={(newDomain) => {
+                  setWorkEmailDomain(newDomain);
+                  const fullEmail =
+                    workEmailPrefix && newDomain ? `${workEmailPrefix}@${newDomain}` : "";
+                  setFormData((prev) => ({ ...prev, email: fullEmail }));
 
-                      if (workEmailPrefix && isValidEmailLocalPart(workEmailPrefix)) {
-                        setErrors((prev) => {
-                          const next = { ...prev };
-                          delete next.workEmail;
-                          return next;
-                        });
-                      }
-                    }}
-                    className="h-9 shrink-0 rounded-r-md border border-l-0 border-input bg-muted/70 pl-2.5 pr-8 min-w-[130px] text-xs font-semibold text-foreground outline-none hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors"
-                    aria-label="Email domain"
-                  >
-                    {computedDomainOptions.length === 0 ? (
-                      <option value="" disabled>Loading domains…</option>
-                    ) : (
-                      computedDomainOptions.map((opt) => {
-                        const domainVal = opt.code.replace(/^@/, "");
-                        return (
-                          <option key={opt.id || opt.code} value={domainVal}>
-                            {opt.name.startsWith("@") ? opt.name : `@${opt.name}`}
-                          </option>
-                        );
-                      })
-                    )}
-                  </select>
-                </div>
-                {errors.workEmail ? (
-                  <p className="mt-1 text-[11px] text-destructive">{errors.workEmail}</p>
-                ) : null}
-              </label>
+                  if (workEmailPrefix && isValidEmailLocalPart(workEmailPrefix)) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.workEmail;
+                      return next;
+                    });
+                  }
+                }}
+                onPrefixBlur={() => handleFieldBlur("workEmail", workEmailPrefix)}
+              />
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">

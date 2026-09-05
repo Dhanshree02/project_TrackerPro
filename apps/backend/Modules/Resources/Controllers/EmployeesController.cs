@@ -225,6 +225,16 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         return Ok(ApiResponse<MetaOptionDto>.Ok(created));
     }
 
+    [HttpGet("meta/employee-statuses")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmployeeStatuses(
+        [FromQuery] bool onboardingOnly = false,
+        CancellationToken ct = default)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(
+            await employees.GetEmployeeStatusesAsync(onboardingOnly, ct)));
+    }
+
     [HttpGet("bulk/sample")]
     [RequirePermission(Permissions.ResourcesManage)]
     public IActionResult BulkSample()

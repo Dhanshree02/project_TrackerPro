@@ -235,6 +235,11 @@ export async function fetchJobRoleOptions(designationId?: string): Promise<ApiMe
   return (await apiFetch<ApiMetaOption[]>(`/api/v1/employees/meta/roles${query}`)) ?? [];
 }
 
+export async function fetchEmployeeStatusOptions(onboardingOnly = false): Promise<ApiMetaOption[]> {
+  const query = onboardingOnly ? "?onboardingOnly=true" : "";
+  return (await apiFetch<ApiMetaOption[]>(`/api/v1/employees/meta/employee-statuses${query}`)) ?? [];
+}
+
 export async function fetchSalaryBandOptions(): Promise<ApiMetaOption[]> {
   return (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/salary-bands")) ?? [];
 }

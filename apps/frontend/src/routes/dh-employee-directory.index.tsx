@@ -43,6 +43,7 @@ import {
 } from "@/lib/form-validation";
 import { CreatableCatalogSelect, SearchableSelect } from "@/components/creatable-catalog-select";
 import { TkIdField } from "@/components/tk-id-field";
+import { WorkEmailField } from "@/components/work-email-field";
 import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import { EmployeeBulkUploadMenu } from "@/components/employee-bulk-upload";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
@@ -62,10 +63,10 @@ import {
   fetchDesignationOptions,
   fetchEmailDomainOptions,
   fetchJobRoleOptions,
+  fetchEmployeeStatusOptions,
   fetchNationalityOptions,
   fetchOfficeOptions,
   fetchReportingManagerOptions,
-  fetchSalaryBandOptions,
   fetchWorkLocationOptions,
   toUiEmployeeFromList,
   uploadEmployeeDocuments,
@@ -84,7 +85,6 @@ import {
   validateOnboardForm,
   validateOnboardFile,
   validateOnboardDocs,
-  toDirectoryStatus,
   blankToNull,
   csvToList,
   type OnboardDocs,
@@ -93,6 +93,12 @@ import {
   type OnboardField,
   type OnboardValues,
 } from "@/lib/onboard-validation";
+import {
+  WORKER_TYPES,
+  BOND_DELIVERED_OPTIONS,
+  computeBondStatus,
+  formatBondExpiryDisplay,
+} from "@/lib/employment-bond";
 import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
 import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
 import { Modal } from "@/routes/projects.index";
@@ -764,6 +770,7 @@ function FormField({
   suffix,
   inputMode,
   disabled,
+  readOnly,
 }: {
   label: string;
   type?: string;
@@ -783,7 +790,9 @@ function FormField({
   suffix?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   disabled?: boolean;
+  readOnly?: boolean;
 }) {
+  const isLocked = disabled || readOnly;
   const resolvedMaxLength =
     type === "date" || type === "number" ? maxLength : (maxLength ?? FIELD_MAX.text);
   // Chrome ignores autoComplete="off". new-password + readOnly-until-focus is the reliable pair.
@@ -810,7 +819,7 @@ function FormField({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          readOnly={type !== "date" && !disabled}
+          readOnly={readOnly || (type !== "date" && !disabled && !onChange)}
           disabled={disabled}
           data-lpignore="true"
           data-1p-ignore="true"
@@ -827,12 +836,21 @@ function FormField({
             type === "date" && "cursor-pointer",
             error && "border-destructive focus-visible:ring-destructive",
             disabled && "cursor-not-allowed bg-muted/60 text-muted-foreground select-none pointer-events-none",
+            readOnly && !disabled && "cursor-default bg-muted/40 text-foreground",
           )}
           {...(value !== undefined
-            ? { value: disabled ? "" : value, onChange: (e: React.ChangeEvent<HTMLInputElement>) => !disabled && onChange?.(e.target.value) }
+            ? {
+                value: disabled && !readOnly ? "" : value,
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+                  !isLocked && onChange?.(e.target.value),
+              }
             : {})}
-          onFocus={(e) => { if (!disabled && type !== "date") unlock(e.currentTarget); }}
-          onMouseDown={(e) => { if (!disabled && type !== "date") unlock(e.currentTarget); }}
+          onFocus={(e) => {
+            if (!isLocked && type !== "date") unlock(e.currentTarget);
+          }}
+          onMouseDown={(e) => {
+            if (!isLocked && type !== "date") unlock(e.currentTarget);
+          }}
           onClick={(e) => {
             if (type === "date" && !disabled && typeof e.currentTarget.showPicker === "function") {
               try { e.currentTarget.showPicker(); } catch {}
@@ -1130,7 +1148,7 @@ function OnboardingPanel({
   const [deptOptions, setDeptOptions] = useState<ApiMetaOption[]>([]);
   const [desigOptions, setDesigOptions] = useState<ApiMetaOption[]>([]);
   const [roleOptions, setRoleOptions] = useState<ApiMetaOption[]>([]);
-  const [salaryBands, setSalaryBands] = useState<ApiMetaOption[]>([]);
+  const [employeeStatusOptions, setEmployeeStatusOptions] = useState<ApiMetaOption[]>([]);
   const [emailDomainOptions, setEmailDomainOptions] = useState<ApiMetaOption[]>([]);
   const [managerOptions, setManagerOptions] = useState<ApiMetaOption[]>([]);
   const [buOptions, setBuOptions] = useState<ApiMetaOption[]>([]);
@@ -1159,7 +1177,7 @@ function OnboardingPanel({
       setDeptOptions([]);
       setDesigOptions([]);
       setRoleOptions([]);
-      setSalaryBands([]);
+      setEmployeeStatusOptions([]);
       setEmailDomainOptions([]);
       setManagerOptions([]);
       setBuOptions([]);
@@ -1176,9 +1194,18 @@ function OnboardingPanel({
     void fetchDepartmentOptions()
       .then(setDeptOptions)
       .catch(() => toast.error("Could not load departments"));
-    void fetchSalaryBandOptions()
-      .then(setSalaryBands)
-      .catch(() => toast.error("Could not load salary bands"));
+    void fetchEmployeeStatusOptions(true)
+      .then((rows) => {
+        const list = rows ?? [];
+        setEmployeeStatusOptions(list);
+        if (list.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            employeeStatusId: prev.employeeStatusId || list[0].id,
+          }));
+        }
+      })
+      .catch(() => toast.error("Could not load employee statuses"));
     void fetchBusinessUnitOptions()
       .then((bus) => {
         const list = bus ?? [];
@@ -1233,9 +1260,25 @@ function OnboardingPanel({
       setRoleOptions([]);
       return;
     }
+    let cancelled = false;
     void fetchJobRoleOptions(form.designationId)
-      .then(setRoleOptions)
-      .catch(() => setRoleOptions([]));
+      .then((roles) => {
+        if (cancelled) return;
+        const list = roles ?? [];
+        setRoleOptions(list);
+        setForm((prev) => {
+          if (prev.designationId !== form.designationId) return prev;
+          const stillValid = list.some((r) => r.id === prev.jobRoleId);
+          if (stillValid) return prev;
+          return { ...prev, jobRoleId: list[0]?.id ?? "" };
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setRoleOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, form.designationId]);
 
   const selectedWorkLoc = useMemo(() => {
@@ -1254,6 +1297,16 @@ function OnboardingPanel({
     return officeOptions.filter((o) => o.parentId === selectedWorkLoc.id);
   }, [officeOptions, selectedWorkLoc]);
 
+  const bondExpiryDisplay = useMemo(
+    () => formatBondExpiryDisplay(form.joiningDate, form.bondDelivered, form.bondDurationMonths),
+    [form.joiningDate, form.bondDelivered, form.bondDurationMonths],
+  );
+
+  const bondStatusDisplay = useMemo(
+    () => computeBondStatus(form.bondDelivered, form.joiningDate, form.bondDurationMonths),
+    [form.bondDelivered, form.joiningDate, form.bondDurationMonths],
+  );
+
   if (!open) return null;
 
   const setField = (field: OnboardField, value: string) => {
@@ -1264,11 +1317,9 @@ function OnboardingPanel({
           ? toLettersName(value)
           : field === "workEmail"
             ? toEmailInput(value)
-            : field === "probationPeriod"
-              ? toDigits(value, FIELD_MAX.probationMonths)
-              : field === "noticePeriod"
-                ? toDigits(value, FIELD_MAX.noticeDays)
-                : value;
+            : field === "bondDurationMonths"
+              ? toDigits(value, 3)
+              : value;
 
     setForm((prev) => {
       const next = { ...prev, [field]: nextValue };
@@ -1277,6 +1328,9 @@ function OnboardingPanel({
         next.jobRoleId = "";
       }
       if (field === "designationId") next.jobRoleId = "";
+      if (field === "bondDelivered" && nextValue === "No") {
+        next.bondDurationMonths = "0";
+      }
       return next;
     });
 
@@ -1468,10 +1522,22 @@ function OnboardingPanel({
         );
       }
 
-      const probationLabel = form.probationPeriod.trim()
-        ? `${form.probationPeriod.trim()} months`
-        : null;
-      const employmentStatus = form.status.trim() || "Active";
+      const employeeStatusName =
+        employeeStatusOptions.find((s) => s.id === form.employeeStatusId)?.name ?? "Active";
+      const bondDelivered = form.bondDelivered.trim() || "No";
+      const bondDurationMonths =
+        bondDelivered === "Yes" ? Number(form.bondDurationMonths || "0") : 0;
+      const bondExpiryIso =
+        bondDelivered === "Yes"
+          ? formatBondExpiryDisplay(form.joiningDate, bondDelivered, form.bondDurationMonths)
+          : null;
+      const bondExpiryDate =
+        bondExpiryIso && bondExpiryIso !== "No" && bondExpiryIso !== "—" ? bondExpiryIso : null;
+      const bondStatus = computeBondStatus(
+        bondDelivered,
+        form.joiningDate,
+        form.bondDurationMonths,
+      );
       const empCode = form.employeeCode.trim();
 
       await createEmployee({
@@ -1498,19 +1564,23 @@ function OnboardingPanel({
         businessUnit: resolvedBusinessUnit,
         workLocation: resolvedWorkLocation,
         officeBranch: null,
-        category: blankToNull(form.category),
+        category: null,
         team: null,
         joiningDate: blankToNull(form.joiningDate),
-        status: toDirectoryStatus(employmentStatus),
-        confirmationStatus: employmentStatus,
-        probationStatus: employmentStatus === "Active - Probation" ? "Ongoing" : "Completed",
-        probationPeriod: probationLabel,
+        status: "Active",
+        employeeStatusId: form.employeeStatusId || null,
+        confirmationStatus: employeeStatusName,
+        probationStatus: null,
+        probationPeriod: null,
         experience: blankToNull(form.experience),
         previousCompany: blankToNull(form.previousCompany),
-        employmentType: blankToNull(form.employmentType),
-        contractType: blankToNull(form.contractType),
-        bondStatus: blankToNull(form.bondStatus),
-        noticePeriod: form.noticePeriod.trim() ? `${form.noticePeriod.trim()} days` : null,
+        employmentType: blankToNull(form.workerType),
+        contractType: null,
+        bondDelivered,
+        bondDurationMonths,
+        bondExpiryDate,
+        bondStatus,
+        noticePeriod: null,
         projectSite: resolvedWorkLocation === "Onsite" ? blankToNull(form.projectSite) : null,
         assetId: blankToNull(form.assetId),
         exitType: form.exitType.trim() || "NA",
@@ -1523,8 +1593,8 @@ function OnboardingPanel({
         aadhaar: form.aadhaar.replace(/\D/g, "") || null,
         bankAccount: blankToNull(form.bankAccount),
         pfUan: blankToNull(form.pfUan),
-        salaryBandId: form.salaryBandId || null,
-        salaryBand: salaryBands.find((b) => b.id === form.salaryBandId)?.name ?? null,
+        salaryBandId: null,
+        salaryBand: null,
       });
 
       // Upload attached documents to local backend storage
@@ -1620,91 +1690,60 @@ function OnboardingPanel({
                 onBlur={() => blurField("lastName")}
                 error={errors.lastName}
               />
-              <div>
-                <label className="block">
-                  <span className={FORM_LABEL_CLS}>
-                    Work Email <span className="text-destructive">*</span>
-                  </span>
-                  <div className="relative flex rounded-md">
-                    <input
-                      id="onboard-workEmail"
-                      type="text"
-                      placeholder="john.doe"
-                      autoComplete="new-password"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck={false}
-                      readOnly
-                      data-lpignore="true"
-                      data-1p-ignore="true"
-                      data-bwignore="true"
-                      data-form-type="other"
-                      maxLength={64}
-                      value={workEmailPrefix}
-                      onChange={(e) => {
-                        const cleanPrefix = toEmailLocalPart(e.target.value);
-                        setWorkEmailPrefix(cleanPrefix);
-                        const fullEmail = cleanPrefix ? `${cleanPrefix}@${workEmailDomain}` : "";
-                        setForm((prev) => ({ ...prev, workEmail: fullEmail }));
-                        setErrors((prev) => {
-                          const next = { ...prev };
-                          if (!cleanPrefix) next.workEmail = "Work email is required";
-                          else if (!isValidEmailLocalPart(cleanPrefix)) next.workEmail = "Only alphanumeric and '.' allowed";
-                          else delete next.workEmail;
-                          return next;
-                        });
-                      }}
-                      onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
-                      onMouseDown={(e) => e.currentTarget.removeAttribute("readonly")}
-                      onBlur={() => {
-                        if (!workEmailPrefix) {
-                          setErrors((prev) => ({ ...prev, workEmail: "Work email is required" }));
-                        } else if (!isValidEmailLocalPart(workEmailPrefix)) {
-                          setErrors((prev) => ({ ...prev, workEmail: "Only alphanumeric and '.' allowed" }));
-                        }
-                      }}
-                      className={cn(
-                        FORM_CONTROL_CLS,
-                        "rounded-r-none pr-2",
-                        errors.workEmail && "border-destructive focus-visible:ring-destructive",
-                      )}
-                      aria-label="Email username"
-                    />
-                    <select
-                      value={workEmailDomain}
-                      onChange={(e) => {
-                        const newDomain = e.target.value;
-                        setWorkEmailDomain(newDomain);
-                        const fullEmail = workEmailPrefix ? `${workEmailPrefix}@${newDomain}` : "";
-                        setForm((prev) => ({ ...prev, workEmail: fullEmail }));
-                        if (workEmailPrefix && isValidEmailLocalPart(workEmailPrefix)) {
-                          setErrors((prev) => {
-                            const next = { ...prev };
-                            delete next.workEmail;
-                            return next;
-                          });
-                        }
-                      }}
-                      className="h-9 shrink-0 rounded-r-md border border-l-0 border-input bg-muted/70 pl-2.5 pr-8 min-w-[130px] text-xs font-semibold text-foreground outline-none hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors"
-                      aria-label="Email domain"
-                    >
-                      {emailDomainOptions.length === 0 ? (
-                        <option value="" disabled>Loading domains…</option>
-                      ) : (
-                        emailDomainOptions.map((opt) => {
-                          const domainVal = opt.code.replace(/^@/, "");
-                          return (
-                            <option key={opt.id || opt.code} value={domainVal}>
-                              {opt.name.startsWith("@") ? opt.name : `@${opt.name}`}
-                            </option>
-                          );
-                        })
-                      )}
-                    </select>
-                  </div>
-                  {errors.workEmail ? <p className={FORM_ERROR_CLS}>{errors.workEmail}</p> : null}
-                </label>
-              </div>
+              <WorkEmailField
+                required
+                id="onboard-workEmail"
+                prefix={workEmailPrefix}
+                domain={workEmailDomain}
+                domainOptions={emailDomainOptions}
+                error={errors.workEmail}
+                prefixInputProps={{
+                  readOnly: true,
+                  autoComplete: "new-password",
+                  "data-lpignore": "true",
+                  "data-1p-ignore": "true",
+                  "data-bwignore": "true",
+                  "data-form-type": "other",
+                  onFocus: (e) => e.currentTarget.removeAttribute("readonly"),
+                  onMouseDown: (e) => e.currentTarget.removeAttribute("readonly"),
+                }}
+                onPrefixChange={(raw) => {
+                  const cleanPrefix = toEmailLocalPart(raw);
+                  setWorkEmailPrefix(cleanPrefix);
+                  const fullEmail = cleanPrefix ? `${cleanPrefix}@${workEmailDomain}` : "";
+                  setForm((prev) => ({ ...prev, workEmail: fullEmail }));
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    if (!cleanPrefix) next.workEmail = "Work email is required";
+                    else if (!isValidEmailLocalPart(cleanPrefix))
+                      next.workEmail = "Only alphanumeric and '.' allowed";
+                    else delete next.workEmail;
+                    return next;
+                  });
+                }}
+                onDomainChange={(newDomain) => {
+                  setWorkEmailDomain(newDomain);
+                  const fullEmail = workEmailPrefix ? `${workEmailPrefix}@${newDomain}` : "";
+                  setForm((prev) => ({ ...prev, workEmail: fullEmail }));
+                  if (workEmailPrefix && isValidEmailLocalPart(workEmailPrefix)) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.workEmail;
+                      return next;
+                    });
+                  }
+                }}
+                onPrefixBlur={() => {
+                  if (!workEmailPrefix) {
+                    setErrors((prev) => ({ ...prev, workEmail: "Work email is required" }));
+                  } else if (!isValidEmailLocalPart(workEmailPrefix)) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      workEmail: "Only alphanumeric and '.' allowed",
+                    }));
+                  }
+                }}
+              />
               <FormField
                 label="Phone (Personal)"
                 name="phone"
@@ -1840,6 +1879,23 @@ function OnboardingPanel({
                   return temp;
                 }}
               />
+              <div className="md:col-span-2 lg:col-span-2">
+                <CreatableCatalogSelect
+                  label="Business Unit"
+                  options={buOptions}
+                  valueId={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
+                  placeholder="Select business unit"
+                  onSelect={(id, name) => setField("businessUnit", name || id)}
+                  onCreate={(name) => {
+                    const trimmed = name.trim();
+                    const existing = buOptions.find((b) => b.name.toLowerCase() === trimmed.toLowerCase());
+                    if (existing) return existing;
+                    const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
+                    setBuOptions((prev) => [...prev, temp]);
+                    return temp;
+                  }}
+                />
+              </div>
               <CreatableCatalogSelect
                 label="Reporting Manager"
                 required
@@ -1856,21 +1912,6 @@ function OnboardingPanel({
                   if (existing) return existing;
                   const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
                   setManagerOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
-              />
-              <CreatableCatalogSelect
-                label="Business Unit"
-                options={buOptions}
-                valueId={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
-                placeholder="Select business unit"
-                onSelect={(id, name) => setField("businessUnit", name || id)}
-                onCreate={(name) => {
-                  const trimmed = name.trim();
-                  const existing = buOptions.find((b) => b.name.toLowerCase() === trimmed.toLowerCase());
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setBuOptions((prev) => [...prev, temp]);
                   return temp;
                 }}
               />
@@ -1932,18 +1973,6 @@ function OnboardingPanel({
                 onBlur={() => blurField("joiningDate")}
                 error={errors.joiningDate}
               />
-              <FormSelect
-                label="Category"
-                options={[
-                  "Permanent - Bond",
-                  "Permanent - Without Bond",
-                  "Contract-based",
-                  "Intern - Paid",
-                  "Intern - Unpaid",
-                ]}
-                value={form.category}
-                onChange={(v) => setField("category", v)}
-              />
               <FormField
                 label="Asset ID"
                 placeholder="e.g. AST-1001"
@@ -1952,65 +1981,50 @@ function OnboardingPanel({
                 onChange={(v) => setField("assetId", v)}
               />
               <FormSelect
-                label="Employment Status"
+                label="Employee Status"
                 required
-                error={errors.status}
-                options={[
-                  "Active - Probation",
-                  "Active",
-                ]}
-                value={form.status}
-                onChange={(v) => setField("status", v)}
+                error={errors.employeeStatusId}
+                options={employeeStatusOptions.map((s) => ({ value: s.id, label: s.name }))}
+                value={form.employeeStatusId}
+                onChange={(v) => setField("employeeStatusId", v)}
+              />
+              <FormSelect
+                label="Worker Type"
+                required
+                error={errors.workerType}
+                options={[...WORKER_TYPES]}
+                value={form.workerType}
+                onChange={(v) => setField("workerType", v)}
+              />
+              <FormSelect
+                label="Bond Delivered"
+                required
+                error={errors.bondDelivered}
+                options={[...BOND_DELIVERED_OPTIONS]}
+                value={form.bondDelivered}
+                onChange={(v) => setField("bondDelivered", v)}
               />
               <FormField
-                label="Probation Period"
+                label="Bond Duration"
                 inputMode="numeric"
-                maxLength={FIELD_MAX.probationMonths}
-                placeholder="e.g. 6"
+                maxLength={3}
+                placeholder="Months"
                 suffix="months"
-                value={form.probationPeriod}
-                onChange={(v) => setField("probationPeriod", v)}
-                onBlur={() => blurField("probationPeriod")}
-                error={errors.probationPeriod}
+                disabled={form.bondDelivered !== "Yes"}
+                value={form.bondDelivered === "Yes" ? form.bondDurationMonths : "0"}
+                onChange={(v) => setField("bondDurationMonths", v)}
+                onBlur={() => blurField("bondDurationMonths")}
+                error={errors.bondDurationMonths}
               />
               <FormField
-                label="Notice Period"
-                inputMode="numeric"
-                maxLength={FIELD_MAX.noticeDays}
-                placeholder="e.g. 90"
-                suffix="days"
-                value={form.noticePeriod}
-                onChange={(v) => setField("noticePeriod", v)}
-                onBlur={() => blurField("noticePeriod")}
-                error={errors.noticePeriod}
+                label="Bond Expiry Date"
+                readOnly
+                value={bondExpiryDisplay}
               />
-              <FormSelect
-                label="Salary Band"
-                required
-                error={errors.salaryBandId}
-                options={salaryBands.map((b) => ({ value: b.id, label: b.name }))}
-                value={form.salaryBandId}
-                onChange={(v) => setField("salaryBandId", v)}
-              />
-              <FormSelect
-                label="Employment Type"
-                required
-                error={errors.employmentType}
-                options={["Full-time", "Part-time", "Contract"]}
-                value={form.employmentType}
-                onChange={(v) => setField("employmentType", v)}
-              />
-              <FormSelect
-                label="Contract Type"
-                options={["Permanent", "Fixed-term"]}
-                value={form.contractType}
-                onChange={(v) => setField("contractType", v)}
-              />
-              <FormSelect
+              <FormField
                 label="Bond Status"
-                options={["Yes", "No"]}
-                value={form.bondStatus}
-                onChange={(v) => setField("bondStatus", v)}
+                readOnly
+                value={bondStatusDisplay}
               />
             </FormSection>
 

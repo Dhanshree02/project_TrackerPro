@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
+import { FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import { TK_ID_DIGITS, TK_ID_PREFIXES, type TkIdPrefix } from "@/lib/form-validation";
 
 interface TkIdFieldProps {
@@ -37,16 +37,22 @@ export function TkIdField({
           {label}
           {required ? <span className="text-destructive"> *</span> : null}
         </span>
-        <div className="relative flex rounded-md">
-          <div className="relative shrink-0">
+        <div
+          className={cn(
+            "flex h-9 overflow-hidden rounded-md border border-input bg-card transition-colors",
+            "focus-within:ring-2 focus-within:ring-ring",
+            error && "border-destructive focus-within:ring-destructive/30",
+            disabled && "cursor-not-allowed opacity-60",
+          )}
+        >
+          <div className="relative shrink-0 border-r border-input">
             <select
               value={prefix}
               disabled={disabled}
               onChange={(e) => onChange(e.target.value as TkIdPrefix, digits)}
               className={cn(
-                "h-9 appearance-none rounded-l-md border border-input bg-muted/70 pl-3 pr-8 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring",
-                disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
-                error && "border-destructive",
+                "h-full appearance-none border-0 bg-muted/70 pl-3 pr-8 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-0",
+                disabled ? "cursor-not-allowed" : "cursor-pointer",
               )}
               aria-label="TK ID prefix"
             >
@@ -59,10 +65,7 @@ export function TkIdField({
             <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           </div>
           <span
-            className={cn(
-              "flex h-9 items-center border-y border-input bg-muted/40 px-1.5 text-sm text-muted-foreground",
-              error && "border-destructive",
-            )}
+            className="flex h-full shrink-0 items-center border-r border-input bg-muted/40 px-1.5 text-sm text-muted-foreground select-none"
             aria-hidden
           >
             -
@@ -78,12 +81,11 @@ export function TkIdField({
             onChange={(e) => onChange(prefix, e.target.value.replace(/\D/g, "").slice(0, TK_ID_DIGITS))}
             onBlur={onBlur}
             className={cn(
-              FORM_CONTROL_CLS,
-              "rounded-l-none border-l-0 font-mono tracking-wider",
+              "h-full min-w-0 flex-1 border-0 bg-transparent px-3 font-mono text-sm tracking-wider text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-0 disabled:cursor-not-allowed",
               inputClassName,
-              error && "border-destructive focus-visible:ring-destructive",
             )}
             aria-label="TK ID number"
+            aria-invalid={Boolean(error)}
           />
         </div>
         {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}

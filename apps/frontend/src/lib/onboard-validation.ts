@@ -49,23 +49,19 @@ export type OnboardField =
   | "projectSite"
   | "workLocation"
   | "officeBranch"
-  | "category"
   | "assetId"
-  | "status"
   | "exitType"
   | "exitReason"
-  | "probationPeriod"
-  | "noticePeriod"
-  | "salaryBandId"
+  | "employeeStatusId"
+  | "workerType"
+  | "bondDelivered"
+  | "bondDurationMonths"
   | "education"
   | "certifications"
   | "technicalSkills"
   | "functionalSkills"
   | "experience"
   | "previousCompany"
-  | "employmentType"
-  | "contractType"
-  | "bondStatus"
   | "languages"
   | "pan"
   | "aadhaar"
@@ -112,23 +108,19 @@ export const EMPTY_ONBOARD: OnboardValues = {
   projectSite: "",
   workLocation: "",
   officeBranch: "",
-  category: "",
   assetId: "",
-  status: "Active",
+  employeeStatusId: "",
+  workerType: "Permanent",
+  bondDelivered: "No",
+  bondDurationMonths: "0",
   exitType: "NA",
   exitReason: "",
-  probationPeriod: "",
-  noticePeriod: "",
-  salaryBandId: "",
   education: "",
   certifications: "",
   technicalSkills: "",
   functionalSkills: "",
   experience: "",
   previousCompany: "",
-  employmentType: "Full-Time",
-  contractType: "",
-  bondStatus: "",
   languages: "",
   pan: "",
   aadhaar: "",
@@ -164,16 +156,15 @@ export const ONBOARD_FIELDS: OnboardField[] = [
   "reportingManagerId",
   "workLocation",
   "joiningDate",
-  "status",
-  "employmentType",
-  "probationPeriod",
-  "noticePeriod",
+  "employeeStatusId",
+  "workerType",
+  "bondDelivered",
+  "bondDurationMonths",
   "pan",
   "aadhaar",
   "pfUan",
   "bankAccount",
   "ifsc",
-  "salaryBandId",
 ];
 
 export const MAX_ADULT_DOB = isoDateYearsAgo(18);
@@ -301,43 +292,37 @@ export function validateOnboardField(
     case "officeBranch": {
       return undefined;
     }
+    case "employeeStatusId": {
+      const v = (values.employeeStatusId || "").trim();
+      if (!v) return "Employee status is required";
+      return undefined;
+    }
+    case "workerType": {
+      const v = (values.workerType || "").trim();
+      if (!v) return "Worker type is required";
+      return undefined;
+    }
+    case "bondDelivered": {
+      const v = (values.bondDelivered || "").trim();
+      if (!v) return "Bond delivered is required";
+      return undefined;
+    }
+    case "bondDurationMonths": {
+      const v = (values.bondDurationMonths || "").trim();
+      if (values.bondDelivered !== "Yes") return undefined;
+      if (!v) return "Bond duration is required when bond is delivered";
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0 || n > 120) return "Enter bond duration in months (1–120)";
+      return undefined;
+    }
     case "joiningDate": {
       const v = (values.joiningDate || "").trim();
       if (!v) return "Joining date is required";
       if (v < isoDateToday()) return "Date of joining must be today or a future date";
       return undefined;
     }
-    case "status": {
-      const v = (values.status || "").trim();
-      if (!v) return "Employment status is required";
-      return undefined;
-    }
-    case "employmentType": {
-      const v = (values.employmentType || "").trim();
-      if (!v) return "Employment type is required";
-      return undefined;
-    }
-    case "salaryBandId": {
-      const v = (values.salaryBandId || "").trim();
-      if (!v) return "Salary band is required";
-      return undefined;
-    }
     case "jobRoleId":
       return undefined;
-    case "probationPeriod": {
-      const v = (values.probationPeriod || "").trim();
-      if (!v) return undefined;
-      const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 36) return "Enter months between 0 and 36";
-      return undefined;
-    }
-    case "noticePeriod": {
-      const v = (values.noticePeriod || "").trim();
-      if (!v) return undefined;
-      const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 365) return "Enter days between 0 and 365";
-      return undefined;
-    }
     case "workEmail": {
       const v = (values.workEmail || "").trim();
       if (!v) return "Work email is required";
@@ -416,7 +401,6 @@ export function validateOnboardField(
     case "businessUnit":
     case "team":
     case "projectSite":
-    case "category":
     case "assetId":
     case "exitType":
     case "exitReason":
@@ -426,8 +410,6 @@ export function validateOnboardField(
     case "functionalSkills":
     case "experience":
     case "previousCompany":
-    case "contractType":
-    case "bondStatus":
     case "languages":
       return undefined;
   }
