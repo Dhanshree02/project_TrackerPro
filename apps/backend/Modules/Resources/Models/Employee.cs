@@ -53,6 +53,13 @@ public class Employee : BaseEntity
     public string? ExitType { get; set; }
     public string? ExitReason { get; set; }
 
+    public string? GradDegree { get; set; }
+    public string? GradYear { get; set; }
+    public string? PostGradDegree { get; set; }
+    public string? PostGradYear { get; set; }
+    public string? ExpType { get; set; }
+    public string? PriorTotalExp { get; set; }
+    public string? PriorRelevantExp { get; set; }
     public string? Education { get; set; }
     public List<string> Skills { get; set; } = [];
     public List<string> Certifications { get; set; } = [];

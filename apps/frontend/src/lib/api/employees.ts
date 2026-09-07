@@ -492,3 +492,122 @@ export async function uploadEmployeeDocuments(
   });
 }
 
+
+export const DEFAULT_CERTIFICATIONS: ApiMetaOption[] = [
+  { id: "cert-1", code: "ceh", name: "Certified Ethical Hacker (CEH)" },
+  { id: "cert-2", code: "comptia_sec", name: "CompTIA Security+" },
+  { id: "cert-3", code: "ecppt", name: "eCPPT" },
+  { id: "cert-4", code: "cpts", name: "cPTS" },
+  { id: "cert-5", code: "crtp", name: "CRTP" },
+  { id: "cert-6", code: "lpt", name: "Licensed Penetration Tester (LPT)" },
+  { id: "cert-7", code: "pnpt", name: "PNPT" },
+  { id: "cert-8", code: "crte", name: "CRTE" },
+  { id: "cert-9", code: "crt", name: "CRT" },
+  { id: "cert-10", code: "oscp", name: "Offensive Security Certified Professional (OSCP)" },
+  { id: "cert-11", code: "oswp", name: "Offensive Security Wireless Professional (OSWP)" },
+  { id: "cert-12", code: "oswe", name: "Offensive Security Web Expert (OSWE)" },
+  { id: "cert-13", code: "osep", name: "Offensive Security Experienced Penetration Tester (OSEP)" },
+  { id: "cert-14", code: "osce3", name: "Offensive Security Certified Expert 3 (OSCE3)" },
+  { id: "cert-15", code: "iso27001", name: "ISO 27001" },
+  { id: "cert-16", code: "iso22301", name: "ISO 22301" },
+  { id: "cert-17", code: "iso42001", name: "ISO/IEC 42001" },
+  { id: "cert-18", code: "ccsp", name: "Certified Cloud Security Professional (CCSP)" },
+  { id: "cert-19", code: "cisa", name: "Certified Information Systems Auditor (CISA)" },
+  { id: "cert-20", code: "cism", name: "Certified Information Security Manager (CISM)" },
+  { id: "cert-21", code: "cissp", name: "Certified Information Systems Security Professional (CISSP)" },
+  { id: "cert-22", code: "crisc", name: "Certified in Risk and Information Systems Control (CRISC)" },
+  { id: "cert-23", code: "ecih", name: "EC-Council Certified Incident Handler (ECIH)" },
+  { id: "cert-24", code: "ctia", name: "Certified Threat Intelligence Analyst (CTIA)" },
+  { id: "cert-25", code: "btl1_2", name: "Blue Team Level 1 and 2" },
+  { id: "cert-26", code: "ecthp", name: "eLearnSecurity Certified Threat Hunting Professional (eCTHP)" },
+  { id: "cert-27", code: "ecir", name: "eLearnSecurity Certified Incident Responder (eCIR)" },
+  { id: "cert-28", code: "ecdfp", name: "eLearnSecurity Certified Digital Forensics Professional (eCDFP)" },
+  { id: "cert-29", code: "osda", name: "OffSec Foundational Security Operations and Defensive Analysis (OSDA)" },
+];
+
+export const DEFAULT_GRADUATION_DEGREES: ApiMetaOption[] = [
+  { id: "grad-1", code: "be", name: "BE" },
+  { id: "grad-2", code: "btech", name: "B.Tech" },
+  { id: "grad-3", code: "bsc", name: "B.Sc" },
+  { id: "grad-4", code: "bcom", name: "B.Com" },
+  { id: "grad-5", code: "bca", name: "BCA" },
+  { id: "grad-6", code: "ba", name: "B.A." },
+  { id: "grad-7", code: "bpharm", name: "B.Pharm" },
+  { id: "grad-8", code: "bba", name: "BBA" },
+  { id: "grad-9", code: "bs", name: "BS" },
+];
+
+export const DEFAULT_POST_GRADUATION_DEGREES: ApiMetaOption[] = [
+  { id: "pgrad-1", code: "na", name: "NA" },
+  { id: "pgrad-2", code: "mca", name: "MCA" },
+  { id: "pgrad-3", code: "mba", name: "MBA" },
+  { id: "pgrad-4", code: "mtech", name: "M.Tech" },
+  { id: "pgrad-5", code: "me", name: "ME" },
+  { id: "pgrad-6", code: "msc", name: "M.Sc" },
+  { id: "pgrad-7", code: "ms", name: "MS" },
+  { id: "pgrad-8", code: "mcom", name: "M.Com" },
+  { id: "pgrad-9", code: "ma", name: "M.A." },
+];
+
+export async function fetchCertificationOptions(): Promise<ApiMetaOption[]> {
+  try {
+    const list = await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/certifications");
+    return list && list.length > 0 ? list : DEFAULT_CERTIFICATIONS;
+  } catch {
+    return DEFAULT_CERTIFICATIONS;
+  }
+}
+
+export async function createCertificationOption(name: string): Promise<ApiMetaOption> {
+  try {
+    return await apiFetch<ApiMetaOption>("/api/v1/employees/meta/certifications", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  } catch {
+    const code = name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    return { id: `__new__${name}`, code, name };
+  }
+}
+
+export async function fetchGraduationDegreeOptions(): Promise<ApiMetaOption[]> {
+  try {
+    const list = await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/graduation-degrees");
+    return list && list.length > 0 ? list : DEFAULT_GRADUATION_DEGREES;
+  } catch {
+    return DEFAULT_GRADUATION_DEGREES;
+  }
+}
+
+export async function createGraduationDegreeOption(name: string): Promise<ApiMetaOption> {
+  try {
+    return await apiFetch<ApiMetaOption>("/api/v1/employees/meta/graduation-degrees", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  } catch {
+    const code = name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    return { id: `__new__${name}`, code, name };
+  }
+}
+
+export async function fetchPostGraduationDegreeOptions(): Promise<ApiMetaOption[]> {
+  try {
+    const list = await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/post-graduation-degrees");
+    return list && list.length > 0 ? list : DEFAULT_POST_GRADUATION_DEGREES;
+  } catch {
+    return DEFAULT_POST_GRADUATION_DEGREES;
+  }
+}
+
+export async function createPostGraduationDegreeOption(name: string): Promise<ApiMetaOption> {
+  try {
+    return await apiFetch<ApiMetaOption>("/api/v1/employees/meta/post-graduation-degrees", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  } catch {
+    const code = name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    return { id: `__new__${name}`, code, name };
+  }
+}

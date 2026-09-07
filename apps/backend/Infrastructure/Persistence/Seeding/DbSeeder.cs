@@ -284,6 +284,9 @@ public static class DbSeeder
         await SeedBusinessUnitsAsync(db, ct);
         await SeedEmployeeStatusesAsync(db, ct);
         await SeedWorkLocationsAndOfficesAsync(db, ct);
+        await SeedCertificationsAsync(db, ct);
+        await SeedGraduationDegreesAsync(db, ct);
+        await SeedPostGraduationDegreesAsync(db, ct);
     }
 
     private static async Task SeedEmployeeStatusesAsync(AppDbContext db, CancellationToken ct)
@@ -1251,5 +1254,88 @@ public static class DbSeeder
     {
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(seed));
         return new Guid(hash.AsSpan(0, 16));
+    }
+
+    private static async Task SeedCertificationsAsync(AppDbContext db, CancellationToken ct)
+    {
+        var certs = new[]
+        {
+            "Certified Ethical Hacker (CEH)",
+            "CompTIA Security+",
+            "eCPPT",
+            "cPTS",
+            "CRTP",
+            "Licensed Penetration Tester (LPT)",
+            "PNPT",
+            "CRTE",
+            "CRT",
+            "Offensive Security Certified Professional (OSCP)",
+            "Offensive Security Wireless Professional (OSWP)",
+            "Offensive Security Web Expert (OSWE)",
+            "Offensive Security Experienced Penetration Tester (OSEP)",
+            "Offensive Security Certified Expert 3 (OSCE3)",
+            "ISO 27001",
+            "ISO 22301",
+            "ISO/IEC 42001",
+            "Certified Cloud Security Professional (CCSP)",
+            "Certified Information Systems Auditor (CISA)",
+            "Certified Information Security Manager (CISM)",
+            "Certified Information Systems Security Professional (CISSP)",
+            "Certified in Risk and Information Systems Control (CRISC)",
+            "EC-Council Certified Incident Handler (ECIH)",
+            "Certified Threat Intelligence Analyst (CTIA)",
+            "Blue Team Level 1 and 2",
+            "eLearnSecurity Certified Threat Hunting Professional (eCTHP)",
+            "eLearnSecurity Certified Incident Responder (eCIR)",
+            "eLearnSecurity Certified Digital Forensics Professional (eCDFP)",
+            "OffSec Foundational Security Operations and Defensive Analysis (OSDA)",
+        };
+
+        var existing = await db.Certifications.IgnoreQueryFilters().ToDictionaryAsync(c => c.Name.ToLower(), ct);
+        foreach (var name in certs)
+        {
+            if (existing.ContainsKey(name.ToLower())) continue;
+            var code = name.ToLower().Replace(" ", "_").Replace("-", "_").Replace("+", "plus").Replace("/", "_");
+            db.Certifications.Add(new MstCertification
+            {
+                Code = code.Length > 50 ? code[..50] : code,
+                Name = name,
+                IsActive = true
+            });
+        }
+    }
+
+    private static async Task SeedGraduationDegreesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var degrees = new[] { "BE", "B.Tech", "B.Sc", "B.Com", "BCA", "B.E.", "B.A.", "B.Pharm", "BBA", "BS" };
+        var existing = await db.GraduationDegrees.IgnoreQueryFilters().ToDictionaryAsync(d => d.Name.ToLower(), ct);
+        foreach (var name in degrees)
+        {
+            if (existing.ContainsKey(name.ToLower())) continue;
+            var code = name.ToLower().Replace(".", "").Replace(" ", "_");
+            db.GraduationDegrees.Add(new MstGraduationDegree
+            {
+                Code = code,
+                Name = name,
+                IsActive = true
+            });
+        }
+    }
+
+    private static async Task SeedPostGraduationDegreesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var degrees = new[] { "NA", "MCA", "MBA", "M.Tech", "ME", "M.Sc", "MS", "M.Com", "M.A." };
+        var existing = await db.PostGraduationDegrees.IgnoreQueryFilters().ToDictionaryAsync(d => d.Name.ToLower(), ct);
+        foreach (var name in degrees)
+        {
+            if (existing.ContainsKey(name.ToLower())) continue;
+            var code = name.ToLower().Replace(".", "").Replace(" ", "_");
+            db.PostGraduationDegrees.Add(new MstPostGraduationDegree
+            {
+                Code = code,
+                Name = name,
+                IsActive = true
+            });
+        }
     }
 }

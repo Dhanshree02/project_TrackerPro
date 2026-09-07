@@ -151,8 +151,8 @@ export function SearchableSelect({
             "flex w-full items-center justify-between gap-2 text-left font-normal transition-colors select-none",
             !value && "text-muted-foreground",
             disabled && "cursor-not-allowed opacity-60 bg-muted/40",
-            isOpen && "border-primary ring-2 ring-primary/20",
-            error && "border-destructive focus-visible:ring-destructive",
+            isOpen && !error && "border-primary ring-2 ring-primary/20",
+            error && "!border-destructive ring-2 ring-destructive/20",
             buttonClassName,
           )}
           aria-haspopup="listbox"

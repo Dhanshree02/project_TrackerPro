@@ -148,6 +148,57 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         return Ok(ApiResponse<string>.Ok(await employees.GetNextEmployeeCodeAsync(isIntern, ct)));
     }
 
+    [HttpGet("meta/certifications")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> Certifications(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetCertificationsAsync(ct)));
+    }
+
+    [HttpPost("meta/certifications")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateCertification(
+        CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await employees.CreateCertificationAsync(request.Name, ct);
+        return Ok(ApiResponse<MetaOptionDto>.Ok(created));
+    }
+
+    [HttpGet("meta/graduation-degrees")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> GraduationDegrees(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetGraduationDegreesAsync(ct)));
+    }
+
+    [HttpPost("meta/graduation-degrees")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateGraduationDegree(
+        CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await employees.CreateGraduationDegreeAsync(request.Name, ct);
+        return Ok(ApiResponse<MetaOptionDto>.Ok(created));
+    }
+
+    [HttpGet("meta/post-graduation-degrees")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> PostGraduationDegrees(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetPostGraduationDegreesAsync(ct)));
+    }
+
+    [HttpPost("meta/post-graduation-degrees")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreatePostGraduationDegree(
+        CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await employees.CreatePostGraduationDegreeAsync(request.Name, ct);
+        return Ok(ApiResponse<MetaOptionDto>.Ok(created));
+    }
+
     [HttpGet("meta/email-domains")]
     [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmailDomains(CancellationToken ct)

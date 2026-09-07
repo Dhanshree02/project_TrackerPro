@@ -329,7 +329,14 @@ CREATE TABLE public.employees (
     "ProbationPeriod" character varying(40),
     "SalaryBandId" uuid,
     "Aadhaar" character varying(12),
-    "EmergencyContactName" text
+    "EmergencyContactName" text,
+    "GradDegree" text,
+    "GradYear" text,
+    "PostGradDegree" text,
+    "PostGradYear" text,
+    "ExpType" text,
+    "PriorTotalExp" text,
+    "PriorRelevantExp" text
 );
 
 
@@ -639,6 +646,45 @@ ALTER TABLE public.mst_salary_bands OWNER TO postgres;
 --
 -- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: postgres
 --
+
+CREATE TABLE public.mst_certifications (
+    "Id" uuid NOT NULL,
+    "Code" character varying(100) NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+ALTER TABLE public.mst_certifications OWNER TO postgres;
+
+CREATE TABLE public.mst_graduation_degrees (
+    "Id" uuid NOT NULL,
+    "Code" character varying(100) NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+ALTER TABLE public.mst_graduation_degrees OWNER TO postgres;
+
+CREATE TABLE public.mst_post_graduation_degrees (
+    "Id" uuid NOT NULL,
+    "Code" character varying(100) NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+ALTER TABLE public.mst_post_graduation_degrees OWNER TO postgres;
 
 CREATE TABLE public.mst_work_locations (
     "Id" uuid NOT NULL,

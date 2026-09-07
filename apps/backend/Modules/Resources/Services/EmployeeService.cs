@@ -989,4 +989,85 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         return code;
     }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetCertificationsAsync(CancellationToken ct = default)
+    {
+        return await db.Certifications
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.Name)
+            .Select(c => new MetaOptionDto(c.Id, c.Code, c.Name, null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<MetaOptionDto> CreateCertificationAsync(string name, CancellationToken ct = default)
+    {
+        var trimmed = NormalizeName(name);
+        var existing = await db.Certifications.FirstOrDefaultAsync(c => c.Name == trimmed, ct);
+        if (existing is not null)
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, null);
+
+        var entity = new MstCertification
+        {
+            Code = await UniqueCodeAsync(Slug(trimmed), c => db.Certifications.AnyAsync(x => x.Code == c, ct), 100),
+            Name = trimmed,
+            IsActive = true,
+        };
+        db.Certifications.Add(entity);
+        await db.SaveChangesAsync(ct);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, null);
+    }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetGraduationDegreesAsync(CancellationToken ct = default)
+    {
+        return await db.GraduationDegrees
+            .Where(g => g.IsActive)
+            .OrderBy(g => g.Name)
+            .Select(g => new MetaOptionDto(g.Id, g.Code, g.Name, null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<MetaOptionDto> CreateGraduationDegreeAsync(string name, CancellationToken ct = default)
+    {
+        var trimmed = NormalizeName(name);
+        var existing = await db.GraduationDegrees.FirstOrDefaultAsync(g => g.Name == trimmed, ct);
+        if (existing is not null)
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, null);
+
+        var entity = new MstGraduationDegree
+        {
+            Code = await UniqueCodeAsync(Slug(trimmed), c => db.GraduationDegrees.AnyAsync(x => x.Code == c, ct), 100),
+            Name = trimmed,
+            IsActive = true,
+        };
+        db.GraduationDegrees.Add(entity);
+        await db.SaveChangesAsync(ct);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, null);
+    }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetPostGraduationDegreesAsync(CancellationToken ct = default)
+    {
+        return await db.PostGraduationDegrees
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Name)
+            .Select(p => new MetaOptionDto(p.Id, p.Code, p.Name, null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<MetaOptionDto> CreatePostGraduationDegreeAsync(string name, CancellationToken ct = default)
+    {
+        var trimmed = NormalizeName(name);
+        var existing = await db.PostGraduationDegrees.FirstOrDefaultAsync(p => p.Name == trimmed, ct);
+        if (existing is not null)
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, null);
+
+        var entity = new MstPostGraduationDegree
+        {
+            Code = await UniqueCodeAsync(Slug(trimmed), c => db.PostGraduationDegrees.AnyAsync(x => x.Code == c, ct), 100),
+            Name = trimmed,
+            IsActive = true,
+        };
+        db.PostGraduationDegrees.Add(entity);
+        await db.SaveChangesAsync(ct);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, null);
+    }
 }

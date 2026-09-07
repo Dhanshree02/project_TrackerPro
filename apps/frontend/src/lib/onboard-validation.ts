@@ -56,6 +56,13 @@ export type OnboardField =
   | "workerType"
   | "bondDelivered"
   | "bondDurationMonths"
+  | "gradDegree"
+  | "gradYear"
+  | "postGradDegree"
+  | "postGradYear"
+  | "expType"
+  | "priorTotalExp"
+  | "priorRelevantExp"
   | "education"
   | "certifications"
   | "technicalSkills"
@@ -115,6 +122,13 @@ export const EMPTY_ONBOARD: OnboardValues = {
   bondDurationMonths: "0",
   exitType: "NA",
   exitReason: "",
+  gradDegree: "",
+  gradYear: "",
+  postGradDegree: "NA",
+  postGradYear: "NA",
+  expType: "Fresher",
+  priorTotalExp: "0",
+  priorRelevantExp: "0",
   education: "",
   certifications: "",
   technicalSkills: "",
@@ -404,6 +418,61 @@ export function validateOnboardField(
     case "assetId":
     case "exitType":
     case "exitReason":
+    case "gradDegree":
+    case "postGradDegree":
+    case "expType":
+          return undefined;
+    case "gradYear": {
+      const v = (values.gradYear || "").trim();
+      if (!v) return undefined;
+      const currentYear = new Date().getFullYear();
+      const yr = parseInt(v, 10);
+      if (isNaN(yr) || yr < 1950 || yr > currentYear) {
+        return `Graduation year must be between 1950 and ${currentYear}`;
+      }
+      return undefined;
+    }
+    case "postGradYear": {
+      const v = (values.postGradYear || "").trim();
+      if (!v || v === "NA") return undefined;
+      const currentYear = new Date().getFullYear();
+      const yr = parseInt(v, 10);
+      if (isNaN(yr) || yr < 1950 || yr > currentYear) {
+        return `Post graduation year must be between 1950 and ${currentYear}`;
+      }
+      if (values.gradYear && values.gradYear !== "NA") {
+        const gradYr = parseInt(values.gradYear, 10);
+        if (!isNaN(gradYr) && yr < gradYr) {
+          return "Post graduation year cannot be prior to graduation year";
+        }
+      }
+      return undefined;
+    }
+    case "priorTotalExp": {
+      if (values.expType === "Fresher") return undefined;
+      const totalStr = (values.priorTotalExp || "").trim();
+      if (!totalStr) return undefined;
+      const totalNum = parseFloat(totalStr);
+      if (isNaN(totalNum) || totalNum < 0) {
+        return "Total experience must be a non-negative number";
+      }
+      return undefined;
+    }
+    case "priorRelevantExp": {
+      if (values.expType === "Fresher") return undefined;
+      const totalStr = (values.priorTotalExp || "").trim();
+      const relStr = (values.priorRelevantExp || "").trim();
+      if (!relStr) return undefined;
+      const totalNum = parseFloat(totalStr);
+      const relNum = parseFloat(relStr);
+      if (isNaN(relNum) || relNum < 0) {
+        return "Relevant experience must be a non-negative number";
+      }
+      if (!isNaN(totalNum) && relNum > totalNum) {
+        return "Relevant experience cannot be greater than total experience";
+      }
+      return undefined;
+    }
     case "education":
     case "certifications":
     case "technicalSkills":

@@ -39,6 +39,7 @@ import {
   joinTkId,
   splitTkId,
   toTenDigitPhone,
+  toDecimalNumberInput,
   type TkIdPrefix,
 } from "@/lib/form-validation";
 import { CreatableCatalogSelect, SearchableSelect } from "@/components/creatable-catalog-select";
@@ -68,6 +69,12 @@ import {
   fetchOfficeOptions,
   fetchReportingManagerOptions,
   fetchWorkLocationOptions,
+  fetchCertificationOptions,
+  createCertificationOption,
+  fetchGraduationDegreeOptions,
+  createGraduationDegreeOption,
+  fetchPostGraduationDegreeOptions,
+  createPostGraduationDegreeOption,
   toUiEmployeeFromList,
   uploadEmployeeDocuments,
   type ApiMetaOption,
@@ -1125,6 +1132,84 @@ function UploadSlot({
   );
 }
 
+
+const CURRENT_YEAR = new Date().getFullYear();
+const PASSING_YEAR_OPTIONS = Array.from({ length: 55 }, (_, i) => String(CURRENT_YEAR - i));
+
+function CertificationMultiSelect({
+  label,
+  certOptions,
+  value,
+  onChange,
+  onCreate,
+}: {
+  label: string;
+  certOptions: ApiMetaOption[];
+  value: string;
+  onChange: (newValue: string) => void;
+  onCreate: (name: string) => Promise<ApiMetaOption>;
+}) {
+  const selectedList = useMemo(() => csvToList(value), [value]);
+
+  const addCert = (certName: string) => {
+    if (!certName) return;
+    if (selectedList.some((c) => c.toLowerCase() === certName.toLowerCase())) return;
+    const nextList = [...selectedList, certName];
+    onChange(nextList.join(", "));
+  };
+
+  const removeCert = (certName: string) => {
+    const nextList = selectedList.filter((c) => c.toLowerCase() !== certName.toLowerCase());
+    onChange(nextList.join(", "));
+  };
+
+  const catalogSelectOptions = useMemo(() => {
+    return certOptions
+      .filter((opt) => !selectedList.some((s) => s.toLowerCase() === opt.name.toLowerCase()))
+      .map((opt) => ({ id: opt.id, code: opt.code, name: opt.name }));
+  }, [certOptions, selectedList]);
+
+  return (
+    <div className="space-y-2">
+      <span className={FORM_LABEL_CLS}>{label}</span>
+      {selectedList.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 p-2.5 rounded-lg border border-border bg-muted/30 mb-2">
+          {selectedList.map((cert) => (
+            <span
+              key={cert}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 shadow-2xs"
+            >
+              {cert}
+              <button
+                type="button"
+                onClick={() => removeCert(cert)}
+                className="hover:text-destructive text-primary/70 transition-colors ml-0.5"
+                title="Remove certification"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <CreatableCatalogSelect
+        label=""
+        options={catalogSelectOptions}
+        valueId=""
+        placeholder="Search or add certification (e.g. CEH, OSCP, CISSP, ISO 27001)…"
+        onSelect={(_, name) => {
+          if (name) addCert(name);
+        }}
+        onCreate={async (name) => {
+          const created = await onCreate(name);
+          addCert(created.name);
+          return created;
+        }}
+      />
+    </div>
+  );
+}
+
 // ── Onboarding slide-over panel ───────────────────
 function OnboardingPanel({
   open,
@@ -1154,9 +1239,16 @@ function OnboardingPanel({
   const [buOptions, setBuOptions] = useState<ApiMetaOption[]>([]);
   const [workLocOptions, setWorkLocOptions] = useState<ApiMetaOption[]>([]);
   const [officeOptions, setOfficeOptions] = useState<ApiMetaOption[]>([]);
+  const [gradDegreeOptions, setGradDegreeOptions] = useState<ApiMetaOption[]>([]);
+  const [postGradDegreeOptions, setPostGradDegreeOptions] = useState<ApiMetaOption[]>([]);
+  const [certOptions, setCertOptions] = useState<ApiMetaOption[]>([]);
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
   const [workEmailDomain, setWorkEmailDomain] = useState("");
   const [tkPrefix, setTkPrefix] = useState<TkIdPrefix>("TK");
+  const formRef = useRef<OnboardValues>(EMPTY_ONBOARD);
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -1183,6 +1275,9 @@ function OnboardingPanel({
       setBuOptions([]);
       setWorkLocOptions([]);
       setOfficeOptions([]);
+      setGradDegreeOptions([]);
+      setPostGradDegreeOptions([]);
+      setCertOptions([]);
       setWorkEmailPrefix("");
       setWorkEmailDomain("");
       setTkPrefix("TK");
@@ -1224,6 +1319,15 @@ function OnboardingPanel({
     void fetchOfficeOptions()
       .then((offs) => setOfficeOptions(offs ?? []))
       .catch(() => toast.error("Could not load offices"));
+    void fetchGraduationDegreeOptions()
+      .then((degs) => setGradDegreeOptions(degs ?? []))
+      .catch(() => toast.error("Could not load graduation degrees"));
+    void fetchPostGraduationDegreeOptions()
+      .then((degs) => setPostGradDegreeOptions(degs ?? []))
+      .catch(() => toast.error("Could not load post graduation degrees"));
+    void fetchCertificationOptions()
+      .then((certs) => setCertOptions(certs ?? []))
+      .catch(() => toast.error("Could not load certifications"));
     void fetchReportingManagerOptions()
       .then((mgrs) => setManagerOptions(mgrs ?? []))
       .catch(() => toast.error("Could not load reporting managers"));
@@ -1319,37 +1423,45 @@ function OnboardingPanel({
             ? toEmailInput(value)
             : field === "bondDurationMonths"
               ? toDigits(value, 3)
-              : value;
+              : field === "priorTotalExp" || field === "priorRelevantExp"
+                ? toDecimalNumberInput(value)
+                : value;
 
-    setForm((prev) => {
-      const next = { ...prev, [field]: nextValue };
-      if (field === "departmentId") {
-        next.designationId = "";
-        next.jobRoleId = "";
-      }
-      if (field === "designationId") next.jobRoleId = "";
-      if (field === "bondDelivered" && nextValue === "No") {
-        next.bondDurationMonths = "0";
-      }
-      return next;
-    });
+    const updatedForm = { ...formRef.current, [field]: nextValue };
+    if (field === "departmentId") {
+      updatedForm.designationId = "";
+      updatedForm.jobRoleId = "";
+    }
+    if (field === "designationId") updatedForm.jobRoleId = "";
+    if (field === "bondDelivered" && nextValue === "No") {
+      updatedForm.bondDurationMonths = "0";
+    }
 
-    const live =
-      field === "phone" ||
-      field === "altPhone" ||
-      field === "emergencyContact" ||
-      field === "emergencyContactName" ||
-      field === "workEmail";
+    formRef.current = updatedForm;
+    setForm(updatedForm);
 
     setErrors((prev) => {
-      if (!live && !prev[field]) {
-        return prev;
-      }
       const nextErrors = { ...prev };
-      const simulatedNext = { ...form, [field]: nextValue };
-      const message = validateOnboardField(field, simulatedNext, existingCodes);
+
+      // 1. Validate target field live using updatedForm
+      const message = validateOnboardField(field, updatedForm, existingCodes);
       if (message) nextErrors[field] = message;
       else delete nextErrors[field];
+
+      // 2. Cross-field validation for graduation / post-graduation year
+      if (field === "gradYear" || field === "postGradDegree" || field === "postGradYear") {
+        const postGradMsg = validateOnboardField("postGradYear", updatedForm, existingCodes);
+        if (postGradMsg) nextErrors.postGradYear = postGradMsg;
+        else delete nextErrors.postGradYear;
+      }
+
+      // 3. Cross-field validation for total vs relevant experience
+      if (field === "priorTotalExp" || field === "priorRelevantExp") {
+        const relMsg = validateOnboardField("priorRelevantExp", updatedForm, existingCodes);
+        if (relMsg) nextErrors.priorRelevantExp = relMsg;
+        else delete nextErrors.priorRelevantExp;
+      }
+
       return nextErrors;
     });
   };
@@ -1572,7 +1684,9 @@ function OnboardingPanel({
         confirmationStatus: employeeStatusName,
         probationStatus: null,
         probationPeriod: null,
-        experience: blankToNull(form.experience),
+        experience: form.expType === "Fresher"
+          ? "Fresher"
+          : `${form.priorTotalExp || "0"} (Relevant: ${form.priorRelevantExp || "0"})`,
         previousCompany: blankToNull(form.previousCompany),
         employmentType: blankToNull(form.workerType),
         contractType: null,
@@ -1585,7 +1699,13 @@ function OnboardingPanel({
         assetId: blankToNull(form.assetId),
         exitType: form.exitType.trim() || "NA",
         exitReason: blankToNull(form.exitReason) ?? "NA",
-        education: blankToNull(form.education),
+        education: form.gradDegree
+          ? `${form.gradDegree}${form.gradYear ? " (" + form.gradYear + ")" : ""}${
+              form.postGradDegree && form.postGradDegree !== "NA"
+                ? ", " + form.postGradDegree + (form.postGradYear && form.postGradYear !== "NA" ? " (" + form.postGradYear + ")" : "")
+                : ""
+            }`
+          : blankToNull(form.education),
         skills: [...csvToList(form.technicalSkills), ...csvToList(form.functionalSkills)],
         certifications: csvToList(form.certifications),
         languages: csvToList(form.languages),
@@ -2028,56 +2148,126 @@ function OnboardingPanel({
               />
             </FormSection>
 
-            <FormSection title="4. Skills & Qualifications">
-              <FormField
-                label="Highest Qualification"
-                maxLength={FIELD_MAX.education}
-                placeholder="e.g. Bachelor of Technology / Master of Business Administration"
-                value={form.education}
-                onChange={(v) => setField("education", v)}
+            <FormSection title="4. Education & Experience">
+              <CreatableCatalogSelect
+                label="Graduation Degree Name"
+                options={gradDegreeOptions}
+                valueId={
+                  gradDegreeOptions.find(
+                    (g) => g.name.toLowerCase() === form.gradDegree.toLowerCase() || g.id === form.gradDegree,
+                  )?.id ?? form.gradDegree
+                }
+                placeholder="Select or add graduation degree (BE, B.Tech, B.Sc)…"
+                onSelect={(id, name) => {
+                  setField("gradDegree", name || id);
+                }}
+                onCreate={async (name) => {
+                  const created = await createGraduationDegreeOption(name);
+                  setGradDegreeOptions((prev) => [...prev, created]);
+                  return created;
+                }}
               />
-              <FormField
-                label="Certifications"
-                placeholder="e.g. AWS Certified Solutions Architect, Scrum Master"
-                maxLength={FIELD_MAX.certifications}
-                value={form.certifications}
-                onChange={(v) => setField("certifications", v)}
+
+              <FormSelect
+                label="Graduation - Passing Year"
+                options={PASSING_YEAR_OPTIONS.map((y) => ({ value: y, label: y }))}
+                value={form.gradYear}
+                onChange={(v) => {
+                  setField("gradYear", v);
+                  blurField("gradYear");
+                }}
+                placeholder="Select graduation passing year…"
+                error={errors.gradYear}
               />
-              <FormField
-                label="Technical Skills"
-                placeholder="e.g. React, Node.js, TypeScript, PostgreSQL"
-                maxLength={FIELD_MAX.skills}
-                value={form.technicalSkills}
-                onChange={(v) => setField("technicalSkills", v)}
+
+              <CreatableCatalogSelect
+                label="Post Graduation Degree Name"
+                options={postGradDegreeOptions}
+                valueId={
+                  postGradDegreeOptions.find(
+                    (p) => p.name.toLowerCase() === form.postGradDegree.toLowerCase() || p.id === form.postGradDegree,
+                  )?.id ?? form.postGradDegree
+                }
+                placeholder="Select or add post graduation degree (MBA, M.Tech, NA)…"
+                onSelect={(id, name) => {
+                  setField("postGradDegree", name || id);
+                  if (name === "NA" || id === "NA") {
+                    setField("postGradYear", "NA");
+                  }
+                }}
+                onCreate={async (name) => {
+                  const created = await createPostGraduationDegreeOption(name);
+                  setPostGradDegreeOptions((prev) => [...prev, created]);
+                  return created;
+                }}
               />
-              <FormField
-                label="Functional Skills"
-                placeholder="e.g. Stakeholder Management, Team Leadership"
-                maxLength={FIELD_MAX.skills}
-                value={form.functionalSkills}
-                onChange={(v) => setField("functionalSkills", v)}
+
+              <FormSelect
+                label="Post Graduation - Passing Year"
+                options={[
+                  { value: "NA", label: "NA" },
+                  ...PASSING_YEAR_OPTIONS.map((y) => ({ value: y, label: y })),
+                ]}
+                value={form.postGradDegree === "NA" ? "NA" : form.postGradYear}
+                disabled={form.postGradDegree === "NA"}
+                onChange={(v) => {
+                  setField("postGradYear", v);
+                  blurField("postGradYear");
+                }}
+                placeholder="Select post graduation passing year…"
+                error={errors.postGradYear}
               />
+
+              <FormSelect
+                label="Exp / Fresher"
+                options={[
+                  { value: "Fresher", label: "Fresher" },
+                  { value: "Experienced", label: "Experienced" },
+                ]}
+                value={form.expType || "Fresher"}
+                onChange={(v) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    expType: v,
+                    priorTotalExp: v === "Fresher" ? "0" : prev.priorTotalExp === "0" ? "" : prev.priorTotalExp,
+                    priorRelevantExp: v === "Fresher" ? "0" : prev.priorRelevantExp === "0" ? "" : prev.priorRelevantExp,
+                  }));
+                }}
+              />
+
               <FormField
-                label="Experience"
-                placeholder="e.g. 5 years"
+                label="Total exp prior to Talakunchi"
+                placeholder="e.g. 3 Years 2 Months"
+                disabled={form.expType === "Fresher"}
                 maxLength={FIELD_MAX.experience}
-                value={form.experience}
-                onChange={(v) => setField("experience", v)}
+                value={form.expType === "Fresher" ? "0" : form.priorTotalExp}
+                onChange={(v) => setField("priorTotalExp", v)}
               />
+
               <FormField
-                label="Previous Organization"
-                placeholder="e.g. Previous Employer Name"
-                maxLength={FIELD_MAX.previousCompany}
-                value={form.previousCompany}
-                onChange={(v) => setField("previousCompany", v)}
+                label="Relevant exp prior to Talakunchi"
+                placeholder="e.g. 2.5 Years"
+                disabled={form.expType === "Fresher"}
+                maxLength={FIELD_MAX.experience}
+                value={form.expType === "Fresher" ? "0" : form.priorRelevantExp}
+                onChange={(v) => setField("priorRelevantExp", v)}
+                onBlur={() => blurField("priorRelevantExp")}
+                error={errors.priorRelevantExp}
               />
-              <FormField
-                label="Languages Known"
-                placeholder="e.g. English, Hindi, Marathi"
-                maxLength={FIELD_MAX.text}
-                value={form.languages}
-                onChange={(v) => setField("languages", v)}
-              />
+
+              <div className="md:col-span-2 lg:col-span-2">
+                <CertificationMultiSelect
+                  label="Certification Details"
+                  certOptions={certOptions}
+                  value={form.certifications}
+                  onChange={(val) => setField("certifications", val)}
+                  onCreate={async (name) => {
+                    const created = await createCertificationOption(name);
+                    setCertOptions((prev) => [...prev, created]);
+                    return created;
+                  }}
+                />
+              </div>
             </FormSection>
 
             <FormSection title="5. Compliance Information">

@@ -68,5 +68,14 @@ public interface IEmployeeService
 
     Task<IReadOnlyList<EmployeeLookupDto>> LookupEmployeesAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default);
 
+    Task<IReadOnlyList<MetaOptionDto>> GetCertificationsAsync(CancellationToken ct = default);
+    Task<MetaOptionDto> CreateCertificationAsync(string name, CancellationToken ct = default);
+
+    Task<IReadOnlyList<MetaOptionDto>> GetGraduationDegreesAsync(CancellationToken ct = default);
+    Task<MetaOptionDto> CreateGraduationDegreeAsync(string name, CancellationToken ct = default);
+
+    Task<IReadOnlyList<MetaOptionDto>> GetPostGraduationDegreesAsync(CancellationToken ct = default);
+    Task<MetaOptionDto> CreatePostGraduationDegreeAsync(string name, CancellationToken ct = default);
+
     Task<EmployeeLookupDto?> GetEmployeeSummaryAsync(string idOrCode, CancellationToken ct = default);
 }

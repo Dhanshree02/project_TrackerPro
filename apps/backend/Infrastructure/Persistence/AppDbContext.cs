@@ -57,6 +57,12 @@ public class AppDbContext(
 
     public DbSet<MstEmployeeStatus> EmployeeStatuses => Set<MstEmployeeStatus>();
 
+    public DbSet<MstCertification> Certifications => Set<MstCertification>();
+
+    public DbSet<MstGraduationDegree> GraduationDegrees => Set<MstGraduationDegree>();
+
+    public DbSet<MstPostGraduationDegree> PostGraduationDegrees => Set<MstPostGraduationDegree>();
+
     public DbSet<Employee> Employees => Set<Employee>();
 
     public DbSet<ExitedEmployee> ExitedEmployees => Set<ExitedEmployee>();

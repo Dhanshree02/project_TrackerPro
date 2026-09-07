@@ -234,3 +234,13 @@ export function isoDateYearsAgo(years: number, from = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+
+/** Keep digits and at most one decimal point. Strips letters, negative signs, special chars. */
+export function toDecimalNumberInput(value: string): string {
+  let clean = (value || "").replace(/[^0-9.]/g, "");
+  const parts = clean.split(".");
+  if (parts.length > 2) {
+    clean = parts[0] + "." + parts.slice(1).join("");
+  }
+  return clean.slice(0, 6);
+}
