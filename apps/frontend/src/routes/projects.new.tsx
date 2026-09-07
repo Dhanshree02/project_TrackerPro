@@ -4,6 +4,8 @@
  */
 import { createFileRoute, Navigate, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
@@ -15,6 +17,9 @@ import {
   buildProjectDisplayId,
   buildWbsId,
 } from "@/lib/dh-store";
+import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
+import { exportWbsWorkbook, type WbsExportInput } from "@/lib/wbs-excel-export";
+import { WbsExcelPreviewModal } from "@/components/wbs-excel-preview";
 
 export const Route = createFileRoute("/projects/new")({
   validateSearch: (search: Record<string, unknown>): { draftId?: string } => ({
@@ -362,6 +367,60 @@ const PERCENTAGE_MILESTONES: Record<string, { milestone: string; pct: number }[]
   ],
 };
 
+/** Working hours represented by one duration day in the service table. */
+const HOURS_PER_DAY = 8;
+
+const RESOURCE_LEVELS = ["L1", "L2", "Senior"] as const;
+type ResourceLevelName = (typeof RESOURCE_LEVELS)[number];
+type ResourceDist = Record<ResourceLevelName, number>;
+const EMPTY_DIST = (): ResourceDist => ({ L1: 0, L2: 0, Senior: 0 });
+
+function distTotal(d: ResourceDist): number {
+  return RESOURCE_LEVELS.reduce((sum, level) => sum + (Number(d[level]) || 0), 0);
+}
+
+function formatDist(d: ResourceDist): string {
+  return RESOURCE_LEVELS.filter((level) => (d[level] || 0) > 0)
+    .map((level) => `${level}=${d[level]}`)
+    .join(", ");
+}
+
+function parseDist(raw: string | undefined): ResourceDist {
+  const d = EMPTY_DIST();
+  const s = (raw || "").trim();
+  if (!s) return d;
+  if ((RESOURCE_LEVELS as readonly string[]).includes(s)) {
+    d[s as ResourceLevelName] = 1;
+    return d;
+  }
+  for (const part of s.split(",")) {
+    const m = part.trim().match(/^(L1|L2|Senior)\s*=\s*(\d+)$/i);
+    if (m) d[m[1] as ResourceLevelName] = Number(m[2]);
+  }
+  return d;
+}
+
+/** Trim overflowing counts when Qty is reduced (Senior first, then L2, then L1). */
+function clampDist(d: ResourceDist, qty: number): ResourceDist {
+  const next = { ...EMPTY_DIST(), ...d };
+  let extra = distTotal(next) - Math.max(0, qty);
+  if (extra <= 0) return next;
+  for (const level of [...RESOURCE_LEVELS].reverse()) {
+    if (extra <= 0) break;
+    const take = Math.min(next[level], extra);
+    next[level] -= take;
+    extra -= take;
+  }
+  return next;
+}
+
+function distToResourceLevel(d: ResourceDist, qty: number): string {
+  if (qty <= 1) {
+    return RESOURCE_LEVELS.find((level) => d[level] > 0) || "";
+  }
+  return formatDist(d);
+}
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: "₹",
   USD: "$",
@@ -384,7 +443,8 @@ interface ServiceRow {
   name: string;
   qty: number;
   description: string;
-  resourceLevel: string; // Resource Level — dropdown (L1/L2/Senior)
+  resourceLevel: string; // compact: "L1" when qty=1, "L1=2, L2=1" when qty>1
+  resourceDist: ResourceDist; // requirement counts — not employee assignment
   frequency: string;
   location: string; // Delivery Model — dropdown (Onsite/Offsite/Hybrid)
   locationText: string; // Project Side — free text
@@ -432,20 +492,49 @@ function WbsNewProjectPage() {
 
   if (!isDhanshree && !hasPermission("projects.create")) return <Navigate to="/" />;
 
-  // ── Working-day helpers ──────────────────────────────────────────────────
-  // Add N working days (Mon–Fri) to a YYYY-MM-DD string, returns YYYY-MM-DD
-  function addWorkingDays(startIso: string, days: number): string {
-    const d = new Date(startIso);
-    let remaining = days;
-    while (remaining > 0) {
-      d.setDate(d.getDate() + 1);
-      const dow = d.getDay(); // 0=Sun, 6=Sat
-      if (dow !== 0 && dow !== 6) remaining--;
-    }
+  // ── Working-day helpers (Mon–Fri only; Saturday and Sunday never count) ──
+  function parseIsoDate(iso: string): Date | null {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (!m) return null;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+  function formatIsoDate(d: Date): string {
     const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const mo = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${dd}`;
+    return `${y}-${mo}-${dd}`;
+  }
+  function isWeekend(d: Date): boolean {
+    const dow = d.getDay();
+    return dow === 0 || dow === 6;
+  }
+  /** Inclusive working-day span: start Monday + 5 days → that Friday. */
+  function addWorkingDays(startIso: string, days: number): string {
+    const start = parseIsoDate(startIso);
+    if (!start || days <= 0) return startIso || "";
+    const d = new Date(start.getTime());
+    let counted = 0;
+    for (let i = 0; i < 3660; i++) {
+      if (!isWeekend(d)) {
+        counted++;
+        if (counted >= days) return formatIsoDate(d);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return formatIsoDate(d);
+  }
+  /** Weekdays from start through end, inclusive. Weekends are skipped. */
+  function countWorkingDays(startIso: string, endIso: string): number {
+    const start = parseIsoDate(startIso);
+    const end = parseIsoDate(endIso);
+    if (!start || !end || end < start) return 0;
+    let count = 0;
+    const d = new Date(start.getTime());
+    while (d <= end) {
+      if (!isWeekend(d)) count++;
+      d.setDate(d.getDate() + 1);
+    }
+    return count;
   }
 
   // Add N calendar months to a YYYY-MM-DD string, returns YYYY-MM-DD
@@ -462,14 +551,30 @@ function WbsNewProjectPage() {
   function computeEndDate(row: {
     startDate: string;
     frequency: string;
-    totalDays: number;
+    durationDays: number;
   }): string {
     if (!row.startDate) return "";
     if (row.frequency === "Half yearly") return addCalendarMonths(row.startDate, 6);
     if (row.frequency === "Yearly") return addCalendarMonths(row.startDate, 12);
-    // Once (or any other) — use working days from totalDays
-    if (row.totalDays > 0) return addWorkingDays(row.startDate, row.totalDays);
+    if (row.durationDays > 0) return addWorkingDays(row.startDate, row.durationDays);
     return "";
+  }
+
+  function applyDurationDays<
+    T extends {
+      qty: number;
+      durationDays: number;
+      durationHrs: number;
+      totalDays: number;
+      totalHrs: number;
+    },
+  >(row: T, days: number): T {
+    const d = Math.max(0, Number(days) || 0);
+    row.durationDays = d;
+    row.durationHrs = d * HOURS_PER_DAY;
+    row.totalDays = Number(row.qty) * d;
+    row.totalHrs = Number(row.qty) * row.durationHrs;
+    return row;
   }
 
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -563,6 +668,12 @@ function WbsNewProjectPage() {
 
   // ── PO File ──
   const [poFile, setPoFile] = useState<File | null>(null);
+
+  // ── Export WBS ──
+  const [exporting, setExporting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewInput, setPreviewInput] = useState<WbsExportInput | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   // ── Scroll-to-top ──
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -698,6 +809,7 @@ function WbsNewProjectPage() {
             qty: 1,
             description: "",
             resourceLevel: "",
+            resourceDist: EMPTY_DIST(),
             frequency: projectType === "Short term (Ad-hoc)" ? "Once" : "",
             location: "",
             locationText: "",
@@ -709,9 +821,9 @@ function WbsNewProjectPage() {
             startDate: todayIso,
             endDate: "",
             durationDays: svc.days,
-            durationHrs: svc.days * 8,
+            durationHrs: svc.days * HOURS_PER_DAY,
             totalDays: svc.days,
-            totalHrs: svc.days * 8,
+            totalHrs: svc.days * HOURS_PER_DAY,
             unitPrice: svc.unitPrice,
             total: svc.unitPrice,
           };
@@ -750,25 +862,26 @@ function WbsNewProjectPage() {
         if (field === "qty" || field === "unitPrice") {
           updated.total = Number(updated.qty) * Number(updated.unitPrice);
         }
-        // Recalculate totalDays and totalHrs when qty or durationDays/Hrs changes
-        if (field === "qty" || field === "durationDays") {
+        if (field === "endDate") {
+          applyDurationDays(updated, countWorkingDays(updated.startDate, String(value)));
+        } else if (field === "durationDays") {
+          applyDurationDays(updated, Number(value));
+          if (updated.startDate && updated.durationDays > 0) {
+            updated.endDate = addWorkingDays(updated.startDate, updated.durationDays);
+          }
+        } else if (field === "qty") {
+          const qty = Math.max(1, Number(updated.qty) || 1);
+          updated.qty = qty;
+          updated.resourceDist = clampDist(updated.resourceDist || EMPTY_DIST(), qty);
+          updated.resourceLevel = distToResourceLevel(updated.resourceDist, qty);
           updated.totalDays = Number(updated.qty) * Number(updated.durationDays);
-        }
-        if (field === "qty" || field === "durationHrs") {
+          updated.totalHrs = Number(updated.qty) * Number(updated.durationHrs);
+        } else if (field === "durationHrs") {
           updated.totalHrs = Number(updated.qty) * Number(updated.durationHrs);
         }
-        // Auto-compute WBS End Date whenever startDate, duration, qty, or frequency changes
-        if (
-          field === "startDate" ||
-          field === "qty" ||
-          field === "durationDays" ||
-          field === "frequency"
-        ) {
-          // If durationDays just changed, recalc totalDays first so computeEndDate uses the new value
-          const totalDaysForCalc =
-            field === "durationDays" ? Number(updated.qty) * Number(value) : updated.totalDays;
-          const rowForCalc = { ...updated, totalDays: totalDaysForCalc };
-          const newEnd = computeEndDate(rowForCalc);
+        // Start / frequency keep duration and move the end date (working days, or months for yearly)
+        if (field === "startDate" || field === "frequency") {
+          const newEnd = computeEndDate(updated);
           if (newEnd) updated.endDate = newEnd;
         }
         return updated;
@@ -783,6 +896,12 @@ function WbsNewProjectPage() {
       const n = i + 1;
       if (!r.taskId.trim()) return `Row ${n}: Service ID is required`;
       if (!r.name.trim()) return `Row ${n}: Service Name is required`;
+      if (r.qty <= 1) {
+        if (!r.resourceLevel) return `Row ${n}: Resource Level is required`;
+      } else if (distTotal(r.resourceDist || EMPTY_DIST()) !== Number(r.qty)) {
+        const assigned = distTotal(r.resourceDist || EMPTY_DIST());
+        return `Row ${n}: Resource Level distribution must equal Qty (${assigned}/${r.qty})`;
+      }
       if (!r.frequency) return `Row ${n}: Frequency is required`;
       if (!r.location) return `Row ${n}: Delivery Model is required`;
       if (r.location === "Onsite" && !r.locationText.trim())
@@ -1012,6 +1131,7 @@ function WbsNewProjectPage() {
         qty: r.qty,
         description: r.description,
         resourceLevel: r.resourceLevel,
+        resourceDist: r.resourceDist,
         frequency: r.frequency,
         location: r.location,
         locationText: r.locationText,
@@ -1216,9 +1336,148 @@ function WbsNewProjectPage() {
     navigate({ to: "/projects/$projectId", params: { projectId: proj.id } });
   }
 
-  function handleExport() {
-    toast.info("Export WBS", { description: "Use browser Print (Ctrl+P) to save as PDF." });
-    window.print();
+  /**
+   * Same required fields as the onboarding form. Used by Export WBS so a missing
+   * value is named in the error toast instead of producing an incomplete workbook.
+   */
+  function validateForWbsExport(): string | null {
+    if (!projectName.trim()) return "Please fill in Project Name";
+    if (!selectedClientId) return "Please select TK Customer / Partner Name";
+    if (!selectedSubVenture.trim()) return "Please select End Customer / Sub-venture";
+    if (!contractType) return "Please select Contract Type";
+    if (!salesPerson) return "Please select Sales Person";
+    if (!projectType) return "Please select Project Type";
+    if (serviceRows.length === 0) return "Please add at least one service";
+    const rowErr = validateServiceRows();
+    if (rowErr) return rowErr;
+    if (!billingModel) return "Please select Billing Model";
+    if (billingModel === "Custom") {
+      const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
+      if (total !== 100) {
+        return `Custom payment terms must total 100% (currently ${total}%)`;
+      }
+    }
+    if (!poStatus) return "Please select PO Status";
+    return null;
+  }
+
+  function collectWbsExportInput(spocs: Awaited<ReturnType<typeof fetchSubVentureSpocs>>): WbsExportInput {
+    const departments = Array.from(new Set(serviceRows.map((r) => r.dept).filter(Boolean)));
+    const environments = Array.from(
+      new Set(serviceRows.map((r) => r.locationText.trim()).filter(Boolean)),
+    );
+    const paymentTermsValue =
+      billingModel === "Custom"
+        ? customPayments
+            .map((p, i) => `${p.pct}% ${p.label || `Payment ${i + 1}`}`)
+            .join(" + ")
+        : paymentTerms;
+
+    return {
+      projectName,
+      projectId,
+      wbsId,
+      wbsDate: projectIssuedDate,
+      customerName: selectedClient?.name ?? "",
+      subVentureName: selectedSubVenture,
+      department: departments.join(", "),
+      totalActivities: serviceRows.length,
+      uatProductionEnv: environments.join(", ") || "NA",
+      spocs,
+      services: serviceRows.map((r) => ({
+        serviceId: r.taskId,
+        serviceName: r.name,
+        qty: r.qty,
+        resourceLevel: r.resourceLevel,
+        description: r.description,
+        frequency: r.frequency,
+        location:
+          r.location === "Onsite" && r.locationText.trim()
+            ? `${r.location} — ${r.locationText.trim()}`
+            : r.location,
+        serviceModel: r.serviceModel,
+        projectType,
+        tools: r.tools,
+        fileFormat: r.deliveryFormat,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        totalDays: r.totalDays,
+      })),
+      specialNote: sectionAComments,
+      accounts: {
+        billingModel,
+        paymentTerms: paymentTermsValue,
+        currency,
+        currencySymbol: sym,
+        poStatus,
+        poNumber,
+        poDate,
+        targetDate,
+        comments: sectionBComments,
+      },
+      invoices: invoiceRows.map((inv) => ({
+        serviceName: inv.serviceName,
+        milestone: inv.milestone,
+        targetDate: inv.targetDate,
+        unitPrice: inv.unitPrice,
+        qty: inv.qty,
+        currency: inv.currency,
+        amount: inv.amount,
+        invoiceStatus: inv.invoiceStatus,
+        invoiceNumber: inv.invoiceNumber,
+        paymentStatus: inv.paymentStatus,
+        paymentDate: inv.paymentDate,
+      })),
+    };
+  }
+
+  /**
+   * Validates the form, then opens a two-sheet preview. The Excel file is only
+   * written to the Downloads folder after the user confirms Download Excel.
+   */
+  async function handleExport() {
+    const err = validateForWbsExport();
+    if (err) {
+      toast.error(err);
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const spocs = await fetchSubVentureSpocs(selectedClientId, selectedSubVenture);
+      if (spocs.length === 0) {
+        toast.warning("No SPOC on this sub-venture", {
+          description: "The WBS sheet will show “—” for Name / Contact No / Email ID.",
+        });
+      }
+      setPreviewInput(collectWbsExportInput(spocs));
+      setPreviewOpen(true);
+    } catch (e) {
+      console.error("WBS preview failed", e);
+      toast.error("Could not prepare the WBS preview", {
+        description: e instanceof Error ? e.message : "Try again.",
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDownloadFromPreview() {
+    if (!previewInput) return;
+    setDownloading(true);
+    try {
+      const fileName = await exportWbsWorkbook(previewInput);
+      toast.success("Excel saved to Downloads", {
+        description: `${fileName} is in your PC’s Downloads folder.`,
+      });
+    } catch (err) {
+      console.error("Export WBS failed", err);
+      toast.error("Download failed", {
+        description: err instanceof Error ? err.message : "Could not save the WBS workbook.",
+      });
+    } finally {
+      setDownloading(false);
+    }
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────
@@ -1540,6 +1799,12 @@ function WbsNewProjectPage() {
                                   description: svc.description || "",
                                   qty: svc.qty || 1,
                                   resourceLevel: svc.resourceLevel || "",
+                                  resourceDist: clampDist(
+                                    svc.resourceDist
+                                      ? { ...EMPTY_DIST(), ...svc.resourceDist }
+                                      : parseDist(svc.resourceLevel),
+                                    svc.qty || 1,
+                                  ),
                                   frequency: svc.frequency || "",
                                   serviceModel: svc.serviceModel || "",
                                   location: svc.location || "",
@@ -1550,10 +1815,10 @@ function WbsNewProjectPage() {
                                   startDate: svc.startDate || todayIso,
                                   endDate: svc.endDate || "",
                                   durationDays: svc.duration || svc.durationDays || 0,
-                                  durationHrs: (svc.duration || svc.durationDays || 0) * 8,
+                                  durationHrs: (svc.duration || svc.durationDays || 0) * HOURS_PER_DAY,
                                   totalDays: svc.totalDays || svc.duration || 0,
                                   totalHrs:
-                                    svc.totalHrs || (svc.totalDays || svc.duration || 0) * 8,
+                                    svc.totalHrs || (svc.totalDays || svc.duration || 0) * HOURS_PER_DAY,
                                   unitPrice: svc.unitPrice || 0,
                                   total: svc.total || 0,
                                   deliveryModel: svc.deliveryModel || "Remote",
@@ -1718,9 +1983,8 @@ function WbsNewProjectPage() {
                             );
                         }, 150)
                       }
-                      style={{ ...inputStyle(false), paddingRight: 28 }}
+                      style={{ ...inputStyle(false), paddingRight: selectedClientId ? 48 : 32 }}
                     />
-                    {/* Clear icon when a client is selected */}
                     {selectedClientId && (
                       <span
                         onMouseDown={() => {
@@ -1732,7 +1996,7 @@ function WbsNewProjectPage() {
                         }}
                         style={{
                           position: "absolute",
-                          right: 8,
+                          right: 28,
                           top: "50%",
                           transform: "translateY(-50%)",
                           color: "#9ca3af",
@@ -1745,21 +2009,18 @@ function WbsNewProjectPage() {
                         ×
                       </span>
                     )}
-                    {!selectedClientId && (
-                      <span
-                        style={{
-                          position: "absolute",
-                          right: 8,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          color: "#9ca3af",
-                          pointerEvents: "none",
-                          fontSize: 11,
-                        }}
-                      >
-                        ▾
-                      </span>
-                    )}
+                    <ChevronDown
+                      size={18}
+                      strokeWidth={2.5}
+                      style={{
+                        position: "absolute",
+                        right: 8,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#374151",
+                        pointerEvents: "none",
+                      }}
+                    />
                     {clientDropOpen && (
                       <div
                         style={{
@@ -1885,7 +2146,7 @@ function WbsNewProjectPage() {
                           else setSvSearch(selectedSubVenture);
                         }, 150)
                       }
-                      style={{ ...inputStyle(!selectedClientId), paddingRight: 28 }}
+                      style={{ ...inputStyle(!selectedClientId), paddingRight: selectedSubVenture ? 48 : 32 }}
                     />
                     {selectedSubVenture && (
                       <span
@@ -1895,7 +2156,7 @@ function WbsNewProjectPage() {
                         }}
                         style={{
                           position: "absolute",
-                          right: 8,
+                          right: 28,
                           top: "50%",
                           transform: "translateY(-50%)",
                           color: "#9ca3af",
@@ -1908,21 +2169,18 @@ function WbsNewProjectPage() {
                         ×
                       </span>
                     )}
-                    {!selectedSubVenture && (
-                      <span
-                        style={{
-                          position: "absolute",
-                          right: 8,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          color: "#9ca3af",
-                          pointerEvents: "none",
-                          fontSize: 11,
-                        }}
-                      >
-                        ▾
-                      </span>
-                    )}
+                    <ChevronDown
+                      size={18}
+                      strokeWidth={2.5}
+                      style={{
+                        position: "absolute",
+                        right: 8,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#374151",
+                        pointerEvents: "none",
+                      }}
+                    />
                     {svDropOpen && selectedClientId && (
                       <div
                         style={{
@@ -2106,7 +2364,7 @@ function WbsNewProjectPage() {
                   setBillingModel("");
                   setPaymentTerms("");
                 }}
-                style={inputStyle(false)}
+                style={selectStyle(false)}
               >
                 <option value="">Select Contract Type</option>
                 <option value="Resource Based">Resource Based</option>
@@ -2117,7 +2375,7 @@ function WbsNewProjectPage() {
               <select
                 value={salesPerson}
                 onChange={(e) => setSalesPerson(e.target.value)}
-                style={inputStyle(false)}
+                style={selectStyle(false)}
               >
                 <option value="">Select Sales Person</option>
                 <option value="Abhishek Sharma">Abhishek Sharma</option>
@@ -2153,7 +2411,7 @@ function WbsNewProjectPage() {
                     );
                   }
                 }}
-                style={inputStyle(contractType === "Resource Based" || !contractType)}
+                style={selectStyle(contractType === "Resource Based" || !contractType)}
                 title={!contractType ? "Select a Contract Type first" : ""}
               >
                 {!contractType ? (
@@ -2239,8 +2497,8 @@ function WbsNewProjectPage() {
                   <th style={{ ...thStyle, minWidth: 100 }}>Service ID</th>
                   <th style={{ ...thStyle, minWidth: 200 }}>Service Name</th>
                   <th style={{ ...thStyle, minWidth: 180 }}>Description</th>
-                  <th style={{ ...thStyle, minWidth: 110 }}>Resource Level</th>
                   <th style={{ ...thStyle, minWidth: 60 }}>Qty</th>
+                  <th style={{ ...thStyle, minWidth: 160 }}>Resource Level</th>
                   <th style={{ ...thStyle, minWidth: 120 }}>Frequency</th>
                   <th style={{ ...thStyle, minWidth: 160 }}>Service Model</th>
                   <th style={{ ...thStyle, minWidth: 110 }}>Delivery Model</th>
@@ -2276,7 +2534,7 @@ function WbsNewProjectPage() {
                       ? { ...tblInputStyle, border: "1.5px solid #ef4444" }
                       : tblInputStyle;
                   const reqSel = (val: string) =>
-                    !val ? { ...tblInputStyle, border: "1.5px solid #ef4444" } : tblInputStyle;
+                    !val ? { ...tblSelectStyle, border: "1.5px solid #ef4444" } : tblSelectStyle;
                   const isOffsite = r.location === "Offsite";
                   return (
                     <tr key={r.rowId}>
@@ -2292,16 +2550,30 @@ function WbsNewProjectPage() {
                         <input
                           type="text"
                           value={r.taskId}
-                          onChange={(e) => updateRow(r.rowId, "taskId", e.target.value)}
-                          style={{ ...req(r.taskId), minWidth: 100 }}
+                          readOnly
+                          title="Service ID is set when the service is added"
+                          style={{
+                            ...tblInputStyle,
+                            minWidth: 100,
+                            background: "#f3f4f6",
+                            color: "#6b7280",
+                            cursor: "not-allowed",
+                          }}
                         />
                       </td>
                       <td style={tdStyle}>
                         <input
                           type="text"
                           value={r.name}
-                          onChange={(e) => updateRow(r.rowId, "name", e.target.value)}
-                          style={{ ...req(r.name), minWidth: 200 }}
+                          readOnly
+                          title="Service Name is set when the service is added"
+                          style={{
+                            ...tblInputStyle,
+                            minWidth: 200,
+                            background: "#f3f4f6",
+                            color: "#6b7280",
+                            cursor: "not-allowed",
+                          }}
                         />
                       </td>
                       <td style={tdStyle}>
@@ -2313,24 +2585,28 @@ function WbsNewProjectPage() {
                         />
                       </td>
                       <td style={tdStyle}>
-                        <select
-                          value={r.resourceLevel}
-                          onChange={(e) => updateRow(r.rowId, "resourceLevel", e.target.value)}
-                          style={{ ...tblInputStyle, minWidth: 110 }}
-                        >
-                          <option value="">— Select —</option>
-                          <option value="L1">L1</option>
-                          <option value="L2">L2</option>
-                          <option value="Senior">Senior</option>
-                        </select>
-                      </td>
-                      <td style={tdStyle}>
                         <input
                           type="number"
                           value={r.qty}
                           min={1}
                           onChange={(e) => updateRow(r.rowId, "qty", Number(e.target.value))}
                           style={{ ...tblInputStyle, minWidth: 60 }}
+                        />
+                      </td>
+                      <td style={{ ...tdStyle, position: "relative", overflow: "visible" }}>
+                        <ResourceLevelCell
+                          qty={Number(r.qty) || 1}
+                          resourceLevel={r.resourceLevel}
+                          resourceDist={r.resourceDist || EMPTY_DIST()}
+                          onChange={(level, dist) => {
+                            setServiceRows((prev) =>
+                              prev.map((row) =>
+                                row.rowId === r.rowId
+                                  ? { ...row, resourceLevel: level, resourceDist: dist }
+                                  : row,
+                              ),
+                            );
+                          }}
                         />
                       </td>
                       <td style={tdStyle}>
@@ -2457,45 +2733,67 @@ function WbsNewProjectPage() {
                         <input
                           type="date"
                           value={r.endDate}
+                          min={r.startDate || undefined}
                           onChange={(e) => updateRow(r.rowId, "endDate", e.target.value)}
                           style={{ ...req(r.endDate), minWidth: 140 }}
-                          title="WBS End Date"
+                          title="WBS End Date — weekends do not count toward Duration (Days)"
                         />
                       </td>
                       <td style={tdStyle}>
                         <input
                           type="number"
+                          min={1}
                           value={r.durationDays}
                           onChange={(e) =>
                             updateRow(r.rowId, "durationDays", Number(e.target.value))
                           }
                           style={{ ...req(r.durationDays), minWidth: 80 }}
+                          title="Working days Mon–Fri between WBS Start and End"
                         />
                       </td>
                       <td style={tdStyle}>
                         <input
                           type="number"
                           value={r.durationHrs}
-                          onChange={(e) =>
-                            updateRow(r.rowId, "durationHrs", Number(e.target.value))
-                          }
-                          style={{ ...req(r.durationHrs), minWidth: 80 }}
+                          readOnly
+                          title={`${HOURS_PER_DAY} hours per duration day`}
+                          style={{
+                            ...tblInputStyle,
+                            minWidth: 80,
+                            background: "#f3f4f6",
+                            color: "#6b7280",
+                            cursor: "not-allowed",
+                          }}
                         />
                       </td>
                       <td style={tdStyle}>
                         <input
                           type="number"
                           value={r.totalDays}
-                          onChange={(e) => updateRow(r.rowId, "totalDays", Number(e.target.value))}
-                          style={{ ...req(r.totalDays), minWidth: 80 }}
+                          readOnly
+                          title="Qty × Duration (Days)"
+                          style={{
+                            ...tblInputStyle,
+                            minWidth: 80,
+                            background: "#f3f4f6",
+                            color: "#6b7280",
+                            cursor: "not-allowed",
+                          }}
                         />
                       </td>
                       <td style={tdStyle}>
                         <input
                           type="number"
                           value={r.totalHrs}
-                          onChange={(e) => updateRow(r.rowId, "totalHrs", Number(e.target.value))}
-                          style={{ ...req(r.totalHrs), minWidth: 80 }}
+                          readOnly
+                          title="Qty × Duration (Hrs)"
+                          style={{
+                            ...tblInputStyle,
+                            minWidth: 80,
+                            background: "#f3f4f6",
+                            color: "#6b7280",
+                            cursor: "not-allowed",
+                          }}
                         />
                       </td>
                       <td style={tdStyle}>
@@ -2629,7 +2927,7 @@ function WbsNewProjectPage() {
                 value={billingModel}
                 disabled={!projectType}
                 onChange={(e) => onBillingModelChange(e.target.value)}
-                style={inputStyle(!projectType)}
+                style={selectStyle(!projectType)}
                 title={!projectType ? "Select a Project Type in WBS Information first" : ""}
               >
                 {!projectType ? (
@@ -2813,11 +3111,13 @@ function WbsNewProjectPage() {
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
                   style={{
-                    ...inputStyle(false),
+                    ...selectStyle(false),
                     flex: "0 0 100px",
                     height: 26,
-                    padding: "2px 6px",
+                    padding: "2px 24px 2px 6px",
                     fontSize: 12,
+                    backgroundPosition: "right 6px center",
+                    backgroundSize: "12px 12px",
                   }}
                 >
                   {Object.keys(CURRENCY_SYMBOLS).map((c) => (
@@ -2841,7 +3141,7 @@ function WbsNewProjectPage() {
                   setPoStatus(val);
                   if (val !== "PO Received") setPoFile(null);
                 }}
-                style={inputStyle(false)}
+                style={selectStyle(false)}
               >
                 <option value="">Select PO Status</option>
                 <option value="PO Received">PO Received</option>
@@ -3035,7 +3335,7 @@ function WbsNewProjectPage() {
                                 onChange={(e) =>
                                   updateInvoiceRowField(inv.rowId, "invoiceStatus", e.target.value)
                                 }
-                                style={invInputStyle}
+                                style={{ ...tblSelectStyle, textAlign: "center", textAlignLast: "center" }}
                               >
                                 <option value="Not Raised">Not Raised</option>
                                 <option value="Raised">Raised</option>
@@ -3065,7 +3365,7 @@ function WbsNewProjectPage() {
                                 onChange={(e) =>
                                   updateInvoiceRowField(inv.rowId, "paymentStatus", e.target.value)
                                 }
-                                style={invInputStyle}
+                                style={{ ...tblSelectStyle, textAlign: "center", textAlignLast: "center" }}
                               >
                                 <option value="Not Received">Not Received</option>
                                 <option value="Received">Received</option>
@@ -3167,8 +3467,15 @@ function WbsNewProjectPage() {
             <button onClick={handleSaveDraft} style={btnStyle("primary")}>
               Save Draft
             </button>
-            <button onClick={handleExport} style={btnStyle("secondary")}>
-              Export WBS
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              style={{
+                ...btnStyle("secondary"),
+                ...(exporting ? { opacity: 0.6, cursor: "not-allowed" } : {}),
+              }}
+            >
+              {exporting ? "Preparing preview…" : "Export WBS"}
             </button>
             <button onClick={handleAssignWbs} style={btnStyle("primary")}>
               Create WBS
@@ -3421,6 +3728,18 @@ function WbsNewProjectPage() {
           </div>
         </div>
       )}
+      <WbsExcelPreviewModal
+        open={previewOpen}
+        input={previewInput}
+        downloading={downloading}
+        onClose={() => {
+          if (downloading) return;
+          setPreviewOpen(false);
+        }}
+        onDownload={() => {
+          void handleDownloadFromPreview();
+        }}
+      />
     </div>
   );
 }
@@ -3498,10 +3817,52 @@ const inputStyle = (locked: boolean): React.CSSProperties => ({
   fontFamily: "inherit",
   width: "100%",
   boxSizing: "border-box",
-  background: locked ? "#f3f4f6" : "#fff",
+  backgroundColor: locked ? "#f3f4f6" : "#fff",
   color: locked ? "#6b7280" : "#1f2937",
   cursor: locked ? "not-allowed" : "auto",
 });
+
+/** Dropdown arrow used on <select> fields so they don't look like plain text inputs. */
+const SELECT_CHEVRON = `url("data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+)}")`;
+
+const selectArrow = (locked: boolean): React.CSSProperties => ({
+  paddingRight: 32,
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
+  backgroundColor: locked ? "#f3f4f6" : "#fff",
+  backgroundImage: SELECT_CHEVRON,
+  backgroundRepeat: "no-repeat",
+  backgroundPosition: "right 10px center",
+  backgroundSize: "16px 16px",
+  cursor: locked ? "not-allowed" : "pointer",
+});
+
+const selectStyle = (locked: boolean): React.CSSProperties => ({
+  ...inputStyle(locked),
+  ...selectArrow(locked),
+});
+
+const tblInputStyle: React.CSSProperties = {
+  width: "100%",
+  minWidth: 120,
+  padding: "6px 8px",
+  border: "1px solid #d1d5db",
+  borderRadius: 4,
+  fontSize: 12,
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+};
+
+const tblSelectStyle: React.CSSProperties = {
+  ...tblInputStyle,
+  ...selectArrow(false),
+  padding: "6px 28px 6px 8px",
+  backgroundPosition: "right 8px center",
+  backgroundSize: "14px 14px",
+};
 
 const thStyle: React.CSSProperties = {
   padding: "10px 8px",
@@ -3517,17 +3878,6 @@ const tdStyle: React.CSSProperties = {
   border: "1px solid #d1d5db",
   verticalAlign: "middle",
 };
-const tblInputStyle: React.CSSProperties = {
-  width: "100%",
-  minWidth: 120,
-  padding: "6px 8px",
-  border: "1px solid #d1d5db",
-  borderRadius: 4,
-  fontSize: 12,
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-};
-
 function btnStyle(variant: "primary" | "secondary"): React.CSSProperties {
   return {
     padding: "10px 16px",
@@ -3539,5 +3889,236 @@ function btnStyle(variant: "primary" | "secondary"): React.CSSProperties {
     background: variant === "primary" ? "#1a84d4" : "#f3f4f6",
     color: variant === "primary" ? "#fff" : "#1f2937",
     transition: "all 0.2s",
+  };
+}
+
+function ResourceLevelCell({
+  qty,
+  resourceLevel,
+  resourceDist,
+  onChange,
+}: {
+  qty: number;
+  resourceLevel: string;
+  resourceDist: ResourceDist;
+  onChange: (level: string, dist: ResourceDist) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<ResourceDist>(resourceDist);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  const assigned = distTotal(draft);
+  const complete = assigned === qty;
+  const committedAssigned = distTotal(resourceDist);
+  const invalid = qty <= 1 ? !resourceLevel : committedAssigned !== qty;
+  const label =
+    qty <= 1
+      ? resourceLevel || "— Select —"
+      : formatDist(resourceDist) || "— Select —";
+
+  function placePopover() {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = 280;
+    const left = Math.min(rect.left, window.innerWidth - width - 8);
+    setPos({ top: rect.bottom + 4, left: Math.max(8, left) });
+  }
+
+  function openPopover() {
+    setDraft({ ...EMPTY_DIST(), ...resourceDist });
+    placePopover();
+    setOpen(true);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    placePopover();
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (triggerRef.current?.contains(t) || popRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    const onReposition = () => placePopover();
+    document.addEventListener("mousedown", onDoc);
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [open]);
+
+  function bump(level: ResourceLevelName, delta: number) {
+    setDraft((prev) => {
+      const next = { ...prev };
+      const nextVal = next[level] + delta;
+      if (nextVal < 0) return prev;
+      if (delta > 0 && distTotal(next) >= qty) return prev;
+      next[level] = nextVal;
+      return next;
+    });
+  }
+
+  if (qty <= 1) {
+    return (
+      <select
+        value={RESOURCE_LEVELS.includes(resourceLevel as ResourceLevelName) ? resourceLevel : ""}
+        onChange={(e) => {
+          const v = e.target.value as ResourceLevelName | "";
+          const dist = EMPTY_DIST();
+          if (v) dist[v] = 1;
+          onChange(v, dist);
+        }}
+        style={{ ...tblSelectStyle, minWidth: 110, ...(invalid ? { border: "1.5px solid #ef4444" } : {}) }}
+      >
+        <option value="">— Select —</option>
+        {RESOURCE_LEVELS.map((level) => (
+          <option key={level} value={level}>
+            {level}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  const plusDisabled = assigned >= qty;
+  const popover = open
+    ? createPortal(
+        <div
+          ref={popRef}
+          style={{
+            position: "fixed",
+            top: pos.top,
+            left: pos.left,
+            width: 280,
+            background: "#fff",
+            border: "1px solid #d1d5db",
+            borderRadius: 8,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
+            zIndex: 1400,
+            padding: 12,
+            fontFamily: "inherit",
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#1a5490", marginBottom: 10 }}>
+            Resource Level Distribution
+          </div>
+          {RESOURCE_LEVELS.map((level) => (
+            <div
+              key={level}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
+                gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#1f2937", width: 64 }}>{level}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button
+                  type="button"
+                  disabled={draft[level] <= 0}
+                  onClick={() => bump(level, -1)}
+                  style={stepperBtnStyle(draft[level] <= 0)}
+                  aria-label={`Decrease ${level}`}
+                >
+                  −
+                </button>
+                <span
+                  style={{
+                    minWidth: 22,
+                    textAlign: "center",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#1f2937",
+                  }}
+                >
+                  {draft[level]}
+                </span>
+                <button
+                  type="button"
+                  disabled={plusDisabled}
+                  onClick={() => bump(level, 1)}
+                  style={stepperBtnStyle(plusDisabled)}
+                  aria-label={`Increase ${level}`}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          ))}
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: complete ? "#059669" : "#dc2626",
+              margin: "6px 0 10px",
+            }}
+          >
+            Assigned: {assigned} / {qty}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              disabled={!complete}
+              onClick={() => {
+                onChange(formatDist(draft), draft);
+                setOpen(false);
+              }}
+              style={{
+                ...btnStyle("primary"),
+                padding: "6px 14px",
+                fontSize: 12,
+                opacity: complete ? 1 : 0.5,
+                cursor: complete ? "pointer" : "not-allowed",
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => (open ? setOpen(false) : openPopover())}
+        title="Set how many L1 / L2 / Senior resources this service requires"
+        style={{
+          ...tblSelectStyle,
+          minWidth: 160,
+          textAlign: "left",
+          color: formatDist(resourceDist) ? "#1f2937" : "#9ca3af",
+          ...(invalid ? { border: "1.5px solid #ef4444" } : {}),
+        }}
+      >
+        {label}
+      </button>
+      {popover}
+    </>
+  );
+}
+
+function stepperBtnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    width: 26,
+    height: 26,
+    borderRadius: 4,
+    border: "1px solid #d1d5db",
+    background: disabled ? "#f3f4f6" : "#fff",
+    color: disabled ? "#9ca3af" : "#1f2937",
+    fontSize: 16,
+    fontWeight: 700,
+    lineHeight: 1,
+    cursor: disabled ? "not-allowed" : "pointer",
+    padding: 0,
   };
 }

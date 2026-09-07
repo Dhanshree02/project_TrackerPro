@@ -5,9 +5,32 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-03
+**Last updated:** 2026-09-07
 
 ## Latest
+
+- **Export WBS now opens a two-sheet preview first.** Clicking **Export WBS** validates required onboarding fields (named error toast, e.g. “Please select Billing Model” / “Row 1: Resource Level is required”) and only then shows a modal with **WBS Details** and **Accounts Details** tabs. The `.xlsx` is written to the PC **Downloads** folder only after **Download Excel**. Toast: `Excel saved to Downloads` with the file name. Preview lives in `components/wbs-excel-preview.tsx`.
+
+- **Export WBS now writes a two-sheet Excel workbook** named `{WBS-ID}.xlsx` (e.g. `IN-2026-27-C002-P004.xlsx`; `/ \ : * ? " < > |` become `-`) instead of calling `window.print()`. New deps/files: `exceljs` (frontend), `lib/wbs-excel-export.ts` (workbook builder + `exportWbsWorkbook` / `buildWbsWorkbook`), `lib/sub-venture-spoc.ts` (`fetchSubVentureSpocs`). Tests: `lib/wbs-excel-export.test.ts`, `lib/sub-venture-spoc.test.ts`.
+  - **WBS Details is written once.** Frozen panes (`ySplit: 10`) and print-title rows were removed so scrolling/printing no longer looks like a second copy of the header + SOW + SPOC + table. Sheet 2 is Accounts only — WBS content is never appended there. Column H is **Service Model** (not Testing Model). Download is a browser `<a download>` blob (user’s Downloads folder), never the repo filesystem.
+  - **Accounts Details** holds all of Section B: Project / Billing Information grid (Project Name, Project ID, WBS ID, Customer, Sub-Venture, Currency, Billing Model, Payment Terms, PO Status/Number/Date, Target Date), the 11-column Invoice Scheduling table read **verbatim from `invoiceRows`** (no re-generation), a Total Invoice Value row, and Comments / Notes (Section B comments).
+  - **SPOC is fetched live, never hardcoded.** `fetchSubVentureSpocs(clientId, subVentureName)` resolves the API client via `fetchClientForRoute` (handles mock `c1…c10` ids by name) and reads `subVentures[].contacts`. Fallback order: API sub-venture → local sub-venture → API client-level contacts → local client-level. Export toasts a warning when nothing is on record. Caveat: the onboarding customer combobox is still mock-driven (`allClients()`), so mock-only sub-venture names (e.g. "Core Banking Platform") have no API row and fall through to the client-level contact.
+  - Formatting: merged cells, thin black borders, brand `#1A5490` banners, wrapped text, `dd-mmm-yyyy` dates as real Date values, `"₹" #,##0.00` currency, landscape + fit-to-width printing. Merged rows get explicit heights because Excel never auto-fits merged cells. WBS Details does not freeze panes (that looked like a duplicate document when scrolling).
+  - `exceljs` is **dynamically imported** inside the export (SSR-safe, keeps it out of the route bundle) — same pattern as the lazy `mammoth`/`xlsx` loads.
+
+- **Service table Qty sits before Resource Level.** Qty=1 is a simple L1/L2/Senior list. Qty>1 opens a small attached **Resource Level Distribution** popover (`− / count / +`, Assigned X/Qty, OK only when the counts equal Qty). Compact cell text is `L1=2, Senior=1` (zeros omitted). Changing Qty keeps the existing mix when it still fits, and trims it if Qty shrinks. This is a requirement mix only — not employee assignment.
+
+- **Service ID and Service Name in the onboarding table are read-only** (set from Add Services, same locked look as Department).
+
+- **Service table dates and duration stay in sync on working days only (Mon–Fri).** Changing WBS End Date recalculates Duration (Days) from Start→End and skips Saturday/Sunday. Changing Duration (Days) moves WBS End Date the same way. Duration (Hrs) stays 8× days. Total Days and Total Hrs are read-only (`qty × duration`).
+
+- **Service table Duration (Hrs) follows Duration (Days)** at 8 hours per day. Changing days updates hours (and Total Hrs via qty). Hours is read-only so it cannot drift from days.
+
+- **Project onboarding list fields now show a down arrow.** Native `<select>`s on `/projects/new` (Contract Type, Sales Person, Project Type, service-table lists, Billing Model, Currency, PO Status, invoice status) use a chevron via `selectStyle` / `tblSelectStyle`. TK Customer / Sub-venture comboboxes always show a lucide chevron. Plain text / date / number inputs are unchanged.
+
+- **Customers/Resources 500s:** shared Postgres hit `max_connections=100` (`sorry, too many clients already`). Default Npgsql pool is 100, so one API instance could consume the whole server. Stopped leftover `PMS.API`, capped `.env` with `Maximum Pool Size=15;Application Name=PMS.API`, restarted. Clients **15**, employees **27** loading again.
+
+- **Backend was down because shared Postgres `10.50.30.189:5432` timed out.** Local Windows PostgreSQL 18 is running on `127.0.0.1:5432` (`postgresql-x64-18`) with database `trackerpro` / user `trackerpro` / password `trackerpro_dev`. Root `.env` `ConnectionStrings__DefaultConnection` now points at that local instance (was the unreachable shared host). API is up on `http://localhost:5194` (12 customers on this local DB — not the shared-host dataset). When `10.50.30.189` is back, switch the connection string if you need that data again.
 
 - **Repository documents are now department-scoped.** On upload (Tech. SOPs / PMS. SOPs / IMP Templates) the admin must check one or more departments from `mst_departments`. Assignments live in junction table `repository_departments` (`RepositoryItemId` + `DepartmentId`). `GET /api/v1/repository/departments` returns active departments for the checklist. List / category counts / preview / download / logs only include a document when the viewer's employee `DepartmentId` is assigned (Admin / Dhanshree / BusinessOwner / `users:manage` still see everything; the uploader still sees their own file; legacy docs with no assignments stay visible to everyone). Frontend: checklist + Select all/Clear on the upload modal; Departments column on the table.
 - Seeder: `users` rows with NULL `PasswordHash` crashed startup (`InvalidCastException`); seeder now backfills empty string before materializing users.
