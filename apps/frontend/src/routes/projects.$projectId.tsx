@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate, notFound } from "@tanstack/react-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -12,6 +12,8 @@ import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients
 import { Modal } from "@/routes/projects.index";
 import { Field } from "@/components/form-row";
 import { cn } from "@/lib/utils";
+import { fetchClients, mapApiClient } from "@/lib/api/clients";
+import { resolveCustomerRouteId } from "@/lib/client-route-id";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 
@@ -273,6 +275,24 @@ function ProjectDetail() {
     () => allClients().find((c) => c.id === project.clientId) ?? loaderClient,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [project.clientId, extraCount]
+  );
+  const [apiClients, setApiClients] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchClients(1, 100)
+      .then((rows) => {
+        if (!cancelled) setApiClients(rows.map((c) => mapApiClient(c)));
+      })
+      .catch(() => {
+        if (!cancelled) setApiClients([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const customerRouteId = useMemo(
+    () => resolveCustomerRouteId(client.id, client.name, apiClients),
+    [client.id, client.name, apiClients],
   );
   const snapshotInvoices = useDhStore((s) => s.invoices);
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
@@ -618,13 +638,7 @@ function ProjectDetail() {
       title={project.name}
       subtitle={
         <span className="inline-flex flex-wrap items-center gap-x-1.5">
-          <Link
-            to="/customers/$clientId"
-            params={{ clientId: client.id }}
-            className="font-medium text-primary hover:underline"
-          >
-            {client.name}
-          </Link>
+          <span className="font-medium text-foreground">{client.name}</span>
           {project.subVenture ? (
             <span className="text-muted-foreground">· {project.subVenture}</span>
           ) : null}
@@ -637,13 +651,17 @@ function ProjectDetail() {
           Projects
         </Link>
         <ChevronRight className="h-3 w-3 shrink-0 opacity-60" />
-        <Link
-          to="/customers/$clientId"
-          params={{ clientId: client.id }}
-          className="hover:text-foreground transition-colors truncate max-w-[140px]"
-        >
-          {client.name}
-        </Link>
+        {customerRouteId ? (
+          <Link
+            to="/customers/$clientId"
+            params={{ clientId: customerRouteId }}
+            className="hover:text-foreground transition-colors truncate max-w-[140px]"
+          >
+            {client.name}
+          </Link>
+        ) : (
+          <span className="truncate max-w-[140px]">{client.name}</span>
+        )}
         <ChevronRight className="h-3 w-3 shrink-0 opacity-60" />
         <span className="truncate font-medium text-foreground">{project.name}</span>
       </nav>
@@ -756,6 +774,7 @@ function ProjectDetail() {
               pm={pm}
               tl={tl}
               team={team}
+              customerRouteId={customerRouteId}
             />
           )}
 
@@ -1483,11 +1502,13 @@ function OverviewTab({
   pm,
   tl,
   team,
+  customerRouteId,
 }: {
   project: Project;
   pm: Person;
   tl: Person;
   team: Person[];
+  customerRouteId: string | null;
 }) {
   const { isDhanshree, isProjectManager, isSeniorPm, isPmFamily, isPmoFamily, isAccounts, isSales, hideBudget } =
     useRoleContext();
@@ -1642,9 +1663,17 @@ function OverviewTab({
               <div className="space-y-2 text-xs">
                 <div>
                   <span className="text-muted-foreground font-medium block mb-0.5">Customer Name</span>
-                  <Link to="/customers/$clientId" params={{ clientId: client.id }} className="font-semibold text-primary hover:underline block truncate">
-                    {client.name}
-                  </Link>
+                  {customerRouteId ? (
+                    <Link
+                      to="/customers/$clientId"
+                      params={{ clientId: customerRouteId }}
+                      className="font-semibold text-primary hover:underline block truncate"
+                    >
+                      {client.name}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-foreground block truncate">{client.name}</span>
+                  )}
                 </div>
                 <div>
                   <span className="text-muted-foreground font-medium block mb-0.5">Contact Person</span>

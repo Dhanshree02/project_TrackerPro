@@ -21,6 +21,7 @@ export interface ApiEmployeeListItem {
   phone?: string | null;
   altPhone?: string | null;
   emergencyContact?: string | null;
+  emergencyContactName?: string | null;
   pan?: string | null;
   bankAccount?: string | null;
   pfUan?: string | null;
@@ -49,6 +50,7 @@ export interface ApiEmployeeDetail {
   dateOfBirth?: string | null;
   address?: string | null;
   emergencyContact?: string | null;
+  emergencyContactName?: string | null;
   maritalStatus?: string | null;
   nationality?: string | null;
   department?: string | null;
@@ -233,6 +235,11 @@ export async function fetchJobRoleOptions(designationId?: string): Promise<ApiMe
   return (await apiFetch<ApiMetaOption[]>(`/api/v1/employees/meta/roles${query}`)) ?? [];
 }
 
+export async function fetchEmployeeStatusOptions(onboardingOnly = false): Promise<ApiMetaOption[]> {
+  const query = onboardingOnly ? "?onboardingOnly=true" : "";
+  return (await apiFetch<ApiMetaOption[]>(`/api/v1/employees/meta/employee-statuses${query}`)) ?? [];
+}
+
 export async function fetchSalaryBandOptions(): Promise<ApiMetaOption[]> {
   return (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/salary-bands")) ?? [];
 }
@@ -356,6 +363,7 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     dob: "",
     address: "",
     emergencyContact: item.emergencyContact ?? "",
+    emergencyContactName: item.emergencyContactName ?? "",
     maritalStatus: "",
     nationality: "",
     department: item.department ?? "—",
@@ -419,6 +427,7 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     dob: toDateInputValue(detail.dateOfBirth),
     address: detail.address ?? "",
     emergencyContact: detail.emergencyContact ?? "",
+    emergencyContactName: detail.emergencyContactName ?? "",
     maritalStatus: detail.maritalStatus ?? "",
     nationality: detail.nationality ?? "",
     department: detail.department ?? "",

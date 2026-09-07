@@ -139,6 +139,15 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetSalaryBandsAsync(ct)));
     }
 
+    [HttpGet("meta/next-code")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<string>>> NextCode(
+        [FromQuery] bool isIntern = false,
+        CancellationToken ct = default)
+    {
+        return Ok(ApiResponse<string>.Ok(await employees.GetNextEmployeeCodeAsync(isIntern, ct)));
+    }
+
     [HttpGet("meta/email-domains")]
     [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmailDomains(CancellationToken ct)
@@ -214,6 +223,16 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     {
         var created = await employees.CreateOfficeAsync(request.Name, request.ParentId, ct);
         return Ok(ApiResponse<MetaOptionDto>.Ok(created));
+    }
+
+    [HttpGet("meta/employee-statuses")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmployeeStatuses(
+        [FromQuery] bool onboardingOnly = false,
+        CancellationToken ct = default)
+    {
+        return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(
+            await employees.GetEmployeeStatusesAsync(onboardingOnly, ct)));
     }
 
     [HttpGet("bulk/sample")]

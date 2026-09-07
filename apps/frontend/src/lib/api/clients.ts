@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, API_BASE } from "@/lib/api-client";
 import {
   clientLogo,
   type Client,
@@ -29,11 +29,14 @@ export interface ApiClientContact {
   contactType?: string | null;
 }
 
-/** Wire shape of a sub-venture: name + its own SPOC contacts + notes. */
+/** Wire shape of a sub-venture: id + name + its own SPOC contacts + notes + KYC. */
 export interface ApiSubVenture {
+  id: string;
   name: string;
   contacts: ApiClientContact[];
   notes?: string | null;
+  kycDocumentName?: string | null;
+  kycDocumentPath?: string | null;
 }
 
 export interface ApiClient {
@@ -55,6 +58,7 @@ export interface ApiClient {
   businessType?: string | null;
   notes?: string | null;
   kycDocumentName?: string | null;
+  kycDocumentPath?: string | null;
   subVentures: ApiSubVenture[];
   contacts: ApiClientContact[];
   customerSince?: string | null;
@@ -90,10 +94,14 @@ export function mapApiClient(c: ApiClient): Client {
     businessType: c.businessType ?? undefined,
     notes: c.notes ?? undefined,
     kycDocumentName: c.kycDocumentName ?? undefined,
+    kycDocumentPath: c.kycDocumentPath ?? undefined,
     customerSince: c.customerSince ? c.customerSince.slice(0, 10) : c.createdAtUtc?.slice(0, 10),
     subVentures: (c.subVentures ?? []).map((sv) => ({
+      id: sv.id,
       name: sv.name,
       notes: sv.notes ?? undefined,
+      kycDocumentName: sv.kycDocumentName ?? undefined,
+      kycDocumentPath: sv.kycDocumentPath ?? undefined,
       // A sub-venture SPOC is identified by name — phone is the primary field for
       // per-sub-venture contacts, so don't drop phone-only contacts.
       contacts: (sv.contacts ?? [])
@@ -180,4 +188,48 @@ export async function updateClient(
     method: "PUT",
     body: JSON.stringify(input),
   });
+}
+
+/** POST /api/v1/clients/{id}/kyc — uploads the KYC document into Documents/KYC. */
+export async function uploadClientKyc(id: string, file: File): Promise<ApiClient> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiFetch<ApiClient>(`/api/v1/clients/${id}/kyc`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+/** Inline-preview URL for a client's stored KYC document. */
+export function getClientKycUrl(id: string): string {
+  return `${API_BASE}/api/v1/clients/${id}/kyc`;
+}
+
+/** Download URL (attachment) for a client's stored KYC document. */
+export function getClientKycDownloadUrl(id: string): string {
+  return `${API_BASE}/api/v1/clients/${id}/kyc?download=true`;
+}
+
+/** POST /api/v1/clients/{clientId}/subventures/{subVentureId}/kyc — uploads a sub-venture's KYC. */
+export async function uploadSubVentureKyc(
+  clientId: string,
+  subVentureId: string,
+  file: File,
+): Promise<ApiClient> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiFetch<ApiClient>(
+    `/api/v1/clients/${clientId}/subventures/${subVentureId}/kyc`,
+    { method: "POST", body: formData },
+  );
+}
+
+/** Inline-preview URL for a sub-venture's stored KYC document. */
+export function getSubVentureKycUrl(clientId: string, subVentureId: string): string {
+  return `${API_BASE}/api/v1/clients/${clientId}/subventures/${subVentureId}/kyc`;
+}
+
+/** Download URL (attachment) for a sub-venture's stored KYC document. */
+export function getSubVentureKycDownloadUrl(clientId: string, subVentureId: string): string {
+  return `${API_BASE}/api/v1/clients/${clientId}/subventures/${subVentureId}/kyc?download=true`;
 }

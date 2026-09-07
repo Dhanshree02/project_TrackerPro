@@ -24,7 +24,6 @@ import {
   Users,
   Briefcase,
   ShieldCheck,
-  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -36,6 +35,7 @@ import {
   fetchClients,
   mapApiClient,
   updateClient,
+  uploadSubVentureKyc,
   formatCustomerId,
   type CreateClientInput,
 } from "@/lib/api/clients";
@@ -45,6 +45,7 @@ import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
 import { Modal } from "@/routes/projects.index";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Field } from "@/components/form-row";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { dhStore, useDhStore, allClients, allProjects } from "@/lib/dh-store";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ import {
   toEmailInput,
   toTenDigitPhone,
 } from "@/lib/form-validation";
+import { useEngagementManagers } from "@/lib/engagement-managers";
 
 export const Route = createFileRoute("/customers/")({
   head: () => ({
@@ -93,7 +95,29 @@ type CustomerListRow = {
   active: number;
 };
 
-const CUSTOMER_LIST_COLUMNS: { label: string; key: CustomerListSortKey }[] = [
+const CUSTOMER_METRIC_TD_CLS = "px-2 text-center";
+const CUSTOMER_HEADER_CELL_CLS = "px-3 text-left";
+const CUSTOMER_METRIC_COL_WIDTH = "6.25rem"; /* 100px — fits "Completed" + sort icon */
+
+/** Fixed column widths so metric headers stay evenly spaced (table-fixed redistributes slack otherwise). */
+const CUSTOMER_LIST_COL_WIDTHS = [
+  "16rem", /* Customer */
+  "7.5rem", /* Industry */
+  "10rem", /* Engagement Manager */
+  "9rem", /* Sales Manager */
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH, /* Status */
+] as const;
+
+const CUSTOMER_LIST_COLUMNS: {
+  label: string;
+  key: CustomerListSortKey;
+}[] = [
   { label: "Customer", key: "name" },
   { label: "Industry", key: "industry" },
   { label: "Engagement Manager", key: "engagementManager" },
@@ -106,6 +130,25 @@ const CUSTOMER_LIST_COLUMNS: { label: string; key: CustomerListSortKey }[] = [
   { label: "Archived", key: "archived" },
   { label: "Status", key: "status" },
 ];
+
+/** Grid card status label — full text, no ellipsis (two lines when needed). */
+function GridMetricLabel({ lines }: { lines: string | [string, string] }) {
+  const size =
+    typeof lines === "string" && lines.length >= 8 ? "text-[8px]" : "text-[9px]";
+  const base = cn(
+    "px-0.5 text-center font-medium tracking-tight text-slate-600 dark:text-slate-400 transition-colors",
+    size,
+  );
+  if (Array.isArray(lines)) {
+    return (
+      <span className={cn("flex flex-col items-center leading-[1.1]", base)}>
+        <span>{lines[0]}</span>
+        <span>{lines[1]}</span>
+      </span>
+    );
+  }
+  return <span className={cn("leading-none", base)}>{lines}</span>;
+}
 
 function sortBlank(value: string): string {
   return !value || value === "—" ? "" : value;
@@ -159,12 +202,17 @@ function SortableTh<T extends string>({
 }) {
   const active = sortKey === column;
   return (
-    <th className="relative whitespace-nowrap px-3 py-2.5 font-semibold">
+    <th
+      className={cn(
+        "relative whitespace-nowrap py-2.5 font-semibold",
+        CUSTOMER_HEADER_CELL_CLS,
+      )}
+    >
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
+          "group inline-flex items-center gap-1 text-left text-xs font-semibold transition-colors select-none",
           active
             ? "text-blue-600 dark:text-blue-400 font-bold"
             : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
@@ -419,11 +467,11 @@ function CustomersPage() {
                 }}
                 className={cn(
                   "group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl",
-                  "border border-slate-200/90 dark:border-border/80",
-                  "bg-white dark:bg-card",
-                  "shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06),0_1px_3px_rgba(15,23,42,0.04)]",
-                  "transition-all duration-200 ease-out",
-                  "hover:border-blue-500 hover:shadow-[0_12px_28px_-4px_rgba(37,99,235,0.14),0_4px_10px_-2px_rgba(15,23,42,0.06)]",
+                  "border border-slate-300/90 dark:border-slate-700/80",
+                  "bg-gradient-to-b from-slate-100/95 via-slate-100 to-blue-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950",
+                  "shadow-[0_4px_16px_-4px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)]",
+                  "transition-colors duration-200 ease-out",
+                  "hover:border-blue-500",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   "before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-blue-600 before:to-indigo-500 before:opacity-0 group-hover:before:opacity-100 before:transition-opacity before:duration-200",
                 )}
@@ -431,18 +479,18 @@ function CustomersPage() {
                 {/* SECTION 1: Client Identity & Stakeholders */}
                 <div className="flex flex-col p-5 pb-4">
                   {/* Header: Logo, Name, Industry, and top-right arrow */}
-                  <div className="flex items-start gap-3.5 mb-3.5">
+                  <div className="relative z-10 mb-3.5 flex items-start gap-3.5">
                     <div
                       className={cn(
-                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
-                        "bg-blue-600 text-sm font-bold tracking-tight text-white",
-                        "shadow-xs group-hover:scale-105 transition-transform duration-200",
+                        "relative z-10 flex size-11 shrink-0 items-center justify-center rounded-xl",
+                        "bg-blue-600 text-xs font-bold tracking-tight text-white shadow-sm",
                       )}
+                      style={{ minWidth: 44, minHeight: 44 }}
                       aria-hidden
                     >
                       {c.logo}
                     </div>
-                    <div className="min-w-0 flex-1 pt-0.5">
+                    <div className="relative z-0 min-w-0 flex-1 pt-0.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate text-[15px] font-bold leading-snug tracking-tight text-foreground group-hover:text-primary transition-colors">
@@ -453,27 +501,29 @@ function CustomersPage() {
                           </p>
                         </div>
                         <ChevronRight
-                          className="h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary shrink-0 mt-0.5"
+                          className="h-4 w-4 text-muted-foreground/70 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary shrink-0 mt-0.5"
                           aria-hidden
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Stakeholders Section: Single unified box with Engagement Manager & Sales Manager stacked */}
-                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 space-y-2 dark:border-border/60 dark:bg-muted/30">
+                  {/* Stakeholders Section: Crisp White Inset Card */}
+                  <div className="rounded-xl border border-slate-200/90 bg-white shadow-xs px-3.5 py-2.5 space-y-2 dark:border-slate-800 dark:bg-slate-950">
                     {/* Engagement Manager */}
                     <div className="flex items-center justify-between gap-3 text-xs">
-                      <div className="flex items-center gap-2 min-w-0 text-muted-foreground">
-                        <UserRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" aria-hidden />
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                          <UserRound className="h-3 w-3" />
+                        </span>
                         <span className="truncate text-xs font-normal text-muted-foreground">
                           Engagement Manager
                         </span>
                       </div>
                       <span
                         className={cn(
-                          "truncate text-xs font-semibold text-right max-w-[50%]",
-                          c.engagementManager?.trim() ? "text-foreground font-bold" : "text-muted-foreground/60 font-normal",
+                          "truncate text-xs text-right max-w-[50%]",
+                          c.engagementManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground/60 italic font-normal",
                         )}
                         title={emName}
                       >
@@ -481,18 +531,23 @@ function CustomersPage() {
                       </span>
                     </div>
 
+                    {/* Hairline Divider */}
+                    <div className="h-px bg-slate-100 dark:bg-slate-800" />
+
                     {/* Sales Manager */}
-                    <div className="flex items-center justify-between gap-3 text-xs border-t border-slate-200/60 pt-2 dark:border-border/40">
-                      <div className="flex items-center gap-2 min-w-0 text-muted-foreground">
-                        <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" aria-hidden />
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                          <Briefcase className="h-3 w-3" />
+                        </span>
                         <span className="truncate text-xs font-normal text-muted-foreground">
                           Sales Manager
                         </span>
                       </div>
                       <span
                         className={cn(
-                          "truncate text-xs font-semibold text-right max-w-[50%]",
-                          c.salesManager?.trim() ? "text-foreground font-bold" : "text-muted-foreground/60 font-normal",
+                          "truncate text-xs text-right max-w-[50%]",
+                          c.salesManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground/60 italic font-normal",
                         )}
                         title={smName}
                       >
@@ -502,8 +557,8 @@ function CustomersPage() {
                   </div>
                 </div>
 
-                {/* SECTION 2: Project Metrics (Bottom Section matching reference design) */}
-                <div className="mt-auto border-t border-slate-200/80 bg-slate-50/40 px-4 py-3 dark:border-border/70 dark:bg-muted/20">
+                {/* SECTION 2: Project Metrics (Bottom Section) */}
+                <div className="mt-auto rounded-b-2xl border-t border-slate-300/80 bg-slate-200/50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/60">
                   <div className="flex items-center gap-2.5">
                     {/* Total Project Ring Gauge Button (Filters by All) */}
                     <button
@@ -543,7 +598,7 @@ function CustomersPage() {
                     </button>
 
                     {/* Status breakdown filter buttons */}
-                    <div className="grid flex-1 grid-cols-5 gap-1.5 min-w-0">
+                    <div className="grid min-w-0 flex-1 grid-cols-5 gap-2">
                       {/* New */}
                       <button
                         type="button"
@@ -556,19 +611,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-blue-400 hover:bg-blue-50/80 active:bg-blue-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-blue-950/50 dark:hover:border-blue-800",
                         )}
                         title={`Filter: ${newCount} New Project${newCount === 1 ? "" : "s"}`}
                         aria-label={`Filter by New (${newCount} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-blue-600 dark:text-blue-400 group-hover/btn:text-blue-700 dark:group-hover/btn:text-blue-300 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-blue-600 dark:text-blue-400 group-hover/btn:text-blue-700 dark:group-hover/btn:text-blue-300 transition-colors">
                           {newCount}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-blue-600 dark:group-hover/btn:text-blue-300 leading-tight truncate transition-colors">
-                          New
-                        </span>
+                        <GridMetricLabel lines="New" />
                       </button>
 
                       {/* Ongoing */}
@@ -583,19 +636,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-purple-400 hover:bg-purple-50/80 active:bg-purple-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-purple-950/50 dark:hover:border-purple-800",
                         )}
                         title={`Filter: ${ongoing} Ongoing Project${ongoing === 1 ? "" : "s"}`}
                         aria-label={`Filter by Ongoing (${ongoing} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-purple-600 dark:text-purple-400 group-hover/btn:text-purple-700 dark:group-hover/btn:text-purple-300 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-purple-600 dark:text-purple-400 group-hover/btn:text-purple-700 dark:group-hover/btn:text-purple-300 transition-colors">
                           {ongoing}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-purple-600 dark:group-hover/btn:text-purple-300 leading-tight truncate transition-colors">
-                          Ongoing
-                        </span>
+                        <GridMetricLabel lines="Ongoing" />
                       </button>
 
                       {/* Completed */}
@@ -610,19 +661,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-emerald-400 hover:bg-emerald-50/80 active:bg-emerald-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-emerald-950/50 dark:hover:border-emerald-800",
                         )}
                         title={`Filter: ${completed} Completed Project${completed === 1 ? "" : "s"}`}
                         aria-label={`Filter by Completed (${completed} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400 group-hover/btn:text-emerald-700 dark:group-hover/btn:text-emerald-300 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-emerald-600 dark:text-emerald-400 group-hover/btn:text-emerald-700 dark:group-hover/btn:text-emerald-300 transition-colors">
                           {completed}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-emerald-600 dark:group-hover/btn:text-emerald-300 leading-tight truncate transition-colors">
-                          Completed
-                        </span>
+                        <GridMetricLabel lines="Completed" />
                       </button>
 
                       {/* On Hold */}
@@ -637,19 +686,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-amber-400 hover:bg-amber-50/80 active:bg-amber-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-amber-950/50 dark:hover:border-amber-800",
                         )}
                         title={`Filter: ${onHold} On Hold Project${onHold === 1 ? "" : "s"}`}
                         aria-label={`Filter by On Hold (${onHold} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400 group-hover/btn:text-amber-700 dark:group-hover/btn:text-amber-300 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-amber-600 dark:text-amber-400 group-hover/btn:text-amber-700 dark:group-hover/btn:text-amber-300 transition-colors">
                           {onHold}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-amber-600 dark:group-hover/btn:text-amber-300 leading-tight truncate transition-colors">
-                          On Hold
-                        </span>
+                        <GridMetricLabel lines="On Hold" />
                       </button>
 
                       {/* Archived */}
@@ -664,19 +711,17 @@ function CustomersPage() {
                           });
                         }}
                         className={cn(
-                          "group/btn flex flex-col items-center justify-center rounded-xl border py-1.5 px-1 transition-all duration-150 cursor-pointer select-none",
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
                           "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
                           "hover:border-slate-400 hover:bg-slate-100 active:bg-slate-200/80 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-slate-800/60 dark:hover:border-slate-700",
                         )}
                         title={`Filter: ${archived} Archived Project${archived === 1 ? "" : "s"}`}
                         aria-label={`Filter by Archived (${archived} projects)`}
                       >
-                        <span className="text-sm font-bold tabular-nums text-slate-700 dark:text-slate-300 group-hover/btn:text-slate-900 dark:group-hover/btn:text-slate-100 leading-tight transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-slate-700 dark:text-slate-300 group-hover/btn:text-slate-900 dark:group-hover/btn:text-slate-100 transition-colors">
                           {archived}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 group-hover/btn:text-slate-800 dark:group-hover/btn:text-slate-200 leading-tight truncate transition-colors">
-                          Archived
-                        </span>
+                        <GridMetricLabel lines="Archived" />
                       </button>
                     </div>
                   </div>
@@ -687,7 +732,12 @@ function CustomersPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-          <table className="w-full border-separate border-spacing-0 text-sm">
+          <table className="w-full min-w-[1280px] table-fixed border-separate border-spacing-0 text-sm">
+            <colgroup>
+              {CUSTOMER_LIST_COL_WIDTHS.map((width, idx) => (
+                <col key={CUSTOMER_LIST_COLUMNS[idx].key} style={{ width }} />
+              ))}
+            </colgroup>
             <thead className="sticky top-0 z-10 bg-blue-100/80 text-left text-xs text-slate-700 shadow-[inset_0_-2px_0_0_#93c5fd] dark:bg-blue-950/55 dark:text-blue-100 dark:shadow-[inset_0_-2px_0_0_#1e3a8a]">
               <tr>
                 {CUSTOMER_LIST_COLUMNS.map((col, idx, cols) => (
@@ -711,97 +761,219 @@ function CustomersPage() {
             </thead>
             <tbody className="bg-card [&>tr>td]:border-b [&>tr>td]:border-slate-200 dark:[&>tr>td]:border-border">
               {sorted.map(
-                ({ client: c, total, newCount, ongoing, completed, onHold, archived }) => (
-                <tr key={c.id} className="bg-card">
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
-                        {c.logo}
-                      </span>
-                      <div className="min-w-0">
-                        <Link
-                          to="/customers/$clientId"
-                          params={{ clientId: c.id }}
-                          className="block truncate font-medium text-foreground hover:text-primary hover:underline"
+                ({ client: c, total, newCount, ongoing, completed, onHold, archived }) => {
+                  const emName = c.engagementManager?.trim() || "Unassigned";
+                  const smName = c.salesManager?.trim() || "Unassigned";
+
+                  return (
+                    <tr
+                      key={c.id}
+                      onClick={() => navigate({ to: "/customers/$clientId", params: { clientId: c.id } })}
+                      className="group/row cursor-pointer bg-card hover:bg-blue-50/30 dark:hover:bg-muted/30 transition-colors"
+                    >
+                      {/* Customer */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
+                            {c.logo}
+                          </span>
+                          <div className="min-w-0">
+                            <span className="block truncate font-medium text-foreground hover:text-primary transition-colors">
+                              {c.name}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              {formatCustomerId(c.id)}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Industry */}
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                        {c.industry || "—"}
+                      </td>
+
+                      {/* Engagement Manager */}
+                      <td className="px-3 py-2.5 text-xs text-foreground font-medium">
+                        {c.engagementManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
+                      </td>
+
+                      {/* Sales Manager */}
+                      <td className="px-3 py-2.5 text-xs text-foreground font-medium">
+                        {c.salesManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
+                      </td>
+
+                      {/* Total */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "all" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-slate-300 dark:border-slate-600 bg-slate-100/90 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200",
+                            "hover:bg-[#1d1d1f] hover:text-white hover:border-[#1d1d1f] dark:hover:bg-white dark:hover:text-[#1d1d1f] dark:hover:border-white",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            total === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${total} Total Projects`}
                         >
-                          {c.name}
-                        </Link>
-                        <span className="font-mono text-[10px] text-muted-foreground">
-                          {formatCustomerId(c.id)}
+                          {total}
+                        </button>
+                      </td>
+
+                      {/* New */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "new" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#0071e3]/60 bg-[#0071e3]/10 text-[#0071e3] dark:border-[#0071e3]/70 dark:bg-[#0071e3]/20 dark:text-[#388bfd]",
+                            "hover:bg-[#0071e3] hover:text-white hover:border-[#0071e3]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            newCount === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${newCount} New Projects`}
+                        >
+                          {newCount}
+                        </button>
+                      </td>
+
+                      {/* Ongoing */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "ongoing" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#5856d6]/60 bg-[#5856d6]/10 text-[#5856d6] dark:border-[#5856d6]/70 dark:bg-[#5856d6]/20 dark:text-[#8b89f7]",
+                            "hover:bg-[#5856d6] hover:text-white hover:border-[#5856d6]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            ongoing === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${ongoing} Ongoing Projects`}
+                        >
+                          {ongoing}
+                        </button>
+                      </td>
+
+                      {/* Completed */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "completed" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#34c759]/60 bg-[#34c759]/10 text-[#248a3d] dark:border-[#34c759]/70 dark:bg-[#34c759]/20 dark:text-[#3cdb63]",
+                            "hover:bg-[#34c759] hover:text-white hover:border-[#34c759]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            completed === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${completed} Completed Projects`}
+                        >
+                          {completed}
+                        </button>
+                      </td>
+
+                      {/* On Hold */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "on_hold" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#ff9500]/60 bg-[#ff9500]/10 text-[#cc7700] dark:border-[#ff9500]/70 dark:bg-[#ff9500]/20 dark:text-[#ff9500]",
+                            "hover:bg-[#ff9500] hover:text-white hover:border-[#ff9500]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            onHold === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${onHold} On Hold Projects`}
+                        >
+                          {onHold}
+                        </button>
+                      </td>
+
+                      {/* Archived */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "archived" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#8e8e93]/60 bg-[#8e8e93]/10 text-[#636366] dark:border-[#8e8e93]/70 dark:bg-[#8e8e93]/20 dark:text-[#a0a0a5]",
+                            "hover:bg-[#8e8e93] hover:text-white hover:border-[#8e8e93]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            // E: hovering anywhere on the row lifts all counts so they read as buttons
+                            "group-hover/row:shadow-md group-hover/row:scale-105",
+                            archived === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${archived} Archived Projects`}
+                        >
+                          {archived}
+                        </button>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-3 py-2.5">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
+                          Active
                         </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{c.industry}</td>
-                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.engagementManager || "—"}</td>
-                  <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.salesManager || "—"}</td>
-                  <td className="px-3 py-2.5 tabular-nums">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "all" }}
-                      className="hover:underline font-semibold"
-                    >
-                      {total}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-primary font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "new" }}
-                      className="hover:underline"
-                    >
-                      {newCount}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-info font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "ongoing" }}
-                      className="hover:underline"
-                    >
-                      {ongoing}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-success font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "completed" }}
-                      className="hover:underline"
-                    >
-                      {completed}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-warning-foreground font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "on_hold" }}
-                      className="hover:underline"
-                    >
-                      {onHold}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-muted-foreground font-semibold">
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: c.id }}
-                      search={{ status: "archived" }}
-                      className="hover:underline"
-                    >
-                      {archived}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
-                      Active
-                    </span>
-                  </td>
-                </tr>
-              ),
+                      </td>
+                    </tr>
+                  );
+                },
               )}
             </tbody>
           </table>
@@ -909,6 +1081,16 @@ function NewClientModal({
     notes: "",
   }));
   const [previewKyc, setPreviewKyc] = useState(false);
+  const { pool: emPool, loading: emLoading } = useEngagementManagers();
+  const emOptions = useMemo(
+    () =>
+      emPool.map((p) => ({
+        value: p.fullName,
+        label: p.fullName,
+        subLabel: [p.designation ?? "Engagement Manager", p.workEmail].filter(Boolean).join(" · "),
+      })),
+    [emPool],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -993,6 +1175,12 @@ function NewClientModal({
     if (duplicatePairExists) return "Client and sub-venture already exist";
     if (selectedExisting) return null; // existing client — rest auto-filled
     if (!s.engagementManager.trim()) return "Engagement Manager is required";
+    if (
+      emPool.length > 0 &&
+      !emPool.some((p) => p.fullName === s.engagementManager.trim())
+    ) {
+      return "Select an Engagement Manager from the list";
+    }
     if (!s.country.trim()) return "Country is required";
     if (!s.city.trim()) return "City is required";
     if (!s.phoneNumber.trim()) return "Group SPOC Contact is required";
@@ -1054,6 +1242,8 @@ function NewClientModal({
     const subVentures: ClientSubVenture[] = subVentureName
       ? [{ name: subVentureName, contacts: validContacts, notes: noteText }]
       : [];
+    const engagementManager = s.engagementManager?.trim() || null;
+    const salesManager = s.salesManager?.trim() || null;
     return {
       api: {
         name,
@@ -1069,8 +1259,8 @@ function NewClientModal({
         businessType: s.businessType?.trim() || null,
         notes: null,
         kycDocumentName: s.kycFile?.name || null,
-        engagementManager: s.engagementManager?.trim() || null,
-        salesManager: s.salesManager?.trim() || null,
+        engagementManager,
+        salesManager,
         subVentures,
         contacts: validContacts.map((c) => ({
           name: c.name.trim(),
@@ -1080,6 +1270,10 @@ function NewClientModal({
           contactType: c.contactType || "Primary",
         })),
       } satisfies CreateClientInput,
+      managerPatch: {
+        ...(engagementManager ? { engagementManager } : {}),
+        ...(salesManager ? { salesManager } : {}),
+      },
       store: {
         name,
         industry: s.industry || "Other",
@@ -1104,7 +1298,7 @@ function NewClientModal({
   const submit = async () => {
     setSubmitting(true);
     try {
-      const { api, store } = buildNewClientPayload();
+      const { api, store, managerPatch } = buildNewClientPayload();
 
       if (duplicatePairExists && matchingExistingClient) {
         toast.error("Client and sub-venture already exist", {
@@ -1119,7 +1313,8 @@ function NewClientModal({
         const isApiClient = apiClients?.some((c) => c.id === selectedExisting.id) ?? false;
         if (isApiClient) {
           try {
-            await updateClient(selectedExisting.id, {
+            const updated = await updateClient(selectedExisting.id, {
+              ...managerPatch,
               subVentures: [
                 ...(selectedExisting.subVentures ?? []),
                 {
@@ -1129,6 +1324,22 @@ function NewClientModal({
                 },
               ],
             });
+            // KYC is per sub-venture — attach it to the sub-venture just added.
+            if (s.kycFile) {
+              const svName = s.subVentureName.trim().toLowerCase();
+              const targetSv = updated.subVentures?.find(
+                (sv) => sv.name.trim().toLowerCase() === svName,
+              );
+              if (targetSv?.id) {
+                try {
+                  await uploadSubVentureKyc(selectedExisting.id, targetSv.id, s.kycFile);
+                } catch (kycErr) {
+                  toast.warning("Sub-venture saved, but the KYC document didn't upload", {
+                    description: kycErr instanceof Error ? kycErr.message : "Please re-upload the KYC document from the customer page.",
+                  });
+                }
+              }
+            }
             toast.success("Sub-venture added", {
               description: `${s.subVentureName} added under ${selectedExisting.name} in the database.`,
             });
@@ -1162,7 +1373,23 @@ function NewClientModal({
 
       // ── Brand new TK customer → create it in the database ──
       try {
-        await createClient(api);
+        const created = await createClient(api);
+        // KYC is per sub-venture — attach it to the sub-venture created in this onboarding.
+        if (s.kycFile && created?.id) {
+          const svName = s.subVentureName.trim().toLowerCase();
+          const targetSv =
+            created.subVentures?.find((sv) => sv.name.trim().toLowerCase() === svName) ??
+            created.subVentures?.[0];
+          if (targetSv?.id) {
+            try {
+              await uploadSubVentureKyc(created.id, targetSv.id, s.kycFile);
+            } catch (kycErr) {
+              toast.warning("Customer saved, but the KYC document didn't upload", {
+                description: kycErr instanceof Error ? kycErr.message : "Please re-upload the KYC document from the customer page.",
+              });
+            }
+          }
+        }
         toast.success("Customer onboarded", {
           description: `${api.name} saved to the database.`,
         });
@@ -1251,13 +1478,6 @@ function NewClientModal({
                       ...p,
                       clientName: filtered,
                       subVentureName: "",
-                      engagementManager: "",
-                      salesManager: "",
-                      phoneNumber: "",
-                      city: "",
-                      country: "",
-                      industry: "",
-                      businessType: "",
                       customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
                     }));
                   } else {
@@ -1314,8 +1534,8 @@ function NewClientModal({
                               ...p,
                               clientName: c.name,
                               customerId: c.id,
-                              engagementManager: c.engagementManager ?? p.engagementManager,
-                              salesManager: c.salesManager ?? p.salesManager,
+                              engagementManager: p.engagementManager.trim() || c.engagementManager || "",
+                              salesManager: p.salesManager.trim() || c.salesManager || "",
                               phoneNumber:
                                 (c as { phoneNumber?: string }).phoneNumber ?? p.phoneNumber,
                               city: c.city ?? p.city,
@@ -1507,6 +1727,35 @@ function NewClientModal({
             </Field>
           )}
 
+          {/* Stakeholders — always editable (new TK customer or existing + sub-venture) */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SearchableSelect
+              label="Engagement Manager"
+              required={!selectedExisting}
+              placeholder={emLoading ? "Loading engagement managers…" : "Select engagement manager…"}
+              searchPlaceholder="Search by name, email, or code…"
+              disabled={emLoading}
+              disabledHint="Loading engagement managers…"
+              options={emOptions}
+              value={s.engagementManager}
+              onChange={(name) => u("engagementManager", name)}
+            />
+            <Field label="Sales Manager">
+              <input
+                className={inputCls}
+                maxLength={FIELD_MAX.salesManager}
+                value={s.salesManager}
+                placeholder="Enter sales manager name…"
+                onChange={(e) =>
+                  u(
+                    "salesManager",
+                    e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.salesManager),
+                  )
+                }
+              />
+            </Field>
+          </div>
+
           {/* ── New TK customer fields — only shown when not selecting existing ── */}
           {!selectedExisting && (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1517,75 +1766,33 @@ function NewClientModal({
                   readOnly
                 />
               </Field>
-              <Field label="Engagement Manager" required>
-                <input
-                  className={inputCls}
-                  maxLength={FIELD_MAX.engagementManager}
-                  value={s.engagementManager}
-                  placeholder="Enter engagement manager name…"
-                  onChange={(e) =>
-                    u(
-                      "engagementManager",
-                      e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.engagementManager),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Sales Manager">
-                <input
-                  className={inputCls}
-                  maxLength={FIELD_MAX.salesManager}
-                  value={s.salesManager}
-                  placeholder="Enter sales manager name…"
-                  onChange={(e) =>
-                    u(
-                      "salesManager",
-                      e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.salesManager),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Country / Region" required>
-                <select
-                  className={inputCls}
-                  value={s.country}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    setS((p) => ({ ...p, country: next, city: "", phoneNumber: "" }));
-                  }}
-                >
-                  <option value="">Select country</option>
-                  {countries.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="City" required>
-                <select
-                  className={inputCls}
-                  value={s.city}
-                  disabled={!s.country}
-                  onChange={(e) => u("city", e.target.value)}
-                >
-                  <option value="">
-                    {s.country ? "Select city" : "Select country first"}
-                  </option>
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <SearchableSelect
+                label="Country / Region"
+                required
+                placeholder="Select country…"
+                options={countries.map((c) => ({ value: c.name, label: c.name }))}
+                value={s.country}
+                onChange={(next) => {
+                  setS((p) => ({ ...p, country: next, city: "", phoneNumber: "" }));
+                }}
+              />
+              <SearchableSelect
+                label="City"
+                required
+                disabled={!s.country}
+                disabledHint="Select country first"
+                placeholder={s.country ? "Select city…" : "Select country first"}
+                options={cities.map((c) => ({ value: c.name, label: c.name }))}
+                value={s.city}
+                onChange={(val) => u("city", val)}
+              />
               <Field
                 label="Group SPOC Contact"
                 required
                 error={
                   s.phoneNumber && s.phoneNumber.length !== countryPhoneDigits
                     ? `Group SPOC Contact must be ${countryPhoneDigits} digits for ${s.country || "selected country"}`
-                    : null
+                    : undefined
                 }
               >
                 <div className="relative flex rounded-md">
@@ -1610,27 +1817,23 @@ function NewClientModal({
                   />
                 </div>
               </Field>
-              <Field label="Industry" required>
-                <select
-                  className={inputCls}
-                  value={s.industry}
-                  onChange={(e) => u("industry", e.target.value)}
-                >
-                  <option value="">Select industry</option>
-                  {[
-                    "Banking",
-                    "Healthcare",
-                    "Retail",
-                    "Logistics",
-                    "Energy",
-                    "Manufacturing",
-                    "Telecom",
-                    "Media",
-                  ].map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
-              </Field>
+              <SearchableSelect
+                label="Industry"
+                required
+                placeholder="Select industry…"
+                options={[
+                  "Banking",
+                  "Healthcare",
+                  "Retail",
+                  "Logistics",
+                  "Energy",
+                  "Manufacturing",
+                  "Telecom",
+                  "Media",
+                ]}
+                value={s.industry}
+                onChange={(val) => u("industry", val)}
+              />
               <Field label="Business Type">
                 <select className={readOnlyCls} value={s.businessType} disabled>
                   <option value="">Select business type</option>
@@ -1700,20 +1903,14 @@ function NewClientModal({
                     }}
                   />
                 </Field>
-                <Field label="Contact Type" required>
-                  <select
-                    className={inputCls}
-                    value={ct.contactType}
-                    onChange={(e) => updateContact(idx, "contactType", e.target.value)}
-                  >
-                    <option value="">Select contact type</option>
-                    {["Accounts", "Procurement", "Technical", "Legal"].map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <SearchableSelect
+                  label="Contact Type"
+                  required
+                  placeholder="Select contact type…"
+                  options={["Accounts", "Procurement", "Technical", "Legal"]}
+                  value={ct.contactType}
+                  onChange={(val) => updateContact(idx, "contactType", val)}
+                />
                 <Field label="Email" required error={ct.email.trim() ? emailError(ct.email, false) : undefined}>
                   <input
                     type="text"
@@ -1872,6 +2069,12 @@ function NewClientModal({
                 <Row label="City" v={s.city} />
                 <Row label="Country / Region" v={s.country} />
                 <Row label="Industry" v={s.industry} />
+              </>
+            )}
+            {selectedExisting && (
+              <>
+                <Row label="Engagement Manager" v={s.engagementManager || selectedExisting.engagementManager || "—"} />
+                <Row label="Sales Manager" v={s.salesManager || selectedExisting.salesManager || "—"} />
               </>
             )}
             <Row label="Created At" v={format(new Date(s.createdAt), "dd MMM yyyy, HH:mm")} />

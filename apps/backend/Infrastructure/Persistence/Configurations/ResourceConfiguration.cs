@@ -155,6 +155,7 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(x => x.PreviousCompany).HasMaxLength(160);
         builder.Property(x => x.EmploymentType).HasMaxLength(80);
         builder.Property(x => x.ContractType).HasMaxLength(80);
+        builder.Property(x => x.BondDelivered).HasMaxLength(10);
         builder.Property(x => x.BondStatus).HasMaxLength(80);
         builder.Property(x => x.NoticePeriod).HasMaxLength(80);
         builder.Property(x => x.AssetId).HasMaxLength(80);
@@ -202,6 +203,11 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.HasOne(x => x.ReportingManager)
             .WithMany()
             .HasForeignKey(x => x.ReportingManagerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.EmployeeStatus)
+            .WithMany()
+            .HasForeignKey(x => x.EmployeeStatusId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(x => x.User)
@@ -307,5 +313,17 @@ public sealed class MstOfficeConfiguration : IEntityTypeConfiguration<MstOffice>
             .WithMany(w => w.Offices)
             .HasForeignKey(x => x.WorkLocationId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class MstEmployeeStatusConfiguration : IEntityTypeConfiguration<MstEmployeeStatus>
+{
+    public void Configure(EntityTypeBuilder<MstEmployeeStatus> builder)
+    {
+        builder.ToTable("mst_employee_statuses");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
     }
 }

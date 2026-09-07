@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import type { Role } from "@/lib/mock-data";
 import {
   assignments,
@@ -11,11 +11,17 @@ import {
 } from "@/lib/mock-data";
 import { getDept } from "@/lib/dh-helpers";
 import { useAuth } from "@/lib/auth-context";
+import { usePermissions } from "@/lib/permissions";
+import { RBAC_STORAGE_KEY, permissionsForRole, type PermissionKey } from "@/lib/rbac";
 
 interface RoleContextValue {
   role: Role;
   setRole: (r: Role) => void;
   user: ReturnType<typeof getPerson>;
+  can: (permission: string) => boolean;
+  getPermissionsFor: (role: Role) => PermissionKey[];
+  setRolePermissions: (role: Role, perms: PermissionKey[]) => void;
+  resetRolePermissions: (role: Role) => void;
   isPMO: boolean;
   isHOD: boolean;
   isBO: boolean;
@@ -42,7 +48,6 @@ interface RoleContextValue {
   assignedProjects: typeof projects;
   assignedIssues: typeof issues;
   pendingTimesheets: typeof timesheets;
-  can: (permission: string) => boolean;
 }
 
 const RoleContext = createContext<RoleContextValue | null>(null);
@@ -54,6 +59,11 @@ const userByRole: Record<Role, string> = {
   hod: "u12",
   business_owner: "u13",
   dhanshree: "u14",
+  pm: "u3",
+  employee: "u7",
+  hr: "u10",
+  accounts_finance: "u14",
+  sales_bd: "u15",
 };
 
 const roleFromBackend: Record<string, Role> = {
@@ -265,11 +275,66 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         return t.userRole === "PM";
       });
 
-  const can = (permission: string): boolean => {
-    if (isDhanshree) return true;
-    const userPerms = authUser?.permissions ?? [];
-    return userPerms.includes(permission);
-  };
+  const { hasPermission } = usePermissions();
+  const [roleOverrides, setRoleOverrides] = useState<Partial<Record<Role, PermissionKey[]>>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(RBAC_STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch {
+        /* ignore */
+      }
+    }
+    return {};
+  });
+
+  const getPermissionsFor = useCallback(
+    (targetRole: Role): PermissionKey[] => {
+      return permissionsForRole(targetRole, roleOverrides);
+    },
+    [roleOverrides],
+  );
+
+  const setRolePermissions = useCallback((targetRole: Role, perms: PermissionKey[]) => {
+    setRoleOverrides((prev) => {
+      const next = { ...prev, [targetRole]: perms };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  const resetRolePermissions = useCallback((targetRole: Role) => {
+    setRoleOverrides((prev) => {
+      const next = { ...prev };
+      delete next[targetRole];
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  const can = useCallback(
+    (perm: string): boolean => {
+      if (isDhanshree) return true;
+      if (hasPermission(perm)) return true;
+      const userPerms = authUser?.permissions ?? [];
+      if (userPerms.includes(perm)) return true;
+      const currentRolePerms = getPermissionsFor(role);
+      return currentRolePerms.includes(perm as PermissionKey);
+    },
+    [isDhanshree, hasPermission, authUser?.permissions, getPermissionsFor, role],
+  );
 
   return (
     <RoleContext.Provider
@@ -277,6 +342,10 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         role,
         setRole,
         user,
+        can,
+        getPermissionsFor,
+        setRolePermissions,
+        resetRolePermissions,
         isPMO,
         isHOD,
         isBO,
@@ -300,7 +369,6 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         assignedProjects,
         assignedIssues,
         pendingTimesheets,
-        can,
       }}
     >
       {children}

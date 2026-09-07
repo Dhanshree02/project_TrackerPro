@@ -36,7 +36,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", await LoginAsync());
 
-        var code = "EMP-" + Random.Shared.Next(2000, 9999);
+        var code = "TK-" + Random.Shared.Next(2000, 9999);
         var create = new CreateEmployeeRequest(
             EmployeeCode: code,
             FirstName: "Integration",
@@ -181,7 +181,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
         var duringNotice = await _client.GetAsync($"/api/v1/employees/{id}");
         Assert.Equal(HttpStatusCode.OK, duringNotice.StatusCode);
 
-        var pastCode = "EMP-" + Random.Shared.Next(2000, 9999);
+        var pastCode = "TK-" + Random.Shared.Next(2000, 9999);
         var pastCreate = create with
         {
             EmployeeCode = pastCode,
@@ -263,7 +263,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(softwareEngineer.Id, role.ParentId);
 
         var tooYoung = new CreateEmployeeRequest(
-            EmployeeCode: "EMP-" + Random.Shared.Next(2000, 9999),
+            EmployeeCode: "TK-" + Random.Shared.Next(2000, 9999),
             FirstName: "TooYoung",
             LastName: "Person",
             WorkEmail: $"too.young.{Guid.NewGuid():N}@acme.co",
@@ -341,7 +341,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
 
         var response = await _client.PostAsJsonAsync("/api/v1/employees", new
         {
-            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            employeeCode = "TK-" + Random.Shared.Next(2000, 9999),
             firstName = "Sahil",
             lastName = "Lad",
             workEmail,
@@ -375,7 +375,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
             "/api/v1/employees/meta/salary-bands"))!.Data!;
         var l2 = Assert.Single(salaryBands, b => b.Name == "L2");
 
-        var code = "EMP-" + Random.Shared.Next(2000, 9999);
+        var code = "TK-" + Random.Shared.Next(2000, 9999);
         var payload = new
         {
             employeeCode = code,
@@ -453,7 +453,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
         var pastJoin = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(-2));
         var payload = new
         {
-            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            employeeCode = "TK-" + Random.Shared.Next(2000, 9999),
             firstName = "Past",
             lastName = "Joiner",
             workEmail = $"past.join.{Guid.NewGuid():N}@acme.co",
@@ -479,7 +479,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
 
         var first = new
         {
-            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            employeeCode = "TK-" + Random.Shared.Next(2000, 9999),
             firstName = "Dup",
             lastName = "One",
             workEmail,
@@ -493,7 +493,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
 
         var dupEmail = new
         {
-            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            employeeCode = "TK-" + Random.Shared.Next(2000, 9999),
             firstName = "Dup",
             lastName = "Two",
             workEmail,
@@ -506,7 +506,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
 
         var dupPhone = new
         {
-            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            employeeCode = "TK-" + Random.Shared.Next(2000, 9999),
             firstName = "Dup",
             lastName = "Three",
             workEmail = $"dup.phone.{suffix}@acme.co",
@@ -516,6 +516,45 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(HttpStatusCode.Conflict, phoneResponse.StatusCode);
         var phoneJson = await phoneResponse.Content.ReadAsStringAsync();
         Assert.Contains("phone", phoneJson, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task EmployeeCode_MustBeTkFormat_And_IsEditable()
+    {
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+
+        var badFormat = new
+        {
+            employeeCode = "EMP-" + Random.Shared.Next(2000, 9999),
+            firstName = "Bad",
+            lastName = "Code",
+            workEmail = $"bad.code.{Guid.NewGuid():N}@acme.co",
+        };
+        var badResponse = await _client.PostAsJsonAsync("/api/v1/employees", badFormat);
+        Assert.Equal(HttpStatusCode.BadRequest, badResponse.StatusCode);
+
+        var internCode = "TKI-" + Random.Shared.Next(2000, 9999);
+        var create = new
+        {
+            employeeCode = internCode.ToLowerInvariant(),
+            firstName = "Intern",
+            lastName = "Code",
+            workEmail = $"intern.code.{Guid.NewGuid():N}@acme.co",
+        };
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/employees", create);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<EmployeeDetailDto>>();
+        Assert.Equal(internCode, created!.Data!.EmployeeCode);
+
+        var newCode = "TK-" + Random.Shared.Next(2000, 9999);
+        var rename = await _client.PutAsJsonAsync($"/api/v1/employees/{internCode}", new { employeeCode = newCode });
+        Assert.Equal(HttpStatusCode.OK, rename.StatusCode);
+        var renamed = await rename.Content.ReadFromJsonAsync<ApiResponse<EmployeeDetailDto>>();
+        Assert.Equal(newCode, renamed!.Data!.EmployeeCode);
+
+        var badRename = await _client.PutAsJsonAsync($"/api/v1/employees/{newCode}", new { employeeCode = "TK-12" });
+        Assert.Equal(HttpStatusCode.BadRequest, badRename.StatusCode);
     }
 
     [Fact]

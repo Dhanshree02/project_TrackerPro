@@ -9,6 +9,13 @@ export interface RepositoryItem {
   uploadedBy: string;
   filePath: string;
   createdAtUtc: string;
+  departments?: { id: string; name: string }[];
+}
+
+export interface RepositoryDepartmentOption {
+  id: string;
+  code: string;
+  name: string;
 }
 
 export interface RepositoryActivityLog {
@@ -53,6 +60,29 @@ export async function fetchRepositoryDocuments(params: {
   return apiFetch<PagedRepositoryResult>(`/api/v1/repository${qs ? `?${qs}` : ""}`);
 }
 
+export async function fetchAllRepositoryDocuments(params: {
+  category?: string | null;
+  search?: string | null;
+}): Promise<PagedRepositoryResult> {
+  const perPage = 100;
+  const first = await fetchRepositoryDocuments({ page: 1, perPage, ...params });
+  if (first.totalPages <= 1) return first;
+
+  const items = [...first.items];
+  for (let page = 2; page <= first.totalPages; page++) {
+    const next = await fetchRepositoryDocuments({ page, perPage, ...params });
+    items.push(...next.items);
+  }
+
+  return {
+    items,
+    page: 1,
+    perPage: items.length,
+    total: first.total,
+    totalPages: 1,
+  };
+}
+
 export const ALLOWED_REPOSITORY_EXTENSIONS = [
   "pdf",
   "doc",
@@ -81,6 +111,7 @@ export async function uploadRepositoryDocument(
   file: File,
   category: string,
   uploadedBy?: string,
+  departmentIds?: string[],
 ): Promise<RepositoryItem> {
   if (!isAllowedRepositoryFile(file.name)) {
     throw new Error(
@@ -88,15 +119,26 @@ export async function uploadRepositoryDocument(
     );
   }
 
+  if (!departmentIds?.length) {
+    throw new Error("Select at least one department that may view this document.");
+  }
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("category", category);
   if (uploadedBy) formData.append("uploadedBy", uploadedBy);
+  for (const id of departmentIds) {
+    formData.append("departmentIds", id);
+  }
 
   return apiFetch<RepositoryItem>("/api/v1/repository/upload", {
     method: "POST",
     body: formData,
   });
+}
+
+export async function fetchRepositoryDepartments(): Promise<RepositoryDepartmentOption[]> {
+  return (await apiFetch<RepositoryDepartmentOption[]>("/api/v1/repository/departments")) ?? [];
 }
 
 export function getRepositoryDownloadUrl(id: string): string {

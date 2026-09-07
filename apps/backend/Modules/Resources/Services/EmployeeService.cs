@@ -2,13 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.Resources.DTOs;
 using PMS.API.Modules.Resources.Models;
+using PMS.API.Modules.Resources.Validators;
+using PMS.API.Infrastructure.Storage;
 using PMS.API.Shared.Common.Wrappers;
 using PMS.API.Shared.Exceptions;
 using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Resources.Services;
 
-public sealed class EmployeeService(AppDbContext db) : IEmployeeService
+public sealed class EmployeeService(AppDbContext db, IFileStorageService storage) : IEmployeeService
 {
     public async Task<PagedResult<EmployeeListItemDto>> GetEmployeesAsync(
         int page,
@@ -83,6 +85,7 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
                 e.Phone,
                 e.AltPhone,
                 e.EmergencyContact,
+                e.EmergencyContactName,
                 e.Pan,
                 e.BankAccount,
                 e.PfUan,
@@ -129,9 +132,34 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         bool checkIdentity,
         CancellationToken ct)
     {
+        var empCode = EmployeeCodeRules.Normalize(request.EmployeeCode);
+        if (string.IsNullOrWhiteSpace(empCode))
+        {
+            var isIntern = request.EmploymentType?.Equals("intern", StringComparison.OrdinalIgnoreCase) == true;
+            empCode = await GetNextEmployeeCodeAsync(isIntern, ct);
+        }
+        else if (!EmployeeCodeRules.IsValid(empCode))
+        {
+            throw EmployeeCodeRules.FormatException();
+        }
+
+        var employeeStatus = request.EmployeeStatusId.HasValue
+            ? await db.EmployeeStatuses.FirstOrDefaultAsync(s => s.Id == request.EmployeeStatusId.Value, ct)
+            : null;
+        var bondDelivered = string.IsNullOrWhiteSpace(request.BondDelivered) ? null : request.BondDelivered.Trim();
+        var bondDurationMonths = bondDelivered?.Equals("Yes", StringComparison.OrdinalIgnoreCase) == true
+            ? request.BondDurationMonths
+            : 0;
+        var bondExpiryDate = request.BondExpiryDate
+            ?? BondRules.ComputeBondExpiry(request.JoiningDate, bondDelivered, bondDurationMonths);
+        var bondStatus = BondRules.ComputeBondStatus(bondDelivered, bondExpiryDate);
+        var confirmationStatus = employeeStatus?.Name ?? request.ConfirmationStatus;
+        var directoryStatus = request.Status
+            ?? (string.Equals(confirmationStatus, "Active", StringComparison.OrdinalIgnoreCase) ? "Active" : "Inactive");
+
         var entity = new Employee
         {
-            EmployeeCode = request.EmployeeCode.Trim(),
+            EmployeeCode = empCode,
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
             WorkEmail = EmailRules.Normalize(request.WorkEmail).ToLowerInvariant(),
@@ -142,6 +170,7 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
             DateOfBirth = request.DateOfBirth,
             Address = request.Address,
             EmergencyContact = request.EmergencyContact,
+            EmergencyContactName = request.EmergencyContactName,
             MaritalStatus = request.MaritalStatus,
             Nationality = request.Nationality,
             NationalityId = request.NationalityId ?? await ResolveNationalityIdAsync(request.Nationality, ct),
@@ -156,14 +185,18 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
             Category = request.Category,
             Team = request.Team,
             JoiningDate = request.JoiningDate,
-            Status = request.Status,
-            ConfirmationStatus = request.ConfirmationStatus,
+            Status = directoryStatus,
+            EmployeeStatusId = employeeStatus?.Id ?? request.EmployeeStatusId,
+            ConfirmationStatus = confirmationStatus,
             ProbationStatus = request.ProbationStatus,
             Experience = request.Experience,
             PreviousCompany = request.PreviousCompany,
             EmploymentType = request.EmploymentType,
             ContractType = request.ContractType,
-            BondStatus = request.BondStatus,
+            BondDelivered = bondDelivered,
+            BondDurationMonths = bondDurationMonths,
+            BondExpiryDate = bondExpiryDate,
+            BondStatus = bondStatus,
             NoticePeriod = request.NoticePeriod,
             ProjectSite = request.ProjectSite,
             AssetId = request.AssetId,
@@ -216,6 +249,15 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         var entity = await BuildEmployeeLookupQuery(idOrCode).FirstOrDefaultAsync(ct);
         if (entity is null) return null;
 
+        var previousCode = entity.EmployeeCode;
+        if (!string.IsNullOrWhiteSpace(request.EmployeeCode))
+        {
+            var newCode = EmployeeCodeRules.Normalize(request.EmployeeCode);
+            if (!EmployeeCodeRules.IsValid(newCode))
+                throw EmployeeCodeRules.FormatException();
+            entity.EmployeeCode = newCode;
+        }
+
         if (request.FirstName is not null) entity.FirstName = request.FirstName.Trim();
         if (request.LastName is not null) entity.LastName = request.LastName.Trim();
         if (request.WorkEmail is not null) entity.WorkEmail = EmailRules.Normalize(request.WorkEmail).ToLowerInvariant();
@@ -226,6 +268,7 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         if (request.DateOfBirth.HasValue) entity.DateOfBirth = request.DateOfBirth;
         if (request.Address is not null) entity.Address = request.Address;
         if (request.EmergencyContact is not null) entity.EmergencyContact = request.EmergencyContact;
+        if (request.EmergencyContactName is not null) entity.EmergencyContactName = request.EmergencyContactName;
         if (request.MaritalStatus is not null) entity.MaritalStatus = request.MaritalStatus;
         if (request.Nationality is not null) entity.Nationality = request.Nationality;
         if (request.NationalityId.HasValue) entity.NationalityId = request.NationalityId;
@@ -296,8 +339,12 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
             throw new ConflictException(
-                "Duplicate employee data. Work email, personal email, phone number, PAN, Aadhaar, and UAN must be unique.");
+                "Duplicate employee data. TK ID, work email, personal email, phone number, PAN, Aadhaar, and UAN must be unique.");
         }
+
+        // Uploaded documents live under storage/employees/{code}; keep them reachable after a TK ID change.
+        if (!string.Equals(previousCode, entity.EmployeeCode, StringComparison.Ordinal))
+            storage.MoveEmployeeDocuments(previousCode, entity.EmployeeCode);
 
         return await GetEmployeeAsync(entity.Id.ToString(), ct);
     }
@@ -514,6 +561,21 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
             .OrderBy(o => o.SortOrder)
             .ThenBy(o => o.Name)
             .Select(o => new MetaOptionDto(o.Id, o.Code, o.Name, o.WorkLocationId))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<MetaOptionDto>> GetEmployeeStatusesAsync(
+        bool onboardingOnly = false,
+        CancellationToken ct = default)
+    {
+        var query = db.EmployeeStatuses.Where(s => s.IsActive);
+        if (onboardingOnly)
+            query = query.Where(s => s.AllowOnboarding);
+
+        return await query
+            .OrderBy(s => s.SortOrder)
+            .ThenBy(s => s.Name)
+            .Select(s => new MetaOptionDto(s.Id, s.Code, s.Name, null))
             .ToListAsync(ct);
     }
 
@@ -783,6 +845,7 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         e.DateOfBirth,
         e.Address,
         e.EmergencyContact,
+        e.EmergencyContactName,
         e.MaritalStatus,
         e.NationalityRef?.Name ?? e.Nationality,
         e.Department?.Name,
@@ -885,6 +948,26 @@ public sealed class EmployeeService(AppDbContext db) : IEmployeeService
         while (slug.Contains("__", StringComparison.Ordinal))
             slug = slug.Replace("__", "_", StringComparison.Ordinal);
         return slug.Trim('_');
+    }
+
+    public async Task<string> GetNextEmployeeCodeAsync(bool isIntern, CancellationToken ct = default)
+    {
+        var prefix = isIntern ? "TKI-" : "TK-";
+        var codes = await db.Employees
+            .IgnoreQueryFilters()
+            .Where(e => e.EmployeeCode.StartsWith(prefix))
+            .Select(e => e.EmployeeCode)
+            .ToListAsync(ct);
+
+        var maxNum = 0;
+        foreach (var c in codes)
+        {
+            var part = c[prefix.Length..];
+            if (int.TryParse(part, out var n) && n > maxNum)
+                maxNum = n;
+        }
+
+        return $"{prefix}{(maxNum + 1):D4}";
     }
 
     private static string Truncate(string value, int max) =>

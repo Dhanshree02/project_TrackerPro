@@ -533,7 +533,7 @@ function TimesheetApprovalView() {
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">Employee Name</th>
-              <th className="px-3 py-2 font-medium">Employee ID</th>
+              <th className="px-3 py-2 font-medium">TK ID</th>
               <th className="px-3 py-2 font-medium">Project Name</th>
               <th className="px-3 py-2 font-medium">Week Range</th>
               <th className="px-3 py-2 font-medium">Submitted Date</th>
@@ -561,7 +561,7 @@ function TimesheetApprovalView() {
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">
-                    EMP-{u?.id || "000"}
+                    TK-{u?.id || "000"}
                   </td>
                   <td className="px-3 py-2.5 text-xs font-medium text-gray-700 truncate max-w-xs">
                     {linkedProjects || "—"}
@@ -598,8 +598,8 @@ function TimesheetApprovalView() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-muted/20 border border-border rounded-lg p-3 text-xs leading-relaxed">
               <div>
-                <span className="text-muted-foreground">Employee ID</span>
-                <p className="font-mono font-medium">EMP-{getPerson(selectedTs.userId)?.id}</p>
+                <span className="text-muted-foreground">TK ID</span>
+                <p className="font-mono font-medium">TK-{getPerson(selectedTs.userId)?.id}</p>
               </div>
               <div>
                 <span className="text-muted-foreground">Role</span>

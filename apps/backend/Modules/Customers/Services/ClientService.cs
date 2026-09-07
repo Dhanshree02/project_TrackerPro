@@ -67,15 +67,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
         var total = await query.CountAsync(ct);
 
-        var entities = await query
-            .Include(c => c.IndustryRef)
-            .Include(c => c.CountryRef)
-            .Include(c => c.CityRef)
-            .Include(c => c.EngagementManagerRef)
-            .Include(c => c.SalesManagerRef)
-            .Include(c => c.Contacts)
-            .Include(c => c.SubVentures)
-            .ThenInclude(s => s.Contacts)
+        var entities = await ApplyClientGraphIncludes(query)
             .OrderBy(c => c.Name)
             .Skip((page - 1) * perPage)
             .Take(perPage)
@@ -87,15 +79,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<ClientDto?> GetClientAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await BuildScopedQuery()
-            .Include(c => c.IndustryRef)
-            .Include(c => c.CountryRef)
-            .Include(c => c.CityRef)
-            .Include(c => c.EngagementManagerRef)
-            .Include(c => c.SalesManagerRef)
-            .Include(c => c.Contacts)
-            .Include(c => c.SubVentures)
-            .ThenInclude(s => s.Contacts)
+        var entity = await ApplyClientGraphIncludes(BuildScopedQuery())
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         return entity is null ? null : MapToDto(entity);
     }
@@ -112,9 +96,9 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             Logo = Client.LogoFromName(request.Name),
             ContactEmail = EmailRules.NullIfEmpty(request.ContactEmail),
             ClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New,
-            EngagementManager = request.EngagementManager,
+            EngagementManager = NormalizeManagerName(request.EngagementManager),
             EngagementManagerId = await ResolveEngagementManagerIdAsync(request.EngagementManager, ct),
-            SalesManager = request.SalesManager,
+            SalesManager = NormalizeManagerName(request.SalesManager),
             SalesManagerId = await ResolveSalesManagerIdAsync(request.SalesManager, ct),
             ContactName = request.ContactName,
             ContactPhone = request.ContactPhone,
@@ -145,20 +129,13 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
         await PersistContactsAsync(client, request.Contacts, subVentureInputs, ct);
 
-        return MapToDto(client);
+        var created = await LoadClientGraphAsync(client.Id, ct);
+        return MapToDto(created);
     }
 
     public async Task<ClientDto?> UpdateClientAsync(Guid id, UpdateClientRequest request, CancellationToken ct = default)
     {
-        var client = await BuildScopedQuery()
-            .Include(c => c.IndustryRef)
-            .Include(c => c.CountryRef)
-            .Include(c => c.CityRef)
-            .Include(c => c.EngagementManagerRef)
-            .Include(c => c.SalesManagerRef)
-            .Include(c => c.Contacts)
-            .Include(c => c.SubVentures)
-            .ThenInclude(s => s.Contacts)
+        var client = await ApplyClientGraphIncludes(BuildScopedQuery())
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         if (client is null) return null;
 
@@ -183,12 +160,12 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         }
         if (request.EngagementManager is not null)
         {
-            client.EngagementManager = request.EngagementManager;
+            client.EngagementManager = NormalizeManagerName(request.EngagementManager);
             client.EngagementManagerId = await ResolveEngagementManagerIdAsync(request.EngagementManager, ct);
         }
         if (request.SalesManager is not null)
         {
-            client.SalesManager = request.SalesManager;
+            client.SalesManager = NormalizeManagerName(request.SalesManager);
             client.SalesManagerId = await ResolveSalesManagerIdAsync(request.SalesManager, ct);
         }
         if (request.ContactName is not null) client.ContactName = request.ContactName;
@@ -257,7 +234,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             await PersistContactsAsync(client, request.Contacts, request.SubVentures, ct);
         }
 
-        return MapToDto(client);
+        var updated = await LoadClientGraphAsync(client.Id, ct);
+        return MapToDto(updated);
     }
 
     public async Task<bool> SoftDeleteClientAsync(Guid id, CancellationToken ct = default)
@@ -491,6 +469,90 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         return employee?.Id;
     }
 
+    private static IQueryable<Client> ApplyClientGraphIncludes(IQueryable<Client> query) =>
+        query
+            .Include(c => c.IndustryRef)
+            .Include(c => c.CountryRef)
+            .Include(c => c.CityRef)
+            .Include(c => c.EngagementManagerRef)
+            .Include(c => c.SalesManagerRef)
+            .Include(c => c.Contacts)
+            .Include(c => c.SubVentures)
+            .ThenInclude(s => s.Contacts);
+
+    private Task<Client> LoadClientGraphAsync(Guid id, CancellationToken ct) =>
+        ApplyClientGraphIncludes(db.Clients)
+            .FirstAsync(c => c.Id == id, ct);
+
+    public async Task<ClientDto?> SetClientKycAsync(Guid id, string fileName, string relativePath, CancellationToken ct = default)
+    {
+        var client = await ApplyClientGraphIncludes(BuildScopedQuery())
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (client is null) return null;
+
+        client.KycDocumentName = string.IsNullOrWhiteSpace(fileName) ? client.KycDocumentName : fileName.Trim();
+        client.KycDocumentPath = string.IsNullOrWhiteSpace(relativePath) ? client.KycDocumentPath : relativePath.Trim();
+        await db.SaveChangesAsync(ct);
+
+        var reloaded = await LoadClientGraphAsync(client.Id, ct);
+        return MapToDto(reloaded);
+    }
+
+    public async Task<(string ClientName, string? KycName, string? KycPath)?> GetClientKycRefAsync(Guid id, CancellationToken ct = default)
+    {
+        var client = await BuildScopedQuery()
+            .Where(c => c.Id == id)
+            .Select(c => new { c.Name, c.KycDocumentName, c.KycDocumentPath })
+            .FirstOrDefaultAsync(ct);
+        if (client is null) return null;
+        return (client.Name, client.KycDocumentName, client.KycDocumentPath);
+    }
+
+    public async Task<ClientDto?> SetSubVentureKycAsync(Guid clientId, Guid subVentureId, string fileName, string relativePath, CancellationToken ct = default)
+    {
+        // Scope through the parent client so role-based visibility still applies.
+        var client = await BuildScopedQuery().FirstOrDefaultAsync(c => c.Id == clientId, ct);
+        if (client is null) return null;
+
+        var sv = await db.SubVentures.FirstOrDefaultAsync(s => s.Id == subVentureId && s.ClientId == clientId, ct);
+        if (sv is null) return null;
+
+        sv.KycDocumentName = string.IsNullOrWhiteSpace(fileName) ? sv.KycDocumentName : fileName.Trim();
+        sv.KycDocumentPath = string.IsNullOrWhiteSpace(relativePath) ? sv.KycDocumentPath : relativePath.Trim();
+        await db.SaveChangesAsync(ct);
+
+        var reloaded = await LoadClientGraphAsync(clientId, ct);
+        return MapToDto(reloaded);
+    }
+
+    public async Task<(string ClientName, string SubVentureName, string? KycName, string? KycPath)?> GetSubVentureKycRefAsync(Guid clientId, Guid subVentureId, CancellationToken ct = default)
+    {
+        var client = await BuildScopedQuery()
+            .Where(c => c.Id == clientId)
+            .Select(c => new { c.Name })
+            .FirstOrDefaultAsync(ct);
+        if (client is null) return null;
+
+        var sv = await db.SubVentures
+            .Where(s => s.Id == subVentureId && s.ClientId == clientId)
+            .Select(s => new { s.Name, s.KycDocumentName, s.KycDocumentPath })
+            .FirstOrDefaultAsync(ct);
+        if (sv is null) return null;
+
+        return (client.Name, sv.Name, sv.KycDocumentName, sv.KycDocumentPath);
+    }
+
+    private static string? NormalizeManagerName(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? ManagerDisplay(string? stored, Employee? employee)
+    {
+        if (!string.IsNullOrWhiteSpace(stored)) return stored.Trim();
+        if (employee is null) return null;
+        var formatted = $"{employee.FirstName} {employee.LastName}".Trim();
+        return string.IsNullOrWhiteSpace(formatted) ? null : formatted;
+    }
+
     private static ClientDto MapToDto(Client c) => new(
         c.Id,
         c.Name,
@@ -499,8 +561,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         c.ContactEmail,
         c.ClientType == ClientType.Old ? "OLD" : "NEW",
         c.Status.ToString(),
-        c.EngagementManagerRef is null ? c.EngagementManager : $"{c.EngagementManagerRef.FirstName} {c.EngagementManagerRef.LastName}",
-        c.SalesManagerRef is null ? c.SalesManager : $"{c.SalesManagerRef.FirstName} {c.SalesManagerRef.LastName}",
+        ManagerDisplay(c.EngagementManager, c.EngagementManagerRef),
+        ManagerDisplay(c.SalesManager, c.SalesManagerRef),
         c.ContactName,
         c.ContactPhone,
         c.ContactDesignation,
@@ -510,10 +572,14 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         c.BusinessType,
         c.Notes,
         c.KycDocumentName,
+        c.KycDocumentPath,
         c.SubVentures.Select(s => new SubVentureDto(
+            s.Id,
             s.Name,
             s.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType)).ToList(),
-            s.Notes)).ToList(),
+            s.Notes,
+            s.KycDocumentName,
+            s.KycDocumentPath)).ToList(),
         c.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType)).ToList(),
         c.CustomerSince,
         c.CreatedAtUtc);

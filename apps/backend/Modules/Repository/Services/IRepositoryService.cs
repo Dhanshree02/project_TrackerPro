@@ -17,10 +17,18 @@ public interface IRepositoryService
         string category,
         IFormFile file,
         string? userEmailOrName = null,
+        IReadOnlyList<Guid>? departmentIds = null,
         CancellationToken ct = default);
 
     Task<RepositoryItem?> GetDocumentByIdAsync(
         Guid id,
+        CancellationToken ct = default);
+
+    Task<bool> CanAccessDocumentAsync(
+        Guid id,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<RepositoryDepartmentOptionDto>> GetDepartmentOptionsAsync(
         CancellationToken ct = default);
 
     Task RecordViewAsync(

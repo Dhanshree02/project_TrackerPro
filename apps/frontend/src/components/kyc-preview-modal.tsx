@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { X, FileText, CheckCircle2, ShieldCheck, Check } from "lucide-react";
+import { X, FileText, CheckCircle2, ShieldCheck, Check, Loader2, Table2 } from "lucide-react";
 
 export interface KycDocPreviewModalProps {
   open: boolean;
   onClose: () => void;
   file?: File | null;
+  /** URL of a server-stored KYC file (used when no local File is available). */
+  previewUrl?: string | null;
   fileName?: string | null;
   clientName?: string;
   subVentureName?: string;
@@ -15,12 +17,27 @@ export function KycDocPreviewModal({
   open,
   onClose,
   file,
+  previewUrl,
   fileName,
   clientName = "Customer",
   subVentureName,
   uploadDate,
 }: KycDocPreviewModalProps) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const sourceUrl = objectUrl ?? previewUrl ?? null;
+
+  // Spreadsheet (xlsx/xls/csv) preview — parsed with SheetJS into an HTML table.
+  const [workbook, setWorkbook] = useState<import("xlsx").WorkBook | null>(null);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [activeSheetIdx, setActiveSheetIdx] = useState(0);
+  const [sheetHtml, setSheetHtml] = useState<string | null>(null);
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
+
+  // Word (.docx) preview — converted to HTML with mammoth.
+  const [docHtml, setDocHtml] = useState<string | null>(null);
+  const [docLoading, setDocLoading] = useState(false);
+  const [docError, setDocError] = useState<string | null>(null);
 
   const resolvedName = useMemo(() => {
     if (file?.name) return file.name;
@@ -42,6 +59,13 @@ export function KycDocPreviewModal({
     if (file?.type === "application/pdf") return true;
     return fileExt === "pdf";
   }, [file, fileExt]);
+
+  const isSpreadsheet = useMemo(
+    () => ["xlsx", "xls", "csv"].includes(fileExt),
+    [fileExt],
+  );
+
+  const isWord = useMemo(() => fileExt === "docx", [fileExt]);
 
   const fileSizeStr = useMemo(() => {
     if (file?.size) {
@@ -75,6 +99,115 @@ export function KycDocPreviewModal({
       };
     }
   }, [open, file]);
+
+  // Load + parse the spreadsheet bytes (from the local File or the server URL).
+  useEffect(() => {
+    if (!open || !isSpreadsheet) {
+      setWorkbook(null);
+      setSheetNames([]);
+      setSheetHtml(null);
+      setSheetError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setSheetLoading(true);
+    setSheetError(null);
+    setSheetHtml(null);
+    setWorkbook(null);
+
+    (async () => {
+      try {
+        let buffer: ArrayBuffer;
+        if (file) {
+          buffer = await file.arrayBuffer();
+        } else if (previewUrl) {
+          const res = await fetch(previewUrl, { credentials: "include" });
+          if (!res.ok) throw new Error(`Couldn't load the document (${res.status}).`);
+          buffer = await res.arrayBuffer();
+        } else {
+          throw new Error("No document is available to preview.");
+        }
+
+        const XLSX = await import("xlsx");
+        const wb = XLSX.read(new Uint8Array(buffer), { type: "array" });
+        if (cancelled) return;
+        setWorkbook(wb);
+        setSheetNames(wb.SheetNames);
+        setActiveSheetIdx(0);
+      } catch (err) {
+        if (!cancelled) {
+          setSheetError(err instanceof Error ? err.message : "This spreadsheet couldn't be previewed.");
+        }
+      } finally {
+        if (!cancelled) setSheetLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isSpreadsheet, file, previewUrl]);
+
+  // Render the active sheet to an HTML table whenever it (or the selection) changes.
+  useEffect(() => {
+    if (!workbook || sheetNames.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const XLSX = await import("xlsx");
+      const sheet = workbook.Sheets[sheetNames[activeSheetIdx]];
+      if (!sheet) return;
+      const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
+      if (!cancelled) setSheetHtml(html);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [workbook, sheetNames, activeSheetIdx]);
+
+  // Load + convert the Word document (from the local File or the server URL).
+  useEffect(() => {
+    if (!open || !isWord) {
+      setDocHtml(null);
+      setDocError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setDocLoading(true);
+    setDocError(null);
+    setDocHtml(null);
+
+    (async () => {
+      try {
+        let buffer: ArrayBuffer;
+        if (file) {
+          buffer = await file.arrayBuffer();
+        } else if (previewUrl) {
+          const res = await fetch(previewUrl, { credentials: "include" });
+          if (!res.ok) throw new Error(`Couldn't load the document (${res.status}).`);
+          buffer = await res.arrayBuffer();
+        } else {
+          throw new Error("No document is available to preview.");
+        }
+
+        const mammoth = await import("mammoth");
+        const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
+        if (cancelled) return;
+        setDocHtml(result.value || "<p>This document has no visible content.</p>");
+      } catch (err) {
+        if (!cancelled) {
+          setDocError(err instanceof Error ? err.message : "This document couldn't be previewed.");
+        }
+      } finally {
+        if (!cancelled) setDocLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isWord, file, previewUrl]);
 
   if (!open) return null;
 
@@ -127,21 +260,110 @@ export function KycDocPreviewModal({
 
         {/* Document View Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100/70 dark:bg-muted/20 min-h-[380px] max-h-[72vh]">
-          {isImage && objectUrl ? (
+          {isImage && sourceUrl ? (
             <div className="flex justify-center items-center overflow-hidden rounded-xl border border-border bg-white dark:bg-card p-3 shadow-md">
               <img
-                src={objectUrl}
+                src={sourceUrl}
                 alt={resolvedName}
                 className="max-h-[60vh] w-auto max-w-full rounded-lg object-contain"
               />
             </div>
-          ) : isPdf && objectUrl ? (
+          ) : isPdf && sourceUrl ? (
             <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
               <iframe
-                src={`${objectUrl}#toolbar=0`}
+                src={`${sourceUrl}#toolbar=0`}
                 title={resolvedName}
                 className="h-[62vh] w-full bg-card"
               />
+            </div>
+          ) : isSpreadsheet ? (
+            <div className="overflow-hidden rounded-xl border border-border bg-white dark:bg-card shadow-md">
+              <div className="flex items-center gap-2 border-b border-border bg-slate-50 dark:bg-muted/40 px-3 py-2">
+                <Table2 className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Spreadsheet preview
+                </span>
+                {sheetNames.length > 1 && (
+                  <div className="ml-auto flex items-center gap-1 overflow-x-auto">
+                    {sheetNames.map((name, i) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => setActiveSheetIdx(i)}
+                        className={
+                          "shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors cursor-pointer " +
+                          (i === activeSheetIdx
+                            ? "bg-primary/15 text-primary border border-primary/30"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground border border-transparent")
+                        }
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div
+                className={
+                  "max-h-[60vh] overflow-auto p-1 " +
+                  "[&_table]:w-full [&_table]:border-collapse [&_table]:text-[11px] " +
+                  "[&_td]:border [&_td]:border-slate-200 dark:[&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_td]:align-top [&_td]:text-foreground " +
+                  "[&_tr:first-child_td]:bg-slate-100 dark:[&_tr:first-child_td]:bg-muted/50 [&_tr:first-child_td]:font-semibold"
+                }
+              >
+                {sheetLoading ? (
+                  <div className="flex h-40 items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading spreadsheet…
+                  </div>
+                ) : sheetError ? (
+                  <div className="flex h-40 items-center justify-center px-4 text-center text-xs text-destructive">
+                    {sheetError}
+                  </div>
+                ) : sheetHtml ? (
+                  <div dangerouslySetInnerHTML={{ __html: sheetHtml }} />
+                ) : (
+                  <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+                    No data to display.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : isWord ? (
+            <div className="overflow-hidden rounded-xl border border-border bg-white dark:bg-card shadow-md">
+              <div className="flex items-center gap-2 border-b border-border bg-slate-50 dark:bg-muted/40 px-3 py-2">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Document preview
+                </span>
+              </div>
+              <div className="max-h-[60vh] overflow-auto px-6 py-5">
+                {docLoading ? (
+                  <div className="flex h-40 items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading document…
+                  </div>
+                ) : docError ? (
+                  <div className="flex h-40 items-center justify-center px-4 text-center text-xs text-destructive">
+                    {docError}
+                  </div>
+                ) : docHtml ? (
+                  <div
+                    className={
+                      "mx-auto max-w-2xl text-[13px] leading-relaxed text-foreground " +
+                      "[&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-semibold " +
+                      "[&_h3]:mb-1 [&_h3]:mt-3 [&_h3]:font-semibold [&_p]:mb-2.5 " +
+                      "[&_ul]:mb-2.5 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mb-2.5 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1 " +
+                      "[&_a]:text-primary [&_a]:underline [&_strong]:font-semibold " +
+                      "[&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-slate-200 dark:[&_td]:border-border [&_td]:px-2 [&_td]:py-1 " +
+                      "[&_img]:my-2 [&_img]:max-w-full"
+                    }
+                    dangerouslySetInnerHTML={{ __html: docHtml }}
+                  />
+                ) : (
+                  <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+                    No content to display.
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             /* Official Document Sheet Preview */

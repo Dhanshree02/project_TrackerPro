@@ -4,7 +4,12 @@ export type Role =
   | "pmo"
   | "hod"
   | "business_owner"
-  | "dhanshree";
+  | "dhanshree"
+  | "employee"
+  | "pm"
+  | "hr"
+  | "accounts_finance"
+  | "sales_bd";
 
 export type ProjectStatus = "ongoing" | "completed" | "on_hold" | "archived";
 export type HealthStatus = "green" | "amber" | "red";
@@ -173,10 +178,15 @@ export interface ClientContact {
 }
 
 export interface ClientSubVenture {
+  /** API sub-venture id (GUID). Absent for mock/local sub-ventures. */
+  id?: string;
   name: string;
   contacts?: ClientContact[]; // SPOC contacts specific to this sub-venture
   /** Onboarding notes for this sub-venture (not shared across SVs). */
   notes?: string;
+  /** KYC document is per sub-venture (each end-customer division has its own). */
+  kycDocumentName?: string;
+  kycDocumentPath?: string;
 }
 
 /**
@@ -215,6 +225,8 @@ export interface Client {
   businessType?: string;
   notes?: string;
   kycDocumentName?: string;
+  /** Relative path (under Documents/) of the stored KYC file; present when uploaded to the server. */
+  kycDocumentPath?: string;
   /** ISO date (yyyy-mm-dd) when the customer relationship started. */
   customerSince?: string;
   contacts?: ClientContact[]; // full list of SPOC persons
@@ -584,6 +596,11 @@ export const assignments: Record<Role, string[]> = {
   hod: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
   business_owner: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
   dhanshree: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
+  employee: [],
+  pm: ["c1", "c2", "c3"],
+  hr: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
+  accounts_finance: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
+  sales_bd: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
 };
 
 // PM "buckets" — capacity tracking

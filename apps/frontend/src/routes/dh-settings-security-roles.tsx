@@ -80,11 +80,16 @@ const SCOPE_LABEL: Record<string, string> = {
 };
 
 function SecurityRolesPage() {
-  const { isDhanshree } = useRoleContext();
-  const { hasPermission } = usePermissions();
+  const { can, isDhanshree } = useRoleContext();
+  const { hasAny, hasPermission } = usePermissions();
   const [activeTab, setActiveTab] = useState<"users" | "modules">("modules");
 
-  if (!isDhanshree && !hasPermission("settings.manage_roles")) return <Navigate to="/" />;
+  const allowed =
+    isDhanshree ||
+    (can ? can("settings.manage_roles") : false) ||
+    hasPermission("settings.manage_roles") ||
+    hasAny("settings.manage_roles", "roles:manage", "settings.view");
+  if (!allowed) return <Navigate to="/" />;
 
   return (
     <AppShell title="Roles & Permissions" subtitle="Who can see and do what — across every module">
@@ -245,39 +250,12 @@ function UserRoleAccessTab() {
 }
 
 function ModuleAccessTab() {
+  const ctx = useRoleContext();
+  const getPermissionsFor = ctx.getPermissionsFor ?? ((r: Role) => DEFAULT_ROLE_PERMISSIONS[r] ?? []);
+  const setRolePermissions = ctx.setRolePermissions ?? (() => {});
+  const resetRolePermissions = ctx.resetRolePermissions ?? (() => {});
   const [selectedRole, setSelectedRole] = useState<Role>("employee");
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({ Projects: true });
-
-  const [overrides, setOverrides] = useState<Partial<Record<Role, PermissionKey[]>>>(() => {
-    if (typeof window === "undefined") return {};
-    try {
-      const raw = localStorage.getItem(RBAC_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  const getPermissionsFor = (r: Role): PermissionKey[] => {
-    return overrides[r] ?? DEFAULT_ROLE_PERMISSIONS[r] ?? [];
-  };
-
-  const setRolePermissions = (r: Role, perms: PermissionKey[]) => {
-    const next = { ...overrides, [r]: perms };
-    setOverrides(next);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
-    }
-  };
-
-  const resetRolePermissions = (r: Role) => {
-    const next = { ...overrides };
-    delete next[r];
-    setOverrides(next);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
-    }
-  };
 
   const [draft, setDraft] = useState<PermissionKey[]>(() => getPermissionsFor("employee"));
 

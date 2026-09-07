@@ -4,7 +4,9 @@ using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Storage;
 using PMS.API.Modules.Repository.DTOs;
 using PMS.API.Modules.Repository.Models;
+using PMS.API.Modules.Users.Models;
 using PMS.API.Shared.Common.Wrappers;
+using PMS.API.Shared.Constants;
 
 namespace PMS.API.Modules.Repository.Services;
 
@@ -21,7 +23,7 @@ public class RepositoryService(
         string? search = null,
         CancellationToken ct = default)
     {
-        var query = db.RepositoryItems.AsNoTracking();
+        var query = await ApplyVisibilityAsync(db.RepositoryItems.AsNoTracking(), ct);
 
         if (!string.IsNullOrWhiteSpace(category))
         {
@@ -52,7 +54,11 @@ public class RepositoryService(
                 r.Size,
                 r.LastUpdated,
                 r.UploadedBy,
-                r.CreatedAtUtc))
+                r.CreatedAtUtc,
+                r.Departments
+                    .OrderBy(d => d.Department!.Name)
+                    .Select(d => new RepositoryDepartmentDto(d.DepartmentId, d.Department!.Name))
+                    .ToList()))
             .ToListAsync(ct);
 
         return new PagedResult<RepositoryItemDto>(items, page, perPage, total);
@@ -62,11 +68,32 @@ public class RepositoryService(
         string category,
         IFormFile file,
         string? userEmailOrName = null,
+        IReadOnlyList<Guid>? departmentIds = null,
         CancellationToken ct = default)
     {
         if (file == null || file.Length == 0)
         {
             throw new ArgumentException("No file provided for upload.");
+        }
+
+        var uniqueDeptIds = (departmentIds ?? [])
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (uniqueDeptIds.Count == 0)
+        {
+            throw new InvalidOperationException("Select at least one department that may view this document.");
+        }
+
+        var validDeptIds = await db.Departments
+            .Where(d => d.IsActive && uniqueDeptIds.Contains(d.Id))
+            .Select(d => d.Id)
+            .ToListAsync(ct);
+
+        if (validDeptIds.Count == 0)
+        {
+            throw new InvalidOperationException("None of the selected departments are valid. Refresh and try again.");
         }
 
         // Save file physically into category folder
@@ -87,6 +114,15 @@ public class RepositoryService(
             CreatedAtUtc = DateTime.UtcNow,
             CreatedBy = currentUser.UserId
         };
+
+        foreach (var deptId in validDeptIds)
+        {
+            doc.Departments.Add(new RepositoryDepartment
+            {
+                RepositoryItemId = doc.Id,
+                DepartmentId = deptId,
+            });
+        }
 
         db.RepositoryItems.Add(doc);
 
@@ -109,6 +145,13 @@ public class RepositoryService(
 
         logger.LogInformation("Repository document uploaded: {FileName} ({Category}) by {User}", doc.FileName, doc.Category, uploader);
 
+        var deptNames = await db.Departments
+            .AsNoTracking()
+            .Where(d => validDeptIds.Contains(d.Id))
+            .OrderBy(d => d.Name)
+            .Select(d => new RepositoryDepartmentDto(d.Id, d.Name))
+            .ToListAsync(ct);
+
         return new RepositoryItemDto(
             doc.Id,
             doc.FileName,
@@ -116,12 +159,50 @@ public class RepositoryService(
             doc.Size,
             doc.LastUpdated,
             doc.UploadedBy,
-            doc.CreatedAtUtc);
+            doc.CreatedAtUtc,
+            deptNames);
     }
 
     public async Task<RepositoryItem?> GetDocumentByIdAsync(Guid id, CancellationToken ct = default)
     {
+        if (!await CanAccessDocumentAsync(id, ct))
+            return null;
+
         return await db.RepositoryItems.FirstOrDefaultAsync(r => r.Id == id, ct);
+    }
+
+    public async Task<bool> CanAccessDocumentAsync(Guid id, CancellationToken ct = default)
+    {
+        var exists = await db.RepositoryItems.AnyAsync(r => r.Id == id, ct);
+        if (!exists) return false;
+
+        var scope = await ResolveViewerScopeAsync(ct);
+        if (scope.Unrestricted) return true;
+
+        var hasAssignments = await db.RepositoryDepartments.AnyAsync(d => d.RepositoryItemId == id, ct);
+        if (!hasAssignments) return true; // legacy documents stay visible
+
+        if (currentUser.UserId.HasValue)
+        {
+            var uploadedByCurrentUser = await db.RepositoryItems
+                .AnyAsync(r => r.Id == id && r.CreatedBy == currentUser.UserId, ct);
+            if (uploadedByCurrentUser) return true;
+        }
+
+        if (scope.DepartmentId is null) return false;
+
+        return await db.RepositoryDepartments
+            .AnyAsync(d => d.RepositoryItemId == id && d.DepartmentId == scope.DepartmentId, ct);
+    }
+
+    public async Task<IReadOnlyList<RepositoryDepartmentOptionDto>> GetDepartmentOptionsAsync(CancellationToken ct = default)
+    {
+        return await db.Departments
+            .AsNoTracking()
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.Name)
+            .Select(d => new RepositoryDepartmentOptionDto(d.Id, d.Code, d.Name))
+            .ToListAsync(ct);
     }
 
     public async Task RecordViewAsync(
@@ -132,6 +213,7 @@ public class RepositoryService(
     {
         var doc = await db.RepositoryItems.FirstOrDefaultAsync(r => r.Id == documentId, ct);
         if (doc == null) return;
+        if (!await CanAccessDocumentAsync(documentId, ct)) return;
 
         var viewer = await ResolveEmployeeNameAsync(userEmailOrName, ct);
 
@@ -158,6 +240,7 @@ public class RepositoryService(
     {
         var doc = await db.RepositoryItems.FirstOrDefaultAsync(r => r.Id == id, ct);
         if (doc == null) return false;
+        if (!await CanAccessDocumentAsync(id, ct)) return false;
 
         // Try physical file deletion by category and filename
         storage.DeleteRepositoryFile(doc.Category, doc.FileName);
@@ -236,7 +319,7 @@ public class RepositoryService(
         string? search = null,
         CancellationToken ct = default)
     {
-        var docQuery = db.RepositoryItems.AsNoTracking().AsQueryable();
+        var docQuery = await ApplyVisibilityAsync(db.RepositoryItems.AsNoTracking(), ct);
 
         if (!string.IsNullOrWhiteSpace(category))
         {
@@ -302,8 +385,8 @@ public class RepositoryService(
 
     public async Task<IReadOnlyList<RepositoryCategoryCountDto>> GetCategoryCountsAsync(CancellationToken ct = default)
     {
-        var counts = await db.RepositoryItems
-            .AsNoTracking()
+        var visible = await ApplyVisibilityAsync(db.RepositoryItems.AsNoTracking(), ct);
+        var counts = await visible
             .GroupBy(r => r.Category)
             .Select(g => new { Category = g.Key, Count = g.Count() })
             .ToListAsync(ct);
@@ -362,6 +445,60 @@ public class RepositoryService(
         }
 
         return "Dhanshree Pansare";
+    }
+
+    private sealed record ViewerScope(bool Unrestricted, Guid? DepartmentId);
+
+    private async Task<ViewerScope> ResolveViewerScopeAsync(CancellationToken ct)
+    {
+        var role = currentUser.Role ?? "";
+        if (string.Equals(role, nameof(UserRole.Admin), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, nameof(UserRole.Dhanshree), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, nameof(UserRole.BusinessOwner), StringComparison.OrdinalIgnoreCase)
+            || currentUser.HasPermission(Permissions.UsersManage))
+        {
+            return new ViewerScope(true, null);
+        }
+
+        Guid? departmentId = null;
+
+        if (currentUser.UserId.HasValue)
+        {
+            var uid = currentUser.UserId.Value;
+            departmentId = await db.Employees
+                .AsNoTracking()
+                .Where(e => e.UserId == uid || e.Id == uid)
+                .Select(e => e.DepartmentId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        if (departmentId is null && !string.IsNullOrWhiteSpace(currentUser.Email))
+        {
+            var email = currentUser.Email.Trim();
+            departmentId = await db.Employees
+                .AsNoTracking()
+                .Where(e => EF.Functions.ILike(e.WorkEmail, email))
+                .Select(e => e.DepartmentId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        return new ViewerScope(false, departmentId);
+    }
+
+    private async Task<IQueryable<RepositoryItem>> ApplyVisibilityAsync(
+        IQueryable<RepositoryItem> query,
+        CancellationToken ct)
+    {
+        var scope = await ResolveViewerScopeAsync(ct);
+        if (scope.Unrestricted) return query;
+
+        var userId = currentUser.UserId;
+        var deptId = scope.DepartmentId;
+
+        return query.Where(r =>
+            !r.Departments.Any()
+            || (userId.HasValue && r.CreatedBy == userId)
+            || (deptId.HasValue && r.Departments.Any(d => d.DepartmentId == deptId.Value)));
     }
 
     private static string FormatFileSize(long bytes)

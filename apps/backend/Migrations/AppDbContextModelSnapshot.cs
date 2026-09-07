@@ -157,6 +157,10 @@ namespace PMS.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("KycDocumentPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Logo")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
@@ -293,6 +297,14 @@ namespace PMS.API.Migrations
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("KycDocumentName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("KycDocumentPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -426,6 +438,21 @@ namespace PMS.API.Migrations
                     b.HasIndex("DeletedAtUtc");
 
                     b.ToTable("repository", (string)null);
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Repository.Models.RepositoryDepartment", b =>
+                {
+                    b.Property<Guid>("RepositoryItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("RepositoryItemId", "DepartmentId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.ToTable("repository_departments", (string)null);
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.Employee", b =>
@@ -1723,6 +1750,25 @@ namespace PMS.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Repository.Models.RepositoryDepartment", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Repository.Models.RepositoryItem", "RepositoryItem")
+                        .WithMany("Departments")
+                        .HasForeignKey("RepositoryItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+
+                    b.Navigation("RepositoryItem");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Customers.Models.ClientContactEntity", b =>
                 {
                     b.HasOne("PMS.API.Modules.Customers.Models.Client", "Client")
@@ -1888,6 +1934,11 @@ namespace PMS.API.Migrations
             modelBuilder.Entity("PMS.API.Modules.Customers.Models.SubVenture", b =>
                 {
                     b.Navigation("Contacts");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Repository.Models.RepositoryItem", b =>
+                {
+                    b.Navigation("Departments");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstCountry", b =>

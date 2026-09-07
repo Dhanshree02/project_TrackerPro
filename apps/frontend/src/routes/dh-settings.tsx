@@ -15,9 +15,14 @@ export const Route = createFileRoute("/dh-settings")({
 });
 
 function SettingsPage() {
-  const { isDhanshree } = useRoleContext();
-  const { hasPermission } = usePermissions();
-  if (!isDhanshree && !hasPermission("settings.view")) return <Navigate to="/" />;
+  const { can, isDhanshree } = useRoleContext();
+  const { hasAny, hasPermission } = usePermissions();
+  const allowed =
+    isDhanshree ||
+    (can ? can("settings.view") : false) ||
+    hasPermission("settings.view") ||
+    hasAny("settings.view", "users:manage", "roles:manage", "settings.manage_roles");
+  if (!allowed) return <Navigate to="/" />;
 
   return (
     <AppShell title="Settings" subtitle="Manage application configuration">

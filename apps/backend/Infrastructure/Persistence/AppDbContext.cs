@@ -55,6 +55,8 @@ public class AppDbContext(
 
     public DbSet<MstOffice> Offices => Set<MstOffice>();
 
+    public DbSet<MstEmployeeStatus> EmployeeStatuses => Set<MstEmployeeStatus>();
+
     public DbSet<Employee> Employees => Set<Employee>();
 
     public DbSet<ExitedEmployee> ExitedEmployees => Set<ExitedEmployee>();
@@ -62,6 +64,8 @@ public class AppDbContext(
     public DbSet<RepositoryItem> RepositoryItems => Set<RepositoryItem>();
 
     public DbSet<RepositoryActivityLog> RepositoryActivityLogs => Set<RepositoryActivityLog>();
+
+    public DbSet<RepositoryDepartment> RepositoryDepartments => Set<RepositoryDepartment>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

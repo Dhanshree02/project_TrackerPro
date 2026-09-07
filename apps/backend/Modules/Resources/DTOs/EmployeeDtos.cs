@@ -20,6 +20,7 @@ public sealed record EmployeeListItemDto(
     string? Phone = null,
     string? AltPhone = null,
     string? EmergencyContact = null,
+    string? EmergencyContactName = null,
     string? Pan = null,
     string? BankAccount = null,
     string? PfUan = null,
@@ -46,6 +47,7 @@ public sealed record EmployeeDetailDto(
     DateOnly? DateOfBirth,
     string? Address,
     string? EmergencyContact,
+    string? EmergencyContactName,
     string? MaritalStatus,
     string? Nationality,
     string? Department,
@@ -130,6 +132,7 @@ public sealed record CreateEmployeeRequest(
     DateOnly? DateOfBirth,
     string? Address,
     string? EmergencyContact,
+    string? EmergencyContactName,
     string? MaritalStatus,
     string? Nationality,
     Guid? NationalityId,
@@ -177,7 +180,11 @@ public sealed record CreateEmployeeRequest(
     string? ComplianceStatus,
     Guid? SalaryBandId = null,
     string? ProbationPeriod = null,
-    string? Aadhaar = null);
+    string? Aadhaar = null,
+    Guid? EmployeeStatusId = null,
+    string? BondDelivered = null,
+    int? BondDurationMonths = null,
+    DateOnly? BondExpiryDate = null);
 
 public sealed record UpdateEmployeeRequest(
     string? FirstName,
@@ -190,6 +197,7 @@ public sealed record UpdateEmployeeRequest(
     DateOnly? DateOfBirth,
     string? Address,
     string? EmergencyContact,
+    string? EmergencyContactName,
     string? MaritalStatus,
     string? Nationality,
     Guid? NationalityId,
@@ -239,7 +247,8 @@ public sealed record UpdateEmployeeRequest(
     string? ComplianceStatus,
     Guid? SalaryBandId = null,
     string? ProbationPeriod = null,
-    string? Aadhaar = null);
+    string? Aadhaar = null,
+    string? EmployeeCode = null);
 
 public sealed record EmployeeBulkRowError(int Row, string? EmployeeCode, string Message);
 

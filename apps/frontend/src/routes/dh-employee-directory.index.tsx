@@ -36,11 +36,18 @@ import {
   toEmailInput,
   toEmailLocalPart,
   isValidEmailLocalPart,
+  joinTkId,
+  splitTkId,
   toTenDigitPhone,
+  type TkIdPrefix,
 } from "@/lib/form-validation";
 import { CreatableCatalogSelect, SearchableSelect } from "@/components/creatable-catalog-select";
+import { TkIdField } from "@/components/tk-id-field";
+import { WorkEmailField } from "@/components/work-email-field";
 import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import { EmployeeBulkUploadMenu } from "@/components/employee-bulk-upload";
+import { RowsPerPageSelect } from "@/components/rows-per-page-select";
+import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import {
   createBusinessUnitOption,
   createDepartmentOption,
@@ -56,10 +63,10 @@ import {
   fetchDesignationOptions,
   fetchEmailDomainOptions,
   fetchJobRoleOptions,
+  fetchEmployeeStatusOptions,
   fetchNationalityOptions,
   fetchOfficeOptions,
   fetchReportingManagerOptions,
-  fetchSalaryBandOptions,
   fetchWorkLocationOptions,
   toUiEmployeeFromList,
   uploadEmployeeDocuments,
@@ -78,7 +85,6 @@ import {
   validateOnboardForm,
   validateOnboardFile,
   validateOnboardDocs,
-  toDirectoryStatus,
   blankToNull,
   csvToList,
   type OnboardDocs,
@@ -87,7 +93,14 @@ import {
   type OnboardField,
   type OnboardValues,
 } from "@/lib/onboard-validation";
+import {
+  WORKER_TYPES,
+  BOND_DELIVERED_OPTIONS,
+  computeBondStatus,
+  formatBondExpiryDisplay,
+} from "@/lib/employment-bond";
 import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
+import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
 import { Modal } from "@/routes/projects.index";
 
 export const Route = createFileRoute("/dh-employee-directory/")({
@@ -134,12 +147,12 @@ type PoolSortKey =
 type SortDir = "asc" | "desc";
 
 const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
-  { label: "Employee ID", key: "id", className: "w-40 min-w-[145px]" },
+  { label: "TK ID", key: "id", className: "w-40 min-w-[145px]" },
   { label: "Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-52 min-w-[185px]" },
   { label: "Reporting Manager", key: "reportingManager", className: "w-48 min-w-[170px]" },
-  { label: "Location", key: "workLocation", className: "w-36 min-w-[130px]" },
+  { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
   { label: "Category", key: "category", className: "w-60 min-w-[210px]" },
   { label: "Joining Date", key: "joiningDate", className: "w-40 min-w-[145px]" },
   { label: "Status", key: "status", className: "w-36 min-w-[125px]" },
@@ -147,7 +160,7 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: str
 ];
 
 const BASIC_DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
-  { label: "Employee ID", key: "id", className: "w-40 min-w-[145px]" },
+  { label: "TK ID", key: "id", className: "w-40 min-w-[145px]" },
   { label: "Employee Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-64 min-w-[210px]" },
@@ -160,9 +173,7 @@ const POOL_COLUMNS: { label: string; key: PoolSortKey | null; className?: string
   { label: "Allocation Status", key: "allocationStatus", className: "w-48 min-w-[170px]" },
   { label: "Allocation Type", key: null, className: "w-44 min-w-[150px]" },
   { label: "Allocation Duration", key: null, className: "w-48 min-w-[170px]" },
-  { label: "Location", key: "workLocation", className: "w-36 min-w-[130px]" },
-  { label: "Office", key: "officeBranch", className: "w-44 min-w-[150px]" },
-  { label: "Project Site", key: "projectSite", className: "w-36 min-w-[130px]" },
+  { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
   { label: "Tasks", key: null, className: "w-28 min-w-[100px]", align: "right" },
 ];
 
@@ -361,23 +372,19 @@ function FilterSelect({
   options: string[];
 }) {
   return (
-    <select
+    <SearchableSelect
+      placeholder={placeholder}
+      options={options}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={cn(
-        "h-9 w-full rounded-md border bg-card px-3 text-xs outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring cursor-pointer",
+      onChange={onChange}
+      className="w-full text-xs"
+      buttonClassName={cn(
+        "h-9 text-xs transition-all",
         value
           ? "border-blue-500/50 font-medium text-foreground bg-blue-500/5"
           : "border-input text-muted-foreground",
       )}
-    >
-      <option value="">{placeholder}</option>
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
-    </select>
+    />
   );
 }
 
@@ -762,6 +769,8 @@ function FormField({
   prefix,
   suffix,
   inputMode,
+  disabled,
+  readOnly,
 }: {
   label: string;
   type?: string;
@@ -780,7 +789,10 @@ function FormField({
   prefix?: string;
   suffix?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  disabled?: boolean;
+  readOnly?: boolean;
 }) {
+  const isLocked = disabled || readOnly;
   const resolvedMaxLength =
     type === "date" || type === "number" ? maxLength : (maxLength ?? FIELD_MAX.text);
   // Chrome ignores autoComplete="off". new-password + readOnly-until-focus is the reliable pair.
@@ -788,7 +800,7 @@ function FormField({
     el.removeAttribute("readonly");
   };
   return (
-    <label className={cn("block", className)}>
+    <label className={cn("block", className, disabled && "cursor-not-allowed opacity-60")}>
       <span className={FORM_LABEL_CLS}>
         {label}
         {required ? <span className="text-destructive"> *</span> : null}
@@ -802,12 +814,13 @@ function FormField({
         <input
           id={name ? `onboard-${name}` : undefined}
           type={type === "email" ? "text" : type}
-          placeholder={placeholder}
-          autoComplete="new-password"
+          placeholder={disabled ? "" : placeholder}
+          autoComplete={type === "date" ? "off" : "new-password"}
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          readOnly
+          readOnly={readOnly || (type !== "date" && !disabled && !onChange)}
+          disabled={disabled}
           data-lpignore="true"
           data-1p-ignore="true"
           data-bwignore="true"
@@ -820,17 +833,34 @@ function FormField({
             FORM_CONTROL_CLS,
             prefix && "rounded-l-none",
             suffix && "pr-16",
+            type === "date" && "cursor-pointer",
             error && "border-destructive focus-visible:ring-destructive",
+            disabled && "cursor-not-allowed bg-muted/60 text-muted-foreground select-none pointer-events-none",
+            readOnly && !disabled && "cursor-default bg-muted/40 text-foreground",
           )}
           {...(value !== undefined
-            ? { value, onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange?.(e.target.value) }
+            ? {
+                value: disabled && !readOnly ? "" : value,
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+                  !isLocked && onChange?.(e.target.value),
+              }
             : {})}
-          onFocus={(e) => unlock(e.currentTarget)}
-          onMouseDown={(e) => unlock(e.currentTarget)}
+          onFocus={(e) => {
+            if (!isLocked && type !== "date") unlock(e.currentTarget);
+          }}
+          onMouseDown={(e) => {
+            if (!isLocked && type !== "date") unlock(e.currentTarget);
+          }}
+          onClick={(e) => {
+            if (type === "date" && !disabled && typeof e.currentTarget.showPicker === "function") {
+              try { e.currentTarget.showPicker(); } catch {}
+            }
+          }}
           onBlur={onBlur}
           aria-label={label}
           aria-invalid={Boolean(error)}
           aria-required={required}
+          aria-disabled={disabled}
         />
         {suffix ? (
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -905,6 +935,7 @@ function FormSelect({
   required,
   disabled,
   placeholder = "Select…",
+  showSearch,
 }: {
   label: string;
   options: Array<string | { value: string; label: string; subLabel?: string }>;
@@ -914,6 +945,7 @@ function FormSelect({
   required?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  showSearch?: boolean;
 }) {
   return (
     <SearchableSelect
@@ -925,6 +957,7 @@ function FormSelect({
       required={required}
       disabled={disabled}
       placeholder={placeholder}
+      showSearch={showSearch}
     />
   );
 }
@@ -1115,7 +1148,7 @@ function OnboardingPanel({
   const [deptOptions, setDeptOptions] = useState<ApiMetaOption[]>([]);
   const [desigOptions, setDesigOptions] = useState<ApiMetaOption[]>([]);
   const [roleOptions, setRoleOptions] = useState<ApiMetaOption[]>([]);
-  const [salaryBands, setSalaryBands] = useState<ApiMetaOption[]>([]);
+  const [employeeStatusOptions, setEmployeeStatusOptions] = useState<ApiMetaOption[]>([]);
   const [emailDomainOptions, setEmailDomainOptions] = useState<ApiMetaOption[]>([]);
   const [managerOptions, setManagerOptions] = useState<ApiMetaOption[]>([]);
   const [buOptions, setBuOptions] = useState<ApiMetaOption[]>([]);
@@ -1123,6 +1156,7 @@ function OnboardingPanel({
   const [officeOptions, setOfficeOptions] = useState<ApiMetaOption[]>([]);
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
   const [workEmailDomain, setWorkEmailDomain] = useState("");
+  const [tkPrefix, setTkPrefix] = useState<TkIdPrefix>("TK");
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -1143,7 +1177,7 @@ function OnboardingPanel({
       setDeptOptions([]);
       setDesigOptions([]);
       setRoleOptions([]);
-      setSalaryBands([]);
+      setEmployeeStatusOptions([]);
       setEmailDomainOptions([]);
       setManagerOptions([]);
       setBuOptions([]);
@@ -1151,6 +1185,7 @@ function OnboardingPanel({
       setOfficeOptions([]);
       setWorkEmailPrefix("");
       setWorkEmailDomain("");
+      setTkPrefix("TK");
       return;
     }
     void fetchNationalityOptions()
@@ -1159,11 +1194,29 @@ function OnboardingPanel({
     void fetchDepartmentOptions()
       .then(setDeptOptions)
       .catch(() => toast.error("Could not load departments"));
-    void fetchSalaryBandOptions()
-      .then(setSalaryBands)
-      .catch(() => toast.error("Could not load salary bands"));
+    void fetchEmployeeStatusOptions(true)
+      .then((rows) => {
+        const list = rows ?? [];
+        setEmployeeStatusOptions(list);
+        if (list.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            employeeStatusId: prev.employeeStatusId || list[0].id,
+          }));
+        }
+      })
+      .catch(() => toast.error("Could not load employee statuses"));
     void fetchBusinessUnitOptions()
-      .then(setBuOptions)
+      .then((bus) => {
+        const list = bus ?? [];
+        setBuOptions(list);
+        if (list.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            businessUnit: prev.businessUnit || list[0].name,
+          }));
+        }
+      })
       .catch(() => toast.error("Could not load business units"));
     void fetchWorkLocationOptions()
       .then((locs) => setWorkLocOptions(locs ?? []))
@@ -1207,9 +1260,25 @@ function OnboardingPanel({
       setRoleOptions([]);
       return;
     }
+    let cancelled = false;
     void fetchJobRoleOptions(form.designationId)
-      .then(setRoleOptions)
-      .catch(() => setRoleOptions([]));
+      .then((roles) => {
+        if (cancelled) return;
+        const list = roles ?? [];
+        setRoleOptions(list);
+        setForm((prev) => {
+          if (prev.designationId !== form.designationId) return prev;
+          const stillValid = list.some((r) => r.id === prev.jobRoleId);
+          if (stillValid) return prev;
+          return { ...prev, jobRoleId: list[0]?.id ?? "" };
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setRoleOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, form.designationId]);
 
   const selectedWorkLoc = useMemo(() => {
@@ -1228,21 +1297,29 @@ function OnboardingPanel({
     return officeOptions.filter((o) => o.parentId === selectedWorkLoc.id);
   }, [officeOptions, selectedWorkLoc]);
 
+  const bondExpiryDisplay = useMemo(
+    () => formatBondExpiryDisplay(form.joiningDate, form.bondDelivered, form.bondDurationMonths),
+    [form.joiningDate, form.bondDelivered, form.bondDurationMonths],
+  );
+
+  const bondStatusDisplay = useMemo(
+    () => computeBondStatus(form.bondDelivered, form.joiningDate, form.bondDurationMonths),
+    [form.bondDelivered, form.joiningDate, form.bondDurationMonths],
+  );
+
   if (!open) return null;
 
   const setField = (field: OnboardField, value: string) => {
     const nextValue =
       field === "phone" || field === "altPhone" || field === "emergencyContact"
         ? toTenDigitPhone(value)
-        : field === "firstName" || field === "lastName"
+        : field === "firstName" || field === "lastName" || field === "emergencyContactName"
           ? toLettersName(value)
-          : field === "workEmail" || field === "personalEmail"
+          : field === "workEmail"
             ? toEmailInput(value)
-            : field === "probationPeriod"
-              ? toDigits(value, FIELD_MAX.probationMonths)
-              : field === "noticePeriod"
-                ? toDigits(value, FIELD_MAX.noticeDays)
-                : value;
+            : field === "bondDurationMonths"
+              ? toDigits(value, 3)
+              : value;
 
     setForm((prev) => {
       const next = { ...prev, [field]: nextValue };
@@ -1251,6 +1328,9 @@ function OnboardingPanel({
         next.jobRoleId = "";
       }
       if (field === "designationId") next.jobRoleId = "";
+      if (field === "bondDelivered" && nextValue === "No") {
+        next.bondDurationMonths = "0";
+      }
       return next;
     });
 
@@ -1258,16 +1338,11 @@ function OnboardingPanel({
       field === "phone" ||
       field === "altPhone" ||
       field === "emergencyContact" ||
-      field === "workEmail" ||
-      field === "personalEmail";
+      field === "emergencyContactName" ||
+      field === "workEmail";
 
     setErrors((prev) => {
-      if (
-        !live &&
-        !prev[field] &&
-        !(field === "workEmail" && prev.personalEmail) &&
-        !(field === "personalEmail" && prev.workEmail)
-      ) {
+      if (!live && !prev[field]) {
         return prev;
       }
       const nextErrors = { ...prev };
@@ -1275,17 +1350,12 @@ function OnboardingPanel({
       const message = validateOnboardField(field, simulatedNext, existingCodes);
       if (message) nextErrors[field] = message;
       else delete nextErrors[field];
-      if (field === "workEmail" && simulatedNext.personalEmail.trim()) {
-        const personalMsg = validateOnboardField("personalEmail", simulatedNext, existingCodes);
-        if (personalMsg) nextErrors.personalEmail = personalMsg;
-        else delete nextErrors.personalEmail;
-      }
       return nextErrors;
     });
   };
 
   const blurField = (field: OnboardField) => {
-    if (field === "workEmail" || field === "personalEmail") {
+    if (field === "workEmail") {
       const trimmed = form[field].trim();
       if (trimmed !== form[field]) {
         setField(field, trimmed);
@@ -1452,10 +1522,22 @@ function OnboardingPanel({
         );
       }
 
-      const probationLabel = form.probationPeriod.trim()
-        ? `${form.probationPeriod.trim()} months`
-        : null;
-      const employmentStatus = form.status.trim() || "Active";
+      const employeeStatusName =
+        employeeStatusOptions.find((s) => s.id === form.employeeStatusId)?.name ?? "Active";
+      const bondDelivered = form.bondDelivered.trim() || "No";
+      const bondDurationMonths =
+        bondDelivered === "Yes" ? Number(form.bondDurationMonths || "0") : 0;
+      const bondExpiryIso =
+        bondDelivered === "Yes"
+          ? formatBondExpiryDisplay(form.joiningDate, bondDelivered, form.bondDurationMonths)
+          : null;
+      const bondExpiryDate =
+        bondExpiryIso && bondExpiryIso !== "No" && bondExpiryIso !== "—" ? bondExpiryIso : null;
+      const bondStatus = computeBondStatus(
+        bondDelivered,
+        form.joiningDate,
+        form.bondDurationMonths,
+      );
       const empCode = form.employeeCode.trim();
 
       await createEmployee({
@@ -1463,16 +1545,17 @@ function OnboardingPanel({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         workEmail: form.workEmail.trim(),
-        personalEmail: blankToNull(form.personalEmail),
+        personalEmail: null,
         phone: blankToNull(form.phone),
         altPhone: blankToNull(form.altPhone),
-        gender: blankToNull(form.gender),
-        dateOfBirth: blankToNull(form.dateOfBirth),
+        gender: null,
+        dateOfBirth: null,
         address: blankToNull(form.address),
         emergencyContact: blankToNull(form.emergencyContact),
-        maritalStatus: blankToNull(form.maritalStatus),
-        nationality: nationalities.find((n) => n.id === form.nationalityId)?.name ?? null,
-        nationalityId: form.nationalityId || null,
+        emergencyContactName: blankToNull(form.emergencyContactName),
+        maritalStatus: null,
+        nationality: null,
+        nationalityId: null,
         departmentId: resolvedDepartmentId,
         designationId: resolvedDesignationId,
         jobRoleId: resolvedJobRoleId,
@@ -1480,21 +1563,25 @@ function OnboardingPanel({
         reportingManagerId: resolvedReportingManagerId,
         businessUnit: resolvedBusinessUnit,
         workLocation: resolvedWorkLocation,
-        officeBranch: resolvedOffice,
-        category: blankToNull(form.category),
-        team: blankToNull(form.team),
+        officeBranch: null,
+        category: null,
+        team: null,
         joiningDate: blankToNull(form.joiningDate),
-        status: toDirectoryStatus(employmentStatus),
-        confirmationStatus: employmentStatus,
-        probationStatus: employmentStatus === "Active - Probation" ? "Ongoing" : "Completed",
-        probationPeriod: probationLabel,
+        status: "Active",
+        employeeStatusId: form.employeeStatusId || null,
+        confirmationStatus: employeeStatusName,
+        probationStatus: null,
+        probationPeriod: null,
         experience: blankToNull(form.experience),
         previousCompany: blankToNull(form.previousCompany),
-        employmentType: blankToNull(form.employmentType),
-        contractType: blankToNull(form.contractType),
-        bondStatus: blankToNull(form.bondStatus),
-        noticePeriod: form.noticePeriod.trim() ? `${form.noticePeriod.trim()} days` : null,
-        projectSite: blankToNull(form.projectSite),
+        employmentType: blankToNull(form.workerType),
+        contractType: null,
+        bondDelivered,
+        bondDurationMonths,
+        bondExpiryDate,
+        bondStatus,
+        noticePeriod: null,
+        projectSite: resolvedWorkLocation === "Onsite" ? blankToNull(form.projectSite) : null,
         assetId: blankToNull(form.assetId),
         exitType: form.exitType.trim() || "NA",
         exitReason: blankToNull(form.exitReason) ?? "NA",
@@ -1506,8 +1593,8 @@ function OnboardingPanel({
         aadhaar: form.aadhaar.replace(/\D/g, "") || null,
         bankAccount: blankToNull(form.bankAccount),
         pfUan: blankToNull(form.pfUan),
-        salaryBandId: form.salaryBandId || null,
-        salaryBand: salaryBands.find((b) => b.id === form.salaryBandId)?.name ?? null,
+        salaryBandId: null,
+        salaryBand: null,
       });
 
       // Upload attached documents to local backend storage
@@ -1603,101 +1690,59 @@ function OnboardingPanel({
                 onBlur={() => blurField("lastName")}
                 error={errors.lastName}
               />
-              <div>
-                <label className="block">
-                  <span className={FORM_LABEL_CLS}>
-                    Work Email <span className="text-destructive">*</span>
-                  </span>
-                  <div className="relative flex rounded-md">
-                    <input
-                      id="onboard-workEmail"
-                      type="text"
-                      placeholder="john.doe"
-                      autoComplete="new-password"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck={false}
-                      readOnly
-                      data-lpignore="true"
-                      data-1p-ignore="true"
-                      data-bwignore="true"
-                      data-form-type="other"
-                      maxLength={64}
-                      value={workEmailPrefix}
-                      onChange={(e) => {
-                        const cleanPrefix = toEmailLocalPart(e.target.value);
-                        setWorkEmailPrefix(cleanPrefix);
-                        const fullEmail = cleanPrefix ? `${cleanPrefix}@${workEmailDomain}` : "";
-                        setForm((prev) => ({ ...prev, workEmail: fullEmail }));
-                        setErrors((prev) => {
-                          const next = { ...prev };
-                          if (!cleanPrefix) next.workEmail = "Work email is required";
-                          else if (!isValidEmailLocalPart(cleanPrefix)) next.workEmail = "Only alphanumeric and '.' allowed";
-                          else delete next.workEmail;
-                          return next;
-                        });
-                      }}
-                      onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
-                      onMouseDown={(e) => e.currentTarget.removeAttribute("readonly")}
-                      onBlur={() => {
-                        if (!workEmailPrefix) {
-                          setErrors((prev) => ({ ...prev, workEmail: "Work email is required" }));
-                        } else if (!isValidEmailLocalPart(workEmailPrefix)) {
-                          setErrors((prev) => ({ ...prev, workEmail: "Only alphanumeric and '.' allowed" }));
-                        }
-                      }}
-                      className={cn(
-                        FORM_CONTROL_CLS,
-                        "rounded-r-none pr-2",
-                        errors.workEmail && "border-destructive focus-visible:ring-destructive",
-                      )}
-                      aria-label="Email username"
-                    />
-                    <select
-                      value={workEmailDomain}
-                      onChange={(e) => {
-                        const newDomain = e.target.value;
-                        setWorkEmailDomain(newDomain);
-                        const fullEmail = workEmailPrefix ? `${workEmailPrefix}@${newDomain}` : "";
-                        setForm((prev) => ({ ...prev, workEmail: fullEmail }));
-                        if (workEmailPrefix && isValidEmailLocalPart(workEmailPrefix)) {
-                          setErrors((prev) => {
-                            const next = { ...prev };
-                            delete next.workEmail;
-                            return next;
-                          });
-                        }
-                      }}
-                      className="h-9 shrink-0 rounded-r-md border border-l-0 border-input bg-muted/70 pl-2.5 pr-8 min-w-[130px] text-xs font-semibold text-foreground outline-none hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors"
-                      aria-label="Email domain"
-                    >
-                      {emailDomainOptions.length === 0 ? (
-                        <option value="" disabled>Loading domains…</option>
-                      ) : (
-                        emailDomainOptions.map((opt) => {
-                          const domainVal = opt.code.replace(/^@/, "");
-                          return (
-                            <option key={opt.id || opt.code} value={domainVal}>
-                              {opt.name.startsWith("@") ? opt.name : `@${opt.name}`}
-                            </option>
-                          );
-                        })
-                      )}
-                    </select>
-                  </div>
-                  {errors.workEmail ? <p className={FORM_ERROR_CLS}>{errors.workEmail}</p> : null}
-                </label>
-              </div>
-              <FormField
-                label="Personal Email"
-                name="personalEmail"
-                type="text"
-                maxLength={FIELD_MAX.email}
-                placeholder="name@example.com"
-                value={form.personalEmail}
-                onChange={(v) => setField("personalEmail", v)}
-                onBlur={() => blurField("personalEmail")}
-                error={errors.personalEmail}
+              <WorkEmailField
+                required
+                id="onboard-workEmail"
+                prefix={workEmailPrefix}
+                domain={workEmailDomain}
+                domainOptions={emailDomainOptions}
+                error={errors.workEmail}
+                prefixInputProps={{
+                  readOnly: true,
+                  autoComplete: "new-password",
+                  "data-lpignore": "true",
+                  "data-1p-ignore": "true",
+                  "data-bwignore": "true",
+                  "data-form-type": "other",
+                  onFocus: (e) => e.currentTarget.removeAttribute("readonly"),
+                  onMouseDown: (e) => e.currentTarget.removeAttribute("readonly"),
+                }}
+                onPrefixChange={(raw) => {
+                  const cleanPrefix = toEmailLocalPart(raw);
+                  setWorkEmailPrefix(cleanPrefix);
+                  const fullEmail = cleanPrefix ? `${cleanPrefix}@${workEmailDomain}` : "";
+                  setForm((prev) => ({ ...prev, workEmail: fullEmail }));
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    if (!cleanPrefix) next.workEmail = "Work email is required";
+                    else if (!isValidEmailLocalPart(cleanPrefix))
+                      next.workEmail = "Only alphanumeric and '.' allowed";
+                    else delete next.workEmail;
+                    return next;
+                  });
+                }}
+                onDomainChange={(newDomain) => {
+                  setWorkEmailDomain(newDomain);
+                  const fullEmail = workEmailPrefix ? `${workEmailPrefix}@${newDomain}` : "";
+                  setForm((prev) => ({ ...prev, workEmail: fullEmail }));
+                  if (workEmailPrefix && isValidEmailLocalPart(workEmailPrefix)) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.workEmail;
+                      return next;
+                    });
+                  }
+                }}
+                onPrefixBlur={() => {
+                  if (!workEmailPrefix) {
+                    setErrors((prev) => ({ ...prev, workEmail: "Work email is required" }));
+                  } else if (!isValidEmailLocalPart(workEmailPrefix)) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      workEmail: "Only alphanumeric and '.' allowed",
+                    }));
+                  }
+                }}
               />
               <FormField
                 label="Phone (Personal)"
@@ -1725,7 +1770,18 @@ function OnboardingPanel({
                 error={errors.altPhone}
               />
               <FormField
-                label="Emergency Contact"
+                label="Emergency Contact Name"
+                name="emergencyContactName"
+                required
+                maxLength={FIELD_MAX.emergencyContactName}
+                placeholder="Full name of emergency contact"
+                value={form.emergencyContactName}
+                onChange={(v) => setField("emergencyContactName", v)}
+                onBlur={() => blurField("emergencyContactName")}
+                error={errors.emergencyContactName}
+              />
+              <FormField
+                label="Emergency Contact Number"
                 name="emergencyContact"
                 required
                 inputMode="numeric"
@@ -1737,62 +1793,32 @@ function OnboardingPanel({
                 onBlur={() => blurField("emergencyContact")}
                 error={errors.emergencyContact}
               />
-              <FormSelect
-                label="Gender"
-                required
-                error={errors.gender}
-                options={["Male", "Female", "Other"]}
-                value={form.gender}
-                onChange={(v) => setField("gender", v)}
-              />
-              <FormField
-                label="Date of Birth"
-                type="date"
-                required
-                value={form.dateOfBirth}
-                min={MIN_DOB}
-                max={MAX_ADULT_DOB}
-                onChange={(v) => setField("dateOfBirth", v)}
-                onBlur={() => blurField("dateOfBirth")}
-                error={errors.dateOfBirth}
-              />
-              <FormSelect
-                label="Marital Status"
-                options={["Single", "Married", "Other"]}
-                value={form.maritalStatus}
-                onChange={(v) => setField("maritalStatus", v)}
-              />
-              <FormSelect
-                label="Nationality"
-                required
-                error={errors.nationalityId}
-                options={nationalities.map((n) => ({ value: n.id, label: n.name }))}
-                value={form.nationalityId}
-                onChange={(v) => setField("nationalityId", v)}
-              />
-              <div className="md:col-span-2">
-                <FormTextarea
-                  label="Address"
-                  name="address"
+              <div className="md:col-span-1 lg:col-span-2">
+                <FormSelect
+                  label="Current Address - City"
                   required
                   error={errors.address}
-                  maxLength={FIELD_MAX.address}
-                  placeholder="Street address, city, state, PIN code"
+                  options={MUMBAI_RAILWAY_STATIONS}
                   value={form.address}
-                  onChange={(v) => setField("address", v)}
+                  onChange={(v) => {
+                    setField("address", v);
+                    blurField("address");
+                  }}
+                  placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
+                  showSearch
                 />
               </div>
             </FormSection>
 
             <FormSection title="2. Organization Assignment">
-              <FormField
-                label="Employee ID"
-                name="employeeCode"
+              <TkIdField
                 required
-                placeholder="e.g. EMP-1001"
-                maxLength={FIELD_MAX.employeeCode}
-                value={form.employeeCode}
-                onChange={(v) => setField("employeeCode", v)}
+                prefix={tkPrefix}
+                digits={splitTkId(form.employeeCode).digits}
+                onChange={(prefix, digits) => {
+                  setTkPrefix(prefix);
+                  setField("employeeCode", joinTkId(prefix, digits));
+                }}
                 onBlur={() => blurField("employeeCode")}
                 error={errors.employeeCode}
               />
@@ -1835,11 +1861,12 @@ function OnboardingPanel({
                 }}
               />
               <CreatableCatalogSelect
-                label="Role"
+                label="On Floor Role"
                 options={roleOptions}
                 valueId={form.jobRoleId}
                 disabled={!form.designationId}
                 disabledHint="Select a designation first"
+                placeholder="Select on floor role"
                 onSelect={(id) => setField("jobRoleId", id)}
                 onCreate={(name) => {
                   const trimmed = name.trim();
@@ -1852,6 +1879,23 @@ function OnboardingPanel({
                   return temp;
                 }}
               />
+              <div className="md:col-span-2 lg:col-span-2">
+                <CreatableCatalogSelect
+                  label="Business Unit"
+                  options={buOptions}
+                  valueId={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
+                  placeholder="Select business unit"
+                  onSelect={(id, name) => setField("businessUnit", name || id)}
+                  onCreate={(name) => {
+                    const trimmed = name.trim();
+                    const existing = buOptions.find((b) => b.name.toLowerCase() === trimmed.toLowerCase());
+                    if (existing) return existing;
+                    const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
+                    setBuOptions((prev) => [...prev, temp]);
+                    return temp;
+                  }}
+                />
+              </div>
               <CreatableCatalogSelect
                 label="Reporting Manager"
                 required
@@ -1872,34 +1916,6 @@ function OnboardingPanel({
                 }}
               />
               <CreatableCatalogSelect
-                label="Business Unit"
-                options={buOptions}
-                valueId={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
-                placeholder="Select business unit"
-                onSelect={(id, name) => setField("businessUnit", name || id)}
-                onCreate={(name) => {
-                  const trimmed = name.trim();
-                  const existing = buOptions.find((b) => b.name.toLowerCase() === trimmed.toLowerCase());
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setBuOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
-              />
-              <FormField
-                label="Team"
-                placeholder="Enter team or squad name"
-                maxLength={FIELD_MAX.team}
-                value={form.team}
-                onChange={(v) => setField("team", v)}
-              />
-              <FormSelect
-                label="Project Site"
-                options={["Onsite", "Offsite"]}
-                value={form.projectSite}
-                onChange={(v) => setField("projectSite", v)}
-              />
-              <CreatableCatalogSelect
                 label="Work Location"
                 required
                 error={errors.workLocation}
@@ -1914,19 +1930,11 @@ function OnboardingPanel({
                       l.name.toLowerCase() === resolvedName.toLowerCase() ||
                       (l.code && l.code.toLowerCase() === resolvedName.toLowerCase()),
                   );
-                  const matchedOffices = loc ? officeOptions.filter((o) => o.parentId === loc.id) : [];
-                  const autoOffice =
-                    matchedOffices.length === 1
-                      ? matchedOffices[0].name
-                      : matchedOffices.some(
-                            (o) => o.name.toLowerCase() === form.officeBranch.toLowerCase(),
-                          )
-                        ? form.officeBranch
-                        : "";
+                  const selectedName = loc ? loc.name : resolvedName;
                   setForm((prev) => ({
                     ...prev,
-                    workLocation: loc ? loc.name : resolvedName,
-                    officeBranch: autoOffice,
+                    workLocation: selectedName,
+                    projectSite: selectedName === "Onsite" ? prev.projectSite : "",
                   }));
                 }}
                 onCreate={async (name) => {
@@ -1944,49 +1952,13 @@ function OnboardingPanel({
                   }
                 }}
               />
-              <CreatableCatalogSelect
-                label="Office"
-                required
-                error={errors.officeBranch}
-                options={availableOffices}
-                valueId={availableOffices.find((o) => o.name.toLowerCase() === form.officeBranch.toLowerCase() || o.id === form.officeBranch)?.id ?? form.officeBranch}
-                disabled={!selectedWorkLoc}
-                disabledHint="Select a work location first"
-                placeholder={selectedWorkLoc ? "Select office branch" : "Select a work location first"}
-                onSelect={(id, name) => {
-                  const resolvedName = name || id;
-                  const off = availableOffices.find(
-                    (o) =>
-                      o.id === id ||
-                      o.name.toLowerCase() === resolvedName.toLowerCase(),
-                  );
-                  setForm((prev) => ({
-                    ...prev,
-                    officeBranch: off ? off.name : resolvedName,
-                  }));
-                }}
-                onCreate={async (name) => {
-                  const trimmed = name.trim();
-                  const existing = availableOffices.find((o) => o.name.toLowerCase() === trimmed.toLowerCase());
-                  if (existing) return existing;
-                  if (selectedWorkLoc && !selectedWorkLoc.id.startsWith("__new__")) {
-                    try {
-                      const created = await createOfficeOption(trimmed, selectedWorkLoc.id);
-                      setOfficeOptions((prev) => [...prev, created]);
-                      return created;
-                    } catch {
-                      // fallback
-                    }
-                  }
-                  const temp = {
-                    id: `__new__${trimmed}`,
-                    code: `__new__${trimmed}`,
-                    name: trimmed,
-                    parentId: selectedWorkLoc?.id,
-                  };
-                  setOfficeOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
+              <FormField
+                label="Location"
+                disabled={form.workLocation !== "Onsite"}
+                placeholder="Enter onsite location"
+                maxLength={FIELD_MAX.projectSite}
+                value={form.workLocation === "Onsite" ? form.projectSite : ""}
+                onChange={(v) => setField("projectSite", v)}
               />
             </FormSection>
 
@@ -2001,18 +1973,6 @@ function OnboardingPanel({
                 onBlur={() => blurField("joiningDate")}
                 error={errors.joiningDate}
               />
-              <FormSelect
-                label="Category"
-                options={[
-                  "Permanent - Bond",
-                  "Permanent - Without Bond",
-                  "Contract-based",
-                  "Intern - Paid",
-                  "Intern - Unpaid",
-                ]}
-                value={form.category}
-                onChange={(v) => setField("category", v)}
-              />
               <FormField
                 label="Asset ID"
                 placeholder="e.g. AST-1001"
@@ -2021,65 +1981,50 @@ function OnboardingPanel({
                 onChange={(v) => setField("assetId", v)}
               />
               <FormSelect
-                label="Employment Status"
+                label="Employee Status"
                 required
-                error={errors.status}
-                options={[
-                  "Active - Probation",
-                  "Active",
-                ]}
-                value={form.status}
-                onChange={(v) => setField("status", v)}
+                error={errors.employeeStatusId}
+                options={employeeStatusOptions.map((s) => ({ value: s.id, label: s.name }))}
+                value={form.employeeStatusId}
+                onChange={(v) => setField("employeeStatusId", v)}
+              />
+              <FormSelect
+                label="Worker Type"
+                required
+                error={errors.workerType}
+                options={[...WORKER_TYPES]}
+                value={form.workerType}
+                onChange={(v) => setField("workerType", v)}
+              />
+              <FormSelect
+                label="Bond Delivered"
+                required
+                error={errors.bondDelivered}
+                options={[...BOND_DELIVERED_OPTIONS]}
+                value={form.bondDelivered}
+                onChange={(v) => setField("bondDelivered", v)}
               />
               <FormField
-                label="Probation Period"
+                label="Bond Duration"
                 inputMode="numeric"
-                maxLength={FIELD_MAX.probationMonths}
-                placeholder="e.g. 6"
+                maxLength={3}
+                placeholder="Months"
                 suffix="months"
-                value={form.probationPeriod}
-                onChange={(v) => setField("probationPeriod", v)}
-                onBlur={() => blurField("probationPeriod")}
-                error={errors.probationPeriod}
+                disabled={form.bondDelivered !== "Yes"}
+                value={form.bondDelivered === "Yes" ? form.bondDurationMonths : "0"}
+                onChange={(v) => setField("bondDurationMonths", v)}
+                onBlur={() => blurField("bondDurationMonths")}
+                error={errors.bondDurationMonths}
               />
               <FormField
-                label="Notice Period"
-                inputMode="numeric"
-                maxLength={FIELD_MAX.noticeDays}
-                placeholder="e.g. 90"
-                suffix="days"
-                value={form.noticePeriod}
-                onChange={(v) => setField("noticePeriod", v)}
-                onBlur={() => blurField("noticePeriod")}
-                error={errors.noticePeriod}
+                label="Bond Expiry Date"
+                readOnly
+                value={bondExpiryDisplay}
               />
-              <FormSelect
-                label="Salary Band"
-                required
-                error={errors.salaryBandId}
-                options={salaryBands.map((b) => ({ value: b.id, label: b.name }))}
-                value={form.salaryBandId}
-                onChange={(v) => setField("salaryBandId", v)}
-              />
-              <FormSelect
-                label="Employment Type"
-                required
-                error={errors.employmentType}
-                options={["Full-time", "Part-time", "Contract"]}
-                value={form.employmentType}
-                onChange={(v) => setField("employmentType", v)}
-              />
-              <FormSelect
-                label="Contract Type"
-                options={["Permanent", "Fixed-term"]}
-                value={form.contractType}
-                onChange={(v) => setField("contractType", v)}
-              />
-              <FormSelect
+              <FormField
                 label="Bond Status"
-                options={["Yes", "No"]}
-                value={form.bondStatus}
-                onChange={(v) => setField("bondStatus", v)}
+                readOnly
+                value={bondStatusDisplay}
               />
             </FormSection>
 
@@ -2444,9 +2389,10 @@ function EmployeeDirectoryPage() {
   // Determine active rows based on tab
   const activeRows = tab === "directory" ? directoryRows : poolRows;
 
-  const totalPages = Math.max(1, Math.ceil(activeRows.length / pageSize));
+  const totalPages = totalPageCount(activeRows.length, pageSize);
   const currentPage = Math.min(page, totalPages);
-  const pageRows = activeRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pageRows = paginateSlice(activeRows, currentPage, pageSize);
+  const pageRange = paginationRange(currentPage, pageSize, activeRows.length);
 
   // Reset page when filters, tab, or pageSize change
   useEffect(() => {
@@ -2473,79 +2419,17 @@ function EmployeeDirectoryPage() {
 
   return (
     <AppShell title={title} subtitle={subtitle}>
-      {/* Search & Filters (Left) + View Switcher & Add Button (Right) */}
-      <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        {/* Left Side: Search & Filters */}
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-          <div className="relative w-full sm:w-56 shrink-0">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name, role, or ID..."
-              className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-            />
-            {q && (
-              <button
-                type="button"
-                onClick={() => setQ("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="w-full sm:w-40 shrink-0">
-            <FilterSelect
-              value={dept}
-              onChange={(value) => {
-                setDept(value);
-                setDesig("");
-              }}
-              placeholder="All Departments"
-              options={departmentFilterOptions}
-            />
-          </div>
-          <div className="w-full sm:w-44 shrink-0">
-            <FilterSelect
-              value={desig}
-              onChange={setDesig}
-              placeholder="All Designations"
-              options={designationFilterOptions}
-            />
-          </div>
-          <div className="w-full sm:w-36 shrink-0">
-            <FilterSelect
-              value={status}
-              onChange={setStatus}
-              placeholder="All Statuses"
-              options={DIRECTORY_STATUSES}
-            />
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAllFilters}
-              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            >
-              <RotateCcw className="h-3 w-3" />
-              Reset
-            </button>
-          )}
-        </div>
-
-        {/* Right Side: Tab Switcher (with BLUE active pill) & Add Button */}
-        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 shrink-0">
+      {/* Row 1 (Views & Global Actions) */}
+      <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Left: [📁 Directory] / [⚡ Resource Pool] view switcher */}
+        <div>
           {!basicDirectoryView && ENABLE_RESOURCE_POOL && (
             <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
               <button
                 onClick={() => setTab("directory")}
                 aria-label="Directory view"
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
                   tab === "directory"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-muted-foreground hover:text-foreground",
@@ -2558,7 +2442,7 @@ function EmployeeDirectoryPage() {
                 onClick={() => setTab("pool")}
                 aria-label="Pool view"
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
                   tab === "pool"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-muted-foreground hover:text-foreground",
@@ -2569,25 +2453,100 @@ function EmployeeDirectoryPage() {
               </button>
             </div>
           )}
+        </div>
 
-          {(isDhanshree || isHr) && (
-            <>
-              <EmployeeBulkUploadMenu
-                onImported={() => {
-                  void loadEmployees();
-                  void fetchDepartmentOptions().then(setDeptCatalog).catch(() => undefined);
-                  void fetchDesignationOptions().then(setDesigCatalog).catch(() => undefined);
-                }}
-              />
+        {/* Right: Bulk upload menu (📥) and [+ Add Employee] button */}
+        {(isDhanshree || isHr) && (
+          <div className="flex items-center gap-2.5 shrink-0">
+            <EmployeeBulkUploadMenu
+              onImported={() => {
+                void loadEmployees();
+                void fetchDepartmentOptions().then(setDeptCatalog).catch(() => undefined);
+                void fetchDesignationOptions().then(setDesigCatalog).catch(() => undefined);
+              }}
+            />
+            <button
+              onClick={() => setOnboardOpen(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              Add Employee
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Row 2: Filter and Search Bar (matching Exit Summary card design) */}
+      <div className="mb-4 rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+          {/* Search input */}
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name, role, or ID..."
+              className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-8 text-xs font-normal text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary transition-all"
+            />
+            {q && (
               <button
-                onClick={() => setOnboardOpen(true)}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"
+                type="button"
+                onClick={() => setQ("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                title="Clear search"
               >
-                <Plus className="h-4 w-4" />
-                Add Employee
+                <X className="h-3.5 w-3.5" />
               </button>
-            </>
-          )}
+            )}
+          </div>
+
+          {/* Department Filter */}
+          <div className="w-full md:w-44 shrink-0">
+            <FilterSelect
+              value={dept}
+              onChange={(value) => {
+                setDept(value);
+                setDesig("");
+              }}
+              placeholder="All Departments"
+              options={departmentFilterOptions}
+            />
+          </div>
+
+          {/* Designation Filter */}
+          <div className="w-full md:w-48 shrink-0">
+            <FilterSelect
+              value={desig}
+              onChange={setDesig}
+              placeholder="All Designations"
+              options={designationFilterOptions}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="w-full md:w-36 shrink-0">
+            <FilterSelect
+              value={status}
+              onChange={setStatus}
+              placeholder="All Statuses"
+              options={DIRECTORY_STATUSES}
+            />
+          </div>
+
+          {/* Reset Button */}
+          <div className="w-20 shrink-0 flex items-center">
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="h-9 inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -2595,7 +2554,7 @@ function EmployeeDirectoryPage() {
       {tab === "directory" ? (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
-            <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[800px]" : "min-w-[1440px]")}>
+            <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[800px]" : "min-w-[1480px]")}>
               <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
                 <tr>
                   {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col, idx, arr) => (
@@ -2653,8 +2612,17 @@ function EmployeeDirectoryPage() {
                         <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
                           {dash(e.reportingManager)}
                         </td>
-                        <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
-                          {dash(e.workLocation)}
+                        <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
+                          {e.workLocation === "Onsite" && e.projectSite ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
+                                Onsite
+                              </span>
+                              <span className="text-xs text-foreground truncate max-w-[120px]">{e.projectSite}</span>
+                            </span>
+                          ) : (
+                            dash(e.workLocation)
+                          )}
                         </td>
                         <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.category}>
                           {dash(e.category)}
@@ -2699,27 +2667,20 @@ function EmployeeDirectoryPage() {
           <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
             <div className="flex items-center gap-3">
               <span>
-                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong>–
+                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>–
                 <strong className="font-semibold text-blue-950 dark:text-blue-100">
-                  {Math.min(currentPage * pageSize, activeRows.length)}
+                  {pageRange.to}
                 </strong>{" "}
                 of <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length}</strong> employees
               </span>
               <span className="text-slate-300 dark:text-slate-600">|</span>
               <div className="flex items-center gap-1.5">
                 <span>Per page:</span>
-                <select
+                <RowsPerPageSelect
                   value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="h-7 w-14 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
-                  aria-label="Rows per page"
-                >
-                  <option value={10}>10</option>
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+                  onChange={setPageSize}
+                  className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                />
               </div>
             </div>
 
@@ -2825,26 +2786,16 @@ function EmployeeDirectoryPage() {
                       </td>
                       <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">—</td>
                       <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">—</td>
-                      <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
-                        {dash(e.workLocation)}
-                      </td>
-                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.officeBranch}>
-                        {dash(e.officeBranch)}
-                      </td>
-                      <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3.5">
-                        {e.projectSite === "Onsite" || e.projectSite === "Offsite" ? (
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                              e.projectSite === "Onsite"
-                                ? "border-info/30 bg-info/10 text-info"
-                                : "border-muted-foreground/30 bg-muted text-muted-foreground",
-                            )}
-                          >
-                            {e.projectSite}
+                      <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
+                        {e.workLocation === "Onsite" && e.projectSite ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
+                              Onsite
+                            </span>
+                            <span className="text-xs text-foreground truncate max-w-[120px]">{e.projectSite}</span>
                           </span>
                         ) : (
-                          "—"
+                          dash(e.workLocation)
                         )}
                       </td>
                       <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5 text-right">
@@ -2886,27 +2837,20 @@ function EmployeeDirectoryPage() {
           <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
             <div className="flex items-center gap-3">
               <span>
-                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong>–
+                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>–
                 <strong className="font-semibold text-blue-950 dark:text-blue-100">
-                  {Math.min(currentPage * pageSize, activeRows.length)}
+                  {pageRange.to}
                 </strong>{" "}
                 of <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length}</strong> resources
               </span>
               <span className="text-slate-300 dark:text-slate-600">|</span>
               <div className="flex items-center gap-1.5">
                 <span>Per page:</span>
-                <select
+                <RowsPerPageSelect
                   value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="h-7 w-14 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
-                  aria-label="Rows per page"
-                >
-                  <option value={10}>10</option>
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+                  onChange={setPageSize}
+                  className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                />
               </div>
             </div>
 

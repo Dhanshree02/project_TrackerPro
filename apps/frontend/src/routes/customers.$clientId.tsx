@@ -7,6 +7,7 @@ import {
   Phone,
   Layers,
   User,
+  UserRound,
   Pencil,
   Check,
   X,
@@ -25,7 +26,9 @@ import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
-import { fetchClient, mapApiClient, updateClient, formatCustomerId } from "@/lib/api/clients";
+import { fetchClient, mapApiClient, updateClient, formatCustomerId, getSubVentureKycUrl, getSubVentureKycDownloadUrl } from "@/lib/api/clients";
+import { fetchClientForRoute } from "@/lib/client-route-id";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import {
   fetchAllEmployees,
   fetchDesignationOptions,
@@ -85,7 +88,7 @@ export const Route = createFileRoute("/customers/$clientId")({
     // (Mock/dh-store clients are intentionally NOT used in the customer module.)
     if (typeof window !== "undefined") {
       try {
-        const api = await fetchClient(params.clientId);
+        const api = await fetchClientForRoute(params.clientId);
         if (api) return { client: mapApiClient(api) };
       } catch {
         // backend offline or genuine 404 — the component renders not-found
@@ -145,28 +148,19 @@ function CustomerDetailPage() {
   // so hard loads show a spinner instead of a flash of "not found".
   const [clientLoading, setClientLoading] = useState(!routeClient);
 
-  const handleDirectDownloadKyc = () => {
-    const docName = client?.kycDocumentName || `${client?.name ? client.name.replace(/\s+/g, "_") : "Customer"}_KYC_Document.pdf`;
-    const dummyContent = `KYC COMPLIANCE VERIFICATION DOCUMENT
-----------------------------------------
-Document Name: ${docName}
-Entity Name:   ${client?.name || "Customer"}
-Verification:  VERIFIED & COMPLIANT
-Date Issued:   ${client?.customerSince || new Date().toLocaleDateString()}
-Document Type: KYC Identification & Legal Registry
-Security Hash: SHA256-KYC-${client?.id?.slice(0, 8).toUpperCase() || "VERIFIED"}
-----------------------------------------
-This document confirms the verified identity and KYC onboarding status for ${client?.name || "Customer"} under Pulse PMO.`;
-
-    const blob = new Blob([dummyContent], { type: "text/plain;charset=utf-8" });
-    const dlUrl = URL.createObjectURL(blob);
+  // KYC is per sub-venture — download the stored file for the selected sub-venture.
+  const handleDirectDownloadKyc = (sv?: { id?: string; kycDocumentName?: string; kycDocumentPath?: string }) => {
+    if (!sv?.id || !sv.kycDocumentPath || !client?.id) {
+      toast.error("No KYC document", { description: "This sub-venture has no KYC document on file." });
+      return;
+    }
+    const docName = sv.kycDocumentName || `${client.name.replace(/\s+/g, "_")}_KYC.pdf`;
     const link = document.createElement("a");
-    link.href = dlUrl;
-    link.download = docName.endsWith(".txt") || docName.endsWith(".pdf") ? docName : `${docName}.txt`;
+    link.href = getSubVentureKycDownloadUrl(client.id, sv.id);
+    link.download = docName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(dlUrl);
     toast.success("KYC Document downloaded", { description: docName });
   };
   useEffect(() => {
@@ -176,7 +170,7 @@ This document confirms the verified identity and KYC onboarding status for ${cli
     }
     let cancelled = false;
     setClientLoading(true);
-    fetchClient(clientId)
+    fetchClientForRoute(clientId)
       .then((api) => {
         if (!cancelled) setClient(api ? mapApiClient(api) : undefined);
       })
@@ -354,6 +348,17 @@ This document confirms the verified identity and KYC onboarding status for ${cli
   const subVentures = client.subVentures ?? [];
   const activeSubVenture =
     svFilter !== "all" ? subVentures.find((sv) => sv.name === svFilter) : undefined;
+
+  // KYC is stored per sub-venture. It's only meaningful once a sub-venture is
+  // selected; the row then reflects that sub-venture's own document.
+  const activeKycHasFile = Boolean(activeSubVenture?.id && activeSubVenture?.kycDocumentPath);
+  const activeKycName =
+    activeSubVenture?.kycDocumentName ||
+    (activeSubVenture ? `${activeSubVenture.name.replace(/\s+/g, "_")}_KYC.pdf` : "");
+  const activeKycPreviewUrl =
+    activeKycHasFile && client.id && activeSubVenture?.id
+      ? getSubVentureKycUrl(client.id, activeSubVenture.id)
+      : undefined;
   const displaySpocs = activeSubVenture
     ? (activeSubVenture.contacts ?? []).map((c) => ({
         name: c.name,
@@ -410,12 +415,12 @@ This document confirms the verified identity and KYC onboarding status for ${cli
       </nav>
 
       {/* ── REDESIGNED CLIENT HEADER BANNER ── */}
-      <div className="mb-4 rounded-2xl border border-slate-200/90 dark:border-border/80 bg-card p-5 shadow-sm space-y-4">
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-300/90 dark:border-slate-700/80 bg-gradient-to-b from-slate-100/95 via-slate-100 to-blue-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950 p-5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)] space-y-4">
         {/* Top Tier: Identity & Stakeholders */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-border/60">
           {/* Left: Customer Identity & Badges */}
           <div className="flex items-start gap-3.5 min-w-0">
-            <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-info text-lg font-bold text-primary-foreground shadow-sm">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-info text-sm font-bold text-primary-foreground shadow-sm">
               {client.logo}
             </div>
 
@@ -426,7 +431,7 @@ This document confirms the verified identity and KYC onboarding status for ${cli
                 </h1>
                 
                 {/* Clearly Labeled Customer ID */}
-                <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-muted border border-border text-foreground">
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-border text-foreground shadow-2xs">
                   <Tag className="h-3 w-3 text-muted-foreground" />
                   {formatCustomerId(client.id)}
                 </span>
@@ -437,7 +442,7 @@ This document confirms the verified identity and KYC onboarding status for ${cli
                     "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                     client.clientType === "NEW"
                       ? "border border-primary/30 bg-primary/10 text-primary"
-                      : "border border-slate-200 dark:border-border bg-muted/60 text-muted-foreground",
+                      : "border border-slate-200 dark:border-border bg-white/80 dark:bg-muted/60 text-muted-foreground",
                   )}
                 >
                   {client.clientType === "NEW" ? "New Customer" : "Existing Customer"}
@@ -477,59 +482,60 @@ This document confirms the verified identity and KYC onboarding status for ${cli
             </div>
           </div>
 
-          {/* Right: Key Stakeholders Card (Engagement Manager & Sales Manager) */}
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0 rounded-xl bg-slate-50/90 dark:bg-muted/30 border border-slate-200/80 dark:border-border/60 p-2.5 shadow-2xs">
+          {/* Right: Key Stakeholders (Engagement Manager & Sales Manager) - Side-by-Side Card */}
+          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/90 bg-white dark:bg-card dark:border-border/80 px-4 py-2.5 shadow-2xs">
             {/* Engagement Manager */}
-            <div className="flex items-center gap-2.5 min-w-[175px] pr-2.5 sm:border-r sm:border-slate-200/80 dark:sm:border-border/60">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold text-xs shadow-2xs ring-1 ring-blue-300/60 dark:ring-blue-700/60">
-                <User className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Engagement Manager
-                  </span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                <UserRound className="h-5 w-5" />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <span>ENGAGEMENT MANAGER</span>
                   {(isDhanshree || hasPermission("customers.edit")) && !isSales && (
                     <button
                       type="button"
                       onClick={openEmPicker}
-                      className="text-[9px] text-primary hover:underline font-semibold cursor-pointer"
+                      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer transition-colors"
                       title="Change Engagement Manager"
                     >
                       Change
                     </button>
                   )}
                 </div>
-                <p
+                <div
                   className={cn(
-                    "truncate text-xs font-semibold leading-tight mt-0.5",
-                    emName !== "—" ? "text-foreground" : "text-muted-foreground font-normal italic",
+                    "text-sm font-bold truncate max-w-[150px]",
+                    emName !== "—" ? "text-foreground" : "text-muted-foreground/60 italic font-normal text-xs",
                   )}
                   title={emName}
                 >
                   {emName !== "—" ? emName : "Unassigned"}
-                </p>
+                </div>
               </div>
             </div>
 
+            {/* Vertical Divider */}
+            <div className="h-8 w-px bg-slate-200 dark:bg-border/60 shrink-0" />
+
             {/* Sales Manager */}
-            <div className="flex items-center gap-2.5 min-w-[165px] pl-1">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold text-xs shadow-2xs ring-1 ring-emerald-300/60 dark:ring-emerald-700/60">
-                <Briefcase className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Sales Manager
-                </span>
-                <p
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                <Briefcase className="h-5 w-5" />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  SALES MANAGER
+                </div>
+                <div
                   className={cn(
-                    "truncate text-xs font-semibold leading-tight mt-0.5",
-                    client.salesManager?.trim() ? "text-foreground" : "text-muted-foreground font-normal italic",
+                    "text-sm font-bold truncate max-w-[150px]",
+                    client.salesManager?.trim() ? "text-foreground" : "text-muted-foreground/60 italic font-normal text-xs",
                   )}
                   title={client.salesManager || "Unassigned"}
                 >
                   {client.salesManager?.trim() || "Unassigned"}
-                </p>
+                </div>
               </div>
             </div>
           </div>
@@ -698,21 +704,17 @@ This document confirms the verified identity and KYC onboarding status for ${cli
               </div>
               <div className="space-y-2 p-3">
                 {subVentures.length > 0 ? (
-                  <select
-                    value={svFilter}
-                    onChange={(e) => {
-                      setSvFilter(e.target.value);
+                  <SearchableSelect
+                    placeholder="Select sub-venture…"
+                    options={subVentures.map((sv) => ({ value: sv.name, label: sv.name }))}
+                    value={svFilter === "all" ? "" : svFilter}
+                    onChange={(val) => {
+                      setSvFilter(val || "all");
                       setSelectedSpoc(null);
                     }}
-                    className="h-8 w-full rounded-md border border-border bg-card py-0 pl-3 pr-7 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                  >
-                    <option value="all">Select sub-venture…</option>
-                    {subVentures.map((sv) => (
-                      <option key={sv.name} value={sv.name}>
-                        {sv.name}
-                      </option>
-                    ))}
-                  </select>
+                    buttonClassName="h-8 text-xs"
+                    className="w-full"
+                  />
                 ) : (
                   <p className="text-xs text-muted-foreground">No sub-ventures for this client.</p>
                 )}
@@ -759,20 +761,22 @@ This document confirms the verified identity and KYC onboarding status for ${cli
                     }`}
                 </p>
               </div>
-              <label className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
+              <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
                 <span className="hidden sm:inline">Health</span>
-                <select
+                <SearchableSelect
+                  placeholder="All"
+                  options={[
+                    { value: "all", label: "All" },
+                    { value: "healthy", label: "Healthy" },
+                    { value: "at_risk", label: "At Risk" },
+                    { value: "critical", label: "Critical" },
+                  ]}
                   value={healthFilter}
-                  onChange={(e) => setHealthFilter(e.target.value as HealthFilter)}
-                  className="h-8 min-w-[115px] rounded-md border border-input bg-card pl-2.5 pr-8 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <option value="all">All</option>
-                  <option value="healthy">Healthy</option>
-                  <option value="at_risk">At Risk</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </label>
+                  onChange={(val) => setHealthFilter(((val || "all") as HealthFilter))}
+                  buttonClassName="h-8 min-w-[115px] text-xs font-medium"
+                  clearable={false}
+                />
+              </div>
             </header>
 
             {pool.length === 0 ? (
@@ -948,40 +952,57 @@ This document confirms the verified identity and KYC onboarding status for ${cli
                 </div>
               ))}
 
-              {/* KYC Document Row with View and Download */}
+              {/* KYC Document Row — scoped to the selected sub-venture */}
               <div className="px-4 py-2.5 text-xs">
                 <div className="flex items-center justify-between gap-1 mb-1.5">
                   <dt className="font-medium text-muted-foreground flex items-center gap-1.5">
                     <FileText className="h-3.5 w-3.5 text-primary" /> KYC Document
+                    {activeSubVenture && (
+                      <span className="truncate text-[10px] font-normal normal-case text-muted-foreground/80">
+                        — {activeSubVenture.name}
+                      </span>
+                    )}
                   </dt>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setKycPreviewOpen(true)}
-                      className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer shadow-2xs"
-                      title="Preview KYC Document"
-                    >
-                      <Eye className="h-3 w-3" /> View
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDirectDownloadKyc}
-                      className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer shadow-2xs"
-                      title="Download KYC Document"
-                      aria-label="Download KYC Document"
-                    >
-                      <Download className="h-3 w-3 text-primary" /> Download
-                    </button>
-                  </div>
+                  {activeKycHasFile && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setKycPreviewOpen(true)}
+                        className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer shadow-2xs"
+                        title="Preview KYC Document"
+                      >
+                        <Eye className="h-3 w-3" /> View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDirectDownloadKyc(activeSubVenture)}
+                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer shadow-2xs"
+                        title="Download KYC Document"
+                        aria-label="Download KYC Document"
+                      >
+                        <Download className="h-3 w-3 text-primary" /> Download
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <dd className="flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span className="truncate font-mono font-medium text-foreground">
-                    {client.kycDocumentName || `${client.name.replace(/\s+/g, "_")}_KYC.pdf`}
-                  </span>
-                  <span className="shrink-0 ml-2 rounded-full border border-success/30 bg-success/10 px-1.5 py-0.2 text-[9px] font-semibold text-success uppercase">
-                    Verified
-                  </span>
-                </dd>
+                {!activeSubVenture ? (
+                  <dd className="text-[11px] text-muted-foreground">
+                    Select a sub-venture to view its KYC document.
+                  </dd>
+                ) : activeKycHasFile ? (
+                  <dd className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="truncate font-mono font-medium text-foreground">
+                      {activeKycName}
+                    </span>
+                    <span className="shrink-0 ml-2 rounded-full border border-success/30 bg-success/10 px-1.5 py-0.2 text-[9px] font-semibold text-success uppercase">
+                      Verified
+                    </span>
+                  </dd>
+                ) : (
+                  <dd className="text-[11px] text-muted-foreground">
+                    No KYC document uploaded for this sub-venture.
+                  </dd>
+                )}
               </div>
             </dl>
           </div>
@@ -1110,8 +1131,9 @@ This document confirms the verified identity and KYC onboarding status for ${cli
         <KycDocPreviewModal
           open={kycPreviewOpen}
           onClose={() => setKycPreviewOpen(false)}
-          fileName={client.kycDocumentName || `${client.name.replace(/\s+/g, "_")}_KYC_Document.pdf`}
-          clientName={client.name}
+          previewUrl={activeKycPreviewUrl}
+          fileName={activeKycName || `${client.name.replace(/\s+/g, "_")}_KYC_Document.pdf`}
+          clientName={activeSubVenture ? `${client.name} — ${activeSubVenture.name}` : client.name}
           uploadDate={clientSinceDate}
         />
       )}

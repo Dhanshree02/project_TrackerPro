@@ -1374,6 +1374,7 @@ function WbsNewProjectPage() {
                     setRenewalProject(null);
                   }}
                   onBlur={() => setTimeout(() => setWbsDropOpen(false), 150)}
+                  className={LEGACY_FIELD_CLASS}
                   style={{
                     ...inputStyle(false),
                     paddingLeft: 32,
@@ -1718,6 +1719,7 @@ function WbsNewProjectPage() {
                             );
                         }, 150)
                       }
+                      className={LEGACY_FIELD_CLASS}
                       style={{ ...inputStyle(false), paddingRight: 28 }}
                     />
                     {/* Clear icon when a client is selected */}
@@ -1885,6 +1887,7 @@ function WbsNewProjectPage() {
                           else setSvSearch(selectedSubVenture);
                         }, 150)
                       }
+                      className={LEGACY_FIELD_CLASS}
                       style={{ ...inputStyle(!selectedClientId), paddingRight: 28 }}
                     />
                     {selectedSubVenture && (
@@ -2076,11 +2079,11 @@ function WbsNewProjectPage() {
                 type="text"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                style={inputStyle(false)}
+                {...legacyFieldProps(false)}
               />
             </FormGroup>
             <FormGroup label="Engagement Manager">
-              <input type="text" value={engagementManager} readOnly style={inputStyle(true)} />
+              <input type="text" value={engagementManager} readOnly {...legacyFieldProps(true)} />
             </FormGroup>
           </div>
           {/* Row 2: Contract Type + Sales Person */}
@@ -2106,7 +2109,7 @@ function WbsNewProjectPage() {
                   setBillingModel("");
                   setPaymentTerms("");
                 }}
-                style={inputStyle(false)}
+                {...legacyFieldProps(false)}
               >
                 <option value="">Select Contract Type</option>
                 <option value="Resource Based">Resource Based</option>
@@ -2117,7 +2120,7 @@ function WbsNewProjectPage() {
               <select
                 value={salesPerson}
                 onChange={(e) => setSalesPerson(e.target.value)}
-                style={inputStyle(false)}
+                {...legacyFieldProps(false)}
               >
                 <option value="">Select Sales Person</option>
                 <option value="Abhishek Sharma">Abhishek Sharma</option>
@@ -2153,7 +2156,7 @@ function WbsNewProjectPage() {
                     );
                   }
                 }}
-                style={inputStyle(contractType === "Resource Based" || !contractType)}
+                {...legacyFieldProps(contractType === "Resource Based" || !contractType)}
                 title={!contractType ? "Select a Contract Type first" : ""}
               >
                 {!contractType ? (
@@ -2170,7 +2173,7 @@ function WbsNewProjectPage() {
               </select>
             </FormGroup>
             <FormGroup label="Project Onboarding Date" required>
-              <input type="date" value={projectIssuedDate} readOnly style={inputStyle(true)} />
+              <input type="date" value={projectIssuedDate} readOnly {...legacyFieldProps(true)} />
             </FormGroup>
           </div>
         </Card>
@@ -2629,7 +2632,7 @@ function WbsNewProjectPage() {
                 value={billingModel}
                 disabled={!projectType}
                 onChange={(e) => onBillingModelChange(e.target.value)}
-                style={inputStyle(!projectType)}
+                {...legacyFieldProps(!projectType)}
                 title={!projectType ? "Select a Project Type in WBS Information first" : ""}
               >
                 {!projectType ? (
@@ -2661,6 +2664,7 @@ function WbsNewProjectPage() {
                               prev.map((p, i) => (i === idx ? { ...p, label: e.target.value } : p)),
                             )
                           }
+                          className={LEGACY_FIELD_CLASS}
                           style={{ ...inputStyle(false), flex: 1, fontSize: 12 }}
                         />
                         <div
@@ -2781,7 +2785,7 @@ function WbsNewProjectPage() {
                   value={paymentTerms}
                   readOnly
                   placeholder={billingModel ? "Auto-set by billing model" : "—"}
-                  style={inputStyle(true)}
+                  {...legacyFieldProps(true)}
                 />
               )}
             </FormGroup>
@@ -2834,15 +2838,15 @@ function WbsNewProjectPage() {
             </FormGroup>
 
             <FormGroup label="PO Status" required>
-              <select
-                value={poStatus}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setPoStatus(val);
-                  if (val !== "PO Received") setPoFile(null);
-                }}
-                style={inputStyle(false)}
-              >
+                <select
+                  value={poStatus}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPoStatus(val);
+                    if (val !== "PO Received") setPoFile(null);
+                  }}
+                  {...legacyFieldProps(false)}
+                >
                 <option value="">Select PO Status</option>
                 <option value="PO Received">PO Received</option>
                 <option value="PO Pending">PO Pending</option>
@@ -3490,18 +3494,26 @@ function FormGroup({
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
 
+const LEGACY_FIELD_CLASS = "legacy-inline-field";
+
 const inputStyle = (locked: boolean): React.CSSProperties => ({
-  padding: "10px 12px",
+  padding: "8px 12px",
   border: "1px solid #d1d5db",
   borderRadius: 6,
   fontSize: 13,
+  lineHeight: 1.35,
+  minHeight: 40,
   fontFamily: "inherit",
   width: "100%",
   boxSizing: "border-box",
-  background: locked ? "#f3f4f6" : "#fff",
+  backgroundColor: locked ? "#f3f4f6" : "#fff",
   color: locked ? "#6b7280" : "#1f2937",
   cursor: locked ? "not-allowed" : "auto",
 });
+
+function legacyFieldProps(locked: boolean) {
+  return { style: inputStyle(locked), className: LEGACY_FIELD_CLASS };
+}
 
 const thStyle: React.CSSProperties = {
   padding: "10px 8px",

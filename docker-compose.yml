@@ -1,3 +1,12 @@
+# Full local stack: PostgreSQL + pgAdmin + .NET API + Vite frontend.
+#
+#   docker compose up -d --build        # first run / after code changes
+#   docker compose down                 # stop (keeps DB + uploaded files)
+#   docker compose down -v              # stop and wipe DB -> re-seeds from database/trackerpro-final.sql
+#
+# URLs: frontend http://localhost:3000 · API http://localhost:5194/swagger · pgAdmin http://localhost:5050
+# Host ports can be overridden with a .env file next to this compose file (see the ${VAR:-default} entries).
+
 services:
   # ----------------------------------------------------
   # 1. SHARED DATABASE (PostgreSQL)
@@ -5,16 +14,22 @@ services:
   postgres_db:
     image: postgres:16-alpine
     container_name: pms_postgres
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: clockit
       POSTGRES_DB: trackerpro
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Runs only when the data volume is empty (first boot / after `down -v`). Must stay UTF-8.
       - ./database/trackerpro-final.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d trackerpro"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
     networks:
       - pms_network
 
@@ -24,34 +39,40 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pms_pgadmin
-    restart: always
+    restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: clockit
     ports:
-      - "5050:80"
+      - "${PGADMIN_PORT:-5050}:80"
     networks:
       - pms_network
     depends_on:
-      - postgres_db
+      postgres_db:
+        condition: service_healthy
 
   # ----------------------------------------------------
-  # 3. BACKEND API (.NET Core)
+  # 3. BACKEND API (.NET 10)
   # ----------------------------------------------------
   backend:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
     container_name: pms_backend
-    restart: always
+    restart: unless-stopped
     depends_on:
-      - postgres_db
+      postgres_db:
+        condition: service_healthy
     environment:
+      # Development => Database:AutoMigrate + Seed run on boot (idempotent against the SQL dump).
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=trackerpro;Username=postgres;Password=clockit
+      - Storage__RootPath=/app/storage
     ports:
-      - "5194:8080"
+      - "${BACKEND_PORT:-5194}:8080"
+    volumes:
+      - backend_storage:/app/storage
     networks:
       - pms_network
 
@@ -63,15 +84,16 @@ services:
       context: ./apps/frontend
       dockerfile: Dockerfile
     container_name: pms_frontend
-    restart: always
+    restart: unless-stopped
     depends_on:
       - backend
     environment:
+      # Vite dev proxy target for /api inside the compose network.
       - VITE_BACKEND_URL=http://backend:8080
     ports:
-      - "3000:3000"
-      - "80:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     volumes:
+      # Live-reload from the host checkout; node_modules stay inside the container image.
       - ./apps/frontend:/app
       - /app/node_modules
     networks:
@@ -83,4 +105,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  backend_storage:
     driver: local

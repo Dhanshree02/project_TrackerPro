@@ -6,6 +6,7 @@ import {
   isoDateYearsAgo,
   isLettersName,
   isValidEmailLocalPart,
+  isValidTkId,
   phoneError,
 } from "@/lib/form-validation";
 
@@ -34,6 +35,7 @@ export type OnboardField =
   | "phone"
   | "altPhone"
   | "emergencyContact"
+  | "emergencyContactName"
   | "gender"
   | "dateOfBirth"
   | "maritalStatus"
@@ -47,23 +49,19 @@ export type OnboardField =
   | "projectSite"
   | "workLocation"
   | "officeBranch"
-  | "category"
   | "assetId"
-  | "status"
   | "exitType"
   | "exitReason"
-  | "probationPeriod"
-  | "noticePeriod"
-  | "salaryBandId"
+  | "employeeStatusId"
+  | "workerType"
+  | "bondDelivered"
+  | "bondDurationMonths"
   | "education"
   | "certifications"
   | "technicalSkills"
   | "functionalSkills"
   | "experience"
   | "previousCompany"
-  | "employmentType"
-  | "contractType"
-  | "bondStatus"
   | "languages"
   | "pan"
   | "aadhaar"
@@ -101,31 +99,28 @@ export const EMPTY_ONBOARD: OnboardValues = {
   nationalityId: "",
   address: "",
   emergencyContact: "",
+  emergencyContactName: "",
   departmentId: "",
   designationId: "",
   jobRoleId: "",
-  businessUnit: "",
+  businessUnit: "Talakunchi Networks Private Limited",
   team: "",
   projectSite: "",
   workLocation: "",
   officeBranch: "",
-  category: "",
   assetId: "",
-  status: "Active",
+  employeeStatusId: "",
+  workerType: "Permanent",
+  bondDelivered: "No",
+  bondDurationMonths: "0",
   exitType: "NA",
   exitReason: "",
-  probationPeriod: "",
-  noticePeriod: "",
-  salaryBandId: "",
   education: "",
   certifications: "",
   technicalSkills: "",
   functionalSkills: "",
   experience: "",
   previousCompany: "",
-  employmentType: "Full-Time",
-  contractType: "",
-  bondStatus: "",
   languages: "",
   pan: "",
   aadhaar: "",
@@ -149,33 +144,27 @@ export const ONBOARD_FIELDS: OnboardField[] = [
   "firstName",
   "lastName",
   "workEmail",
-  "personalEmail",
   "employeeCode",
   "phone",
   "altPhone",
   "emergencyContact",
-  "gender",
-  "dateOfBirth",
-  "maritalStatus",
-  "nationalityId",
+  "emergencyContactName",
   "address",
   "departmentId",
   "designationId",
   "jobRoleId",
   "reportingManagerId",
   "workLocation",
-  "officeBranch",
   "joiningDate",
-  "status",
-  "employmentType",
-  "probationPeriod",
-  "noticePeriod",
+  "employeeStatusId",
+  "workerType",
+  "bondDelivered",
+  "bondDurationMonths",
   "pan",
   "aadhaar",
   "pfUan",
   "bankAccount",
   "ifsc",
-  "salaryBandId",
 ];
 
 export const MAX_ADULT_DOB = isoDateYearsAgo(18);
@@ -251,26 +240,33 @@ export function validateOnboardField(
       if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
       return undefined;
     }
+    case "emergencyContactName": {
+      const v = (values.emergencyContactName || "").trim();
+      if (!v) return "Emergency contact name is required";
+      if (v.length < 2) return "Emergency contact name must be at least 2 characters";
+      if (v.length > 100) return "Emergency contact name must be 100 characters or less";
+      if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
+      return undefined;
+    }
     case "gender": {
-      const v = (values.gender || "").trim();
-      if (!v) return "Gender is required";
       return undefined;
     }
     case "dateOfBirth": {
       const v = (values.dateOfBirth || "").trim();
-      if (!v) return "Date of birth is required";
+      if (!v) return undefined;
       if (v > MAX_ADULT_DOB) return "Employee must be at least 18 years old";
       if (v < MIN_DOB) return "Enter a valid date of birth";
       return undefined;
     }
+    case "maritalStatus": {
+      return undefined;
+    }
     case "nationalityId": {
-      const v = (values.nationalityId || "").trim();
-      if (!v) return "Nationality is required";
       return undefined;
     }
     case "address": {
       const v = (values.address || "").trim();
-      if (!v) return "Residential address is required";
+      if (!v) return "Current Address - City is required";
       return undefined;
     }
     case "departmentId": {
@@ -294,8 +290,29 @@ export function validateOnboardField(
       return undefined;
     }
     case "officeBranch": {
-      const v = (values.officeBranch || "").trim();
-      if (!v) return "Office branch is required";
+      return undefined;
+    }
+    case "employeeStatusId": {
+      const v = (values.employeeStatusId || "").trim();
+      if (!v) return "Employee status is required";
+      return undefined;
+    }
+    case "workerType": {
+      const v = (values.workerType || "").trim();
+      if (!v) return "Worker type is required";
+      return undefined;
+    }
+    case "bondDelivered": {
+      const v = (values.bondDelivered || "").trim();
+      if (!v) return "Bond delivered is required";
+      return undefined;
+    }
+    case "bondDurationMonths": {
+      const v = (values.bondDurationMonths || "").trim();
+      if (values.bondDelivered !== "Yes") return undefined;
+      if (!v) return "Bond duration is required when bond is delivered";
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0 || n > 120) return "Enter bond duration in months (1–120)";
       return undefined;
     }
     case "joiningDate": {
@@ -304,37 +321,8 @@ export function validateOnboardField(
       if (v < isoDateToday()) return "Date of joining must be today or a future date";
       return undefined;
     }
-    case "status": {
-      const v = (values.status || "").trim();
-      if (!v) return "Employment status is required";
-      return undefined;
-    }
-    case "employmentType": {
-      const v = (values.employmentType || "").trim();
-      if (!v) return "Employment type is required";
-      return undefined;
-    }
-    case "salaryBandId": {
-      const v = (values.salaryBandId || "").trim();
-      if (!v) return "Salary band is required";
-      return undefined;
-    }
     case "jobRoleId":
       return undefined;
-    case "probationPeriod": {
-      const v = (values.probationPeriod || "").trim();
-      if (!v) return undefined;
-      const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 36) return "Enter months between 0 and 36";
-      return undefined;
-    }
-    case "noticePeriod": {
-      const v = (values.noticePeriod || "").trim();
-      if (!v) return undefined;
-      const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 365) return "Enter days between 0 and 365";
-      return undefined;
-    }
     case "workEmail": {
       const v = (values.workEmail || "").trim();
       if (!v) return "Work email is required";
@@ -360,13 +348,10 @@ export function validateOnboardField(
     }
     case "employeeCode": {
       const v = (values.employeeCode || "").trim();
-      if (!v) return "Employee ID is required";
-      if (v.length > 20) return "Employee ID must be 20 characters or less";
-      if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(v)) {
-        return "Use letters, numbers, dot, hyphen or underscore";
-      }
+      if (!v) return "TK ID is required";
+      if (!isValidTkId(v)) return "Enter a 4-digit number (e.g. TK-0001)";
       if (existingCodes.some((c) => c.toLowerCase() === v.toLowerCase())) {
-        return "This employee ID already exists";
+        return "This TK ID already exists";
       }
       return undefined;
     }
@@ -413,11 +398,9 @@ export function validateOnboardField(
       if (!isValidIfsc(v)) return "Enter a valid IFSC (e.g. SBIN0001234)";
       return undefined;
     }
-    case "maritalStatus":
     case "businessUnit":
     case "team":
     case "projectSite":
-    case "category":
     case "assetId":
     case "exitType":
     case "exitReason":
@@ -427,8 +410,6 @@ export function validateOnboardField(
     case "functionalSkills":
     case "experience":
     case "previousCompany":
-    case "contractType":
-    case "bondStatus":
     case "languages":
       return undefined;
   }

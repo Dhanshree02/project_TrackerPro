@@ -36,9 +36,12 @@ import { usePermissions } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { DocumentContentViewer } from "@/modules/my-org/components/DocumentContentViewer";
+import { RowsPerPageSelect } from "@/components/rows-per-page-select";
+import { isAllPageSize, paginationRange } from "@/lib/pagination";
 import { openDocumentInNewTab } from "@/lib/document-tab-viewer";
 import {
   fetchRepositoryDocuments,
+  fetchAllRepositoryDocuments,
   fetchRepositoryCategoryCounts,
   fetchRepositoryAccessSummaries,
   fetchDocumentLogs,
@@ -48,11 +51,13 @@ import {
   getRepositoryDownloadUrl,
   getRepositoryPreviewUrl,
   isAllowedRepositoryFile,
+  fetchRepositoryDepartments,
   ALLOWED_REPOSITORY_EXTENSIONS,
   type RepositoryItem,
   type RepositoryActivityLog,
   type DocumentAccessSummary,
   type DocumentAccessEntry,
+  type RepositoryDepartmentOption,
 } from "@/lib/api/repository";
 
 export const Route = createFileRoute("/my-org")({
@@ -988,23 +993,64 @@ function UploadAssignmentModal({
   file: File;
   categories: CategoryMeta[];
   isUploading: boolean;
-  onAssign: (categoryId: string) => void;
+  onAssign: (categoryId: string, departmentIds: string[]) => void;
   onCancel: () => void;
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>("tech-sops");
+  const [departments, setDepartments] = useState<RepositoryDepartmentOption[]>([]);
+  const [selectedDeptIds, setSelectedDeptIds] = useState<Set<string>>(new Set());
+  const [departmentsLoading, setDepartmentsLoading] = useState(true);
+  const [departmentsError, setDepartmentsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDepartmentsLoading(true);
+    setDepartmentsError(null);
+    fetchRepositoryDepartments()
+      .then((rows) => {
+        if (cancelled) return;
+        setDepartments(rows);
+        if (rows.length === 0) {
+          setDepartmentsError("No active departments found. Add departments in Resources first.");
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setDepartmentsError(err instanceof Error ? err.message : "Could not load departments.");
+      })
+      .finally(() => {
+        if (!cancelled) setDepartmentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleDept = (id: string) => {
+    setSelectedDeptIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = departments.length > 0 && selectedDeptIds.size === departments.length;
+
+  const canSubmit = Boolean(selectedCategoryId) && selectedDeptIds.size > 0 && !isUploading && !departmentsLoading;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onCancel} />
       <div
-        className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+        className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between border-b border-border pb-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">Assign Document to Category</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Select a category for this file before uploading.
+              Choose a category and the departments that may view this file.
             </p>
           </div>
           <button
@@ -1041,6 +1087,59 @@ function UploadAssignmentModal({
           ))}
         </div>
 
+        {/* Department checklist */}
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Visible to departments
+            </p>
+            {departments.length > 0 && (
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={() =>
+                  setSelectedDeptIds(allSelected ? new Set() : new Set(departments.map((d) => d.id)))
+                }
+                className="text-[11px] font-medium text-primary hover:underline cursor-pointer"
+              >
+                {allSelected ? "Clear all" : "Select all"}
+              </button>
+            )}
+          </div>
+          <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-muted/20 p-2">
+            {departmentsLoading ? (
+              <p className="px-2 py-3 text-xs text-muted-foreground">Loading departments…</p>
+            ) : departmentsError ? (
+              <p className="px-2 py-3 text-xs text-destructive">{departmentsError}</p>
+            ) : (
+              <ul className="space-y-0.5">
+                {departments.map((dept) => {
+                  const checked = selectedDeptIds.has(dept.id);
+                  return (
+                    <li key={dept.id}>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent/60">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={isUploading}
+                          onChange={() => toggleDept(dept.id)}
+                          className="h-3.5 w-3.5 rounded border-input accent-primary"
+                        />
+                        <span className="truncate text-foreground">{dept.name}</span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          {!departmentsLoading && !departmentsError && selectedDeptIds.size === 0 && (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Check at least one department. Only people in those departments will see this document.
+            </p>
+          )}
+        </div>
+
         {/* Actions */}
         <div className="mt-5 flex items-center justify-end gap-2 border-t border-border pt-4">
           <button
@@ -1053,8 +1152,10 @@ function UploadAssignmentModal({
           </button>
           <button
             type="button"
-            disabled={isUploading || !selectedCategoryId}
-            onClick={() => selectedCategoryId && onAssign(selectedCategoryId)}
+            disabled={!canSubmit}
+            onClick={() =>
+              selectedCategoryId && onAssign(selectedCategoryId, Array.from(selectedDeptIds))
+            }
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isUploading ? "Uploading..." : "Upload Document"}
@@ -1129,12 +1230,18 @@ function MyOrgPage() {
         ? categories.find((c) => c.id === activeCategoryId)?.backendKey
         : null;
 
-      const res = await fetchRepositoryDocuments({
-        page,
-        perPage: pageSize,
+      const query = {
         category: activeCat,
         search: searchQuery,
-      });
+      };
+
+      const res = isAllPageSize(pageSize)
+        ? await fetchAllRepositoryDocuments(query)
+        : await fetchRepositoryDocuments({
+            page,
+            perPage: pageSize,
+            ...query,
+          });
 
       setDocuments(res.items || []);
       setTotalCount(res.total || 0);
@@ -1153,6 +1260,8 @@ function MyOrgPage() {
   useEffect(() => {
     void loadDocuments();
   }, [page, pageSize, activeCategoryId, searchQuery]);
+
+  const docRange = paginationRange(page, pageSize, totalCount);
 
   const handleUploadClick = () => {
     if (fileInputRef.current) {
@@ -1176,14 +1285,23 @@ function MyOrgPage() {
     setUploadedFile(file);
   };
 
-  const handleAssignCategory = async (categoryId: string) => {
+  const handleAssignCategory = async (categoryId: string, departmentIds: string[]) => {
     if (!uploadedFile) return;
+    if (departmentIds.length === 0) {
+      toast.error("Select at least one department");
+      return;
+    }
     setIsUploading(true);
     try {
       const catMeta = categories.find((c) => c.id === categoryId);
       const backendCategory = catMeta?.backendKey ?? "Tech";
 
-      await uploadRepositoryDocument(uploadedFile, backendCategory, user?.name || "Admin");
+      await uploadRepositoryDocument(
+        uploadedFile,
+        backendCategory,
+        user?.name || "Admin",
+        departmentIds,
+      );
 
       toast.success("Document uploaded successfully!");
       setUploadedFile(null);
@@ -1323,6 +1441,7 @@ function MyOrgPage() {
                   <tr>
                     <th className="px-4 py-3 font-semibold">File Name</th>
                     <th className="px-4 py-3 font-semibold">Category</th>
+                    <th className="px-4 py-3 font-semibold">Departments</th>
                     <th className="px-4 py-3 font-semibold">Size</th>
                     <th className="px-4 py-3 font-semibold">Last Updated</th>
                     <th className="px-4 py-3 font-semibold">Uploaded By</th>
@@ -1332,13 +1451,13 @@ function MyOrgPage() {
                 <tbody className="divide-y divide-border">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                      <td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">
                         Loading documents...
                       </td>
                     </tr>
                   ) : documents.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                      <td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">
                         No documents found.
                       </td>
                     </tr>
@@ -1379,6 +1498,15 @@ function MyOrgPage() {
                             <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                               {doc.category}
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">
+                            {doc.departments && doc.departments.length > 0 ? (
+                              <span className="line-clamp-2" title={doc.departments.map((d) => d.name).join(", ")}>
+                                {doc.departments.map((d) => d.name).join(", ")}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/70">All</span>
+                            )}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
                             {formatFileSize(doc.size)}
@@ -1448,32 +1576,24 @@ function MyOrgPage() {
                 <span>
                   Showing{" "}
                   <strong className="font-semibold text-foreground">
-                    {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}
+                    {docRange.from}
                   </strong>
                   –
                   <strong className="font-semibold text-foreground">
-                    {Math.min(page * pageSize, totalCount)}
+                    {docRange.to}
                   </strong>{" "}
                   of <strong className="font-semibold text-foreground">{totalCount}</strong> documents
                 </span>
                 <span className="text-muted-foreground/40">|</span>
                 <div className="flex items-center gap-1.5">
                   <span>Per page:</span>
-                  <select
+                  <RowsPerPageSelect
                     value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
+                    onChange={(nextSize) => {
+                      setPageSize(nextSize);
                       setPage(1);
                     }}
-                    className="h-7 w-14 rounded-md border border-input bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
-                    aria-label="Rows per page"
-                  >
-                    <option value={10}>10</option>
-                    <option value={15}>15</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
+                  />
                 </div>
               </div>
 

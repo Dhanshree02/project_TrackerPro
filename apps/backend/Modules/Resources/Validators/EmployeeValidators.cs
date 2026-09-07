@@ -1,14 +1,40 @@
 using FluentValidation;
+using PMS.API.Middleware;
 using PMS.API.Modules.Resources.DTOs;
 using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Resources.Validators;
 
+/// <summary>TK ID format: <c>TK-0001</c> for employees, <c>TKI-0001</c> for interns.</summary>
+public static partial class EmployeeCodeRules
+{
+    public const string FormatMessage = "TK ID must be TK or TKI followed by a 4-digit number (e.g. TK-0001)";
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^(TK|TKI)-\d{4}$")]
+    private static partial System.Text.RegularExpressions.Regex Pattern();
+
+    public static string Normalize(string code) => code.Trim().ToUpperInvariant();
+
+    public static bool IsValid(string code) => Pattern().IsMatch(Normalize(code));
+
+    /// <summary>Create allows an empty code (server auto-generates the next TK/TKI number).</summary>
+    public static bool IsValidOrEmpty(string? code) =>
+        string.IsNullOrWhiteSpace(code) || IsValid(code);
+
+    /// <summary>400 VALIDATION_ERROR via <see cref="ExceptionHandlingMiddleware"/> for code paths that bypass MVC validation.</summary>
+    public static ValidationException FormatException() =>
+        new([new FluentValidation.Results.ValidationFailure("employeeCode", FormatMessage)]);
+}
+
 public sealed class CreateEmployeeRequestValidator : AbstractValidator<CreateEmployeeRequest>
 {
     public CreateEmployeeRequestValidator()
     {
-        RuleFor(x => x.EmployeeCode).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.EmployeeCode)
+            .NotNull()
+            .MaximumLength(20)
+            .Must(EmployeeCodeRules.IsValidOrEmpty)
+            .WithMessage(EmployeeCodeRules.FormatMessage);
         RuleFor(x => x.FirstName)
             .NotEmpty()
             .MaximumLength(120)
@@ -34,6 +60,11 @@ public sealed class CreateEmployeeRequestValidator : AbstractValidator<CreateEmp
         RuleFor(x => x.AltPhone)
             .MustBeValidIndianPhone()
             .When(x => !string.IsNullOrWhiteSpace(x.AltPhone));
+        RuleFor(x => x.EmergencyContactName)
+            .MaximumLength(120)
+            .Matches(@"^[A-Za-z]+(?:['\s\-][A-Za-z]+)*$")
+            .WithMessage("Emergency contact name can only contain letters, spaces, hyphens, and apostrophes")
+            .When(x => !string.IsNullOrWhiteSpace(x.EmergencyContactName));
         RuleFor(x => x.DateOfBirth)
             .Must(d => !d.HasValue || d.Value <= DateOnly.FromDateTime(DateTime.UtcNow.Date.AddYears(-18)))
             .WithMessage("Employee must be at least 18 years old");
@@ -73,6 +104,13 @@ public sealed class UpdateEmployeeRequestValidator : AbstractValidator<UpdateEmp
 {
     public UpdateEmployeeRequestValidator()
     {
+        RuleFor(x => x.EmployeeCode)
+            .NotEmpty()
+            .When(x => x.EmployeeCode is not null)
+            .WithMessage("TK ID cannot be blank")
+            .Must(c => EmployeeCodeRules.IsValid(c!))
+            .When(x => !string.IsNullOrWhiteSpace(x.EmployeeCode))
+            .WithMessage(EmployeeCodeRules.FormatMessage);
         RuleFor(x => x.FirstName)
             .NotEmpty()
             .When(x => x.FirstName is not null)
@@ -101,6 +139,11 @@ public sealed class UpdateEmployeeRequestValidator : AbstractValidator<UpdateEmp
         RuleFor(x => x.AltPhone)
             .MustBeValidIndianPhone()
             .When(x => !string.IsNullOrWhiteSpace(x.AltPhone));
+        RuleFor(x => x.EmergencyContactName)
+            .MaximumLength(120)
+            .Matches(@"^[A-Za-z]+(?:['\s\-][A-Za-z]+)*$")
+            .WithMessage("Emergency contact name can only contain letters, spaces, hyphens, and apostrophes")
+            .When(x => !string.IsNullOrWhiteSpace(x.EmergencyContactName));
         RuleFor(x => x.DateOfBirth)
             .Must(d => !d.HasValue || d.Value <= DateOnly.FromDateTime(DateTime.UtcNow.Date.AddYears(-18)))
             .WithMessage("Employee must be at least 18 years old");

@@ -9,11 +9,12 @@ export const FIELD_MAX = {
   firstName: 200,
   lastName: 200,
   engagementManager: 200,
-  salesManager: 200,
+  salesManager: 120,
   designation: 200,
   industry: 200,
   nationality: 200,
   address: 200,
+  emergencyContactName: 100,
   email: 200,
   phone: 10,
   notes: 200,
@@ -193,6 +194,30 @@ export const ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS = [
 export function isAllowedWorkEmailDomain(domain: string): boolean {
   const clean = domain.replace(/^@/, "").toLowerCase().trim();
   return ALLOWED_WORK_EMAIL_DOMAINS.includes(clean as AllowedWorkEmailDomain);
+}
+
+/** TK ID = `<prefix>-<4 digits>`; TK for employees, TKI for interns. */
+export const TK_ID_PREFIXES = ["TK", "TKI"] as const;
+export type TkIdPrefix = (typeof TK_ID_PREFIXES)[number];
+export const TK_ID_DIGITS = 4;
+export const TK_ID_PATTERN = /^(TK|TKI)-\d{4}$/;
+
+export function isValidTkId(code: string): boolean {
+  return TK_ID_PATTERN.test(code.trim().toUpperCase());
+}
+
+export function joinTkId(prefix: string, digits: string): string {
+  return digits ? `${prefix}-${digits}` : "";
+}
+
+/** Split `TK-0012` → `{ prefix: "TK", digits: "0012" }`. Unknown formats keep TK + digits found. */
+export function splitTkId(code: string): { prefix: TkIdPrefix; digits: string } {
+  const upper = code.trim().toUpperCase();
+  const m = upper.match(/^(TKI|TK)-?(\d*)/);
+  if (m) {
+    return { prefix: m[1] as TkIdPrefix, digits: m[2].slice(0, TK_ID_DIGITS) };
+  }
+  return { prefix: "TK", digits: upper.replace(/\D/g, "").slice(0, TK_ID_DIGITS) };
 }
 
 /** Local calendar date as `YYYY-MM-DD`. */

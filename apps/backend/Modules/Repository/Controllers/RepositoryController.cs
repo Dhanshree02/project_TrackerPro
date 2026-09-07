@@ -61,9 +61,19 @@ public class RepositoryController(
             return BadRequest(ApiResponse<RepositoryItemDto>.Fail("CATEGORY_REQUIRED", "Category is required (Tech, PMS, or IMP)."));
         }
 
+        if (request?.DepartmentIds is null || request.DepartmentIds.Count == 0)
+        {
+            return BadRequest(ApiResponse<RepositoryItemDto>.Fail("DEPARTMENT_REQUIRED", "Select at least one department that may view this document."));
+        }
+
         try
         {
-            var item = await repositoryService.UploadDocumentAsync(category, file, uploadedBy, ct);
+            var item = await repositoryService.UploadDocumentAsync(
+                category,
+                file,
+                uploadedBy,
+                request?.DepartmentIds,
+                ct);
             return Ok(ApiResponse<RepositoryItemDto>.Ok(item));
         }
         catch (InvalidOperationException ex)
@@ -156,6 +166,11 @@ public class RepositoryController(
         Guid id,
         CancellationToken ct = default)
     {
+        if (!await repositoryService.CanAccessDocumentAsync(id, ct))
+        {
+            return NotFound(ApiResponse<IReadOnlyList<RepositoryActivityLogDto>>.Fail("NOT_FOUND", "Document not found."));
+        }
+
         var logs = await repositoryService.GetDocumentLogsAsync(id, ct);
         return Ok(ApiResponse<IReadOnlyList<RepositoryActivityLogDto>>.Ok(logs));
     }
@@ -202,6 +217,14 @@ public class RepositoryController(
     {
         var summaries = await repositoryService.GetDocumentAccessSummariesAsync(category, search, ct);
         return Ok(ApiResponse<IReadOnlyList<DocumentAccessSummaryDto>>.Ok(summaries));
+    }
+
+    [HttpGet("departments")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RepositoryDepartmentOptionDto>>>> GetDepartments(
+        CancellationToken ct = default)
+    {
+        var departments = await repositoryService.GetDepartmentOptionsAsync(ct);
+        return Ok(ApiResponse<IReadOnlyList<RepositoryDepartmentOptionDto>>.Ok(departments));
     }
 
     [HttpGet("categories")]

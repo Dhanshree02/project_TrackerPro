@@ -18,6 +18,8 @@ public interface IEmployeeService
 
     Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, CancellationToken ct = default);
 
+    Task<string> GetNextEmployeeCodeAsync(bool isIntern, CancellationToken ct = default);
+
     Task<EmployeeDetailDto?> UpdateEmployeeAsync(string idOrCode, UpdateEmployeeRequest request, CancellationToken ct = default);
 
     byte[] GetBulkSampleExcel();
@@ -47,6 +49,8 @@ public interface IEmployeeService
     Task<IReadOnlyList<MetaOptionDto>> GetWorkLocationsAsync(CancellationToken ct = default);
 
     Task<IReadOnlyList<MetaOptionDto>> GetOfficesAsync(Guid? workLocationId = null, CancellationToken ct = default);
+
+    Task<IReadOnlyList<MetaOptionDto>> GetEmployeeStatusesAsync(bool onboardingOnly = false, CancellationToken ct = default);
 
     Task<MetaOptionDto> CreateDepartmentAsync(string name, CancellationToken ct = default);
 

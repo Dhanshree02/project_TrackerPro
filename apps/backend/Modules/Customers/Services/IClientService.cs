@@ -25,4 +25,16 @@ public interface IClientService
     Task<bool> SoftDeleteClientAsync(Guid id, CancellationToken ct = default);
 
     Task<IReadOnlyList<string>> GetIndustriesAsync(CancellationToken ct = default);
+
+    /// <summary>Persists the stored KYC file reference (name + Documents-relative path) on the client.</summary>
+    Task<ClientDto?> SetClientKycAsync(Guid id, string fileName, string relativePath, CancellationToken ct = default);
+
+    /// <summary>Returns the client name plus stored KYC reference for streaming; null when the client is missing.</summary>
+    Task<(string ClientName, string? KycName, string? KycPath)?> GetClientKycRefAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Persists the stored KYC file reference on a specific sub-venture of the client.</summary>
+    Task<ClientDto?> SetSubVentureKycAsync(Guid clientId, Guid subVentureId, string fileName, string relativePath, CancellationToken ct = default);
+
+    /// <summary>Returns the client + sub-venture names and the sub-venture's KYC reference for streaming; null when missing.</summary>
+    Task<(string ClientName, string SubVentureName, string? KycName, string? KycPath)?> GetSubVentureKycRefAsync(Guid clientId, Guid subVentureId, CancellationToken ct = default);
 }

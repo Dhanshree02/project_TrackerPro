@@ -50,10 +50,20 @@ public interface IFileStorageService
         string? category = null,
         CancellationToken ct = default);
 
+    /// <summary>Renames the per-employee document folder when a TK ID changes. No-op if nothing was uploaded.</summary>
+    void MoveEmployeeDocuments(string oldEmployeeCode, string newEmployeeCode);
+
     Task<StoredRepositoryFileInfo> SaveRepositoryDocumentAsync(
         string category,
         IFormFile file,
         CancellationToken ct = default);
+
+    Task<StoredRepositoryFileInfo> SaveKycDocumentAsync(
+        string clientName,
+        IFormFile file,
+        CancellationToken ct = default);
+
+    (Stream Stream, string ContentType, string DownloadFileName)? GetKycFileStream(string relativePathOrFileName);
 
     (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string category, string fileName);
 
@@ -64,4 +74,6 @@ public interface IFileStorageService
     bool DeleteRepositoryFile(string filePath);
 
     string GetStorageRootPath();
+
+    string GetDocumentsRootPath();
 }

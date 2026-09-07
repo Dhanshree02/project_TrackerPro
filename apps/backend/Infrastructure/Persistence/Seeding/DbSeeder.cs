@@ -24,6 +24,16 @@ public static class DbSeeder
 {
     public const string DevPassword = "Password@123";
 
+    /// <summary>
+    /// Ensures <c>mst_employee_statuses</c> catalog rows exist. Runs on every API boot
+    /// (not only full demo seed) so onboarding can load statuses from the DB.
+    /// </summary>
+    public static async Task EnsureEmployeeStatusesAsync(AppDbContext db, CancellationToken ct = default)
+    {
+        await SeedEmployeeStatusesAsync(db, ct);
+        await db.SaveChangesAsync(ct);
+    }
+
     public static async Task SeedAsync(AppDbContext db, IPasswordHasher hasher, CancellationToken ct = default)
     {
         // Each Seed* method is individually idempotent, so partial seeds self-heal.
@@ -151,6 +161,12 @@ public static class DbSeeder
             ("u18", "Sales User", "sales@acme.co", "SU", nameof(UserRole.Sales)),
         };
 
+        // Some imported/legacy user rows have NULL PasswordHash. The User entity
+        // maps it as non-nullable string, so materializing those rows crashes startup.
+        await db.Database.ExecuteSqlRawAsync(
+            """UPDATE users SET "PasswordHash" = '' WHERE "PasswordHash" IS NULL""",
+            ct);
+
         var existing = await db.Users.ToDictionaryAsync(u => u.EmployeeId, ct);
         var users = new Dictionary<string, User>();
 
@@ -195,26 +211,24 @@ public static class DbSeeder
     {
         var departments = new[]
         {
-            ("product", "Product"),
-            ("design", "Design"),
-            ("marketing", "Marketing"),
-            ("sales", "Sales"),
-            ("finance", "Finance"),
-            ("human_resources", "Human Resources"),
-            ("operations", "Operations"),
-            ("engineering", "Engineering"),
-            ("delivery", "Delivery"),
-            ("leadership", "Leadership"),
+            ("core", "Core"),
+            ("functional_it_administration", "Functional - IT Administration"),
+            ("functional_accounts", "Functional - Accounts"),
+            ("functional_hr", "Functional - HR"),
+            ("functional_sales", "Functional - Sales"),
+            ("functional_project_management", "Functional - Project Management"),
+            ("rd_research_and_development", "R&D (Research & Development)"),
+            ("services_operations", "Services - Operations"),
+            ("services_consulting", "Services - Consulting"),
+            ("services_testing", "Services - Testing"),
         };
 
-        var existingDeptList = await db.Departments.IgnoreQueryFilters().ToListAsync(ct);
-        var existingDepartments = existingDeptList
-            .GroupBy(d => d.Code.Trim().ToLowerInvariant())
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var existingDepartments = await db.Departments
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(d => d.Code, StringComparer.OrdinalIgnoreCase, ct);
         foreach (var (code, name) in departments)
         {
-            if (existingDepartments.ContainsKey(code) || existingDeptList.Any(d => d.Code.Equals(code, StringComparison.OrdinalIgnoreCase) || d.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-                continue;
+            if (existingDepartments.ContainsKey(code)) continue;
             var department = new MstDepartment
             {
                 Code = code,
@@ -223,62 +237,18 @@ public static class DbSeeder
             };
             db.Departments.Add(department);
             existingDepartments[code] = department;
-            existingDeptList.Add(department);
         }
 
-        var designations = new (string Code, string Name, string DepartmentCode)[]
+        var oldSampleCodes = new[] { "product", "design", "marketing", "sales", "finance", "human_resources", "operations", "engineering", "delivery", "leadership" };
+        var obsoleteDepts = await db.Departments.Where(d => oldSampleCodes.Contains(d.Code)).ToListAsync(ct);
+        if (obsoleteDepts.Count > 0)
         {
-            ("engineering_manager", "Engineering Manager", "engineering"),
-            ("product_manager", "Product Manager", "product"),
-            ("ux_designer", "UX Designer", "design"),
-            ("marketing_lead", "Marketing Lead", "marketing"),
-            ("sales_executive", "Sales Executive", "sales"),
-            ("finance_analyst", "Finance Analyst", "finance"),
-            ("hr_business_partner", "HR Business Partner", "human_resources"),
-            ("software_engineer", "Software Engineer", "engineering"),
-            ("senior_software_engineer", "Senior Software Engineer", "engineering"),
-            ("tech_lead", "Tech Lead", "engineering"),
-            ("devops_engineer", "DevOps Engineer", "engineering"),
-            ("qa_engineer", "QA Engineer", "engineering"),
-            ("data_analyst", "Data Analyst", "engineering"),
-            ("content_strategist", "Content Strategist", "marketing"),
-            ("business_analyst", "Business Analyst", "operations"),
-            ("project_manager", "Project Manager", "operations"),
-            ("engagement_manager", "Engagement Manager", "delivery"),
-            ("senior_project_manager", "Senior Project Manager", "delivery"),
-            ("head_of_department", "Head of Department", "leadership"),
-        };
-        var existingDesigList = await db.Designations.IgnoreQueryFilters().ToListAsync(ct);
-        var existingDesignations = existingDesigList
-            .GroupBy(d => d.Code.Trim().ToLowerInvariant())
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-        foreach (var (code, name, departmentCode) in designations)
-        {
-            existingDepartments.TryGetValue(departmentCode, out var department);
-            var matched = existingDesigList.FirstOrDefault(d => d.Code.Equals(code, StringComparison.OrdinalIgnoreCase) || d.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (matched is not null)
-            {
-                if (matched.DepartmentId is null && department is not null)
-                    matched.DepartmentId = department.Id;
-                continue;
-            }
-
-            var designation = new MstDesignation
-            {
-                Code = code,
-                Name = name,
-                DepartmentId = department?.Id,
-                IsActive = true,
-            };
-            db.Designations.Add(designation);
-            existingDesignations[code] = designation;
-            existingDesigList.Add(designation);
+            db.Departments.RemoveRange(obsoleteDepts);
         }
 
-        var existingIndList = await db.Industries.IgnoreQueryFilters().ToListAsync(ct);
-        var existingIndustries = existingIndList
-            .GroupBy(i => i.Code.Trim().ToLowerInvariant())
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var existingIndustries = await db.Industries
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(i => i.Code, StringComparer.OrdinalIgnoreCase, ct);
         var industries = new[]
         {
             ("banking", "Banking"),
@@ -293,8 +263,7 @@ public static class DbSeeder
         };
         foreach (var (code, name) in industries)
         {
-            if (existingIndustries.ContainsKey(code) || existingIndList.Any(i => i.Code.Equals(code, StringComparison.OrdinalIgnoreCase) || i.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-                continue;
+            if (existingIndustries.ContainsKey(code)) continue;
             var ind = new MstIndustry
             {
                 Code = code,
@@ -303,21 +272,53 @@ public static class DbSeeder
             };
             db.Industries.Add(ind);
             existingIndustries[code] = ind;
-            existingIndList.Add(ind);
         }
 
         await SeedNationalitiesAsync(db, ct);
         await SeedSalaryBandsAsync(db, ct);
+        var existingDesignations = await db.Designations
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(d => d.Code, StringComparer.OrdinalIgnoreCase, ct);
         await SeedJobRolesAsync(db, existingDesignations, ct);
         await SeedGeoCatalogsAsync(db, ct);
         await SeedEmailDomainsAsync(db, ct);
         await SeedBusinessUnitsAsync(db, ct);
+        await SeedEmployeeStatusesAsync(db, ct);
         await SeedWorkLocationsAndOfficesAsync(db, ct);
+    }
+
+    private static async Task SeedEmployeeStatusesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var statuses = new (string Code, string Name, bool AllowOnboarding, int SortOrder)[]
+        {
+            ("active", "Active", true, 1),
+            ("terminated", "Terminated", false, 2),
+            ("absconded", "Absconded", false, 3),
+            ("resigned", "Resigned", false, 4),
+            ("resignation_under_review", "Resignation Under Review", false, 5),
+        };
+
+        var existing = await db.EmployeeStatuses
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(s => s.Code, StringComparer.OrdinalIgnoreCase, ct);
+
+        foreach (var (code, name, allowOnboarding, sortOrder) in statuses)
+        {
+            if (existing.ContainsKey(code)) continue;
+            db.EmployeeStatuses.Add(new MstEmployeeStatus
+            {
+                Code = code,
+                Name = name,
+                IsActive = true,
+                AllowOnboarding = allowOnboarding,
+                SortOrder = sortOrder,
+            });
+        }
     }
 
     private static async Task SeedBusinessUnitsAsync(AppDbContext db, CancellationToken ct)
     {
-        var bus = new[] { "Cloud Platform", "Consumer Apps", "Enterprise", "Digital Solutions" };
+        var bus = new[] { "Talakunchi Networks Private Limited" };
         var existing = await db.BusinessUnits.ToDictionaryAsync(b => b.Name.ToLower(), ct);
         var order = 1;
         foreach (var name in bus)
@@ -335,31 +336,27 @@ public static class DbSeeder
 
     private static async Task SeedWorkLocationsAndOfficesAsync(AppDbContext db, CancellationToken ct)
     {
-        var locations = new (string Code, string Name, string[] Offices)[]
+        var locations = new (string Code, string Name)[]
         {
-            ("andheri", "Andheri", ["Suvidha Square"]),
-            ("dombivli", "Dombivli", ["Navare Plaza"]),
+            ("onsite", "Onsite"),
+            ("suvidha_square_andheri", "Suvidha Square, Andheri"),
+            ("navare_plaza_dombivli", "Navare Plaza, Dombivli"),
         };
 
-        var existingLocations = await db.WorkLocations.Include(w => w.Offices).ToListAsync(ct);
+        var existingLocations = await db.WorkLocations.ToListAsync(ct);
         var allowedCodes = locations.Select(l => l.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // Deactivate any locations & offices that are not allowed
         foreach (var loc in existingLocations)
         {
             if (!allowedCodes.Contains(loc.Code))
             {
                 loc.IsActive = false;
-                foreach (var off in loc.Offices)
-                {
-                    off.IsActive = false;
-                }
             }
         }
 
         var locDict = existingLocations.ToDictionary(w => w.Code, StringComparer.OrdinalIgnoreCase);
         var locOrder = 1;
-        foreach (var (code, name, offices) in locations)
+        foreach (var (code, name) in locations)
         {
             if (!locDict.TryGetValue(code, out var loc))
             {
@@ -378,38 +375,6 @@ public static class DbSeeder
                 loc.Name = name;
                 loc.IsActive = true;
                 loc.SortOrder = locOrder++;
-            }
-
-            var officeOrder = 1;
-            var existingOffices = loc.Offices.ToDictionary(o => o.Name.ToLower(), StringComparer.OrdinalIgnoreCase);
-            var allowedOffices = offices.ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var off in loc.Offices)
-            {
-                if (!allowedOffices.Contains(off.Name))
-                {
-                    off.IsActive = false;
-                }
-            }
-
-            foreach (var offName in offices)
-            {
-                if (existingOffices.TryGetValue(offName.ToLower(), out var existingOff))
-                {
-                    existingOff.Name = offName;
-                    existingOff.IsActive = true;
-                    existingOff.SortOrder = officeOrder++;
-                }
-                else
-                {
-                    loc.Offices.Add(new MstOffice
-                    {
-                        Code = $"{code}_{Slug(offName)}",
-                        Name = offName,
-                        IsActive = true,
-                        SortOrder = officeOrder++,
-                    });
-                }
             }
         }
     }
@@ -599,29 +564,89 @@ public static class DbSeeder
         IReadOnlyDictionary<string, MstDesignation> designations,
         CancellationToken ct)
     {
-        var rolesByDesignation = new Dictionary<string, string[]>
+        var onFloorRolesByDesignation = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            ["software_engineer"] = ["Employee", "Developer", "Associate Engineer"],
-            ["senior_software_engineer"] = ["Employee", "Senior Developer", "Specialist"],
-            ["tech_lead"] = ["TeamLead", "Technical Lead", "Module Lead"],
-            ["devops_engineer"] = ["Employee", "DevOps Specialist", "SRE"],
-            ["qa_engineer"] = ["Employee", "QA Analyst", "Test Engineer"],
-            ["data_analyst"] = ["Employee", "Analyst", "Data Specialist"],
-            ["engineering_manager"] = ["Engineering Manager", "People Manager"],
-            ["product_manager"] = ["ProjectManager", "Product Owner", "Product Manager"],
-            ["ux_designer"] = ["Employee", "Designer", "UX Specialist"],
-            ["marketing_lead"] = ["Marketing Lead", "Campaign Lead"],
-            ["sales_executive"] = ["Sales", "Account Executive"],
-            ["finance_analyst"] = ["Accounts", "Analyst"],
-            ["hr_business_partner"] = ["Hr", "Business Partner"],
-            ["content_strategist"] = ["Employee", "Strategist"],
-            ["business_analyst"] = ["Pmo", "Analyst", "Consultant"],
-            ["project_manager"] = ["ProjectManager", "Delivery Manager"],
-            ["engagement_manager"] = ["Engagement Manager", "Client Partner"],
-            ["senior_project_manager"] = ["Senior Project Manager", "Program Manager"],
-            ["head_of_department"] = ["Head of Department", "Director"],
+            ["Director and Chief Executive Officer"] = ["Leader (L)"],
+            ["Director and Chief Operating Officer"] = ["Leader (L)"],
+            ["Director and Chief Technology Officer"] = ["Leader (L)"],
+            ["IT Admin"] = ["Team Member (TM)"],
+            ["Desktop Support Engineer - I"] = ["Team Member (TM)"],
+            ["Desktop Support Engineer - II"] = ["Team Member (TM)"],
+            ["Accountant - I"] = ["Manager (Mng.)"],
+            ["Accountant - II"] = ["Manager (Mng.)"],
+            ["Accountant - III"] = ["Manager (Mng.)"],
+            ["Senior Accountant - I"] = ["Manager (Mng.)"],
+            ["Senior Accountant - II"] = ["Manager (Mng.)"],
+            ["Senior Accountant - III"] = ["Manager (Mng.)"],
+            ["HR Head"] = ["HR"],
+            ["Recruitment Coordinator - I"] = ["HR"],
+            ["Recruitment Coordinator - II"] = ["HR"],
+            ["Senior HR Executive - I"] = ["HR"],
+            ["Senior HR Executive - II"] = ["HR"],
+            ["Business Development Associate - I"] = ["Manager (Mng.)"],
+            ["Customer Success Representative - II"] = ["Manager (Mng.)"],
+            ["Director - Product Sales"] = ["Team Member (TM)"],
+            ["Sales Associate"] = ["Team Member (TM)"],
+            ["Associate Customer Success Representative - I"] = ["Team Member (TM)"],
+            ["Associate Customer Success Representative - II"] = ["Team Member (TM)"],
+            ["Associate PMO - I"] = ["Team Member (TM)"],
+            ["Associate PMO - II"] = ["Team Member (TM)"],
+            ["Senior PMO - I"] = ["Team Leader (TL)"],
+            ["Senior PMO - II"] = ["Manager (Mng.)"],
+            ["Delivery Account Manager - I"] = ["Team Member (TM)"],
+            ["Delivery Account Manager - II"] = ["Team Member (TM)"],
+            ["Senior Delivery Account Manager - I"] = ["Team Leader (TL)"],
+            ["Senior Delivery Account Manager - II"] = ["Manager (Mng.)"],
+            ["Python Developer - I"] = ["Team Member (TM)"],
+            ["Python Developer - II"] = ["Team Member (TM)"],
+            ["Python Developer - III"] = ["Team Member (TM)"],
+            ["SOC Analyst - I"] = ["Team Member (TM)"],
+            ["SOC Analyst - II"] = ["Team Member (TM)"],
+            ["SOC Analyst - III"] = ["Team Member (TM)"],
+            ["SOC Analyst - IV"] = ["Team Member (TM)"],
+            ["SIEM Admin - I"] = ["Team Member (TM)"],
+            ["SIEM Admin - II"] = ["Team Member (TM)"],
+            ["SIEM Admin - III"] = ["Team Member (TM)"],
+            ["SIEM Admin - IV"] = ["Team Member (TM)"],
+            ["SOC Consultant - I"] = ["Team Member (TM)"],
+            ["SOC Consultant - II"] = ["Team Member (TM)"],
+            ["SOC Shift Lead - I"] = ["Team Leader (TL)"],
+            ["SOC Shift Lead - II"] = ["Team Leader (TL)"],
+            ["SOC Lead - I"] = ["Team Leader (TL)"],
+            ["SOC Lead - II"] = ["Team Leader (TL)"],
+            ["GRC Auditor - I"] = ["Team Member (TM)"],
+            ["GRC Auditor - II"] = ["Team Member (TM)"],
+            ["GRC Auditor - III"] = ["Team Member (TM)"],
+            ["GRC Auditor - IV"] = ["Team Member (TM)"],
+            ["Senior GRC Auditor - I"] = ["Team Leader (TL)"],
+            ["Senior GRC Auditor - II"] = ["Team Leader (TL)"],
+            ["Associate Manager - III"] = ["Manager (Mng.)", "Team Leader (TL)"],
+            ["Principal Manager - I"] = ["Sr. Manager (Sr.Mng.)"],
+            ["Senior Vice President - Principal Consultant"] = ["Head Of Department (HOD)"],
+            ["PenTester - I"] = ["Team Member (TM)"],
+            ["PenTester - II"] = ["Team Member (TM)"],
+            ["PenTester - III"] = ["Team Member (TM)"],
+            ["PenTester - IV"] = ["Team Member (TM)"],
+            ["Senior Pentester - I"] = ["Team Member (TM)"],
+            ["Senior Pentester - II"] = ["Team Member (TM)"],
+            ["Associate Manager - I"] = ["Team Leader (TL)"],
+            ["Associate Manager - II"] = ["Team Leader (TL)"],
+            ["Associate Project Manager"] = ["Manager (Mng.)"],
+            ["Manager - I"] = ["Sr. Manager (Sr.Mng.)"],
+            ["DevSecOps Practitioner - I"] = ["Team Member (TM)"],
+            ["DevSecOps Practitioner - II"] = ["Team Member (TM)"],
+            ["DevSecOps Practitioner - III"] = ["Team Member (TM)"],
+            ["DevSecOps Associate"] = ["Team Leader (TL)"],
+            ["DevSecOps Specialist - II"] = ["Manager (Mng.)"],
+            ["Red Team Practitioner - II"] = ["Team Member (TM)"],
+            ["Red Team Practitioner - III"] = ["Team Member (TM)"],
+            ["Red Team Specialist - II"] = ["Manager (Mng.)"],
+            ["Senior Cloud Security Consultant - I"] = ["Manager (Mng.)"],
+            ["Associate AI Engineer - Contractual"] = ["Team Member (TM)"],
+            ["Intern"] = ["Team Member (TM)"],
         };
 
+        var allDesignations = await db.Designations.ToListAsync(ct);
         var existingCodes = await db.JobRoles.Select(r => r.Code).ToHashSetAsync(ct);
         var existingPairs = await db.JobRoles
             .Select(r => new { r.DesignationId, r.Name })
@@ -630,18 +655,18 @@ public static class DbSeeder
             .Select(r => (r.DesignationId, r.Name))
             .ToHashSet();
 
-        foreach (var (designationCode, names) in rolesByDesignation)
+        foreach (var desig in allDesignations)
         {
-            if (!designations.TryGetValue(designationCode, out var designation)) continue;
+            if (!onFloorRolesByDesignation.TryGetValue(desig.Name.Trim(), out var names)) continue;
             foreach (var name in names)
             {
-                if (existingKeys.Contains((designation.Id, name))) continue;
-                var roleCode = Truncate($"{designationCode}_{Slug(name)}", 80);
+                if (existingKeys.Contains((desig.Id, name))) continue;
+                var roleCode = Truncate($"{desig.Code}_{Slug(name)}", 80);
                 var n = 2;
                 while (existingCodes.Contains(roleCode))
                 {
                     var suffix = $"_{n}";
-                    roleCode = Truncate(designationCode + "_" + Slug(name), 80 - suffix.Length) + suffix;
+                    roleCode = Truncate(desig.Code + "_" + Slug(name), 80 - suffix.Length) + suffix;
                     n++;
                 }
 
@@ -649,11 +674,11 @@ public static class DbSeeder
                 {
                     Code = roleCode,
                     Name = name,
-                    DesignationId = designation.Id,
+                    DesignationId = desig.Id,
                     IsActive = true,
                 });
                 existingCodes.Add(roleCode);
-                existingKeys.Add((designation.Id, name));
+                existingKeys.Add((desig.Id, name));
             }
         }
     }
@@ -813,41 +838,44 @@ public static class DbSeeder
 
     private static async Task SeedDirectoryEmployeesAsync(AppDbContext db, CancellationToken ct)
     {
+        // Designation/department Names are not unique (e.g. many departments each have an
+        // "Intern" designation with distinct codes), so dedup by name and keep the first match.
         var departments = (await db.Departments.ToListAsync(ct))
-            .GroupBy(d => d.Name)
-            .ToDictionary(g => g.Key, g => g.First());
+            .GroupBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var designations = (await db.Designations.ToListAsync(ct))
-            .GroupBy(d => d.Name)
-            .ToDictionary(g => g.Key, g => g.First());
+            .GroupBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var indian = await db.Nationalities.FirstOrDefaultAsync(n => n.Code == "indian", ct);
         var jobRoles = await db.JobRoles.ToListAsync(ct);
 
         var seed = new (string Code, string FirstName, string LastName, string Department, string Designation, string Role, string Gender)[]
         {
-            ("EMP-1001", "Priya", "Sharma", "Engineering", "Software Engineer", "Employee", "Female"),
-            ("EMP-1002", "Rohan", "Mehta", "Engineering", "Senior Software Engineer", "Employee", "Male"),
-            ("EMP-1003", "Sneha", "Iyer", "Engineering", "Tech Lead", "TeamLead", "Female"),
-            ("EMP-1004", "Karthik", "Bose", "Engineering", "DevOps Engineer", "Employee", "Male"),
-            ("EMP-1005", "Divya", "Rao", "Product", "Product Manager", "ProjectManager", "Female"),
-            ("EMP-1006", "Ankit", "Verma", "Design", "UX Designer", "Employee", "Male"),
-            ("EMP-1007", "Neha", "Kulkarni", "Finance", "Finance Analyst", "Accounts", "Female"),
-            ("EMP-1008", "Samar", "Patel", "Human Resources", "HR Business Partner", "Hr", "Male"),
-            ("EMP-1009", "Aanya", "Joshi", "Sales", "Sales Executive", "Sales", "Female"),
-            ("EMP-1010", "Harsh", "Nair", "Operations", "Business Analyst", "Pmo", "Male"),
-            ("EMP-1011", "Ira", "Kapoor", "Engineering", "QA Engineer", "Employee", "Female"),
-            ("EMP-1012", "Yash", "Malik", "Engineering", "Software Engineer", "Employee", "Male"),
-            ("EMP-1013", "Kavya", "Desai", "Marketing", "Content Strategist", "Employee", "Female"),
-            ("EMP-1014", "Arjun", "Shah", "Engineering", "Data Analyst", "Employee", "Male"),
-            ("EMP-1015", "Meera", "Nambiar", "Product", "Business Analyst", "Employee", "Female"),
-            ("EMP-1016", "Vikram", "Gupta", "Operations", "Project Manager", "ProjectManager", "Male"),
-            ("EMP-1017", "Ishita", "Bansal", "Design", "UX Designer", "Employee", "Female"),
-            ("EMP-1018", "Aditya", "Reddy", "Engineering", "Senior Software Engineer", "Employee", "Male"),
-            ("EMP-1019", "Pooja", "Menon", "Human Resources", "HR Business Partner", "Hr", "Female"),
-            ("EMP-1020", "Nikhil", "Khanna", "Sales", "Sales Executive", "Sales", "Male"),
-            ("EMP-1021", "Riya", "Kapoor", "Delivery", "Engagement Manager", "Engagement Manager", "Female"),
-            ("EMP-1022", "Rahul", "Sharma", "Delivery", "Engagement Manager", "Engagement Manager", "Male"),
-            ("EMP-1023", "Pradeep", "Singh", "Delivery", "Engagement Manager", "Engagement Manager", "Male"),
-            ("EMP-1024", "Arjun", "Mehta", "Delivery", "Engagement Manager", "Engagement Manager", "Male"),
+            ("TK-0002", "Priya", "Sharma", "Services - Testing", "PenTester - II", "Employee", "Female"),
+            ("TK-0003", "Rohan", "Mehta", "Functional - IT Administration", "DevSecOps Practitioner - II", "Employee", "Male"),
+            ("TK-0004", "Sneha", "Iyer", "Services - Operations", "SOC Lead - I", "TeamLead", "Female"),
+            ("TK-0005", "Karthik", "Bose", "Services - Operations", "SOC Analyst - II", "Employee", "Male"),
+            ("TK-0006", "Divya", "Rao", "Functional - Project Management", "Associate Project Manager", "ProjectManager", "Female"),
+            ("TK-0007", "Ankit", "Verma", "Services - Operations", "SIEM Admin - II", "Employee", "Male"),
+            ("TK-0008", "Neha", "Kulkarni", "Functional - Accounts", "Senior Accountant - I", "Accounts", "Female"),
+            ("TK-0009", "Samar", "Patel", "Functional - HR", "HR Head", "Hr", "Male"),
+            ("TK-0010", "Aanya", "Joshi", "Functional - Sales", "Business Development Associate - I", "Sales", "Female"),
+            ("TK-0011", "Harsh", "Nair", "Functional - Project Management", "Associate PMO - I", "Pmo", "Male"),
+            ("TK-0012", "Ira", "Kapoor", "Services - Consulting", "GRC Auditor - II", "Employee", "Female"),
+            ("TK-0013", "Yash", "Malik", "Services - Testing", "Red Team Practitioner - II", "Employee", "Male"),
+            ("TK-0014", "Kavya", "Desai", "R&D (Research & Development)", "Python Developer - II", "Employee", "Female"),
+            ("TK-0015", "Arjun", "Shah", "Functional - IT Administration", "Desktop Support Engineer - I", "Employee", "Male"),
+            ("TK-0016", "Meera", "Nambiar", "Services - Consulting", "GRC Auditor - I", "Employee", "Female"),
+            ("TK-0017", "Vikram", "Gupta", "Functional - Project Management", "Senior PMO - I", "ProjectManager", "Male"),
+            ("TK-0018", "Ishita", "Bansal", "Services - Testing", "PenTester - I", "Employee", "Female"),
+            ("TK-0019", "Aditya", "Reddy", "Services - Operations", "SOC Analyst - I", "Employee", "Male"),
+            ("TK-0020", "Pooja", "Menon", "Functional - HR", "Senior HR Executive - I", "Hr", "Female"),
+            ("TK-0021", "Nikhil", "Khanna", "Functional - Sales", "Sales Associate", "Sales", "Male"),
+            ("TK-0022", "Riya", "Kapoor", "Functional - Project Management", "Engagement Manager", "Engagement Manager", "Female"),
+            ("TK-0023", "Rahul", "Sharma", "Functional - Project Management", "Engagement Manager", "Engagement Manager", "Male"),
+            ("TK-0024", "Pradeep", "Singh", "Functional - Project Management", "Engagement Manager", "Engagement Manager", "Male"),
+            ("TK-0025", "Arjun", "Mehta", "Functional - Project Management", "Engagement Manager", "Engagement Manager", "Male"),
+            ("TKI-0001", "Sample", "Intern", "Services - Testing", "Intern", "Intern", "Female"),
         };
 
         var existingCodes = await db.Employees
@@ -855,16 +883,24 @@ public static class DbSeeder
             .Select(e => e.EmployeeCode)
             .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, ct);
 
+        // WorkEmail is unique-constrained (including soft-deleted rows). A seed
+        // employee whose email already belongs to another row must be skipped,
+        // otherwise the insert collides with IX_employees_WorkEmail.
+        var existingEmails = await db.Employees
+            .IgnoreQueryFilters()
+            .Select(e => e.WorkEmail)
+            .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, ct);
+
         var entities = new List<Employee>();
         for (var i = 0; i < seed.Length; i++)
         {
             var row = seed[i];
-            if (existingCodes.Contains(row.Code)) continue;
+            var workEmail = $"{row.FirstName.ToLowerInvariant()}.{row.LastName.ToLowerInvariant()}@acme.co";
+            if (existingCodes.Contains(row.Code) || existingEmails.Contains(workEmail)) continue;
             departments.TryGetValue(row.Department, out var dept);
             designations.TryGetValue(row.Designation, out var desig);
             var andheri = i % 2 == 0;
-            var location = andheri ? "Andheri" : "Dombivli";
-            var branch = andheri ? "Suvidha Square" : "Navare Plaza";
+            var location = andheri ? "Suvidha Square, Andheri" : "Navare Plaza, Dombivli";
             var n = i + 1;
 
             entities.Add(new Employee
@@ -872,11 +908,8 @@ public static class DbSeeder
                 EmployeeCode = row.Code,
                 FirstName = row.FirstName,
                 LastName = row.LastName,
-                WorkEmail = $"{row.FirstName.ToLowerInvariant()}.{row.LastName.ToLowerInvariant()}@acme.co",
-                PersonalEmail = $"{row.FirstName.ToLowerInvariant()}{1000 + n}@gmail.com",
-                Phone = (9876501000 + n).ToString(),
-                AltPhone = (9866501000 + n).ToString(),
-                Gender = row.Gender,
+                WorkEmail = workEmail,
+                Phone = (9820000000 + n).ToString(),
                 DateOfBirth = new DateOnly(1990 + (i % 8), 1 + (i % 12), 1 + (i % 27)),
                 Address = $"{120 + n}, {location}",
                 EmergencyContact = (9811101000 + n).ToString(),
@@ -888,12 +921,12 @@ public static class DbSeeder
                 Role = row.Role,
                 JobRoleId = jobRoles.FirstOrDefault(r =>
                     r.DesignationId == desig?.Id && r.Name == row.Role)?.Id,
-                BusinessUnit = i % 2 == 0 ? "Cloud Platform" : "Enterprise",
+                BusinessUnit = "Talakunchi Networks Private Limited",
                 WorkLocation = location,
-                OfficeBranch = branch,
+                OfficeBranch = null,
                 Category = i % 5 == 0 ? "Permanent - Bond" : "Permanent - Without Bond",
-                Team = $"Team {(char)('A' + (i % 6))}",
-                ProjectSite = i % 3 == 0 ? "Onsite" : "Offsite",
+                Team = null,
+                ProjectSite = null,
                 JoiningDate = new DateOnly(2019 + (i % 6), 1 + (i % 12), 10),
                 Status = "Active",
                 ConfirmationStatus = "Active",
@@ -950,14 +983,18 @@ public static class DbSeeder
             if (string.IsNullOrWhiteSpace(emp.WorkLocation) ||
                 emp.WorkLocation.Contains("Andheri", StringComparison.OrdinalIgnoreCase))
             {
-                emp.WorkLocation = "Andheri";
-                emp.OfficeBranch = "Suvidha Square";
+                emp.WorkLocation = "Suvidha Square, Andheri";
+            }
+            else if (emp.WorkLocation.Contains("Dombi", StringComparison.OrdinalIgnoreCase))
+            {
+                emp.WorkLocation = "Navare Plaza, Dombivli";
             }
             else
             {
-                emp.WorkLocation = "Dombivli";
-                emp.OfficeBranch = "Navare Plaza";
+                emp.WorkLocation = "Onsite";
             }
+            emp.OfficeBranch = null;
+            emp.Team = null;
         }
 
         var seedCodes = seed.Select(s => s.Code).ToArray();

@@ -178,6 +178,7 @@ const ADMIN_PERMS = [
     "wbs.view",
     "portfolio.view",
     "settings.view",
+    "settings.manage_roles",
     "customers.approve",
     "users:manage",
     "roles:manage",

@@ -15,6 +15,8 @@ public sealed class SubVentureConfiguration : IEntityTypeConfiguration<SubVentur
 
         builder.Property(s => s.Name).HasMaxLength(255).IsRequired();
         builder.Property(s => s.Notes).HasMaxLength(2000);
+        builder.Property(s => s.KycDocumentName).HasMaxLength(255);
+        builder.Property(s => s.KycDocumentPath).HasMaxLength(500);
 
         builder.HasOne(s => s.Client)
             .WithMany(c => c.SubVentures)

@@ -209,7 +209,7 @@ export function filterNavItems(
         icon: Users,
         permission: undefined,
         subItems: [
-          { to: "/dh-employee-directory", label: "Directory", permission: "resources.view" },
+          { to: "/dh-employee-directory", label: "Directory & Resource Pool", permission: "resources.view" },
           { to: "/dh-exit-summary", label: "Exit Summary", permission: "resources.view" },
         ],
       };
