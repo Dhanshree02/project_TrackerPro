@@ -35,6 +35,13 @@ export interface Employee {
   status: EmployeeStatus;
   confirmationStatus: ConfirmationStatus;
   probationStatus: string;
+  gradDegree: string;
+  gradYear: string;
+  postGradDegree: string;
+  postGradYear: string;
+  expType: "Fresher" | "Experienced";
+  priorTotalExp: string;
+  priorRelevantExp: string;
   experience: string;
   previousCompany: string;
   employmentType: string;
@@ -140,7 +147,37 @@ const businessUnits = ["Cloud Platform","Consumer Apps","Enterprise","Digital Co
 const teams = ["Alpha","Beta","Gamma","Delta","Epsilon","Zeta","Theta","Omega"];
 const categories = ["Permanent - Bond", "Permanent - Without Bond", "Contract-based", "Intern - Paid", "Intern - Unpaid"] as const;
 const allSkills = ["React","TypeScript","Node.js","Python","AWS","Docker","Kubernetes","Figma","Snowflake","iOS","Java","Kafka","Go","GraphQL","Terraform","PostgreSQL"];
-const allCerts = ["AWS Solutions Architect","Google Cloud Professional","PMP","Scrum Master","Kubernetes Admin","Azure Fundamentals","TOGAF","Six Sigma"];
+const allCerts = [
+  "Certified Ethical Hacker (CEH)",
+  "CompTIA Security+",
+  "eCPPT",
+  "cPTS",
+  "CRTP",
+  "Licensed Penetration Tester (LPT)",
+  "PNPT",
+  "CRTE",
+  "CRT",
+  "Offensive Security Certified Professional (OSCP)",
+  "Offensive Security Wireless Professional (OSWP)",
+  "Offensive Security Web Expert (OSWE)",
+  "Offensive Security Experienced Penetration Tester (OSEP)",
+  "Offensive Security Certified Expert 3 (OSCE3)",
+  "ISO 27001",
+  "ISO 22301",
+  "ISO/IEC 42001",
+  "Certified Cloud Security Professional (CCSP)",
+  "Certified Information Systems Auditor (CISA)",
+  "Certified Information Security Manager (CISM)",
+  "Certified Information Security Professional (CISSP)",
+  "Certified in Risk and Information Systems Control (CRISC)",
+  "EC-Council Certified Incident Handler (ECIH)",
+  "Certified Threat Intelligence Analyst (CTIA)",
+  "Blue Team Level 1 and 2",
+  "eLearnSecurity Certified Threat Hunting Professional (eCTHP)",
+  "eLearnSecurity Certified Incident Responder (eCIR)",
+  "eLearnSecurity Certified Digital Forensics Professional (eCDFP)",
+  "OffSec Foundational Security Operations and Defensive Analysis (OSDA)"
+];
 const allLangs = ["English","Hindi","Tamil","Telugu","Kannada","Marathi","Bengali","Malayalam","Gujarati"];
 const prevCompanies = ["Infosys","TCS","Wipro","HCL","Cognizant","Accenture","Deloitte","Capgemini","Mindtree","L&T Infotech","Oracle","SAP Labs","Google","Amazon","Microsoft"];
 const mgrs = ["Rakesh Menon","Sunita Verma","David Thomas","Anu Krishnan","Mohit Bansal","Lakshmi Iyer","Priya Sharma","Rajesh Nair"];
@@ -255,6 +292,13 @@ export const employees: Employee[] = Array.from({ length: 48 }, (_, i) => {
     status,
     confirmationStatus,
     probationStatus: confirmationStatus === "Active - Probation" ? "In Progress" : "Completed",
+    gradDegree: pick(["BE", "B.Tech", "B.Sc", "B.Com", "BCA"]),
+    gradYear: String(2012 + Math.floor(r() * 9)),
+    postGradDegree: (category.includes("Intern") || r() < 0.4) ? "NA" : pick(["M.Tech", "MBA", "MCA", "ME"]),
+    postGradYear: (category.includes("Intern") || r() < 0.4) ? "NA" : String(2015 + Math.floor(r() * 8)),
+    expType: category.includes("Intern") ? "Fresher" : "Experienced",
+    priorTotalExp: category.includes("Intern") ? "0" : (1.5 + Math.floor(r() * 8) + (r() > 0.5 ? 0.5 : 0)).toFixed(1),
+    priorRelevantExp: category.includes("Intern") ? "0" : (1.0 + Math.floor(r() * 5) + (r() > 0.5 ? 0.5 : 0)).toFixed(1),
     experience: `${1 + Math.floor(r() * 14)} years`,
     previousCompany: pick(prevCompanies),
     employmentType: category.includes("Intern") ? "Intern" : category.includes("Contract") ? "Contract" : "Full-time",
