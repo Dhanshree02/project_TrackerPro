@@ -140,6 +140,7 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(x => x.PersonalEmail).HasMaxLength(255);
         builder.Property(x => x.Phone).HasMaxLength(40);
         builder.Property(x => x.AltPhone).HasMaxLength(40);
+        builder.Property(x => x.EmergencyContactRelation).HasMaxLength(80);
         builder.Property(x => x.Role).HasMaxLength(80);
         builder.Property(x => x.BusinessUnit).HasMaxLength(120);
         builder.Property(x => x.WorkLocation).HasMaxLength(120);
@@ -327,3 +328,40 @@ public sealed class MstEmployeeStatusConfiguration : IEntityTypeConfiguration<Ms
         builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
     }
 }
+
+public sealed class MstCertificationConfiguration : IEntityTypeConfiguration<MstCertification>
+{
+    public void Configure(EntityTypeBuilder<MstCertification> builder)
+    {
+        builder.ToTable("mst_certifications");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+    }
+}
+
+public sealed class MstGraduationDegreeConfiguration : IEntityTypeConfiguration<MstGraduationDegree>
+{
+    public void Configure(EntityTypeBuilder<MstGraduationDegree> builder)
+    {
+        builder.ToTable("mst_graduation_degrees");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+    }
+}
+
+public sealed class MstPostGraduationDegreeConfiguration : IEntityTypeConfiguration<MstPostGraduationDegree>
+{
+    public void Configure(EntityTypeBuilder<MstPostGraduationDegree> builder)
+    {
+        builder.ToTable("mst_post_graduation_degrees");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+    }
+}
+

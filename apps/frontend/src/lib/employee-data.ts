@@ -18,6 +18,7 @@ export interface Employee {
   address: string;
   emergencyContact: string;
   emergencyContactName?: string;
+  emergencyContactRelation?: string;
   maritalStatus: string;
   nationality: string;
   // org
@@ -53,6 +54,14 @@ export interface Employee {
   assetId: string;
   exitType: "NA" | "Resign" | "Absconded" | "Terminated" | "Suspension";
   exitReason: string;
+  // PMO details
+  pmoDepartment?: string;
+  subDepartment?: string;
+  billableStatus?: string;
+  clientLocation?: string;
+  projectType?: string;
+  projectAllocated?: string;
+  clientEngManagerMapping?: string;
   // skills
   education: string;
   skills: string[];

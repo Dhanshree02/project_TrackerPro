@@ -4,7 +4,13 @@
 #   docker compose down                 # stop (keeps DB + uploaded files)
 #   docker compose down -v              # stop and wipe DB -> re-seeds from database/trackerpro-final.sql
 #
-# URLs: frontend http://localhost:3000 · API http://localhost:5194/swagger · pgAdmin http://localhost:5050
+# URLs (replace YOUR_LAN_IP with this machine's IPv4, e.g. 10.50.30.189):
+#   frontend  http://YOUR_LAN_IP:3000
+#   API       http://YOUR_LAN_IP:5194/swagger
+#   pgAdmin   http://YOUR_LAN_IP:5050  (login admin@admin.com / clockit)
+#   Postgres  YOUR_LAN_IP:5432 (direct tools) OR use pgAdmin with host postgres_db (preconfigured)
+#
+# LAN tip: pgAdmin must NOT use localhost — that points at the pgAdmin container itself.
 # Host ports can be overridden with a .env file next to this compose file (see the ${VAR:-default} entries).
 
 services:
@@ -21,6 +27,12 @@ services:
       POSTGRES_DB: trackerpro
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
+    command: >
+      postgres
+      -c max_connections=500
+      -c shared_buffers=256MB
+      -c idle_session_timeout=300000
+      -c idle_in_transaction_session_timeout=60000
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # Runs only when the data volume is empty (first boot / after `down -v`). Must stay UTF-8.
@@ -43,8 +55,12 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: clockit
+      # Re-import servers.json on every start (helps after config changes / fresh LAN demos).
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
     ports:
       - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
     networks:
       - pms_network
     depends_on:
@@ -67,7 +83,7 @@ services:
       # Development => Database:AutoMigrate + Seed run on boot (idempotent against the SQL dump).
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=trackerpro;Username=postgres;Password=clockit
+      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=trackerpro;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
       - Storage__RootPath=/app/storage
     ports:
       - "${BACKEND_PORT:-5194}:8080"
@@ -90,6 +106,8 @@ services:
     environment:
       # Vite dev proxy target for /api inside the compose network.
       - VITE_BACKEND_URL=http://backend:8080
+      # Override host .env so LAN users hit /api on the same IP (not localhost:5194 on their PC).
+      - VITE_API_URL=
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     volumes:

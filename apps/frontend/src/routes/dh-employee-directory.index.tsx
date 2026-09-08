@@ -94,6 +94,12 @@ import {
   validateOnboardDocs,
   blankToNull,
   csvToList,
+  EMERGENCY_RELATION_OPTIONS,
+  BILLABLE_STATUS_OPTIONS,
+  PROJECT_TYPE_OPTIONS,
+  PMO_DEPARTMENT_OPTIONS,
+  PMO_DEPARTMENT_SUB_DEPARTMENTS,
+  formatExpDisplay,
   type OnboardDocs,
   type OnboardDocErrors,
   type OnboardErrors,
@@ -108,6 +114,7 @@ import {
 } from "@/lib/employment-bond";
 import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
 import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
+import { allProjects } from "@/lib/dh-store";
 import { Modal } from "@/routes/projects.index";
 
 export const Route = createFileRoute("/dh-employee-directory/")({
@@ -808,10 +815,12 @@ function FormField({
   };
   return (
     <label className={cn("block", className, disabled && "cursor-not-allowed opacity-60")}>
-      <span className={FORM_LABEL_CLS}>
-        {label}
-        {required ? <span className="text-destructive"> *</span> : null}
-      </span>
+      {label ? (
+        <span className={FORM_LABEL_CLS}>
+          {label}
+          {required ? <span className="text-destructive"> *</span> : null}
+        </span>
+      ) : null}
       <div className="relative flex rounded-md">
         {prefix ? (
           <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
@@ -1250,6 +1259,23 @@ function OnboardingPanel({
     formRef.current = form;
   }, [form]);
 
+  const projectAllocatedOptions = useMemo(() => {
+    try {
+      const list = allProjects().map((p) => ({
+        value: p.name,
+        label: p.projectCode ? `${p.name} (${p.projectCode})` : p.name,
+      }));
+      return [{ value: "Internal / Bench", label: "Internal / Bench" }, ...list];
+    } catch {
+      return [{ value: "Internal / Bench", label: "Internal / Bench" }];
+    }
+  }, []);
+
+  const pmoSubDeptOptions = useMemo(() => {
+    if (!form.pmoDepartment) return [];
+    return PMO_DEPARTMENT_SUB_DEPARTMENTS[form.pmoDepartment] ?? [];
+  }, [form.pmoDepartment]);
+
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -1423,9 +1449,14 @@ function OnboardingPanel({
             ? toEmailInput(value)
             : field === "bondDurationMonths"
               ? toDigits(value, 3)
-              : field === "priorTotalExp" || field === "priorRelevantExp"
-                ? toDecimalNumberInput(value)
-                : value;
+              : field === "priorTotalExpYears" ||
+                field === "priorTotalExpMonths" ||
+                field === "priorRelevantExpYears" ||
+                field === "priorRelevantExpMonths"
+                ? toDigits(value, 2)
+                : field === "priorTotalExp" || field === "priorRelevantExp"
+                  ? toDecimalNumberInput(value)
+                  : value;
 
     const updatedForm = { ...formRef.current, [field]: nextValue };
     if (field === "departmentId") {
@@ -1435,6 +1466,21 @@ function OnboardingPanel({
     if (field === "designationId") updatedForm.jobRoleId = "";
     if (field === "bondDelivered" && nextValue === "No") {
       updatedForm.bondDurationMonths = "0";
+    }
+
+    if (
+      field === "priorTotalExpYears" ||
+      field === "priorTotalExpMonths" ||
+      field === "priorRelevantExpYears" ||
+      field === "priorRelevantExpMonths"
+    ) {
+      const totY = field === "priorTotalExpYears" ? nextValue : updatedForm.priorTotalExpYears;
+      const totM = field === "priorTotalExpMonths" ? nextValue : updatedForm.priorTotalExpMonths;
+      const relY = field === "priorRelevantExpYears" ? nextValue : updatedForm.priorRelevantExpYears;
+      const relM = field === "priorRelevantExpMonths" ? nextValue : updatedForm.priorRelevantExpMonths;
+
+      updatedForm.priorTotalExp = formatExpDisplay(totY, totM);
+      updatedForm.priorRelevantExp = formatExpDisplay(relY, relM);
     }
 
     formRef.current = updatedForm;
@@ -1448,16 +1494,46 @@ function OnboardingPanel({
       if (message) nextErrors[field] = message;
       else delete nextErrors[field];
 
-      // 2. Cross-field validation for graduation / post-graduation year
+      // 2. Cross-field validation for graduation degree & passing year
+      if (field === "gradYear" || field === "gradDegree") {
+        const gradDegMsg = validateOnboardField("gradDegree", updatedForm, existingCodes);
+        if (gradDegMsg) nextErrors.gradDegree = gradDegMsg;
+        else delete nextErrors.gradDegree;
+
+        const gradYrMsg = validateOnboardField("gradYear", updatedForm, existingCodes);
+        if (gradYrMsg) nextErrors.gradYear = gradYrMsg;
+        else delete nextErrors.gradYear;
+      }
+
+      // 3. Cross-field validation for post-graduation degree & passing year
       if (field === "gradYear" || field === "postGradDegree" || field === "postGradYear") {
+        const postGradDegMsg = validateOnboardField("postGradDegree", updatedForm, existingCodes);
+        if (postGradDegMsg) nextErrors.postGradDegree = postGradDegMsg;
+        else delete nextErrors.postGradDegree;
+
         const postGradMsg = validateOnboardField("postGradYear", updatedForm, existingCodes);
         if (postGradMsg) nextErrors.postGradYear = postGradMsg;
         else delete nextErrors.postGradYear;
       }
 
-      // 3. Cross-field validation for total vs relevant experience
-      if (field === "priorTotalExp" || field === "priorRelevantExp") {
-        const relMsg = validateOnboardField("priorRelevantExp", updatedForm, existingCodes);
+      // 4. Cross-field validation for total vs relevant experience (years and months)
+      if (
+        field === "priorTotalExp" ||
+        field === "priorTotalExpYears" ||
+        field === "priorTotalExpMonths" ||
+        field === "priorRelevantExp" ||
+        field === "priorRelevantExpYears" ||
+        field === "priorRelevantExpMonths"
+      ) {
+        const totMonthsMsg = validateOnboardField("priorTotalExpMonths", updatedForm, existingCodes);
+        if (totMonthsMsg) nextErrors.priorTotalExpMonths = totMonthsMsg;
+        else delete nextErrors.priorTotalExpMonths;
+
+        const relMonthsMsg = validateOnboardField("priorRelevantExpMonths", updatedForm, existingCodes);
+        if (relMonthsMsg) nextErrors.priorRelevantExpMonths = relMonthsMsg;
+        else delete nextErrors.priorRelevantExpMonths;
+
+        const relMsg = validateOnboardField("priorRelevantExpYears", updatedForm, existingCodes);
         if (relMsg) nextErrors.priorRelevantExp = relMsg;
         else delete nextErrors.priorRelevantExp;
       }
@@ -1467,18 +1543,61 @@ function OnboardingPanel({
   };
 
   const blurField = (field: OnboardField) => {
+    const currentForm = formRef.current;
     if (field === "workEmail") {
-      const trimmed = form[field].trim();
-      if (trimmed !== form[field]) {
+      const trimmed = currentForm[field].trim();
+      if (trimmed !== currentForm[field]) {
         setField(field, trimmed);
         return;
       }
     }
-    const message = validateOnboardField(field, form, existingCodes);
+    const message = validateOnboardField(field, currentForm, existingCodes);
     setErrors((prev) => {
       const nextErrors = { ...prev };
       if (message) nextErrors[field] = message;
       else delete nextErrors[field];
+
+      if (field === "gradYear" || field === "gradDegree") {
+        const gradDegMsg = validateOnboardField("gradDegree", currentForm, existingCodes);
+        if (gradDegMsg) nextErrors.gradDegree = gradDegMsg;
+        else delete nextErrors.gradDegree;
+
+        const gradYrMsg = validateOnboardField("gradYear", currentForm, existingCodes);
+        if (gradYrMsg) nextErrors.gradYear = gradYrMsg;
+        else delete nextErrors.gradYear;
+      }
+
+      if (field === "gradYear" || field === "postGradDegree" || field === "postGradYear") {
+        const postGradDegMsg = validateOnboardField("postGradDegree", currentForm, existingCodes);
+        if (postGradDegMsg) nextErrors.postGradDegree = postGradDegMsg;
+        else delete nextErrors.postGradDegree;
+
+        const postGradMsg = validateOnboardField("postGradYear", currentForm, existingCodes);
+        if (postGradMsg) nextErrors.postGradYear = postGradMsg;
+        else delete nextErrors.postGradYear;
+      }
+
+      if (
+        field === "priorTotalExp" ||
+        field === "priorTotalExpYears" ||
+        field === "priorTotalExpMonths" ||
+        field === "priorRelevantExp" ||
+        field === "priorRelevantExpYears" ||
+        field === "priorRelevantExpMonths"
+      ) {
+        const totMonthsMsg = validateOnboardField("priorTotalExpMonths", currentForm, existingCodes);
+        if (totMonthsMsg) nextErrors.priorTotalExpMonths = totMonthsMsg;
+        else delete nextErrors.priorTotalExpMonths;
+
+        const relMonthsMsg = validateOnboardField("priorRelevantExpMonths", currentForm, existingCodes);
+        if (relMonthsMsg) nextErrors.priorRelevantExpMonths = relMonthsMsg;
+        else delete nextErrors.priorRelevantExpMonths;
+
+        const relMsg = validateOnboardField("priorRelevantExpYears", currentForm, existingCodes);
+        if (relMsg) nextErrors.priorRelevantExp = relMsg;
+        else delete nextErrors.priorRelevantExp;
+      }
+
       return nextErrors;
     });
   };
@@ -1542,10 +1661,8 @@ function OnboardingPanel({
     e?.preventDefault();
     const nextErrors = validateOnboardForm(form, existingCodes);
     setErrors(nextErrors);
-    const nextDocErrors = validateOnboardDocs(docs);
-    setDocErrors(nextDocErrors);
-    if (Object.keys(nextErrors).length > 0 || Object.keys(nextDocErrors).length > 0) {
-      toast.error("Please complete all mandatory fields and required documents");
+    if (Object.keys(nextErrors).length > 0) {
+      toast.error("Please complete all mandatory fields");
       return;
     }
     setIsSubmitting(true);
@@ -1665,6 +1782,7 @@ function OnboardingPanel({
         address: blankToNull(form.address),
         emergencyContact: blankToNull(form.emergencyContact),
         emergencyContactName: blankToNull(form.emergencyContactName),
+        emergencyContactRelation: blankToNull(form.emergencyContactRelation),
         maritalStatus: null,
         nationality: null,
         nationalityId: null,
@@ -1686,7 +1804,7 @@ function OnboardingPanel({
         probationPeriod: null,
         experience: form.expType === "Fresher"
           ? "Fresher"
-          : `${form.priorTotalExp || "0"} (Relevant: ${form.priorRelevantExp || "0"})`,
+          : `${formatExpDisplay(form.priorTotalExpYears, form.priorTotalExpMonths) || form.priorTotalExp || "0"} (Relevant: ${formatExpDisplay(form.priorRelevantExpYears, form.priorRelevantExpMonths) || form.priorRelevantExp || "0"})`,
         previousCompany: blankToNull(form.previousCompany),
         employmentType: blankToNull(form.workerType),
         contractType: null,
@@ -1709,12 +1827,19 @@ function OnboardingPanel({
         skills: [...csvToList(form.technicalSkills), ...csvToList(form.functionalSkills)],
         certifications: csvToList(form.certifications),
         languages: csvToList(form.languages),
-        pan: form.pan.trim().toUpperCase() || null,
-        aadhaar: form.aadhaar.replace(/\D/g, "") || null,
+        pan: blankToNull(form.pan),
+        aadhaar: blankToNull(form.aadhaar),
         bankAccount: blankToNull(form.bankAccount),
         pfUan: blankToNull(form.pfUan),
         salaryBandId: null,
         salaryBand: null,
+        pmoDepartment: blankToNull(form.pmoDepartment),
+        subDepartment: blankToNull(form.subDepartment),
+        billableStatus: blankToNull(form.billableStatus),
+        clientLocation: blankToNull(form.clientLocation),
+        projectType: blankToNull(form.projectType),
+        projectAllocated: blankToNull(form.projectAllocated),
+        clientEngManagerMapping: blankToNull(form.clientEngManagerMapping),
       });
 
       // Upload attached documents to local backend storage
@@ -1889,6 +2014,31 @@ function OnboardingPanel({
                 onBlur={() => blurField("altPhone")}
                 error={errors.altPhone}
               />
+              <div>
+                <FormSelect
+                  label="Current Address - City"
+                  required
+                  error={errors.address}
+                  options={MUMBAI_RAILWAY_STATIONS}
+                  value={form.address}
+                  onChange={(v) => {
+                    setField("address", v);
+                  }}
+                  placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
+                  showSearch
+                />
+              </div>
+
+              {/* Emergency Contact Group Header / Divider */}
+              <div className="col-span-full pt-3 pb-1 border-t border-gray-200/70">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Emergency Contact Details
+                  </h4>
+                </div>
+              </div>
+
               <FormField
                 label="Emergency Contact Name"
                 name="emergencyContactName"
@@ -1913,21 +2063,17 @@ function OnboardingPanel({
                 onBlur={() => blurField("emergencyContact")}
                 error={errors.emergencyContact}
               />
-              <div className="md:col-span-1 lg:col-span-2">
-                <FormSelect
-                  label="Current Address - City"
-                  required
-                  error={errors.address}
-                  options={MUMBAI_RAILWAY_STATIONS}
-                  value={form.address}
-                  onChange={(v) => {
-                    setField("address", v);
-                    blurField("address");
-                  }}
-                  placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
-                  showSearch
-                />
-              </div>
+              <FormSelect
+                label="Relation with Emergency Contact"
+                required
+                error={errors.emergencyContactRelation}
+                options={EMERGENCY_RELATION_OPTIONS}
+                value={form.emergencyContactRelation}
+                onChange={(v) => {
+                  setField("emergencyContactRelation", v);
+                }}
+                placeholder="Select relation…"
+              />
             </FormSection>
 
             <FormSection title="2. Organization Assignment">
@@ -2158,6 +2304,8 @@ function OnboardingPanel({
                   )?.id ?? form.gradDegree
                 }
                 placeholder="Select or add graduation degree (BE, B.Tech, B.Sc)…"
+                required={Boolean(form.gradYear && form.gradYear !== "NA")}
+                error={errors.gradDegree}
                 onSelect={(id, name) => {
                   setField("gradDegree", name || id);
                 }}
@@ -2172,9 +2320,9 @@ function OnboardingPanel({
                 label="Graduation - Passing Year"
                 options={PASSING_YEAR_OPTIONS.map((y) => ({ value: y, label: y }))}
                 value={form.gradYear}
+                required={Boolean(form.gradDegree && form.gradDegree !== "NA")}
                 onChange={(v) => {
                   setField("gradYear", v);
-                  blurField("gradYear");
                 }}
                 placeholder="Select graduation passing year…"
                 error={errors.gradYear}
@@ -2189,10 +2337,14 @@ function OnboardingPanel({
                   )?.id ?? form.postGradDegree
                 }
                 placeholder="Select or add post graduation degree (MBA, M.Tech, NA)…"
+                error={errors.postGradDegree}
                 onSelect={(id, name) => {
-                  setField("postGradDegree", name || id);
-                  if (name === "NA" || id === "NA") {
+                  const degName = name || id;
+                  setField("postGradDegree", degName);
+                  if (degName === "NA") {
                     setField("postGradYear", "NA");
+                  } else if (!formRef.current.postGradYear || formRef.current.postGradYear === "NA") {
+                    setField("postGradYear", "");
                   }
                 }}
                 onCreate={async (name) => {
@@ -2206,13 +2358,17 @@ function OnboardingPanel({
                 label="Post Graduation - Passing Year"
                 options={[
                   { value: "NA", label: "NA" },
-                  ...PASSING_YEAR_OPTIONS.map((y) => ({ value: y, label: y })),
+                  ...PASSING_YEAR_OPTIONS.filter((y) => {
+                    if (!form.gradYear || form.gradYear === "NA") return true;
+                    const gYear = parseInt(form.gradYear, 10);
+                    return isNaN(gYear) || parseInt(y, 10) >= gYear;
+                  }).map((y) => ({ value: y, label: y })),
                 ]}
                 value={form.postGradDegree === "NA" ? "NA" : form.postGradYear}
                 disabled={form.postGradDegree === "NA"}
+                required={Boolean(form.postGradDegree && form.postGradDegree !== "NA")}
                 onChange={(v) => {
                   setField("postGradYear", v);
-                  blurField("postGradYear");
                 }}
                 placeholder="Select post graduation passing year…"
                 error={errors.postGradYear}
@@ -2231,29 +2387,79 @@ function OnboardingPanel({
                     expType: v,
                     priorTotalExp: v === "Fresher" ? "0" : prev.priorTotalExp === "0" ? "" : prev.priorTotalExp,
                     priorRelevantExp: v === "Fresher" ? "0" : prev.priorRelevantExp === "0" ? "" : prev.priorRelevantExp,
+                    priorTotalExpYears: v === "Fresher" ? "0" : prev.priorTotalExpYears === "0" ? "" : prev.priorTotalExpYears,
+                    priorTotalExpMonths: v === "Fresher" ? "0" : prev.priorTotalExpMonths === "0" ? "" : prev.priorTotalExpMonths,
+                    priorRelevantExpYears: v === "Fresher" ? "0" : prev.priorRelevantExpYears === "0" ? "" : prev.priorRelevantExpYears,
+                    priorRelevantExpMonths: v === "Fresher" ? "0" : prev.priorRelevantExpMonths === "0" ? "" : prev.priorRelevantExpMonths,
                   }));
                 }}
               />
 
-              <FormField
-                label="Total exp prior to Talakunchi"
-                placeholder="e.g. 3 Years 2 Months"
-                disabled={form.expType === "Fresher"}
-                maxLength={FIELD_MAX.experience}
-                value={form.expType === "Fresher" ? "0" : form.priorTotalExp}
-                onChange={(v) => setField("priorTotalExp", v)}
-              />
+              <div className="space-y-1">
+                <span className={FORM_LABEL_CLS}>Total exp prior to Talakunchi</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <FormField
+                    label=""
+                    placeholder="0"
+                    suffix="yrs"
+                    inputMode="numeric"
+                    maxLength={2}
+                    disabled={form.expType === "Fresher"}
+                    value={form.expType === "Fresher" ? "0" : form.priorTotalExpYears}
+                    onChange={(v) => setField("priorTotalExpYears", v)}
+                    onBlur={() => blurField("priorTotalExpYears")}
+                    error={errors.priorTotalExpYears}
+                  />
+                  <FormField
+                    label=""
+                    placeholder="0"
+                    suffix="months"
+                    inputMode="numeric"
+                    maxLength={2}
+                    disabled={form.expType === "Fresher"}
+                    value={form.expType === "Fresher" ? "0" : form.priorTotalExpMonths}
+                    onChange={(v) => setField("priorTotalExpMonths", v)}
+                    onBlur={() => blurField("priorTotalExpMonths")}
+                    error={errors.priorTotalExpMonths}
+                  />
+                </div>
+                {errors.priorTotalExp ? (
+                  <p className={FORM_ERROR_CLS}>{errors.priorTotalExp}</p>
+                ) : null}
+              </div>
 
-              <FormField
-                label="Relevant exp prior to Talakunchi"
-                placeholder="e.g. 2.5 Years"
-                disabled={form.expType === "Fresher"}
-                maxLength={FIELD_MAX.experience}
-                value={form.expType === "Fresher" ? "0" : form.priorRelevantExp}
-                onChange={(v) => setField("priorRelevantExp", v)}
-                onBlur={() => blurField("priorRelevantExp")}
-                error={errors.priorRelevantExp}
-              />
+              <div className="space-y-1">
+                <span className={FORM_LABEL_CLS}>Relevant exp prior to Talakunchi</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <FormField
+                    label=""
+                    placeholder="0"
+                    suffix="yrs"
+                    inputMode="numeric"
+                    maxLength={2}
+                    disabled={form.expType === "Fresher"}
+                    value={form.expType === "Fresher" ? "0" : form.priorRelevantExpYears}
+                    onChange={(v) => setField("priorRelevantExpYears", v)}
+                    onBlur={() => blurField("priorRelevantExpYears")}
+                    error={errors.priorRelevantExpYears}
+                  />
+                  <FormField
+                    label=""
+                    placeholder="0"
+                    suffix="months"
+                    inputMode="numeric"
+                    maxLength={2}
+                    disabled={form.expType === "Fresher"}
+                    value={form.expType === "Fresher" ? "0" : form.priorRelevantExpMonths}
+                    onChange={(v) => setField("priorRelevantExpMonths", v)}
+                    onBlur={() => blurField("priorRelevantExpMonths")}
+                    error={errors.priorRelevantExpMonths}
+                  />
+                </div>
+                {errors.priorRelevantExp ? (
+                  <p className={FORM_ERROR_CLS}>{errors.priorRelevantExp}</p>
+                ) : null}
+              </div>
 
               <div className="md:col-span-2 lg:col-span-2">
                 <CertificationMultiSelect
@@ -2270,103 +2476,79 @@ function OnboardingPanel({
               </div>
             </FormSection>
 
-            <FormSection title="5. Compliance Information">
-              <FormField
-                label="PAN Number"
-                name="pan"
-                required
-                maxLength={10}
-                placeholder="e.g. ABCDE1234F"
-                value={form.pan}
-                onChange={(v) => setField("pan", v.toUpperCase())}
-                onBlur={() => blurField("pan")}
-                error={errors.pan}
+            <FormSection title="5. PMO Section">
+              <FormSelect
+                label="Department"
+                options={PMO_DEPARTMENT_OPTIONS}
+                value={form.pmoDepartment}
+                onChange={(v) => {
+                  setField("pmoDepartment", v);
+                  const subDepts = PMO_DEPARTMENT_SUB_DEPARTMENTS[v] ?? [];
+                  if (subDepts.length === 1) {
+                    setField("subDepartment", subDepts[0]);
+                  } else if (!subDepts.includes(form.subDepartment)) {
+                    setField("subDepartment", "");
+                  }
+                }}
+                placeholder="Select department…"
+                showSearch
+              />
+              <FormSelect
+                label="Sub Departments"
+                options={pmoSubDeptOptions}
+                value={form.subDepartment}
+                onChange={(v) => setField("subDepartment", v)}
+                placeholder={
+                  !form.pmoDepartment
+                    ? "Select department first…"
+                    : pmoSubDeptOptions.length === 0
+                      ? "No sub-departments"
+                      : "Select sub-department…"
+                }
+                disabled={!form.pmoDepartment || pmoSubDeptOptions.length === 0}
+                showSearch={pmoSubDeptOptions.length > 4}
+                error={errors.subDepartment}
+              />
+              <FormSelect
+                label="Billable / Non Billable Status"
+                options={[...BILLABLE_STATUS_OPTIONS]}
+                value={form.billableStatus}
+                onChange={(v) => setField("billableStatus", v)}
+                placeholder="Select status…"
+              />
+              <FormSelect
+                label="Client Location"
+                options={MUMBAI_RAILWAY_STATIONS}
+                value={form.clientLocation}
+                onChange={(v) => setField("clientLocation", v)}
+                placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
+                showSearch
+              />
+              <FormSelect
+                label="Project Type"
+                options={[...PROJECT_TYPE_OPTIONS]}
+                value={form.projectType}
+                onChange={(v) => setField("projectType", v)}
+                placeholder="Select project type…"
+              />
+              <FormSelect
+                label="Project Allocated"
+                options={projectAllocatedOptions}
+                value={form.projectAllocated}
+                onChange={(v) => setField("projectAllocated", v)}
+                placeholder="Select allocated project…"
+                showSearch
               />
               <FormField
-                label="Aadhaar Number"
-                name="aadhaar"
-                required
-                inputMode="numeric"
-                maxLength={12}
-                placeholder="Enter 12-digit Aadhaar number"
-                value={form.aadhaar}
-                onChange={(v) => setField("aadhaar", v)}
-                onBlur={() => blurField("aadhaar")}
-                error={errors.aadhaar}
-              />
-              <FormField
-                label="PF/UAN Number"
-                name="pfUan"
-                inputMode="numeric"
-                maxLength={12}
-                placeholder="Enter 12-digit UAN number"
-                value={form.pfUan}
-                onChange={(v) => setField("pfUan", v)}
-                onBlur={() => blurField("pfUan")}
-                error={errors.pfUan}
-              />
-              <FormField
-                label="Bank Account Number"
-                name="bankAccount"
-                required
-                inputMode="numeric"
-                maxLength={18}
-                placeholder="Enter bank account number"
-                value={form.bankAccount}
-                onChange={(v) => setField("bankAccount", v)}
-                onBlur={() => blurField("bankAccount")}
-                error={errors.bankAccount}
-              />
-              <FormField
-                label="IFSC Code"
-                name="ifsc"
-                required
-                maxLength={11}
-                placeholder="e.g. SBIN0001234"
-                value={form.ifsc}
-                onChange={(v) => setField("ifsc", v.toUpperCase())}
-                onBlur={() => blurField("ifsc")}
-                error={errors.ifsc}
+                label="Client Engagement Manager"
+                name="clientEngManagerMapping"
+                placeholder="e.g. Name of Client Engagement Manager"
+                value={form.clientEngManagerMapping}
+                onChange={(v) => setField("clientEngManagerMapping", v)}
+                onBlur={() => blurField("clientEngManagerMapping")}
+                error={errors.clientEngManagerMapping}
               />
             </FormSection>
-
-            <section className="rounded-lg border border-border bg-card p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">6. Document Uploads</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Attach employee verification documents (PDF, JPG, PNG up to 5 MB each). Multiple files supported for Certificates & Experience Letters.
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {ONBOARD_DOC_SLOTS.map((d) => {
-                  const isMulti = d === "Education Certs" || d === "Experience Letters";
-                  return (
-                    <UploadSlot
-                      key={d}
-                      label={d}
-                      required={MANDATORY_DOC_SLOTS.includes(d)}
-                      multiple={isMulti}
-                      file={!isMulti ? (docs[d] as File | null) : null}
-                      files={isMulti ? (docs[d] as File[]) : undefined}
-                      error={docErrors[d]}
-                      onSelect={(file) => handleDocSelect(d, file)}
-                      onSelectMultiple={(files) => handleDocSelectMultiple(d, files)}
-                      onRemoveFile={(idx) => handleRemoveSingleDocFile(d, idx)}
-                      onClear={() => {
-                        setDocs((prev) => ({ ...prev, [d]: isMulti ? [] : null }));
-                        setDocErrors((prev) => {
-                          const next = { ...prev };
-                          delete next[d];
-                          return next;
-                        });
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </section>
           </div>
 
           {/* footer */}

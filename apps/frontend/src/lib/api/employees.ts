@@ -22,6 +22,7 @@ export interface ApiEmployeeListItem {
   altPhone?: string | null;
   emergencyContact?: string | null;
   emergencyContactName?: string | null;
+  emergencyContactRelation?: string | null;
   pan?: string | null;
   bankAccount?: string | null;
   pfUan?: string | null;
@@ -35,6 +36,13 @@ export interface ApiEmployeeListItem {
   team?: string | null;
   experience?: string | null;
   previousCompany?: string | null;
+  pmoDepartment?: string | null;
+  subDepartment?: string | null;
+  billableStatus?: string | null;
+  clientLocation?: string | null;
+  projectType?: string | null;
+  projectAllocated?: string | null;
+  clientEngManagerMapping?: string | null;
 }
 
 export interface ApiEmployeeDetail {
@@ -51,6 +59,7 @@ export interface ApiEmployeeDetail {
   address?: string | null;
   emergencyContact?: string | null;
   emergencyContactName?: string | null;
+  emergencyContactRelation?: string | null;
   maritalStatus?: string | null;
   nationality?: string | null;
   department?: string | null;
@@ -96,6 +105,13 @@ export interface ApiEmployeeDetail {
   pfUan?: string | null;
   taxRegime?: string | null;
   complianceStatus?: string | null;
+  pmoDepartment?: string | null;
+  subDepartment?: string | null;
+  billableStatus?: string | null;
+  clientLocation?: string | null;
+  projectType?: string | null;
+  projectAllocated?: string | null;
+  clientEngManagerMapping?: string | null;
 }
 
 export interface ApiExitedEmployee {
@@ -364,6 +380,7 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     address: "",
     emergencyContact: item.emergencyContact ?? "",
     emergencyContactName: item.emergencyContactName ?? "",
+    emergencyContactRelation: item.emergencyContactRelation ?? "",
     maritalStatus: "",
     nationality: "",
     department: item.department ?? "—",
@@ -410,6 +427,13 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     salaryBand: "",
     pfUan: item.pfUan ?? "",
     taxRegime: "",
+    pmoDepartment: item.pmoDepartment ?? "",
+    subDepartment: item.subDepartment ?? "",
+    billableStatus: item.billableStatus ?? "",
+    clientLocation: item.clientLocation ?? "",
+    projectType: item.projectType ?? "",
+    projectAllocated: item.projectAllocated ?? "",
+    clientEngManagerMapping: item.clientEngManagerMapping ?? "",
     complianceStatus: "Pending",
   };
 }
@@ -428,6 +452,7 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     address: detail.address ?? "",
     emergencyContact: detail.emergencyContact ?? "",
     emergencyContactName: detail.emergencyContactName ?? "",
+    emergencyContactRelation: detail.emergencyContactRelation ?? "",
     maritalStatus: detail.maritalStatus ?? "",
     nationality: detail.nationality ?? "",
     department: detail.department ?? "",
@@ -471,6 +496,13 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     salaryBand: detail.salaryBand ?? "",
     pfUan: detail.pfUan ?? "",
     taxRegime: detail.taxRegime ?? "",
+    pmoDepartment: detail.pmoDepartment ?? "",
+    subDepartment: detail.subDepartment ?? "",
+    billableStatus: detail.billableStatus ?? "",
+    clientLocation: detail.clientLocation ?? "",
+    projectType: detail.projectType ?? "",
+    projectAllocated: detail.projectAllocated ?? "",
+    clientEngManagerMapping: detail.clientEngManagerMapping ?? "",
     complianceStatus: (detail.complianceStatus as Employee["complianceStatus"]) || "Pending",
   };
 }

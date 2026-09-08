@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { X, FileText, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
@@ -36,8 +36,14 @@ import {
   digitsOnly,
   isValidPan,
   isValidAadhaar,
+  EMERGENCY_RELATION_OPTIONS,
+  BILLABLE_STATUS_OPTIONS,
+  PROJECT_TYPE_OPTIONS,
+  PMO_DEPARTMENT_OPTIONS,
+  PMO_DEPARTMENT_SUB_DEPARTMENTS,
 } from "@/lib/onboard-validation";
 import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
+import { allProjects } from "@/lib/dh-store";
 import { toast } from "sonner";
 import {
   fetchEmployee,
@@ -387,6 +393,23 @@ function EditProfilePanel({
   const [reportingManagersList, setReportingManagersList] = useState<ApiMetaOption[]>([]);
   const [onFloorRolesList, setOnFloorRolesList] = useState<ApiMetaOption[]>([]);
 
+  const editProjectAllocatedOptions = useMemo(() => {
+    try {
+      const list = allProjects().map((p) => ({
+        value: p.name,
+        label: p.projectCode ? `${p.name} (${p.projectCode})` : p.name,
+      }));
+      return [{ value: "Internal / Bench", label: "Internal / Bench" }, ...list];
+    } catch {
+      return [{ value: "Internal / Bench", label: "Internal / Bench" }];
+    }
+  }, []);
+
+  const editPmoSubDeptOptions = useMemo(() => {
+    if (!formData.pmoDepartment) return [];
+    return PMO_DEPARTMENT_SUB_DEPARTMENTS[formData.pmoDepartment] ?? [];
+  }, [formData.pmoDepartment]);
+
   useEffect(() => {
     if (open) {
       setFormData({ ...employee });
@@ -515,6 +538,11 @@ function EditProfilePanel({
       case "emergencyContact": {
         return phoneError(value, true);
       }
+      case "emergencyContactRelation": {
+        const v = String(value || "").trim();
+        if (!v) return "Relation with emergency contact is required";
+        return undefined;
+      }
       case "gender": {
         return !value ? "Gender is required" : undefined;
       }
@@ -633,6 +661,7 @@ function EditProfilePanel({
       "altPhone",
       "emergencyContactName",
       "emergencyContact",
+      "emergencyContactRelation",
       "pan",
       "aadhaar",
       "bankAccount",
@@ -700,6 +729,7 @@ function EditProfilePanel({
     check("altPhone", data.altPhone);
     check("emergencyContactName", data.emergencyContactName);
     check("emergencyContact", data.emergencyContact);
+    check("emergencyContactRelation", data.emergencyContactRelation);
     check("address", data.address);
     check("department", data.department);
     check("designation", data.designation);
@@ -917,6 +947,34 @@ function EditProfilePanel({
                 ) : null}
               </label>
 
+              <div>
+                <SearchableSelect
+                  label="Current Address - City"
+                  required
+                  options={MUMBAI_RAILWAY_STATIONS}
+                  value={formData.address}
+                  onChange={(v) => {
+                    handleChange("address", v);
+                    handleFieldBlur("address", v);
+                  }}
+                  placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
+                  showSearch
+                />
+                {errors.address ? (
+                  <p className="mt-1 text-[11px] text-destructive">{errors.address}</p>
+                ) : null}
+              </div>
+
+              {/* Emergency Contact Group Header / Divider */}
+              <div className="col-span-full pt-3 pb-1 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Emergency Contact Details
+                  </h4>
+                </div>
+              </div>
+
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Emergency Contact Name <span className="text-destructive">*</span>
@@ -968,21 +1026,22 @@ function EditProfilePanel({
                 ) : null}
               </label>
 
-              <div className="md:col-span-1 lg:col-span-2">
+              <div>
                 <SearchableSelect
-                  label="Current Address - City"
+                  label="Relation with Emergency Contact"
                   required
-                  options={MUMBAI_RAILWAY_STATIONS}
-                  value={formData.address}
+                  options={[...EMERGENCY_RELATION_OPTIONS]}
+                  value={formData.emergencyContactRelation ?? ""}
                   onChange={(v) => {
-                    handleChange("address", v);
-                    handleFieldBlur("address", v);
+                    handleChange("emergencyContactRelation", v);
+                    handleFieldBlur("emergencyContactRelation", v);
                   }}
-                  placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
-                  showSearch
+                  placeholder="Select relation…"
                 />
-                {errors.address ? (
-                  <p className="mt-1 text-[11px] text-destructive">{errors.address}</p>
+                {errors.emergencyContactRelation ? (
+                  <p className="mt-1 text-[11px] text-destructive">
+                    {errors.emergencyContactRelation}
+                  </p>
                 ) : null}
               </div>
             </div>
@@ -1470,6 +1529,89 @@ function EditProfilePanel({
               />
             </div>
           </section>
+
+          {/* Section 6: PMO Details */}
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
+              6. PMO Details
+            </h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <SearchableSelect
+                label="Department"
+                options={PMO_DEPARTMENT_OPTIONS}
+                value={formData.pmoDepartment}
+                onChange={(v) => {
+                  handleChange("pmoDepartment", v);
+                  const subDepts = PMO_DEPARTMENT_SUB_DEPARTMENTS[v] ?? [];
+                  if (subDepts.length === 1) {
+                    handleChange("subDepartment", subDepts[0]);
+                  } else if (!subDepts.includes(formData.subDepartment ?? "")) {
+                    handleChange("subDepartment", "");
+                  }
+                }}
+                placeholder="Select department…"
+                showSearch
+              />
+              <SearchableSelect
+                label="Sub Departments"
+                options={editPmoSubDeptOptions}
+                value={formData.subDepartment}
+                onChange={(v) => handleChange("subDepartment", v)}
+                placeholder={
+                  !formData.pmoDepartment
+                    ? "Select department first…"
+                    : editPmoSubDeptOptions.length === 0
+                      ? "No sub-departments"
+                      : "Select sub-department…"
+                }
+                disabled={!formData.pmoDepartment || editPmoSubDeptOptions.length === 0}
+                showSearch={editPmoSubDeptOptions.length > 4}
+              />
+              <SearchableSelect
+                label="Billable / Non Billable Status"
+                options={[...BILLABLE_STATUS_OPTIONS]}
+                value={formData.billableStatus}
+                onChange={(v) => handleChange("billableStatus", v)}
+                placeholder="Select status…"
+              />
+              <SearchableSelect
+                label="Client Location"
+                options={MUMBAI_RAILWAY_STATIONS}
+                value={formData.clientLocation}
+                onChange={(v) => handleChange("clientLocation", v)}
+                placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
+                showSearch
+              />
+              <SearchableSelect
+                label="Project Type"
+                options={[...PROJECT_TYPE_OPTIONS]}
+                value={formData.projectType}
+                onChange={(v) => handleChange("projectType", v)}
+                placeholder="Select project type…"
+              />
+              <SearchableSelect
+                label="Project Allocated"
+                options={editProjectAllocatedOptions}
+                value={formData.projectAllocated}
+                onChange={(v) => handleChange("projectAllocated", v)}
+                placeholder="Select allocated project…"
+                showSearch
+              />
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Client Engagement Manager
+                </span>
+                <input
+                  autoComplete="off"
+                  type="text"
+                  placeholder="e.g. Name of Client Engagement Manager"
+                  value={formData.clientEngManagerMapping || ""}
+                  onChange={(e) => handleChange("clientEngManagerMapping", e.target.value)}
+                  className={inputCls}
+                />
+              </label>
+            </div>
+          </section>
         </div>
 
         {/* footer */}
@@ -1609,6 +1751,7 @@ function EmployeeProfilePage() {
       address: updatedEmp.address || null,
       emergencyContact: updatedEmp.emergencyContact || null,
       emergencyContactName: updatedEmp.emergencyContactName?.trim() || null,
+      emergencyContactRelation: updatedEmp.emergencyContactRelation?.trim() || null,
       maritalStatus: null,
       nationality: null,
       nationalityId,
@@ -1656,6 +1799,13 @@ function EmployeeProfilePage() {
       pfUan: updatedEmp.pfUan || null,
       taxRegime: updatedEmp.taxRegime || null,
       complianceStatus: updatedEmp.complianceStatus,
+      pmoDepartment: updatedEmp.pmoDepartment || null,
+      subDepartment: updatedEmp.subDepartment || null,
+      billableStatus: updatedEmp.billableStatus || null,
+      clientLocation: updatedEmp.clientLocation || null,
+      projectType: updatedEmp.projectType || null,
+      projectAllocated: updatedEmp.projectAllocated || null,
+      clientEngManagerMapping: updatedEmp.clientEngManagerMapping || null,
     });
 
     const savedUi = toUiEmployee(saved);
@@ -1823,9 +1973,10 @@ function EmployeeProfilePage() {
                 <Row label="Email ID" value={emp.email} />
                 <Row label="Contact Number" value={emp.phone ? `+91 ${emp.phone}` : "—"} />
                 <Row label="Alternate Contact" value={emp.altPhone ? `+91 ${emp.altPhone}` : "—"} />
+                <Row label="Current Address - City" value={emp.address} />
                 <Row label="Emergency Contact Name" value={emp.emergencyContactName} />
                 <Row label="Emergency Contact Number" value={emp.emergencyContact ? `+91 ${emp.emergencyContact}` : "—"} />
-                <Row label="Current Address - City" value={emp.address} />
+                <Row label="Relation with Emergency Contact" value={emp.emergencyContactRelation} />
                 <Row label="Employment Status" value={<EmpStatusBadge status={emp.status} />} />
               </Grid>
             </div>
@@ -1845,6 +1996,13 @@ function EmployeeProfilePage() {
                   <Row label="Location" value={emp.projectSite || "—"} />
                 )}
                 <Row label="Employee Category" value={emp.category} />
+                <Row label="PMO Department" value={emp.pmoDepartment} />
+                <Row label="PMO Sub-Department" value={emp.subDepartment} />
+                <Row label="Billable Status" value={emp.billableStatus} />
+                <Row label="Client Location" value={emp.clientLocation} />
+                <Row label="Project Type" value={emp.projectType} />
+                <Row label="Project Allocated" value={emp.projectAllocated} />
+                <Row label="Client Engagement Manager" value={emp.clientEngManagerMapping} />
               </Grid>
             </div>
           )}

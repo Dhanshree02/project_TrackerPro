@@ -86,6 +86,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.AltPhone,
                 e.EmergencyContact,
                 e.EmergencyContactName,
+                e.EmergencyContactRelation,
                 e.Pan,
                 e.BankAccount,
                 e.PfUan,
@@ -97,7 +98,14 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.BusinessUnit,
                 e.Team,
                 e.Experience,
-                e.PreviousCompany))
+                e.PreviousCompany,
+                e.PmoDepartment,
+                e.SubDepartment,
+                e.BillableStatus,
+                e.ClientLocation,
+                e.ProjectType,
+                e.ProjectAllocated,
+                e.ClientEngManagerMapping))
             .ToListAsync(ct);
 
         return new PagedResult<EmployeeListItemDto>(items, page, perPage, total);
@@ -171,6 +179,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             Address = request.Address,
             EmergencyContact = request.EmergencyContact,
             EmergencyContactName = request.EmergencyContactName,
+            EmergencyContactRelation = request.EmergencyContactRelation,
             MaritalStatus = request.MaritalStatus,
             Nationality = request.Nationality,
             NationalityId = request.NationalityId ?? await ResolveNationalityIdAsync(request.Nationality, ct),
@@ -223,6 +232,13 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             PfUan = EmployeeIdentityGuard.NormalizeUan(request.PfUan),
             TaxRegime = request.TaxRegime,
             ComplianceStatus = request.ComplianceStatus,
+            PmoDepartment = request.PmoDepartment,
+            SubDepartment = request.SubDepartment,
+            BillableStatus = request.BillableStatus,
+            ClientLocation = request.ClientLocation,
+            ProjectType = request.ProjectType,
+            ProjectAllocated = request.ProjectAllocated,
+            ClientEngManagerMapping = request.ClientEngManagerMapping,
         };
 
         if (checkIdentity)
@@ -269,6 +285,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         if (request.Address is not null) entity.Address = request.Address;
         if (request.EmergencyContact is not null) entity.EmergencyContact = request.EmergencyContact;
         if (request.EmergencyContactName is not null) entity.EmergencyContactName = request.EmergencyContactName;
+        if (request.EmergencyContactRelation is not null) entity.EmergencyContactRelation = request.EmergencyContactRelation;
         if (request.MaritalStatus is not null) entity.MaritalStatus = request.MaritalStatus;
         if (request.Nationality is not null) entity.Nationality = request.Nationality;
         if (request.NationalityId.HasValue) entity.NationalityId = request.NationalityId;
@@ -329,6 +346,13 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         if (request.PfUan is not null) entity.PfUan = EmployeeIdentityGuard.NormalizeUan(request.PfUan);
         if (request.TaxRegime is not null) entity.TaxRegime = request.TaxRegime;
         if (request.ComplianceStatus is not null) entity.ComplianceStatus = request.ComplianceStatus;
+        if (request.PmoDepartment is not null) entity.PmoDepartment = request.PmoDepartment;
+        if (request.SubDepartment is not null) entity.SubDepartment = request.SubDepartment;
+        if (request.BillableStatus is not null) entity.BillableStatus = request.BillableStatus;
+        if (request.ClientLocation is not null) entity.ClientLocation = request.ClientLocation;
+        if (request.ProjectType is not null) entity.ProjectType = request.ProjectType;
+        if (request.ProjectAllocated is not null) entity.ProjectAllocated = request.ProjectAllocated;
+        if (request.ClientEngManagerMapping is not null) entity.ClientEngManagerMapping = request.ClientEngManagerMapping;
 
         await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), entity.Id, ct);
         await ApplyCatalogNamesAsync(entity, ct);
@@ -846,6 +870,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.Address,
         e.EmergencyContact,
         e.EmergencyContactName,
+        e.EmergencyContactRelation,
         e.MaritalStatus,
         e.NationalityRef?.Name ?? e.Nationality,
         e.Department?.Name,
@@ -890,7 +915,14 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.SalaryBandRef?.Name ?? e.SalaryBand,
         e.PfUan,
         e.TaxRegime,
-        e.ComplianceStatus);
+        e.ComplianceStatus,
+        e.PmoDepartment,
+        e.SubDepartment,
+        e.BillableStatus,
+        e.ClientLocation,
+        e.ProjectType,
+        e.ProjectAllocated,
+        e.ClientEngManagerMapping);
 
     private async Task ApplyCatalogNamesAsync(Employee entity, CancellationToken ct)
     {
@@ -1001,7 +1033,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
     public async Task<MetaOptionDto> CreateCertificationAsync(string name, CancellationToken ct = default)
     {
-        var trimmed = NormalizeName(name);
+        var trimmed = RequireName(name);
         var existing = await db.Certifications.FirstOrDefaultAsync(c => c.Name == trimmed, ct);
         if (existing is not null)
             return new MetaOptionDto(existing.Id, existing.Code, existing.Name, null);
@@ -1028,7 +1060,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
     public async Task<MetaOptionDto> CreateGraduationDegreeAsync(string name, CancellationToken ct = default)
     {
-        var trimmed = NormalizeName(name);
+        var trimmed = RequireName(name);
         var existing = await db.GraduationDegrees.FirstOrDefaultAsync(g => g.Name == trimmed, ct);
         if (existing is not null)
             return new MetaOptionDto(existing.Id, existing.Code, existing.Name, null);
@@ -1055,7 +1087,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
     public async Task<MetaOptionDto> CreatePostGraduationDegreeAsync(string name, CancellationToken ct = default)
     {
-        var trimmed = NormalizeName(name);
+        var trimmed = RequireName(name);
         var existing = await db.PostGraduationDegrees.FirstOrDefaultAsync(p => p.Name == trimmed, ct);
         if (existing is not null)
             return new MetaOptionDto(existing.Id, existing.Code, existing.Name, null);

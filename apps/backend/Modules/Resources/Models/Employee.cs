@@ -17,6 +17,7 @@ public class Employee : BaseEntity
     public string? Address { get; set; }
     public string? EmergencyContact { get; set; }
     public string? EmergencyContactName { get; set; }
+    public string? EmergencyContactRelation { get; set; }
     public string? MaritalStatus { get; set; }
     public string? Nationality { get; set; }
 
@@ -60,6 +61,13 @@ public class Employee : BaseEntity
     public string? ExpType { get; set; }
     public string? PriorTotalExp { get; set; }
     public string? PriorRelevantExp { get; set; }
+    public string? PmoDepartment { get; set; }
+    public string? SubDepartment { get; set; }
+    public string? BillableStatus { get; set; }
+    public string? ClientLocation { get; set; }
+    public string? ProjectType { get; set; }
+    public string? ProjectAllocated { get; set; }
+    public string? ClientEngManagerMapping { get; set; }
     public string? Education { get; set; }
     public List<string> Skills { get; set; } = [];
     public List<string> Certifications { get; set; } = [];

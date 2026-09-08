@@ -14,6 +14,11 @@ import {
   validateOnboardField,
   validateOnboardFile,
   validateOnboardForm,
+  PMO_DEPARTMENT_OPTIONS,
+  PMO_DEPARTMENT_SUB_DEPARTMENTS,
+  formatExpDisplay,
+  computeTotalMonths,
+  parseExpToYearsMonths,
   type OnboardDocs,
   type OnboardValues,
 } from "./onboard-validation";
@@ -95,6 +100,18 @@ describe("Onboarding Form Validation & Exception Handling", () => {
         validateOnboardField("emergencyContact", { ...EMPTY_ONBOARD, emergencyContact: "9876543210" }),
       ).toBeUndefined();
     });
+
+    it("should require relation with emergency contact", () => {
+      expect(
+        validateOnboardField("emergencyContactRelation", { ...EMPTY_ONBOARD, emergencyContactRelation: "" }),
+      ).toBe("Relation with emergency contact is required");
+      expect(
+        validateOnboardField("emergencyContactRelation", { ...EMPTY_ONBOARD, emergencyContactRelation: "   " }),
+      ).toBe("Relation with emergency contact is required");
+      expect(
+        validateOnboardField("emergencyContactRelation", { ...EMPTY_ONBOARD, emergencyContactRelation: "Father" }),
+      ).toBeUndefined();
+    });
   });
 
   describe("Organizational Placement Validation", () => {
@@ -150,47 +167,70 @@ describe("Onboarding Form Validation & Exception Handling", () => {
   });
 
   describe("Payroll & Statutory Details Validation", () => {
-    it("should require PAN, Aadhaar, Bank Account, and IFSC", () => {
-      expect(validateOnboardField("pan", { ...EMPTY_ONBOARD, pan: "" })).toBe(
-        "PAN number is required",
-      );
-      expect(validateOnboardField("aadhaar", { ...EMPTY_ONBOARD, aadhaar: "" })).toBe(
-        "Aadhaar number is required",
-      );
-      expect(validateOnboardField("bankAccount", { ...EMPTY_ONBOARD, bankAccount: "" })).toBe(
-        "Bank account number is required",
-      );
-      expect(validateOnboardField("ifsc", { ...EMPTY_ONBOARD, ifsc: "" })).toBe(
-        "IFSC code is required",
-      );
+    it("should allow optional PAN, Aadhaar, Bank Account, and IFSC when empty", () => {
+      expect(validateOnboardField("pan", { ...EMPTY_ONBOARD, pan: "" })).toBeUndefined();
+      expect(validateOnboardField("aadhaar", { ...EMPTY_ONBOARD, aadhaar: "" })).toBeUndefined();
+      expect(validateOnboardField("bankAccount", { ...EMPTY_ONBOARD, bankAccount: "" })).toBeUndefined();
+      expect(validateOnboardField("ifsc", { ...EMPTY_ONBOARD, ifsc: "" })).toBeUndefined();
     });
 
-    it("should validate valid PAN, Aadhaar, and IFSC formats", () => {
+    it("should validate valid PAN, Aadhaar, and IFSC formats when provided", () => {
       expect(validateOnboardField("pan", { ...EMPTY_ONBOARD, pan: "ABCDE1234F" })).toBeUndefined();
+      expect(validateOnboardField("pan", { ...EMPTY_ONBOARD, pan: "INVALID" })).toBe(
+        "Enter a valid PAN (e.g. ABCDE1234F)",
+      );
       expect(validateOnboardField("aadhaar", { ...EMPTY_ONBOARD, aadhaar: "234567890124" })).toBeUndefined();
       expect(validateOnboardField("ifsc", { ...EMPTY_ONBOARD, ifsc: "SBIN0001234" })).toBeUndefined();
     });
   });
 
-  describe("Mandatory Document Uploads Validation", () => {
-    it("should require Resume, PAN Card, and Aadhaar Card uploads", () => {
+  describe("PMO Section & Document Uploads", () => {
+    it("should not block submission when document slots are empty", () => {
       const errors = validateOnboardDocs(EMPTY_DOCS);
-      expect(errors.Resume).toBe("Resume is required");
-      expect(errors["PAN Card"]).toBe("PAN card is required");
-      expect(errors["Aadhaar Card"]).toBe("Aadhaar card is required");
+      expect(Object.keys(errors).length).toBe(0);
     });
 
-    it("should pass when mandatory documents are attached", () => {
-      const docsWithFiles: OnboardDocs = {
-        ...EMPTY_DOCS,
-        Resume: new File(["resume data"], "resume.pdf", { type: "application/pdf" }),
-        "PAN Card": new File(["pan data"], "pan.jpg", { type: "image/jpeg" }),
-        "Aadhaar Card": new File(["aadhaar data"], "aadhaar.pdf", { type: "application/pdf" }),
-      };
-      const errors = validateOnboardDocs(docsWithFiles);
-      expect(errors.Resume).toBeUndefined();
-      expect(errors["PAN Card"]).toBeUndefined();
-      expect(errors["Aadhaar Card"]).toBeUndefined();
+    it("should correctly map departments to sub-departments", () => {
+      expect(PMO_DEPARTMENT_OPTIONS).toContain("Core");
+      expect(PMO_DEPARTMENT_OPTIONS).toContain("Functional - Project Management");
+      expect(PMO_DEPARTMENT_OPTIONS).toContain("Services - Testing");
+      expect(PMO_DEPARTMENT_OPTIONS).toContain("Internship Program");
+
+      expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Core"]).toEqual([
+        "Leading Sales & A/C Dept.",
+        "Leading Delivery Dept.",
+        "Leading Compliance & HR Dept.",
+      ]);
+
+      expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Functional - Project Management"]).toEqual([
+        "PMO (Project Management Office)",
+        "EM (Engagement Manager)",
+      ]);
+
+      expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Services - Testing"]).toEqual([
+        "Service - Testing - AppSec",
+        "Service - Testing - Mobile",
+        "Service - Testing - Infra",
+        "Services - Testing - DevSecOps",
+        "Services - Testing - Red Team",
+        "Services - Testing - Cloud & AI",
+      ]);
+
+      expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Internship Program"]).toEqual([
+        "Across all Sub Departments",
+      ]);
+
+      expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Functional - Accounts"]).toEqual(["-"]);
+    });
+
+    it("should allow PMO section fields", () => {
+      expect(validateOnboardField("pmoDepartment", { ...EMPTY_ONBOARD, pmoDepartment: "Core" })).toBeUndefined();
+      expect(validateOnboardField("subDepartment", { ...EMPTY_ONBOARD, subDepartment: "Leading Delivery Dept." })).toBeUndefined();
+      expect(validateOnboardField("billableStatus", { ...EMPTY_ONBOARD, billableStatus: "Billable" })).toBeUndefined();
+      expect(validateOnboardField("clientLocation", { ...EMPTY_ONBOARD, clientLocation: "Andheri (Western Line)" })).toBeUndefined();
+      expect(validateOnboardField("projectType", { ...EMPTY_ONBOARD, projectType: "Long Term" })).toBeUndefined();
+      expect(validateOnboardField("projectAllocated", { ...EMPTY_ONBOARD, projectAllocated: "Project Alpha" })).toBeUndefined();
+      expect(validateOnboardField("clientEngManagerMapping", { ...EMPTY_ONBOARD, clientEngManagerMapping: "John Doe" })).toBeUndefined();
     });
   });
 
@@ -210,6 +250,188 @@ describe("Onboarding Form Validation & Exception Handling", () => {
     });
   });
 
+  describe("Education & Passing Year Validation", () => {
+    it("should require graduation degree name when graduation passing year is selected", () => {
+      expect(
+        validateOnboardField("gradDegree", { ...EMPTY_ONBOARD, gradYear: "2022", gradDegree: "" }),
+      ).toBe("Graduation degree name is required when graduation passing year is selected");
+
+      expect(
+        validateOnboardField("gradDegree", { ...EMPTY_ONBOARD, gradYear: "2022", gradDegree: "   " }),
+      ).toBe("Graduation degree name is required when graduation passing year is selected");
+
+      expect(
+        validateOnboardField("gradDegree", { ...EMPTY_ONBOARD, gradYear: "2022", gradDegree: "B.Tech" }),
+      ).toBeUndefined();
+
+      expect(
+        validateOnboardField("gradDegree", { ...EMPTY_ONBOARD, gradYear: "", gradDegree: "" }),
+      ).toBeUndefined();
+    });
+
+    it("should require graduation passing year when graduation degree is selected", () => {
+      expect(
+        validateOnboardField("gradYear", { ...EMPTY_ONBOARD, gradDegree: "B.Tech", gradYear: "" }),
+      ).toBe("Graduation passing year is required when graduation degree is selected");
+
+      expect(
+        validateOnboardField("gradYear", { ...EMPTY_ONBOARD, gradDegree: "B.Tech", gradYear: "NA" }),
+      ).toBe("Graduation passing year is required when graduation degree is selected");
+
+      expect(
+        validateOnboardField("gradYear", { ...EMPTY_ONBOARD, gradDegree: "B.Tech", gradYear: "2022" }),
+      ).toBeUndefined();
+
+      expect(
+        validateOnboardField("gradYear", { ...EMPTY_ONBOARD, gradDegree: "", gradYear: "" }),
+      ).toBeUndefined();
+    });
+
+    it("should require post graduation passing year whenever post graduation degree name is selected", () => {
+      expect(
+        validateOnboardField("postGradYear", { ...EMPTY_ONBOARD, postGradDegree: "MBA", postGradYear: "" }),
+      ).toBe("Post graduation passing year is required when post graduation degree is selected");
+
+      expect(
+        validateOnboardField("postGradYear", { ...EMPTY_ONBOARD, postGradDegree: "MBA", postGradYear: "NA" }),
+      ).toBe("Post graduation passing year is required when post graduation degree is selected");
+
+      expect(
+        validateOnboardField("postGradYear", { ...EMPTY_ONBOARD, postGradDegree: "MBA", postGradYear: "2024" }),
+      ).toBeUndefined();
+
+      expect(
+        validateOnboardField("postGradYear", { ...EMPTY_ONBOARD, postGradDegree: "NA", postGradYear: "NA" }),
+      ).toBeUndefined();
+
+      expect(
+        validateOnboardField("postGradYear", { ...EMPTY_ONBOARD, postGradDegree: "", postGradYear: "" }),
+      ).toBeUndefined();
+    });
+
+    it("should validate post graduation passing year cannot be lower than graduation passing year", () => {
+      expect(
+        validateOnboardField("postGradYear", {
+          ...EMPTY_ONBOARD,
+          gradYear: "2022",
+          postGradDegree: "MBA",
+          postGradYear: "2020",
+        }),
+      ).toBe("Post graduation passing year cannot be lower than graduation passing year");
+
+      expect(
+        validateOnboardField("postGradYear", {
+          ...EMPTY_ONBOARD,
+          gradYear: "2022",
+          postGradDegree: "MBA",
+          postGradYear: "2022",
+        }),
+      ).toBeUndefined();
+
+      expect(
+        validateOnboardField("postGradYear", {
+          ...EMPTY_ONBOARD,
+          gradYear: "2022",
+          postGradDegree: "MBA",
+          postGradYear: "2024",
+        }),
+      ).toBeUndefined();
+
+      expect(
+        validateOnboardField("postGradYear", {
+          ...EMPTY_ONBOARD,
+          gradYear: "2022",
+          postGradDegree: "NA",
+          postGradYear: "NA",
+        }),
+      ).toBeUndefined();
+    });
+  });
+
+  describe("Total exp & Relevant exp (Years & Months) Validation", () => {
+    it("should format experience displays cleanly", () => {
+      expect(formatExpDisplay("3", "6")).toBe("3 Years 6 Months");
+      expect(formatExpDisplay("1", "1")).toBe("1 Year 1 Month");
+      expect(formatExpDisplay("3", "0")).toBe("3 Years");
+      expect(formatExpDisplay("0", "6")).toBe("6 Months");
+      expect(formatExpDisplay("0", "0")).toBe("0");
+    });
+
+    it("should calculate total months correctly", () => {
+      expect(computeTotalMonths("3", "6")).toBe(42);
+      expect(computeTotalMonths("0", "11")).toBe(11);
+      expect(computeTotalMonths("2", "0")).toBe(24);
+    });
+
+    it("should parse experience strings into years and months", () => {
+      expect(parseExpToYearsMonths("3 Years 6 Months")).toEqual({ years: "3", months: "6" });
+      expect(parseExpToYearsMonths("2 Years")).toEqual({ years: "2", months: "0" });
+      expect(parseExpToYearsMonths("5 Months")).toEqual({ years: "0", months: "5" });
+      expect(parseExpToYearsMonths("3.5")).toEqual({ years: "3", months: "6" });
+      expect(parseExpToYearsMonths("0")).toEqual({ years: "0", months: "0" });
+      expect(parseExpToYearsMonths("Fresher")).toEqual({ years: "0", months: "0" });
+    });
+
+    it("should enforce months between 0 and 11", () => {
+      expect(
+        validateOnboardField("priorTotalExpMonths", {
+          ...EMPTY_ONBOARD,
+          expType: "Experienced",
+          priorTotalExpMonths: "14",
+        }),
+      ).toBe("Months must be between 0 and 11");
+
+      expect(
+        validateOnboardField("priorTotalExpMonths", {
+          ...EMPTY_ONBOARD,
+          expType: "Experienced",
+          priorTotalExpMonths: "11",
+        }),
+      ).toBeUndefined();
+
+      expect(
+        validateOnboardField("priorRelevantExpMonths", {
+          ...EMPTY_ONBOARD,
+          expType: "Experienced",
+          priorRelevantExpMonths: "15",
+        }),
+      ).toBe("Months must be between 0 and 11");
+    });
+
+    it("should reject relevant experience exceeding total experience", () => {
+      expect(
+        validateOnboardField("priorRelevantExpYears", {
+          ...EMPTY_ONBOARD,
+          expType: "Experienced",
+          priorTotalExpYears: "2",
+          priorTotalExpMonths: "6",
+          priorRelevantExpYears: "3",
+          priorRelevantExpMonths: "0",
+        }),
+      ).toBe("Relevant experience cannot be greater than total experience");
+
+      expect(
+        validateOnboardField("priorRelevantExpYears", {
+          ...EMPTY_ONBOARD,
+          expType: "Experienced",
+          priorTotalExpYears: "3",
+          priorTotalExpMonths: "0",
+          priorRelevantExpYears: "2",
+          priorRelevantExpMonths: "6",
+        }),
+      ).toBeUndefined();
+
+      expect(
+        validateOnboardField("priorRelevantExpYears", {
+          ...EMPTY_ONBOARD,
+          expType: "Fresher",
+          priorTotalExpYears: "0",
+          priorRelevantExpYears: "5",
+        }),
+      ).toBeUndefined();
+    });
+  });
+
   describe("Full Form Aggregation & Valid Employee Creation", () => {
     it("should pass cleanly when all required fields and documents are complete", () => {
       const validForm: OnboardValues = {
@@ -223,6 +445,7 @@ describe("Onboarding Form Validation & Exception Handling", () => {
         altPhone: "9876543211",
         emergencyContact: "9876543212",
         emergencyContactName: "Pooja Sharma",
+        emergencyContactRelation: "Spouse",
         gender: "",
         address: "Andheri (Western Line)",
         departmentId: "DEPT-01",

@@ -74,7 +74,16 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 // Credentials are required for the HttpOnly refresh-token cookie to travel
 // with cross-origin requests. WithOrigins (never AllowAnyOrigin) + AllowCredentials.
 builder.Services.AddCors(o => o.AddPolicy("Frontend", p =>
-    p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+    }
+    else
+    {
+        p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+    }
+}));
 
 // ---- Authentication (JWT Bearer) ----
 var jwt = builder.Configuration.GetSection("Jwt");

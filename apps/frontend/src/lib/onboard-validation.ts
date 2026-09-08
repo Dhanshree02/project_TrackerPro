@@ -21,10 +21,63 @@ export const ONBOARD_DOC_SLOTS = [
 
 export type OnboardDocSlot = (typeof ONBOARD_DOC_SLOTS)[number];
 
-export const MANDATORY_DOC_SLOTS: OnboardDocSlot[] = ["Resume", "PAN Card", "Aadhaar Card"];
+export const MANDATORY_DOC_SLOTS: OnboardDocSlot[] = [];
+
+export const BILLABLE_STATUS_OPTIONS = ["Billable", "Non-Billable"] as const;
+export type BillableStatusOption = (typeof BILLABLE_STATUS_OPTIONS)[number];
+
+export const PROJECT_TYPE_OPTIONS = ["Long Term", "Short Term"] as const;
+export type ProjectTypeOption = (typeof PROJECT_TYPE_OPTIONS)[number];
+
+export const PMO_DEPARTMENT_SUB_DEPARTMENTS: Record<string, string[]> = {
+  "Core": [
+    "Leading Sales & A/C Dept.",
+    "Leading Delivery Dept.",
+    "Leading Compliance & HR Dept.",
+  ],
+  "Functional - IT Administration": ["-"],
+  "Functional - Accounts": ["-"],
+  "Functional - HR": ["-"],
+  "Functional - Sales": ["-"],
+  "Functional - Project Management": [
+    "PMO (Project Management Office)",
+    "EM (Engagement Manager)",
+  ],
+  "R&D (Research & Development)": ["-"],
+  "Services - Operations": ["-"],
+  "Services - Consulting": ["-"],
+  "Services - Testing": [
+    "Service - Testing - AppSec",
+    "Service - Testing - Mobile",
+    "Service - Testing - Infra",
+    "Services - Testing - DevSecOps",
+    "Services - Testing - Red Team",
+    "Services - Testing - Cloud & AI",
+  ],
+  "Internship Program": [
+    "Across all Sub Departments",
+  ],
+};
+
+export const PMO_DEPARTMENT_OPTIONS = Object.keys(PMO_DEPARTMENT_SUB_DEPARTMENTS);
 
 export const DOC_EXT = [".pdf", ".jpg", ".jpeg", ".png"];
 export const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5 MB
+
+export const EMERGENCY_RELATION_OPTIONS = [
+  "Father",
+  "Mother",
+  "Spouse",
+  "Brother",
+  "Sister",
+  "Son",
+  "Daughter",
+  "Guardian",
+  "Friend",
+  "Other",
+] as const;
+
+export type EmergencyRelationOption = (typeof EMERGENCY_RELATION_OPTIONS)[number];
 
 export type OnboardField =
   | "firstName"
@@ -36,6 +89,7 @@ export type OnboardField =
   | "altPhone"
   | "emergencyContact"
   | "emergencyContactName"
+  | "emergencyContactRelation"
   | "gender"
   | "dateOfBirth"
   | "maritalStatus"
@@ -62,7 +116,11 @@ export type OnboardField =
   | "postGradYear"
   | "expType"
   | "priorTotalExp"
+  | "priorTotalExpYears"
+  | "priorTotalExpMonths"
   | "priorRelevantExp"
+  | "priorRelevantExpYears"
+  | "priorRelevantExpMonths"
   | "education"
   | "certifications"
   | "technicalSkills"
@@ -76,7 +134,14 @@ export type OnboardField =
   | "bankAccount"
   | "ifsc"
   | "joiningDate"
-  | "reportingManagerId";
+  | "reportingManagerId"
+  | "pmoDepartment"
+  | "subDepartment"
+  | "billableStatus"
+  | "clientLocation"
+  | "projectType"
+  | "projectAllocated"
+  | "clientEngManagerMapping";
 
 export type OnboardErrors = Partial<Record<OnboardField, string>>;
 export type OnboardValues = Record<OnboardField, string>;
@@ -107,6 +172,7 @@ export const EMPTY_ONBOARD: OnboardValues = {
   address: "",
   emergencyContact: "",
   emergencyContactName: "",
+  emergencyContactRelation: "",
   departmentId: "",
   designationId: "",
   jobRoleId: "",
@@ -128,7 +194,11 @@ export const EMPTY_ONBOARD: OnboardValues = {
   postGradYear: "NA",
   expType: "Fresher",
   priorTotalExp: "0",
+  priorTotalExpYears: "0",
+  priorTotalExpMonths: "0",
   priorRelevantExp: "0",
+  priorRelevantExpYears: "0",
+  priorRelevantExpMonths: "0",
   education: "",
   certifications: "",
   technicalSkills: "",
@@ -143,6 +213,13 @@ export const EMPTY_ONBOARD: OnboardValues = {
   ifsc: "",
   joiningDate: "",
   reportingManagerId: "",
+  pmoDepartment: "",
+  subDepartment: "",
+  billableStatus: "Billable",
+  clientLocation: "",
+  projectType: "Long Term",
+  projectAllocated: "",
+  clientEngManagerMapping: "",
 };
 
 export const EMPTY_DOCS: OnboardDocs = {
@@ -163,6 +240,7 @@ export const ONBOARD_FIELDS: OnboardField[] = [
   "altPhone",
   "emergencyContact",
   "emergencyContactName",
+  "emergencyContactRelation",
   "address",
   "departmentId",
   "designationId",
@@ -174,12 +252,59 @@ export const ONBOARD_FIELDS: OnboardField[] = [
   "workerType",
   "bondDelivered",
   "bondDurationMonths",
-  "pan",
-  "aadhaar",
-  "pfUan",
-  "bankAccount",
-  "ifsc",
+  "gradDegree",
+  "gradYear",
+  "postGradDegree",
+  "postGradYear",
+  "priorTotalExpMonths",
+  "priorRelevantExpMonths",
+  "priorRelevantExpYears",
+  "pmoDepartment",
+  "subDepartment",
+  "billableStatus",
+  "clientLocation",
+  "projectType",
+  "projectAllocated",
+  "clientEngManagerMapping",
 ];
+
+export function formatExpDisplay(years: string | number, months: string | number): string {
+  const y = parseInt(String(years || "0"), 10) || 0;
+  const m = parseInt(String(months || "0"), 10) || 0;
+  if (y === 0 && m === 0) return "0";
+  const parts: string[] = [];
+  if (y > 0) parts.push(`${y} ${y === 1 ? "Year" : "Years"}`);
+  if (m > 0) parts.push(`${m} ${m === 1 ? "Month" : "Months"}`);
+  return parts.join(" ");
+}
+
+export function computeTotalMonths(years: string | number, months: string | number): number {
+  const y = parseInt(String(years || "0"), 10) || 0;
+  const m = parseInt(String(months || "0"), 10) || 0;
+  return y * 12 + m;
+}
+
+export function parseExpToYearsMonths(val?: string | null): { years: string; months: string } {
+  if (!val || val === "0" || val === "Fresher") return { years: "0", months: "0" };
+  const ymMatch = val.match(/(\d+)\s*(?:years?|yrs?)(?:\s*(\d+)\s*(?:months?|mos?))?/i);
+  if (ymMatch) {
+    return {
+      years: ymMatch[1] || "0",
+      months: ymMatch[2] || "0",
+    };
+  }
+  const mMatch = val.match(/^(\d+)\s*(?:months?|mos?)$/i);
+  if (mMatch) {
+    return { years: "0", months: mMatch[1] || "0" };
+  }
+  const num = parseFloat(val);
+  if (!isNaN(num) && num >= 0) {
+    const y = Math.floor(num);
+    const m = Math.round((num - y) * 12);
+    return { years: String(y), months: String(m) };
+  }
+  return { years: "0", months: "0" };
+}
 
 export const MAX_ADULT_DOB = isoDateYearsAgo(18);
 export const MIN_DOB = isoDateYearsAgo(100);
@@ -260,6 +385,11 @@ export function validateOnboardField(
       if (v.length < 2) return "Emergency contact name must be at least 2 characters";
       if (v.length > 100) return "Emergency contact name must be 100 characters or less";
       if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
+      return undefined;
+    }
+    case "emergencyContactRelation": {
+      const v = (values.emergencyContactRelation || "").trim();
+      if (!v) return "Relation with emergency contact is required";
       return undefined;
     }
     case "gender": {
@@ -380,13 +510,13 @@ export function validateOnboardField(
     }
     case "pan": {
       const v = (values.pan || "").trim();
-      if (!v) return "PAN number is required";
+      if (!v) return undefined;
       if (!isValidPan(v)) return "Enter a valid PAN (e.g. ABCDE1234F)";
       return undefined;
     }
     case "aadhaar": {
       const v = (values.aadhaar || "").trim();
-      if (!v) return "Aadhaar number is required";
+      if (!v) return undefined;
       if (/\D/.test(v.replace(/\s/g, ""))) return "Only numbers are allowed";
       if (!isValidAadhaar(v)) return "Enter a valid 12-digit Aadhaar number";
       return undefined;
@@ -400,7 +530,7 @@ export function validateOnboardField(
     }
     case "bankAccount": {
       const v = (values.bankAccount || "").trim();
-      if (!v) return "Bank account number is required";
+      if (!v) return undefined;
       if (/\D/.test(v)) return "Only numbers are allowed";
       const n = digitsOnly(v);
       if (n.length < 9 || n.length > 18) return "Enter a valid bank account number (9–18 digits)";
@@ -408,23 +538,41 @@ export function validateOnboardField(
     }
     case "ifsc": {
       const v = (values.ifsc || "").trim();
-      if (!v) return "IFSC code is required";
+      if (!v) return undefined;
       if (!isValidIfsc(v)) return "Enter a valid IFSC (e.g. SBIN0001234)";
       return undefined;
     }
+    case "pmoDepartment":
+    case "subDepartment":
+    case "billableStatus":
+    case "clientLocation":
+    case "projectType":
+    case "projectAllocated":
+    case "clientEngManagerMapping":
+      return undefined;
     case "businessUnit":
     case "team":
     case "projectSite":
     case "assetId":
     case "exitType":
     case "exitReason":
-    case "gradDegree":
-    case "postGradDegree":
     case "expType":
-          return undefined;
+      return undefined;
+    case "gradDegree": {
+      const hasGradYear = !!(values.gradYear || "").trim() && values.gradYear !== "NA";
+      const v = (values.gradDegree || "").trim();
+      if (hasGradYear && (!v || v === "NA")) {
+        return "Graduation degree name is required when graduation passing year is selected";
+      }
+      return undefined;
+    }
     case "gradYear": {
+      const hasGradDegree = !!(values.gradDegree || "").trim() && values.gradDegree !== "NA";
       const v = (values.gradYear || "").trim();
-      if (!v) return undefined;
+      if (hasGradDegree && (!v || v === "NA")) {
+        return "Graduation passing year is required when graduation degree is selected";
+      }
+      if (!v || v === "NA") return undefined;
       const currentYear = new Date().getFullYear();
       const yr = parseInt(v, 10);
       if (isNaN(yr) || yr < 1950 || yr > currentYear) {
@@ -432,8 +580,20 @@ export function validateOnboardField(
       }
       return undefined;
     }
+    case "postGradDegree": {
+      const hasPostGradYear = !!(values.postGradYear || "").trim() && values.postGradYear !== "NA";
+      const v = (values.postGradDegree || "").trim();
+      if (hasPostGradYear && (!v || v === "NA")) {
+        return "Post graduation degree name is required when post graduation passing year is selected";
+      }
+      return undefined;
+    }
     case "postGradYear": {
+      const hasPostGradDegree = !!(values.postGradDegree || "").trim() && values.postGradDegree !== "NA";
       const v = (values.postGradYear || "").trim();
+      if (hasPostGradDegree && (!v || v === "NA")) {
+        return "Post graduation passing year is required when post graduation degree is selected";
+      }
       if (!v || v === "NA") return undefined;
       const currentYear = new Date().getFullYear();
       const yr = parseInt(v, 10);
@@ -443,33 +603,66 @@ export function validateOnboardField(
       if (values.gradYear && values.gradYear !== "NA") {
         const gradYr = parseInt(values.gradYear, 10);
         if (!isNaN(gradYr) && yr < gradYr) {
-          return "Post graduation year cannot be prior to graduation year";
+          return "Post graduation passing year cannot be lower than graduation passing year";
         }
       }
       return undefined;
     }
-    case "priorTotalExp": {
+    case "priorTotalExpMonths": {
       if (values.expType === "Fresher") return undefined;
-      const totalStr = (values.priorTotalExp || "").trim();
-      if (!totalStr) return undefined;
-      const totalNum = parseFloat(totalStr);
-      if (isNaN(totalNum) || totalNum < 0) {
-        return "Total experience must be a non-negative number";
+      const mStr = (values.priorTotalExpMonths || "").trim();
+      if (!mStr) return undefined;
+      const m = parseInt(mStr, 10);
+      if (isNaN(m) || m < 0 || m > 11) {
+        return "Months must be between 0 and 11";
       }
       return undefined;
     }
-    case "priorRelevantExp": {
+    case "priorRelevantExpMonths": {
       if (values.expType === "Fresher") return undefined;
-      const totalStr = (values.priorTotalExp || "").trim();
-      const relStr = (values.priorRelevantExp || "").trim();
-      if (!relStr) return undefined;
-      const totalNum = parseFloat(totalStr);
-      const relNum = parseFloat(relStr);
-      if (isNaN(relNum) || relNum < 0) {
-        return "Relevant experience must be a non-negative number";
+      const mStr = (values.priorRelevantExpMonths || "").trim();
+      if (!mStr) return undefined;
+      const m = parseInt(mStr, 10);
+      if (isNaN(m) || m < 0 || m > 11) {
+        return "Months must be between 0 and 11";
       }
-      if (!isNaN(totalNum) && relNum > totalNum) {
+      return undefined;
+    }
+    case "priorTotalExp":
+    case "priorTotalExpYears": {
+      if (values.expType === "Fresher") return undefined;
+      const yStr = (values.priorTotalExpYears || "").trim();
+      if (yStr) {
+        const y = parseInt(yStr, 10);
+        if (isNaN(y) || y < 0) {
+          return "Years must be a non-negative number";
+        }
+      }
+      return undefined;
+    }
+    case "priorRelevantExp":
+    case "priorRelevantExpYears": {
+      if (values.expType === "Fresher") return undefined;
+      const totY = parseInt(values.priorTotalExpYears || "0", 10) || 0;
+      const totM = parseInt(values.priorTotalExpMonths || "0", 10) || 0;
+      const relY = parseInt(values.priorRelevantExpYears || "0", 10) || 0;
+      const relM = parseInt(values.priorRelevantExpMonths || "0", 10) || 0;
+      const totalMonths = totY * 12 + totM;
+      const relMonths = relY * 12 + relM;
+      if (relMonths > totalMonths) {
         return "Relevant experience cannot be greater than total experience";
+      }
+      if (
+        values.priorTotalExp &&
+        values.priorRelevantExp &&
+        !values.priorTotalExpYears &&
+        !values.priorRelevantExpYears
+      ) {
+        const totalNum = parseFloat(values.priorTotalExp);
+        const relNum = parseFloat(values.priorRelevantExp);
+        if (!isNaN(totalNum) && !isNaN(relNum) && relNum > totalNum) {
+          return "Relevant experience cannot be greater than total experience";
+        }
       }
       return undefined;
     }
@@ -534,23 +727,17 @@ export function validateOnboardFile(file: File): string | undefined {
 
 export function validateOnboardDocs(docs: OnboardDocs): OnboardDocErrors {
   const errors: OnboardDocErrors = {};
-  if (!docs.Resume) {
-    errors.Resume = "Resume is required";
-  } else {
+  if (docs.Resume) {
     const err = validateOnboardFile(docs.Resume);
     if (err) errors.Resume = err;
   }
 
-  if (!docs["PAN Card"]) {
-    errors["PAN Card"] = "PAN card is required";
-  } else {
+  if (docs["PAN Card"]) {
     const err = validateOnboardFile(docs["PAN Card"]);
     if (err) errors["PAN Card"] = err;
   }
 
-  if (!docs["Aadhaar Card"]) {
-    errors["Aadhaar Card"] = "Aadhaar card is required";
-  } else {
+  if (docs["Aadhaar Card"]) {
     const err = validateOnboardFile(docs["Aadhaar Card"]);
     if (err) errors["Aadhaar Card"] = err;
   }

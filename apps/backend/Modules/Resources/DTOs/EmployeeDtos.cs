@@ -21,6 +21,7 @@ public sealed record EmployeeListItemDto(
     string? AltPhone = null,
     string? EmergencyContact = null,
     string? EmergencyContactName = null,
+    string? EmergencyContactRelation = null,
     string? Pan = null,
     string? BankAccount = null,
     string? PfUan = null,
@@ -32,7 +33,14 @@ public sealed record EmployeeListItemDto(
     string? BusinessUnit = null,
     string? Team = null,
     string? Experience = null,
-    string? PreviousCompany = null);
+    string? PreviousCompany = null,
+    string? PmoDepartment = null,
+    string? SubDepartment = null,
+    string? BillableStatus = null,
+    string? ClientLocation = null,
+    string? ProjectType = null,
+    string? ProjectAllocated = null,
+    string? ClientEngManagerMapping = null);
 
 public sealed record EmployeeDetailDto(
     Guid Id,
@@ -48,6 +56,7 @@ public sealed record EmployeeDetailDto(
     string? Address,
     string? EmergencyContact,
     string? EmergencyContactName,
+    string? EmergencyContactRelation,
     string? MaritalStatus,
     string? Nationality,
     string? Department,
@@ -92,7 +101,14 @@ public sealed record EmployeeDetailDto(
     string? SalaryBand,
     string? PfUan,
     string? TaxRegime,
-    string? ComplianceStatus);
+    string? ComplianceStatus,
+    string? PmoDepartment = null,
+    string? SubDepartment = null,
+    string? BillableStatus = null,
+    string? ClientLocation = null,
+    string? ProjectType = null,
+    string? ProjectAllocated = null,
+    string? ClientEngManagerMapping = null);
 
 public sealed record EmployeeLookupDto(
     Guid Id,
@@ -184,7 +200,15 @@ public sealed record CreateEmployeeRequest(
     Guid? EmployeeStatusId = null,
     string? BondDelivered = null,
     int? BondDurationMonths = null,
-    DateOnly? BondExpiryDate = null);
+    DateOnly? BondExpiryDate = null,
+    string? EmergencyContactRelation = null,
+    string? PmoDepartment = null,
+    string? SubDepartment = null,
+    string? BillableStatus = null,
+    string? ClientLocation = null,
+    string? ProjectType = null,
+    string? ProjectAllocated = null,
+    string? ClientEngManagerMapping = null);
 
 public sealed record UpdateEmployeeRequest(
     string? FirstName,
@@ -248,7 +272,15 @@ public sealed record UpdateEmployeeRequest(
     Guid? SalaryBandId = null,
     string? ProbationPeriod = null,
     string? Aadhaar = null,
-    string? EmployeeCode = null);
+    string? EmployeeCode = null,
+    string? EmergencyContactRelation = null,
+    string? PmoDepartment = null,
+    string? SubDepartment = null,
+    string? BillableStatus = null,
+    string? ClientLocation = null,
+    string? ProjectType = null,
+    string? ProjectAllocated = null,
+    string? ClientEngManagerMapping = null);
 
 public sealed record EmployeeBulkRowError(int Row, string? EmployeeCode, string Message);
 
