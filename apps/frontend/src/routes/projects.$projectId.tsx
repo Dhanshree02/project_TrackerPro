@@ -1126,7 +1126,7 @@ const LEGACY_WBS_SERVICES = [
 
 function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project: Project; onRaiseInvoice: (invoiceId: string) => void; onNavigateToHealthAlerts?: () => void }) {
   const snapshotInvoices = useDhStore((s) => s.invoices);
-  const { isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
+  const { user, isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
   const hideAmounts = isPmFamily || hideBudget;
   const hidePrereq = isPmFamily || isAccounts;
   const canRaise = isDhanshree || isAccounts;
@@ -3886,7 +3886,7 @@ function HealthTab({ project }: { project: Project }) {
 
       {healthTab === "Issues" && <HealthIssuesPanel issues={projectIssues} project={project} canRaise={canRaiseIssue} />}
       {healthTab === "Alerts" && <HealthAlertsPanel alerts={projectAlerts} />}
-      {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} />}
+      {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} canRaise={canRaiseIssue} />}
       {healthTab === "Appreciation" && <HealthAppreciationPanel appreciations={projectAppreciations} project={project} />}
 
       {(isDhanshree || isEngagementManager) && healthTab === "Customer Engagement" && (
@@ -4047,10 +4047,63 @@ function HealthAlertsPanel({ alerts }: { alerts: DhAlert[] }) {
   );
 }
 
-function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; project: Project }) {
+type EscalationType = "Behavioral Issue" | "Technical Issue" | "Process Issue";
+
+function HealthEscalationsPanel({ escalations, project, canRaise }: { escalations: any[]; project: Project; canRaise?: boolean }) {
   const store = useDhStore((s) => s);
   const { user } = useRoleContext();
   const [selectedEscId, setSelectedEscId] = useState<string | null>(null);
+  const [showRaiseModal, setShowRaiseModal] = useState(false);
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    escalationType: EscalationType;
+    priority: "High";
+  }>({
+    title: "",
+    description: "",
+    escalationType: "Behavioral Issue",
+    priority: "High",
+  });
+
+  const getEscalationRoute = (type: EscalationType): string[] => {
+    switch (type) {
+      case "Behavioral Issue":
+        return ["PMO / HOD"];
+      case "Technical Issue":
+        return ["SPM / HOD"];
+      case "Process Issue":
+        return ["PMO / HOD"];
+      default:
+        return ["PMO / HOD"];
+    }
+  };
+
+  const handleRaiseEscalation = () => {
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast.error("Fill all fields");
+      return;
+    }
+    const routes = getEscalationRoute(formData.escalationType);
+    dhStore.addEscalationAlert({
+      projectId: project.id,
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      priority: "High",
+      raisedByName: user.name || "Dhanshree",
+      serviceName: "Project Health",
+      escalationType: formData.escalationType,
+      escalatedTo: routes,
+    });
+    toast.success("Escalation raised", { description: `Routed to: ${routes.join(", ")}` });
+    setShowRaiseModal(false);
+    setFormData({
+      title: "",
+      description: "",
+      escalationType: "Behavioral Issue",
+      priority: "High",
+    });
+  };
 
   // Modal State
   const [selectedStatus, setSelectedStatus] = useState<any>("Open");
@@ -4101,6 +4154,16 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
 
   return (
     <div className="space-y-4 text-xs">
+      {canRaise && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowRaiseModal(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" /> Raise Escalation
+          </button>
+        </div>
+      )}
       {/* Summary Grid */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <div className="rounded-lg border border-border p-3 flex flex-col justify-between bg-card">
@@ -4337,6 +4400,65 @@ function HealthEscalationsPanel({ escalations, project }: { escalations: any[]; 
                   Save Changes
                 </button>
               </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Escalation Raise Details Modal */}
+      {showRaiseModal && (
+        <Modal title="Escalation Details" onClose={() => setShowRaiseModal(false)} draggable>
+          <div className="space-y-3">
+            <Field label="Escalation Title">
+              <input
+                value={formData.title}
+                onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))}
+                placeholder="Brief summary..."
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </Field>
+            <Field label="Description">
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))}
+                placeholder="Detailed description..."
+                rows={3}
+                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </Field>
+            <Field label="Escalation Type">
+              <select
+                value={formData.escalationType}
+                onChange={(e) => setFormData((s) => ({ ...s, escalationType: e.target.value as EscalationType }))}
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {(["Behavioral Issue", "Technical Issue", "Process Issue"] as EscalationType[]).map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Priority">
+              <select
+                value="High"
+                disabled
+                className="h-9 w-full rounded-md border border-input bg-muted/50 px-3 text-sm outline-none cursor-not-allowed text-foreground"
+              >
+                <option value="High">High</option>
+              </select>
+            </Field>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button
+                onClick={() => setShowRaiseModal(false)}
+                className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRaiseEscalation}
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Raise Escalation
+              </button>
             </div>
           </div>
         </Modal>

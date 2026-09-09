@@ -2417,6 +2417,7 @@ export const dhStore = {
   raiseIssue(
     input: Omit<DhIssue, "id" | "createdAt" | "comments" | "audit" | "status"> & {
       status?: DhIssueStatus;
+      audienceUserIds?: string[];
     },
   ) {
     const id = uid("dhi");
@@ -2437,7 +2438,7 @@ export const dhStore = {
       kind: "Issue",
       projectId: input.projectId,
       raisedByName: input.raisedByName,
-      audienceUserIds: ["u1", "u3", "u4"], // SPM + PMs
+      audienceUserIds: input.audienceUserIds || ["u1", "u3", "u4"], // SPM + PMs
       priority: input.priority,
       status: "Open",
       refId: id,
