@@ -40,7 +40,7 @@ import {
   formatCustomerId,
   type CreateClientInput,
 } from "@/lib/api/clients";
-import { fetchCities, fetchCountries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
+import { fetchCities, fetchContactDesignations, fetchContactTypes, fetchCountries, fetchIndustries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
 import { useAuth } from "@/lib/auth-context";
 import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
 import { Modal } from "@/routes/projects.index";
@@ -54,12 +54,10 @@ import {
   FIELD_MAX,
   emailError,
   fieldInputCls,
-  isCompletePhone,
-  phoneError,
   toEmailInput,
-  toTenDigitPhone,
 } from "@/lib/form-validation";
 import { useEngagementManagers } from "@/lib/engagement-managers";
+import { useSalesManagers } from "@/lib/sales-managers";
 
 export const Route = createFileRoute("/customers/")({
   head: () => ({
@@ -705,7 +703,7 @@ function CustomersPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{c.industry}</td>
+                  <td className="px-3 py-2.5 text-xs font-medium text-foreground">{c.industry || "—"}</td>
                   <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.engagementManager || "—"}</td>
                   <td className="px-3 py-2.5 text-xs text-foreground font-medium">{c.salesManager || "—"}</td>
                   <td className="px-3 py-2.5 tabular-nums">{total}</td>
@@ -749,7 +747,14 @@ interface ContactEntry {
   phone: string;
   designation: string;
   contactType?: string;
+  country: string;
 }
+
+function blankContact(country = ""): ContactEntry {
+  return { name: "", email: "", phone: "", designation: "", contactType: "", country };
+}
+const BILLING_MEDIUMS = ["Portal Based", "Manual Based"] as const;
+
 interface NewClientState {
   clientName: string;
   subVentureName: string;
@@ -757,6 +762,8 @@ interface NewClientState {
   engagementManager: string;
   salesManager: string;
   phoneNumber: string;
+  groupSpocName: string;
+  billingMedium: string;
   city: string;
   country: string;
   industry: string;
@@ -805,6 +812,12 @@ function NewClientModal({
 
   const [countries, setCountries] = useState<CatalogOption[]>([]);
   const [cities, setCities] = useState<CityCatalogOption[]>([]);
+  const [industries, setIndustries] = useState<CatalogOption[]>([]);
+  const [industriesReady, setIndustriesReady] = useState(false);
+  const [contactDesignations, setContactDesignations] = useState<CatalogOption[]>([]);
+  const [designationsReady, setDesignationsReady] = useState(false);
+  const [contactTypes, setContactTypes] = useState<CatalogOption[]>([]);
+  const [contactTypesReady, setContactTypesReady] = useState(false);
 
   const filteredTk = existingClients.filter(
     (c) => tkSearch.trim() === "" || c.name.toLowerCase().includes(tkSearch.toLowerCase()),
@@ -817,6 +830,8 @@ function NewClientModal({
     engagementManager: "",
     salesManager: "",
     phoneNumber: "",
+    groupSpocName: "",
+    billingMedium: "",
     city: "",
     country: "",
     industry: "",
@@ -824,7 +839,7 @@ function NewClientModal({
     createdAt: new Date().toISOString(),
     createdBy: user?.name ?? "Unknown",
     kycFile: null,
-    contacts: [{ name: "", email: "", phone: "", designation: "", contactType: "" }],
+    contacts: [blankContact()],
     notes: "",
   }));
   const [previewKyc, setPreviewKyc] = useState(false);
@@ -838,6 +853,52 @@ function NewClientModal({
       })),
     [emPool],
   );
+  const { pool: smPool, loading: smLoading } = useSalesManagers();
+  const smOptions = useMemo(() => {
+    const opts = smPool.map((p) => ({
+      value: p.fullName,
+      label: p.fullName,
+      subLabel: [p.designation ?? "Functional - Sales", p.workEmail].filter(Boolean).join(" · "),
+    }));
+    const stored = s.salesManager.trim();
+    if (stored && !opts.some((o) => o.value === stored)) {
+      opts.unshift({ value: stored, label: stored, subLabel: "On record" });
+    }
+    return opts;
+  }, [smPool, s.salesManager]);
+
+  const industryOptions = useMemo(() => {
+    const preferred = [
+      "Banking",
+      "Healthcare",
+      "Retail",
+      "Logistics",
+      "Energy",
+      "Manufacturing",
+      "Telecom",
+      "Media",
+    ];
+    const rank = (name: string) => {
+      const i = preferred.findIndex((p) => p.toLowerCase() === name.toLowerCase());
+      return i === -1 ? preferred.length : i;
+    };
+    const opts = [...industries]
+      .sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name))
+      .map((i) => ({ value: i.name, label: i.name }));
+    const stored = s.industry.trim();
+    if (stored && !opts.some((o) => o.value === stored)) {
+      opts.unshift({ value: stored, label: stored });
+    }
+    return opts;
+  }, [industries, s.industry]);
+
+  const designationOptions = useMemo(() => {
+    return contactDesignations.map((d) => ({ value: d.name, label: d.name }));
+  }, [contactDesignations]);
+
+  const contactTypeOptions = useMemo(() => {
+    return contactTypes.map((t) => ({ value: t.name, label: t.name }));
+  }, [contactTypes]);
 
   useEffect(() => {
     let cancelled = false;
@@ -847,6 +908,36 @@ function NewClientModal({
       })
       .catch(() => {
         if (!cancelled) setCountries([]);
+      });
+    void fetchIndustries()
+      .then((rows) => {
+        if (!cancelled) setIndustries(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setIndustries([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIndustriesReady(true);
+      });
+    void fetchContactDesignations()
+      .then((rows) => {
+        if (!cancelled) setContactDesignations(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setContactDesignations([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDesignationsReady(true);
+      });
+    void fetchContactTypes()
+      .then((rows) => {
+        if (!cancelled) setContactTypes(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setContactTypes([]);
+      })
+      .finally(() => {
+        if (!cancelled) setContactTypesReady(true);
       });
     return () => {
       cancelled = true;
@@ -886,7 +977,7 @@ function NewClientModal({
             ...p,
             contacts: [
               ...p.contacts,
-              { name: "", email: "", phone: "", designation: "", contactType: "" },
+              blankContact(p.country || p.contacts[0]?.country || ""),
             ],
           },
     );
@@ -897,7 +988,14 @@ function NewClientModal({
   const updateContact = (idx: number, field: keyof ContactEntry, val: string) =>
     setS((p) => ({
       ...p,
-      contacts: p.contacts.map((c, i) => (i === idx ? { ...c, [field]: val } : c)),
+      contacts: p.contacts.map((c, i) => {
+        if (i !== idx) return c;
+        if (field === "country") {
+          const digits = countries.find((x) => x.name === val)?.phoneDigits || 10;
+          return { ...c, country: val, phone: c.phone.replace(/\D/g, "").slice(0, digits) };
+        }
+        return { ...c, [field]: val };
+      }),
     }));
 
   const selectedCountryObj = countries.find((c) => c.name === s.country);
@@ -905,6 +1003,49 @@ function NewClientModal({
   const countryPhoneDigits = selectedCountryObj?.phoneDigits || 10;
 
   const namesEq = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  const findExistingByName = (name: string) =>
+    existingClients.find((c) => namesEq(c.name, name)) ?? null;
+  const selectExistingClient = (c: (typeof existingClients)[0]) => {
+    setSelectedExisting(c);
+    setTkSearch(c.name);
+    setTkDropOpen(false);
+    setS((p) => ({
+      ...p,
+      clientName: c.name,
+      customerId: c.id,
+      engagementManager: p.engagementManager.trim() || c.engagementManager || "",
+      salesManager: p.salesManager.trim() || c.salesManager || "",
+      phoneNumber: c.groupSpocContact || c.contactPhone || p.phoneNumber,
+      groupSpocName: p.groupSpocName.trim() || c.groupSpocName || c.contactName || "",
+      billingMedium: p.billingMedium.trim() || c.billingMedium || "",
+      city: c.city ?? p.city,
+      country: c.country ?? p.country,
+      industry: c.industry ?? p.industry,
+      businessType: c.businessType ?? p.businessType,
+      contacts: [blankContact(c.country ?? p.country)],
+    }));
+  };
+  const resetTkDependents = (clientName = "") => {
+    setSelectedExisting(null);
+    setSvSearch("");
+    setSvDropOpen(false);
+    setSvAlreadyExists(false);
+    setS((p) => ({
+      ...p,
+      clientName,
+      subVentureName: "",
+      engagementManager: "",
+      salesManager: "",
+      phoneNumber: "",
+      groupSpocName: "",
+      billingMedium: "",
+      city: "",
+      country: "",
+      industry: "",
+      businessType: "",
+      customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
+    }));
+  };
   const matchingExistingClient =
     selectedExisting ??
     existingClients.find((c) => namesEq(c.name, s.clientName || tkSearch)) ??
@@ -920,16 +1061,33 @@ function NewClientModal({
     if (!selectedExisting && !s.clientName.trim()) return "TK Customer / Partner Name is required";
     if (!s.subVentureName.trim()) return "End Customer / Sub-venture Name is required";
     if (duplicatePairExists) return "Client and sub-venture already exist";
-    if (selectedExisting) return null; // existing client — rest auto-filled
     if (!s.engagementManager.trim()) return "Engagement Manager is required";
     if (
       emPool.length > 0 &&
       !emPool.some((p) => p.fullName === s.engagementManager.trim())
     ) {
-      return "Select an Engagement Manager from the list";
+      const storedEm = selectedExisting?.engagementManager?.trim();
+      if (!storedEm || storedEm !== s.engagementManager.trim()) {
+        return "Select an Engagement Manager from the list";
+      }
     }
+    if (!s.salesManager.trim()) return "Sales Manager is required";
+    if (
+      smPool.length > 0 &&
+      !smPool.some((p) => p.fullName === s.salesManager.trim())
+    ) {
+      const storedSm = selectedExisting?.salesManager?.trim();
+      if (!storedSm || storedSm !== s.salesManager.trim()) {
+        return "Select a Sales Manager from the list";
+      }
+    }
+    if (!s.billingMedium.trim() && !selectedExisting?.billingMedium?.trim()) {
+      return "Billing Medium is required";
+    }
+    if (selectedExisting) return null; // existing client — remaining company fields already on record
     if (!s.country.trim()) return "Country is required";
     if (!s.city.trim()) return "City is required";
+    if (!s.groupSpocName.trim()) return "Group SPOC Name is required";
     if (!s.phoneNumber.trim()) return "Group SPOC Contact is required";
     const cleanPhone = s.phoneNumber.replace(/\D/g, "");
     if (cleanPhone.length !== countryPhoneDigits) {
@@ -945,10 +1103,15 @@ function NewClientModal({
       const n = s.contacts.length > 1 ? ` (Contact ${i + 1})` : "";
       if (!c.name.trim()) return `Contact Name${n} is required`;
       if (!c.contactType?.trim()) return `Contact Type${n} is required`;
+      if (!c.country.trim()) return `Country / Region${n} is required`;
+      const contactDigits = countries.find((x) => x.name === c.country)?.phoneDigits || 10;
+      const cleanPhone = c.phone.replace(/\D/g, "");
+      if (!cleanPhone) return `Phone${n} is required`;
+      if (cleanPhone.length !== contactDigits) {
+        return `Phone${n} must be exactly ${contactDigits} digits for ${c.country}`;
+      }
       const mailErr = emailError(c.email, true);
       if (mailErr) return `Contact Email${n} — ${mailErr}`;
-      const phErr = phoneError(c.phone, true);
-      if (phErr) return `Contact Phone${n} — ${phErr}`;
       if (!c.designation.trim()) return `Designation${n} is required`;
     }
     if (!s.kycFile) return "KYC Document is required";
@@ -961,6 +1124,16 @@ function NewClientModal({
       if (err) {
         toast.error(err);
         return;
+      }
+      const defaultCountry = (s.country.trim() || selectedExisting?.country || "").trim();
+      if (defaultCountry) {
+        setS((p) => ({
+          ...p,
+          contacts: p.contacts.map((c) => ({
+            ...c,
+            country: c.country.trim() || defaultCountry,
+          })),
+        }));
       }
     }
     if (step === 2) {
@@ -981,7 +1154,20 @@ function NewClientModal({
     err instanceof Error && /not authenticated|unauthorized/i.test(err.message);
 
   const buildNewClientPayload = () => {
-    const validContacts = s.contacts.filter((c) => c.name.trim() && c.email.trim());
+    const validContacts = s.contacts
+      .filter((c) => c.name.trim() && c.email.trim())
+      .map((c) => {
+        const meta = countries.find((x) => x.name === c.country);
+        return {
+          name: c.name.trim(),
+          email: c.email.trim(),
+          phone: c.phone.trim(),
+          designation: c.designation.trim(),
+          contactType: c.contactType,
+          country: c.country.trim() || undefined,
+          phoneCode: meta?.phoneCode,
+        };
+      });
     const primary = validContacts[0] ?? s.contacts[0];
     const name = (s.clientName || s.subVentureName).trim();
     const subVentureName = s.subVentureName?.trim() || null;
@@ -996,26 +1182,21 @@ function NewClientModal({
         name,
         industry: (s.industry || "Other").trim(),
         clientType: "NEW" as const,
-        contactEmail: primary?.email?.trim() || null,
-        contactName: primary?.name?.trim() || null,
-        contactPhone: primary?.phone?.trim() || s.phoneNumber?.trim() || null,
-        contactDesignation: primary?.designation?.trim() || null,
-        contactType: primary?.contactType || "Primary",
+        contactEmail: null,
+        contactName: s.groupSpocName.trim() || null,
+        contactPhone: s.phoneNumber.trim() || null,
+        contactType: "Group SPOC",
         city: s.city?.trim() || null,
         country: s.country?.trim() || null,
         businessType: s.businessType?.trim() || null,
+        billingMedium: s.billingMedium.trim() || null,
+        groupSpocName: s.groupSpocName.trim() || null,
+        groupSpocContact: s.phoneNumber.trim() || null,
         notes: null,
         kycDocumentName: s.kycFile?.name || null,
         engagementManager,
         salesManager,
         subVentures,
-        contacts: validContacts.map((c) => ({
-          name: c.name.trim(),
-          email: c.email.trim(),
-          phone: c.phone.trim() || null,
-          designation: c.designation.trim() || null,
-          contactType: c.contactType || "Primary",
-        })),
       } satisfies CreateClientInput,
       managerPatch: {
         ...(engagementManager ? { engagementManager } : {}),
@@ -1025,8 +1206,11 @@ function NewClientModal({
         name,
         industry: s.industry || "Other",
         contact: primary?.email ?? "",
-        contactName: primary?.name ?? "",
-        contactPhone: primary?.phone ?? "",
+        contactName: s.groupSpocName.trim() || "",
+        contactPhone: s.phoneNumber.trim() || "",
+        billingMedium: s.billingMedium.trim() || undefined,
+        groupSpocName: s.groupSpocName.trim() || undefined,
+        groupSpocContact: s.phoneNumber.trim() || undefined,
         contactDesignation: primary?.designation ?? "",
         contactType: primary?.contactType || "Primary",
         city: s.city,
@@ -1062,6 +1246,7 @@ function NewClientModal({
           try {
             const updated = await updateClient(selectedExisting.id, {
               ...managerPatch,
+              ...(s.billingMedium.trim() ? { billingMedium: s.billingMedium.trim() } : {}),
               subVentures: [
                 ...(selectedExisting.subVentures ?? []),
                 {
@@ -1216,45 +1401,22 @@ function NewClientModal({
                   const filtered = e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.clientName);
                   setTkSearch(filtered);
                   setTkDropOpen(true);
-                  if (selectedExisting && filtered !== selectedExisting.name) {
-                    setSelectedExisting(null);
-                    setSvSearch("");
-                    setSvDropOpen(false);
-                    setSvAlreadyExists(false);
-                    setS((p) => ({
-                      ...p,
-                      clientName: filtered,
-                      subVentureName: "",
-                      customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
-                    }));
+                  if (!filtered.trim() || (selectedExisting && filtered !== selectedExisting.name)) {
+                    resetTkDependents(filtered);
                   } else {
                     setS((p) => ({ ...p, clientName: filtered }));
                   }
                 }}
                 onBlur={() => setTimeout(() => setTkDropOpen(false), 150)}
               />
-              {selectedExisting && (
+              {tkSearch.trim() && (
                 <button
                   type="button"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => {
-                    setSelectedExisting(null);
                     setTkSearch("");
-                    setS((p) => ({
-                      ...p,
-                      clientName: "",
-                      engagementManager: "",
-                      salesManager: "",
-                      phoneNumber: "",
-                      city: "",
-                      country: "",
-                      industry: "",
-                      businessType: "",
-                      customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
-                    }));
-                    setSvSearch("");
-                    setSvDropOpen(false);
-                    setSvAlreadyExists(false);
+                    setTkDropOpen(false);
+                    resetTkDependents("");
                   }}
                   title="Clear selection"
                 >
@@ -1262,7 +1424,10 @@ function NewClientModal({
                 </button>
               )}
               {tkDropOpen && (
-                <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
+                <div
+                  className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto overscroll-contain rounded-md border border-border bg-popover shadow-lg"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
                   {filteredTk.length > 0 && (
                     <>
                       <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -1273,33 +1438,7 @@ function NewClientModal({
                           key={c.id}
                           type="button"
                           className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent"
-                          onMouseDown={() => {
-                            setSelectedExisting(c);
-                            setTkSearch(c.name);
-                            setTkDropOpen(false);
-                            setS((p) => ({
-                              ...p,
-                              clientName: c.name,
-                              customerId: c.id,
-                              engagementManager: p.engagementManager.trim() || c.engagementManager || "",
-                              salesManager: p.salesManager.trim() || c.salesManager || "",
-                              phoneNumber:
-                                (c as { phoneNumber?: string }).phoneNumber ?? p.phoneNumber,
-                              city: c.city ?? p.city,
-                              country: c.country ?? p.country,
-                              industry: c.industry ?? p.industry,
-                              businessType: c.businessType ?? p.businessType,
-                              contacts: [
-                                {
-                                  name: "",
-                                  email: "",
-                                  phone: "",
-                                  designation: "",
-                                  contactType: "",
-                                },
-                              ],
-                            }));
-                          }}
+                          onMouseDown={() => selectExistingClient(c)}
                         >
                           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
                             {c.logo}
@@ -1322,6 +1461,11 @@ function NewClientModal({
                       type="button"
                       className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-sm text-primary hover:bg-accent"
                       onMouseDown={() => {
+                        const match = findExistingByName(tkSearch);
+                        if (match) {
+                          selectExistingClient(match);
+                          return;
+                        }
                         setSelectedExisting(null);
                         setSvSearch("");
                         setSvDropOpen(false);
@@ -1348,15 +1492,7 @@ function NewClientModal({
           {selectedExisting && (
             <div className="rounded-lg border border-info/30 bg-info/5 px-3 py-2.5 text-xs space-y-1">
               <p className="font-semibold text-foreground">{selectedExisting.name}</p>
-              <p className="text-muted-foreground">
-                {selectedExisting.industry} · ID: {selectedExisting.id}
-              </p>
-              {selectedExisting.engagementManager && (
-                <p className="text-muted-foreground">EM: {selectedExisting.engagementManager}</p>
-              )}
-              {selectedExisting.salesManager && (
-                <p className="text-muted-foreground">SM: {selectedExisting.salesManager}</p>
-              )}
+              <p className="text-muted-foreground">ID: {formatCustomerId(selectedExisting.id)}</p>
             </div>
           )}
 
@@ -1366,12 +1502,6 @@ function NewClientModal({
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
                 End Customer Name / Sub-venture Name <span className="text-destructive">*</span>
               </span>
-              {(selectedExisting.subVentures?.length ?? 0) > 0 && (
-                <p className="mb-1.5 text-[11px] text-muted-foreground">
-                  Existing sub-ventures:{" "}
-                  {selectedExisting.subVentures!.map((sv) => sv.name).join(", ")}
-                </p>
-              )}
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -1380,6 +1510,7 @@ function NewClientModal({
                   maxLength={FIELD_MAX.subVentureName}
                   value={svSearch || s.subVentureName}
                   onFocus={() => setSvDropOpen(true)}
+                  onClick={() => setSvDropOpen(true)}
                   onChange={(e) => {
                     const val = e.target.value.slice(0, FIELD_MAX.subVentureName);
                     setSvSearch(val);
@@ -1398,7 +1529,11 @@ function NewClientModal({
                   onBlur={() => setTimeout(() => setSvDropOpen(false), 150)}
                 />
                 {svDropOpen && (selectedExisting.subVentures?.length ?? 0) > 0 && (
-                  <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
+                  <div
+                    className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto overscroll-contain rounded-md border border-border bg-popover shadow-lg"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onWheel={(e) => e.stopPropagation()}
+                  >
                     <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                       Existing Sub-ventures
                     </div>
@@ -1478,7 +1613,7 @@ function NewClientModal({
           <div className="grid gap-3 sm:grid-cols-2">
             <SearchableSelect
               label="Engagement Manager"
-              required={!selectedExisting}
+              required
               placeholder={emLoading ? "Loading engagement managers…" : "Select engagement manager…"}
               searchPlaceholder="Search by name, email, or code…"
               disabled={emLoading}
@@ -1487,20 +1622,17 @@ function NewClientModal({
               value={s.engagementManager}
               onChange={(name) => u("engagementManager", name)}
             />
-            <Field label="Sales Manager">
-              <input
-                className={inputCls}
-                maxLength={FIELD_MAX.salesManager}
-                value={s.salesManager}
-                placeholder="Enter sales manager name…"
-                onChange={(e) =>
-                  u(
-                    "salesManager",
-                    e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.salesManager),
-                  )
-                }
-              />
-            </Field>
+            <SearchableSelect
+              label="Sales Manager"
+              required
+              placeholder={smLoading ? "Loading sales managers…" : "Select sales manager…"}
+              searchPlaceholder="Search by name, email, or code…"
+              disabled={smLoading}
+              disabledHint="Loading sales managers…"
+              options={smOptions}
+              value={s.salesManager}
+              onChange={(name) => u("salesManager", name)}
+            />
           </div>
 
           {/* ── New TK customer fields — only shown when not selecting existing ── */}
@@ -1512,6 +1644,20 @@ function NewClientModal({
                   value="Auto-generated on creation"
                   readOnly
                 />
+              </Field>
+              <Field label="Billing Medium" required>
+                <select
+                  className={inputCls}
+                  value={s.billingMedium}
+                  onChange={(e) => u("billingMedium", e.target.value)}
+                >
+                  <option value="">Select billing medium</option>
+                  {BILLING_MEDIUMS.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="Country / Region" required>
                 <select
@@ -1547,6 +1693,20 @@ function NewClientModal({
                   ))}
                 </select>
               </Field>
+              <Field label="Group SPOC Name" required>
+                <input
+                  className={inputCls}
+                  value={s.groupSpocName}
+                  maxLength={150}
+                  placeholder="Full name"
+                  onChange={(e) => {
+                    const filtered = e.target.value
+                      .replace(/[^a-zA-Z\s-']/g, "")
+                      .slice(0, 150);
+                    u("groupSpocName", filtered);
+                  }}
+                />
+              </Field>
               <Field
                 label="Group SPOC Contact"
                 required
@@ -1578,27 +1738,17 @@ function NewClientModal({
                   />
                 </div>
               </Field>
-              <Field label="Industry" required>
-                <select
-                  className={inputCls}
-                  value={s.industry}
-                  onChange={(e) => u("industry", e.target.value)}
-                >
-                  <option value="">Select industry</option>
-                  {[
-                    "Banking",
-                    "Healthcare",
-                    "Retail",
-                    "Logistics",
-                    "Energy",
-                    "Manufacturing",
-                    "Telecom",
-                    "Media",
-                  ].map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
-              </Field>
+              <SearchableSelect
+                label="Industry"
+                required
+                placeholder={industriesReady ? "Select industry…" : "Loading industries…"}
+                searchPlaceholder="Search industry…"
+                disabled={!industriesReady}
+                disabledHint="Loading industries…"
+                options={industryOptions}
+                value={s.industry}
+                onChange={(name) => u("industry", name)}
+              />
               <Field label="Business Type">
                 <select className={readOnlyCls} value={s.businessType} disabled>
                   <option value="">Select business type</option>
@@ -1625,6 +1775,24 @@ function NewClientModal({
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Customer ID">
                 <input className={readOnlyCls} value={selectedExisting.id} readOnly />
+              </Field>
+              <Field label="Billing Medium" required>
+                {selectedExisting.billingMedium ? (
+                  <input className={readOnlyCls} value={selectedExisting.billingMedium} readOnly />
+                ) : (
+                  <select
+                    className={inputCls}
+                    value={s.billingMedium}
+                    onChange={(e) => u("billingMedium", e.target.value)}
+                  >
+                    <option value="">Select billing medium</option>
+                    {BILLING_MEDIUMS.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </Field>
               <Field label="Created By">
                 <input className={readOnlyCls} value={s.createdBy} readOnly />
@@ -1668,19 +1836,86 @@ function NewClientModal({
                     }}
                   />
                 </Field>
-                <Field label="Contact Type" required>
+                <SearchableSelect
+                  label="Contact Type"
+                  required
+                  placeholder={contactTypesReady ? "Select contact type…" : "Loading contact types…"}
+                  searchPlaceholder="Search contact type…"
+                  disabled={!contactTypesReady}
+                  disabledHint="Loading contact types…"
+                  options={
+                    ct.contactType &&
+                    !contactTypeOptions.some((o) => o.value === ct.contactType)
+                      ? [{ value: ct.contactType, label: ct.contactType }, ...contactTypeOptions]
+                      : contactTypeOptions
+                  }
+                  value={ct.contactType}
+                  onChange={(name) => updateContact(idx, "contactType", name)}
+                />
+                <Field label="Country / Region" required>
                   <select
                     className={inputCls}
-                    value={ct.contactType}
-                    onChange={(e) => updateContact(idx, "contactType", e.target.value)}
+                    value={ct.country}
+                    onChange={(e) => updateContact(idx, "country", e.target.value)}
                   >
-                    <option value="">Select contact type</option>
-                    {["Accounts", "Procurement", "Technical", "Legal"].map((o) => (
-                      <option key={o} value={o}>
-                        {o}
+                    <option value="">Select country</option>
+                    {countries.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
                       </option>
                     ))}
                   </select>
+                </Field>
+                <Field
+                  label="Phone"
+                  required
+                  error={
+                    ct.country && ct.phone
+                      ? ct.phone.replace(/\D/g, "").length !==
+                        (countries.find((c) => c.name === ct.country)?.phoneDigits || 10)
+                        ? `Phone must be ${countries.find((c) => c.name === ct.country)?.phoneDigits || 10} digits for ${ct.country}`
+                        : null
+                      : null
+                  }
+                >
+                  <div className="relative flex rounded-md">
+                    <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
+                      {countries.find((c) => c.name === ct.country)?.phoneCode || "+91"}
+                    </span>
+                    <input
+                      className={cn(
+                        fieldInputCls(
+                          inputCls,
+                          Boolean(
+                            ct.country &&
+                              ct.phone &&
+                              ct.phone.replace(/\D/g, "").length !==
+                                (countries.find((c) => c.name === ct.country)?.phoneDigits || 10),
+                          ),
+                        ),
+                        "rounded-l-none",
+                      )}
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={countries.find((c) => c.name === ct.country)?.phoneDigits || 10}
+                      placeholder={
+                        ct.country
+                          ? "9".repeat(countries.find((c) => c.name === ct.country)?.phoneDigits || 10)
+                          : "Select country first"
+                      }
+                      value={ct.phone}
+                      disabled={!ct.country}
+                      onChange={(e) => {
+                        const digits =
+                          countries.find((c) => c.name === ct.country)?.phoneDigits || 10;
+                        updateContact(
+                          idx,
+                          "phone",
+                          e.target.value.replace(/\D/g, "").slice(0, digits),
+                        );
+                      }}
+                    />
+                  </div>
                 </Field>
                 <Field label="Email" required error={ct.email.trim() ? emailError(ct.email, false) : undefined}>
                   <input
@@ -1699,36 +1934,22 @@ function NewClientModal({
                     onBlur={() => updateContact(idx, "email", ct.email.trim())}
                   />
                 </Field>
-                <Field label="Phone" required error={phoneError(ct.phone)}>
-                  <div className="relative flex rounded-md">
-                    <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
-                      +91
-                    </span>
-                    <input
-                      className={cn(
-                        fieldInputCls(inputCls, Boolean(phoneError(ct.phone))),
-                        "rounded-l-none",
-                      )}
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={FIELD_MAX.phone}
-                      placeholder="9876543210"
-                      value={ct.phone}
-                      onChange={(e) => updateContact(idx, "phone", toTenDigitPhone(e.target.value))}
-                    />
-                  </div>
-                </Field>
-                <Field label="Designation" required>
-                  <input
-                    className={inputCls}
-                    maxLength={FIELD_MAX.designation}
-                    placeholder="eg ciso/spoc etc."
-                    value={ct.designation}
-                    onChange={(e) =>
-                      updateContact(idx, "designation", e.target.value.slice(0, FIELD_MAX.designation))
-                    }
-                  />
-                </Field>
+                <SearchableSelect
+                  label="Designation"
+                  required
+                  placeholder={designationsReady ? "Select designation…" : "Loading designations…"}
+                  searchPlaceholder="Search designation…"
+                  disabled={!designationsReady}
+                  disabledHint="Loading designations…"
+                  options={
+                    ct.designation &&
+                    !designationOptions.some((o) => o.value === ct.designation)
+                      ? [{ value: ct.designation, label: ct.designation }, ...designationOptions]
+                      : designationOptions
+                  }
+                  value={ct.designation}
+                  onChange={(name) => updateContact(idx, "designation", name)}
+                />
               </div>
               <div className="mt-3 flex items-center gap-2">
                 <button
@@ -1836,6 +2057,8 @@ function NewClientModal({
               <>
                 <Row label="Engagement Manager" v={s.engagementManager} />
                 <Row label="Sales Manager" v={s.salesManager} />
+                <Row label="Billing Medium" v={s.billingMedium} />
+                <Row label="Group SPOC Name" v={s.groupSpocName} />
                 <Row label="Group SPOC Contact" v={s.phoneNumber ? `${countryDialCode} ${s.phoneNumber}` : "—"} />
                 <Row label="City" v={s.city} />
                 <Row label="Country / Region" v={s.country} />
@@ -1844,6 +2067,7 @@ function NewClientModal({
             )}
             {selectedExisting && (
               <>
+                <Row label="Billing Medium" v={s.billingMedium || selectedExisting.billingMedium || "—"} />
                 <Row label="Engagement Manager" v={s.engagementManager || selectedExisting.engagementManager || "—"} />
                 <Row label="Sales Manager" v={s.salesManager || selectedExisting.salesManager || "—"} />
               </>
@@ -1883,7 +2107,14 @@ function NewClientModal({
                 <Row label="Name" v={ct.name} />
                 <Row label="Contact Type" v={ct.contactType || "—"} />
                 <Row label="Email" v={ct.email} />
-                <Row label="Phone" v={ct.phone ? `+91 ${ct.phone}` : "—"} />
+                <Row
+                  label="Phone"
+                  v={
+                    ct.phone
+                      ? `${countries.find((c) => c.name === ct.country)?.phoneCode || "+91"} ${ct.phone}`
+                      : "—"
+                  }
+                />
                 <Row label="Designation" v={ct.designation || "—"} />
               </dl>
             ))}

@@ -100,8 +100,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             EngagementManagerId = await ResolveEngagementManagerIdAsync(request.EngagementManager, ct),
             SalesManager = NormalizeManagerName(request.SalesManager),
             SalesManagerId = await ResolveSalesManagerIdAsync(request.SalesManager, ct),
-            ContactName = request.ContactName,
-            ContactPhone = request.ContactPhone,
+            ContactName = NormalizeManagerName(request.GroupSpocName) ?? request.ContactName,
+            ContactPhone = NormalizeManagerName(request.GroupSpocContact) ?? request.ContactPhone,
             ContactDesignation = request.ContactDesignation,
             ContactType = request.ContactType,
             Country = request.Country,
@@ -109,6 +109,9 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             City = request.City,
             CityId = await ResolveCityIdAsync(request.City, countryId, ct),
             BusinessType = request.BusinessType,
+            BillingMedium = NormalizeBillingMedium(request.BillingMedium),
+            GroupSpocName = NormalizeManagerName(request.GroupSpocName),
+            GroupSpocContact = NormalizeManagerName(request.GroupSpocContact),
             Notes = request.Notes,
             KycDocumentName = request.KycDocumentName,
             CustomerSince = TodayIst(),
@@ -183,6 +186,17 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             client.CityId = await ResolveCityIdAsync(request.City, client.CountryId, ct);
         }
         if (request.BusinessType is not null) client.BusinessType = request.BusinessType;
+        if (request.BillingMedium is not null) client.BillingMedium = NormalizeBillingMedium(request.BillingMedium);
+        if (request.GroupSpocName is not null)
+        {
+            client.GroupSpocName = NormalizeManagerName(request.GroupSpocName);
+            client.ContactName = client.GroupSpocName;
+        }
+        if (request.GroupSpocContact is not null)
+        {
+            client.GroupSpocContact = NormalizeManagerName(request.GroupSpocContact);
+            client.ContactPhone = client.GroupSpocContact;
+        }
         if (request.Notes is not null) client.Notes = request.Notes;
         if (request.KycDocumentName is not null) client.KycDocumentName = request.KycDocumentName;
         if (request.SubVentures is not null)
@@ -303,6 +317,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         Name = c.Name,
         Email = EmailRules.NullIfEmpty(c.Email),
         Phone = c.Phone,
+        Country = NormalizeManagerName(c.Country),
+        PhoneCode = NormalizeManagerName(c.PhoneCode),
         Designation = c.Designation,
         ContactType = c.ContactType,
     };
@@ -314,6 +330,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         Name = c.Name,
         Email = EmailRules.NullIfEmpty(c.Email),
         Phone = c.Phone,
+        Country = NormalizeManagerName(c.Country),
+        PhoneCode = NormalizeManagerName(c.PhoneCode),
         Designation = c.Designation,
         ContactType = c.ContactType,
     };
@@ -374,6 +392,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
         if (toAdd.Count > 0)
         {
+            await FillContactPhoneCodesAsync(toAdd, ct);
             db.ClientContacts.AddRange(toAdd);
             await db.SaveChangesAsync(ct);
         }
@@ -390,18 +409,34 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
     {
         if (string.IsNullOrWhiteSpace(industryName)) return null;
         var trimmed = industryName.Trim();
-        var existing = await db.Industries.FirstOrDefaultAsync(i => i.Name == trimmed, ct);
-        if (existing is not null) return existing.Id;
+        var needle = trimmed.ToLower();
+        var existing = await db.Industries.FirstOrDefaultAsync(i => i.Name.ToLower() == needle, ct);
+        return existing?.Id;
+    }
 
-        var slug = trimmed.ToLowerInvariant().Replace(" ", "_");
-        var entity = new MstIndustry
+    private async Task FillContactPhoneCodesAsync(List<ClientContactEntity> contacts, CancellationToken ct)
+    {
+        var names = contacts
+            .Where(c => !string.IsNullOrWhiteSpace(c.Country) && string.IsNullOrWhiteSpace(c.PhoneCode))
+            .Select(c => c.Country!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (names.Count == 0) return;
+
+        var rows = await db.Countries
+            .Where(c => names.Contains(c.Name) || names.Contains(c.Code))
+            .Select(c => new { c.Name, c.Code, c.PhoneCode })
+            .ToListAsync(ct);
+
+        foreach (var contact in contacts)
         {
-            Code = slug,
-            Name = trimmed,
-            IsActive = true,
-        };
-        db.Industries.Add(entity);
-        return entity.Id;
+            if (string.IsNullOrWhiteSpace(contact.Country) || !string.IsNullOrWhiteSpace(contact.PhoneCode))
+                continue;
+            var match = rows.FirstOrDefault(r =>
+                string.Equals(r.Name, contact.Country, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(r.Code, contact.Country, StringComparison.OrdinalIgnoreCase));
+            if (match is not null) contact.PhoneCode = match.PhoneCode;
+        }
     }
 
     private async Task<Guid?> ResolveCountryIdAsync(string? countryName, CancellationToken ct)
@@ -545,6 +580,9 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
     private static string? NormalizeManagerName(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+    private static string? NormalizeBillingMedium(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static string? ManagerDisplay(string? stored, Employee? employee)
     {
         if (!string.IsNullOrWhiteSpace(stored)) return stored.Trim();
@@ -563,24 +601,27 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         c.Status.ToString(),
         ManagerDisplay(c.EngagementManager, c.EngagementManagerRef),
         ManagerDisplay(c.SalesManager, c.SalesManagerRef),
-        c.ContactName,
-        c.ContactPhone,
+        c.GroupSpocName ?? c.ContactName,
+        c.GroupSpocContact ?? c.ContactPhone,
         c.ContactDesignation,
         c.ContactType,
         c.CityRef?.Name ?? c.City,
         c.CountryRef?.Name ?? c.Country,
         c.BusinessType,
+        c.BillingMedium,
+        c.GroupSpocName,
+        c.GroupSpocContact,
         c.Notes,
         c.KycDocumentName,
         c.KycDocumentPath,
         c.SubVentures.Select(s => new SubVentureDto(
             s.Id,
             s.Name,
-            s.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType)).ToList(),
+            s.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType, x.Country, x.PhoneCode)).ToList(),
             s.Notes,
             s.KycDocumentName,
             s.KycDocumentPath)).ToList(),
-        c.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType)).ToList(),
+        c.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType, x.Country, x.PhoneCode)).ToList(),
         c.CustomerSince,
         c.CreatedAtUtc);
 

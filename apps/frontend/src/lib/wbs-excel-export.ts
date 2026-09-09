@@ -445,6 +445,7 @@ const ACCOUNT_COLUMNS: { header: string; width: number }[] = [
 ];
 
 function buildAccountsSheet(ws: Worksheet, input: WbsExportInput) {
+  // Width only — passing `header` here would make ExcelJS write a second header row at row 1.
   ws.columns = ACCOUNT_COLUMNS.map((c) => ({ width: c.width }));
   const money = currencyFormat(input.accounts.currencySymbol);
 
@@ -583,7 +584,10 @@ function buildAccountsSheet(ws: Worksheet, input: WbsExportInput) {
   frame(ws, `A${commentsRow}:K${commentsRow}`);
   ws.getRow(commentsRow).height = 64;
 
-  ws.views = [{ state: "frozen", ySplit: 9 }];
+  // Do not freeze the billing + invoice header. Freezing rows 1–9 kept the
+  // Accounts title and billing grid on screen while scrolling, which looked
+  // like a second copy of the sheet.
+  ws.views = [{ state: "normal", showGridLines: true }];
   ws.pageSetup = {
     orientation: "landscape",
     paperSize: 9,
@@ -592,7 +596,6 @@ function buildAccountsSheet(ws: Worksheet, input: WbsExportInput) {
     fitToHeight: 0,
     horizontalCentered: true,
     margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 },
-    printTitlesRow: "9:9",
   };
 }
 
@@ -619,9 +622,7 @@ export async function buildWbsWorkbook(input: WbsExportInput) {
     return id;
   });
 
-  const accountsSheet = workbook.addWorksheet("Accounts Details", {
-    views: [{ state: "frozen", ySplit: 9 }],
-  });
+  const accountsSheet = workbook.addWorksheet("Accounts Details");
   buildAccountsSheet(accountsSheet, input);
   return workbook;
 }

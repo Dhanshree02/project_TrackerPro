@@ -35,4 +35,27 @@ public class CatalogsController(ICatalogService catalogs) : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<CityCatalogOptionDto>>.Ok(
             await catalogs.GetCitiesAsync(countryId, ct)));
     }
+
+    [HttpGet("industries")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CatalogOptionDto>>>> Industries(
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<CatalogOptionDto>>.Ok(await catalogs.GetIndustriesAsync(ct)));
+    }
+
+    [HttpGet("contact-designations")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CatalogOptionDto>>>> ContactDesignations(
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<CatalogOptionDto>>.Ok(
+            await catalogs.GetContactDesignationsAsync(ct)));
+    }
+
+    [HttpGet("contact-types")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CatalogOptionDto>>>> ContactTypes(
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<CatalogOptionDto>>.Ok(
+            await catalogs.GetContactTypesAsync(ct)));
+    }
 }

@@ -3,7 +3,7 @@
  * Exact layout from wbs-form 2.html, wired to dh-store.
  */
 import { createFileRoute, Navigate, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +20,10 @@ import {
 import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
 import { exportWbsWorkbook, type WbsExportInput } from "@/lib/wbs-excel-export";
 import { WbsExcelPreviewModal } from "@/components/wbs-excel-preview";
+import {
+  countProjectsForClient,
+  resolveOnboardingProjectName,
+} from "@/lib/onboarding-project-name";
 
 export const Route = createFileRoute("/projects/new")({
   validateSearch: (search: Record<string, unknown>): { draftId?: string } => ({
@@ -434,6 +438,11 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   CHF: "Fr",
 };
 
+function currencyDisplay(code: string): string {
+  const symbol = CURRENCY_SYMBOLS[code];
+  return symbol ? `(${code}) ${symbol}` : code;
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface ServiceRow {
@@ -580,7 +589,6 @@ function WbsNewProjectPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
 
   // ── Header fields ──
-  const [projectName, setProjectName] = useState("");
   const projectId = buildProjectDisplayId();
   const [contractType, setContractType] = useState("");
   const [engagementManager, setEngagementManager] = useState("");
@@ -691,7 +699,6 @@ function WbsNewProjectPage() {
     const draft = drafts.find((d) => d.id === draftId);
     if (!draft) return;
     const snap = draft.formSnapshot as any;
-    if (snap.projectName) setProjectName(snap.projectName);
     if (snap.selectedClientId) setSelectedClientId(snap.selectedClientId);
     if (snap.selectedSubVenture) setSelectedSubVenture(snap.selectedSubVenture);
     if (snap.contractType) setContractType(snap.contractType);
@@ -700,7 +707,7 @@ function WbsNewProjectPage() {
     if (snap.projectType) setProjectType(snap.projectType);
     if (snap.billingModel) setBillingModel(snap.billingModel);
     if (snap.paymentTerms) setPaymentTerms(snap.paymentTerms);
-    if (snap.currency) setCurrency(snap.currency);
+    setCurrency("INR");
     if (snap.taxPercent != null) setTaxPercent(snap.taxPercent);
     if (snap.poStatus) setPoStatus(snap.poStatus);
     if (snap.poNumber) setPoNumber(snap.poNumber);
@@ -747,7 +754,7 @@ function WbsNewProjectPage() {
     const restoredClient = clients.find((c) => c.id === snap.selectedClientId);
     if (restoredClient) setClientSearch(restoredClient.name);
     if (snap.selectedSubVenture) setSvSearch(snap.selectedSubVenture);
-    toast.success("Draft loaded", { description: `"${draft.projectName}" restored.` });
+    toast.success("Draft loaded", { description: `"${draft.projectName || "Draft"}" restored.` });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftId]);
 
@@ -761,6 +768,29 @@ function WbsNewProjectPage() {
   const billTax = billSubtotal * 0.18;
   const billGrandTotal = billSubtotal + billTax;
   const sym = CURRENCY_SYMBOLS[currency] || currency;
+
+  const renewalFieldsLocked = isRenewal && !!renewalProject;
+
+  const projectName = useMemo(
+    () =>
+      resolveOnboardingProjectName({
+        isRenewal: renewalFieldsLocked,
+        previousProjectName: renewalProject?.name,
+        clientName: selectedClient?.name ?? "",
+        subVentureName: selectedSubVenture,
+        serviceNames: serviceRows.map((r) => r.name),
+        existingClientProjectCount: countProjectsForClient(allProjects(), selectedClientId),
+      }),
+    [
+      renewalFieldsLocked,
+      renewalProject?.name,
+      selectedClient?.name,
+      selectedSubVenture,
+      serviceRows,
+      selectedClientId,
+      extraCount,
+    ],
+  );
 
   // ─── Service picker helpers ──────────────────────────────────────────────
 
@@ -1187,7 +1217,7 @@ function WbsNewProjectPage() {
 
   function handleSaveDraft() {
     if (!projectName.trim()) {
-      toast.error("Project Name is required");
+      toast.error("Project Name is generated after customer, sub-venture, and services are selected");
       return;
     }
     if (!selectedClientId) {
@@ -1232,7 +1262,6 @@ function WbsNewProjectPage() {
   }
 
   function clearForm() {
-    setProjectName("");
     setWbsSearch("");
     setRenewalProject(null);
     setSelectedClientId("");
@@ -1264,16 +1293,28 @@ function WbsNewProjectPage() {
   }
 
   function handleAssignWbs() {
-    if (!projectName.trim()) {
-      toast.error("Project Name is required");
+    if (isRenewal && !renewalProject) {
+      toast.error("Please select an existing project to renew");
       return;
     }
     if (!selectedClientId) {
       toast.error("Please select a customer");
       return;
     }
+    if (!selectedSubVenture.trim()) {
+      toast.error("Please select End Customer / Sub-venture");
+      return;
+    }
     if (serviceRows.length === 0) {
       toast.error("Please add at least one service");
+      return;
+    }
+    if (!projectName.trim()) {
+      toast.error(
+        isRenewal
+          ? "Selected project has no Project Name"
+          : "Project Name is generated after customer, sub-venture, and services are selected",
+      );
       return;
     }
     if (billingModel === "Custom") {
@@ -1331,6 +1372,7 @@ function WbsNewProjectPage() {
       sectionBComments,
       wbsDetails: buildWbsDetails(),
       subVenture: selectedSubVenture,
+      renewedFromWbsId: isRenewal ? renewalProject?.wbsId : undefined,
     });
     toast.success("WBS created successfully");
     navigate({ to: "/projects/$projectId", params: { projectId: proj.id } });
@@ -1341,13 +1383,16 @@ function WbsNewProjectPage() {
    * value is named in the error toast instead of producing an incomplete workbook.
    */
   function validateForWbsExport(): string | null {
-    if (!projectName.trim()) return "Please fill in Project Name";
+    if (isRenewal && !renewalProject) return "Please select an existing project to renew";
     if (!selectedClientId) return "Please select TK Customer / Partner Name";
     if (!selectedSubVenture.trim()) return "Please select End Customer / Sub-venture";
     if (!contractType) return "Please select Contract Type";
     if (!salesPerson) return "Please select Sales Person";
     if (!projectType) return "Please select Project Type";
     if (serviceRows.length === 0) return "Please add at least one service";
+    if (!projectName.trim()) {
+      return "Project Name is generated after customer, sub-venture, and services are selected";
+    }
     const rowErr = validateServiceRows();
     if (rowErr) return rowErr;
     if (!billingModel) return "Please select Billing Model";
@@ -1641,9 +1686,9 @@ function WbsNewProjectPage() {
                 />
                 {renewalProject && (
                   <span
-                    onMouseDown={() => {
-                      setRenewalProject(null);
-                      setWbsSearch("");
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      clearForm();
                     }}
                     style={{
                       position: "absolute",
@@ -1689,51 +1734,11 @@ function WbsNewProjectPage() {
                             onMouseDown={() => {
                               setRenewalProject(p);
                               setWbsSearch(pAny.wbsId ?? pAny.id);
-
-                              // Auto-fill all project metadata
-                              setProjectName(pAny.name);
                               setSelectedClientId(pAny.clientId);
                               setClientSearch(c?.name ?? "");
                               setEngagementManager(
                                 pAny.engagementManager ?? c?.engagementManager ?? "",
                               );
-                              setSalesPerson(pAny.salesPerson ?? "");
-                              setProjectType(pAny.projectType ?? "");
-                              setContractType(pAny.contractType ?? "");
-
-                              // Section B values
-                              const bModel =
-                                pAny.wbsDetails?.accounts?.billingModel ?? pAny.billingModel ?? "";
-                              setBillingModel(bModel);
-                              setPaymentTerms(
-                                pAny.wbsDetails?.accounts?.paymentTerms ?? pAny.paymentTerms ?? "",
-                              );
-                              setCurrency(pAny.currency ?? "INR");
-                              setTaxPercent(pAny.taxPercent ?? 18);
-                              setPoStatus(
-                                pAny.wbsDetails?.accounts?.poStatus ?? pAny.poStatus ?? "",
-                              );
-                              setPoNumber(
-                                pAny.wbsDetails?.accounts?.poNumber ?? pAny.poNumber ?? "",
-                              );
-                              setPoDate(pAny.wbsDetails?.accounts?.poDate ?? pAny.poDate ?? "");
-                              setTargetDate(
-                                pAny.wbsDetails?.accounts?.targetDate ?? pAny.targetDate ?? "",
-                              );
-                              setContactName(
-                                pAny.wbsDetails?.accounts?.contactName ?? pAny.contactName ?? "",
-                              );
-                              setContactNumber(
-                                pAny.wbsDetails?.accounts?.contactNumber ??
-                                  pAny.contactNumber ??
-                                  "",
-                              );
-                              setContactEmail(
-                                pAny.wbsDetails?.accounts?.contactEmail ?? pAny.contactEmail ?? "",
-                              );
-                              setSectionAComments(pAny.sectionAComments ?? pAny.description ?? "");
-                              setSectionBComments(pAny.sectionBComments ?? "");
-
                               if (pAny.subVenture) {
                                 setSelectedSubVenture(pAny.subVenture);
                                 setSvSearch(pAny.subVenture);
@@ -1741,130 +1746,12 @@ function WbsNewProjectPage() {
                                 setSelectedSubVenture("");
                                 setSvSearch("");
                               }
-
-                              // Load services
-                              let servicesList: any[] = [];
-                              if (pAny.wbsDetails?.services) {
-                                servicesList = pAny.wbsDetails.services;
-                              } else if (pAny.tasks && pAny.tasks.length > 0) {
-                                servicesList = pAny.tasks.map((task: any, idx: number) => {
-                                  let deptName = "Cyber Security";
-                                  for (const [dept, svcs] of Object.entries(DEPT_SERVICES)) {
-                                    if (
-                                      svcs.some(
-                                        (s: any) =>
-                                          s.id === task.serviceId || s.name === task.title,
-                                      )
-                                    ) {
-                                      deptName = dept;
-                                      break;
-                                    }
-                                  }
-                                  return {
-                                    id: task.serviceId || `svc-${idx}`,
-                                    department: deptName,
-                                    serviceName: task.title,
-                                    qty: 1,
-                                    description: "",
-                                    resourceLevel: "",
-                                    frequency: "Once",
-                                    location: "Offshore",
-                                    locationText: "",
-                                    serviceModel: "NA",
-                                    deliveryModel: "Remote",
-                                    finalDeliveryFormat: "Report",
-                                    billingModel: "Fixed Bid",
-                                    tools: "",
-                                    startDate: task.wbsStartDate || pAny.startDate,
-                                    endDate: task.wbsEndDate || task.dueDate || pAny.endDate,
-                                    duration: task.estimatedHours
-                                      ? Math.ceil(task.estimatedHours / 8)
-                                      : 5,
-                                    totalDays: task.estimatedHours
-                                      ? Math.ceil(task.estimatedHours / 8)
-                                      : 5,
-                                    totalHrs: task.estimatedHours || 40,
-                                    unitPrice: 5000,
-                                    total: (task.estimatedHours || 40) * 125,
-                                  };
-                                });
-                              }
-
-                              if (servicesList.length > 0) {
-                                const restoredRows = servicesList.map((svc: any) => ({
-                                  rowId: svc.id,
-                                  dept: svc.department,
-                                  taskId: svc.id,
-                                  name: svc.serviceName,
-                                  description: svc.description || "",
-                                  qty: svc.qty || 1,
-                                  resourceLevel: svc.resourceLevel || "",
-                                  resourceDist: clampDist(
-                                    svc.resourceDist
-                                      ? { ...EMPTY_DIST(), ...svc.resourceDist }
-                                      : parseDist(svc.resourceLevel),
-                                    svc.qty || 1,
-                                  ),
-                                  frequency: svc.frequency || "",
-                                  serviceModel: svc.serviceModel || "",
-                                  location: svc.location || "",
-                                  locationText: svc.locationText || "",
-                                  deliveryFormat:
-                                    svc.finalDeliveryFormat || svc.deliveryFormat || "",
-                                  tools: svc.tools || "",
-                                  startDate: svc.startDate || todayIso,
-                                  endDate: svc.endDate || "",
-                                  durationDays: svc.duration || svc.durationDays || 0,
-                                  durationHrs: (svc.duration || svc.durationDays || 0) * HOURS_PER_DAY,
-                                  totalDays: svc.totalDays || svc.duration || 0,
-                                  totalHrs:
-                                    svc.totalHrs || (svc.totalDays || svc.duration || 0) * HOURS_PER_DAY,
-                                  unitPrice: svc.unitPrice || 0,
-                                  total: svc.total || 0,
-                                  deliveryModel: svc.deliveryModel || "Remote",
-                                  billingModel: svc.billingModel || bModel || "",
-                                }));
-                                setServiceRows(restoredRows);
-
-                                const selObj: Record<string, Record<string, boolean>> = {};
-                                restoredRows.forEach((row) => {
-                                  if (!selObj[row.dept]) selObj[row.dept] = {};
-                                  selObj[row.dept][row.rowId] = true;
-                                });
-                                setSelectedServices(selObj);
-                                setTempSelected(selObj);
-                              } else {
-                                setServiceRows([]);
-                                setSelectedServices({});
-                                setTempSelected({});
-                              }
-
-                              // Load invoices
-                              if (pAny.wbsDetails?.accounts?.invoices) {
-                                const restoredInvoices = pAny.wbsDetails.accounts.invoices.map(
-                                  (inv: any) => ({
-                                    rowId: inv.id,
-                                    serviceId: inv.serviceId || "",
-                                    serviceName: inv.serviceName || "",
-                                    milestone: inv.milestone,
-                                    targetDate: inv.targetDate || inv.invoiceDate || "",
-                                    unitPrice: inv.unitPrice || inv.amount || 0,
-                                    qty: inv.qty || 1,
-                                    currency: inv.currency || pAny.currency || "INR",
-                                    amount: inv.amount,
-                                    invoiceStatus: inv.invoiceStatus || "Not Raised",
-                                    invoiceNumber: inv.invoiceNumber || inv.remarks || "",
-                                    paymentStatus: inv.paymentStatus || "Not Received",
-                                    paymentDate: inv.paymentDate || "",
-                                    invoiceDate: inv.invoiceDate || "",
-                                    description: inv.remarks || "",
-                                  }),
-                                );
-                                setInvoiceRows(restoredInvoices);
-                              } else {
-                                setInvoiceRows([]);
-                              }
-
+                              // Renewal copies only customer, sub-venture, name, and EM.
+                              // Do not bring over services, invoices, or other previous WBS fields.
+                              setServiceRows([]);
+                              setSelectedServices({});
+                              setTempSelected({});
+                              setInvoiceRows([]);
                               setWbsDropOpen(false);
                             }}
                             style={{
@@ -1968,8 +1855,12 @@ function WbsNewProjectPage() {
                       type="text"
                       value={clientSearch}
                       placeholder="Search and select a customer…"
-                      onFocus={() => setClientDropOpen(true)}
+                      readOnly={renewalFieldsLocked}
+                      onFocus={() => {
+                        if (!renewalFieldsLocked) setClientDropOpen(true);
+                      }}
                       onChange={(e) => {
+                        if (renewalFieldsLocked) return;
                         setClientSearch(e.target.value);
                         setClientDropOpen(true);
                       }}
@@ -1983,9 +1874,12 @@ function WbsNewProjectPage() {
                             );
                         }, 150)
                       }
-                      style={{ ...inputStyle(false), paddingRight: selectedClientId ? 48 : 32 }}
+                      style={{
+                        ...inputStyle(renewalFieldsLocked),
+                        paddingRight: selectedClientId && !renewalFieldsLocked ? 48 : 32,
+                      }}
                     />
-                    {selectedClientId && (
+                    {selectedClientId && !renewalFieldsLocked && (
                       <span
                         onMouseDown={() => {
                           setSelectedClientId("");
@@ -2009,6 +1903,7 @@ function WbsNewProjectPage() {
                         ×
                       </span>
                     )}
+                    {!renewalFieldsLocked && (
                     <ChevronDown
                       size={18}
                       strokeWidth={2.5}
@@ -2021,7 +1916,8 @@ function WbsNewProjectPage() {
                         pointerEvents: "none",
                       }}
                     />
-                    {clientDropOpen && (
+                    )}
+                    {clientDropOpen && !renewalFieldsLocked && (
                       <div
                         style={{
                           position: "absolute",
@@ -2132,10 +2028,12 @@ function WbsNewProjectPage() {
                           : "Select a client first…"
                       }
                       disabled={!selectedClientId}
+                      readOnly={renewalFieldsLocked}
                       onFocus={() => {
-                        if (selectedClientId) setSvDropOpen(true);
+                        if (selectedClientId && !renewalFieldsLocked) setSvDropOpen(true);
                       }}
                       onChange={(e) => {
+                        if (renewalFieldsLocked) return;
                         setSvSearch(e.target.value);
                         setSvDropOpen(true);
                       }}
@@ -2146,9 +2044,12 @@ function WbsNewProjectPage() {
                           else setSvSearch(selectedSubVenture);
                         }, 150)
                       }
-                      style={{ ...inputStyle(!selectedClientId), paddingRight: selectedSubVenture ? 48 : 32 }}
+                      style={{
+                        ...inputStyle(!selectedClientId || renewalFieldsLocked),
+                        paddingRight: selectedSubVenture && !renewalFieldsLocked ? 48 : 32,
+                      }}
                     />
-                    {selectedSubVenture && (
+                    {selectedSubVenture && !renewalFieldsLocked && (
                       <span
                         onMouseDown={() => {
                           setSelectedSubVenture("");
@@ -2169,6 +2070,7 @@ function WbsNewProjectPage() {
                         ×
                       </span>
                     )}
+                    {!renewalFieldsLocked && (
                     <ChevronDown
                       size={18}
                       strokeWidth={2.5}
@@ -2181,7 +2083,8 @@ function WbsNewProjectPage() {
                         pointerEvents: "none",
                       }}
                     />
-                    {svDropOpen && selectedClientId && (
+                    )}
+                    {svDropOpen && selectedClientId && !renewalFieldsLocked && (
                       <div
                         style={{
                           position: "absolute",
@@ -2333,8 +2236,13 @@ function WbsNewProjectPage() {
               <input
                 type="text"
                 value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
-                style={inputStyle(false)}
+                readOnly
+                placeholder={
+                  isRenewal
+                    ? "Same as the selected project"
+                    : "Generated from customer, sub-venture, and services"
+                }
+                style={inputStyle(true)}
               />
             </FormGroup>
             <FormGroup label="Engagement Manager">
@@ -3095,42 +3003,12 @@ function WbsNewProjectPage() {
             }}
           >
             <FormGroup label="Currency">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "8px 10px",
-                  background: "#f3f4f6",
-                  borderRadius: 6,
-                  height: 38,
-                  boxSizing: "border-box",
-                }}
-              >
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  style={{
-                    ...selectStyle(false),
-                    flex: "0 0 100px",
-                    height: 26,
-                    padding: "2px 24px 2px 6px",
-                    fontSize: 12,
-                    backgroundPosition: "right 6px center",
-                    backgroundSize: "12px 12px",
-                  }}
-                >
-                  {Object.keys(CURRENCY_SYMBOLS).map((c) => (
-                    <option key={c} value={c}>
-                      {c} — {CURRENCY_SYMBOLS[c]}
-                    </option>
-                  ))}
-                </select>
-                <span style={{ fontSize: 11, color: "#6b7280", whiteSpace: "nowrap" }}>
-                  1 {currency} = {CURRENCY_SYMBOLS[currency]}
-                  {currency === "INR" ? "1.00" : "varies"}
-                </span>
-              </div>
+              <input
+                type="text"
+                value={currencyDisplay("INR")}
+                readOnly
+                style={inputStyle(true)}
+              />
             </FormGroup>
 
             <FormGroup label="PO Status" required>
@@ -3320,7 +3198,9 @@ function WbsNewProjectPage() {
                             <td style={tdStyleOverride}>{inv.qty}</td>
 
                             {/* Currency */}
-                            <td style={{ ...tdStyleOverride, fontWeight: 500 }}>{inv.currency}</td>
+                            <td style={{ ...tdStyleOverride, fontWeight: 500 }}>
+                              {currencyDisplay(inv.currency)}
+                            </td>
 
                             {/* Invoice Amount */}
                             <td style={{ ...tdStyleOverride, fontWeight: 600, color: "#1a5490" }}>

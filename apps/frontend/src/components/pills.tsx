@@ -22,6 +22,14 @@ export function HealthPill({ status }: { status: HealthStatus }) {
   );
 }
 
+export function RenewedProjectTag() {
+  return (
+    <span className={cn(base, "bg-violet-50 text-violet-800 border-violet-200")}>
+      Renewed Project
+    </span>
+  );
+}
+
 export function StatusPill({ status }: { status: ProjectStatus }) {
   const map: Record<ProjectStatus, string> = {
     ongoing: "bg-info/10 text-info border-info/30",

@@ -17,6 +17,12 @@ public class ClientContactEntity : BaseEntity
 
     public string? Phone { get; set; }
 
+    /// <summary>Country name from mst_countries (contact-person Country / Region).</summary>
+    public string? Country { get; set; }
+
+    /// <summary>Dial code for that country (e.g. +91), used to display phone without showing the country name.</summary>
+    public string? PhoneCode { get; set; }
+
     public string? Designation { get; set; }
 
     public string? ContactType { get; set; }

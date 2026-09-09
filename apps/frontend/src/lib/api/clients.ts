@@ -27,6 +27,8 @@ export interface ApiClientContact {
   phone?: string | null;
   designation?: string | null;
   contactType?: string | null;
+  country?: string | null;
+  phoneCode?: string | null;
 }
 
 /** Wire shape of a sub-venture: id + name + its own SPOC contacts + notes + KYC. */
@@ -56,6 +58,9 @@ export interface ApiClient {
   city?: string | null;
   country?: string | null;
   businessType?: string | null;
+  billingMedium?: string | null;
+  groupSpocName?: string | null;
+  groupSpocContact?: string | null;
   notes?: string | null;
   kycDocumentName?: string | null;
   kycDocumentPath?: string | null;
@@ -85,13 +90,16 @@ export function mapApiClient(c: ApiClient): Client {
     clientType: c.clientType,
     engagementManager: c.engagementManager ?? undefined,
     salesManager: c.salesManager ?? undefined,
-    contactName: c.contactName ?? undefined,
-    contactPhone: c.contactPhone ?? undefined,
+    contactName: c.groupSpocName ?? c.contactName ?? undefined,
+    contactPhone: c.groupSpocContact ?? c.contactPhone ?? undefined,
     contactDesignation: c.contactDesignation ?? undefined,
     contactType: c.contactType ?? undefined,
     city: c.city ?? undefined,
     country: c.country ?? undefined,
     businessType: c.businessType ?? undefined,
+    billingMedium: c.billingMedium ?? undefined,
+    groupSpocName: c.groupSpocName ?? c.contactName ?? undefined,
+    groupSpocContact: c.groupSpocContact ?? c.contactPhone ?? undefined,
     notes: c.notes ?? undefined,
     kycDocumentName: c.kycDocumentName ?? undefined,
     kycDocumentPath: c.kycDocumentPath ?? undefined,
@@ -112,6 +120,8 @@ export function mapApiClient(c: ApiClient): Client {
           phone: x.phone ?? undefined,
           designation: x.designation ?? undefined,
           contactType: x.contactType ?? undefined,
+          country: x.country ?? undefined,
+          phoneCode: x.phoneCode ?? undefined,
         })),
     })),
     contacts: (c.contacts ?? [])
@@ -124,6 +134,8 @@ export function mapApiClient(c: ApiClient): Client {
         phone: x.phone ?? undefined,
         designation: x.designation ?? undefined,
         contactType: x.contactType ?? undefined,
+        country: x.country ?? undefined,
+        phoneCode: x.phoneCode ?? undefined,
       })) as ClientContact[],
   };
 }
@@ -148,6 +160,8 @@ export interface ClientContactInput {
   phone?: string | null;
   designation?: string | null;
   contactType?: string | null;
+  country?: string | null;
+  phoneCode?: string | null;
 }
 
 export interface CreateClientInput {
@@ -165,6 +179,9 @@ export interface CreateClientInput {
   city?: string | null;
   country?: string | null;
   businessType?: string | null;
+  billingMedium?: string | null;
+  groupSpocName?: string | null;
+  groupSpocContact?: string | null;
   notes?: string | null;
   kycDocumentName?: string | null;
   subVentures?: ClientSubVenture[];

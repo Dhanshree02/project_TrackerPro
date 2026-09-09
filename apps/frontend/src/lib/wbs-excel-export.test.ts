@@ -159,6 +159,26 @@ describe("buildWbsWorkbook", () => {
     expect(acc.getCell("G12").value).toBe(260000);
     expect(acc.getCell("A14").value).toBe("Comments / Notes");
     expect(acc.getCell("A15").value).toContain("accounts@paymentz.com");
+    expect(acc.views?.[0]?.state).not.toBe("frozen");
+
+    // One Accounts document only — billing / invoice header must not reappear below.
+    let accountsTitleAfterFirst = false;
+    let billingAfterHeader = false;
+    let invoiceBannerAfterTable = false;
+    const commentsRows = new Set<number>();
+    acc.eachRow({ includeEmpty: false }, (row, n) => {
+      row.eachCell({ includeEmpty: false }, (cell) => {
+        if (n > 1 && cell.value === "Accounts Details") accountsTitleAfterFirst = true;
+        if (n > 2 && cell.value === "Project / Billing Information") billingAfterHeader = true;
+        if (n > 8 && cell.value === "Invoice Scheduling") invoiceBannerAfterTable = true;
+        if (cell.value === "Comments / Notes") commentsRows.add(n);
+      });
+    });
+    expect(accountsTitleAfterFirst).toBe(false);
+    expect(billingAfterHeader).toBe(false);
+    expect(invoiceBannerAfterTable).toBe(false);
+    expect(commentsRows.size).toBe(1);
+    expect(acc.rowCount).toBe(15);
   }, 60000);
 
   it("names the download file from the WBS ID", () => {

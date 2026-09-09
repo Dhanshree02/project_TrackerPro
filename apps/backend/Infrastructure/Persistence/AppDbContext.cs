@@ -33,6 +33,10 @@ public class AppDbContext(
 
     public DbSet<MstDesignation> Designations => Set<MstDesignation>();
 
+    public DbSet<MstContactDesignation> ContactDesignations => Set<MstContactDesignation>();
+
+    public DbSet<MstContactType> ContactTypes => Set<MstContactType>();
+
     public DbSet<MstIndustry> Industries => Set<MstIndustry>();
 
     public DbSet<MstCountry> Countries => Set<MstCountry>();

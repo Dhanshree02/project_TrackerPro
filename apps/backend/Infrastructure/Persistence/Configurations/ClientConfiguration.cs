@@ -26,6 +26,9 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.City).HasMaxLength(120);
         builder.Property(c => c.Country).HasMaxLength(120);
         builder.Property(c => c.BusinessType).HasMaxLength(40);
+        builder.Property(c => c.BillingMedium).HasMaxLength(40);
+        builder.Property(c => c.GroupSpocName).HasMaxLength(150);
+        builder.Property(c => c.GroupSpocContact).HasMaxLength(40);
         builder.Property(c => c.Notes).HasMaxLength(2000);
         builder.Property(c => c.KycDocumentName).HasMaxLength(255);
         builder.Property(c => c.KycDocumentPath).HasMaxLength(500);

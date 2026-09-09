@@ -278,7 +278,9 @@ public static class DbSeeder
             existingDesignations[code] = designation;
         }
 
-        var existingIndustries = await db.Industries.ToDictionaryAsync(i => i.Code, ct);
+        var existingIndustries = await db.Industries
+            .IgnoreQueryFilters()
+            .ToListAsync(ct);
         var industries = new[]
         {
             ("banking", "Banking"),
@@ -286,22 +288,42 @@ public static class DbSeeder
             ("retail", "Retail"),
             ("logistics", "Logistics"),
             ("energy", "Energy"),
-            ("technology", "Technology"),
-            ("finance", "Finance"),
-            ("environment", "Environment"),
-            ("automotive", "Automotive"),
+            ("manufacturing", "Manufacturing"),
+            ("telecom", "Telecom"),
+            ("media", "Media"),
         };
+        var canonicalCodes = industries.Select(i => i.Item1).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var (code, name) in industries)
         {
-            if (existingIndustries.ContainsKey(code)) continue;
-            db.Industries.Add(new MstIndustry
+            var existing = existingIndustries.FirstOrDefault(i =>
+                string.Equals(i.Code, code, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (existing is not null)
+            {
+                existing.Code = code;
+                existing.Name = name;
+                existing.IsActive = true;
+                continue;
+            }
+
+            var row = new MstIndustry
             {
                 Code = code,
                 Name = name,
                 IsActive = true,
-            });
+            };
+            db.Industries.Add(row);
+            existingIndustries.Add(row);
         }
 
+        foreach (var extra in existingIndustries)
+        {
+            if (!canonicalCodes.Contains(extra.Code))
+                extra.IsActive = false;
+        }
+
+        await SeedContactDesignationsAsync(db, ct);
+        await SeedContactTypesAsync(db, ct);
         await SeedNationalitiesAsync(db, ct);
         await SeedSalaryBandsAsync(db, ct);
         await SeedJobRolesAsync(db, existingDesignations, ct);
@@ -309,6 +331,68 @@ public static class DbSeeder
         await SeedEmailDomainsAsync(db, ct);
         await SeedBusinessUnitsAsync(db, ct);
         await SeedWorkLocationsAndOfficesAsync(db, ct);
+    }
+
+    private static async Task SeedContactDesignationsAsync(AppDbContext db, CancellationToken ct)
+    {
+        var rows = new (string Code, string Name, int SortOrder)[]
+        {
+            ("spoc", "SPOC", 1),
+            ("ciso", "CISO", 2),
+            ("cio", "CIO", 3),
+            ("cfo", "CFO", 4),
+            ("accounts_head", "Accounts Head", 5),
+        };
+        var existing = await db.ContactDesignations
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(d => d.Code, ct);
+        foreach (var (code, name, sortOrder) in rows)
+        {
+            if (existing.ContainsKey(code)) continue;
+            db.ContactDesignations.Add(new MstContactDesignation
+            {
+                Code = code,
+                Name = name,
+                IsActive = true,
+                SortOrder = sortOrder,
+            });
+        }
+    }
+
+    private static async Task SeedContactTypesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var rows = new (string Code, string Name, int SortOrder)[]
+        {
+            ("accounts", "Accounts", 1),
+            ("procurement", "Procurement", 2),
+            ("technical", "Technical", 3),
+            ("legal", "Legal", 4),
+        };
+        var existing = await db.ContactTypes
+            .IgnoreQueryFilters()
+            .ToListAsync(ct);
+        foreach (var (code, name, sortOrder) in rows)
+        {
+            var row = existing.FirstOrDefault(t =>
+                string.Equals(t.Code, code, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (row is not null)
+            {
+                row.Code = code;
+                row.Name = name;
+                row.IsActive = true;
+                row.SortOrder = sortOrder;
+                continue;
+            }
+
+            db.ContactTypes.Add(new MstContactType
+            {
+                Code = code,
+                Name = name,
+                IsActive = true,
+                SortOrder = sortOrder,
+            });
+        }
     }
 
     private static async Task SeedBusinessUnitsAsync(AppDbContext db, CancellationToken ct)

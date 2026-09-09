@@ -39,4 +39,33 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
             .Select(c => new CityCatalogOptionDto(c.Id, c.Code, c.Name, c.CountryId))
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<CatalogOptionDto>> GetIndustriesAsync(CancellationToken ct = default)
+    {
+        return await db.Industries
+            .Where(i => i.IsActive)
+            .OrderBy(i => i.Name)
+            .Select(i => new CatalogOptionDto(i.Id, i.Code, i.Name, null, null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<CatalogOptionDto>> GetContactDesignationsAsync(CancellationToken ct = default)
+    {
+        return await db.ContactDesignations
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.SortOrder)
+            .ThenBy(d => d.Name)
+            .Select(d => new CatalogOptionDto(d.Id, d.Code, d.Name, null, null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<CatalogOptionDto>> GetContactTypesAsync(CancellationToken ct = default)
+    {
+        return await db.ContactTypes
+            .Where(t => t.IsActive)
+            .OrderBy(t => t.SortOrder)
+            .ThenBy(t => t.Name)
+            .Select(t => new CatalogOptionDto(t.Id, t.Code, t.Name, null, null))
+            .ToListAsync(ct);
+    }
 }

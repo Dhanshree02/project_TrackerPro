@@ -27,6 +27,15 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
 
         RuleFor(x => x.EngagementManager).MaximumLength(120);
         RuleFor(x => x.SalesManager).MaximumLength(120);
+        RuleFor(x => x.ContactName).MaximumLength(150);
+        RuleFor(x => x.GroupSpocName).MaximumLength(150);
+        RuleFor(x => x.GroupSpocContact)
+            .MustBeValidIndianPhone()
+            .When(x => !string.IsNullOrWhiteSpace(x.GroupSpocContact));
+        RuleFor(x => x.BillingMedium)
+            .MaximumLength(40)
+            .Must(v => string.IsNullOrWhiteSpace(v) || v is "Portal Based" or "Manual Based")
+            .WithMessage("Billing Medium must be Portal Based or Manual Based");
 
         RuleFor(x => x.ClientType)
             .Must(t => t is null || t is "NEW" or "OLD")
@@ -80,6 +89,15 @@ public sealed class UpdateClientRequestValidator : AbstractValidator<UpdateClien
             .When(x => !string.IsNullOrWhiteSpace(x.ContactEmail));
         RuleFor(x => x.EngagementManager).MaximumLength(120);
         RuleFor(x => x.SalesManager).MaximumLength(120);
+        RuleFor(x => x.ContactName).MaximumLength(150);
+        RuleFor(x => x.GroupSpocName).MaximumLength(150);
+        RuleFor(x => x.GroupSpocContact)
+            .MustBeValidIndianPhone()
+            .When(x => !string.IsNullOrWhiteSpace(x.GroupSpocContact));
+        RuleFor(x => x.BillingMedium)
+            .MaximumLength(40)
+            .Must(v => string.IsNullOrWhiteSpace(v) || v is "Portal Based" or "Manual Based")
+            .WithMessage("Billing Medium must be Portal Based or Manual Based");
         RuleFor(x => x.Status)
             .Must(s => s is null or "Active" or "Inactive" or "Onboarding")
             .WithMessage("Status must be Active, Inactive or Onboarding");

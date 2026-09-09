@@ -342,12 +342,25 @@ function CustomerDetailPage() {
   const displaySpocs = activeSubVenture
     ? (activeSubVenture.contacts ?? []).map((c) => ({
         name: c.name,
-        email: c.email,
+        email: c.email?.trim() || "",
         phone: c.phone ?? "—",
+        phoneCode: c.phoneCode,
         designation: c.designation ?? "—",
         type: c.contactType ?? "Primary",
       }))
-    : [];
+    : (client.groupSpocName || client.contactName)
+      ? [
+          {
+            name: client.groupSpocName || client.contactName || "",
+            // Group SPOC has no email — Company step only stores name + phone.
+            email: "",
+            phone: client.groupSpocContact || client.contactPhone || "—",
+            phoneCode: undefined as string | undefined,
+            designation: "Group SPOC",
+            type: "Group SPOC",
+          },
+        ]
+      : [];
 
   // Notes are per sub-venture (captured at onboarding). Legacy client.notes is a fallback.
   const displayNotes = activeSubVenture
@@ -601,7 +614,9 @@ function CustomerDetailPage() {
               <div className="border-b border-border px-4 py-3">
                 <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <User className="h-3.5 w-3.5" />
-                  {activeSubVenture ? `SPOC Contacts — ${activeSubVenture.name}` : "SPOC Contacts"}
+                  {activeSubVenture
+                    ? `SPOC Contacts — ${activeSubVenture.name}`
+                    : "Group SPOC"}
                 </h3>
               </div>
               <div className="p-3">
@@ -619,7 +634,9 @@ function CustomerDetailPage() {
                         )}
                       >
                         <User className="h-3 w-3" />
-                        SPOC {i + 1} — {spoc.name}
+                        {activeSubVenture
+                          ? `SPOC ${i + 1} — ${spoc.name}`
+                          : `Group SPOC — ${spoc.name}`}
                       </button>
                     ))}
                   </div>
@@ -628,8 +645,8 @@ function CustomerDetailPage() {
                     {activeSubVenture
                       ? "No SPOC contacts for this sub-venture yet."
                       : subVentures.length > 0
-                        ? "Select a sub-venture to view SPOC contacts."
-                        : "No sub-ventures on file. SPOC contacts are tied to a sub-venture."}
+                        ? "Select a sub-venture to view that division’s SPOC contacts."
+                        : "No Group SPOC or sub-venture contacts on file."}
                   </p>
                 )}
 
@@ -648,24 +665,32 @@ function CustomerDetailPage() {
                         <div className="font-semibold text-foreground">
                           {displaySpocs[selectedSpoc].name}
                         </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {displaySpocs[selectedSpoc].designation} ·{" "}
-                          {displaySpocs[selectedSpoc].type}
-                        </div>
+                        {activeSubVenture ? (
+                          <div className="text-[10px] text-muted-foreground">
+                            {displaySpocs[selectedSpoc].designation} ·{" "}
+                            {displaySpocs[selectedSpoc].type}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-muted-foreground">
+                            Group SPOC
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        <span className="truncate">{displaySpocs[selectedSpoc].email}</span>
-                      </div>
+                      {displaySpocs[selectedSpoc].email ? (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Mail className="h-3 w-3" />
+                          <span className="truncate">{displaySpocs[selectedSpoc].email}</span>
+                        </div>
+                      ) : null}
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Phone className="h-3 w-3" />
                         <span>
                           {displaySpocs[selectedSpoc].phone && displaySpocs[selectedSpoc].phone !== "—"
                             ? displaySpocs[selectedSpoc].phone.startsWith("+")
                               ? displaySpocs[selectedSpoc].phone
-                              : `+91 ${displaySpocs[selectedSpoc].phone}`
+                              : `${displaySpocs[selectedSpoc].phoneCode || "+91"} ${displaySpocs[selectedSpoc].phone}`
                             : "—"}
                         </span>
                       </div>
@@ -908,6 +933,7 @@ function CustomerDetailPage() {
                 { label: "Customer ID", value: formatCustomerId(client.id), mono: true },
                 { label: "Customer Name", value: client.name },
                 { label: "Industry", value: client.industry },
+                { label: "Billing Medium", value: client.billingMedium || "—" },
                 {
                   label: "Customer Type",
                   value: client.clientType === "NEW" ? "New Customer" : "Existing Customer",
