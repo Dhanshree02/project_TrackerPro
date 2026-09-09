@@ -32,7 +32,6 @@ import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import {
   getPerson,
-  people,
   type TaskStatus,
   type CellCommentData,
   type CellCommentMessage,
@@ -49,11 +48,13 @@ import {
   type DhCentralApproval,
   type AlertStatus,
   type DhNotification,
+  type IssueCategory,
+  type DhPriority,
 } from "@/lib/dh-store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "./projects.index";
-import { Select } from "@/components/form-row";
+import { Field } from "@/components/form-row";
 
 export const Route = createFileRoute("/action-centre")({
   head: () => ({
@@ -94,7 +95,7 @@ function ActionCentrePage() {
   return (
     <AppShell
       title="Action Centre"
-      subtitle={`${user.name} · tasks, timesheets, approvals and alerts`}
+      subtitle="Bucket list, timesheets, approvals and alerts in one place"
     >
       <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
         {visibleTabs.map((t) => {
@@ -345,10 +346,17 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
 
 function BucketList() {
   const { user, isEmployee, employeePersonId } = useRoleContext();
-  // Employees default to (and stay on) their own bucket — assigned tasks only.
-  const [viewUserId, setViewUserId] = useState(
-    isEmployee && employeePersonId ? employeePersonId : user.id,
-  );
+  const store = useDhStore((s) => s);
+  const bucketTasks = store.bucketTasks || [];
+
+  // Default to employee's own ID or fallback to "u7" (Arjun Singh) so bucket list tasks are populated by default
+  const viewUserId =
+    isEmployee && employeePersonId
+      ? employeePersonId
+      : bucketTasks.some((bt) => bt.employeeId === user.id)
+        ? user.id
+        : "u7";
+
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "todo" | "in_progress" | "review" | "done"
@@ -356,13 +364,27 @@ function BucketList() {
   const [priorityFilter, setPriorityFilter] = useState<
     "all" | "low" | "medium" | "high" | "critical"
   >("all");
-  const store = useDhStore((s) => s);
-
-  const bucketTasks = store.bucketTasks || [];
+  const [showRaiseModal, setShowRaiseModal] = useState(false);
+  const [formData, setFormData] = useState({
+    projectId: "",
+    title: "",
+    description: "",
+    category: "Technical Related Issues" as IssueCategory,
+    priority: "Medium" as DhPriority,
+  });
 
   const rows = useMemo(() => {
     return bucketTasks.filter((bt) => bt.employeeId === viewUserId);
   }, [bucketTasks, viewUserId]);
+
+  const userProjects = useMemo(() => {
+    const list = allProjects();
+    const taskProjectIds = Array.from(
+      new Set(rows.map((bt) => bt.projectId).filter(Boolean)),
+    );
+    const projs = list.filter((p) => taskProjectIds.includes(p.id));
+    return projs.length > 0 ? projs : list;
+  }, [rows]);
 
   const filtered = rows.filter((r) => {
     if (statusFilter !== "all") {
@@ -377,31 +399,44 @@ function BucketList() {
     return [r.taskTitle, r.projectName].some((v) => v.toLowerCase().includes(q.toLowerCase()));
   });
 
-  const selectedPerson = getPerson(viewUserId) || user;
+  const handleSubmitIssue = () => {
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast.error("Fill all fields");
+      return;
+    }
+    const projectsList = allProjects();
+    const targetProjectId = formData.projectId || userProjects[0]?.id || projectsList[0]?.id || "p1";
+    const proj = projectsList.find((p) => p.id === targetProjectId);
+    const dottedLineMgr = proj ? getPerson(proj.pmId || proj.tlId || "u3") : getPerson("u3");
+
+    dhStore.raiseIssue({
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      projectId: targetProjectId,
+      raisedById: user.id,
+      raisedByName: user.name,
+      raisedByRole: user.role,
+      category: formData.category,
+      priority: formData.priority,
+      audienceUserIds: [dottedLineMgr.id, "u1", "u3", "u4"],
+    });
+
+    toast.success("Issue raised successfully", {
+      description: `Routed to Dotted Line Reporting Manager (${dottedLineMgr.name} · ${dottedLineMgr.role})`,
+    });
+    setShowRaiseModal(false);
+    setFormData({
+      projectId: userProjects[0]?.id || projectsList[0]?.id || "p1",
+      title: "",
+      description: "",
+      category: "Technical Related Issues",
+      priority: "Medium",
+    });
+  };
 
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm">
       <header className="flex flex-wrap items-center gap-2.5 border-b border-border p-3">
-        {/* View As Selector for Tester — hidden for Employees (own tasks only) */}
-        {!isEmployee && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-              Viewing As:
-            </span>
-            <Select
-              value={viewUserId}
-              onChange={(e) => setViewUserId(e.target.value)}
-              containerClassName="w-auto"
-            >
-              {people.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.role})
-                </option>
-              ))}
-            </Select>
-          </div>
-        )}
-
         {/* Search Bar */}
         <div className="relative w-60 max-w-xs">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -456,10 +491,22 @@ function BucketList() {
           ))}
         </div>
 
+        {/* Raise Issue Button */}
+        <button
+          onClick={() => {
+            setFormData((prev) => ({
+              ...prev,
+              projectId: prev.projectId || userProjects[0]?.id || allProjects()[0]?.id || "p1",
+            }));
+            setShowRaiseModal(true);
+          }}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+        >
+          <Plus className="h-3.5 w-3.5" /> Raise Issue
+        </button>
+
         <span className="ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">
-          Assigned to{" "}
-          <strong className="text-foreground font-semibold">{selectedPerson.name}</strong> ·{" "}
-          {filtered.length} tasks
+          {filtered.length} {filtered.length === 1 ? "task" : "tasks"}
         </span>
       </header>
 
@@ -490,6 +537,84 @@ function BucketList() {
           </tbody>
         </table>
       </div>
+
+      {/* Raise Issue Modal */}
+      {showRaiseModal && (
+        <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
+          <div className="space-y-3">
+            <Field label="Project">
+              <select
+                value={formData.projectId || userProjects[0]?.id || allProjects()[0]?.id || "p1"}
+                onChange={(e) => setFormData((s) => ({ ...s, projectId: e.target.value }))}
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {userProjects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Issue Title">
+              <input
+                value={formData.title}
+                onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))}
+                placeholder="Brief summary..."
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </Field>
+            <Field label="Description">
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))}
+                placeholder="Detailed description..."
+                rows={3}
+                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </Field>
+            <Field label="Issue Type">
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))}
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Priority">
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))}
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => (
+                  <option key={pri} value={pri}>
+                    {pri}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button
+                onClick={() => setShowRaiseModal(false)}
+                className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitIssue}
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Raise Issue
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </section>
   );
 }
