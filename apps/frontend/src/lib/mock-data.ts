@@ -104,6 +104,7 @@ export interface WBSDetails {
   contractType: string;
   projectType: string;
   salesPerson: string;
+  engagementManager?: string;
   currency: string;
   services: WbsService[];
   accounts: {
@@ -167,6 +168,8 @@ export interface Project {
   projectSeqId?: string; // FY-scoped sequential ID e.g. "P001" — resets each April 1
   wbsId?: string; // Full WBS ID e.g. "IN-2026-27-C011-P001"
   subVenture?: string; // Sub-venture name this project is under
+  /** Original project's WBS ID when this record is a renewal. Original project is unchanged. */
+  renewedFromWbsId?: string;
 }
 
 export interface ClientContact {
@@ -175,6 +178,10 @@ export interface ClientContact {
   phone?: string;
   designation?: string;
   contactType?: string;
+  /** Country / Region from mst_countries — stored on client_contacts, not shown on the detail card. */
+  country?: string;
+  /** Dial code for that country (e.g. +91). Detail shows phone with this prefix. */
+  phoneCode?: string;
 }
 
 export interface ClientSubVenture {
@@ -223,6 +230,11 @@ export interface Client {
   city?: string;
   country?: string;
   businessType?: string;
+  billingMedium?: string;
+  /** Client-level Group SPOC name (onboarding Company step). Not a sub-venture contact. */
+  groupSpocName?: string;
+  /** Client-level Group SPOC phone (onboarding Company step). */
+  groupSpocContact?: string;
   notes?: string;
   kycDocumentName?: string;
   /** Relative path (under Documents/) of the stored KYC file; present when uploaded to the server. */

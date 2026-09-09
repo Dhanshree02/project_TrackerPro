@@ -17,6 +17,8 @@ public sealed class ClientContactConfiguration : IEntityTypeConfiguration<Client
         builder.Property(c => c.Name).HasMaxLength(150);
         builder.Property(c => c.Email).HasMaxLength(255);
         builder.Property(c => c.Phone).HasMaxLength(40);
+        builder.Property(c => c.Country).HasMaxLength(120);
+        builder.Property(c => c.PhoneCode).HasMaxLength(16);
         builder.Property(c => c.Designation).HasMaxLength(120);
         builder.Property(c => c.ContactType).HasMaxLength(40);
 

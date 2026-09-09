@@ -2225,6 +2225,7 @@ export const dhStore = {
     sectionAComments?: string;
     sectionBComments?: string;
     subVenture?: string;
+    renewedFromWbsId?: string;
   }) {
     const id = uid("p");
     const seqId = getNextProjectSeqNum();
@@ -2286,6 +2287,7 @@ export const dhStore = {
       projectSeqId: seqId,
       wbsId: wbsAutoId,
       subVenture: input.subVenture,
+      renewedFromWbsId: input.renewedFromWbsId?.trim() || undefined,
     };
     state.extraProjects.push(p);
 

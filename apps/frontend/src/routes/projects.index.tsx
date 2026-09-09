@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   LayoutGrid,
   List,
@@ -21,7 +21,8 @@ import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { allClients, allProjects, dhStore, useDhStore, type WbsDraft } from "@/lib/dh-store";
-import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar } from "@/components/pills";
+import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
+import { isRenewedProject } from "@/lib/project-renewal";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/dh-helpers";
 import { cn } from "@/lib/utils";
 import { Field, HorizontalField } from "@/components/form-row";
@@ -75,7 +76,8 @@ function ProjectsPage() {
   const visible = useMemo(() => {
     const assignedIds = new Set(assignedProjects.map((p) => p.id));
     return projects.filter((p) => {
-      if (!assignedIds.has(p.id)) return false;
+      // Extra WBS-created projects are not in the static assignment list.
+      if (!assignedIds.has(p.id) && !isDhanshree) return false;
       const isArchived =
         p.status === "completed" || p.status === "archived" || (p.status as any) === "Archived";
       if (tab === "Active Projects" && isArchived) return false;
@@ -86,7 +88,7 @@ function ProjectsPage() {
         v.toLowerCase().includes(q.toLowerCase()),
       );
     });
-  }, [tab, q, projects, clients, assignedProjects]);
+  }, [tab, q, projects, clients, assignedProjects, isDhanshree]);
 
   if (!isDhanshree && !hasPermission("projects.view")) return <Navigate to="/" />;
 
@@ -207,6 +209,11 @@ function ProjectsPage() {
                       {client.logo}
                     </div>
                     <div className="min-w-0 flex-1">
+                      {isRenewedProject(p) && (
+                        <div className="mb-1">
+                          <RenewedProjectTag />
+                        </div>
+                      )}
                       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                         <span className="font-mono">{p.id.toUpperCase()}</span>
                         <span>•</span>
@@ -304,7 +311,10 @@ function ProjectsPage() {
                       {p.id.toUpperCase()}
                     </td>
                     <td className="px-3 py-2.5 font-medium group-hover:text-primary transition-colors">
-                      {p.name}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {isRenewedProject(p) && <RenewedProjectTag />}
+                        <span>{p.name}</span>
+                      </div>
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground">{client.name}</td>
                     <td className="px-3 py-2.5">
@@ -1284,6 +1294,50 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+let modalScrollLocks = 0;
+let previousHtmlOverflow = "";
+let previousBodyOverflow = "";
+let previousBodyPaddingRight = "";
+let previousBodyPosition = "";
+let previousBodyTop = "";
+let previousBodyLeft = "";
+let previousBodyRight = "";
+let previousScrollY = 0;
+
+function lockPageScroll() {
+  modalScrollLocks += 1;
+  if (modalScrollLocks !== 1) return;
+  previousHtmlOverflow = document.documentElement.style.overflow;
+  previousBodyOverflow = document.body.style.overflow;
+  previousBodyPaddingRight = document.body.style.paddingRight;
+  previousBodyPosition = document.body.style.position;
+  previousBodyTop = document.body.style.top;
+  previousBodyLeft = document.body.style.left;
+  previousBodyRight = document.body.style.right;
+  previousScrollY = window.scrollY;
+  const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+  document.documentElement.style.overflow = "hidden";
+  document.body.style.overflow = "hidden";
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${previousScrollY}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
+}
+
+function unlockPageScroll() {
+  modalScrollLocks = Math.max(0, modalScrollLocks - 1);
+  if (modalScrollLocks !== 0) return;
+  document.documentElement.style.overflow = previousHtmlOverflow;
+  document.body.style.overflow = previousBodyOverflow;
+  document.body.style.paddingRight = previousBodyPaddingRight;
+  document.body.style.position = previousBodyPosition;
+  document.body.style.top = previousBodyTop;
+  document.body.style.left = previousBodyLeft;
+  document.body.style.right = previousBodyRight;
+  window.scrollTo(0, previousScrollY);
+}
+
 export function Modal({
   title,
   children,
@@ -1300,25 +1354,76 @@ export function Modal({
   draggable?: boolean;
 }) {
   const { containerRef, handleRef } = useDraggable();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    lockPageScroll();
+    const panel = panelRef.current;
+    const isScrollableY = (el: HTMLElement) => {
+      const overflowY = window.getComputedStyle(el).overflowY;
+      return (overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight + 1;
+    };
+    // Walk the full ancestor chain so nested overlays (KYC preview, combobox lists)
+    // can still scroll even when they sit outside this modal panel.
+    const nearestScrollable = (start: Node | null): HTMLElement | null => {
+      let el: HTMLElement | null =
+        start instanceof HTMLElement ? start : start?.parentElement ?? null;
+      while (el && el !== document.body && el !== document.documentElement) {
+        if (isScrollableY(el)) return el;
+        el = el.parentElement;
+      }
+      return null;
+    };
+    const stopPageScroll = (e: Event) => {
+      const target = e.target as Node | null;
+      const targetEl = target instanceof HTMLElement ? target : target?.parentElement ?? null;
+      // PDF/iframe previews handle their own wheel; don't steal those events.
+      if (targetEl?.closest("iframe")) return;
+      const scroller =
+        nearestScrollable(target) ??
+        (panel && panel.contains(target) && isScrollableY(panel) ? panel : null);
+      if (scroller) {
+        if (!(e instanceof WheelEvent)) return;
+        const atTop = scroller.scrollTop <= 0 && e.deltaY < 0;
+        const atBottom =
+          scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1 && e.deltaY > 0;
+        if (!atTop && !atBottom) return;
+      }
+      e.preventDefault();
+    };
+    document.addEventListener("wheel", stopPageScroll, { passive: false });
+    document.addEventListener("touchmove", stopPageScroll, { passive: false });
+    return () => {
+      document.removeEventListener("wheel", stopPageScroll);
+      document.removeEventListener("touchmove", stopPageScroll);
+      unlockPageScroll();
+    };
+  }, []);
 
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center",
+        "fixed inset-0 z-50 flex items-center justify-center overscroll-none",
         fullScreen ? "bg-background p-0" : "bg-black/40 p-4",
       )}
       onClick={!fullScreen && !draggable ? onClose : undefined}
+      onWheel={(e) => {
+        if (e.target === e.currentTarget) e.preventDefault();
+      }}
     >
       <div
-        ref={draggable ? containerRef : undefined}
+        ref={(node) => {
+          panelRef.current = node;
+          if (draggable) containerRef.current = node;
+        }}
         className={cn(
-          "overflow-y-auto bg-card flex flex-col",
+          "overflow-y-auto overscroll-contain bg-card flex flex-col",
           fullScreen
             ? "w-full h-full rounded-none shadow-none"
             : "max-h-[90vh] w-full rounded-xl shadow-xl",
           !fullScreen && wide ? "max-w-3xl" : !fullScreen ? "max-w-lg" : "",
         )}
-        style={draggable ? { willChange: "transform", touchAction: "none" } : undefined}
+        style={draggable ? { willChange: "transform" } : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <header
@@ -1327,6 +1432,7 @@ export function Modal({
             "sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-5 py-4",
             draggable && "select-none",
           )}
+          style={draggable ? { touchAction: "none" } : undefined}
         >
           {draggable && (
             <span className="mr-1 text-muted-foreground/50 shrink-0" title="Drag to move">

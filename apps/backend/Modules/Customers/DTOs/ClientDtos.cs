@@ -17,6 +17,9 @@ public sealed record ClientDto(
     string? City,
     string? Country,
     string? BusinessType,
+    string? BillingMedium,
+    string? GroupSpocName,
+    string? GroupSpocContact,
     string? Notes,
     string? KycDocumentName,
     string? KycDocumentPath,
@@ -30,7 +33,9 @@ public sealed record ClientContactDto(
     string? Email,
     string? Phone,
     string? Designation,
-    string? ContactType);
+    string? ContactType,
+    string? Country = null,
+    string? PhoneCode = null);
 
 /// <summary>A sub-venture with its own SPOC contacts, onboarding notes, and KYC document.</summary>
 public sealed record SubVentureDto(
@@ -66,7 +71,10 @@ public sealed record CreateClientRequest(
     string? Notes = null,
     string? KycDocumentName = null,
     List<SubVentureInput>? SubVentures = null,
-    List<ClientContactDto>? Contacts = null);
+    List<ClientContactDto>? Contacts = null,
+    string? BillingMedium = null,
+    string? GroupSpocName = null,
+    string? GroupSpocContact = null);
 
 public sealed record UpdateClientRequest(
     string? Name = null,
@@ -87,4 +95,7 @@ public sealed record UpdateClientRequest(
     string? Notes = null,
     string? KycDocumentName = null,
     List<SubVentureInput>? SubVentures = null,
-    List<ClientContactDto>? Contacts = null);
+    List<ClientContactDto>? Contacts = null,
+    string? BillingMedium = null,
+    string? GroupSpocName = null,
+    string? GroupSpocContact = null);

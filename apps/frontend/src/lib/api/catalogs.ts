@@ -28,3 +28,18 @@ export async function fetchCities(countryId?: string): Promise<CityCatalogOption
   const query = countryId ? `?countryId=${encodeURIComponent(countryId)}` : "";
   return (await apiFetch<CityCatalogOption[]>(`/api/v1/catalogs/cities${query}`)) ?? [];
 }
+
+/** GET /api/v1/catalogs/industries — rows from mst_industries. */
+export async function fetchIndustries(): Promise<CatalogOption[]> {
+  return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/industries")) ?? [];
+}
+
+/** GET /api/v1/catalogs/contact-designations — rows from mst_contact_designations. */
+export async function fetchContactDesignations(): Promise<CatalogOption[]> {
+  return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/contact-designations")) ?? [];
+}
+
+/** GET /api/v1/catalogs/contact-types — rows from mst_contact_types. */
+export async function fetchContactTypes(): Promise<CatalogOption[]> {
+  return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/contact-types")) ?? [];
+}

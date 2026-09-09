@@ -14,6 +14,7 @@ import { Field } from "@/components/form-row";
 import { cn } from "@/lib/utils";
 import { fetchClients, mapApiClient } from "@/lib/api/clients";
 import { resolveCustomerRouteId } from "@/lib/client-route-id";
+import { findProjectByWbsId } from "@/lib/project-renewal";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 
@@ -1142,8 +1143,13 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
           <div className="rounded-lg border border-border bg-card p-4">
             <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
             <div className="space-y-2">
+              <InfoRow label="WBS ID" value={project.wbsId || "—"} />
               <InfoRow label="Contract Type" value={wbsDetails.contractType} />
               <InfoRow label="Project Type" value={wbsDetails.projectType} />
+              <InfoRow
+                label="Engagement Manager"
+                value={project.engagementManager || wbsDetails.engagementManager || "—"}
+              />
               <InfoRow label="Sales Person" value={wbsDetails.salesPerson} />
             </div>
           </div>
@@ -1337,10 +1343,10 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
           <div className="space-y-2">
-            <InfoRow label="WBS ID" value={wbsId} />
-            <InfoRow label="Contract Type" value="Fixed Price" />
-            <InfoRow label="Engagement Manager" value="Priya Sharma" />
-            <InfoRow label="Sales Person" value="Amit Verma" />
+            <InfoRow label="WBS ID" value={project.wbsId || wbsId} />
+            <InfoRow label="Contract Type" value={project.contractType || "Fixed Price"} />
+            <InfoRow label="Engagement Manager" value={project.engagementManager || "—"} />
+            <InfoRow label="Sales Person" value={project.salesPerson || "Amit Verma"} />
           </div>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
@@ -1489,9 +1495,20 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
 
 function InfoRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div className="flex justify-between text-xs">
-      <span className="text-muted-foreground font-medium">{label}</span>
-      <span className={cn("font-semibold", muted && "text-muted-foreground")}>{value}</span>
+    <div className="flex items-start justify-between gap-4 text-xs">
+      <span className="shrink-0 text-muted-foreground font-medium">{label}</span>
+      <span className={cn("min-w-0 text-right font-semibold break-words", muted && "text-muted-foreground")}>
+        {value?.trim() || "—"}
+      </span>
+    </div>
+  );
+}
+
+function DetailField({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="min-w-0 rounded-md bg-muted/30 px-3 py-2">
+      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-sm font-semibold text-foreground break-words">{value?.trim() || "—"}</div>
     </div>
   );
 }
@@ -1542,6 +1559,12 @@ function OverviewTab({
     return getProjectTLs(project);
   }, [leadershipAssignment, project]);
 
+  const extraCount = useDhStore((s) => s.extraProjects.length);
+  const originalProject = useMemo(
+    () => findProjectByWbsId(allProjects(), project.renewedFromWbsId),
+    [project.renewedFromWbsId, extraCount],
+  );
+
   const wbs = project.wbsDetails;
   const hasWbsData = !!(project.wbsId || wbs);
   // A WBS-created project with no team assigned yet — PM/TL/team are placeholders
@@ -1555,9 +1578,27 @@ function OverviewTab({
     <div className="grid gap-4 md:grid-cols-3">
       <div className={cn("space-y-4", showLeadership ? "md:col-span-2" : "md:col-span-3")}>
         <div>
-          <h3 className="text-sm font-semibold">Description</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{project.description || project.sectionAComments || "—"}</p>
+          <h3 className="text-sm font-semibold">Project Description</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {project.description || project.sectionAComments || "—"}
+          </p>
         </div>
+        {project.renewedFromWbsId ? (
+          <p className="text-sm text-foreground">
+            This project is a renewal of:{" "}
+            {originalProject ? (
+              <Link
+                to="/projects/$projectId"
+                params={{ projectId: originalProject.id }}
+                className="font-medium text-primary hover:underline"
+              >
+                {project.renewedFromWbsId}
+              </Link>
+            ) : (
+              <span className="font-medium">{project.renewedFromWbsId}</span>
+            )}
+          </p>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-3">
           <Info icon={Calendar} label="Start" value={formatDate(new Date(project.startDate))} />
           <Info icon={Calendar} label="End" value={formatDate(new Date(project.endDate))} />
@@ -1577,38 +1618,31 @@ function OverviewTab({
         {hasWbsData && (
           <div className="rounded-lg border border-border bg-card p-4 space-y-3">
             <h3 className="text-sm font-semibold border-b border-border pb-2">Project Details</h3>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {project.wbsId && <InfoRow label="WBS ID" value={project.wbsId} />}
-              {project.projectSeqId && <InfoRow label="Project ID" value={project.projectSeqId} />}
-              {project.subVenture && <InfoRow label="End Customer / Sub-venture" value={project.subVenture} />}
-              {(project.contractType || wbs?.contractType) && (
-                <InfoRow label="Contract Type" value={project.contractType ?? wbs!.contractType} />
-              )}
-              {(project.projectType || wbs?.projectType) && (
-                <InfoRow label="Project Type" value={project.projectType ?? wbs!.projectType} />
-              )}
-              {(project.engagementManager || (wbs as any)?.engagementManager) && (
-                <InfoRow label="Engagement Manager" value={project.engagementManager ?? (wbs as any).engagementManager ?? "—"} />
-              )}
-              {(project.salesPerson || wbs?.salesPerson) && (
-                <InfoRow label="Sales Person" value={project.salesPerson ?? wbs!.salesPerson} />
-              )}
-              {project.projectIssuedDate && (
-                <InfoRow label="Project Onboarding Date" value={formatDate(new Date(project.projectIssuedDate))} />
-              )}
-              {currency && <InfoRow label="Currency" value={currency} />}
-              {wbs?.accounts?.billingModel && (
-                <InfoRow label="Billing Model" value={wbs.accounts.billingModel} />
-              )}
-              {wbs?.accounts?.paymentTerms && (
-                <InfoRow label="Payment Terms" value={wbs.accounts.paymentTerms} />
-              )}
-              {wbs?.accounts?.poStatus && (
-                <InfoRow label="PO Status" value={wbs.accounts.poStatus} />
-              )}
-              {project.wbsStatus && (
-                <InfoRow label="WBS Status" value={project.wbsSubStatus ?? project.wbsStatus} />
-              )}
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              {[
+                { label: "WBS ID", value: project.wbsId },
+                { label: "Project ID", value: project.projectSeqId },
+                { label: "End Customer / Sub-venture", value: project.subVenture },
+                { label: "Contract Type", value: project.contractType ?? wbs?.contractType },
+                { label: "Project Type", value: project.projectType ?? wbs?.projectType },
+                { label: "Engagement Manager", value: project.engagementManager ?? wbs?.engagementManager },
+                { label: "Sales Person", value: project.salesPerson ?? wbs?.salesPerson },
+                {
+                  label: "Project Onboarding Date",
+                  value: project.projectIssuedDate
+                    ? formatDate(new Date(project.projectIssuedDate))
+                    : undefined,
+                },
+                { label: "Currency", value: currency },
+                { label: "Billing Model", value: wbs?.accounts?.billingModel },
+                { label: "Payment Terms", value: wbs?.accounts?.paymentTerms },
+                { label: "PO Status", value: wbs?.accounts?.poStatus },
+                { label: "WBS Status", value: project.wbsSubStatus ?? project.wbsStatus },
+              ]
+                .filter((f) => Boolean(f.value?.trim()))
+                .map((f) => (
+                  <DetailField key={f.label} label={f.label} value={f.value} />
+                ))}
             </div>
             {!hideAmounts && totalServices > 0 && (
               <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">

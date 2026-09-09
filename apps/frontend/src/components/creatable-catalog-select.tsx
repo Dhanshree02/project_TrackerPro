@@ -54,6 +54,7 @@ export function SearchableSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,7 +100,16 @@ export function SearchableSelect({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && showSearch) {
+    if (!isOpen) {
+      setOpenUp(false);
+      return;
+    }
+    const el = containerRef.current;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setOpenUp(window.innerHeight - rect.bottom < 260);
+    }
+    if (showSearch) {
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 50);
@@ -191,7 +201,10 @@ export function SearchableSelect({
 
         {isOpen && !disabled && (
           <div
-            className="absolute left-0 top-full z-50 mt-1 max-h-60 w-full min-w-[220px] rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden"
+            className={cn(
+              "absolute left-0 z-50 max-h-60 w-full min-w-[220px] rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden",
+              openUp ? "bottom-full mb-1" : "top-full mt-1",
+            )}
             role="listbox"
           >
             {/* Search Input */}
@@ -229,7 +242,7 @@ export function SearchableSelect({
             )}
 
             {/* Options List */}
-            <div className="flex-1 overflow-y-auto p-1 text-xs">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-1 text-xs">
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((opt) => {
                   const isSelected = opt.value === value;

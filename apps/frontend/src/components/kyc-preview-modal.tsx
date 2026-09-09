@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X, FileText, CheckCircle2, ShieldCheck, Check, Loader2, Table2 } from "lucide-react";
 
 export interface KycDocPreviewModalProps {
@@ -25,6 +25,7 @@ export function KycDocPreviewModal({
 }: KycDocPreviewModalProps) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const sourceUrl = objectUrl ?? previewUrl ?? null;
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // Spreadsheet (xlsx/xls/csv) preview — parsed with SheetJS into an HTML table.
   const [workbook, setWorkbook] = useState<import("xlsx").WorkBook | null>(null);
@@ -209,6 +210,21 @@ export function KycDocPreviewModal({
     };
   }, [open, isWord, file, previewUrl]);
 
+  // Native stopPropagation (React onWheel is delegated to the app root and
+  // cannot block the onboarding Modal's document wheel lock).
+  useEffect(() => {
+    if (!open) return;
+    const node = dialogRef.current;
+    if (!node) return;
+    const stop = (e: Event) => e.stopPropagation();
+    node.addEventListener("wheel", stop);
+    node.addEventListener("touchmove", stop);
+    return () => {
+      node.removeEventListener("wheel", stop);
+      node.removeEventListener("touchmove", stop);
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (
@@ -219,8 +235,12 @@ export function KycDocPreviewModal({
         onClick={onClose}
       />
 
-      {/* Modal Dialog */}
-      <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border/80 bg-background shadow-2xl animate-in zoom-in-95 duration-150">
+      {/* Modal Dialog — stopPropagation so the onboarding page-scroll lock
+          does not preventDefault wheel/touch on this overlay. */}
+      <div
+        ref={dialogRef}
+        className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border/80 bg-background shadow-2xl animate-in zoom-in-95 duration-150"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/80 bg-slate-50 dark:bg-muted/40 px-5 py-3">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -259,7 +279,7 @@ export function KycDocPreviewModal({
         </div>
 
         {/* Document View Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100/70 dark:bg-muted/20 min-h-[380px] max-h-[72vh]">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 bg-slate-100/70 dark:bg-muted/20 min-h-[380px] max-h-[72vh]">
           {isImage && sourceUrl ? (
             <div className="flex justify-center items-center overflow-hidden rounded-xl border border-border bg-white dark:bg-card p-3 shadow-md">
               <img

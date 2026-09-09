@@ -55,6 +55,15 @@ public class Client : BaseEntity
     /// <summary>Enterprise / Mid-Market / SMB / Public Sector.</summary>
     public string? BusinessType { get; set; }
 
+    /// <summary>Portal Based or Manual Based — how invoices are raised for this customer.</summary>
+    public string? BillingMedium { get; set; }
+
+    /// <summary>Client-level Group SPOC name from onboarding (not a sub-venture contact).</summary>
+    public string? GroupSpocName { get; set; }
+
+    /// <summary>Client-level Group SPOC phone from onboarding (not a sub-venture contact).</summary>
+    public string? GroupSpocContact { get; set; }
+
     /// <summary>Free-text notes captured during onboarding.</summary>
     public string? Notes { get; set; }
 
