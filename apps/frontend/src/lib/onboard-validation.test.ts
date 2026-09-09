@@ -158,11 +158,25 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       ).toBe("Bond duration is required when bond is delivered");
     });
 
-    it("should reject past joining dates", () => {
+    it("should reject past joining dates in create mode", () => {
       const pastDate = isoDateYearsAgo(1);
       expect(
         validateOnboardField("joiningDate", { ...EMPTY_ONBOARD, joiningDate: pastDate }),
       ).toBe("Date of joining must be today or a future date");
+    });
+
+    it("should allow any joining date (or none) in edit mode", () => {
+      const pastDate = isoDateYearsAgo(5);
+      const futureDate = "2099-12-31";
+      expect(
+        validateOnboardField("joiningDate", { ...EMPTY_ONBOARD, joiningDate: pastDate }, [], { isEdit: true }),
+      ).toBeUndefined();
+      expect(
+        validateOnboardField("joiningDate", { ...EMPTY_ONBOARD, joiningDate: futureDate }, [], { isEdit: true }),
+      ).toBeUndefined();
+      expect(
+        validateOnboardField("joiningDate", { ...EMPTY_ONBOARD, joiningDate: "" }, [], { isEdit: true }),
+      ).toBeUndefined();
     });
   });
 

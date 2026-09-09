@@ -93,14 +93,14 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "relative hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-[width] duration-300 z-50",
+        "relative hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-[width] duration-300 z-30",
         isCollapsed ? "w-16" : "w-60",
       )}
     >
       {/* Floating toggle button — sits half on sidebar, half on body */}
       <button
         onClick={toggleCollapse}
-        className="absolute right-0 top-1/2 z-50 flex h-7 w-7 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground shadow-md hover:bg-primary/80 hover:border-primary/80 transition-all duration-200"
+        className="absolute right-0 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground shadow-md hover:bg-primary/80 hover:border-primary/80 transition-all duration-200"
         title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
       >
         {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}

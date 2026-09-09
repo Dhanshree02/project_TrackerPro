@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
+import { createPortal } from "react-dom";
 import { useMemo, useState, useEffect, useRef } from "react";
 import {
   Search,
@@ -114,8 +115,9 @@ import {
 } from "@/lib/employment-bond";
 import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
 import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
-import { allProjects } from "@/lib/dh-store";
+import { allProjects, allClients } from "@/lib/dh-store";
 import { Modal } from "@/routes/projects.index";
+import { EmployeeFormModal } from "@/components/employee-form-modal";
 
 export const Route = createFileRoute("/dh-employee-directory/")({
   validateSearch: (search: Record<string, unknown>): { tab?: "directory" | "pool" } => ({
@@ -184,7 +186,7 @@ const POOL_COLUMNS: { label: string; key: PoolSortKey | null; className?: string
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Employee Name", key: "name", className: "w-56 min-w-[190px]" },
   { label: "Reporting Manager", key: "reportingManager", className: "w-48 min-w-[170px]" },
-  { label: "Allocation Status", key: "allocationStatus", className: "w-48 min-w-[170px]" },
+  { label: "Allocation Status", key: null, className: "w-48 min-w-[170px]" },
   { label: "Allocation Type", key: null, className: "w-44 min-w-[150px]" },
   { label: "Allocation Duration", key: null, className: "w-48 min-w-[170px]" },
   { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
@@ -192,7 +194,7 @@ const POOL_COLUMNS: { label: string; key: PoolSortKey | null; className?: string
 ];
 
 function sortBlank(value: string): string {
-  return !value || value === "—" ? "" : value;
+  return !value || value === "—" || value === "–" || value === "-" ? "" : value;
 }
 
 function compareEmployees(a: Employee, b: Employee, key: DirectorySortKey): number {
@@ -211,19 +213,23 @@ function compareEmployees(a: Employee, b: Employee, key: DirectorySortKey): numb
 }
 
 // ── Allocation Status type ──────────────────────────
-type AllocationStatus = "OnLeave" | "Trainee" | "Unassigned";
+type AllocationStatus = "Allocated" | "Bench" | "OnLeave" | "Trainee";
 
 function getAllocationStatus(e: Employee): AllocationStatus {
   if (e.status === "On Leave") return "OnLeave";
-  if (e.category?.includes("Intern") || e.designation.toLowerCase().includes("intern"))
+  if (e.category?.includes("Intern") || e.designation.toLowerCase().includes("intern") || e.id.startsWith("TKI"))
     return "Trainee";
-  return "Unassigned";
+  if (e.projectAllocated && e.projectAllocated !== "Internal / Bench" && e.projectAllocated !== "NA" && e.projectAllocated !== "-") {
+    return "Allocated";
+  }
+  return "Bench";
 }
 
 const ALLOCATION_STATUS_ORDER: Record<AllocationStatus, number> = {
-  OnLeave: 0,
-  Trainee: 1,
-  Unassigned: 2,
+  Allocated: 0,
+  Bench: 1,
+  Trainee: 2,
+  OnLeave: 3,
 };
 
 function comparePoolEmployees(a: Employee, b: Employee, key: PoolSortKey): number {
@@ -321,23 +327,25 @@ function SortableTh<T extends string>({
 }
 
 function dash(value?: string | null): string {
-  return value?.trim() && value !== "—" ? value : "—";
+  return value && value.trim() && value !== "—" && value !== "–" && value !== "-" ? value : "—";
 }
 
 const DIRECTORY_STATUSES: EmployeeStatus[] = ["Active", "Probation", "Notice Period"];
 
-// ── Allocation Status pill ───────────────────────────
+// ── Allocation Status pill ──────────────────────────
 function AllocationStatusBadge({ status }: { status: AllocationStatus }) {
   const map: Record<AllocationStatus, string> = {
-    OnLeave: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    Trainee: "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
-    Unassigned: "border-muted-foreground/30 bg-muted text-muted-foreground",
+    Allocated: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    Bench: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    OnLeave: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    Trainee: "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400",
   };
 
   const labels: Record<AllocationStatus, string> = {
+    Allocated: "Allocated",
+    Bench: "On Bench",
     OnLeave: "On Leave",
     Trainee: "Trainee",
-    Unassigned: "—",
   };
 
   return (
@@ -352,7 +360,7 @@ function AllocationStatusBadge({ status }: { status: AllocationStatus }) {
   );
 }
 
-// ── Status pill ────────────────────────────────────
+// -- Status pill --------------------------------------
 function EmpStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     Active: "border-success/30 bg-success/10 text-success",
@@ -373,7 +381,7 @@ function EmpStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Select helper ─────────────────────────────────
+// -- Select helper ------------------------------------
 function FilterSelect({
   value,
   onChange,
@@ -472,7 +480,7 @@ function ResourceTasksModal({
   );
 }
 
-// ── Request Allocation Modal ──────────────────────
+// -- Request Allocation Modal --------------------------
 function RequestAllocationModal({
   employee,
   colleagues,
@@ -687,7 +695,7 @@ function RequestAllocationModal({
                 value={comment}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Type @ to tag people from the directory…"
+                placeholder="Type @ to tag people from the directory..."
                 className="w-full rounded-md border border-input bg-card p-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring min-h-[100px] resize-none"
               />
             </label>
@@ -766,1815 +774,9 @@ function RequestAllocationModal({
   );
 }
 
-function FormField({
-  label,
-  type = "text",
-  placeholder = "",
-  value,
-  onChange,
-  onBlur,
-  error,
-  required,
-  className,
-  name,
-  maxLength,
-  min,
-  max,
-  prefix,
-  suffix,
-  inputMode,
-  disabled,
-  readOnly,
-}: {
-  label: string;
-  type?: string;
-  placeholder?: string;
-  value?: string;
-  onChange?: (value: string) => void;
-  onBlur?: () => void;
-  error?: string;
-  required?: boolean;
-  className?: string;
-  /** Logical field id only — never emitted as a browser autofill name. */
-  name?: string;
-  maxLength?: number;
-  min?: string;
-  max?: string;
-  prefix?: string;
-  suffix?: string;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-  disabled?: boolean;
-  readOnly?: boolean;
-}) {
-  const isLocked = disabled || readOnly;
-  const resolvedMaxLength =
-    type === "date" || type === "number" ? maxLength : (maxLength ?? FIELD_MAX.text);
-  // Chrome ignores autoComplete="off". new-password + readOnly-until-focus is the reliable pair.
-  const unlock = (el: HTMLInputElement) => {
-    el.removeAttribute("readonly");
-  };
-  return (
-    <label className={cn("block", className, disabled && "cursor-not-allowed opacity-60")}>
-      {label ? (
-        <span className={FORM_LABEL_CLS}>
-          {label}
-          {required ? <span className="text-destructive"> *</span> : null}
-        </span>
-      ) : null}
-      <div className="relative flex rounded-md">
-        {prefix ? (
-          <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
-            {prefix}
-          </span>
-        ) : null}
-        <input
-          id={name ? `onboard-${name}` : undefined}
-          type={type === "email" ? "text" : type}
-          placeholder={disabled ? "" : placeholder}
-          autoComplete={type === "date" ? "off" : "new-password"}
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          readOnly={readOnly || (type !== "date" && !disabled && !onChange)}
-          disabled={disabled}
-          data-lpignore="true"
-          data-1p-ignore="true"
-          data-bwignore="true"
-          data-form-type="other"
-          maxLength={resolvedMaxLength}
-          min={min}
-          max={max}
-          inputMode={inputMode === "email" ? "text" : inputMode}
-          className={cn(
-            FORM_CONTROL_CLS,
-            prefix && "rounded-l-none",
-            suffix && "pr-16",
-            type === "date" && "cursor-pointer",
-            error && "border-destructive focus-visible:ring-destructive",
-            disabled && "cursor-not-allowed bg-muted/60 text-muted-foreground select-none pointer-events-none",
-            readOnly && !disabled && "cursor-default bg-muted/40 text-foreground",
-          )}
-          {...(value !== undefined
-            ? {
-                value: disabled && !readOnly ? "" : value,
-                onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                  !isLocked && onChange?.(e.target.value),
-              }
-            : {})}
-          onFocus={(e) => {
-            if (!isLocked && type !== "date") unlock(e.currentTarget);
-          }}
-          onMouseDown={(e) => {
-            if (!isLocked && type !== "date") unlock(e.currentTarget);
-          }}
-          onClick={(e) => {
-            if (type === "date" && !disabled && typeof e.currentTarget.showPicker === "function") {
-              try { e.currentTarget.showPicker(); } catch {}
-            }
-          }}
-          onBlur={onBlur}
-          aria-label={label}
-          aria-invalid={Boolean(error)}
-          aria-required={required}
-          aria-disabled={disabled}
-        />
-        {suffix ? (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-            {suffix}
-          </span>
-        ) : null}
-      </div>
-      {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
-    </label>
-  );
-}
+// (Onboarding form extracted to shared @/components/employee-form-modal)
 
-function FormTextarea({
-  label,
-  placeholder = "",
-  value,
-  onChange,
-  onBlur,
-  error,
-  required,
-  className,
-  name,
-  maxLength = FIELD_MAX.text,
-  rows = 2,
-}: {
-  label: string;
-  placeholder?: string;
-  value?: string;
-  onChange?: (value: string) => void;
-  onBlur?: () => void;
-  error?: string;
-  required?: boolean;
-  className?: string;
-  name?: string;
-  maxLength?: number;
-  rows?: number;
-}) {
-  return (
-    <label className={cn("block", className)}>
-      <span className={FORM_LABEL_CLS}>
-        {label}
-        {required ? <span className="text-destructive"> *</span> : null}
-      </span>
-      <textarea
-        id={name ? `onboard-${name}` : undefined}
-        rows={rows}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        value={value ?? ""}
-        onChange={(e) => onChange?.(e.target.value)}
-        onBlur={onBlur}
-        aria-label={label}
-        aria-invalid={Boolean(error)}
-        aria-required={required}
-        className={cn(
-          FORM_CONTROL_CLS,
-          "h-auto min-h-[72px] py-2 leading-relaxed resize-y",
-          error && "border-destructive focus-visible:ring-destructive",
-        )}
-      />
-      {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
-    </label>
-  );
-}
-
-function FormSelect({
-  label,
-  options,
-  value,
-  onChange,
-  error,
-  required,
-  disabled,
-  placeholder = "Select…",
-  showSearch,
-}: {
-  label: string;
-  options: Array<string | { value: string; label: string; subLabel?: string }>;
-  value?: string;
-  onChange?: (value: string) => void;
-  error?: string;
-  required?: boolean;
-  disabled?: boolean;
-  placeholder?: string;
-  showSearch?: boolean;
-}) {
-  return (
-    <SearchableSelect
-      label={label}
-      options={options}
-      value={value}
-      onChange={onChange}
-      error={error}
-      required={required}
-      disabled={disabled}
-      placeholder={placeholder}
-      showSearch={showSearch}
-    />
-  );
-}
-
-function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-lg border border-border bg-card p-5">
-      <h3 className="mb-4 text-sm font-semibold text-foreground">{title}</h3>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{children}</div>
-    </section>
-  );
-}
-
-function UploadSlot({
-  label,
-  file,
-  files,
-  multiple,
-  required,
-  error,
-  onSelect,
-  onSelectMultiple,
-  onClear,
-  onRemoveFile,
-}: {
-  label: string;
-  file?: File | null;
-  files?: File[];
-  multiple?: boolean;
-  required?: boolean;
-  error?: string;
-  onSelect?: (file: File) => void;
-  onSelectMultiple?: (files: File[]) => void;
-  onClear: () => void;
-  onRemoveFile?: (index: number) => void;
-}) {
-  const inputId = `onboard-doc-${label.replace(/\s+/g, "-").toLowerCase()}`;
-  const fileList = multiple ? files ?? [] : file ? [file] : [];
-  const hasFiles = fileList.length > 0;
-
-  return (
-    <div className="flex flex-col space-y-1">
-      <input
-        id={inputId}
-        type="file"
-        multiple={multiple}
-        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-        className="sr-only"
-        onChange={(e) => {
-          const selected = Array.from(e.target.files ?? []);
-          if (selected.length > 0) {
-            if (multiple && onSelectMultiple) {
-              onSelectMultiple(selected);
-            } else if (onSelect && selected[0]) {
-              onSelect(selected[0]);
-            }
-          }
-          e.target.value = "";
-        }}
-      />
-      <div
-        className={cn(
-          "relative flex h-[144px] w-full flex-col items-center justify-between rounded-lg border-2 p-2.5 text-center transition-all",
-          hasFiles
-            ? error
-              ? "border-destructive bg-destructive/5"
-              : "border-primary/40 bg-primary/5 shadow-xs"
-            : error
-              ? "border-destructive/60 bg-destructive/5 hover:bg-destructive/10"
-              : "border-dashed border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40",
-        )}
-      >
-        {hasFiles ? (
-          <>
-            <div className="flex w-full flex-1 flex-col items-center justify-center min-h-0 overflow-hidden">
-              <div className="flex items-center gap-1.5 text-primary mb-1 shrink-0">
-                <FileText className="h-4 w-4" />
-                {multiple && fileList.length > 1 ? (
-                  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                    {fileList.length} files
-                  </span>
-                ) : null}
-              </div>
-
-              {multiple && fileList.length > 1 ? (
-                <div className="w-full max-h-[55px] overflow-y-auto space-y-1 px-0.5 my-0.5 text-left text-[11px]">
-                  {fileList.map((f, idx) => (
-                    <div
-                      key={`${f.name}-${idx}`}
-                      className="flex items-center justify-between gap-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] border border-border/60"
-                    >
-                      <span className="truncate flex-1 font-medium text-foreground" title={f.name}>
-                        {f.name}
-                      </span>
-                      {onRemoveFile && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveFile(idx);
-                          }}
-                          className="shrink-0 text-muted-foreground hover:text-destructive p-0.5"
-                          title="Remove file"
-                        >
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="w-full px-1">
-                  <div
-                    className="max-w-full truncate text-xs font-semibold text-foreground"
-                    title={fileList[0].name}
-                  >
-                    {fileList[0].name}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">
-                    {formatBytes(fileList[0].size)}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-1 flex shrink-0 items-center justify-center gap-2 pt-1 border-t border-border/40 w-full text-[11px]">
-              <label
-                htmlFor={inputId}
-                className="cursor-pointer font-medium text-primary hover:underline"
-              >
-                {multiple ? "+ Add More" : "Replace"}
-              </label>
-              <span className="text-muted-foreground/40">·</span>
-              <button
-                type="button"
-                onClick={onClear}
-                className="font-medium text-muted-foreground hover:text-destructive"
-              >
-                {multiple && fileList.length > 1 ? "Clear All" : "Remove"}
-              </button>
-            </div>
-          </>
-        ) : (
-          <label
-            htmlFor={inputId}
-            className="flex h-full w-full cursor-pointer flex-col items-center justify-center"
-          >
-            <Plus className="mb-1.5 h-4 w-4 text-muted-foreground" />
-            <div className="text-xs font-medium text-foreground line-clamp-1 leading-tight" title={label}>
-              {label}
-              {required ? <span className="text-destructive font-bold"> *</span> : null}
-            </div>
-            {multiple ? (
-              <span className="mt-1 inline-block rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
-                Multi-file
-              </span>
-            ) : (
-              <div className="text-[10px] text-muted-foreground mt-0.5">PDF, JPG · ≤ 5 MB</div>
-            )}
-          </label>
-        )}
-      </div>
-      {error ? <p className="text-[10px] text-destructive leading-tight px-0.5">{error}</p> : null}
-    </div>
-  );
-}
-
-
-const CURRENT_YEAR = new Date().getFullYear();
-const PASSING_YEAR_OPTIONS = Array.from({ length: 55 }, (_, i) => String(CURRENT_YEAR - i));
-
-function CertificationMultiSelect({
-  label,
-  certOptions,
-  value,
-  onChange,
-  onCreate,
-}: {
-  label: string;
-  certOptions: ApiMetaOption[];
-  value: string;
-  onChange: (newValue: string) => void;
-  onCreate: (name: string) => Promise<ApiMetaOption>;
-}) {
-  const selectedList = useMemo(() => csvToList(value), [value]);
-
-  const addCert = (certName: string) => {
-    if (!certName) return;
-    if (selectedList.some((c) => c.toLowerCase() === certName.toLowerCase())) return;
-    const nextList = [...selectedList, certName];
-    onChange(nextList.join(", "));
-  };
-
-  const removeCert = (certName: string) => {
-    const nextList = selectedList.filter((c) => c.toLowerCase() !== certName.toLowerCase());
-    onChange(nextList.join(", "));
-  };
-
-  const catalogSelectOptions = useMemo(() => {
-    return certOptions
-      .filter((opt) => !selectedList.some((s) => s.toLowerCase() === opt.name.toLowerCase()))
-      .map((opt) => ({ id: opt.id, code: opt.code, name: opt.name }));
-  }, [certOptions, selectedList]);
-
-  return (
-    <div className="space-y-2">
-      <span className={FORM_LABEL_CLS}>{label}</span>
-      {selectedList.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 p-2.5 rounded-lg border border-border bg-muted/30 mb-2">
-          {selectedList.map((cert) => (
-            <span
-              key={cert}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 shadow-2xs"
-            >
-              {cert}
-              <button
-                type="button"
-                onClick={() => removeCert(cert)}
-                className="hover:text-destructive text-primary/70 transition-colors ml-0.5"
-                title="Remove certification"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-      <CreatableCatalogSelect
-        label=""
-        options={catalogSelectOptions}
-        valueId=""
-        placeholder="Search or add certification (e.g. CEH, OSCP, CISSP, ISO 27001)…"
-        onSelect={(_, name) => {
-          if (name) addCert(name);
-        }}
-        onCreate={async (name) => {
-          const created = await onCreate(name);
-          addCert(created.name);
-          return created;
-        }}
-      />
-    </div>
-  );
-}
-
-// ── Onboarding slide-over panel ───────────────────
-function OnboardingPanel({
-  open,
-  onClose,
-  onCreated,
-  existingCodes,
-  managers,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onCreated: () => void;
-  existingCodes: string[];
-  managers: { id: string; name: string }[];
-}) {
-  const [form, setForm] = useState<OnboardValues>(EMPTY_ONBOARD);
-  const [errors, setErrors] = useState<OnboardErrors>({});
-  const [docs, setDocs] = useState<OnboardDocs>(EMPTY_DOCS);
-  const [docErrors, setDocErrors] = useState<OnboardDocErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [nationalities, setNationalities] = useState<ApiMetaOption[]>([]);
-  const [deptOptions, setDeptOptions] = useState<ApiMetaOption[]>([]);
-  const [desigOptions, setDesigOptions] = useState<ApiMetaOption[]>([]);
-  const [roleOptions, setRoleOptions] = useState<ApiMetaOption[]>([]);
-  const [employeeStatusOptions, setEmployeeStatusOptions] = useState<ApiMetaOption[]>([]);
-  const [emailDomainOptions, setEmailDomainOptions] = useState<ApiMetaOption[]>([]);
-  const [managerOptions, setManagerOptions] = useState<ApiMetaOption[]>([]);
-  const [buOptions, setBuOptions] = useState<ApiMetaOption[]>([]);
-  const [workLocOptions, setWorkLocOptions] = useState<ApiMetaOption[]>([]);
-  const [officeOptions, setOfficeOptions] = useState<ApiMetaOption[]>([]);
-  const [gradDegreeOptions, setGradDegreeOptions] = useState<ApiMetaOption[]>([]);
-  const [postGradDegreeOptions, setPostGradDegreeOptions] = useState<ApiMetaOption[]>([]);
-  const [certOptions, setCertOptions] = useState<ApiMetaOption[]>([]);
-  const [workEmailPrefix, setWorkEmailPrefix] = useState("");
-  const [workEmailDomain, setWorkEmailDomain] = useState("");
-  const [tkPrefix, setTkPrefix] = useState<TkIdPrefix>("TK");
-  const formRef = useRef<OnboardValues>(EMPTY_ONBOARD);
-  useEffect(() => {
-    formRef.current = form;
-  }, [form]);
-
-  const projectAllocatedOptions = useMemo(() => {
-    try {
-      const list = allProjects().map((p) => ({
-        value: p.name,
-        label: p.projectCode ? `${p.name} (${p.projectCode})` : p.name,
-      }));
-      return [{ value: "Internal / Bench", label: "Internal / Bench" }, ...list];
-    } catch {
-      return [{ value: "Internal / Bench", label: "Internal / Bench" }];
-    }
-  }, []);
-
-  const pmoSubDeptOptions = useMemo(() => {
-    if (!form.pmoDepartment) return [];
-    return PMO_DEPARTMENT_SUB_DEPARTMENTS[form.pmoDepartment] ?? [];
-  }, [form.pmoDepartment]);
-
-  useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      setForm(EMPTY_ONBOARD);
-      setErrors({});
-      setDocs(EMPTY_DOCS);
-      setDocErrors({});
-      setIsSubmitting(false);
-      setNationalities([]);
-      setDeptOptions([]);
-      setDesigOptions([]);
-      setRoleOptions([]);
-      setEmployeeStatusOptions([]);
-      setEmailDomainOptions([]);
-      setManagerOptions([]);
-      setBuOptions([]);
-      setWorkLocOptions([]);
-      setOfficeOptions([]);
-      setGradDegreeOptions([]);
-      setPostGradDegreeOptions([]);
-      setCertOptions([]);
-      setWorkEmailPrefix("");
-      setWorkEmailDomain("");
-      setTkPrefix("TK");
-      return;
-    }
-    void fetchNationalityOptions()
-      .then(setNationalities)
-      .catch(() => toast.error("Could not load nationalities"));
-    void fetchDepartmentOptions()
-      .then(setDeptOptions)
-      .catch(() => toast.error("Could not load departments"));
-    void fetchEmployeeStatusOptions(true)
-      .then((rows) => {
-        const list = rows ?? [];
-        setEmployeeStatusOptions(list);
-        if (list.length > 0) {
-          setForm((prev) => ({
-            ...prev,
-            employeeStatusId: prev.employeeStatusId || list[0].id,
-          }));
-        }
-      })
-      .catch(() => toast.error("Could not load employee statuses"));
-    void fetchBusinessUnitOptions()
-      .then((bus) => {
-        const list = bus ?? [];
-        setBuOptions(list);
-        if (list.length > 0) {
-          setForm((prev) => ({
-            ...prev,
-            businessUnit: prev.businessUnit || list[0].name,
-          }));
-        }
-      })
-      .catch(() => toast.error("Could not load business units"));
-    void fetchWorkLocationOptions()
-      .then((locs) => setWorkLocOptions(locs ?? []))
-      .catch(() => toast.error("Could not load work locations"));
-    void fetchOfficeOptions()
-      .then((offs) => setOfficeOptions(offs ?? []))
-      .catch(() => toast.error("Could not load offices"));
-    void fetchGraduationDegreeOptions()
-      .then((degs) => setGradDegreeOptions(degs ?? []))
-      .catch(() => toast.error("Could not load graduation degrees"));
-    void fetchPostGraduationDegreeOptions()
-      .then((degs) => setPostGradDegreeOptions(degs ?? []))
-      .catch(() => toast.error("Could not load post graduation degrees"));
-    void fetchCertificationOptions()
-      .then((certs) => setCertOptions(certs ?? []))
-      .catch(() => toast.error("Could not load certifications"));
-    void fetchReportingManagerOptions()
-      .then((mgrs) => setManagerOptions(mgrs ?? []))
-      .catch(() => toast.error("Could not load reporting managers"));
-    void fetchEmailDomainOptions()
-      .then((domains) => {
-        const filtered = (domains ?? []).filter((d) =>
-          isAllowedWorkEmailDomain(d.code.replace(/^@/, ""))
-        );
-        const list = filtered.length > 0 ? filtered : ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS;
-        setEmailDomainOptions(list);
-        if (list.length > 0) {
-          const firstDomain = list[0].code.replace(/^@/, "");
-          setWorkEmailDomain(firstDomain);
-        }
-      })
-      .catch(() => {
-        setEmailDomainOptions(ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS);
-        setWorkEmailDomain("talakunchi.com");
-      });
-  }, [open, managers]);
-
-  useEffect(() => {
-    if (!open || !form.departmentId) {
-      setDesigOptions([]);
-      return;
-    }
-    void fetchDesignationOptions(form.departmentId)
-      .then(setDesigOptions)
-      .catch(() => setDesigOptions([]));
-  }, [open, form.departmentId]);
-
-  useEffect(() => {
-    if (!open || !form.designationId) {
-      setRoleOptions([]);
-      return;
-    }
-    let cancelled = false;
-    void fetchJobRoleOptions(form.designationId)
-      .then((roles) => {
-        if (cancelled) return;
-        const list = roles ?? [];
-        setRoleOptions(list);
-        setForm((prev) => {
-          if (prev.designationId !== form.designationId) return prev;
-          const stillValid = list.some((r) => r.id === prev.jobRoleId);
-          if (stillValid) return prev;
-          return { ...prev, jobRoleId: list[0]?.id ?? "" };
-        });
-      })
-      .catch(() => {
-        if (!cancelled) setRoleOptions([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, form.designationId]);
-
-  const selectedWorkLoc = useMemo(() => {
-    if (!form.workLocation) return undefined;
-    const target = form.workLocation.trim().toLowerCase();
-    return workLocOptions.find(
-      (l) =>
-        l.name.toLowerCase() === target ||
-        l.id.toLowerCase() === target ||
-        (l.code && l.code.toLowerCase() === target),
-    );
-  }, [workLocOptions, form.workLocation]);
-
-  const availableOffices = useMemo(() => {
-    if (!selectedWorkLoc) return [];
-    return officeOptions.filter((o) => o.parentId === selectedWorkLoc.id);
-  }, [officeOptions, selectedWorkLoc]);
-
-  const bondExpiryDisplay = useMemo(
-    () => formatBondExpiryDisplay(form.joiningDate, form.bondDelivered, form.bondDurationMonths),
-    [form.joiningDate, form.bondDelivered, form.bondDurationMonths],
-  );
-
-  const bondStatusDisplay = useMemo(
-    () => computeBondStatus(form.bondDelivered, form.joiningDate, form.bondDurationMonths),
-    [form.bondDelivered, form.joiningDate, form.bondDurationMonths],
-  );
-
-  if (!open) return null;
-
-  const setField = (field: OnboardField, value: string) => {
-    const nextValue =
-      field === "phone" || field === "altPhone" || field === "emergencyContact"
-        ? toTenDigitPhone(value)
-        : field === "firstName" || field === "lastName" || field === "emergencyContactName"
-          ? toLettersName(value)
-          : field === "workEmail"
-            ? toEmailInput(value)
-            : field === "bondDurationMonths"
-              ? toDigits(value, 3)
-              : field === "priorTotalExpYears" ||
-                field === "priorTotalExpMonths" ||
-                field === "priorRelevantExpYears" ||
-                field === "priorRelevantExpMonths"
-                ? toDigits(value, 2)
-                : field === "priorTotalExp" || field === "priorRelevantExp"
-                  ? toDecimalNumberInput(value)
-                  : value;
-
-    const updatedForm = { ...formRef.current, [field]: nextValue };
-    if (field === "departmentId") {
-      updatedForm.designationId = "";
-      updatedForm.jobRoleId = "";
-    }
-    if (field === "designationId") updatedForm.jobRoleId = "";
-    if (field === "bondDelivered" && nextValue === "No") {
-      updatedForm.bondDurationMonths = "0";
-    }
-
-    if (
-      field === "priorTotalExpYears" ||
-      field === "priorTotalExpMonths" ||
-      field === "priorRelevantExpYears" ||
-      field === "priorRelevantExpMonths"
-    ) {
-      const totY = field === "priorTotalExpYears" ? nextValue : updatedForm.priorTotalExpYears;
-      const totM = field === "priorTotalExpMonths" ? nextValue : updatedForm.priorTotalExpMonths;
-      const relY = field === "priorRelevantExpYears" ? nextValue : updatedForm.priorRelevantExpYears;
-      const relM = field === "priorRelevantExpMonths" ? nextValue : updatedForm.priorRelevantExpMonths;
-
-      updatedForm.priorTotalExp = formatExpDisplay(totY, totM);
-      updatedForm.priorRelevantExp = formatExpDisplay(relY, relM);
-    }
-
-    formRef.current = updatedForm;
-    setForm(updatedForm);
-
-    setErrors((prev) => {
-      const nextErrors = { ...prev };
-
-      // 1. Validate target field live using updatedForm
-      const message = validateOnboardField(field, updatedForm, existingCodes);
-      if (message) nextErrors[field] = message;
-      else delete nextErrors[field];
-
-      // 2. Cross-field validation for graduation degree & passing year
-      if (field === "gradYear" || field === "gradDegree") {
-        const gradDegMsg = validateOnboardField("gradDegree", updatedForm, existingCodes);
-        if (gradDegMsg) nextErrors.gradDegree = gradDegMsg;
-        else delete nextErrors.gradDegree;
-
-        const gradYrMsg = validateOnboardField("gradYear", updatedForm, existingCodes);
-        if (gradYrMsg) nextErrors.gradYear = gradYrMsg;
-        else delete nextErrors.gradYear;
-      }
-
-      // 3. Cross-field validation for post-graduation degree & passing year
-      if (field === "gradYear" || field === "postGradDegree" || field === "postGradYear") {
-        const postGradDegMsg = validateOnboardField("postGradDegree", updatedForm, existingCodes);
-        if (postGradDegMsg) nextErrors.postGradDegree = postGradDegMsg;
-        else delete nextErrors.postGradDegree;
-
-        const postGradMsg = validateOnboardField("postGradYear", updatedForm, existingCodes);
-        if (postGradMsg) nextErrors.postGradYear = postGradMsg;
-        else delete nextErrors.postGradYear;
-      }
-
-      // 4. Cross-field validation for total vs relevant experience (years and months)
-      if (
-        field === "priorTotalExp" ||
-        field === "priorTotalExpYears" ||
-        field === "priorTotalExpMonths" ||
-        field === "priorRelevantExp" ||
-        field === "priorRelevantExpYears" ||
-        field === "priorRelevantExpMonths"
-      ) {
-        const totMonthsMsg = validateOnboardField("priorTotalExpMonths", updatedForm, existingCodes);
-        if (totMonthsMsg) nextErrors.priorTotalExpMonths = totMonthsMsg;
-        else delete nextErrors.priorTotalExpMonths;
-
-        const relMonthsMsg = validateOnboardField("priorRelevantExpMonths", updatedForm, existingCodes);
-        if (relMonthsMsg) nextErrors.priorRelevantExpMonths = relMonthsMsg;
-        else delete nextErrors.priorRelevantExpMonths;
-
-        const relMsg = validateOnboardField("priorRelevantExpYears", updatedForm, existingCodes);
-        if (relMsg) nextErrors.priorRelevantExp = relMsg;
-        else delete nextErrors.priorRelevantExp;
-      }
-
-      return nextErrors;
-    });
-  };
-
-  const blurField = (field: OnboardField) => {
-    const currentForm = formRef.current;
-    if (field === "workEmail") {
-      const trimmed = currentForm[field].trim();
-      if (trimmed !== currentForm[field]) {
-        setField(field, trimmed);
-        return;
-      }
-    }
-    const message = validateOnboardField(field, currentForm, existingCodes);
-    setErrors((prev) => {
-      const nextErrors = { ...prev };
-      if (message) nextErrors[field] = message;
-      else delete nextErrors[field];
-
-      if (field === "gradYear" || field === "gradDegree") {
-        const gradDegMsg = validateOnboardField("gradDegree", currentForm, existingCodes);
-        if (gradDegMsg) nextErrors.gradDegree = gradDegMsg;
-        else delete nextErrors.gradDegree;
-
-        const gradYrMsg = validateOnboardField("gradYear", currentForm, existingCodes);
-        if (gradYrMsg) nextErrors.gradYear = gradYrMsg;
-        else delete nextErrors.gradYear;
-      }
-
-      if (field === "gradYear" || field === "postGradDegree" || field === "postGradYear") {
-        const postGradDegMsg = validateOnboardField("postGradDegree", currentForm, existingCodes);
-        if (postGradDegMsg) nextErrors.postGradDegree = postGradDegMsg;
-        else delete nextErrors.postGradDegree;
-
-        const postGradMsg = validateOnboardField("postGradYear", currentForm, existingCodes);
-        if (postGradMsg) nextErrors.postGradYear = postGradMsg;
-        else delete nextErrors.postGradYear;
-      }
-
-      if (
-        field === "priorTotalExp" ||
-        field === "priorTotalExpYears" ||
-        field === "priorTotalExpMonths" ||
-        field === "priorRelevantExp" ||
-        field === "priorRelevantExpYears" ||
-        field === "priorRelevantExpMonths"
-      ) {
-        const totMonthsMsg = validateOnboardField("priorTotalExpMonths", currentForm, existingCodes);
-        if (totMonthsMsg) nextErrors.priorTotalExpMonths = totMonthsMsg;
-        else delete nextErrors.priorTotalExpMonths;
-
-        const relMonthsMsg = validateOnboardField("priorRelevantExpMonths", currentForm, existingCodes);
-        if (relMonthsMsg) nextErrors.priorRelevantExpMonths = relMonthsMsg;
-        else delete nextErrors.priorRelevantExpMonths;
-
-        const relMsg = validateOnboardField("priorRelevantExpYears", currentForm, existingCodes);
-        if (relMsg) nextErrors.priorRelevantExp = relMsg;
-        else delete nextErrors.priorRelevantExp;
-      }
-
-      return nextErrors;
-    });
-  };
-
-  const handleDocSelect = (slot: (typeof ONBOARD_DOC_SLOTS)[number], file: File) => {
-    const message = validateOnboardFile(file);
-    setDocErrors((prev) => {
-      const next = { ...prev };
-      if (message) next[slot] = message;
-      else delete next[slot];
-      return next;
-    });
-    if (message) {
-      toast.error(message);
-      return;
-    }
-    setDocs((prev) => ({ ...prev, [slot]: file }));
-  };
-
-  const handleDocSelectMultiple = (
-    slot: (typeof ONBOARD_DOC_SLOTS)[number],
-    incomingFiles: File[],
-  ) => {
-    for (const file of incomingFiles) {
-      const message = validateOnboardFile(file);
-      if (message) {
-        setDocErrors((prev) => ({ ...prev, [slot]: message }));
-        toast.error(message);
-        return;
-      }
-    }
-    setDocErrors((prev) => {
-      const next = { ...prev };
-      delete next[slot];
-      return next;
-    });
-    setDocs((prev) => {
-      const currentList = Array.isArray(prev[slot]) ? (prev[slot] as File[]) : [];
-      const combined = [...currentList];
-      for (const f of incomingFiles) {
-        if (!combined.some((x) => x.name === f.name && x.size === f.size)) {
-          combined.push(f);
-        }
-      }
-      return { ...prev, [slot]: combined };
-    });
-  };
-
-  const handleRemoveSingleDocFile = (
-    slot: (typeof ONBOARD_DOC_SLOTS)[number],
-    fileIndex: number,
-  ) => {
-    setDocs((prev) => {
-      const currentList = Array.isArray(prev[slot]) ? (prev[slot] as File[]) : [];
-      const updated = currentList.filter((_, idx) => idx !== fileIndex);
-      return { ...prev, [slot]: updated };
-    });
-  };
-
-  const handleCreate = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const nextErrors = validateOnboardForm(form, existingCodes);
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      toast.error("Please complete all mandatory fields");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      let resolvedDepartmentId = form.departmentId || null;
-      if (resolvedDepartmentId && resolvedDepartmentId.startsWith("__new__")) {
-        const rawName = resolvedDepartmentId.replace(/^__new__/, "");
-        const createdDept = await createDepartmentOption(rawName);
-        resolvedDepartmentId = createdDept.id;
-        setDeptOptions((prev) =>
-          prev.map((d) => (d.id === form.departmentId ? createdDept : d)),
-        );
-      }
-
-      let resolvedDesignationId = form.designationId || null;
-      if (resolvedDesignationId && resolvedDesignationId.startsWith("__new__")) {
-        const rawName = resolvedDesignationId.replace(/^__new__/, "");
-        if (!resolvedDepartmentId) {
-          toast.error("Department is required for the new designation");
-          setIsSubmitting(false);
-          return;
-        }
-        const createdDesig = await createDesignationOption(rawName, resolvedDepartmentId);
-        resolvedDesignationId = createdDesig.id;
-        setDesigOptions((prev) =>
-          prev.map((d) => (d.id === form.designationId ? createdDesig : d)),
-        );
-      }
-
-      let resolvedJobRoleId = form.jobRoleId || null;
-      let resolvedRoleName = roleOptions.find((r) => r.id === form.jobRoleId)?.name ?? null;
-      if (resolvedJobRoleId && resolvedJobRoleId.startsWith("__new__")) {
-        const rawName = resolvedJobRoleId.replace(/^__new__/, "");
-        if (!resolvedDesignationId) {
-          toast.error("Designation is required for the new role");
-          setIsSubmitting(false);
-          return;
-        }
-        const createdRole = await createJobRoleOption(rawName, resolvedDesignationId);
-        resolvedJobRoleId = createdRole.id;
-        resolvedRoleName = createdRole.name;
-        setRoleOptions((prev) =>
-          prev.map((r) => (r.id === form.jobRoleId ? createdRole : r)),
-        );
-      }
-
-      let resolvedReportingManagerId = form.reportingManagerId.trim() || null;
-      if (resolvedReportingManagerId && resolvedReportingManagerId.startsWith("__new__")) {
-        const rawName = resolvedReportingManagerId.replace(/^__new__/, "");
-        const createdMgr = await createReportingManagerOption(rawName);
-        resolvedReportingManagerId = createdMgr.id;
-        setManagerOptions((prev) =>
-          prev.map((m) => (m.id === form.reportingManagerId ? createdMgr : m)),
-        );
-      }
-
-      let resolvedBusinessUnit = form.businessUnit.trim() || null;
-      if (resolvedBusinessUnit && resolvedBusinessUnit.startsWith("__new__")) {
-        const rawName = resolvedBusinessUnit.replace(/^__new__/, "");
-        const createdBu = await createBusinessUnitOption(rawName);
-        resolvedBusinessUnit = createdBu.name;
-        setBuOptions((prev) =>
-          prev.map((b) => (b.id === form.businessUnit ? createdBu : b)),
-        );
-      }
-
-      let resolvedWorkLocation = form.workLocation.trim() || null;
-      let resolvedWorkLocId: string | undefined = selectedWorkLoc?.id;
-      if (resolvedWorkLocation && resolvedWorkLocation.startsWith("__new__")) {
-        const rawName = resolvedWorkLocation.replace(/^__new__/, "");
-        const createdLoc = await createWorkLocationOption(rawName);
-        resolvedWorkLocation = createdLoc.name;
-        resolvedWorkLocId = createdLoc.id;
-        setWorkLocOptions((prev) =>
-          prev.map((w) => (w.id === form.workLocation ? createdLoc : w)),
-        );
-      }
-
-      let resolvedOffice = form.officeBranch.trim() || null;
-      if (resolvedOffice && resolvedOffice.startsWith("__new__")) {
-        const rawName = resolvedOffice.replace(/^__new__/, "");
-        const createdOff = await createOfficeOption(rawName, resolvedWorkLocId);
-        resolvedOffice = createdOff.name;
-        setOfficeOptions((prev) =>
-          prev.map((o) => (o.id === form.officeBranch ? createdOff : o)),
-        );
-      }
-
-      const employeeStatusName =
-        employeeStatusOptions.find((s) => s.id === form.employeeStatusId)?.name ?? "Active";
-      const bondDelivered = form.bondDelivered.trim() || "No";
-      const bondDurationMonths =
-        bondDelivered === "Yes" ? Number(form.bondDurationMonths || "0") : 0;
-      const bondExpiryIso =
-        bondDelivered === "Yes"
-          ? formatBondExpiryDisplay(form.joiningDate, bondDelivered, form.bondDurationMonths)
-          : null;
-      const bondExpiryDate =
-        bondExpiryIso && bondExpiryIso !== "No" && bondExpiryIso !== "—" ? bondExpiryIso : null;
-      const bondStatus = computeBondStatus(
-        bondDelivered,
-        form.joiningDate,
-        form.bondDurationMonths,
-      );
-      const empCode = form.employeeCode.trim();
-
-      await createEmployee({
-        employeeCode: empCode,
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        workEmail: form.workEmail.trim(),
-        personalEmail: null,
-        phone: blankToNull(form.phone),
-        altPhone: blankToNull(form.altPhone),
-        gender: null,
-        dateOfBirth: null,
-        address: blankToNull(form.address),
-        emergencyContact: blankToNull(form.emergencyContact),
-        emergencyContactName: blankToNull(form.emergencyContactName),
-        emergencyContactRelation: blankToNull(form.emergencyContactRelation),
-        maritalStatus: null,
-        nationality: null,
-        nationalityId: null,
-        departmentId: resolvedDepartmentId,
-        designationId: resolvedDesignationId,
-        jobRoleId: resolvedJobRoleId,
-        role: resolvedRoleName,
-        reportingManagerId: resolvedReportingManagerId,
-        businessUnit: resolvedBusinessUnit,
-        workLocation: resolvedWorkLocation,
-        officeBranch: null,
-        category: null,
-        team: null,
-        joiningDate: blankToNull(form.joiningDate),
-        status: "Active",
-        employeeStatusId: form.employeeStatusId || null,
-        confirmationStatus: employeeStatusName,
-        probationStatus: null,
-        probationPeriod: null,
-        experience: form.expType === "Fresher"
-          ? "Fresher"
-          : `${formatExpDisplay(form.priorTotalExpYears, form.priorTotalExpMonths) || form.priorTotalExp || "0"} (Relevant: ${formatExpDisplay(form.priorRelevantExpYears, form.priorRelevantExpMonths) || form.priorRelevantExp || "0"})`,
-        previousCompany: blankToNull(form.previousCompany),
-        employmentType: blankToNull(form.workerType),
-        contractType: null,
-        bondDelivered,
-        bondDurationMonths,
-        bondExpiryDate,
-        bondStatus,
-        noticePeriod: null,
-        projectSite: resolvedWorkLocation === "Onsite" ? blankToNull(form.projectSite) : null,
-        assetId: blankToNull(form.assetId),
-        exitType: form.exitType.trim() || "NA",
-        exitReason: blankToNull(form.exitReason) ?? "NA",
-        education: form.gradDegree
-          ? `${form.gradDegree}${form.gradYear ? " (" + form.gradYear + ")" : ""}${
-              form.postGradDegree && form.postGradDegree !== "NA"
-                ? ", " + form.postGradDegree + (form.postGradYear && form.postGradYear !== "NA" ? " (" + form.postGradYear + ")" : "")
-                : ""
-            }`
-          : blankToNull(form.education),
-        skills: [...csvToList(form.technicalSkills), ...csvToList(form.functionalSkills)],
-        certifications: csvToList(form.certifications),
-        languages: csvToList(form.languages),
-        pan: blankToNull(form.pan),
-        aadhaar: blankToNull(form.aadhaar),
-        bankAccount: blankToNull(form.bankAccount),
-        pfUan: blankToNull(form.pfUan),
-        salaryBandId: null,
-        salaryBand: null,
-        pmoDepartment: blankToNull(form.pmoDepartment),
-        subDepartment: blankToNull(form.subDepartment),
-        billableStatus: blankToNull(form.billableStatus),
-        clientLocation: blankToNull(form.clientLocation),
-        projectType: blankToNull(form.projectType),
-        projectAllocated: blankToNull(form.projectAllocated),
-        clientEngManagerMapping: blankToNull(form.clientEngManagerMapping),
-      });
-
-      // Upload attached documents to local backend storage
-      const uploadPromises: Promise<void>[] = [];
-      let totalFilesUploaded = 0;
-      for (const slot of ONBOARD_DOC_SLOTS) {
-        const docItem = docs[slot];
-        if (Array.isArray(docItem) && docItem.length > 0) {
-          totalFilesUploaded += docItem.length;
-          uploadPromises.push(uploadEmployeeDocuments(empCode, slot, docItem));
-        } else if (docItem && !Array.isArray(docItem)) {
-          totalFilesUploaded += 1;
-          uploadPromises.push(uploadEmployeeDocuments(empCode, slot, [docItem]));
-        }
-      }
-      if (uploadPromises.length > 0) {
-        await Promise.allSettled(uploadPromises);
-      }
-
-      onCreated();
-      toast.success(
-        totalFilesUploaded > 0
-          ? `Employee created with ${totalFilesUploaded} document${totalFilesUploaded === 1 ? "" : "s"} saved to storage`
-          : "Employee created successfully",
-      );
-      onClose();
-    } catch (error: any) {
-      toast.error(error?.message ?? "Failed to create employee");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative flex h-full w-full max-w-4xl flex-col bg-background shadow-2xl">
-        {/* header */}
-        <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
-          <div>
-            <h2 className="text-base font-semibold">Onboard New Employee</h2>
-            <p className="text-xs text-muted-foreground">
-              Fill in employee details to create their profile.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form
-          noValidate
-          autoComplete="off"
-          autoCorrect="off"
-          data-lpignore="true"
-          data-1p-ignore="true"
-          data-form-type="other"
-          onSubmit={handleCreate}
-          className="relative flex min-h-0 flex-1 flex-col"
-        >
-          {/* Decoy fields absorb Chrome autofill so real onboard inputs stay clean. */}
-          <div aria-hidden="true" className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0">
-            <input type="text" name="username" autoComplete="username" tabIndex={-1} defaultValue="" />
-            <input type="email" name="email" autoComplete="email" tabIndex={-1} defaultValue="" />
-            <input type="password" name="password" autoComplete="new-password" tabIndex={-1} defaultValue="" />
-          </div>
-          {/* scrollable body */}
-          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
-            <FormSection title="1. Personal Information">
-              <FormField
-                label="First Name"
-                name="firstName"
-                required
-                maxLength={FIELD_MAX.firstName}
-                placeholder="First name"
-                value={form.firstName}
-                onChange={(v) => setField("firstName", v)}
-                onBlur={() => blurField("firstName")}
-                error={errors.firstName}
-              />
-              <FormField
-                label="Last Name"
-                name="lastName"
-                required
-                maxLength={FIELD_MAX.lastName}
-                placeholder="Last name"
-                value={form.lastName}
-                onChange={(v) => setField("lastName", v)}
-                onBlur={() => blurField("lastName")}
-                error={errors.lastName}
-              />
-              <WorkEmailField
-                required
-                id="onboard-workEmail"
-                prefix={workEmailPrefix}
-                domain={workEmailDomain}
-                domainOptions={emailDomainOptions}
-                error={errors.workEmail}
-                prefixInputProps={{
-                  readOnly: true,
-                  autoComplete: "new-password",
-                  "data-lpignore": "true",
-                  "data-1p-ignore": "true",
-                  "data-bwignore": "true",
-                  "data-form-type": "other",
-                  onFocus: (e) => e.currentTarget.removeAttribute("readonly"),
-                  onMouseDown: (e) => e.currentTarget.removeAttribute("readonly"),
-                }}
-                onPrefixChange={(raw) => {
-                  const cleanPrefix = toEmailLocalPart(raw);
-                  setWorkEmailPrefix(cleanPrefix);
-                  const fullEmail = cleanPrefix ? `${cleanPrefix}@${workEmailDomain}` : "";
-                  setForm((prev) => ({ ...prev, workEmail: fullEmail }));
-                  setErrors((prev) => {
-                    const next = { ...prev };
-                    if (!cleanPrefix) next.workEmail = "Work email is required";
-                    else if (!isValidEmailLocalPart(cleanPrefix))
-                      next.workEmail = "Only alphanumeric and '.' allowed";
-                    else delete next.workEmail;
-                    return next;
-                  });
-                }}
-                onDomainChange={(newDomain) => {
-                  setWorkEmailDomain(newDomain);
-                  const fullEmail = workEmailPrefix ? `${workEmailPrefix}@${newDomain}` : "";
-                  setForm((prev) => ({ ...prev, workEmail: fullEmail }));
-                  if (workEmailPrefix && isValidEmailLocalPart(workEmailPrefix)) {
-                    setErrors((prev) => {
-                      const next = { ...prev };
-                      delete next.workEmail;
-                      return next;
-                    });
-                  }
-                }}
-                onPrefixBlur={() => {
-                  if (!workEmailPrefix) {
-                    setErrors((prev) => ({ ...prev, workEmail: "Work email is required" }));
-                  } else if (!isValidEmailLocalPart(workEmailPrefix)) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      workEmail: "Only alphanumeric and '.' allowed",
-                    }));
-                  }
-                }}
-              />
-              <FormField
-                label="Phone (Personal)"
-                name="phone"
-                required
-                inputMode="numeric"
-                maxLength={FIELD_MAX.phone}
-                placeholder="10-digit number"
-                prefix="+91"
-                value={form.phone}
-                onChange={(v) => setField("phone", v)}
-                onBlur={() => blurField("phone")}
-                error={errors.phone}
-              />
-              <FormField
-                label="Alternate Contact Number"
-                name="altPhone"
-                inputMode="numeric"
-                maxLength={FIELD_MAX.phone}
-                placeholder="10-digit number"
-                prefix="+91"
-                value={form.altPhone}
-                onChange={(v) => setField("altPhone", v)}
-                onBlur={() => blurField("altPhone")}
-                error={errors.altPhone}
-              />
-              <div>
-                <FormSelect
-                  label="Current Address - City"
-                  required
-                  error={errors.address}
-                  options={MUMBAI_RAILWAY_STATIONS}
-                  value={form.address}
-                  onChange={(v) => {
-                    setField("address", v);
-                  }}
-                  placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
-                  showSearch
-                />
-              </div>
-
-              {/* Emergency Contact Group Header / Divider */}
-              <div className="col-span-full pt-3 pb-1 border-t border-gray-200/70">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Emergency Contact Details
-                  </h4>
-                </div>
-              </div>
-
-              <FormField
-                label="Emergency Contact Name"
-                name="emergencyContactName"
-                required
-                maxLength={FIELD_MAX.emergencyContactName}
-                placeholder="Full name of emergency contact"
-                value={form.emergencyContactName}
-                onChange={(v) => setField("emergencyContactName", v)}
-                onBlur={() => blurField("emergencyContactName")}
-                error={errors.emergencyContactName}
-              />
-              <FormField
-                label="Emergency Contact Number"
-                name="emergencyContact"
-                required
-                inputMode="numeric"
-                maxLength={FIELD_MAX.phone}
-                placeholder="10-digit number"
-                prefix="+91"
-                value={form.emergencyContact}
-                onChange={(v) => setField("emergencyContact", v)}
-                onBlur={() => blurField("emergencyContact")}
-                error={errors.emergencyContact}
-              />
-              <FormSelect
-                label="Relation with Emergency Contact"
-                required
-                error={errors.emergencyContactRelation}
-                options={EMERGENCY_RELATION_OPTIONS}
-                value={form.emergencyContactRelation}
-                onChange={(v) => {
-                  setField("emergencyContactRelation", v);
-                }}
-                placeholder="Select relation…"
-              />
-            </FormSection>
-
-            <FormSection title="2. Organization Assignment">
-              <TkIdField
-                required
-                prefix={tkPrefix}
-                digits={splitTkId(form.employeeCode).digits}
-                onChange={(prefix, digits) => {
-                  setTkPrefix(prefix);
-                  setField("employeeCode", joinTkId(prefix, digits));
-                }}
-                onBlur={() => blurField("employeeCode")}
-                error={errors.employeeCode}
-              />
-              <CreatableCatalogSelect
-                label="Department"
-                required
-                error={errors.departmentId}
-                options={deptOptions}
-                valueId={form.departmentId}
-                onSelect={(id) => setField("departmentId", id)}
-                onCreate={(name) => {
-                  const trimmed = name.trim();
-                  const existing = deptOptions.find(
-                    (d) => d.name.toLowerCase() === trimmed.toLowerCase(),
-                  );
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setDeptOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
-              />
-              <CreatableCatalogSelect
-                label="Designation"
-                required
-                error={errors.designationId}
-                options={desigOptions}
-                valueId={form.designationId}
-                disabled={!form.departmentId}
-                disabledHint="Select a department first"
-                onSelect={(id) => setField("designationId", id)}
-                onCreate={(name) => {
-                  const trimmed = name.trim();
-                  const existing = desigOptions.find(
-                    (d) => d.name.toLowerCase() === trimmed.toLowerCase(),
-                  );
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setDesigOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
-              />
-              <CreatableCatalogSelect
-                label="On Floor Role"
-                options={roleOptions}
-                valueId={form.jobRoleId}
-                disabled={!form.designationId}
-                disabledHint="Select a designation first"
-                placeholder="Select on floor role"
-                onSelect={(id) => setField("jobRoleId", id)}
-                onCreate={(name) => {
-                  const trimmed = name.trim();
-                  const existing = roleOptions.find(
-                    (r) => r.name.toLowerCase() === trimmed.toLowerCase(),
-                  );
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setRoleOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
-              />
-              <div className="md:col-span-2 lg:col-span-2">
-                <CreatableCatalogSelect
-                  label="Business Unit"
-                  options={buOptions}
-                  valueId={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
-                  placeholder="Select business unit"
-                  onSelect={(id, name) => setField("businessUnit", name || id)}
-                  onCreate={(name) => {
-                    const trimmed = name.trim();
-                    const existing = buOptions.find((b) => b.name.toLowerCase() === trimmed.toLowerCase());
-                    if (existing) return existing;
-                    const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                    setBuOptions((prev) => [...prev, temp]);
-                    return temp;
-                  }}
-                />
-              </div>
-              <CreatableCatalogSelect
-                label="Reporting Manager"
-                required
-                error={errors.reportingManagerId}
-                options={managerOptions}
-                valueId={form.reportingManagerId}
-                placeholder="Select reporting manager"
-                onSelect={(id) => setField("reportingManagerId", id)}
-                onCreate={(name) => {
-                  const trimmed = name.trim();
-                  const existing = managerOptions.find(
-                    (m) => m.name.toLowerCase() === trimmed.toLowerCase(),
-                  );
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setManagerOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
-              />
-              <CreatableCatalogSelect
-                label="Work Location"
-                required
-                error={errors.workLocation}
-                options={workLocOptions}
-                valueId={selectedWorkLoc?.id ?? form.workLocation}
-                placeholder="Select work location"
-                onSelect={(id, name) => {
-                  const resolvedName = name || id;
-                  const loc = workLocOptions.find(
-                    (l) =>
-                      l.id === id ||
-                      l.name.toLowerCase() === resolvedName.toLowerCase() ||
-                      (l.code && l.code.toLowerCase() === resolvedName.toLowerCase()),
-                  );
-                  const selectedName = loc ? loc.name : resolvedName;
-                  setForm((prev) => ({
-                    ...prev,
-                    workLocation: selectedName,
-                    projectSite: selectedName === "Onsite" ? prev.projectSite : "",
-                  }));
-                }}
-                onCreate={async (name) => {
-                  const trimmed = name.trim();
-                  const existing = workLocOptions.find((w) => w.name.toLowerCase() === trimmed.toLowerCase());
-                  if (existing) return existing;
-                  try {
-                    const created = await createWorkLocationOption(trimmed);
-                    setWorkLocOptions((prev) => [...prev, created]);
-                    return created;
-                  } catch {
-                    const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                    setWorkLocOptions((prev) => [...prev, temp]);
-                    return temp;
-                  }
-                }}
-              />
-              <FormField
-                label="Location"
-                disabled={form.workLocation !== "Onsite"}
-                placeholder="Enter onsite location"
-                maxLength={FIELD_MAX.projectSite}
-                value={form.workLocation === "Onsite" ? form.projectSite : ""}
-                onChange={(v) => setField("projectSite", v)}
-              />
-            </FormSection>
-
-            <FormSection title="3. Employment Information">
-              <FormField
-                label="Date of Joining"
-                type="date"
-                required
-                min={isoDateToday()}
-                value={form.joiningDate}
-                onChange={(v) => setField("joiningDate", v)}
-                onBlur={() => blurField("joiningDate")}
-                error={errors.joiningDate}
-              />
-              <FormField
-                label="Asset ID"
-                placeholder="e.g. AST-1001"
-                maxLength={FIELD_MAX.assetId}
-                value={form.assetId}
-                onChange={(v) => setField("assetId", v)}
-              />
-              <FormSelect
-                label="Employee Status"
-                required
-                error={errors.employeeStatusId}
-                options={employeeStatusOptions.map((s) => ({ value: s.id, label: s.name }))}
-                value={form.employeeStatusId}
-                onChange={(v) => setField("employeeStatusId", v)}
-              />
-              <FormSelect
-                label="Worker Type"
-                required
-                error={errors.workerType}
-                options={[...WORKER_TYPES]}
-                value={form.workerType}
-                onChange={(v) => setField("workerType", v)}
-              />
-              <FormSelect
-                label="Bond Delivered"
-                required
-                error={errors.bondDelivered}
-                options={[...BOND_DELIVERED_OPTIONS]}
-                value={form.bondDelivered}
-                onChange={(v) => setField("bondDelivered", v)}
-              />
-              <FormField
-                label="Bond Duration"
-                inputMode="numeric"
-                maxLength={3}
-                placeholder="Months"
-                suffix="months"
-                disabled={form.bondDelivered !== "Yes"}
-                value={form.bondDelivered === "Yes" ? form.bondDurationMonths : "0"}
-                onChange={(v) => setField("bondDurationMonths", v)}
-                onBlur={() => blurField("bondDurationMonths")}
-                error={errors.bondDurationMonths}
-              />
-              <FormField
-                label="Bond Expiry Date"
-                readOnly
-                value={bondExpiryDisplay}
-              />
-              <FormField
-                label="Bond Status"
-                readOnly
-                value={bondStatusDisplay}
-              />
-            </FormSection>
-
-            <FormSection title="4. Education & Experience">
-              <CreatableCatalogSelect
-                label="Graduation Degree Name"
-                options={gradDegreeOptions}
-                valueId={
-                  gradDegreeOptions.find(
-                    (g) => g.name.toLowerCase() === form.gradDegree.toLowerCase() || g.id === form.gradDegree,
-                  )?.id ?? form.gradDegree
-                }
-                placeholder="Select or add graduation degree (BE, B.Tech, B.Sc)…"
-                required={Boolean(form.gradYear && form.gradYear !== "NA")}
-                error={errors.gradDegree}
-                onSelect={(id, name) => {
-                  setField("gradDegree", name || id);
-                }}
-                onCreate={async (name) => {
-                  const created = await createGraduationDegreeOption(name);
-                  setGradDegreeOptions((prev) => [...prev, created]);
-                  return created;
-                }}
-              />
-
-              <FormSelect
-                label="Graduation - Passing Year"
-                options={PASSING_YEAR_OPTIONS.map((y) => ({ value: y, label: y }))}
-                value={form.gradYear}
-                required={Boolean(form.gradDegree && form.gradDegree !== "NA")}
-                onChange={(v) => {
-                  setField("gradYear", v);
-                }}
-                placeholder="Select graduation passing year…"
-                error={errors.gradYear}
-              />
-
-              <CreatableCatalogSelect
-                label="Post Graduation Degree Name"
-                options={postGradDegreeOptions}
-                valueId={
-                  postGradDegreeOptions.find(
-                    (p) => p.name.toLowerCase() === form.postGradDegree.toLowerCase() || p.id === form.postGradDegree,
-                  )?.id ?? form.postGradDegree
-                }
-                placeholder="Select or add post graduation degree (MBA, M.Tech, NA)…"
-                error={errors.postGradDegree}
-                onSelect={(id, name) => {
-                  const degName = name || id;
-                  setField("postGradDegree", degName);
-                  if (degName === "NA") {
-                    setField("postGradYear", "NA");
-                  } else if (!formRef.current.postGradYear || formRef.current.postGradYear === "NA") {
-                    setField("postGradYear", "");
-                  }
-                }}
-                onCreate={async (name) => {
-                  const created = await createPostGraduationDegreeOption(name);
-                  setPostGradDegreeOptions((prev) => [...prev, created]);
-                  return created;
-                }}
-              />
-
-              <FormSelect
-                label="Post Graduation - Passing Year"
-                options={[
-                  { value: "NA", label: "NA" },
-                  ...PASSING_YEAR_OPTIONS.filter((y) => {
-                    if (!form.gradYear || form.gradYear === "NA") return true;
-                    const gYear = parseInt(form.gradYear, 10);
-                    return isNaN(gYear) || parseInt(y, 10) >= gYear;
-                  }).map((y) => ({ value: y, label: y })),
-                ]}
-                value={form.postGradDegree === "NA" ? "NA" : form.postGradYear}
-                disabled={form.postGradDegree === "NA"}
-                required={Boolean(form.postGradDegree && form.postGradDegree !== "NA")}
-                onChange={(v) => {
-                  setField("postGradYear", v);
-                }}
-                placeholder="Select post graduation passing year…"
-                error={errors.postGradYear}
-              />
-
-              <FormSelect
-                label="Exp / Fresher"
-                options={[
-                  { value: "Fresher", label: "Fresher" },
-                  { value: "Experienced", label: "Experienced" },
-                ]}
-                value={form.expType || "Fresher"}
-                onChange={(v) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    expType: v,
-                    priorTotalExp: v === "Fresher" ? "0" : prev.priorTotalExp === "0" ? "" : prev.priorTotalExp,
-                    priorRelevantExp: v === "Fresher" ? "0" : prev.priorRelevantExp === "0" ? "" : prev.priorRelevantExp,
-                    priorTotalExpYears: v === "Fresher" ? "0" : prev.priorTotalExpYears === "0" ? "" : prev.priorTotalExpYears,
-                    priorTotalExpMonths: v === "Fresher" ? "0" : prev.priorTotalExpMonths === "0" ? "" : prev.priorTotalExpMonths,
-                    priorRelevantExpYears: v === "Fresher" ? "0" : prev.priorRelevantExpYears === "0" ? "" : prev.priorRelevantExpYears,
-                    priorRelevantExpMonths: v === "Fresher" ? "0" : prev.priorRelevantExpMonths === "0" ? "" : prev.priorRelevantExpMonths,
-                  }));
-                }}
-              />
-
-              <div className="space-y-1">
-                <span className={FORM_LABEL_CLS}>Total exp prior to Talakunchi</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <FormField
-                    label=""
-                    placeholder="0"
-                    suffix="yrs"
-                    inputMode="numeric"
-                    maxLength={2}
-                    disabled={form.expType === "Fresher"}
-                    value={form.expType === "Fresher" ? "0" : form.priorTotalExpYears}
-                    onChange={(v) => setField("priorTotalExpYears", v)}
-                    onBlur={() => blurField("priorTotalExpYears")}
-                    error={errors.priorTotalExpYears}
-                  />
-                  <FormField
-                    label=""
-                    placeholder="0"
-                    suffix="months"
-                    inputMode="numeric"
-                    maxLength={2}
-                    disabled={form.expType === "Fresher"}
-                    value={form.expType === "Fresher" ? "0" : form.priorTotalExpMonths}
-                    onChange={(v) => setField("priorTotalExpMonths", v)}
-                    onBlur={() => blurField("priorTotalExpMonths")}
-                    error={errors.priorTotalExpMonths}
-                  />
-                </div>
-                {errors.priorTotalExp ? (
-                  <p className={FORM_ERROR_CLS}>{errors.priorTotalExp}</p>
-                ) : null}
-              </div>
-
-              <div className="space-y-1">
-                <span className={FORM_LABEL_CLS}>Relevant exp prior to Talakunchi</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <FormField
-                    label=""
-                    placeholder="0"
-                    suffix="yrs"
-                    inputMode="numeric"
-                    maxLength={2}
-                    disabled={form.expType === "Fresher"}
-                    value={form.expType === "Fresher" ? "0" : form.priorRelevantExpYears}
-                    onChange={(v) => setField("priorRelevantExpYears", v)}
-                    onBlur={() => blurField("priorRelevantExpYears")}
-                    error={errors.priorRelevantExpYears}
-                  />
-                  <FormField
-                    label=""
-                    placeholder="0"
-                    suffix="months"
-                    inputMode="numeric"
-                    maxLength={2}
-                    disabled={form.expType === "Fresher"}
-                    value={form.expType === "Fresher" ? "0" : form.priorRelevantExpMonths}
-                    onChange={(v) => setField("priorRelevantExpMonths", v)}
-                    onBlur={() => blurField("priorRelevantExpMonths")}
-                    error={errors.priorRelevantExpMonths}
-                  />
-                </div>
-                {errors.priorRelevantExp ? (
-                  <p className={FORM_ERROR_CLS}>{errors.priorRelevantExp}</p>
-                ) : null}
-              </div>
-
-              <div className="md:col-span-2 lg:col-span-2">
-                <CertificationMultiSelect
-                  label="Certification Details"
-                  certOptions={certOptions}
-                  value={form.certifications}
-                  onChange={(val) => setField("certifications", val)}
-                  onCreate={async (name) => {
-                    const created = await createCertificationOption(name);
-                    setCertOptions((prev) => [...prev, created]);
-                    return created;
-                  }}
-                />
-              </div>
-            </FormSection>
-
-            <FormSection title="5. PMO Section">
-              <FormSelect
-                label="Department"
-                options={PMO_DEPARTMENT_OPTIONS}
-                value={form.pmoDepartment}
-                onChange={(v) => {
-                  setField("pmoDepartment", v);
-                  const subDepts = PMO_DEPARTMENT_SUB_DEPARTMENTS[v] ?? [];
-                  if (subDepts.length === 1) {
-                    setField("subDepartment", subDepts[0]);
-                  } else if (!subDepts.includes(form.subDepartment)) {
-                    setField("subDepartment", "");
-                  }
-                }}
-                placeholder="Select department…"
-                showSearch
-              />
-              <FormSelect
-                label="Sub Departments"
-                options={pmoSubDeptOptions}
-                value={form.subDepartment}
-                onChange={(v) => setField("subDepartment", v)}
-                placeholder={
-                  !form.pmoDepartment
-                    ? "Select department first…"
-                    : pmoSubDeptOptions.length === 0
-                      ? "No sub-departments"
-                      : "Select sub-department…"
-                }
-                disabled={!form.pmoDepartment || pmoSubDeptOptions.length === 0}
-                showSearch={pmoSubDeptOptions.length > 4}
-                error={errors.subDepartment}
-              />
-              <FormSelect
-                label="Billable / Non Billable Status"
-                options={[...BILLABLE_STATUS_OPTIONS]}
-                value={form.billableStatus}
-                onChange={(v) => setField("billableStatus", v)}
-                placeholder="Select status…"
-              />
-              <FormSelect
-                label="Client Location"
-                options={MUMBAI_RAILWAY_STATIONS}
-                value={form.clientLocation}
-                onChange={(v) => setField("clientLocation", v)}
-                placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
-                showSearch
-              />
-              <FormSelect
-                label="Project Type"
-                options={[...PROJECT_TYPE_OPTIONS]}
-                value={form.projectType}
-                onChange={(v) => setField("projectType", v)}
-                placeholder="Select project type…"
-              />
-              <FormSelect
-                label="Project Allocated"
-                options={projectAllocatedOptions}
-                value={form.projectAllocated}
-                onChange={(v) => setField("projectAllocated", v)}
-                placeholder="Select allocated project…"
-                showSearch
-              />
-              <FormField
-                label="Client Engagement Manager"
-                name="clientEngManagerMapping"
-                placeholder="e.g. Name of Client Engagement Manager"
-                value={form.clientEngManagerMapping}
-                onChange={(v) => setField("clientEngManagerMapping", v)}
-                onBlur={() => blurField("clientEngManagerMapping")}
-                error={errors.clientEngManagerMapping}
-              />
-            </FormSection>
-          </div>
-
-          {/* footer */}
-          <div className="flex items-center justify-end gap-2 border-t border-border bg-card px-6 py-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-            >
-              Create Employee
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ── Main page ────────────────────────────────────
+// -- Main page ----------------------------------------
 function EmployeeDirectoryPage() {
   const { status: authStatus } = useAuth();
   const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
@@ -2661,7 +863,7 @@ function EmployeeDirectoryPage() {
     return [...new Set(scoped.map((d) => d.name).filter(Boolean))];
   }, [desigCatalog, deptCatalog, dept]);
 
-  // ── Deep Comprehensive Employee Search ──
+  // -- Deep Comprehensive Employee Search --------------
   const matchesEmployeeSearch = (e: Employee, query: string): boolean => {
     if (!query) return true;
     const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
@@ -2724,7 +926,7 @@ function EmployeeDirectoryPage() {
     return terms.every((term) => searchableText.includes(term));
   };
 
-  // ── Directory Filtering ──
+  // -- Directory Filtering -----------------------------
   const directoryRows = useMemo(() => {
     const filtered = dbEmployees.filter((e) => {
       const matchQ = matchesEmployeeSearch(e, q);
@@ -2741,7 +943,7 @@ function EmployeeDirectoryPage() {
     });
   }, [dbEmployees, q, dept, desig, status, sortKey, sortDir]);
 
-  // ── Pool Filtering ──
+  // -- Pool Filtering ----------------------------------
   const poolRows = useMemo(() => {
     const filtered = dbEmployees.filter((e) => {
       const matchQ = matchesEmployeeSearch(e, q);
@@ -2793,7 +995,7 @@ function EmployeeDirectoryPage() {
     <AppShell title={title} subtitle={subtitle}>
       {/* Row 1 (Views & Global Actions) */}
       <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        {/* Left: [📁 Directory] / [⚡ Resource Pool] view switcher */}
+        {/* Left: [Directory] / [Resource Pool] view switcher */}
         <div>
           {!basicDirectoryView && ENABLE_RESOURCE_POOL && (
             <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
@@ -2827,7 +1029,7 @@ function EmployeeDirectoryPage() {
           )}
         </div>
 
-        {/* Right: Bulk upload menu (📥) and [+ Add Employee] button */}
+        {/* Right: Bulk upload menu (ðŸ“¥) and [+ Add Employee] button */}
         {(isDhanshree || isHr) && (
           <div className="flex items-center gap-2.5 shrink-0">
             <EmployeeBulkUploadMenu
@@ -3022,7 +1224,7 @@ function EmployeeDirectoryPage() {
                       className="px-4 py-10 text-center text-sm text-muted-foreground"
                     >
                       {isLoading
-                        ? "Loading employees from database…"
+                        ? "Loading employees from database..."
                         : loadError
                           ? `Could not load employees: ${loadError}`
                           : dbEmployees.length === 0
@@ -3039,8 +1241,7 @@ function EmployeeDirectoryPage() {
           <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
             <div className="flex items-center gap-3">
               <span>
-                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>–
-                <strong className="font-semibold text-blue-950 dark:text-blue-100">
+                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong> - <strong className="font-semibold text-blue-950 dark:text-blue-100">
                   {pageRange.to}
                 </strong>{" "}
                 of <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length}</strong> employees
@@ -3126,7 +1327,6 @@ function EmployeeDirectoryPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {pageRows.map((e) => {
-                  const statusVal = getAllocationStatus(e);
                   return (
                     <tr
                       key={e.id}
@@ -3153,11 +1353,9 @@ function EmployeeDirectoryPage() {
                       <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
                         {dash(e.reportingManager)}
                       </td>
-                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5">
-                        <AllocationStatusBadge status={statusVal} />
-                      </td>
-                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">—</td>
-                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">—</td>
+                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
+                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
+                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
                       <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
                         {e.workLocation === "Onsite" && e.projectSite ? (
                           <span className="inline-flex items-center gap-1.5">
@@ -3209,8 +1407,7 @@ function EmployeeDirectoryPage() {
           <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
             <div className="flex items-center gap-3">
               <span>
-                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>–
-                <strong className="font-semibold text-blue-950 dark:text-blue-100">
+                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong> - <strong className="font-semibold text-blue-950 dark:text-blue-100">
                   {pageRange.to}
                 </strong>{" "}
                 of <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length}</strong> resources
@@ -3251,13 +1448,14 @@ function EmployeeDirectoryPage() {
         </div>
       )}
 
-      {/* Onboarding panel */}
-      <OnboardingPanel
+      {/* Onboarding modal */}
+      <EmployeeFormModal
+        mode="create"
         open={onboardOpen}
         onClose={() => setOnboardOpen(false)}
         existingCodes={dbEmployees.map((e) => e.id)}
         managers={managers}
-        onCreated={() => {
+        onSuccess={() => {
           void loadEmployees();
           void fetchDepartmentOptions().then(setDeptCatalog).catch(() => undefined);
           void fetchDesignationOptions().then(setDesigCatalog).catch(() => undefined);

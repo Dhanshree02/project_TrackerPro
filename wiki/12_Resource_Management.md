@@ -127,7 +127,17 @@ interface TeamAllocation {
 5. Resignation status flow: `Pending` → `Accepted` or `Retain`
 6. Probation resources may be reassigned more flexibly
 
+7. **PMO Project Allocation & Client Engagement Manager Auto-Resolution**:
+   - When an employee is allocated to a project (`Project Allocated`), the system automatically resolves:
+     `Project Allocated` → `Project's Customer / Client (clientId)` → `Customer's Engagement Manager (engagementManager)`.
+   - The `Client Engagement Manager` field is auto-populated upon project selection.
+   - **Current State Note**: The database tables/foreign keys for full relational resolution between allocated projects, clients, and their assigned engagement managers are not yet generated in the backend. Currently handled with a frontend dummy fallback mapping (`dh-employee-directory.index.tsx`) until backend tables are implemented.
+
 ## Future Backend Considerations
+- **Relational Tables for Project & Client EM**:
+  - `projects` table linked to `clients` via `client_id`.
+  - `clients` table linked to assigned Engagement Manager (`engagement_manager_id` -> `users`/`employees`).
+  - Automated lookup endpoint so employee allocation automatically associates the customer's Engagement Manager.
 - Real-time utilization calculation from timesheet data
 - Skill matrix and competency assessment
 - Resource forecasting and demand planning

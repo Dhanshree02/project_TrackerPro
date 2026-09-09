@@ -112,6 +112,20 @@ export interface ApiEmployeeDetail {
   projectType?: string | null;
   projectAllocated?: string | null;
   clientEngManagerMapping?: string | null;
+  gradDegree?: string | null;
+  gradYear?: string | null;
+  postGradDegree?: string | null;
+  postGradYear?: string | null;
+  expType?: string | null;
+  priorTotalExp?: string | null;
+  priorRelevantExp?: string | null;
+  bondDelivered?: string | null;
+  bondDurationMonths?: number | null;
+  bondExpiryDate?: string | null;
+  employeeStatusId?: string | null;
+  departmentId?: string | null;
+  designationId?: string | null;
+  jobRoleId?: string | null;
 }
 
 export interface ApiExitedEmployee {
@@ -396,6 +410,13 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     status: (item.status as Employee["status"]) ?? "Active",
     confirmationStatus: "Active",
     probationStatus: "",
+    gradDegree: "",
+    gradYear: "",
+    postGradDegree: "NA",
+    postGradYear: "NA",
+    expType: item.experience === "Fresher" ? "Fresher" : "Experienced",
+    priorTotalExp: item.experience ?? "",
+    priorRelevantExp: "",
     experience: item.experience ?? "",
     previousCompany: item.previousCompany ?? "",
     employmentType: "",
@@ -474,7 +495,7 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     contractType: detail.contractType ?? "",
     bondStatus: detail.bondStatus ?? "",
     noticePeriod: detail.noticePeriod ?? "",
-    projectSite: detail.projectSite ?? "Offsite",
+    projectSite: (detail.projectSite === "Onsite" || detail.projectSite === "Offsite" ? detail.projectSite : "Offsite") as Employee["projectSite"],
     assetId: detail.assetId ?? "",
     exitType: (detail.exitType as Employee["exitType"]) || "NA",
     exitReason: detail.exitReason?.trim() ? detail.exitReason : "NA",
@@ -503,6 +524,22 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     projectType: detail.projectType ?? "",
     projectAllocated: detail.projectAllocated ?? "",
     clientEngManagerMapping: detail.clientEngManagerMapping ?? "",
+    gradDegree: detail.gradDegree ?? "",
+    gradYear: detail.gradYear ?? "",
+    postGradDegree: detail.postGradDegree ?? "",
+    postGradYear: detail.postGradYear ?? "",
+    expType: (detail.expType as "Fresher" | "Experienced") || (detail.experience === "Fresher" ? "Fresher" : "Experienced"),
+    priorTotalExp: detail.priorTotalExp ?? "",
+    priorRelevantExp: detail.priorRelevantExp ?? "",
+    bondDelivered: detail.bondDelivered ?? "",
+    bondDurationMonths: detail.bondDurationMonths ?? 0,
+    bondExpiryDate: detail.bondExpiryDate ?? "",
+    employeeStatusId: detail.employeeStatusId ?? "",
+    departmentId: detail.departmentId ?? "",
+    designationId: detail.designationId ?? "",
+    jobRoleId: detail.jobRoleId ?? "",
+    reportingManagerId: detail.reportingManagerId ?? "",
+    workerType: detail.employmentType ?? "",
     complianceStatus: (detail.complianceStatus as Employee["complianceStatus"]) || "Pending",
   };
 }
@@ -522,6 +559,30 @@ export async function uploadEmployeeDocuments(
     method: "POST",
     body: formData,
   });
+}
+
+export interface StoredFileInfo {
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedAtUtc: string;
+  downloadUrl: string;
+  category: string;
+}
+
+export async function fetchEmployeeDocuments(
+  employeeCode: string,
+  category?: string,
+): Promise<StoredFileInfo[]> {
+  const query = category ? `?category=${encodeURIComponent(category)}` : "";
+  const res = await apiFetch<StoredFileInfo[] | { data: StoredFileInfo[] }>(
+    `/api/v1/storage/employees/${encodeURIComponent(employeeCode)}/documents${query}`,
+  );
+  if (Array.isArray(res)) return res;
+  if (res && typeof res === "object" && "data" in res && Array.isArray(res.data)) {
+    return res.data;
+  }
+  return [];
 }
 
 

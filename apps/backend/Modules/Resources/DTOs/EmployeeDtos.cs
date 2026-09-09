@@ -100,15 +100,29 @@ public sealed record EmployeeDetailDto(
     string? BankAccount,
     string? SalaryBand,
     string? PfUan,
-    string? TaxRegime,
-    string? ComplianceStatus,
+    string? TaxRegime = null,
+    string? ComplianceStatus = null,
     string? PmoDepartment = null,
     string? SubDepartment = null,
     string? BillableStatus = null,
     string? ClientLocation = null,
     string? ProjectType = null,
     string? ProjectAllocated = null,
-    string? ClientEngManagerMapping = null);
+    string? ClientEngManagerMapping = null,
+    string? GradDegree = null,
+    string? GradYear = null,
+    string? PostGradDegree = null,
+    string? PostGradYear = null,
+    string? ExpType = null,
+    string? PriorTotalExp = null,
+    string? PriorRelevantExp = null,
+    string? BondDelivered = null,
+    int? BondDurationMonths = null,
+    DateOnly? BondExpiryDate = null,
+    Guid? EmployeeStatusId = null,
+    Guid? DepartmentId = null,
+    Guid? DesignationId = null,
+    Guid? JobRoleId = null);
 
 public sealed record EmployeeLookupDto(
     Guid Id,
@@ -280,7 +294,18 @@ public sealed record UpdateEmployeeRequest(
     string? ClientLocation = null,
     string? ProjectType = null,
     string? ProjectAllocated = null,
-    string? ClientEngManagerMapping = null);
+    string? ClientEngManagerMapping = null,
+    string? GradDegree = null,
+    string? GradYear = null,
+    string? PostGradDegree = null,
+    string? PostGradYear = null,
+    string? ExpType = null,
+    string? PriorTotalExp = null,
+    string? PriorRelevantExp = null,
+    string? BondDelivered = null,
+    int? BondDurationMonths = null,
+    DateOnly? BondExpiryDate = null,
+    Guid? EmployeeStatusId = null);
 
 public sealed record EmployeeBulkRowError(int Row, string? EmployeeCode, string Message);
 

@@ -455,14 +455,20 @@ public static class DbSeeder
         // 2. Default seeded managers if none were added
         var defaults = new (string Name, string Desig, string Email)[]
         {
-            ("Aisha Rao", "VP of Engineering", "aisha.rao@talakunchi.com"),
-            ("Vikram Deshmukh", "Director of Product", "vikram.deshmukh@talakunchi.com"),
-            ("Rohan Verma", "Engineering Manager", "rohan.verma@talakunchi.com"),
-            ("Neha Kulkarni", "Technical Lead", "neha.kulkarni@talakunchi.com"),
-            ("Devansh Shah", "Head of Design", "devansh.shah@talakunchi.com"),
-            ("Ananya Sharma", "Lead Architect", "ananya.sharma@talakunchi.com"),
-            ("Rajesh Iyer", "Delivery Manager", "rajesh.iyer@talakunchi.com"),
-            ("Arjun Mehta", "Product Manager", "arjun.mehta@talakunchi.com"),
+            ("Dhanshree Pansare", "Director & Delivery Head", "dhanshree.pansare@acme.co"),
+            ("Sneha Iyer", "Tech Lead", "sneha.iyer@acme.co"),
+            ("Divya Rao", "Product Manager", "divya.rao@acme.co"),
+            ("Neha Kulkarni", "Technical Lead", "neha.kulkarni@acme.co"),
+            ("Samar Patel", "HR Business Partner", "samar.patel@acme.co"),
+            ("Aanya Joshi", "Sales Executive", "aanya.joshi@acme.co"),
+            ("Harsh Nair", "Business Analyst", "harsh.nair@acme.co"),
+            ("Vikram Gupta", "Project Manager", "vikram.gupta@acme.co"),
+            ("Pooja Menon", "HR Business Partner", "pooja.menon@acme.co"),
+            ("Nikhil Khanna", "Sales Executive", "nikhil.khanna@acme.co"),
+            ("Riya Kapoor", "Engagement Manager", "riya.kapoor@acme.co"),
+            ("Rahul Sharma", "Engagement Manager", "rahul.sharma@acme.co"),
+            ("Pradeep Singh", "Engagement Manager", "pradeep.singh@acme.co"),
+            ("Arjun Mehta", "Engagement Manager", "arjun.mehta@acme.co"),
         };
 
         foreach (var (name, desig, email) in defaults)
@@ -847,31 +853,33 @@ public static class DbSeeder
 
         var seed = new (string Code, string FirstName, string LastName, string Department, string Designation, string Role, string Gender)[]
         {
-            ("TK-0002", "Priya", "Sharma", "Services - Testing", "PenTester - II", "Employee", "Female"),
-            ("TK-0003", "Rohan", "Mehta", "Functional - IT Administration", "DevSecOps Practitioner - II", "Employee", "Male"),
-            ("TK-0004", "Sneha", "Iyer", "Services - Operations", "SOC Lead - I", "TeamLead", "Female"),
-            ("TK-0005", "Karthik", "Bose", "Services - Operations", "SOC Analyst - II", "Employee", "Male"),
-            ("TK-0006", "Divya", "Rao", "Functional - Project Management", "Associate Project Manager", "ProjectManager", "Female"),
-            ("TK-0007", "Ankit", "Verma", "Services - Operations", "SIEM Admin - II", "Employee", "Male"),
-            ("TK-0008", "Neha", "Kulkarni", "Functional - Accounts", "Senior Accountant - I", "Accounts", "Female"),
-            ("TK-0009", "Samar", "Patel", "Functional - HR", "HR Head", "Hr", "Male"),
-            ("TK-0010", "Aanya", "Joshi", "Functional - Sales", "Business Development Associate - I", "Sales", "Female"),
-            ("TK-0011", "Harsh", "Nair", "Functional - Project Management", "Associate PMO - I", "Pmo", "Male"),
-            ("TK-0012", "Ira", "Kapoor", "Services - Consulting", "GRC Auditor - II", "Employee", "Female"),
-            ("TK-0013", "Yash", "Malik", "Services - Testing", "Red Team Practitioner - II", "Employee", "Male"),
-            ("TK-0014", "Kavya", "Desai", "R&D (Research & Development)", "Python Developer - II", "Employee", "Female"),
-            ("TK-0015", "Arjun", "Shah", "Functional - IT Administration", "Desktop Support Engineer - I", "Employee", "Male"),
-            ("TK-0016", "Meera", "Nambiar", "Services - Consulting", "GRC Auditor - I", "Employee", "Female"),
-            ("TK-0017", "Vikram", "Gupta", "Functional - Project Management", "Senior PMO - I", "ProjectManager", "Male"),
-            ("TK-0018", "Ishita", "Bansal", "Services - Testing", "PenTester - I", "Employee", "Female"),
-            ("TK-0019", "Aditya", "Reddy", "Services - Operations", "SOC Analyst - I", "Employee", "Male"),
-            ("TK-0020", "Pooja", "Menon", "Functional - HR", "Senior HR Executive - I", "Hr", "Female"),
-            ("TK-0021", "Nikhil", "Khanna", "Functional - Sales", "Sales Associate", "Sales", "Male"),
-            ("TK-0022", "Riya", "Kapoor", "Functional - Project Management", "Engagement Manager", "Engagement Manager", "Female"),
-            ("TK-0023", "Rahul", "Sharma", "Functional - Project Management", "Engagement Manager", "Engagement Manager", "Male"),
-            ("TK-0024", "Pradeep", "Singh", "Functional - Project Management", "Engagement Manager", "Engagement Manager", "Male"),
-            ("TK-0025", "Arjun", "Mehta", "Functional - Project Management", "Engagement Manager", "Engagement Manager", "Male"),
-            ("TKI-0001", "Sample", "Intern", "Services - Testing", "Intern", "Intern", "Female"),
+            ("TK-0001", "Dhanshree", "Pansare", "Core", "Director & Delivery Head", "Leader (L)", "Female"),
+            ("TK-0002", "Priya", "Sharma", "Services - Testing", "PenTester - II", "Team Member (TM)", "Female"),
+            ("TK-0003", "Rohan", "Mehta", "Functional - IT Administration", "DevSecOps Practitioner - II", "Team Member (TM)", "Male"),
+            ("TK-0004", "Sneha", "Iyer", "Services - Operations", "SOC Lead - I", "Team Leader (TL)", "Female"),
+            ("TK-0005", "Karthik", "Bose", "Services - Operations", "SOC Analyst - II", "Team Member (TM)", "Male"),
+            ("TK-0006", "Divya", "Rao", "Functional - Project Management", "Associate Project Manager", "Manager (Mng.)", "Female"),
+            ("TK-0007", "Ankit", "Verma", "Services - Operations", "SIEM Admin - II", "Team Member (TM)", "Male"),
+            ("TK-0008", "Neha", "Kulkarni", "Functional - Accounts", "Senior Accountant - I", "Manager (Mng.)", "Female"),
+            ("TK-0009", "Samar", "Patel", "Functional - HR", "HR Head", "HR", "Male"),
+            ("TK-0010", "Aanya", "Joshi", "Functional - Sales", "Business Development Associate - I", "Manager (Mng.)", "Female"),
+            ("TK-0011", "Harsh", "Nair", "Functional - Project Management", "Associate PMO - I", "Team Member (TM)", "Male"),
+            ("TK-0012", "Ira", "Kapoor", "Services - Consulting", "GRC Auditor - II", "Team Member (TM)", "Female"),
+            ("TK-0013", "Yash", "Malik", "Services - Testing", "Red Team Practitioner - II", "Team Member (TM)", "Male"),
+            ("TK-0014", "Kavya", "Desai", "R&D (Research & Development)", "Python Developer - II", "Team Member (TM)", "Female"),
+            ("TK-0015", "Arjun", "Shah", "Functional - IT Administration", "Desktop Support Engineer - I", "Team Member (TM)", "Male"),
+            ("TK-0016", "Meera", "Nambiar", "Services - Consulting", "GRC Auditor - I", "Team Member (TM)", "Female"),
+            ("TK-0017", "Vikram", "Gupta", "Functional - Project Management", "Senior PMO - I", "Team Leader (TL)", "Male"),
+            ("TK-0018", "Ishita", "Bansal", "Services - Testing", "PenTester - I", "Team Member (TM)", "Female"),
+            ("TK-0019", "Aditya", "Reddy", "Services - Operations", "SOC Analyst - I", "Team Member (TM)", "Male"),
+            ("TK-0020", "Pooja", "Menon", "Functional - HR", "Senior HR Executive - I", "HR", "Female"),
+            ("TK-0021", "Nikhil", "Khanna", "Functional - Sales", "Sales Associate", "Team Member (TM)", "Male"),
+            ("TK-0022", "Riya", "Kapoor", "Functional - Project Management", "Engagement Manager", "Manager (Mng.)", "Female"),
+            ("TK-0023", "Rahul", "Sharma", "Functional - Project Management", "Engagement Manager", "Manager (Mng.)", "Male"),
+            ("TK-0024", "Pradeep", "Singh", "Functional - Project Management", "Engagement Manager", "Manager (Mng.)", "Male"),
+            ("TK-0025", "Arjun", "Mehta", "Functional - Project Management", "Engagement Manager", "Manager (Mng.)", "Male"),
+            ("TKI-0001", "Ananya", "Verma", "Services - Testing", "Intern", "Team Member (TM)", "Female"),
+            ("TKI-0002", "Rohan", "Joshi", "Services - Testing", "Intern", "Team Member (TM)", "Male"),
         };
 
         var existingCodes = await db.Employees
@@ -899,6 +907,22 @@ public static class DbSeeder
             var location = andheri ? "Suvidha Square, Andheri" : "Navare Plaza, Dombivli";
             var n = i + 1;
 
+            var pmoDept = row.Code == "TK-0001" ? "Core"
+                : row.Code.StartsWith("TKI") ? "Internship Program"
+                : row.Department.Contains("Testing") ? "Services - Testing"
+                : row.Department.Contains("Operations") ? "Services - Operations"
+                : row.Department.Contains("Consulting") ? "Services - Consulting"
+                : row.Department.Contains("Project Management") ? "Functional - Project Management"
+                : row.Department;
+
+            var subDept = row.Code == "TK-0001" ? "Leading Delivery Dept."
+                : row.Code.StartsWith("TKI") ? "Across all Sub Departments"
+                : pmoDept == "Services - Testing" ? "Service - Testing - AppSec"
+                : pmoDept == "Functional - Project Management" ? "PMO (Project Management Office)"
+                : "-";
+
+            var isBillable = !(row.Role.Contains("Leader") || row.Role.Contains("HR") || row.Department.Contains("Sales") || row.Department.Contains("Accounts") || row.Department.Contains("IT") || row.Code.StartsWith("TKI"));
+
             entities.Add(new Employee
             {
                 EmployeeCode = row.Code,
@@ -909,6 +933,8 @@ public static class DbSeeder
                 DateOfBirth = new DateOnly(1990 + (i % 8), 1 + (i % 12), 1 + (i % 27)),
                 Address = $"{120 + n}, {location}",
                 EmergencyContact = (9811101000 + n).ToString(),
+                EmergencyContactName = $"Contact {row.FirstName}",
+                EmergencyContactRelation = i % 3 == 0 ? "Spouse" : "Father",
                 MaritalStatus = i % 3 == 0 ? "Married" : "Single",
                 Nationality = indian?.Name ?? "Indian",
                 NationalityId = indian?.Id,
@@ -931,6 +957,9 @@ public static class DbSeeder
                 PreviousCompany = i % 2 == 0 ? "Infosys" : "TCS",
                 EmploymentType = "Full-time",
                 ContractType = "Permanent",
+                BondDelivered = i % 5 == 0 ? "Yes" : "No",
+                BondDurationMonths = i % 5 == 0 ? 24 : 0,
+                BondExpiryDate = i % 5 == 0 ? new DateOnly(2026, 12, 31) : null,
                 BondStatus = i % 5 == 0 ? "Yes — 2 years" : "No",
                 NoticePeriod = i % 2 == 0 ? "60 days" : "90 days",
                 AssetId = $"TK-{4000 + n}",
@@ -943,6 +972,13 @@ public static class DbSeeder
                 ExpType = row.Code.StartsWith("TKI") ? "Fresher" : "Experienced",
                 PriorTotalExp = row.Code.StartsWith("TKI") ? "0" : $"{2.5 + (i % 5):F1}",
                 PriorRelevantExp = row.Code.StartsWith("TKI") ? "0" : $"{1.5 + (i % 4):F1}",
+                PmoDepartment = pmoDept,
+                SubDepartment = subDept,
+                BillableStatus = isBillable ? "Billable" : "Non-Billable",
+                ClientLocation = andheri ? "Andheri" : "Dombivli",
+                ProjectType = "Long Term",
+                ProjectAllocated = i % 3 == 0 ? "Helix Core EHR" : i % 3 == 1 ? "Northwind Core Modernization" : "CloudSync Multi-Region Sync",
+                ClientEngManagerMapping = "Rahul Sharma",
                 Education = i % 2 == 0 ? "B.Tech (2018), M.Tech (2020)" : "BE (2019)",
                 Skills = ["Communication", "Delivery", row.Department],
                 Certifications = row.Code.StartsWith("TKI") ? ["CompTIA Security+"] : ["Certified Ethical Hacker (CEH)", "ISO 27001"],
@@ -968,8 +1004,8 @@ public static class DbSeeder
         if (entities.Count > 0)
             db.Employees.AddRange(entities);
 
-        var lead = entities.FirstOrDefault(e => e.EmployeeCode == "EMP-1003")
-            ?? await db.Employees.FirstOrDefaultAsync(e => e.EmployeeCode == "EMP-1003", ct);
+        var lead = entities.FirstOrDefault(e => e.EmployeeCode == "TK-0001")
+            ?? await db.Employees.FirstOrDefaultAsync(e => e.EmployeeCode == "TK-0001", ct);
 
         if (lead is not null)
         {

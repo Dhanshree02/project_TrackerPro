@@ -9,6 +9,7 @@ import {
   isValidTkId,
   phoneError,
 } from "@/lib/form-validation";
+import type { Employee } from "@/lib/employee-data";
 
 export const ONBOARD_DOC_SLOTS = [
   "Resume",
@@ -141,7 +142,8 @@ export type OnboardField =
   | "clientLocation"
   | "projectType"
   | "projectAllocated"
-  | "clientEngManagerMapping";
+  | "clientEngManagerMapping"
+  | "probationStatus";
 
 export type OnboardErrors = Partial<Record<OnboardField, string>>;
 export type OnboardValues = Record<OnboardField, string>;
@@ -220,6 +222,7 @@ export const EMPTY_ONBOARD: OnboardValues = {
   projectType: "Long Term",
   projectAllocated: "",
   clientEngManagerMapping: "",
+  probationStatus: "Ongoing",
 };
 
 export const EMPTY_DOCS: OnboardDocs = {
@@ -359,10 +362,15 @@ export function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+export type ValidationOptions = {
+  isEdit?: boolean;
+};
+
 export function validateOnboardField(
   field: OnboardField,
   values: OnboardValues,
   existingCodes: string[] = [],
+  options?: ValidationOptions,
 ): string | undefined {
   switch (field) {
     case "firstName": {
@@ -460,6 +468,7 @@ export function validateOnboardField(
       return undefined;
     }
     case "joiningDate": {
+      if (options?.isEdit) return undefined;
       const v = (values.joiningDate || "").trim();
       if (!v) return "Joining date is required";
       if (v < isoDateToday()) return "Date of joining must be today or a future date";
@@ -707,10 +716,11 @@ export function toDirectoryStatus(employmentStatus: string): string {
 export function validateOnboardForm(
   values: OnboardValues,
   existingCodes: string[] = [],
+  options?: ValidationOptions,
 ): OnboardErrors {
   const errors: OnboardErrors = {};
   ONBOARD_FIELDS.forEach((field) => {
-    const message = validateOnboardField(field, values, existingCodes);
+    const message = validateOnboardField(field, values, existingCodes, options);
     if (message) errors[field] = message;
   });
   return errors;
@@ -768,4 +778,103 @@ export function validateOnboardDocs(docs: OnboardDocs): OnboardDocErrors {
   }
 
   return errors;
+}
+
+export function employeeToOnboardValues(emp: Employee): OnboardValues {
+  const parseYAndM = (str?: string): { years: string; months: string } => {
+    if (!str || str === "Fresher" || str === "—") return { years: "0", months: "0" };
+    const yMatch = str.match(/(\d+)\s*(?:Yrs?|years?)/i);
+    const mMatch = str.match(/(\d+)\s*(?:Mos?|months?)/i);
+    if (yMatch || mMatch) {
+      return { years: yMatch ? yMatch[1] : "0", months: mMatch ? mMatch[1] : "0" };
+    }
+    const num = Number.parseFloat(str);
+    if (!Number.isNaN(num)) {
+      const y = Math.floor(num);
+      const m = Math.round((num - y) * 12);
+      return { years: String(y), months: String(m) };
+    }
+    return { years: "0", months: "0" };
+  };
+
+  const totalExpParsed = parseYAndM(emp.priorTotalExp || emp.experience);
+  const relevantExpParsed = parseYAndM(emp.priorRelevantExp);
+
+  let workerType = emp.workerType || "";
+  if (!workerType) {
+    if (emp.category?.includes("Intern")) workerType = "Intern";
+    else if (emp.category?.includes("Contract")) workerType = "Contract";
+    else workerType = "Permanent";
+  }
+
+  let bondDelivered = emp.bondDelivered || "";
+  if (!bondDelivered) {
+    bondDelivered = emp.category?.includes("Bond") && !emp.category?.includes("Without Bond") ? "Yes" : "No";
+  }
+
+  return {
+    firstName: emp.firstName || "",
+    lastName: emp.lastName || "",
+    workEmail: emp.email || "",
+    personalEmail: emp.personalEmail || "",
+    employeeCode: emp.id || "",
+    phone: emp.phone || "",
+    altPhone: emp.altPhone || "",
+    gender: emp.gender || "",
+    dateOfBirth: emp.dob || "",
+    maritalStatus: emp.maritalStatus || "",
+    nationalityId: "",
+    address: emp.address || "",
+    emergencyContact: emp.emergencyContact || "",
+    emergencyContactName: emp.emergencyContactName || "",
+    emergencyContactRelation: emp.emergencyContactRelation || "",
+    departmentId: emp.departmentId || "",
+    designationId: emp.designationId || "",
+    jobRoleId: emp.jobRoleId || "",
+    businessUnit: emp.businessUnit || "Talakunchi Networks Private Limited",
+    team: emp.team || "",
+    projectSite: emp.projectSite || "",
+    workLocation: emp.workLocation || "",
+    officeBranch: emp.officeBranch || "",
+    assetId: emp.assetId || "",
+    employeeStatusId: emp.employeeStatusId || "",
+    workerType,
+    bondDelivered,
+    bondDurationMonths: String(emp.bondDurationMonths ?? (bondDelivered === "Yes" ? "24" : "0")),
+    exitType: emp.exitType || "NA",
+    exitReason: emp.exitReason || "",
+    gradDegree: emp.gradDegree || "",
+    gradYear: emp.gradYear || "",
+    postGradDegree: emp.postGradDegree || "NA",
+    postGradYear: emp.postGradYear || "NA",
+    expType: emp.expType || (emp.experience === "Fresher" ? "Fresher" : (totalExpParsed.years !== "0" || totalExpParsed.months !== "0" ? "Experienced" : "Fresher")),
+    priorTotalExp: emp.priorTotalExp || emp.experience || "0",
+    priorTotalExpYears: totalExpParsed.years,
+    priorTotalExpMonths: totalExpParsed.months,
+    priorRelevantExp: emp.priorRelevantExp || "0",
+    priorRelevantExpYears: relevantExpParsed.years,
+    priorRelevantExpMonths: relevantExpParsed.months,
+    education: emp.education || "",
+    certifications: Array.isArray(emp.certifications) ? emp.certifications.join(", ") : (emp.certifications || ""),
+    technicalSkills: "",
+    functionalSkills: "",
+    experience: emp.experience || "",
+    previousCompany: emp.previousCompany || "",
+    languages: Array.isArray(emp.languages) ? emp.languages.join(", ") : (emp.languages || ""),
+    pan: emp.pan || "",
+    aadhaar: emp.aadhaar || "",
+    pfUan: emp.pfUan || "",
+    bankAccount: emp.bankAccount || "",
+    ifsc: "",
+    joiningDate: emp.joiningDate || "",
+    reportingManagerId: emp.reportingManagerId || "",
+    pmoDepartment: emp.pmoDepartment || "",
+    subDepartment: emp.subDepartment || "",
+    billableStatus: emp.billableStatus || "Billable",
+    clientLocation: emp.clientLocation || "",
+    projectType: emp.projectType || "Long Term",
+    projectAllocated: emp.projectAllocated || "",
+    clientEngManagerMapping: emp.clientEngManagerMapping || "",
+    probationStatus: emp.probationStatus || "Ongoing",
+  };
 }

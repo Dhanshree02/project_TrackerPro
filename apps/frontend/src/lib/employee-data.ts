@@ -23,17 +23,23 @@ export interface Employee {
   nationality: string;
   // org
   department: string;
+  departmentId?: string;
   designation: string;
+  designationId?: string;
   role: string;
+  jobRoleId?: string;
   reportingManager: string;
+  reportingManagerId?: string;
   businessUnit: string;
   workLocation: string;
   officeBranch: string;
   category: "Permanent - Bond" | "Permanent - Without Bond" | "Contract-based" | "Intern - Paid" | "Intern - Unpaid";
+  workerType?: string;
   team: string;
   // employment
   joiningDate: string;
   status: EmployeeStatus;
+  employeeStatusId?: string;
   confirmationStatus: ConfirmationStatus;
   probationStatus: string;
   gradDegree: string;
@@ -47,6 +53,9 @@ export interface Employee {
   previousCompany: string;
   employmentType: string;
   contractType: string;
+  bondDelivered?: string;
+  bondDurationMonths?: number | string;
+  bondExpiryDate?: string;
   bondStatus: string;
   noticePeriod: string;
   // site details & assets

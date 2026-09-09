@@ -187,7 +187,9 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             DesignationId = request.DesignationId,
             Role = request.Role,
             JobRoleId = request.JobRoleId,
-            ReportingManagerId = request.ReportingManagerId,
+            ReportingManagerId = request.ReportingManagerId.HasValue
+                ? await ResolveReportingManagerIdAsync(request.ReportingManagerId.Value, ct)
+                : null,
             BusinessUnit = request.BusinessUnit,
             WorkLocation = request.WorkLocation,
             OfficeBranch = request.OfficeBranch,
@@ -293,7 +295,10 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         if (request.DesignationId.HasValue) entity.DesignationId = request.DesignationId;
         if (request.Role is not null) entity.Role = request.Role;
         if (request.JobRoleId.HasValue) entity.JobRoleId = request.JobRoleId;
-        if (request.ReportingManagerId.HasValue) entity.ReportingManagerId = request.ReportingManagerId;
+        if (request.ReportingManagerId.HasValue)
+        {
+            entity.ReportingManagerId = await ResolveReportingManagerIdAsync(request.ReportingManagerId.Value, ct);
+        }
         if (request.BusinessUnit is not null) entity.BusinessUnit = request.BusinessUnit;
         if (request.WorkLocation is not null) entity.WorkLocation = request.WorkLocation;
         if (request.OfficeBranch is not null) entity.OfficeBranch = request.OfficeBranch;
@@ -353,6 +358,17 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         if (request.ProjectType is not null) entity.ProjectType = request.ProjectType;
         if (request.ProjectAllocated is not null) entity.ProjectAllocated = request.ProjectAllocated;
         if (request.ClientEngManagerMapping is not null) entity.ClientEngManagerMapping = request.ClientEngManagerMapping;
+        if (request.GradDegree is not null) entity.GradDegree = request.GradDegree;
+        if (request.GradYear is not null) entity.GradYear = request.GradYear;
+        if (request.PostGradDegree is not null) entity.PostGradDegree = request.PostGradDegree;
+        if (request.PostGradYear is not null) entity.PostGradYear = request.PostGradYear;
+        if (request.ExpType is not null) entity.ExpType = request.ExpType;
+        if (request.PriorTotalExp is not null) entity.PriorTotalExp = request.PriorTotalExp;
+        if (request.PriorRelevantExp is not null) entity.PriorRelevantExp = request.PriorRelevantExp;
+        if (request.BondDelivered is not null) entity.BondDelivered = request.BondDelivered;
+        if (request.BondDurationMonths.HasValue) entity.BondDurationMonths = request.BondDurationMonths;
+        if (request.BondExpiryDate.HasValue) entity.BondExpiryDate = request.BondExpiryDate;
+        if (request.EmployeeStatusId.HasValue) entity.EmployeeStatusId = request.EmployeeStatusId;
 
         await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), entity.Id, ct);
         await ApplyCatalogNamesAsync(entity, ct);
@@ -545,12 +561,36 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
     public async Task<IReadOnlyList<MetaOptionDto>> GetReportingManagersAsync(CancellationToken ct = default)
     {
-        return await db.ReportingManagers
+        var list = await db.ReportingManagers
             .Where(m => m.IsActive)
             .OrderBy(m => m.SortOrder)
             .ThenBy(m => m.Name)
-            .Select(m => new MetaOptionDto(m.Id, m.Code, m.Name, m.EmployeeId))
             .ToListAsync(ct);
+
+        var results = new List<MetaOptionDto>(list.Count);
+        foreach (var m in list)
+        {
+            var empId = m.EmployeeId;
+            if (!empId.HasValue || !await db.Employees.AnyAsync(e => e.Id == empId.Value && e.DeletedAtUtc == null, ct))
+            {
+                var nameLower = m.Name.Trim().ToLower();
+                var matched = await db.Employees.FirstOrDefaultAsync(e =>
+                    e.DeletedAtUtc == null &&
+                    ((e.FirstName + " " + e.LastName).ToLower() == nameLower
+                     || e.FirstName.ToLower() == nameLower
+                     || (!string.IsNullOrEmpty(m.Email) && e.WorkEmail.ToLower() == m.Email.ToLower())), ct);
+
+                if (matched is not null)
+                {
+                    empId = matched.Id;
+                    m.EmployeeId = matched.Id;
+                    await db.SaveChangesAsync(ct);
+                }
+            }
+            results.Add(new MetaOptionDto(empId ?? m.Id, m.Code, m.Name, m.Id));
+        }
+
+        return results;
     }
 
     public async Task<IReadOnlyList<MetaOptionDto>> GetBusinessUnitsAsync(CancellationToken ct = default)
@@ -676,7 +716,10 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         var trimmed = RequireName(name);
         var existing = await db.ReportingManagers.FirstOrDefaultAsync(m => m.Name.ToLower() == trimmed.ToLower(), ct);
         if (existing is not null)
-            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.EmployeeId);
+        {
+            var resolvedId = await ResolveReportingManagerIdAsync(existing.Id, ct);
+            return new MetaOptionDto(resolvedId ?? existing.Id, existing.Code, existing.Name, existing.Id);
+        }
 
         var entity = new MstReportingManager
         {
@@ -688,7 +731,9 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         };
         db.ReportingManagers.Add(entity);
         await db.SaveChangesAsync(ct);
-        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.EmployeeId);
+
+        var empId = await ResolveReportingManagerIdAsync(entity.Id, ct);
+        return new MetaOptionDto(empId ?? entity.Id, entity.Code, entity.Name, entity.Id);
     }
 
     public async Task<MetaOptionDto> CreateDepartmentAsync(string name, CancellationToken ct = default)
@@ -922,7 +967,21 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.ClientLocation,
         e.ProjectType,
         e.ProjectAllocated,
-        e.ClientEngManagerMapping);
+        e.ClientEngManagerMapping,
+        e.GradDegree,
+        e.GradYear,
+        e.PostGradDegree,
+        e.PostGradYear,
+        e.ExpType,
+        e.PriorTotalExp,
+        e.PriorRelevantExp,
+        e.BondDelivered,
+        e.BondDurationMonths,
+        e.BondExpiryDate,
+        e.EmployeeStatusId,
+        e.DepartmentId,
+        e.DesignationId,
+        e.JobRoleId);
 
     private async Task ApplyCatalogNamesAsync(Employee entity, CancellationToken ct)
     {
@@ -956,6 +1015,77 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         var existing = await db.Nationalities.FirstOrDefaultAsync(
             n => n.Name == trimmed || n.Code == trimmed, ct);
         return existing?.Id;
+    }
+
+    private async Task<Guid?> ResolveReportingManagerIdAsync(Guid reportingManagerId, CancellationToken ct)
+    {
+        // 1. Check if the GUID directly matches an active Employee in employees table
+        if (await db.Employees.AnyAsync(e => e.Id == reportingManagerId && e.DeletedAtUtc == null, ct))
+        {
+            return reportingManagerId;
+        }
+
+        // 2. Check if the GUID is an MstReportingManager Id
+        var mst = await db.ReportingManagers.FirstOrDefaultAsync(m => m.Id == reportingManagerId, ct);
+        if (mst is null)
+        {
+            return null;
+        }
+
+        // 3. If the catalog entry already links to an active employee in employees table
+        if (mst.EmployeeId.HasValue && await db.Employees.AnyAsync(e => e.Id == mst.EmployeeId.Value && e.DeletedAtUtc == null, ct))
+        {
+            return mst.EmployeeId.Value;
+        }
+
+        // 4. Try matching an existing employee by full name or email
+        var nameLower = mst.Name.Trim().ToLower();
+        var matched = await db.Employees.FirstOrDefaultAsync(e =>
+            e.DeletedAtUtc == null &&
+            ((e.FirstName + " " + e.LastName).ToLower() == nameLower
+             || (e.FirstName.ToLower() == nameLower)
+             || (!string.IsNullOrEmpty(mst.Email) && e.WorkEmail.ToLower() == mst.Email.ToLower())), ct);
+
+        if (matched is not null)
+        {
+            mst.EmployeeId = matched.Id;
+            await db.SaveChangesAsync(ct);
+            return matched.Id;
+        }
+
+        // 5. Create a manager Employee record so FK_employees_employees_ReportingManagerId is satisfied
+        var parts = mst.Name.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        var fName = parts.Length > 0 ? parts[0] : mst.Name.Trim();
+        var lName = parts.Length > 1 ? parts[1] : "";
+        var code = await GetNextEmployeeCodeAsync(false, ct);
+        var workEmail = !string.IsNullOrWhiteSpace(mst.Email) ? mst.Email.Trim().ToLowerInvariant() : $"{Slug(mst.Name)}@talakunchi.com";
+        if (await db.Employees.AnyAsync(e => e.WorkEmail.ToLower() == workEmail.ToLower(), ct))
+        {
+            workEmail = $"{Slug(mst.Name)}.{Guid.NewGuid().ToString("N")[..4]}@talakunchi.com";
+        }
+
+        var managerEmp = new Employee
+        {
+            EmployeeCode = code,
+            FirstName = fName,
+            LastName = lName,
+            WorkEmail = workEmail,
+            Role = mst.Designation ?? "Reporting Manager",
+            Status = "Active",
+            ConfirmationStatus = "Active",
+            Category = "Permanent - Without Bond",
+            Skills = [],
+            Certifications = [],
+            Languages = ["English"],
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        db.Employees.Add(managerEmp);
+        await db.SaveChangesAsync(ct);
+
+        mst.EmployeeId = managerEmp.Id;
+        await db.SaveChangesAsync(ct);
+
+        return managerEmp.Id;
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>

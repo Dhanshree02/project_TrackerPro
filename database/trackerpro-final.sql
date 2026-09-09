@@ -1,8 +1,8 @@
---
+﻿--
 -- PostgreSQL database dump
 --
 
-\restrict LfjcLBnssjF6328nS5LVttVdYEYlBbsjbRhdoW1eFtHvD5gvssTcfB66RtXhFjw
+\restrict H5zU9G9UMJRd2XJDAKKP2c885cSoZPL1wUJqMfWSEpDj9NwFBl9laL4MrJhzg8k
 
 -- Dumped from database version 16.15
 -- Dumped by pg_dump version 16.15
@@ -33,6 +33,7 @@ ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employ
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_salary_bands_SalaryBandId";
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_roles_JobRoleId";
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_nationalities_NationalityId";
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_employee_statuses_EmployeeStatusId";
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_designations_DesignationId";
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_mst_departments_DepartmentId";
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "FK_employees_employees_ReportingManagerId";
@@ -75,6 +76,7 @@ DROP INDEX IF EXISTS public."IX_mst_industries_Name";
 DROP INDEX IF EXISTS public."IX_mst_industries_Code";
 DROP INDEX IF EXISTS public."IX_mst_entra_roles_EntraRoleValue";
 DROP INDEX IF EXISTS public."IX_mst_entra_roles_Code";
+DROP INDEX IF EXISTS public."IX_mst_employee_statuses_Code";
 DROP INDEX IF EXISTS public."IX_mst_email_domains_DomainName";
 DROP INDEX IF EXISTS public."IX_mst_designations_DepartmentId_Name";
 DROP INDEX IF EXISTS public."IX_mst_designations_Code";
@@ -82,6 +84,10 @@ DROP INDEX IF EXISTS public."IX_mst_departments_Name";
 DROP INDEX IF EXISTS public."IX_mst_departments_Code";
 DROP INDEX IF EXISTS public."IX_mst_countries_Name";
 DROP INDEX IF EXISTS public."IX_mst_countries_Code";
+DROP INDEX IF EXISTS public."IX_mst_contact_types_Name";
+DROP INDEX IF EXISTS public."IX_mst_contact_types_Code";
+DROP INDEX IF EXISTS public."IX_mst_contact_designations_Name";
+DROP INDEX IF EXISTS public."IX_mst_contact_designations_Code";
 DROP INDEX IF EXISTS public."IX_mst_cities_CountryId_Name";
 DROP INDEX IF EXISTS public."IX_mst_cities_Code";
 DROP INDEX IF EXISTS public."IX_mst_business_units_Code";
@@ -110,9 +116,13 @@ ALTER TABLE IF EXISTS ONLY public.repository_activity_logs DROP CONSTRAINT IF EX
 ALTER TABLE IF EXISTS ONLY public.mst_work_locations DROP CONSTRAINT IF EXISTS mst_work_locations_pkey;
 ALTER TABLE IF EXISTS ONLY public.mst_work_locations DROP CONSTRAINT IF EXISTS "mst_work_locations_Code_key";
 ALTER TABLE IF EXISTS ONLY public.mst_reporting_managers DROP CONSTRAINT IF EXISTS mst_reporting_managers_pkey;
+ALTER TABLE IF EXISTS ONLY public.mst_post_graduation_degrees DROP CONSTRAINT IF EXISTS mst_post_graduation_degrees_pkey;
 ALTER TABLE IF EXISTS ONLY public.mst_offices DROP CONSTRAINT IF EXISTS mst_offices_pkey;
 ALTER TABLE IF EXISTS ONLY public.mst_offices DROP CONSTRAINT IF EXISTS "mst_offices_Code_key";
+ALTER TABLE IF EXISTS ONLY public.mst_graduation_degrees DROP CONSTRAINT IF EXISTS mst_graduation_degrees_pkey;
+ALTER TABLE IF EXISTS ONLY public.mst_employee_statuses DROP CONSTRAINT IF EXISTS mst_employee_statuses_pkey;
 ALTER TABLE IF EXISTS ONLY public.mst_email_domains DROP CONSTRAINT IF EXISTS mst_email_domains_pkey;
+ALTER TABLE IF EXISTS ONLY public.mst_certifications DROP CONSTRAINT IF EXISTS mst_certifications_pkey;
 ALTER TABLE IF EXISTS ONLY public.mst_business_units DROP CONSTRAINT IF EXISTS mst_business_units_pkey;
 ALTER TABLE IF EXISTS ONLY public.mst_business_units DROP CONSTRAINT IF EXISTS "mst_business_units_Code_key";
 ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS "PK_users";
@@ -129,6 +139,8 @@ ALTER TABLE IF EXISTS ONLY public.mst_entra_roles DROP CONSTRAINT IF EXISTS "PK_
 ALTER TABLE IF EXISTS ONLY public.mst_designations DROP CONSTRAINT IF EXISTS "PK_mst_designations";
 ALTER TABLE IF EXISTS ONLY public.mst_departments DROP CONSTRAINT IF EXISTS "PK_mst_departments";
 ALTER TABLE IF EXISTS ONLY public.mst_countries DROP CONSTRAINT IF EXISTS "PK_mst_countries";
+ALTER TABLE IF EXISTS ONLY public.mst_contact_types DROP CONSTRAINT IF EXISTS "PK_mst_contact_types";
+ALTER TABLE IF EXISTS ONLY public.mst_contact_designations DROP CONSTRAINT IF EXISTS "PK_mst_contact_designations";
 ALTER TABLE IF EXISTS ONLY public.mst_cities DROP CONSTRAINT IF EXISTS "PK_mst_cities";
 ALTER TABLE IF EXISTS ONLY public.exited_employees DROP CONSTRAINT IF EXISTS "PK_exited_employees";
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS "PK_employees";
@@ -149,15 +161,21 @@ DROP TABLE IF EXISTS public.mst_work_locations;
 DROP TABLE IF EXISTS public.mst_salary_bands;
 DROP TABLE IF EXISTS public.mst_roles;
 DROP TABLE IF EXISTS public.mst_reporting_managers;
+DROP TABLE IF EXISTS public.mst_post_graduation_degrees;
 DROP TABLE IF EXISTS public.mst_offices;
 DROP TABLE IF EXISTS public.mst_nationalities;
 DROP TABLE IF EXISTS public.mst_industries;
+DROP TABLE IF EXISTS public.mst_graduation_degrees;
 DROP TABLE IF EXISTS public.mst_entra_roles;
+DROP TABLE IF EXISTS public.mst_employee_statuses;
 DROP TABLE IF EXISTS public.mst_email_domains;
 DROP TABLE IF EXISTS public.mst_designations;
 DROP TABLE IF EXISTS public.mst_departments;
 DROP TABLE IF EXISTS public.mst_countries;
+DROP TABLE IF EXISTS public.mst_contact_types;
+DROP TABLE IF EXISTS public.mst_contact_designations;
 DROP TABLE IF EXISTS public.mst_cities;
+DROP TABLE IF EXISTS public.mst_certifications;
 DROP TABLE IF EXISTS public.mst_business_units;
 DROP TABLE IF EXISTS public.exited_employees;
 DROP TABLE IF EXISTS public.employees;
@@ -212,6 +230,8 @@ CREATE TABLE public.client_contacts (
     "CreatedBy" uuid,
     "UpdatedBy" uuid,
     "DeletedAtUtc" timestamp with time zone,
+    "Country" character varying(120),
+    "PhoneCode" character varying(16),
     CONSTRAINT "CK_client_contacts_exactly_one_owner" CHECK (((("ClientId" IS NOT NULL) AND ("SubVentureId" IS NULL)) OR (("ClientId" IS NULL) AND ("SubVentureId" IS NOT NULL))))
 );
 
@@ -252,7 +272,10 @@ CREATE TABLE public.clients (
     "CustomerSince" date,
     "SalesManager" character varying(120),
     "SalesManagerId" uuid,
-    "KycDocumentPath" character varying(500)
+    "KycDocumentPath" character varying(500),
+    "BillingMedium" character varying(40),
+    "GroupSpocName" character varying(150),
+    "GroupSpocContact" character varying(40)
 );
 
 
@@ -330,13 +353,33 @@ CREATE TABLE public.employees (
     "SalaryBandId" uuid,
     "Aadhaar" character varying(12),
     "EmergencyContactName" text,
+    "EmployeeStatusId" uuid,
+    "BondDelivered" character varying(10),
+    "BondDurationMonths" integer,
+    "BondExpiryDate" date,
     "GradDegree" text,
     "GradYear" text,
     "PostGradDegree" text,
     "PostGradYear" text,
     "ExpType" text,
     "PriorTotalExp" text,
-    "PriorRelevantExp" text
+    "PriorRelevantExp" text,
+    emergencycontactrelation text,
+    pmodepartment text,
+    subdepartment text,
+    billablestatus text,
+    clientlocation text,
+    projecttype text,
+    projectallocated text,
+    clientengmanagermapping text,
+    "EmergencyContactRelation" text,
+    "PmoDepartment" text,
+    "SubDepartment" text,
+    "BillableStatus" text,
+    "ClientLocation" text,
+    "ProjectType" text,
+    "ProjectAllocated" text,
+    "ClientEngManagerMapping" text
 );
 
 
@@ -399,6 +442,25 @@ CREATE TABLE public.mst_business_units (
 ALTER TABLE public.mst_business_units OWNER TO postgres;
 
 --
+-- Name: mst_certifications; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mst_certifications (
+    "Id" uuid NOT NULL,
+    "Code" character varying(100) NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+ALTER TABLE public.mst_certifications OWNER TO postgres;
+
+--
 -- Name: mst_cities; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -417,6 +479,46 @@ CREATE TABLE public.mst_cities (
 
 
 ALTER TABLE public.mst_cities OWNER TO postgres;
+
+--
+-- Name: mst_contact_designations; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mst_contact_designations (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "Name" character varying(150) NOT NULL,
+    "IsActive" boolean NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+ALTER TABLE public.mst_contact_designations OWNER TO postgres;
+
+--
+-- Name: mst_contact_types; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mst_contact_types (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "Name" character varying(150) NOT NULL,
+    "IsActive" boolean NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+ALTER TABLE public.mst_contact_types OWNER TO postgres;
 
 --
 -- Name: mst_countries; Type: TABLE; Schema: public; Owner: postgres
@@ -500,6 +602,27 @@ CREATE TABLE public.mst_email_domains (
 ALTER TABLE public.mst_email_domains OWNER TO postgres;
 
 --
+-- Name: mst_employee_statuses; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mst_employee_statuses (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "Name" character varying(150) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "AllowOnboarding" boolean DEFAULT false NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+ALTER TABLE public.mst_employee_statuses OWNER TO postgres;
+
+--
 -- Name: mst_entra_roles; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -521,6 +644,25 @@ CREATE TABLE public.mst_entra_roles (
 
 
 ALTER TABLE public.mst_entra_roles OWNER TO postgres;
+
+--
+-- Name: mst_graduation_degrees; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mst_graduation_degrees (
+    "Id" uuid NOT NULL,
+    "Code" character varying(100) NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+ALTER TABLE public.mst_graduation_degrees OWNER TO postgres;
 
 --
 -- Name: mst_industries; Type: TABLE; Schema: public; Owner: postgres
@@ -580,6 +722,25 @@ CREATE TABLE public.mst_offices (
 
 
 ALTER TABLE public.mst_offices OWNER TO postgres;
+
+--
+-- Name: mst_post_graduation_degrees; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mst_post_graduation_degrees (
+    "Id" uuid NOT NULL,
+    "Code" character varying(100) NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+ALTER TABLE public.mst_post_graduation_degrees OWNER TO postgres;
 
 --
 -- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: postgres
@@ -646,45 +807,6 @@ ALTER TABLE public.mst_salary_bands OWNER TO postgres;
 --
 -- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: postgres
 --
-
-CREATE TABLE public.mst_certifications (
-    "Id" uuid NOT NULL,
-    "Code" character varying(100) NOT NULL,
-    "Name" character varying(200) NOT NULL,
-    "IsActive" boolean DEFAULT true NOT NULL,
-    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
-    "UpdatedAtUtc" timestamp with time zone,
-    "CreatedBy" uuid,
-    "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
-);
-ALTER TABLE public.mst_certifications OWNER TO postgres;
-
-CREATE TABLE public.mst_graduation_degrees (
-    "Id" uuid NOT NULL,
-    "Code" character varying(100) NOT NULL,
-    "Name" character varying(200) NOT NULL,
-    "IsActive" boolean DEFAULT true NOT NULL,
-    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
-    "UpdatedAtUtc" timestamp with time zone,
-    "CreatedBy" uuid,
-    "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
-);
-ALTER TABLE public.mst_graduation_degrees OWNER TO postgres;
-
-CREATE TABLE public.mst_post_graduation_degrees (
-    "Id" uuid NOT NULL,
-    "Code" character varying(100) NOT NULL,
-    "Name" character varying(200) NOT NULL,
-    "IsActive" boolean DEFAULT true NOT NULL,
-    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
-    "UpdatedAtUtc" timestamp with time zone,
-    "CreatedBy" uuid,
-    "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
-);
-ALTER TABLE public.mst_post_graduation_degrees OWNER TO postgres;
 
 CREATE TABLE public.mst_work_locations (
     "Id" uuid NOT NULL,
@@ -913,6 +1035,13 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 20260902110000_AddSubVentureKycDocument	10.0.4
 20260902180000_AddEmployeeCodeFormatCheck	10.0.4
 20260903120000_AddRepositoryDepartments	10.0.4
+20260905140000_AddEmployeeEmploymentBondFields	10.0.4
+20260908050000_AddCertificationsAndDegrees	10.0.4
+20260908190000_AddClientBillingMedium	10.0.4
+20260908193000_AddClientGroupSpocFields	10.0.4
+20260909120000_AddClientContactCountry	10.0.4
+20260909130000_AddContactDesignationMaster	10.0.4
+20260909140000_AddContactTypeMaster	10.0.4
 \.
 
 
@@ -932,46 +1061,52 @@ f61741ca-2c63-917f-ee7f-ae00cdbc08cb	e7554ba2-e546-93ce-1e88-a073badd78a2
 -- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-d5572af5-adde-4fd9-b14b-c857467d1c93	\N	37f0c3b1-16a1-4643-9f5a-f824204543c1	Sahil Lad	sahillad77@gmail.com	7854125698	ciso	Procurement	f	2026-08-19 06:43:26.584779+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-8959a84a-a7cc-42be-ba71-c142d5dae1fa	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-19 07:09:05.853384+00	2026-08-20 10:21:44.183087+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 10:21:44.183087+00
-26358579-8daf-4027-81c9-c375e8628aa3	\N	6a40584b-3bde-4c7d-a6e6-3ef920cd43d0	Sahil 	sahillad2092003@gmail.com	8744541212	spoc	Technical	f	2026-08-20 11:00:13.771971+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-77e4a9a2-d473-4007-be16-f9eebfb39df8	90fc8bcd-f45d-4bd4-88e7-a5543a0a9046	\N	Sahil	sahillad2092003@gmail.com	8744541212	spoc	Technical	f	2026-08-20 11:00:13.771971+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-0529bbe6-d5da-4295-9af6-a5d1fc964dc4	a04ccf3a-81c8-4416-8af7-068717ddb22b	\N	roshan jadhav	roshan.jadhav@gmail.com	7389247892	spoc	Accounts	f	2026-08-20 13:31:53.354468+00	2026-08-20 13:34:48.401428+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 13:34:48.401428+00
-146500d9-5e28-4612-8053-9b883e7bfa73	\N	65c6925a-8948-4485-9d93-e596e1f4273e	roshan jadhav	roshan.jadhav@gmail.com	7389247892	spoc	Accounts	f	2026-08-20 13:31:53.354468+00	2026-08-20 13:34:48.401428+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 13:34:48.401428+00
-5a47d941-02d2-4a03-a9fd-29a55f39f273	\N	65c6925a-8948-4485-9d93-e596e1f4273e	karan pawar	karan.pawar@gmail.com	5374903789	ciso	Technical	f	2026-08-20 13:31:53.354468+00	2026-08-20 13:34:48.401428+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 13:34:48.401428+00
-5e72a713-46c0-47c8-b777-f61ecf2a858e	a04ccf3a-81c8-4416-8af7-068717ddb22b	\N	karan pawar	karan.pawar@gmail.com	5374903789	ciso	Technical	f	2026-08-20 13:31:53.354468+00	2026-08-20 13:34:48.401428+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 13:34:48.401428+00
-03f15020-3812-47c9-97a4-3ed02203ca0a	\N	65c6925a-8948-4485-9d93-e596e1f4273e	karan pawar	karan.pawar@gmail.com	5374903789	ciso	Technical	f	2026-08-20 13:34:48.407968+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-251274f1-0037-4f3c-8d67-44d1e46981fa	\N	65c6925a-8948-4485-9d93-e596e1f4273e	roshan jadhav	roshan.jadhav@gmail.com	7389247892	spoc	Accounts	f	2026-08-20 13:34:48.407968+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-3865019e-696f-4b90-9347-8cd7ef76d999	\N	d3af0a54-b527-40ca-ac1e-9fb09fd81504	harshada	harshada@tk.com	4373947849	ciso	Technical	f	2026-08-20 13:34:48.407968+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-e6e01a67-c99e-4ed7-87a0-92e5a498d8ab	\N	d3af0a54-b527-40ca-ac1e-9fb09fd81504	muskan	muskan@tk.com	4356789038	spoc	Procurement	f	2026-08-20 13:34:48.407968+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-855194e2-92d8-4bd8-a850-110fa9ce4776	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-08-20 10:21:44.192431+00	2026-08-21 10:05:12.70694+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-21 10:05:12.70694+00
-873fac91-16b6-421c-bd45-3cd92e2dc931	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-08-20 10:21:44.192431+00	2026-08-21 10:05:12.70694+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-21 10:05:12.70694+00
-e90e0928-dbe2-47eb-b92d-3835423c1163	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-20 10:21:44.192431+00	2026-08-21 10:05:12.70694+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-21 10:05:12.70694+00
-00331436-e85a-4899-8929-daf84f77440f	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-21 10:05:12.720669+00	2026-08-27 09:26:47.61284+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-27 09:26:47.61284+00
-10f3620f-44d6-44a2-a90d-cbeb6ea0851a	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-08-21 10:05:12.720669+00	2026-08-27 09:26:47.61284+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-27 09:26:47.61284+00
-327f81c4-11e3-40bd-a73c-f5c9dfe06147	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-08-21 10:05:12.720669+00	2026-08-27 09:26:47.61284+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-27 09:26:47.61284+00
-d8e9f1ce-ac14-4a5a-899a-5d87963e99d2	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omkar	omkar@talakunchi.com	9877987899	SPOC	Accounts	f	2026-08-21 10:05:12.720669+00	2026-08-27 09:26:47.61284+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-27 09:26:47.61284+00
-86650066-2b7a-4e3e-881f-d34464ffbfe4	89714d99-8107-4cd0-8095-6da7823cb767	\N	Harshada Tawde	harshada.tawde@gmail.com	7977953150	spoc	Accounts	f	2026-09-02 07:09:24.021663+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-ab3333bb-387c-4753-b5a7-8482870ac7b4	\N	4af18ff4-3a01-44e4-b050-9e209643182b	Harshada Tawde	harshada.tawde@gmail.com	7977953150	spoc	Accounts	f	2026-09-02 07:09:24.021663+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-468e13c4-5890-4d09-9c7e-8d9f8e64fa6c	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00
-8cbfb851-12ca-4f1d-860e-7203c456f09b	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00
-93c4a9b8-9f1f-4a47-8008-d3fe3c62e4e8	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00
-9aab6b74-446e-4a4c-8be1-75cc41421933	\N	a2e2e7fc-4e12-4bd6-85b4-baffcd70c1f3	sdsad	madhurigaikwad2310@gmail.com	7621423213	spoc	Technical	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00
-d1c44f67-bc98-400a-a7c5-be6e22460ec7	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omkar	omkar@talakunchi.com	9877987899	SPOC	Accounts	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00
-51287b93-db6b-4ef3-8d7d-a8c76abb0a7a	\N	a2e2e7fc-4e12-4bd6-85b4-baffcd70c1f3	sdsad	madhurigaikwad2310@gmail.com	7621423213	spoc	Technical	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00
-8c6336ae-2f73-470c-b467-d5fb3702823f	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omkar	omkar@talakunchi.com	9877987899	SPOC	Accounts	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00
-9b41ef4d-51f8-458e-ad8b-b3cbe04425e4	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00
-e494d57c-f7c9-46e6-80bc-6d0739ce62a1	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00
-eae43466-9d9d-412a-803f-e781907279d1	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00
-f935ec18-20f7-4c73-9e2a-d2fb29df5848	\N	3a681001-620a-4190-bd6c-1ee7131f2c3f	Sahil Lad	sahillad77@gmail.com	7821093801	spoc	Procurement	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00
-07fc7aba-592c-4573-99a5-9b7c0298ab77	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-49207f1d-d605-4315-ba69-e3450e771172	\N	6cec1e8f-a65e-4c11-8fc3-265376ffe0cc	Sahil Lad	sahillad77@gmail.com	7854125698	spoc	Accounts	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-4e6eb452-29f7-4331-b8ec-2b8e84bd24b2	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-6dd8073f-86fb-4519-b19a-bbdea9480c9a	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-95681d26-9084-44f9-9d3b-c4be5e7fe351	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omkar	omkar@talakunchi.com	9877987899	SPOC	Accounts	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-9f43aded-feb0-48a7-918c-c29e9b567495	\N	a2e2e7fc-4e12-4bd6-85b4-baffcd70c1f3	sdsad	madhurigaikwad2310@gmail.com	7621423213	spoc	Technical	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-c00c4740-2af2-4fed-959f-23e9376d74b0	\N	3a681001-620a-4190-bd6c-1ee7131f2c3f	Sahil Lad	sahillad77@gmail.com	7821093801	spoc	Procurement	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+COPY public.client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Country", "PhoneCode") FROM stdin;
+d5572af5-adde-4fd9-b14b-c857467d1c93	\N	37f0c3b1-16a1-4643-9f5a-f824204543c1	Sahil Lad	sahillad77@gmail.com	7854125698	ciso	Procurement	f	2026-08-19 06:43:26.584779+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+8959a84a-a7cc-42be-ba71-c142d5dae1fa	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-19 07:09:05.853384+00	2026-08-20 10:21:44.183087+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 10:21:44.183087+00	\N	\N
+26358579-8daf-4027-81c9-c375e8628aa3	\N	6a40584b-3bde-4c7d-a6e6-3ef920cd43d0	Sahil 	sahillad2092003@gmail.com	8744541212	spoc	Technical	f	2026-08-20 11:00:13.771971+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+77e4a9a2-d473-4007-be16-f9eebfb39df8	90fc8bcd-f45d-4bd4-88e7-a5543a0a9046	\N	Sahil	sahillad2092003@gmail.com	8744541212	spoc	Technical	f	2026-08-20 11:00:13.771971+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+0529bbe6-d5da-4295-9af6-a5d1fc964dc4	a04ccf3a-81c8-4416-8af7-068717ddb22b	\N	roshan jadhav	roshan.jadhav@gmail.com	7389247892	spoc	Accounts	f	2026-08-20 13:31:53.354468+00	2026-08-20 13:34:48.401428+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 13:34:48.401428+00	\N	\N
+146500d9-5e28-4612-8053-9b883e7bfa73	\N	65c6925a-8948-4485-9d93-e596e1f4273e	roshan jadhav	roshan.jadhav@gmail.com	7389247892	spoc	Accounts	f	2026-08-20 13:31:53.354468+00	2026-08-20 13:34:48.401428+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 13:34:48.401428+00	\N	\N
+5a47d941-02d2-4a03-a9fd-29a55f39f273	\N	65c6925a-8948-4485-9d93-e596e1f4273e	karan pawar	karan.pawar@gmail.com	5374903789	ciso	Technical	f	2026-08-20 13:31:53.354468+00	2026-08-20 13:34:48.401428+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 13:34:48.401428+00	\N	\N
+5e72a713-46c0-47c8-b777-f61ecf2a858e	a04ccf3a-81c8-4416-8af7-068717ddb22b	\N	karan pawar	karan.pawar@gmail.com	5374903789	ciso	Technical	f	2026-08-20 13:31:53.354468+00	2026-08-20 13:34:48.401428+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 13:34:48.401428+00	\N	\N
+03f15020-3812-47c9-97a4-3ed02203ca0a	\N	65c6925a-8948-4485-9d93-e596e1f4273e	karan pawar	karan.pawar@gmail.com	5374903789	ciso	Technical	f	2026-08-20 13:34:48.407968+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+251274f1-0037-4f3c-8d67-44d1e46981fa	\N	65c6925a-8948-4485-9d93-e596e1f4273e	roshan jadhav	roshan.jadhav@gmail.com	7389247892	spoc	Accounts	f	2026-08-20 13:34:48.407968+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+3865019e-696f-4b90-9347-8cd7ef76d999	\N	d3af0a54-b527-40ca-ac1e-9fb09fd81504	harshada	harshada@tk.com	4373947849	ciso	Technical	f	2026-08-20 13:34:48.407968+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+e6e01a67-c99e-4ed7-87a0-92e5a498d8ab	\N	d3af0a54-b527-40ca-ac1e-9fb09fd81504	muskan	muskan@tk.com	4356789038	spoc	Procurement	f	2026-08-20 13:34:48.407968+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+855194e2-92d8-4bd8-a850-110fa9ce4776	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-08-20 10:21:44.192431+00	2026-08-21 10:05:12.70694+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-21 10:05:12.70694+00	\N	\N
+873fac91-16b6-421c-bd45-3cd92e2dc931	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-08-20 10:21:44.192431+00	2026-08-21 10:05:12.70694+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-21 10:05:12.70694+00	\N	\N
+e90e0928-dbe2-47eb-b92d-3835423c1163	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-20 10:21:44.192431+00	2026-08-21 10:05:12.70694+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-21 10:05:12.70694+00	\N	\N
+00331436-e85a-4899-8929-daf84f77440f	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-21 10:05:12.720669+00	2026-08-27 09:26:47.61284+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-27 09:26:47.61284+00	\N	\N
+10f3620f-44d6-44a2-a90d-cbeb6ea0851a	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-08-21 10:05:12.720669+00	2026-08-27 09:26:47.61284+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-27 09:26:47.61284+00	\N	\N
+327f81c4-11e3-40bd-a73c-f5c9dfe06147	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-08-21 10:05:12.720669+00	2026-08-27 09:26:47.61284+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-27 09:26:47.61284+00	\N	\N
+d8e9f1ce-ac14-4a5a-899a-5d87963e99d2	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omkar	omkar@talakunchi.com	9877987899	SPOC	Accounts	f	2026-08-21 10:05:12.720669+00	2026-08-27 09:26:47.61284+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-27 09:26:47.61284+00	\N	\N
+86650066-2b7a-4e3e-881f-d34464ffbfe4	89714d99-8107-4cd0-8095-6da7823cb767	\N	Harshada Tawde	harshada.tawde@gmail.com	7977953150	spoc	Accounts	f	2026-09-02 07:09:24.021663+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+ab3333bb-387c-4753-b5a7-8482870ac7b4	\N	4af18ff4-3a01-44e4-b050-9e209643182b	Harshada Tawde	harshada.tawde@gmail.com	7977953150	spoc	Accounts	f	2026-09-02 07:09:24.021663+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+468e13c4-5890-4d09-9c7e-8d9f8e64fa6c	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00	\N	\N
+8cbfb851-12ca-4f1d-860e-7203c456f09b	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00	\N	\N
+93c4a9b8-9f1f-4a47-8008-d3fe3c62e4e8	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00	\N	\N
+9aab6b74-446e-4a4c-8be1-75cc41421933	\N	a2e2e7fc-4e12-4bd6-85b4-baffcd70c1f3	sdsad	madhurigaikwad2310@gmail.com	7621423213	spoc	Technical	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00	\N	\N
+d1c44f67-bc98-400a-a7c5-be6e22460ec7	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omkar	omkar@talakunchi.com	9877987899	SPOC	Accounts	f	2026-08-27 09:26:47.624022+00	2026-09-02 10:24:57.106056+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 10:24:57.106056+00	\N	\N
+51287b93-db6b-4ef3-8d7d-a8c76abb0a7a	\N	a2e2e7fc-4e12-4bd6-85b4-baffcd70c1f3	sdsad	madhurigaikwad2310@gmail.com	7621423213	spoc	Technical	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00	\N	\N
+8c6336ae-2f73-470c-b467-d5fb3702823f	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omkar	omkar@talakunchi.com	9877987899	SPOC	Accounts	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00	\N	\N
+9b41ef4d-51f8-458e-ad8b-b3cbe04425e4	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00	\N	\N
+e494d57c-f7c9-46e6-80bc-6d0739ce62a1	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00	\N	\N
+eae43466-9d9d-412a-803f-e781907279d1	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00	\N	\N
+f935ec18-20f7-4c73-9e2a-d2fb29df5848	\N	3a681001-620a-4190-bd6c-1ee7131f2c3f	Sahil Lad	sahillad77@gmail.com	7821093801	spoc	Procurement	f	2026-09-02 10:24:57.125156+00	2026-09-02 11:47:36.637907+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-02 11:47:36.637907+00	\N	\N
+07fc7aba-592c-4573-99a5-9b7c0298ab77	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Sahil	sahil@gmail.com	9353213421	Spoc	Technical	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+49207f1d-d605-4315-ba69-e3450e771172	\N	6cec1e8f-a65e-4c11-8fc3-265376ffe0cc	Sahil Lad	sahillad77@gmail.com	7854125698	spoc	Accounts	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+4e6eb452-29f7-4331-b8ec-2b8e84bd24b2	\N	6b55edc3-064f-468d-9084-54fbd72dc126	Dhanashree	Dhanashree@gmail.com	8373292442	SPOC	Procurement	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+6dd8073f-86fb-4519-b19a-bbdea9480c9a	\N	f037ae82-e17c-4ffd-9ad3-f5e10a0e8817	Sahil Lad	sahillad77@gmail.com	454353453453	spoc	Technical	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+95681d26-9084-44f9-9d3b-c4be5e7fe351	\N	a69fe228-de12-44e5-9128-dc3898f67e5c	omkar	omkar@talakunchi.com	9877987899	SPOC	Accounts	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+9f43aded-feb0-48a7-918c-c29e9b567495	\N	a2e2e7fc-4e12-4bd6-85b4-baffcd70c1f3	sdsad	madhurigaikwad2310@gmail.com	7621423213	spoc	Technical	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+c00c4740-2af2-4fed-959f-23e9376d74b0	\N	3a681001-620a-4190-bd6c-1ee7131f2c3f	Sahil Lad	sahillad77@gmail.com	7821093801	spoc	Procurement	f	2026-09-02 11:47:36.680639+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+2f8150d2-5466-4fa0-b329-4f79c067db1f	\N	be9fd5f1-6786-4caa-bf68-e9ee4ab4c5a2	Omakar	omkar@gmail.com	7865444994	spoc	Procurement	f	2026-09-08 13:55:06.712263+00	2026-09-09 07:02:12.729863+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-09 07:02:12.729863+00	\N	\N
+a1fed47b-1b4a-437c-a8cd-c5e62da94f6c	\N	be9fd5f1-6786-4caa-bf68-e9ee4ab4c5a2	Dhanashree	Dha@gmail.com	7854325667	spoc	Technical	f	2026-09-08 13:55:06.712263+00	2026-09-09 07:02:12.729863+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-09 07:02:12.729863+00	\N	\N
+023e0aa7-e085-414b-bf60-4e718c79be7f	\N	be9fd5f1-6786-4caa-bf68-e9ee4ab4c5a2	Omakar	omkar@gmail.com	7865444994	spoc	Procurement	f	2026-09-09 07:02:12.789474+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
+aeef5714-79f5-4088-9835-4979f1f61bdd	\N	6fbfe113-eb06-42ca-b34e-e3c75139678b	Vignesh	vig@gmail.com	778646421	spoc	Technical	f	2026-09-09 07:02:12.789474+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	Australia	+61
+cd23c791-a572-4455-a9ab-ada7d93dc9ee	\N	6fbfe113-eb06-42ca-b34e-e3c75139678b	Sanket	sanket@gmail.com	7821548796	cisco	Accounts	f	2026-09-09 07:02:12.789474+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	India	+91
+da906f79-0a12-4776-b06d-50ef0b151465	\N	be9fd5f1-6786-4caa-bf68-e9ee4ab4c5a2	Dhanashree	Dha@gmail.com	7854325667	spoc	Technical	f	2026-09-09 07:02:12.789474+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N
 \.
 
 
@@ -979,23 +1114,24 @@ c00c4740-2af2-4fed-959f-23e9376d74b0	\N	3a681001-620a-4190-bd6c-1ee7131f2c3f	Sah
 -- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince", "SalesManager", "SalesManagerId", "KycDocumentPath") FROM stdin;
-06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Pharma	Healthcare	HP	it@helix.com	Old	Active	Pradeep Singh	Sanjay Sen	+91 98765 43211	Procurement Head	Procurement	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7f460c51-01ec-4da1-8f71-d6f360b56f91	\N	\N	2026-08-07	\N	\N	\N
-a04ccf3a-81c8-4416-8af7-068717ddb22b	Morphle	Banking	M	roshan.jadhav@gmail.com	New	Active	Pradeep Singh	roshan jadhav	7389247892	spoc	Accounts	2026-08-20 13:31:53.288995+00	2026-08-21 12:28:26.459736+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	Kalyan-Dombivli	India	API Gateway Configuration Guide (1).txt	no comments	8a50b4b9-7091-423c-ac8c-af55bc6df348	4a80bfdb-a191-4ce1-ab51-2142eb366db7	4d396fc0-ae55-4eeb-b2db-79bbb757d3cd	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-08-20	\N	\N	\N
-a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync AI	Technology	CA	contact@cloudsync.com	New	Active	Riya Kapoor	Neha Gupta	+91 98765 43215	IT Lead	Technical SPOC	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	02012f0c-97b2-4aea-a6b4-954ee97d892d	\N	\N	2026-08-07	\N	\N	\N
-a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Plus	Healthcare	MP	tech@medicareplus.com	New	Active	Pradeep Singh	Priyanka Joshi	+91 98765 43217	Procurement Mgr	Procurement	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7f460c51-01ec-4da1-8f71-d6f360b56f91	\N	\N	2026-08-07	\N	\N	\N
-428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Logistics	Logistics	ZL	pm@zenith.com	New	Active	Rahul Sharma	Vikram Malhotra	+91 98765 43213	Legal Counsel	Legal	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f175fde9-14f8-40e8-b564-47d8a29d84ff	\N	\N	2026-08-07	\N	\N	\N
-9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Bank	Banking	NB	ops@northwind.com	Old	Active	Rahul Sharma	Rahul Sharma	+91 98765 43210	IT Manager	Technical SPOC	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	4a80bfdb-a191-4ce1-ab51-2142eb366db7	\N	\N	2026-08-07	\N	\N	\N
-47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Energy	Energy	LE	digital@lumen.com	Old	Active	Pradeep Singh	Arjun Mehta	+91 98765 43214	Operations Manager	Technical SPOC	2026-08-07 07:49:59.669429+00	2026-08-21 12:28:40.3605+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N	\N	8a50b4b9-7091-423c-ac8c-af55bc6df348	c7e82721-829b-4450-8393-022587178471	\N	\N	2026-08-07	\N	\N	\N
-fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Global	Finance	FG	dev@fintechglobal.com	Old	Active	Rahul Sharma	Siddharth Shah	+91 98765 43216	Finance VP	Accounts	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	cd116cba-a939-4cb7-bd0f-233019a005b0	\N	\N	2026-08-07	\N	\N	\N
-f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Retail	Retail	OR	tech@orbit.com	Old	Active	Riya Kapoor	Aditi Rao	+91 98765 43212	CFO	Accounts	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	935db8d7-e2aa-417e-839e-b51d00ce951e	\N	\N	2026-08-07	\N	\N	\N
-f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Solutions	Environment	ES	projects@ecogreen.com	Old	Active	Riya Kapoor	Rohan Varma	+91 98765 43218	Legal Head	Legal	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	16ebeb23-b3d8-4fb7-a4f6-789510c28ad3	\N	\N	2026-08-07	\N	\N	\N
-90fc8bcd-f45d-4bd4-88e7-a5543a0a9046	TATA	Energy	T	sahillad2092003@gmail.com	New	Active	Pradeep Singh	Sahil	8744541212	spoc	Technical	2026-08-20 11:00:13.739957+00	2026-08-21 09:02:02.864281+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	mumbai	India	exit-summary (1).csv	kldfslkdfsdlf	8a50b4b9-7091-423c-ac8c-af55bc6df348	c7e82721-829b-4450-8393-022587178471	\N	\N	2026-08-20	\N	\N	\N
-14db9d14-dec6-4488-a6ae-d9bab5b2ef48	Test Sales Customer	Technology	TS	\N	New	Active	Riya Kapoor	\N	\N	\N	\N	2026-08-28 05:20:20.174418+00	2026-08-28 05:20:30.886324+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-28 05:20:30.886324+00	\N	Bengaluru	India	\N	\N	dd7a3258-31be-425c-8771-cab8ba8b1b22	02012f0c-97b2-4aea-a6b4-954ee97d892d	d76207a2-8c4c-4352-acb7-67f098fb08c4	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-08-28	Vikram Sharma	\N	\N
-89714d99-8107-4cd0-8095-6da7823cb767	cust test	Banking	CT	harshada.tawde@gmail.com	New	Active	riya kapoor	Harshada Tawde	7977953150	spoc	Accounts	2026-09-02 07:09:23.899459+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	Mumbai	India	Details for PMS.xlsx	\N	dd7a3258-31be-425c-8771-cab8ba8b1b22	4a80bfdb-a191-4ce1-ab51-2142eb366db7	6ffbb80b-985d-4f00-9140-db22f39a625d	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-09-02	\N	\N	\N
-ccc4f266-8e68-4b62-9967-04ddacc9113c	SM Test Client	Technology	ST	smtest@example.com	New	Active	Riya Kapoor	Test	\N	\N	\N	2026-09-02 07:48:11.711029+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	Mumbai	India	\N	\N	dd7a3258-31be-425c-8771-cab8ba8b1b22	02012f0c-97b2-4aea-a6b4-954ee97d892d	6ffbb80b-985d-4f00-9140-db22f39a625d	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-09-02	John Smith	\N	\N
-08f36c9b-9833-4008-9a58-9b69b5c491e3	Onboard SM Fix Test	Technology	OS	smfix@example.com	New	Active	Riya Kapoor	Test	\N	\N	\N	2026-09-02 07:54:30.517916+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	Mumbai	India	\N	\N	dd7a3258-31be-425c-8771-cab8ba8b1b22	02012f0c-97b2-4aea-a6b4-954ee97d892d	6ffbb80b-985d-4f00-9140-db22f39a625d	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-09-02	Priya Shah	1a350645-f31a-4309-8441-d37f39e31fe5	\N
-c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Systems	Automotive	AS	engineering@autodrive.com	Old	Active	Arjun Mehta	Kabir Sen	+91 98765 43219	Engineering SPOC	Technical SPOC	2026-08-07 07:49:59.669429+00	2026-09-02 10:24:57.074997+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N	\N	230058bf-ed8a-45da-8d77-4a2821a0a76a	4bf54de4-0e85-4904-a89f-542301b65077	\N	\N	2026-08-07	Manohar Lad	\N	\N
+COPY public.clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince", "SalesManager", "SalesManagerId", "KycDocumentPath", "BillingMedium", "GroupSpocName", "GroupSpocContact") FROM stdin;
+14db9d14-dec6-4488-a6ae-d9bab5b2ef48	Test Sales Customer	Technology	TS	\N	New	Active	Riya Kapoor	\N	\N	\N	\N	2026-08-28 05:20:20.174418+00	2026-08-28 05:20:30.886324+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-28 05:20:30.886324+00	\N	Bengaluru	India	\N	\N	00000000-0000-4000-8000-000000000022	02012f0c-97b2-4aea-a6b4-954ee97d892d	d76207a2-8c4c-4352-acb7-67f098fb08c4	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-08-28	Vikram Sharma	\N	\N	\N	\N	\N
+ccc4f266-8e68-4b62-9967-04ddacc9113c	SM Test Client	Technology	ST	smtest@example.com	New	Active	Riya Kapoor	Test	\N	\N	\N	2026-09-02 07:48:11.711029+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	Mumbai	India	\N	\N	00000000-0000-4000-8000-000000000022	02012f0c-97b2-4aea-a6b4-954ee97d892d	6ffbb80b-985d-4f00-9140-db22f39a625d	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-09-02	John Smith	\N	\N	\N	Test	\N
+08f36c9b-9833-4008-9a58-9b69b5c491e3	Onboard SM Fix Test	Technology	OS	smfix@example.com	New	Active	Riya Kapoor	Test	\N	\N	\N	2026-09-02 07:54:30.517916+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	Mumbai	India	\N	\N	00000000-0000-4000-8000-000000000022	02012f0c-97b2-4aea-a6b4-954ee97d892d	6ffbb80b-985d-4f00-9140-db22f39a625d	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-09-02	Priya Shah	\N	\N	\N	Test	\N
+06cb7699-93b0-047f-0c59-b7f1baa24ec8	Helix Pharma	Healthcare	HP	it@helix.com	Old	Active	Pradeep Singh	Sanjay Sen	+91 98765 43211	Procurement Head	Procurement	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000024	7f460c51-01ec-4da1-8f71-d6f360b56f91	\N	\N	2026-08-07	\N	\N	\N	\N	Sanjay Sen	+91 98765 43211
+a70cd580-74be-fff2-31b3-dcc06cc11f06	CloudSync AI	Technology	CA	contact@cloudsync.com	New	Active	Riya Kapoor	Neha Gupta	+91 98765 43215	IT Lead	Technical SPOC	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000022	02012f0c-97b2-4aea-a6b4-954ee97d892d	\N	\N	2026-08-07	\N	\N	\N	\N	Neha Gupta	+91 98765 43215
+f61741ca-2c63-917f-ee7f-ae00cdbc08cb	Orbit Retail	Retail	OR	tech@orbit.com	Old	Active	Riya Kapoor	Aditi Rao	+91 98765 43212	CFO	Accounts	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000022	935db8d7-e2aa-417e-839e-b51d00ce951e	\N	\N	2026-08-07	\N	\N	\N	\N	Aditi Rao	+91 98765 43212
+f38ca416-9ecc-1214-1c54-42ecf337d858	EcoGreen Solutions	Environment	ES	projects@ecogreen.com	Old	Active	Riya Kapoor	Rohan Varma	+91 98765 43218	Legal Head	Legal	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000022	16ebeb23-b3d8-4fb7-a4f6-789510c28ad3	\N	\N	2026-08-07	\N	\N	\N	\N	Rohan Varma	+91 98765 43218
+428f81d7-182b-baf5-a71e-7b2216c94a1d	Zenith Logistics	Logistics	ZL	pm@zenith.com	New	Active	Rahul Sharma	Vikram Malhotra	+91 98765 43213	Legal Counsel	Legal	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000023	f175fde9-14f8-40e8-b564-47d8a29d84ff	\N	\N	2026-08-07	\N	\N	\N	\N	Vikram Malhotra	+91 98765 43213
+9512ff00-e1ad-e1f7-537b-5d7103c7b0f0	Northwind Bank	Banking	NB	ops@northwind.com	Old	Active	Rahul Sharma	Rahul Sharma	+91 98765 43210	IT Manager	Technical SPOC	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000023	4a80bfdb-a191-4ce1-ab51-2142eb366db7	\N	\N	2026-08-07	\N	\N	\N	\N	Rahul Sharma	+91 98765 43210
+fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Global	Finance	FG	dev@fintechglobal.com	Old	Active	Rahul Sharma	Siddharth Shah	+91 98765 43216	Finance VP	Accounts	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000023	cd116cba-a939-4cb7-bd0f-233019a005b0	\N	\N	2026-08-07	\N	\N	\N	\N	Siddharth Shah	+91 98765 43216
+89714d99-8107-4cd0-8095-6da7823cb767	cust test	Banking	CT	harshada.tawde@gmail.com	New	Active	riya kapoor	Harshada Tawde	7977953150	spoc	Accounts	2026-09-02 07:09:23.899459+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	Mumbai	India	Details for PMS.xlsx	\N	00000000-0000-4000-8000-000000000022	4a80bfdb-a191-4ce1-ab51-2142eb366db7	6ffbb80b-985d-4f00-9140-db22f39a625d	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-09-02	\N	\N	\N	\N	Harshada Tawde	7977953150
+a04ccf3a-81c8-4416-8af7-068717ddb22b	Morphle	Banking	M	roshan.jadhav@gmail.com	New	Active	Pradeep Singh	roshan jadhav	7389247892	spoc	Accounts	2026-08-20 13:31:53.288995+00	2026-08-21 12:28:26.459736+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	Kalyan-Dombivli	India	API Gateway Configuration Guide (1).txt	no comments	00000000-0000-4000-8000-000000000024	4a80bfdb-a191-4ce1-ab51-2142eb366db7	4d396fc0-ae55-4eeb-b2db-79bbb757d3cd	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-08-20	\N	\N	\N	\N	roshan jadhav	7389247892
+a8403352-05bc-3658-d6c2-55ac4d6bea24	MediCare Plus	Healthcare	MP	tech@medicareplus.com	New	Active	Pradeep Singh	Priyanka Joshi	+91 98765 43217	Procurement Mgr	Procurement	2026-08-07 07:49:59.669429+00	\N	\N	\N	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000024	7f460c51-01ec-4da1-8f71-d6f360b56f91	\N	\N	2026-08-07	\N	\N	\N	\N	Priyanka Joshi	+91 98765 43217
+47e27c95-3686-6752-359c-e6a9e5f22e07	Lumen Energy	Energy	LE	digital@lumen.com	Old	Active	Pradeep Singh	Arjun Mehta	+91 98765 43214	Operations Manager	Technical SPOC	2026-08-07 07:49:59.669429+00	2026-08-21 12:28:40.3605+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000024	c7e82721-829b-4450-8393-022587178471	\N	\N	2026-08-07	\N	\N	\N	\N	Arjun Mehta	+91 98765 43214
+90fc8bcd-f45d-4bd4-88e7-a5543a0a9046	TATA	Energy	T	sahillad2092003@gmail.com	New	Active	Pradeep Singh	Sahil	8744541212	spoc	Technical	2026-08-20 11:00:13.739957+00	2026-08-21 09:02:02.864281+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	mumbai	India	exit-summary (1).csv	kldfslkdfsdlf	00000000-0000-4000-8000-000000000024	c7e82721-829b-4450-8393-022587178471	\N	\N	2026-08-20	\N	\N	\N	\N	Sahil	8744541212
+c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Systems	Automotive	AS	engineering@autodrive.com	Old	Active	Arjun Mehta	Kabir Sen	+91 98765 43219	Engineering SPOC	Technical SPOC	2026-08-07 07:49:59.669429+00	2026-09-02 10:24:57.074997+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N	\N	00000000-0000-4000-8000-000000000025	4bf54de4-0e85-4904-a89f-542301b65077	\N	\N	2026-08-07	Manohar Lad	\N	\N	\N	Kabir Sen	+91 98765 43219
+d35873d4-c12c-40c3-a66e-78d9f296ef2b	Testing	Energy	T	omkar@gmail.com	New	Active	Pradeep Singh	Sahil	6734543534	\N	Group SPOC	2026-09-08 13:55:06.603779+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	Gurugram	India	IN-2026-27-C004-P003.xlsx	\N	00000000-0000-4000-8000-000000000024	c7e82721-829b-4450-8393-022587178471	95913438-968f-4e17-8324-a8e75b2242f4	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-09-08	Nikhil Khanna	00000000-0000-4000-8000-000000000021	\N	Portal Based	Sahil	6734543534
 \.
 
 
@@ -1003,40 +1139,34 @@ c8e5ec6b-a151-07b1-ec38-5c7e733dd013	AutoDrive Systems	Automotive	AS	engineering
 -- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "ProjectSite", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "JobRoleId", "NationalityId", "ProbationPeriod", "SalaryBandId", "Aadhaar", "EmergencyContactName") FROM stdin;
-c5d5234b-6151-4e42-abd3-0d91dd38754b	TK-0016	Meera	Nambiar	meera.nambiar@acme.co	meera1015@gmail.com	9876501015	9866501015	Female	1996-03-15	135, Andheri Office	9811101015	Single	Indian	be8e036d-ad13-4c79-89ec-294e490a6816	1e7faab8-273d-40df-9f9a-485160186c5a	GRC Auditor - I	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Offsite	2021-03-10	Active	Active	Completed	6 years	Infosys	Full-time	Permanent	No	60 days	TK-4015	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Product"]	["NA"]	["English", "Hindi"]	84	82	5	89	95	94	Ready in 1 year	Solid contributor on current assignments.	ABCDE1249F	501234567815	L4	100112345015	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-08-20 06:35:44.26208+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 06:35:44.26208+00	\N	\N	\N	\N	\N	\N
-eb10f37d-b64f-4b17-976b-b962645514f2	TK-0029	Priya	Shah	priya.shah.839199831f3541eda878b9f48a7f9743@acme.co	\N	\N	\N	Female	1994-03-12	Andheri East, Mumbai	9876543210	Married	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Senior Pentester - I	\N	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	\N	\N	Offsite	\N	Active	\N	6 months	5 years	Acme	Full-time	Permanent	No	\N	TK-4029	NA	NA	B.Tech	["React", "Mentoring"]	["AWS"]	["English", "Hindi"]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	L2	\N	\N	\N	\N	2026-08-21 05:21:39.645179+00	2026-08-22 05:27:05.457481+00	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	6 months	ebed343e-301f-4984-b292-fa8d1cb1623c	\N	\N
-3dcb0f17-b94a-470c-ba85-86ac0f1c65c8	TK-0014	Kavya	Desai	kavya.desai@acme.co	kavya1013@gmail.com	9876501013	9866501013	Female	1994-01-13	133, Andheri Office	9811101013	Married	Indian	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	Python Developer - II	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Onsite	2019-01-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4013	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Marketing"]	["NA"]	["English", "Hindi"]	82	80	3	87	93	92	Ready Now	Solid contributor on current assignments.	ABCDE1247F	501234567813	L4	100112345013	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890013	\N
-eb50369d-e526-459c-bb6c-aa3a85b231db	TKI-0001	Integration	Resource	integration.resource.c92dd5fc2d1c4c4fa7401c33cac1e6fe@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	Intern	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2019-01-10	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Integration test	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 12:25:03.82285+00	2026-09-02 12:35:16.109916+00	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	\N	\N	\N	234567890025	\N
-498bb0ed-62ca-4e56-bcb3-4cbd356077be	TK-0003	Rohan	Mehta	rohan.mehta@acme.co	rohan1002@gmail.com	9876501002	9866501002	Male	1991-02-02	122, Dombivali Office	9811101002	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	DevSecOps Practitioner - II	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Offsite	2020-02-10	Notice Period	Active	Completed	3 years	TCS	Full-time	Permanent	No	60 days	TK-4002	Resign	bo	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	71	69	4	76	91	81	Ready in 1 year	Solid contributor on current assignments.	ABCDE1236F	501234567802	L5	100112345002	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890002	\N
-58198691-3595-4565-8ba6-d5f150240aa3	TK-0015	Arjun	Shah	arjun.shah@acme.co	arjun1014@gmail.com	9876501014	9866501014	Male	1995-02-14	134, Dombivali Office	9811101014	Single	Indian	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	c70b9832-841e-4864-9b85-eaba3c0a995f	Desktop Support Engineer - I	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Offsite	2020-02-10	Active	Active	Completed	5 years	TCS	Full-time	Permanent	No	90 days	TK-4014	NA	NA	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	83	81	4	88	94	93	Ready in 1 year	Solid contributor on current assignments.	ABCDE1248F	501234567814	L4	100112345014	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890014	\N
-c15b2b43-0884-4999-bece-9289d1db561f	TK-0017	Vikram	Gupta	vikram.gupta@acme.co	vikram1016@gmail.com	9876501016	9866501016	Male	1997-04-16	136, Dombivali Office	9811101016	Married	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	Senior PMO - I	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Bond	\N	Onsite	2022-04-10	Active	Active	Completed	7 years	TCS	Full-time	Permanent	Yes ??? 2 years	90 days	TK-4016	NA	NA	MCA	["Communication", "Delivery", "Operations"]	["NA"]	["English", "Hindi"]	85	83	3	90	96	80	Ready in 1 year	Solid contributor on current assignments.	ABCDE1250F	501234567816	L4	100112345016	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890016	\N
-9e1b1aa9-fcd3-47be-b264-53806520c9fc	TK-0019	Aditya	Reddy	aditya.reddy@acme.co	aditya1018@gmail.com	9876501018	9866501018	Male	1991-06-18	138, Dombivali Office	9811101018	Single	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	6d25ff6d-e13d-440f-b775-215547af7acb	SOC Analyst - I	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Offsite	2024-06-10	Active	Active	Completed	9 years	TCS	Full-time	Permanent	No	90 days	TK-4018	NA	NA	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	87	85	5	92	98	82	Ready in 1 year	Solid contributor on current assignments.	ABCDE1252F	501234567818	L4	100112345018	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-08-20 06:10:09.305181+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-08-20 06:10:09.305181+00	\N	\N	\N	\N	\N	\N
-593b0378-d20a-40ee-b0a0-ae4acc0a78aa	TK-0010	Aanya	Joshi	aanya.joshi@acme.co	aanya1009@gmail.com	9876501009	9866501009	Female	1990-09-09	129, Andheri Office	9811101009	Single	Indian	13c91c98-00ae-4211-acb8-d06e35953806	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	Business Development Associate - I	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Offsite	2021-09-10	Active	Active	Completed	10 years	Infosys	Full-time	Permanent	No	60 days	TK-4009	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Sales"]	["NA"]	["English", "Hindi"]	78	76	5	83	98	88	Ready Now	Solid contributor on current assignments.	ABCDE1243F	501234567809	L4	100112345009	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890009	\N
-81c42f4c-b588-4037-a106-47f339a777f6	TK-0020	Pooja	Menon	pooja.menon@acme.co	pooja1019@gmail.com	9876501019	9866501019	Female	1992-07-19	139, Andheri Office	9811101019	Married	Indian	310a2f16-15f6-4b82-95f6-ab18b5b429f5	485012d4-2c28-4bc4-92c7-3609e3e3749e	Senior HR Executive - I	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Onsite	2019-07-10	Active	Active	Completed	10 years	Infosys	Full-time	Permanent	No	60 days	TK-4019	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Human Resources"]	["NA"]	["English", "Hindi"]	88	86	3	93	90	83	Ready in 1 year	Solid contributor on current assignments.	ABCDE1253F	501234567819	L4	100112345019	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890019	\N
-a165f6aa-148a-4ad0-953a-f154ae0991c8	TK-0027	Integration	Resource	integration.resource.e531fb2cecab4c6caa485682aeaa36eb@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	ae255622-ddcc-45ea-a699-8ec416fe57ab	DevSecOps Practitioner - I	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	\N	\N	\N	\N	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Notice already ended	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 12:25:04.462343+00	2026-08-20 12:25:04.510288+00	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	2026-08-20 12:25:04.510288+00	\N	\N	\N	\N	\N	\N
-7c9168b9-8269-430b-89d8-a1ba0b8e99af	TK-0018	Ishita	Bansal	ishita.bansal@acme.co	ishita1017@gmail.com	9876501017	9866501017	Female	1990-05-17	137, Andheri Office	9811101017	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	PenTester - I	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Offsite	2023-05-10	Active	Active	Completed	8 years	Infosys	Full-time	Permanent	No	60 days	TK-4017	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Design"]	["NA"]	["English", "Hindi"]	86	84	4	91	97	81	Ready Now	Solid contributor on current assignments.	ABCDE1251F	501234567817	L4	100112345017	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890017	\N
-8065ff15-64d6-4f36-a003-f0444a620bd8	TK-0021	Nikhil	Khanna	nikhil.khanna@acme.co	nikhil1020@gmail.com	9876501020	9866501020	Male	1993-08-20	140, Dombivali Office	9811101020	Single	Indian	13c91c98-00ae-4211-acb8-d06e35953806	e2c675a7-92dc-4477-be75-9a304cbe4def	Sales Associate	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Offsite	2020-08-10	Active	Active	Completed	11 years	TCS	Full-time	Permanent	No	90 days	TK-4020	NA	NA	MCA	["Communication", "Delivery", "Sales"]	["NA"]	["English", "Hindi"]	89	87	4	94	91	84	Ready in 1 year	Solid contributor on current assignments.	ABCDE1254F	501234567820	L4	100112345020	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890020	\N
-f7404cb8-5d1a-40bf-b690-22cf179320dd	TK-0009	Samar	Patel	samar.patel@acme.co	samar1008@gmail.com	9876501008	9866501008	Male	1997-08-08	128, Dombivali Office	9811101008	Single	Indian	310a2f16-15f6-4b82-95f6-ab18b5b429f5	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	HR Head	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Offsite	2020-08-10	Active	Active	Completed	9 years	TCS	Full-time	Permanent	No	90 days	TK-4008	NA	NA	MCA	["Communication", "Delivery", "Human Resources"]	["NA"]	["English", "Hindi"]	77	75	4	82	97	87	Ready in 1 year	Solid contributor on current assignments.	ABCDE1242F	501234567808	L4	100112345008	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890008	\N
-8e97c526-8c79-44c6-a23f-ece0d9b21df5	TK-0004	Sneha	Iyer	sneha.iyer@acme.co	sneha1003@gmail.com	9876501003	9866501003	Female	1992-03-03	123, Andheri Office	9811101003	Single	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	SOC Lead - I	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Offsite	2021-03-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4003	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	72	70	5	77	92	82	Ready in 1 year	Solid contributor on current assignments.	ABCDE1237F	501234567803	L5	100112345003	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890003	\N
-fc06e810-3e2d-4510-bfc1-669ccf579da2	TK-0007	Ankit	Verma	ankit.verma@acme.co	ankit1006@gmail.com	9876501006	9866501006	Male	1995-06-06	126, Dombivali Office	9811101006	Single	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	4650d4e0-f73c-4688-ae5f-830a46348ff9	SIEM Admin - II	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Bond	\N	Offsite	2024-06-10	Active	Active	Completed	7 years	TCS	Full-time	Permanent	Yes ??? 2 years	90 days	TK-4006	NA	NA	MCA	["Communication", "Delivery", "Design"]	["NA"]	["English", "Hindi"]	75	73	5	80	95	85	Ready in 1 year	Solid contributor on current assignments.	ABCDE1240F	501234567806	L4	100112345006	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890006	\N
-18b83048-56d5-4365-8bc5-3ba65405467e	TK-0011	Harsh	Nair	harsh.nair@acme.co	harsh1010@gmail.com	9876501010	9866501010	Male	1991-10-10	130, Dombivali Office	9811101010	Married	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	Associate PMO - I	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Onsite	2022-10-10	Active	Active	Completed	11 years	TCS	Full-time	Permanent	No	90 days	TK-4010	NA	NA	MCA	["Communication", "Delivery", "Operations"]	["NA"]	["English", "Hindi"]	79	77	3	84	90	89	Ready in 1 year	Solid contributor on current assignments.	ABCDE1244F	501234567810	L4	100112345010	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890010	\N
-f8258beb-f446-477d-bb7e-69666c5fe314	TK-0013	Yash	Malik	yash.malik@acme.co	yash1012@gmail.com	9876501012	9866501012	Male	1993-12-12	132, Dombivali Office	9811101012	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	Red Team Practitioner - II	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Offsite	2024-12-10	Active	Active	Completed	3 years	TCS	Full-time	Permanent	No	90 days	TK-4012	NA	NA	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	81	79	5	86	92	91	Ready in 1 year	Solid contributor on current assignments.	ABCDE1246F	501234567812	L4	100112345012	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890012	\N
-080045f2-3ff3-49af-bced-4b10ea1dde6f	TK-0028	Integration	Resource	integration.resource.ce5bcae27dbc41978b56226b5bf1debf@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea315f7d-d597-41b3-a999-4f3851bcd020	SIEM Admin - I	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	\N	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Integration test	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 12:51:17.146104+00	2026-08-22 05:27:05.457481+00	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	\N	\N	\N	\N	\N
-230058bf-ed8a-45da-8d77-4a2821a0a76a	TK-0025	Arjun	Mehta	arjun.mehta@acme.co	arjun1024@gmail.com	9876501024	9866501024	Male	1997-12-24	144, Dombivali Office	9811101024	Single	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	4ef3d669-21ca-43ab-a132-db6b00c6063f	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Offsite	2024-12-10	Active	Active	Completed	5 years	TCS	Full-time	Permanent	No	90 days	TK-4024	NA	NA	MCA	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	93	71	5	78	95	88	Ready in 1 year	Solid contributor on current assignments.	ABCDE1258F	501234567824	L4	100112345024	Old Regime	Compliant	\N	2026-08-21 08:28:23.134157+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N	234567890024	\N
-dd7a3258-31be-425c-8771-cab8ba8b1b22	TK-0022	Riya	Kapoor	riya.kapoor@acme.co	riya1021@gmail.com	9876501021	9866501021	Female	1994-09-21	141, Andheri Office	9811101021	Single	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	4ef3d669-21ca-43ab-a132-db6b00c6063f	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	Offsite	2021-09-10	Active	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes ??? 2 years	60 days	TK-4021	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	90	68	5	75	92	85	Ready Now	Solid contributor on current assignments.	ABCDE1255F	501234567821	L4	100112345021	New Regime	Compliant	\N	2026-08-21 08:28:23.134157+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N	234567890021	\N
-b78530f0-0687-4f26-a614-8318c62901f9	TK-0026	Pranjali	Shah	pranjali@talakunchi.io	pranjali@gmail.com	8894344343	9827327263	\N	\N	\N	\N	\N	India	898c36e9-1cb7-4c56-9148-a3b6893c0149	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	Python Developer - I	2446deb8-f6cc-4ee1-b179-599d0a2e357a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Offsite	2026-08-12	Active	Active	\N	\N	\N	\N	\N	\N	\N	\N	NA	NA	\N	[]	[]	[]	0	0	0	0	0	0	\N	\N	WASDE2324H	3246572827344	\N	973456234651	\N	Pending	\N	2026-08-20 10:39:23.376516+00	2026-08-22 05:27:05.457481+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N	\N	\N	\N
-8a50b4b9-7091-423c-ac8c-af55bc6df348	TK-0024	Pradeep	Singh	pradeep.singh@acme.co	pradeep1023@gmail.com	9876501023	9866501023	Male	1996-11-23	143, Andheri Office	9811101023	Single	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	4ef3d669-21ca-43ab-a132-db6b00c6063f	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Offsite	2023-11-10	Active	Active	Completed	4 years	Infosys	Full-time	Permanent	No	60 days	TK-4023	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	92	70	4	77	94	87	Ready in 1 year	Solid contributor on current assignments.	ABCDE1257F	501234567823	L4	100112345023	New Regime	Compliant	\N	2026-08-21 08:28:23.134157+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N	234567890023	\N
-2446deb8-f6cc-4ee1-b179-599d0a2e357a	TK-0002	Priya	Sharma	priya.sharma@acme.co	priya1001@gmail.com	9876501001	9866501001	Female	1990-01-01	121, Andheri Office	9811101001	Married	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	PenTester - II	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	Onsite	2019-01-10	Notice Period	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes ??? 2 years	60 days	TK-4001	Resign	bo	B.Tech Computer Science	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	70	68	3	75	90	80	Ready Now	Solid contributor on current assignments.	ABCDE1235F	501234567801	L5	100112345001	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-01 05:48:06.052215+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2026-09-01 05:48:06.052215+00	\N	\N	\N	\N	234567890001	\N
-a586e15e-0ad4-4d33-aa18-b1edcf241baf	TK-0006	Divya	Rao	divya.rao@acme.co	divya1005@gmail.com	9876501005	9866501005	Female	1994-05-05	125, Andheri Office	9811101005	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Associate Project Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Offsite	2023-05-10	Active	Active	Completed	6 years	Infosys	Full-time	Permanent	No	60 days	TK-4005	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Product"]	["NA"]	["English", "Hindi"]	74	72	4	79	94	84	Ready Now	Solid contributor on current assignments.	ABCDE1239F	501234567805	L4	100112345005	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890005	\N
-929d4a75-9232-4ce7-a1a6-8f107ccca1e7	TK-0008	Neha	Kulkarni	neha.kulkarni@acme.co	neha1007@gmail.com	9876501007	9866501007	Female	1996-07-07	127, Andheri Office	9811101007	Married	Indian	bcbd68c8-c3f3-4396-abb0-0b0e13637958	4ef1cb5b-9688-4ce2-95b3-6a0863200166	Senior Accountant - I	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	Onsite	2019-07-10	Active	Active	Completed	8 years	Infosys	Full-time	Permanent	No	60 days	TK-4007	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Finance"]	["NA"]	["English", "Hindi"]	76	74	3	81	96	86	Ready in 1 year	Solid contributor on current assignments.	ABCDE1241F	501234567807	L4	100112345007	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890007	\N
-9a15533f-f863-44a7-b61c-b978fa1f5174	TK-0023	Rahul	Sharma	rahul.sharma@acme.co	rahul1022@gmail.com	9876501022	9866501022	Male	1995-10-22	142, Dombivali Office	9811101022	Married	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	4ef3d669-21ca-43ab-a132-db6b00c6063f	Engagement Manager	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Onsite	2022-10-10	Active	Active	Completed	3 years	TCS	Full-time	Permanent	No	90 days	TK-4022	NA	NA	MCA	["Communication", "Delivery", "Delivery"]	["NA"]	["English", "Hindi"]	91	69	3	76	93	86	Ready in 1 year	Solid contributor on current assignments.	ABCDE1256F	501234567822	L4	100112345022	Old Regime	Compliant	\N	2026-08-21 08:28:23.134157+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	\N	234567890022	\N
-96425efc-9b0e-4f2b-8fd6-ec3b77161547	TK-0001	Dhanshree	Pansare	dhanshree.pansare@gmail.com	dhanshree.pansare002@gmail.com	9326178048	7900141424	Female	2002-11-02	31,kranti society,bhandup east 400042	9324567803	Single	Indian	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	778f1120-9633-4933-9160-ddaa46668838	Director and Chief Executive Officer	498bb0ed-62ca-4e56-bcb3-4cbd356077be	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Bond	\N	Onsite	2026-08-28	Notice Period	Active - Probation	On Probation (6 months)	7 years	tcs	Full-time	Permanent	Yes	90 days	TK-566	Resign	bo	Bachlore enginering	["python", "testing"]	["AWS", "Pen tester"]	["hindi", "engish"]	0	0	0	0	0	0	\N	\N	WASDE2324H	3246572827344	L4	973456234651	\N	Pending	\N	2026-08-20 13:43:06.225084+00	2026-08-22 05:27:05.457481+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	6 months	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	\N	\N
-df465de2-4aba-41d3-a2a3-1e81ca66e34a	TK-0005	Karthik	Bose	karthik.bose@acme.co	karthik1004@gmail.com	9876501004	9866501004	Male	1993-04-04	124, Dombivali Office	9811101004	Married	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	48429bb5-c583-4684-b30a-7ed443b671ca	SOC Analyst - II	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	Onsite	2022-04-10	Notice Period	Active	Completed	5 years	TCS	Full-time	Permanent	No	60 days	TK-4004	Resign	Better Opportunity	MCA	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	73	71	3	78	93	83	Ready in 1 year	Solid contributor on current assignments.	ABCDE1238F	501234567804	L5	100112345004	Old Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890004	\N
-d24cafbe-bb30-4522-93b2-25588511f0e2	TK-0012	Ira	Kapoor	ira.kapoor@acme.co	ira1011@gmail.com	9876501011	9866501011	Female	1992-11-11	131, Andheri Office	9811101011	Single	Indian	be8e036d-ad13-4c79-89ec-294e490a6816	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	GRC Auditor - II	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	Offsite	2023-11-10	Active	Active	Completed	2 years	Infosys	Full-time	Permanent	Yes ??? 2 years	60 days	TK-4011	NA	NA	B.Tech Computer Science	["Communication", "Delivery", "Engineering"]	["NA"]	["English", "Hindi"]	80	78	4	85	91	90	Ready in 1 year	Solid contributor on current assignments.	ABCDE1245F	501234567811	L4	100112345011	New Regime	Compliant	\N	2026-08-20 06:09:32.142207+00	2026-09-02 10:31:01.756464+00	\N	\N	\N	\N	\N	\N	\N	234567890011	\N
-d9903fec-2d9e-4544-ad6a-170173d41c17	TKI-0002	Sample	Employee	sample.employee@talakunchi.com	sample.personal@gmail.com	9999911111	\N	Female	1995-06-15	Andheri East, Mumbai	9876543210	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	Intern	8e97c526-8c79-44c6-a23f-ece0d9b21df5	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2026-08-27	Active	Active	\N	4 years	\N	Full-Time	\N	\N	\N	\N	NA	NA	\N	["C#", "React"]	[]	["English", "Hindi"]	\N	\N	\N	\N	\N	\N	\N	\N	AAAAA9999A	501234567890	L2	100987654321	\N	\N	\N	2026-08-28 08:20:17.296775+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	ebed343e-301f-4984-b292-fa8d1cb1623c	234567890124	\N
-649f4c6f-8719-4ff4-8969-7a55a16e43bd	TK-0030	Integration	Resource	integration.resource.55c6d73ab436476db67f6f1b9df80d8a@acme.co	\N	\N	\N	\N	\N	\N	\N	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	Accountant - II	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	\N	\N	\N	\N	Notice Period	\N	\N	\N	\N	\N	\N	\N	30 days	\N	Resign	Notice already ended	\N	["C#"]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-20 12:51:19.436175+00	2026-08-20 12:51:19.547505+00	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	2026-08-20 12:51:19.547505+00	\N	\N	\N	\N	\N	\N
-1a350645-f31a-4309-8441-d37f39e31fe5	TK-0031	Priya	Shah	priya.shah.0191472791bb4c5593e44681a270b32a@acme.co	\N	\N	\N	Female	1994-03-12	Andheri East, Mumbai	9876543210	Married	Indian	898c36e9-1cb7-4c56-9148-a3b6893c0149	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	Python Developer - III	\N	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	\N	\N	Offsite	\N	Active	\N	6 months	5 years	Acme	Full-time	Permanent	No	\N	TK-4029	NA	NA	B.Tech	["React", "Mentoring"]	["AWS"]	["English", "Hindi"]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	L2	\N	\N	\N	\N	2026-08-20 13:08:53.427831+00	2026-08-22 05:27:05.457481+00	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	\N	79686ca4-102c-456d-a08e-bdf9ac4c7a26	6 months	ebed343e-301f-4984-b292-fa8d1cb1623c	\N	\N
+COPY public.employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "ProjectSite", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "JobRoleId", "NationalityId", "ProbationPeriod", "SalaryBandId", "Aadhaar", "EmergencyContactName", "EmployeeStatusId", "BondDelivered", "BondDurationMonths", "BondExpiryDate", "GradDegree", "GradYear", "PostGradDegree", "PostGradYear", "ExpType", "PriorTotalExp", "PriorRelevantExp", emergencycontactrelation, pmodepartment, subdepartment, billablestatus, clientlocation, projecttype, projectallocated, clientengmanagermapping, "EmergencyContactRelation", "PmoDepartment", "SubDepartment", "BillableStatus", "ClientLocation", "ProjectType", "ProjectAllocated", "ClientEngManagerMapping") FROM stdin;
+00000000-0000-4000-8000-000000000001	TK-0001	Dhanshree	Pansare	dhanshree.pansare@talakunchi.com	dhanshree.pansare1@gmail.com	9820000001	9821000001	Female	1993-11-02	Dombivli	9811000001	Single	Indian	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	778f1120-9633-4933-9160-ddaa46668838	Leader (L)	\N	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	\N	2019-01-10	Active	Active	Completed	3 yrs 0 mos (Relevant: 3 yrs 0 mos)	Tata Consultancy Services	Permanent	Permanent	No	60 days	AST-1001	NA	NA	BE (2015), MBA (2017)	["Leadership", "Operations Management", "Strategic Planning", "Client Relations"]	["ISO 27001", "CISM"]	["English", "Hindi", "Marathi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1001F	501234561001	L5	100112341001	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	94fc014e-37ce-4eb4-8588-ff56a79be98e	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891001	Sanjay Pansare	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2015	MBA	2017	Experienced	3 yrs 0 mos	3 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Core	Leading Delivery Dept.	Non-Billable	Dombivli	Long Term	Internal / Bench	Dhanshree Pansare
+00000000-0000-4000-8000-000000000003	TK-0003	Rohan	Mehta	rohan.mehta@talakunchi.com	rohan.mehta3@gmail.com	9820000003	9821000003	Male	1994-08-23	Dadar	9811000003	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	Team Member (TM)	00000000-0000-4000-8000-000000000004	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2022-03-01	Active	Active	Completed	2 yrs 6 mos (Relevant: 2 yrs 0 mos)	Wipro	Permanent	Permanent	No	60 days	AST-1003	NA	NA	B.Tech (2019), M.Tech (2021)	["CI/CD", "Docker", "Kubernetes", "SonarQube", "Terraform", "AWS"]	["ISO 27001", "Certified Cloud Security Professional (CCSP)"]	["English", "Hindi", "Gujarati"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1003F	501234561003	L4	100112341003	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	8ea442c3-8ed7-4b6a-a3db-dd74706e9cce	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891003	Rajesh Mehta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Tech	2019	M.Tech	2021	Experienced	2 yrs 6 mos	2 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Services - Testing	Services - Testing - DevSecOps	Billable	Andheri	Long Term	CloudSync Multi-Region Sync	Riya Kapoor
+00000000-0000-4000-8000-000000000004	TK-0004	Sneha	Iyer	sneha.iyer@talakunchi.com	sneha.iyer4@gmail.com	9820000004	9821000004	Female	1992-03-14	Thane	9811000004	Married	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	Team Leader (TL)	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	\N	2021-08-16	Active	Active	Completed	4 yrs 0 mos (Relevant: 3 yrs 6 mos)	Cognizant	Permanent	Permanent	No	60 days	AST-1004	NA	NA	BE (2017)	["SIEM", "Incident Response", "Splunk", "Threat Hunting", "SOC Management"]	["Certified Information Security Manager (CISM)", "ISO 27001"]	["English", "Hindi", "Tamil"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1004F	501234561004	L5	100112341004	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	8366d816-724b-456b-9d0e-85399c2324b7	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891004	Ramesh Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2017	NA	NA	Experienced	4 yrs 0 mos	3 yrs 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Services - Operations	-	Billable	Lower Parel	Long Term	Northwind Core Modernization	Rahul Sharma
+00000000-0000-4000-8000-000000000005	TK-0005	Karthik	Bose	karthik.bose@talakunchi.com	karthik.bose5@gmail.com	9820000005	9821000005	Male	1996-07-29	Kalyan	9811000005	Single	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	48429bb5-c583-4684-b30a-7ed443b671ca	Team Member (TM)	00000000-0000-4000-8000-000000000004	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Bond	\N	\N	2024-02-10	Active	Active	Completed	1 yr 0 mos (Relevant: 1 yr 0 mos)	LTI Mindtree	Permanent	Permanent	Active	60 days	AST-1005	NA	NA	B.Sc (2021), MCA (2023)	["Log Analysis", "Wireshark", "Sentinel", "Network Traffic Analysis"]	["Blue Team Level 1 and 2"]	["English", "Hindi", "Bengali"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1005F	501234561005	L3	100112341005	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	9c970783-5b89-4fd0-b3f3-1c1953a853ab	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	20ffbe9b-96ca-496e-ab2e-50ccf3c91246	234567891005	Subhash Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2026-02-10	B.Sc	2021	MCA	2023	Experienced	1 yr 0 mos	1 yr 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Services - Operations	-	Billable	Dombivli	Long Term	Northwind Core Modernization	Rahul Sharma
+00000000-0000-4000-8000-000000000006	TK-0006	Divya	Rao	divya.rao@talakunchi.com	divya.rao6@gmail.com	9820000006	9821000006	Female	1993-09-18	Bandra	9811000006	Married	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Manager (Mng.)	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2020-11-01	Active	Active	Completed	4 yrs 0 mos (Relevant: 3 yrs 6 mos)	Capgemini	Permanent	Permanent	No	60 days	AST-1006	NA	NA	B.Tech (2016), MBA (2018)	["Project Management", "Agile", "Scrum", "Resource Planning", "Stakeholder Management"]	["ISO 27001", "Certified Information Systems Auditor (CISA)"]	["English", "Hindi", "Kannada"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1006F	501234561006	L5	100112341006	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	caec3c96-23a0-4e88-845c-05f792d0dd0c	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891006	Anand Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Tech	2016	MBA	2018	Experienced	4 yrs 0 mos	3 yrs 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Services - Testing	Service - Testing - AppSec	Billable	Andheri	Long Term	Helix Core EHR	Pradeep Singh
+00000000-0000-4000-8000-000000000007	TK-0007	Ankit	Verma	ankit.verma@talakunchi.com	ankit.verma7@gmail.com	9820000007	9821000007	Male	1995-12-05	Ghatkopar	9811000007	Single	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	4650d4e0-f73c-4688-ae5f-830a46348ff9	Team Member (TM)	00000000-0000-4000-8000-000000000004	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	\N	2023-11-20	Active	Active	Completed	1 yr 6 mos (Relevant: 1 yr 6 mos)	HCL Technologies	Permanent	Permanent	Active	60 days	AST-1007	NA	NA	BCA (2020), MCA (2022)	["SIEM Administration", "Splunk ES", "QRadar", "Syslog", "Rule Tuning"]	["CompTIA Security+"]	["English", "Hindi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1007F	501234561007	L3	100112341007	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	0997a260-4ca3-4eb2-b87a-4bd6bf235677	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	20ffbe9b-96ca-496e-ab2e-50ccf3c91246	234567891007	Manoj Verma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2025-11-20	BCA	2020	MCA	2022	Experienced	1 yr 6 mos	1 yr 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Services - Operations	-	Billable	Lower Parel	Long Term	FinTech Real-Time Ledger	Rahul Sharma
+00000000-0000-4000-8000-000000000008	TK-0008	Neha	Kulkarni	neha.kulkarni@talakunchi.com	neha.kulkarni8@gmail.com	9820000008	9821000008	Female	1992-06-25	Vile Parle	9811000008	Married	Indian	bcbd68c8-c3f3-4396-abb0-0b0e13637958	4ef1cb5b-9688-4ce2-95b3-6a0863200166	Manager (Mng.)	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2021-02-01	Active	Active	Completed	4 yrs 6 mos (Relevant: 4 yrs 6 mos)	Deloitte India	Permanent	Permanent	No	60 days	AST-1008	NA	NA	B.Com (2016), M.Com (2018)	["Financial Reporting", "Invoicing", "Tally", "GST Compliance", "Auditing"]	[]	["English", "Hindi", "Marathi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1008F	501234561008	L4	100112341008	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	f37fa8d5-1c48-4038-95d5-cd7dfea12085	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891008	Sanjay Kulkarni	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Com	2016	M.Com	2018	Experienced	4 yrs 6 mos	4 yrs 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Spouse	Functional - Accounts	-	Non-Billable	Andheri	Long Term	Internal / Bench	Neha Kulkarni
+00000000-0000-4000-8000-000000000010	TK-0010	Aanya	Joshi	aanya.joshi@talakunchi.com	aanya.joshi10@gmail.com	9820000010	9821000010	Female	1994-01-30	Kurla	9811000010	Single	Indian	13c91c98-00ae-4211-acb8-d06e35953806	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	Manager (Mng.)	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2022-09-05	Active	Active	Completed	2 yrs 6 mos (Relevant: 2 yrs 6 mos)	Tech Mahindra	Permanent	Permanent	No	60 days	AST-1010	NA	NA	B.Tech (2018), MBA (2020)	["Client Acquisition", "Proposal Writing", "Contract Negotiation", "Market Research"]	[]	["English", "Hindi", "Marathi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1010F	501234561010	L4	100112341010	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	9de62ea5-b7da-4a55-8b54-056fdf6bc621	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891010	Prakash Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Tech	2018	MBA	2020	Experienced	2 yrs 6 mos	2 yrs 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Functional - Sales	-	Non-Billable	BKC	Long Term	Internal / Bench	Aanya Joshi
+00000000-0000-4000-8000-000000000011	TK-0011	Harsh	Nair	harsh.nair@talakunchi.com	harsh.nair11@gmail.com	9820000011	9821000011	Male	1998-05-20	Dombivli	9811000011	Single	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	Team Member (TM)	00000000-0000-4000-8000-000000000017	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Bond	\N	\N	2024-05-12	Active	Active	Completed	1 yr 6 mos (Relevant: 1 yr 6 mos)	Accenture	Permanent	Permanent	Active	60 days	AST-1011	NA	NA	BE (2022)	["WBS Tracking", "Timesheet Audits", "Resource Utilization", "Jira", "MS Excel"]	[]	["English", "Hindi", "Malayalam"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1011F	501234561011	L3	100112341011	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	48079f83-fbf9-4639-ae6b-263ca3fb752a	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	20ffbe9b-96ca-496e-ab2e-50ccf3c91246	234567891011	Mohan Nair	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2026-05-12	BE	2022	NA	NA	Experienced	1 yr 6 mos	1 yr 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Functional - Project Management	PMO (Project Management Office)	Non-Billable	Dombivli	Long Term	Internal / Bench	Riya Kapoor
+00000000-0000-4000-8000-000000000012	TK-0012	Ira	Kapoor	ira.kapoor@talakunchi.com	ira.kapoor12@gmail.com	9820000012	9821000012	Female	1995-11-18	Bhandup	9811000012	Single	Indian	be8e036d-ad13-4c79-89ec-294e490a6816	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	Team Member (TM)	00000000-0000-4000-8000-000000000006	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	Onsite	2023-08-01	Active	Active	Completed	3 yrs 0 mos (Relevant: 2 yrs 6 mos)	EY India	Permanent	Permanent	Active	60 days	AST-1012	NA	NA	B.Tech (2019)	["ISO 27001 Audit", "SOC 2 Type II", "Risk Assessment", "Compliance Frameworks", "GDPR"]	["ISO 27001", "Certified Information Systems Auditor (CISA)"]	["English", "Hindi", "Punjabi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1012F	501234561012	L4	100112341012	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	6886e92b-a2c5-4057-9330-47394a2aac65	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891012	Ritu Kapoor	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2025-08-01	B.Tech	2019	NA	NA	Experienced	3 yrs 0 mos	2 yrs 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Mother	Services - Consulting	-	Billable	BKC	Short Term	Orbit Omni-Channel Platform	Riya Kapoor
+00000000-0000-4000-8000-000000000013	TK-0013	Yash	Malik	yash.malik@talakunchi.com	yash.malik13@gmail.com	9820000013	9821000013	Male	1994-07-08	Malad	9811000013	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	Team Member (TM)	00000000-0000-4000-8000-000000000006	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2022-01-15	Active	Active	Completed	3 yrs 6 mos (Relevant: 3 yrs 0 mos)	Paladion Networks	Permanent	Permanent	No	60 days	AST-1013	NA	NA	B.Tech (2018)	["Adversary Emulation", "Active Directory Attacks", "Cobalt Strike", "Phishing Campaigns", "Evasion"]	["CRTP", "Offensive Security Certified Professional (OSCP)"]	["English", "Hindi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1013F	501234561013	L4	100112341013	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	5a206a6a-dabc-4dfe-b28f-00cc01bc11da	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891013	Kuldeep Malik	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Tech	2018	NA	NA	Experienced	3 yrs 6 mos	3 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Services - Testing	Services - Testing - Red Team	Billable	Lower Parel	Short Term	FinTech Real-Time Ledger	Rahul Sharma
+00000000-0000-4000-8000-000000000014	TK-0014	Kavya	Desai	kavya.desai@talakunchi.com	kavya.desai14@gmail.com	9820000014	9821000014	Female	1996-03-22	Andheri	9811000014	Single	Indian	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	Team Member (TM)	00000000-0000-4000-8000-000000000006	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2022-10-10	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	Mindtree	Permanent	Permanent	No	60 days	AST-1014	NA	NA	B.Tech (2020)	["Python", "FastAPI", "PostgreSQL", "Docker", "RESTful APIs", "Redis"]	[]	["English", "Hindi", "Gujarati"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1014F	501234561014	L4	100112341014	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	401a442f-98c4-4b95-9e07-647853bf9122	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891014	Bipin Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Tech	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	R&D (Research & Development)	-	Billable	Andheri	Long Term	MediCare Clinical Trials	Pradeep Singh
+00000000-0000-4000-8000-000000000015	TK-0015	Arjun	Shah	arjun.shah@talakunchi.com	arjun.shah15@gmail.com	9820000015	9821000015	Male	1997-09-14	Thane	9811000015	Single	Indian	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	c70b9832-841e-4864-9b85-eaba3c0a995f	Team Member (TM)	00000000-0000-4000-8000-000000000009	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	\N	2023-04-03	Active	Active	Completed	1 yr 6 mos (Relevant: 1 yr 6 mos)	Microland	Permanent	Permanent	No	60 days	AST-1015	NA	NA	B.Sc (2021)	["Hardware Diagnostics", "Windows Server", "Active Directory", "Asset Management", "Network Troubleshooting"]	["CompTIA Security+"]	["English", "Hindi", "Marathi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1015F	501234561015	L3	100112341015	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	1c1c9112-592b-4f23-92d5-213a5da0d78d	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	20ffbe9b-96ca-496e-ab2e-50ccf3c91246	234567891015	Harish Shah	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Sc	2021	NA	NA	Experienced	1 yr 6 mos	1 yr 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Functional - IT Administration	-	Non-Billable	Dombivli	Long Term	Internal / Bench	Arjun Shah
+00000000-0000-4000-8000-000000000017	TK-0017	Vikram	Gupta	vikram.gupta@talakunchi.com	vikram.gupta17@gmail.com	9820000017	9821000017	Male	1992-12-08	Goregaon	9811000017	Married	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	Team Leader (TL)	00000000-0000-4000-8000-000000000022	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2021-05-17	Active	Active	Completed	5 yrs 0 mos (Relevant: 5 yrs 0 mos)	L&T Infotech	Permanent	Permanent	No	60 days	AST-1017	NA	NA	BE (2016), MBA (2018)	["PMO Operations", "Governance", "Portfolio Budgeting", "Executive Dashboards", "Delivery Assurance"]	["ISO 27001"]	["English", "Hindi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1017F	501234561017	L5	100112341017	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	446498d0-e9e6-4dbb-8fbe-b87bb853a2af	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891017	Shalini Gupta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2016	MBA	2018	Experienced	5 yrs 0 mos	5 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Spouse	Functional - Project Management	PMO (Project Management Office)	Non-Billable	Andheri	Long Term	Internal / Bench	Riya Kapoor
+00000000-0000-4000-8000-000000000018	TK-0018	Ishita	Bansal	ishita.bansal@talakunchi.com	ishita.bansal18@gmail.com	9820000018	9821000018	Female	2002-04-16	Kandivali	9811000018	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Team Member (TM)	00000000-0000-4000-8000-000000000006	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	\N	2025-08-20	Active - Probation	Active - Probation	Ongoing	Fresher	NA	Permanent	Permanent	Active	60 days	AST-1018	NA	NA	B.Tech (2025)	["Web Security", "OWASP ZAP", "Linux", "SQL Injection", "XSS Testing"]	["CompTIA Security+"]	["English", "Hindi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1018F	501234561018	L2	100112341018	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	a955782d-de73-4939-94f8-5cbf9a2461c2	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	ebed343e-301f-4984-b292-fa8d1cb1623c	234567891018	Sunita Bansal	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2027-08-20	B.Tech	2025	NA	NA	Fresher	0	0	\N	\N	\N	\N	\N	\N	\N	\N	Mother	Services - Testing	Service - Testing - AppSec	Billable	Andheri	Short Term	Zenith Fleet Tracker	Rahul Sharma
+00000000-0000-4000-8000-000000000019	TK-0019	Aditya	Reddy	aditya.reddy@talakunchi.com	aditya.reddy19@gmail.com	9820000019	9821000019	Male	2003-01-22	Dombivli	9811000019	Single	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	6d25ff6d-e13d-440f-b775-215547af7acb	Team Member (TM)	00000000-0000-4000-8000-000000000004	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Bond	\N	\N	2025-09-01	Active - Probation	Active - Probation	Ongoing	Fresher	NA	Permanent	Permanent	Active	60 days	AST-1019	NA	NA	BCA (2025)	["SOC Tier 1 Monitoring", "Phishing Triage", "Endpoint Analysis", "TCP/IP"]	["CompTIA Security+"]	["English", "Hindi", "Telugu"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1019F	501234561019	L2	100112341019	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	eaa98dba-df5b-4b1d-b2d5-20b159a0a070	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	ebed343e-301f-4984-b292-fa8d1cb1623c	234567891019	Venkat Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2027-09-01	BCA	2025	NA	NA	Fresher	0	0	\N	\N	\N	\N	\N	\N	\N	\N	Father	Services - Operations	-	Billable	Dombivli	Long Term	Northwind Core Modernization	Rahul Sharma
+00000000-0000-4000-8000-000000000020	TK-0020	Pooja	Menon	pooja.menon@talakunchi.com	pooja.menon20@gmail.com	9820000020	9821000020	Female	1995-08-19	Powai	9811000020	Single	Indian	310a2f16-15f6-4b82-95f6-ab18b5b429f5	485012d4-2c28-4bc4-92c7-3609e3e3749e	HR	00000000-0000-4000-8000-000000000009	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2022-06-10	Active	Active	Completed	3 yrs 0 mos (Relevant: 3 yrs 0 mos)	KPMG	Permanent	Permanent	No	60 days	AST-1020	NA	NA	B.Com (2018), MBA (2020)	["Onboarding", "Background Verification", "HR Compliance", "Payroll Support", "Employee Engagement"]	[]	["English", "Hindi", "Malayalam"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1020F	501234561020	L4	100112341020	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	ebdc343e-9f43-4715-8a37-4861594c4b0a	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891020	Suresh Menon	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Com	2018	MBA	2020	Experienced	3 yrs 0 mos	3 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Functional - HR	-	Non-Billable	Andheri	Long Term	Internal / Bench	Samar Patel
+00000000-0000-4000-8000-000000000021	TK-0021	Nikhil	Khanna	nikhil.khanna@talakunchi.com	nikhil.khanna21@gmail.com	9820000021	9821000021	Male	1996-10-12	Borivali	9811000021	Single	Indian	13c91c98-00ae-4211-acb8-d06e35953806	e2c675a7-92dc-4477-be75-9a304cbe4def	Team Member (TM)	00000000-0000-4000-8000-000000000010	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2023-01-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	Oracle India	Permanent	Permanent	No	60 days	AST-1021	NA	NA	BBA (2020)	["Lead Generation", "Sales CRM", "Cold Outreach", "Client Demos", "Negotiation"]	[]	["English", "Hindi", "Punjabi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1021F	501234561021	L3	100112341021	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	d0b9d2a2-d79c-4097-ae63-4bff14436d0a	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	20ffbe9b-96ca-496e-ab2e-50ccf3c91246	234567891021	Anil Khanna	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BBA	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Functional - Sales	-	Non-Billable	BKC	Long Term	Internal / Bench	Aanya Joshi
+00000000-0000-4000-8000-000000000022	TK-0022	Riya	Kapoor	riya.kapoor@talakunchi.com	riya.kapoor22@gmail.com	9820000022	9821000022	Female	1993-05-16	Andheri	9811000022	Married	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	fdd34566-051a-487d-a985-540c2db8c37f	Manager (Mng.)	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2021-03-01	Active	Active	Completed	6 yrs 0 mos (Relevant: 6 yrs 0 mos)	Tata Consultancy Services	Permanent	Permanent	No	60 days	AST-1022	NA	NA	B.Tech (2015), MBA (2017)	["Account Governance", "Client Relationships", "P&L Management", "Delivery Oversight", "Contract Management"]	["ISO 27001", "Certified Information Systems Auditor (CISA)"]	["English", "Hindi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1022F	501234561022	L5	100112341022	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	9225698b-9ecd-4dfb-9008-fe08b395efc9	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891022	Rakesh Kapoor	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Tech	2015	MBA	2017	Experienced	6 yrs 0 mos	6 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Functional - Project Management	EM (Engagement Manager)	Billable	BKC	Long Term	CloudSync Multi-Region Sync	Riya Kapoor
+00000000-0000-4000-8000-000000000002	TK-0002	Priya	Sharma	priya.sharma@talakunchi.com	priya.sharma2@gmail.com	9820000002	9821000002	Female	1995-04-12	Andheri	9811000002	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Team Member (TM)	00000000-0000-4000-8000-000000000006	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	Onsite	2023-06-15	Active	Active	Completed	3 yrs 0 mos (Relevant: 2 yrs 6 mos)	Infosys	Permanent	Permanent	Active	60 days	AST-1002	NA	NA	B.Tech (2020)	["Penetration Testing", "Burp Suite", "OWASP Top 10", "Network Security", "Python"]	["Certified Ethical Hacker (CEH)", "CompTIA Security+"]	["English", "Hindi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1002F	501234561002	L4	100112341002	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	2cd464a5-b857-46fc-89ea-5dea92640964	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891002	Sunil Sharma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2025-06-15	B.Tech	2020	NA	NA	Experienced	3 yrs 0 mos	2 yrs 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Services - Testing	Service - Testing - AppSec	Billable	BKC	Long Term	Helix Core EHR	Pradeep Singh
+00000000-0000-4000-8000-000000000009	TK-0009	Samar	Patel	samar.patel@talakunchi.com	samar.patel9@gmail.com	9820000009	9821000009	Male	1991-10-15	Borivali	9811000009	Married	Indian	310a2f16-15f6-4b82-95f6-ab18b5b429f5	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	HR	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2020-04-10	Active	Active	Completed	5 yrs 0 mos (Relevant: 5 yrs 0 mos)	Reliance Industries	Permanent	Permanent	No	60 days	AST-1009	NA	NA	BBA (2015), MBA (2017)	["Talent Acquisition", "Employee Relations", "Performance Management", "HR Policies"]	[]	["English", "Hindi", "Gujarati"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1009F	501234561009	L5	100112341009	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	c7d75b92-f6e2-4dd7-a726-ae662ee83c95	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891009	Nitin Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BBA	2015	MBA	2017	Experienced	5 yrs 0 mos	5 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Functional - HR	-	Non-Billable	Andheri	Long Term	Internal / Bench	Samar Patel
+00000000-0000-4000-8000-000000000024	TK-0024	Pradeep	Singh	pradeep.singh@talakunchi.com	pradeep.singh24@gmail.com	9820000024	9821000024	Male	1992-09-04	BKC	9811000024	Single	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	fdd34566-051a-487d-a985-540c2db8c37f	Manager (Mng.)	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2021-06-21	Active	Active	Completed	6 yrs 6 mos (Relevant: 6 yrs 6 mos)	Wipro	Permanent	Permanent	No	60 days	AST-1024	NA	NA	B.Tech (2015), MBA (2017)	["Enterprise Engagements", "Solution Delivery", "Revenue Optimization", "SLA Management"]	["ISO 27001"]	["English", "Hindi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1024F	501234561024	L5	100112341024	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	9225698b-9ecd-4dfb-9008-fe08b395efc9	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891024	Harpreet Singh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Tech	2015	MBA	2017	Experienced	6 yrs 6 mos	6 yrs 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Functional - Project Management	EM (Engagement Manager)	Billable	BKC	Long Term	Helix Core EHR	Pradeep Singh
+00000000-0000-4000-8000-000000000101	TKI-0001	Ananya	Verma	ananya.verma@talakunchi.com	ananya.verma101@gmail.com	9820000101	9821000101	Female	2003-05-10	Andheri	9811000101	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	Team Member (TM)	00000000-0000-4000-8000-000000000006	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	\N	2026-01-15	Active - Probation	Active - Probation	Ongoing	Fresher	NA	Intern	Permanent	No	60 days	AST-1101	NA	NA	B.Tech (2025)	["Python", "Network Security Basics", "Linux", "OWASP Top 10"]	["CompTIA Security+"]	["English", "Hindi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1101F	501234561101	L1	100112341101	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	32d7cead-40d2-4d94-89fb-3e48d4160b7c	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	37016f9a-2474-400d-99ae-18157aaad035	234567891101	Deepak Verma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Tech	2025	NA	NA	Fresher	0	0	\N	\N	\N	\N	\N	\N	\N	\N	Father	Internship Program	Across all Sub Departments	Non-Billable	Andheri	Short Term	Internal / Bench	Divya Rao
+00000000-0000-4000-8000-000000000102	TKI-0002	Rohan	Joshi	rohan.joshi@talakunchi.com	rohan.joshi102@gmail.com	9820000102	9821000102	Male	2003-08-14	Dombivli	9811000102	Single	Indian	898c36e9-1cb7-4c56-9148-a3b6893c0149	bb7ccd5f-2f60-49fb-b984-f11fc47add22	Team Member (TM)	00000000-0000-4000-8000-000000000014	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Intern - Paid	\N	\N	2026-02-01	Active - Probation	Active - Probation	Ongoing	Fresher	NA	Intern	Permanent	No	60 days	AST-1102	NA	NA	B.Sc (2025)	["Python", "Machine Learning Basics", "Git", "FastAPI"]	[]	["English", "Hindi", "Marathi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1102F	501234561102	L1	100112341102	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	859254f8-a1b4-4812-b1d0-aacf111f7235	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	37016f9a-2474-400d-99ae-18157aaad035	234567891102	Vivek Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Sc	2025	NA	NA	Fresher	0	0	\N	\N	\N	\N	\N	\N	\N	\N	Father	Internship Program	Across all Sub Departments	Non-Billable	Dombivli	Short Term	Internal / Bench	Kavya Desai
+00000000-0000-4000-8000-000000000016	TK-0016	Meera	Nambiar	meera.nambiar@talakunchi.com	meera.nambiar16@gmail.com	9820000016	9821000016	Female	1998-02-11	Vikhroli	9811000016	Single	Indian	be8e036d-ad13-4c79-89ec-294e490a6816	1e7faab8-273d-40df-9f9a-485160186c5a	Team Member (TM)	00000000-0000-4000-8000-000000000006	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	\N	2024-07-15	Active	Active	Completed	1 yr 0 mos (Relevant: 1 yr 0 mos)	PwC India	Permanent	Permanent	Active	60 days	AST-1016	NA	NA	B.Tech (2022)	["Security Policies", "Vendor Risk Assessment", "ISO 27001", "Compliance Tracking"]	["ISO 27001"]	["English", "Hindi", "Malayalam"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1016F	501234561016	L3	100112341016	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	074ea1a8-d519-4cda-87a4-978cd1eec45a	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	20ffbe9b-96ca-496e-ab2e-50ccf3c91246	234567891016	Gopal Nambiar	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2026-07-15	B.Tech	2022	NA	NA	Experienced	1 yr 0 mos	1 yr 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Services - Consulting	-	Billable	BKC	Short Term	Orbit Omni-Channel Platform	Riya Kapoor
+00000000-0000-4000-8000-000000000023	TK-0023	Rahul	Sharma	rahul.sharma@talakunchi.com	rahul.sharma23@gmail.com	9820000023	9821000023	Male	1991-08-25	Lower Parel	9811000023	Married	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	fdd34566-051a-487d-a985-540c2db8c37f	Manager (Mng.)	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	\N	2021-04-12	Active	Active	Completed	7 yrs 0 mos (Relevant: 7 yrs 0 mos)	Infosys	Permanent	Permanent	No	60 days	AST-1023	NA	NA	BE (2014), MBA (2016)	["Client Relations", "Program Management", "Budget Control", "Risk Management"]	["ISO 27001"]	["English", "Hindi"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1023F	501234561023	L5	100112341023	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	9225698b-9ecd-4dfb-9008-fe08b395efc9	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891023	Pooja Sharma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2014	MBA	2016	Experienced	7 yrs 0 mos	7 yrs 0 mos	\N	\N	\N	\N	\N	\N	\N	\N	Spouse	Functional - Project Management	EM (Engagement Manager)	Billable	Lower Parel	Long Term	Northwind Core Modernization	Rahul Sharma
+00000000-0000-4000-8000-000000000025	TK-0025	Arjun	Mehta	arjun.mehta@talakunchi.com	arjun.mehta25@gmail.com	9820000025	9821000025	Male	1993-11-19	Thane	9811000025	Married	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	fdd34566-051a-487d-a985-540c2db8c37f	Manager (Mng.)	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Without Bond	\N	\N	2022-01-10	Active	Active	Completed	5 yrs 6 mos (Relevant: 5 yrs 6 mos)	Tech Mahindra	Permanent	Permanent	No	60 days	AST-1025	NA	NA	B.Tech (2016), MBA (2018)	["Automotive Delivery", "Client Servicing", "Strategic Accounts", "Delivery Excellence"]	["ISO 27001"]	["English", "Hindi", "Gujarati"]	88	86	4.5	92	96	90	Ready Now	Consistent high performer with proactive ownership.	ABCDE1025F	501234561025	L5	100112341025	New Regime	Compliant	\N	2026-08-01 00:00:00+00	2026-09-01 00:00:00+00	\N	\N	\N	9225698b-9ecd-4dfb-9008-fe08b395efc9	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891025	Kishore Mehta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Tech	2016	MBA	2018	Experienced	5 yrs 6 mos	5 yrs 6 mos	\N	\N	\N	\N	\N	\N	\N	\N	Father	Functional - Project Management	EM (Engagement Manager)	Billable	Thane	Long Term	AutoDrive ADAS Simulation	Arjun Mehta
 \.
 
 
@@ -1045,16 +1175,6 @@ d9903fec-2d9e-4544-ad6a-170173d41c17	TKI-0002	Sample	Employee	sample.employee@ta
 --
 
 COPY public.exited_employees ("Id", "OriginalEmployeeId", "EmployeeCode", "FullName", "DepartmentName", "DesignationName", "WorkEmail", "PersonalEmail", "Phone", "StatusAtExit", "ExitType", "ExitReason", "ResignationDate", "LastWorkingDay", "ReasonForLeaving", "NoticePeriodServed", "ExitChecklistJson", "AssetReturnJson", "FinalSettlementJson", "ExitedAtUtc", "ExitedBy", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-6b3e85ba-b66a-4ee2-a56c-763dadac0945	9e1b1aa9-fcd3-47be-b264-53806520c9fc	EMP-1018	Aditya Reddy	Engineering	Senior Software Engineer	aditya.reddy@acme.co	aditya1018@gmail.com	9876501018	Active	Resign	Better opp	2026-08-20	2026-09-23	Better opp	60 days	\N	\N	\N	2026-08-20 06:10:09.268914+00	\N	2026-08-20 06:10:09.305181+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-4b351675-a78a-493e-a0fb-464c1180e0d6	c5d5234b-6151-4e42-abd3-0d91dd38754b	EMP-1015	Meera Nambiar	Product	Business Analyst	meera.nambiar@acme.co	meera1015@gmail.com	9876501015	Active	Resign	better opp	2026-08-20	2026-08-31	better opp	60 days	\N	\N	\N	2026-08-20 06:35:44.250988+00	\N	2026-08-20 06:35:44.26208+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-30589db9-44d2-4cb5-b6dd-81d1cefbd915	2446deb8-f6cc-4ee1-b179-599d0a2e357a	EMP-1001	Priya Sharma	Engineering	Software Engineer	priya.sharma@acme.co	priya1001@gmail.com	9876501001	Active	Resign	better opp	2026-08-20	2026-08-31	better opp	60 days	\N	\N	\N	2026-08-20 09:40:15.112908+00	\N	2026-08-20 09:40:15.160793+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-3a576a72-02ca-4b83-94f4-735b0348c9b2	498bb0ed-62ca-4e56-bcb3-4cbd356077be	EMP-1002	Rohan Mehta	Engineering	Senior Software Engineer	rohan.mehta@acme.co	rohan1002@gmail.com	9876501002	Active	Resign	better opp	2026-08-20	2026-09-04	better opp	60 days	\N	\N	\N	2026-08-20 09:44:21.427364+00	\N	2026-08-20 09:44:21.428431+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-4d7a33d1-9bb6-4174-933a-b67a5f1ee447	df465de2-4aba-41d3-a2a3-1e81ca66e34a	EMP-1004	Karthik Bose	Engineering	DevOps Engineer	karthik.bose@acme.co	karthik1004@gmail.com	9876501004	Active	Resign	Better Opportunity	2026-08-20	2026-10-19	Better Opportunity	60 days	\N	\N	\N	2026-08-20 10:42:11.75374+00	\N	2026-08-20 10:42:11.753917+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-2045661c-a8d6-4501-b7e1-c2ac306c397b	eb50369d-e526-459c-bb6c-aa3a85b231db	EMP-9301	Integration Resource	\N	\N	integration.resource.c92dd5fc2d1c4c4fa7401c33cac1e6fe@acme.co	\N	\N	Probation	Resign	Integration test	2026-08-20	2026-09-19	Integration test	30 days	{}	{}	{}	2026-08-20 12:25:04.296597+00	\N	2026-08-20 12:25:04.39085+00	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N
-84e635a5-0601-4670-a6e5-68562cd9e623	a165f6aa-148a-4ad0-953a-f154ae0991c8	EMP-5886	Integration Resource	\N	\N	integration.resource.e531fb2cecab4c6caa485682aeaa36eb@acme.co	\N	\N	Active	Resign	Notice already ended	2026-08-10	2026-08-19	Notice already ended	30 days	{}	{}	{}	2026-08-20 12:25:04.505815+00	\N	2026-08-20 12:25:04.510288+00	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N
-c96de1f8-bce4-46e6-8fc9-47d9cf00a613	080045f2-3ff3-49af-bced-4b10ea1dde6f	EMP-7266	Integration Resource	\N	\N	integration.resource.ce5bcae27dbc41978b56226b5bf1debf@acme.co	\N	\N	Probation	Resign	Integration test	2026-08-20	2026-09-19	Integration test	30 days	{}	{}	{}	2026-08-20 12:51:19.070579+00	\N	2026-08-20 12:51:19.272327+00	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N
-d11639b8-0639-498f-b29c-8aa7154fd2aa	649f4c6f-8719-4ff4-8969-7a55a16e43bd	EMP-8163	Integration Resource	\N	\N	integration.resource.55c6d73ab436476db67f6f1b9df80d8a@acme.co	\N	\N	Active	Resign	Notice already ended	2026-08-10	2026-08-19	Notice already ended	30 days	{}	{}	{}	2026-08-20 12:51:19.537054+00	\N	2026-08-20 12:51:19.547505+00	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N
-c86dbb9b-4d96-4e3a-b74a-a94fa9992605	96425efc-9b0e-4f2b-8fd6-ec3b77161547	EMP-3456	Dhanshree Pansare	Squad1	operation head	dhanshree.pansare@gmail.com	dhanshree.pansare002@gmail.com	9326178048	Probation	Resign	bo	2026-08-20	2026-11-18	bo	90 days	\N	\N	\N	2026-08-20 13:46:59.169476+00	\N	2026-08-20 13:46:59.255691+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
@@ -1064,6 +1184,47 @@ c86dbb9b-4d96-4e3a-b74a-a94fa9992605	96425efc-9b0e-4f2b-8fd6-ec3b77161547	EMP-34
 
 COPY public.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
 1ab2e67e-5e47-4f6d-8035-dd6a5c5f6b85	talakunchi_networks_private_limited	Talakunchi Networks Private Limited	t	1	2026-09-03 12:17:46.134222+00	\N	\N	\N	\N
+11465231-4ec2-4597-a458-dfff5c9ea1f5	consumer_apps	Consumer Apps	t	2	2026-09-07 06:36:20.314542+00	\N	\N	\N	\N
+dd24c193-5cb3-4805-b7ac-f3e0c00b85a6	digital_solutions	Digital Solutions	t	4	2026-09-07 06:36:20.314542+00	\N	\N	\N	\N
+f890692c-b018-44ee-bd00-9d4b20f4bb36	enterprise	Enterprise	t	3	2026-09-07 06:36:20.314542+00	\N	\N	\N	\N
+fd460dad-bedb-485d-81dc-ea2c407bf1ec	cloud_platform	Cloud Platform	t	1	2026-09-07 06:36:20.314542+00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_certifications; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.mst_certifications ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+0705d913-f281-4559-a5a2-273dcdab4c4c	comptia_securityplus	CompTIA Security+	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+0ff050bb-aff0-48e2-b3f1-0db0b1e4ff0e	certified_in_risk_and_information_systems_control_	Certified in Risk and Information Systems Control (CRISC)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+1277ee68-900e-4989-bdab-ea6c79593dfe	blue_team_level_1_and_2	Blue Team Level 1 and 2	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+13a1fd79-fc90-4c4d-b392-197e2173c3f0	offensive_security_certified_expert_3_(osce3)	Offensive Security Certified Expert 3 (OSCE3)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+2dea8afa-5403-43c9-9a03-45156a3c4198	elearnsecurity_certified_threat_hunting_profession	eLearnSecurity Certified Threat Hunting Professional (eCTHP)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+45d2575e-48cc-4593-86f6-1d1884e56abe	iso_27001	ISO 27001	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+5817ff34-8c14-4679-b368-8d5323ccd31b	pnpt	PNPT	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+6d67283e-fb84-408e-a151-12ee7ef9b7dd	ecppt	eCPPT	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+7ab3d38a-323d-49d8-8e0e-83b96e520205	certified_cloud_security_professional_(ccsp)	Certified Cloud Security Professional (CCSP)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+7d8276b0-d415-4110-b7ab-2bb718b0396f	offensive_security_certified_professional_(oscp)	Offensive Security Certified Professional (OSCP)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+7e8c683c-5fb3-4bdb-8d94-e5fbfcdc2e11	certified_threat_intelligence_analyst_(ctia)	Certified Threat Intelligence Analyst (CTIA)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+86e2ff2b-d817-4c93-aa51-51742d727d1b	offensive_security_wireless_professional_(oswp)	Offensive Security Wireless Professional (OSWP)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+9b093776-b367-4581-b1a9-a141bf9adcbb	elearnsecurity_certified_incident_responder_(ecir)	eLearnSecurity Certified Incident Responder (eCIR)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+a6c8ffd7-3497-4f4c-a651-bd1e6230f945	licensed_penetration_tester_(lpt)	Licensed Penetration Tester (LPT)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+aaa594dd-b167-4034-b538-a8ed292825f6	offensive_security_experienced_penetration_tester_	Offensive Security Experienced Penetration Tester (OSEP)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+ab729e39-7b07-4da9-ba03-d155d93695db	certified_ethical_hacker_(ceh)	Certified Ethical Hacker (CEH)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+bef0b76e-c4cd-4c11-8bdc-82ba930c8e51	iso_22301	ISO 22301	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+c38bd75b-3213-4bcd-9ca1-64ff72f02178	crte	CRTE	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+c4323823-361f-4ff9-a699-a91b2400f59b	crt	CRT	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+c4f2e057-5906-4154-83e2-4f009d6af825	ec_council_certified_incident_handler_(ecih)	EC-Council Certified Incident Handler (ECIH)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+cc0b6618-17ef-48f6-9280-6e7fa9885b60	certified_information_systems_security_professiona	Certified Information Systems Security Professional (CISSP)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+cc7740c3-4189-40e2-86f6-797dacb789c0	offsec_foundational_security_operations_and_defens	OffSec Foundational Security Operations and Defensive Analysis (OSDA)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+cf42b7a7-dd8c-4395-880c-a27051408df5	certified_information_security_manager_(cism)	Certified Information Security Manager (CISM)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+d79a4f9d-8eb3-48ea-baeb-20de01ea05ce	elearnsecurity_certified_digital_forensics_profess	eLearnSecurity Certified Digital Forensics Professional (eCDFP)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+daab1e17-24aa-435f-89a5-8a9e8e5052bf	iso_iec_42001	ISO/IEC 42001	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+e5540bc7-50d2-4d70-a943-acd46aa882c5	cpts	cPTS	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+e5ca396a-d689-4010-a451-39b1b99a7bd2	offensive_security_web_expert_(oswe)	Offensive Security Web Expert (OSWE)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+ef4cd7da-14f7-4f0d-afd0-99ca3bb6ffe2	certified_information_systems_auditor_(cisa)	Certified Information Systems Auditor (CISA)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+fc483ca5-d867-433f-a4d6-bac79879517f	crtp	CRTP	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
 \.
 
 
@@ -1209,6 +1370,31 @@ fc8929c1-64ad-4185-bd6e-c706486b8a41	gb_london	London	t	1da1becb-cf4e-4eb4-a6d6-
 fcf5dd98-6fe2-4ae3-8084-9966e94eb443	cn_beijing	Beijing	t	8b34d450-add9-4da2-ab29-651c187ae702	2026-08-20 11:37:06.005856+00	\N	\N	\N	\N
 fddb7350-b051-4870-bda3-17f51b79fd67	se_gothenburg	Gothenburg	t	990888a7-50d0-45f0-b650-2686f87c4fd0	2026-08-20 11:37:06.005856+00	\N	\N	\N	\N
 fe6526bc-a57b-4c6e-8094-be6327614409	in_tiruchirappalli	Tiruchirappalli	t	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-08-20 11:37:06.005856+00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_contact_designations; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.mst_contact_designations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+301bc813-b2a8-487e-8645-6d613260a7e7	cio	CIO	t	3	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
+36d0dd25-0888-4933-b7ec-1ffb839a50bd	cfo	CFO	t	4	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
+4289316a-ac66-4577-93b2-b27a1f631bd7	ciso	CISO	t	2	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
+634aee41-eb57-41e4-b296-af2a255a7e79	accounts_head	Accounts Head	t	5	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
+8a02dfd7-d731-4231-8eba-29f36d2254c7	spoc	SPOC	t	1	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_contact_types; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.mst_contact_types ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+58db2f92-2db9-46a1-ae8a-f04a3c7cf54c	legal	Legal	t	4	2026-09-09 07:39:28.906477+00	\N	\N	\N	\N
+670b9a05-6ee2-488e-962c-51cf3cdb86fa	procurement	Procurement	t	2	2026-09-09 07:39:28.906477+00	\N	\N	\N	\N
+6ddcfdba-7311-4f61-b285-88e09a772497	accounts	Accounts	t	1	2026-09-09 07:39:28.906477+00	\N	\N	\N	\N
+b28647ac-40d2-449e-b90c-b71cbae83f8d	technical	Technical	t	3	2026-09-09 07:39:28.906477+00	\N	\N	\N	\N
 \.
 
 
@@ -1415,6 +1601,19 @@ fb66fff9-7911-47de-bde7-ab5fb5ab0757	squad1_io	squad1.io	@squad1.io	t	3	2026-08-
 
 
 --
+-- Data for Name: mst_employee_statuses; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.mst_employee_statuses ("Id", "Code", "Name", "IsActive", "AllowOnboarding", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+26e2b2e5-b1ab-40af-8f6d-2b80deb463a0	absconded	Absconded	t	f	3	2026-09-07 06:03:13.27055+00	\N	\N	\N	\N
+a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	terminated	Terminated	t	f	2	2026-09-07 06:03:13.27055+00	\N	\N	\N	\N
+beee234f-c734-4d09-a0bb-96a6cc523cc3	resignation_under_review	Resignation Under Review	t	f	5	2026-09-07 06:03:13.27055+00	\N	\N	\N	\N
+ce28b4c5-a343-493b-9404-96c983768850	resigned	Resigned	t	f	4	2026-09-07 06:03:13.27055+00	\N	\N	\N	\N
+e273e2ed-5fd3-4564-bb87-09a71cd4779a	active	Active	t	t	1	2026-09-07 06:03:13.27055+00	\N	\N	\N	\N
+\.
+
+
+--
 -- Data for Name: mst_entra_roles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1431,6 +1630,24 @@ ae03e32f-220a-4ec7-98ad-6818a75762f1	entra_hr	Hr	Hr	Pulse HR	Resources & reposit
 
 
 --
+-- Data for Name: mst_graduation_degrees; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.mst_graduation_degrees ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+0712499d-fdc0-4a12-8fd7-7284f5531cb3	bs	BS	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+1dc7caa3-b89b-4246-8217-21c6dd59bf4b	bpharm	B.Pharm	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+511beb93-c358-41f3-b39b-463910bf94e6	bcom	B.Com	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+564c3ffb-209d-43bf-ab2f-2ba5d509357e	ba	B.A.	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+62c3218d-a51e-44ab-8fe0-c57d59270448	btech	B.Tech	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+79754fc5-b4f4-4425-8364-5934862d1f31	be	B.E.	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+82ce8912-9b37-4b6a-864e-a7327f8749cb	bba	BBA	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+a77f78ff-221e-400c-8b14-0c847b34bc92	bsc	B.Sc	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+ce12fc28-02e3-4f2c-bf7d-53607b188057	bca	BCA	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+e89b166b-ebc0-4132-8170-92ea1e78e9d0	be	BE	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+\.
+
+
+--
 -- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1439,14 +1656,15 @@ COPY public.mst_industries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "U
 f175fde9-14f8-40e8-b564-47d8a29d84ff	logistics	Logistics	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
 c7e82721-829b-4450-8393-022587178471	energy	Energy	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
 4a80bfdb-a191-4ce1-ab51-2142eb366db7	banking	Banking	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
-02012f0c-97b2-4aea-a6b4-954ee97d892d	technology	Technology	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
-4bf54de4-0e85-4904-a89f-542301b65077	automotive	Automotive	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
-16ebeb23-b3d8-4fb7-a4f6-789510c28ad3	environment	Environment	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
 935db8d7-e2aa-417e-839e-b51d00ce951e	retail	Retail	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
-cd116cba-a939-4cb7-bd0f-233019a005b0	finance	Finance	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
 e722474e-d845-42b8-978e-91a6ec78f080	manufacturing	Manufacturing	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
-3a8e57e7-2f6d-4c84-9428-d11de98078c9	quantum_computing	Quantum Computing	t	2026-08-19 06:32:47.466308+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 ff5e83cc-9c1c-4056-ab0b-42a70714ddd3	media	Media	t	2026-08-20 06:15:51.759149+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+dcb2b955-8d33-4b9b-b04a-64208dce1520	telecom	Telecom	t	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
+02012f0c-97b2-4aea-a6b4-954ee97d892d	technology	Technology	f	2026-08-18 07:55:36.166597+00	2026-09-09 07:25:18.453091+00	\N	\N	\N
+16ebeb23-b3d8-4fb7-a4f6-789510c28ad3	environment	Environment	f	2026-08-18 07:55:36.166597+00	2026-09-09 07:25:18.453091+00	\N	\N	\N
+3a8e57e7-2f6d-4c84-9428-d11de98078c9	quantum_computing	Quantum Computing	f	2026-08-19 06:32:47.466308+00	2026-09-09 07:25:18.453091+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+4bf54de4-0e85-4904-a89f-542301b65077	automotive	Automotive	f	2026-08-18 07:55:36.166597+00	2026-09-09 07:25:18.453091+00	\N	\N	\N
+cd116cba-a939-4cb7-bd0f-233019a005b0	finance	Finance	f	2026-08-18 07:55:36.166597+00	2026-09-09 07:25:18.453091+00	\N	\N	\N
 \.
 
 
@@ -1503,6 +1721,25 @@ fe29360e-bc38-4557-8653-98b749b34fe0	indonesian	Indonesian	t	2026-08-20 12:25:01
 --
 
 COPY public.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+af9b3b9c-6ead-49ef-afb4-c659f5e7214d	andheri_suvidha_square	Suvidha Square	22c2a271-2bc4-4d36-97cc-650cf84f8914	t	1	2026-09-07 06:36:20.314542+00	\N	\N	\N	\N
+b2704979-ac5a-4f75-9a11-4841f57d2ebf	dombivli_navare_plaza	Navare Plaza	3bc7c21b-cbb3-45a8-959b-0d49114a6ffc	t	1	2026-09-07 06:36:20.314542+00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_post_graduation_degrees; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.mst_post_graduation_degrees ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+02b11fcf-15dc-438e-857d-fe1df19f925b	me	ME	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+29c8b610-bca4-41b7-8199-960c4907c189	mba	MBA	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+42343c31-3dfa-44e6-a433-5d0c66dcfaf0	na	NA	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+93a0a0ed-91ed-41e3-91c1-09e94f248667	mtech	M.Tech	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+9ea82119-8356-4b91-87ea-aeeb679b9cf6	msc	M.Sc	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+c7bd4e1d-4826-421d-b473-3a926672050e	ma	M.A.	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+e0725237-7a46-48ee-9ff1-3969f2571d2a	mcom	M.Com	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+e2722a3d-0767-4299-afa9-04d89c28cd7c	mca	MCA	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+ec8299cf-acb1-4a26-aed5-a03db0ff8bfe	ms	MS	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
 \.
 
 
@@ -1511,34 +1748,35 @@ COPY public.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "So
 --
 
 COPY public.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email", "EmployeeId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-0bf170bc-2bfd-4133-9009-d3176627e14d	riya_kapoor	Riya Kapoor	Engagement Manager	riya.kapoor@acme.co	dd7a3258-31be-425c-8771-cab8ba8b1b22	t	9	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-11e7b9b1-ad41-4198-bd80-7d136992417f	neha_kulkarni	Neha Kulkarni	Technical Lead	neha.kulkarni@talakunchi.com	\N	t	15	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-1adf0cf4-260e-4518-b152-1f892eba2070	divya_rao	Divya Rao	Product Manager	divya.rao@acme.co	a586e15e-0ad4-4d33-aa18-b1edcf241baf	t	5	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-2606f49c-5ed6-4d3c-935a-0959d610ae47	arjun_shah	Arjun Shah	Data Analyst	arjun.shah@acme.co	58198691-3595-4565-8ba6-d5f150240aa3	t	4	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-5843c0cb-ad67-4377-bc53-4d9d1a5bc761	vikram_gupta	Vikram Gupta	Project Manager	vikram.gupta@acme.co	c15b2b43-0884-4999-bece-9289d1db561f	t	11	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-5ad3ffbf-606b-41f9-a34b-8b4cef837d60	rajesh_iyer	Rajesh Iyer	Delivery Manager	rajesh.iyer@talakunchi.com	\N	t	18	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-7f34be9a-66a0-48ee-922b-7994f2eb7cd0	harsh_nair	Harsh Nair	Business Analyst	harsh.nair@acme.co	18b83048-56d5-4365-8bc5-3ba65405467e	t	6	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-8b96778e-13d5-4ab1-ace6-31c6acc88bbb	ankit_verma	Ankit Verma	UX Designer	ankit.verma@acme.co	fc06e810-3e2d-4510-bfc1-669ccf579da2	t	2	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-91f99333-18be-400c-838d-0fe6c171f86e	arjun_mehta	Arjun Mehta	Engagement Manager	arjun.mehta@acme.co	230058bf-ed8a-45da-8d77-4a2821a0a76a	t	3	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-9ef6ec60-9d29-44c2-b0b4-773ba5ae99b1	vikram_deshmukh	Vikram Deshmukh	Director of Product	vikram.deshmukh@talakunchi.com	\N	t	13	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-b7c28347-fe03-4034-9d63-0348a05f85b1	aisha_rao	Aisha Rao	VP of Engineering	aisha.rao@talakunchi.com	\N	t	12	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-b838f751-d684-4c98-a20f-2d656fd09553	ananya_sharma	Ananya Sharma	Lead Architect	ananya.sharma@talakunchi.com	\N	t	17	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-bd239c0a-2dbe-4b43-831e-1607691606c9	pradeep_singh	Pradeep Singh	Engagement Manager	pradeep.singh@acme.co	8a50b4b9-7091-423c-ac8c-af55bc6df348	t	7	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-cbab65ee-e7b4-44e4-9641-3717342c9d88	aanya_joshi	Aanya Joshi	Sales Executive	aanya.joshi@acme.co	593b0378-d20a-40ee-b0a0-ae4acc0a78aa	t	1	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-e0043efa-276b-4b9b-9f1f-9e5349de06b1	sneha_iyer	Sneha Iyer	Tech Lead	sneha.iyer@acme.co	8e97c526-8c79-44c6-a23f-ece0d9b21df5	t	10	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-e206ba0c-38af-45c3-aa46-103dbf3cb45f	rahul_sharma	Rahul Sharma	Engagement Manager	rahul.sharma@acme.co	9a15533f-f863-44a7-b61c-b978fa1f5174	t	8	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-ef80f744-ce30-4db8-ae93-05cd00d748e0	rohan_verma	Rohan Verma	Engineering Manager	rohan.verma@talakunchi.com	\N	t	14	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-f0d6d5a1-bc56-4f3c-8ad5-027bb2f935c4	devansh_shah	Devansh Shah	Head of Design	devansh.shah@talakunchi.com	\N	t	16	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
-141f0e6a-7f0b-4fdc-8e48-117012ef17d2	pranjali_shah	Pranjali Shah	Employee	pranjali@talakunchi.io	b78530f0-0687-4f26-a614-8318c62901f9	t	6	2026-08-21 19:57:33.765567+00	\N	\N	\N	\N
-27ea58af-8649-413b-b68f-5ab8d7ae9e0b	nikhil_khanna	Nikhil Khanna	Sales Executive	nikhil.khanna@acme.co	8065ff15-64d6-4f36-a003-f0444a620bd8	t	4	2026-08-21 19:57:33.765567+00	\N	\N	\N	\N
-332f42c5-cbe4-4616-bdef-f1c5ed4f525c	ishita_bansal	Ishita Bansal	UX Designer	ishita.bansal@acme.co	7c9168b9-8269-430b-89d8-a1ba0b8e99af	t	2	2026-08-21 19:57:33.765567+00	\N	\N	\N	\N
-56290531-8a9f-4280-a611-7a056595cf04	pooja_menon	Pooja Menon	HR Business Partner	pooja.menon@acme.co	81c42f4c-b588-4037-a106-47f339a777f6	t	5	2026-08-21 19:57:33.765567+00	\N	\N	\N	\N
-9e9286c4-8f25-47e2-8bf9-37620fbcb726	kavya_desai	Kavya Desai	Content Strategist	kavya.desai@acme.co	3dcb0f17-b94a-470c-ba85-86ac0f1c65c8	t	3	2026-08-21 19:57:33.765567+00	\N	\N	\N	\N
-e2ea7517-353b-40d9-be27-0fbe07d6c963	ira_kapoor	Ira Kapoor	QA Engineer	ira.kapoor@acme.co	d24cafbe-bb30-4522-93b2-25588511f0e2	t	1	2026-08-21 19:57:33.765567+00	\N	\N	\N	\N
-230610a9-f798-4d1d-bf8e-86471c438c9b	samar_patel	Samar Patel	HR Business Partner	samar.patel@acme.co	f7404cb8-5d1a-40bf-b690-22cf179320dd	t	2	2026-08-22 05:01:40.262867+00	\N	\N	\N	\N
-602e1a4a-f54a-4b9d-bd55-4e5f86d530c9	yash_malik	Yash Malik	Software Engineer	yash.malik@acme.co	f8258beb-f446-477d-bb7e-69666c5fe314	t	3	2026-08-22 05:01:40.262867+00	\N	\N	\N	\N
-a72d8337-b9ca-41b7-add3-33420d5fa811	priya_shah	Priya Shah	Onboard Role f918b0f6	priya.shah.839199831f3541eda878b9f48a7f9743@acme.co	eb10f37d-b64f-4b17-976b-b962645514f2	t	1	2026-08-22 05:01:40.262867+00	\N	\N	\N	\N
-81c1b328-1aab-4495-93b1-d30ac84cfafe	sample_employee	Sample Employee	Software Engineer	sample.employee@talakunchi.com	d9903fec-2d9e-4544-ad6a-170173d41c17	t	1	2026-08-31 04:50:42.205291+00	\N	\N	\N	\N
+e2ea7517-353b-40d9-be27-0fbe07d6c963	ira_kapoor	Ira Kapoor	QA Engineer	ira.kapoor@acme.co	00000000-0000-4000-8000-000000000012	t	1	2026-08-21 19:57:33.765567+00	2026-09-09 12:43:42.098274+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+8b96778e-13d5-4ab1-ace6-31c6acc88bbb	ankit_verma	Ankit Verma	UX Designer	ankit.verma@acme.co	00000000-0000-4000-8000-000000000007	t	2	2026-08-21 19:30:26.29718+00	2026-09-09 12:43:42.193528+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+332f42c5-cbe4-4616-bdef-f1c5ed4f525c	ishita_bansal	Ishita Bansal	UX Designer	ishita.bansal@acme.co	00000000-0000-4000-8000-000000000018	t	2	2026-08-21 19:57:33.765567+00	2026-09-09 12:43:42.20599+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+602e1a4a-f54a-4b9d-bd55-4e5f86d530c9	yash_malik	Yash Malik	Software Engineer	yash.malik@acme.co	00000000-0000-4000-8000-000000000013	t	3	2026-08-22 05:01:40.262867+00	2026-09-09 12:43:42.220741+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+56290531-8a9f-4280-a611-7a056595cf04	pooja_menon	Pooja Menon	HR Business Partner	pooja.menon@acme.co	00000000-0000-4000-8000-000000000020	t	5	2026-08-21 19:57:33.765567+00	2026-09-09 12:43:42.234398+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+7f34be9a-66a0-48ee-922b-7994f2eb7cd0	harsh_nair	Harsh Nair	Business Analyst	harsh.nair@acme.co	00000000-0000-4000-8000-000000000011	t	6	2026-08-21 19:30:26.29718+00	2026-09-09 12:43:42.244893+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a72d8337-b9ca-41b7-add3-33420d5fa811	priya_shah	Priya Shah	Onboard Role f918b0f6	priya.shah.839199831f3541eda878b9f48a7f9743@acme.co	\N	f	1	2026-08-22 05:01:40.262867+00	2026-09-09 12:43:42.144892+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+81c1b328-1aab-4495-93b1-d30ac84cfafe	sample_employee	Sample Employee	Software Engineer	sample.employee@talakunchi.com	\N	f	1	2026-08-31 04:50:42.205291+00	2026-09-09 12:43:42.179859+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+141f0e6a-7f0b-4fdc-8e48-117012ef17d2	pranjali_shah	Pranjali Shah	Employee	pranjali@talakunchi.io	\N	f	6	2026-08-21 19:57:33.765567+00	2026-09-09 12:43:42.265751+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+00000000-0000-4000-8000-000000000101	dhanshree_pansare	Dhanshree Pansare	Director & Delivery Head	dhanshree.pansare@acme.co	00000000-0000-4000-8000-000000000001	t	1	2026-09-09 12:52:11.981563+00	\N	\N	\N	\N
+e0043efa-276b-4b9b-9f1f-9e5349de06b1	sneha_iyer	Sneha Iyer	Tech Lead	sneha.iyer@acme.co	00000000-0000-4000-8000-000000000004	t	10	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
+1adf0cf4-260e-4518-b152-1f892eba2070	divya_rao	Divya Rao	Product Manager	divya.rao@acme.co	00000000-0000-4000-8000-000000000006	t	5	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
+230610a9-f798-4d1d-bf8e-86471c438c9b	samar_patel	Samar Patel	HR Business Partner	samar.patel@acme.co	00000000-0000-4000-8000-000000000009	t	2	2026-08-22 05:01:40.262867+00	\N	\N	\N	\N
+cbab65ee-e7b4-44e4-9641-3717342c9d88	aanya_joshi	Aanya Joshi	Sales Executive	aanya.joshi@acme.co	00000000-0000-4000-8000-000000000010	t	1	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
+9e9286c4-8f25-47e2-8bf9-37620fbcb726	kavya_desai	Kavya Desai	Content Strategist	kavya.desai@acme.co	00000000-0000-4000-8000-000000000014	t	3	2026-08-21 19:57:33.765567+00	\N	\N	\N	\N
+2606f49c-5ed6-4d3c-935a-0959d610ae47	arjun_shah	Arjun Shah	Data Analyst	arjun.shah@acme.co	00000000-0000-4000-8000-000000000015	t	4	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
+5843c0cb-ad67-4377-bc53-4d9d1a5bc761	vikram_gupta	Vikram Gupta	Project Manager	vikram.gupta@acme.co	00000000-0000-4000-8000-000000000017	t	11	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
+27ea58af-8649-413b-b68f-5ab8d7ae9e0b	nikhil_khanna	Nikhil Khanna	Sales Executive	nikhil.khanna@acme.co	00000000-0000-4000-8000-000000000021	t	4	2026-08-21 19:57:33.765567+00	\N	\N	\N	\N
+0bf170bc-2bfd-4133-9009-d3176627e14d	riya_kapoor	Riya Kapoor	Engagement Manager	riya.kapoor@acme.co	00000000-0000-4000-8000-000000000022	t	9	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
+e206ba0c-38af-45c3-aa46-103dbf3cb45f	rahul_sharma	Rahul Sharma	Engagement Manager	rahul.sharma@acme.co	00000000-0000-4000-8000-000000000023	t	8	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
+bd239c0a-2dbe-4b43-831e-1607691606c9	pradeep_singh	Pradeep Singh	Engagement Manager	pradeep.singh@acme.co	00000000-0000-4000-8000-000000000024	t	7	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
+91f99333-18be-400c-838d-0fe6c171f86e	arjun_mehta	Arjun Mehta	Engagement Manager	arjun.mehta@acme.co	00000000-0000-4000-8000-000000000025	t	3	2026-08-21 19:30:26.29718+00	\N	\N	\N	\N
+11e7b9b1-ad41-4198-bd80-7d136992417f	neha_kulkarni	Neha Kulkarni	Technical Lead	neha.kulkarni@talakunchi.com	00000000-0000-4000-8000-000000000008	t	15	2026-08-21 19:30:26.29718+00	2026-09-09 11:33:31.58248+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b7c28347-fe03-4034-9d63-0348a05f85b1	aisha_rao	Aisha Rao	VP of Engineering	aisha.rao@talakunchi.com	\N	f	12	2026-08-21 19:30:26.29718+00	2026-09-09 12:43:42.291366+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9ef6ec60-9d29-44c2-b0b4-773ba5ae99b1	vikram_deshmukh	Vikram Deshmukh	Director of Product	vikram.deshmukh@talakunchi.com	\N	f	13	2026-08-21 19:30:26.29718+00	2026-09-09 12:43:42.311333+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ef80f744-ce30-4db8-ae93-05cd00d748e0	rohan_verma	Rohan Verma	Engineering Manager	rohan.verma@talakunchi.com	\N	f	14	2026-08-21 19:30:26.29718+00	2026-09-09 12:43:42.359295+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f0d6d5a1-bc56-4f3c-8ad5-027bb2f935c4	devansh_shah	Devansh Shah	Head of Design	devansh.shah@talakunchi.com	\N	f	16	2026-08-21 19:30:26.29718+00	2026-09-09 12:43:42.375997+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b838f751-d684-4c98-a20f-2d656fd09553	ananya_sharma	Ananya Sharma	Lead Architect	ananya.sharma@talakunchi.com	\N	f	17	2026-08-21 19:30:26.29718+00	2026-09-09 12:43:42.391178+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5ad3ffbf-606b-41f9-a34b-8b4cef837d60	rajesh_iyer	Rajesh Iyer	Delivery Manager	rajesh.iyer@talakunchi.com	\N	f	18	2026-08-21 19:30:26.29718+00	2026-09-09 12:43:42.410656+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 \.
 
 
@@ -1704,9 +1942,11 @@ ebed343e-301f-4984-b292-fa8d1cb1623c	l2	L2	t	2026-08-20 12:51:10.222702+00	\N	\N
 --
 
 COPY public.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-58e569dc-cb93-4832-bf22-2e8d4836dc65	onsite	Onsite	t	1	2026-09-03 12:26:58.067087+00	\N	\N	\N	\N
-3bc10d7b-a705-4ec9-b7b5-71858572a8cc	suvidha_square_andheri	Suvidha Square, Andheri	t	2	2026-09-03 12:26:58.067087+00	\N	\N	\N	\N
-8d0b23a2-9459-4fbe-a7bf-624abd410c40	navare_plaza_dombivli	Navare Plaza, Dombivli	t	3	2026-09-03 12:26:58.067087+00	\N	\N	\N	\N
+22c2a271-2bc4-4d36-97cc-650cf84f8914	andheri	Andheri	f	1	2026-09-07 06:36:20.314542+00	2026-09-09 07:47:32.139416+00	\N	\N	\N
+3bc10d7b-a705-4ec9-b7b5-71858572a8cc	suvidha_square_andheri	Suvidha Square, Andheri	t	2	2026-09-03 12:26:58.067087+00	2026-09-09 07:47:32.139416+00	\N	\N	\N
+3bc7c21b-cbb3-45a8-959b-0d49114a6ffc	dombivli	Dombivli	f	2	2026-09-07 06:36:20.314542+00	2026-09-09 07:47:32.139416+00	\N	\N	\N
+58e569dc-cb93-4832-bf22-2e8d4836dc65	onsite	Onsite	t	1	2026-09-03 12:26:58.067087+00	2026-09-09 07:47:32.139416+00	\N	\N	\N
+8d0b23a2-9459-4fbe-a7bf-624abd410c40	navare_plaza_dombivli	Navare Plaza, Dombivli	t	3	2026-09-03 12:26:58.067087+00	2026-09-09 07:47:32.139416+00	\N	\N	\N
 \.
 
 
@@ -2378,7 +2618,6 @@ cfb949f8-9907-4ead-91bf-cea1383fba7f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uMw1Sz
 0927d222-8550-4deb-8ff0-6a310c4c15f7	cdee998d-48e3-4ee3-8d3a-8bb394592377	w2mdMT8CsPqXxe9x5T+8hMELeJn42VlTkBuGR9Q7AF0=	2026-09-09 13:57:24.212772+00	2026-09-03 09:44:29.41539+00	\N	2026-09-02 13:57:24.21295+00	2026-09-03 09:44:29.543595+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 f6fcda68-26eb-4bf3-b5fd-495e6c0e5692	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	KxMzIQ4y79kvLWAurt8k+Ow+k/0wR5CRPLRp5ryCTaM=	2026-09-10 10:28:17.157841+00	2026-09-03 10:32:30.589557+00	\N	2026-09-03 10:28:17.158871+00	2026-09-03 10:32:30.591005+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 033cb4e3-c264-4cc2-bf43-dee39d7bac5f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qjWBkRT6wRsQW+4iQaWoW0OJMXX30hWYj8dkIuSJej4=	2026-09-10 10:32:30.590521+00	2026-09-03 12:21:24.0732+00	\N	2026-09-03 10:32:30.591005+00	2026-09-03 12:21:24.127734+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-bb9f4570-2599-4a55-933b-f89813c97d6a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Sa8jgKLrGZno8O2GehGMUZPK+VR0Ki1qP1u/7ByZjEU=	2026-09-10 16:01:28.814055+00	\N	\N	2026-09-03 16:01:28.833921+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 0bd7d133-2bd4-47e9-9e93-1fe4cd281431	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	Xlsx0FlZVdz9OBcRjxSKrIWScAxtwlsm2Ab82D2qQf8=	2026-09-03 07:22:24.629948+00	2026-08-27 07:27:38.414877+00	\N	2026-08-27 07:22:24.630092+00	2026-08-27 07:27:38.415356+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 f5bea72c-b5f9-4576-9ead-eb24614c0eb7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	E0DCfm+yLPLT+ixS+VJPGPkRpBxcWoRIcP5D+dEFRdA=	2026-09-03 09:09:07.259612+00	2026-08-27 09:14:05.658587+00	\N	2026-08-27 09:09:07.259861+00	2026-08-27 09:14:05.663133+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 55339c8b-f2c1-4612-a43f-3074434536df	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ZPgHig8SWuuO8VaR6FsYsDU9U1EZvi8irZ1D6cNh070=	2026-09-03 10:56:36.351104+00	2026-08-27 10:57:12.306553+00	\N	2026-08-27 10:56:36.352999+00	2026-08-27 10:57:12.350807+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
@@ -2531,6 +2770,197 @@ e9cf9cf0-2133-43dc-86d9-804c93768061	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	sG4YQc
 c4f3c542-ce49-45d4-97bc-f982c6e314f5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	O9z8VDFK6GQxeqEm2eV2QWl6cI1xDSl+kqryS1r2I6I=	2026-09-10 08:35:53.536685+00	2026-09-03 08:40:10.620184+00	\N	2026-09-03 08:35:53.53684+00	2026-09-03 08:40:10.621909+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 0ba3603e-3fe5-430c-8509-3763bbce3471	d1130837-5c69-40b6-a65f-913214e66693	o1xYZ4qjASAe1bfe/i/bwTJjrmU43lyTtRcjzZY1q9o=	2026-09-10 09:50:09.646883+00	2026-09-03 09:50:09.765678+00	\N	2026-09-03 09:50:09.64729+00	2026-09-03 09:50:09.766267+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 ebd4d1fc-9c3d-40f0-8e68-b0a4b82a1d5e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	xiLJQbjQVGhmW6Zm0WkUHC5ix2kd6pFcWaooPDxqv3Y=	2026-09-10 12:33:59.021587+00	2026-09-03 12:41:40.660083+00	\N	2026-09-03 12:33:59.044924+00	2026-09-03 12:41:40.662869+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bb9f4570-2599-4a55-933b-f89813c97d6a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Sa8jgKLrGZno8O2GehGMUZPK+VR0Ki1qP1u/7ByZjEU=	2026-09-10 16:01:28.814055+00	2026-09-07 06:29:48.4125+00	\N	2026-09-03 16:01:28.833921+00	2026-09-07 06:29:48.436725+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2cc47de1-d1c1-4870-b21d-61cddfcb485c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	lEP1Vq6oCkXcXSlJwD+0RVvMeeABk+DsmRBJqDQXr0g=	2026-09-14 06:29:48.430505+00	2026-09-07 06:33:38.153177+00	\N	2026-09-07 06:29:48.436725+00	2026-09-07 06:33:38.154052+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b46107b1-a0cd-4633-94c7-adaa878d2e9a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Q5Wh0NNr2y3Zx89RTe6MEZny3BhaM0oJTv6BVYfhw48=	2026-09-14 06:33:38.153766+00	2026-09-07 06:40:16.918978+00	\N	2026-09-07 06:33:38.154052+00	2026-09-07 06:40:16.947439+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1ff65a1c-15fe-440b-b113-e663de8dd623	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	0mIxEn8iQGSREYIUvN0esDGG06aHs0+Urr1X75Mlnrs=	2026-09-14 07:00:56.368144+00	2026-09-07 07:12:06.316751+00	\N	2026-09-07 07:00:56.378408+00	2026-09-07 07:12:06.318033+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d187fd0f-d5b4-4eb0-b672-8efe8e0b4d9c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	AwuyM0pbAemTyRhmu8OjZRp4OEa5PSTJnZbEoVeOEp4=	2026-09-14 07:12:06.317077+00	2026-09-07 07:13:30.324186+00	\N	2026-09-07 07:12:06.318033+00	2026-09-07 07:13:30.324614+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+23cd831e-27ed-4ed9-935d-7bd4cd79947c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	yBXwsL7rRWl7IiezSwJPKrWctfBZB4fsx2ecSIbFitY=	2026-09-14 07:13:30.324457+00	2026-09-07 07:20:51.849325+00	\N	2026-09-07 07:13:30.324614+00	2026-09-07 07:20:51.849593+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+93f91dc5-4152-464c-a6c1-861d10957cce	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Fit9nOS+ORYxLMjVq0iUBzSq/28VoLRwC2XFRG9N9B0=	2026-09-14 07:58:11.874328+00	2026-09-07 08:23:56.121155+00	\N	2026-09-07 07:58:11.874419+00	2026-09-07 08:23:56.12174+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+cccca7e6-7aff-48db-8db9-915078a4992e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	paQ5Zv+dT1C3u/i74k4H75JW+GR6CMPEd14766t4LX0=	2026-09-14 11:30:18.783734+00	2026-09-07 11:30:18.893046+00	\N	2026-09-07 11:30:18.78397+00	2026-09-07 11:30:18.893383+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f6f1bc99-3b93-4641-bf63-62f59a2aedd4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	nXtAgnjZmGRKRg67be0xD5XfLqxNzI9D6RWpOfPzFAM=	2026-09-14 11:30:18.893263+00	2026-09-07 11:34:31.114724+00	\N	2026-09-07 11:30:18.893383+00	2026-09-07 11:34:31.114733+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+961f7eb3-8917-40cb-a27f-3986af1a27dd	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	LNlUA654/ptXCTuX89DNQeMghG3ONJ+Bx+qzdhAcdlQ=	2026-09-14 11:34:31.500412+00	2026-09-07 11:34:49.338821+00	\N	2026-09-07 11:34:31.50052+00	2026-09-07 11:34:49.339023+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e497b25e-8f84-4e7a-b6d6-73c4bf709174	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	K4lBg5JoIcBZ5qDdvFbRDJEPGMzfQe7is3RQbh5Bgo8=	2026-09-14 11:34:49.33894+00	2026-09-07 11:35:11.864113+00	\N	2026-09-07 11:34:49.339023+00	2026-09-07 11:35:11.864331+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b224640a-d95a-47c8-b820-9267f2b5ed7f	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	ua/J4yAcz/8piERN5jthw/9aITDh/oeSwM0nNQLtfEc=	2026-09-14 11:35:11.864233+00	2026-09-07 11:35:32.120414+00	\N	2026-09-07 11:35:11.864331+00	2026-09-07 11:35:32.120604+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c49a9039-1478-4d11-9c59-44b3ed57c445	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	A4GR1FpSzRnI0BYzsQjElkwXJDJmOQN8VCBQWnizOVI=	2026-09-14 12:07:47.914297+00	2026-09-07 12:07:47.952288+00	\N	2026-09-07 12:07:47.914482+00	2026-09-07 12:07:47.952299+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+10a992ae-7903-437a-8f47-f467404d0e36	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Zj44qGHHoOEzz6koiu3AHND4iaUx/Rd6HDa06kl5TSs=	2026-09-14 12:07:48.903093+00	2026-09-07 12:07:48.954089+00	\N	2026-09-07 12:07:48.903262+00	2026-09-07 12:07:48.954102+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+14fe4388-9b4b-4a50-a360-ea8deda13355	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	CkkvWBu7kLoI7OUocZiedYCj8wcV9tonXTjOoXkoEy8=	2026-09-14 13:13:56.759336+00	2026-09-07 13:13:57.126901+00	\N	2026-09-07 13:13:56.759413+00	2026-09-07 13:13:57.126908+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9916628a-def7-4002-b62c-ef2f64ea5ec0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	6/l4NURxHXhgd5ty8h60k73t78r5xEYyahI5AA1m7SY=	2026-09-14 13:14:25.870954+00	2026-09-07 13:14:25.884076+00	\N	2026-09-07 13:14:25.871177+00	2026-09-07 13:14:25.884437+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0a1d5d60-77bc-4501-b387-b2848b9c70b4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Zb95dofMele88WEoGRfk+Oqbp4lCEgLhlX7yAyjE2Rs=	2026-09-14 13:14:25.95786+00	2026-09-07 13:14:31.38237+00	\N	2026-09-07 13:14:25.957912+00	2026-09-07 13:14:31.382382+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+70165730-7297-4fc7-84c6-38cb185b923b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	TqJj/HdkGrwAESBsom/XZezoNwWsPC5NSaz7wyjd00M=	2026-09-14 13:14:32.090596+00	2026-09-07 13:15:43.987444+00	\N	2026-09-07 13:14:32.090652+00	2026-09-07 13:15:43.988055+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+75e96ddd-8855-48b7-918e-4aa06659f9d5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	cU3qlcEmz7fVo6jQshoChf6m2KhH4ULRY9oNKls59Ds=	2026-09-14 13:15:44.450618+00	2026-09-07 13:15:44.470866+00	\N	2026-09-07 13:15:44.45066+00	2026-09-07 13:15:44.47102+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+408684b9-9842-4b47-b82f-516c22ae59f7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	QFuXSqiXHZ+bTbrlJqH6dIbSQJG5enbSODNmzG5yaNc=	2026-09-14 13:18:02.66801+00	2026-09-07 13:48:44.322068+00	\N	2026-09-07 13:18:02.668068+00	2026-09-07 13:48:44.322235+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9e4b26d7-38d7-42d3-92c7-583d7cd8c48a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	cvC+XEm4GUAsKri84IVnUaASdi8Oih0UlVsuYlPZOP4=	2026-09-14 13:48:44.322171+00	2026-09-07 13:48:44.425808+00	\N	2026-09-07 13:48:44.322235+00	2026-09-07 13:48:44.425815+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b5f9efca-4fd7-4e1f-8e9b-51499672d649	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3s/7SFrw2imDSj26oTRX+iH2HYzATrKLI+gQtsRNKkE=	2026-09-14 13:48:44.729435+00	2026-09-07 13:48:52.326726+00	\N	2026-09-07 13:48:44.729535+00	2026-09-07 13:48:52.326734+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5c7f34ac-1bbc-4a2d-b7b0-232bf69ba203	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	5tmJDlfjCLF5A7loKFifAGMgMGU7J2jKVdEUW2/jjVs=	2026-09-14 13:48:52.618701+00	2026-09-07 13:48:52.827528+00	\N	2026-09-07 13:48:52.618889+00	2026-09-07 13:48:52.827538+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b546b847-3452-43c3-bbbd-2cfca9f37f77	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	yZUmJu9NOxWKxnrtviOidXxpBw1BqaPa9eQNHtl5ynk=	2026-09-14 13:48:53.096599+00	2026-09-07 13:49:43.164553+00	\N	2026-09-07 13:48:53.096701+00	2026-09-07 13:49:43.164562+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6861c0ac-e605-41ab-b00d-f53bcf05f126	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	5YkQszabjeUMX6ePfqbNVKhXyGQJx+Pdcbji85DzsSY=	2026-09-14 13:49:43.44962+00	2026-09-07 13:49:43.852738+00	\N	2026-09-07 13:49:43.449772+00	2026-09-07 13:49:43.852746+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+afedd7c8-18b4-49d7-b242-551cc8c6851e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	yoFkcyAVuQIbPrNXQ5a/HLf0bTAh1NtzQ8YJWnmr1sk=	2026-09-14 13:49:44.132857+00	2026-09-07 13:49:51.412815+00	\N	2026-09-07 13:49:44.132946+00	2026-09-07 13:49:51.412825+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+633f4135-8f1a-4374-b51c-6faddab7cccf	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	jHKd7nG/mk9kZ25jHjNGqUDQDTl4KbFh84ISJzl37wo=	2026-09-14 13:49:51.718391+00	2026-09-07 13:49:51.808243+00	\N	2026-09-07 13:49:51.718507+00	2026-09-07 13:49:51.808249+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d17f07c0-f156-46e2-9290-fe3a2339814f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	j+DbmcuI0WelPKnuEgOEPP4bjCEsA+2jxcGnXgKZMJM=	2026-09-14 13:49:52.091353+00	2026-09-08 05:02:47.08672+00	\N	2026-09-07 13:49:52.091475+00	2026-09-08 05:02:47.086933+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b96b2711-2313-4ed7-8ccb-72d2b334c9c1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3j/Q3WnqIA0ASRLOSbvV7jN1tfLsKXV66SfGB1MTx/k=	2026-09-15 05:23:00.026788+00	2026-09-08 05:23:00.064936+00	\N	2026-09-08 05:23:00.027027+00	2026-09-08 05:23:00.06534+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6678b811-bdc6-4852-b4a5-08ed46323cb7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	IpuHbi9GPDKS+g1HDXxwZtcGve38e+0wHtw9tNdgBsM=	2026-09-15 05:27:44.333697+00	2026-09-08 05:58:48.875673+00	\N	2026-09-08 05:27:44.33383+00	2026-09-08 05:58:48.884035+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+4827e52d-d699-472a-bdae-d5cfe9dbaaff	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	JSGnJqHjOkkAYtvuHiITNtfvCyPoaGrup7rNWO2e+/A=	2026-09-15 06:01:09.001421+00	2026-09-08 06:01:09.314254+00	\N	2026-09-08 06:01:09.00162+00	2026-09-08 06:01:09.314793+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+8daffe80-61eb-4954-bdcf-d7f3735fb01e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	+whCUi6HjODxlKn1q2yVaAaNwhZ0aVDeZaFd09n4KhU=	2026-09-15 06:02:12.956347+00	2026-09-08 06:03:36.068038+00	\N	2026-09-08 06:02:12.956459+00	2026-09-08 06:03:36.068073+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+83df1e5f-4816-44cb-a94f-6367b9d498e4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	0CLxubKEh1pTMf6T+14BzCYHkh7xj1asI/bQNsEdmuE=	2026-09-15 06:20:05.676302+00	2026-09-08 06:26:04.084347+00	\N	2026-09-08 06:20:05.676637+00	2026-09-08 06:26:04.085836+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+471c6089-00d9-4dbf-9116-5a50947d5c6e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	P/1WYhUxG4OnasntsNOQV6c2IsPvIPUrumzjxP0P3tQ=	2026-09-15 06:44:27.587267+00	2026-09-08 06:44:28.572329+00	\N	2026-09-08 06:44:27.587576+00	2026-09-08 06:44:28.572401+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+961206e9-7503-439e-8887-0ea9ac6c7424	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	jsRg8vG4Vjp56CGm/lzJj2IX2Bl0fFK+tTt5VMNT4AI=	2026-09-15 06:44:28.863701+00	2026-09-08 06:44:38.023175+00	\N	2026-09-08 06:44:28.863858+00	2026-09-08 06:44:38.02319+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e5d5f77f-1f3d-4cf1-bc4d-77b392ff26d8	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	d7xo9hTfTgToFjSGaDUz5L+oO+SXaiqa4uLO79Z3Rs0=	2026-09-14 06:40:16.943271+00	2026-09-07 06:58:06.55002+00	\N	2026-09-07 06:40:16.947439+00	2026-09-07 06:58:06.550071+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+50a4a438-40dc-4035-b9ff-39034479fb13	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	m3jKalx4TsFeRGq+sNQEn2U42f84nnbsKvb3epcozLI=	2026-09-14 07:20:51.849509+00	2026-09-07 07:31:05.349661+00	\N	2026-09-07 07:20:51.849593+00	2026-09-07 07:31:05.350185+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+21b17973-4028-4146-b636-31bfba922430	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	0azF2wpgctVIrL41/w9hYYJDSxzHCdMYTHe6LPM2zLw=	2026-09-14 08:23:56.121478+00	2026-09-07 08:24:03.167513+00	\N	2026-09-07 08:23:56.12174+00	2026-09-07 08:24:03.167526+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2ea3bbec-5269-4c98-a12a-983a5c238011	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	FdlbKm5+EyL9s6XfcLHOORqp/eu14tHfFJ6LXmfimio=	2026-09-14 08:24:03.447833+00	2026-09-07 10:39:59.032193+00	\N	2026-09-07 08:24:03.447934+00	2026-09-07 10:39:59.032211+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+4d5758e4-93de-457f-b18d-b9ac874faa48	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	fN5zwUfIs5WOZEG6Cgl6d8t5EyRm9NHDj67y0uL5X/k=	2026-09-14 10:39:59.351049+00	2026-09-07 10:41:19.670804+00	\N	2026-09-07 10:39:59.35141+00	2026-09-07 10:41:19.670816+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3476800a-d345-4c40-981e-d6370eb60027	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	j54lv8HFIfrgnj5X5jt9YDoSKatDavavjFoqrE4mEqo=	2026-09-14 10:41:19.949214+00	2026-09-07 10:50:34.491688+00	\N	2026-09-07 10:41:19.94932+00	2026-09-07 10:50:34.492021+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b14e555d-3d69-4824-89c4-565c410afbbc	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	kduytuXwjAGN6GdZXd1Q3ZAVxRWpVIeIHbEr6wRIjtU=	2026-09-14 11:35:32.120523+00	2026-09-07 11:36:03.957997+00	\N	2026-09-07 11:35:32.120604+00	2026-09-07 11:36:03.958008+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+cdc3df52-6a39-4375-82b4-31b859cc3784	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	MiNP3oPawHqDbj4d5eGjKDI1lapgPEiEXWFUiklTp3A=	2026-09-14 11:36:04.348212+00	2026-09-07 11:36:14.247718+00	\N	2026-09-07 11:36:04.348352+00	2026-09-07 11:36:14.248008+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c6f0239c-5360-4068-b8e7-4b3a9ec5475e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	UiDBQwELb61QULg4HP7LYELQ1+7LuZH+bwAb62YaJN0=	2026-09-14 11:36:14.24789+00	2026-09-07 11:59:22.297317+00	\N	2026-09-07 11:36:14.248008+00	2026-09-07 11:59:22.297565+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a6a097d6-fce1-47d5-aeba-3d3e588c929b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	sXjw1Skzs08jK+JKK0Ab9RhswEBW8ypVA/uEAPkDGb4=	2026-09-14 12:07:48.2818+00	2026-09-07 12:07:48.902889+00	\N	2026-09-07 12:07:48.281916+00	2026-09-07 12:07:48.903262+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+97c36846-c930-4d0a-a19e-b740c191588e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	NoKatjXg/oDa0Izox/j5IO++HLIDrtrhRf/Hcu1QInM=	2026-09-14 12:07:49.283144+00	2026-09-07 13:13:56.148673+00	\N	2026-09-07 12:07:49.283286+00	2026-09-07 13:13:56.148685+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2080154a-5afa-4ab5-906b-9fffebbb4088	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	kZwJskB4kwh4wnU9FqJpzhEqnh48PTKHudSxGaMuqSI=	2026-09-14 13:13:57.432501+00	2026-09-07 13:14:25.425397+00	\N	2026-09-07 13:13:57.432632+00	2026-09-07 13:14:25.425921+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f527c332-bea2-4804-9375-b47c9c5f5b5d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	+om+CVvZMx26x0HTTvgZVsBN4/AR+mpylnPDvaCRfaA=	2026-09-14 13:14:25.425728+00	2026-09-07 13:14:25.460367+00	\N	2026-09-07 13:14:25.425921+00	2026-09-07 13:14:25.460379+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0d7bef64-0789-415e-b8e4-858cd1b04706	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YIhqQzhttDSzXEDe5h0vrggOY+VqAGpMUcnw3ZY9L8s=	2026-09-14 13:14:31.938474+00	2026-09-07 13:14:32.076848+00	\N	2026-09-07 13:14:31.938523+00	2026-09-07 13:14:32.077188+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+556028bd-dcd1-47f3-afb9-4dc044724940	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	KwhSG4A+yeWDAnfdfmLiiBrUz2ukk6DY/WWvUtTIb2I=	2026-09-14 13:14:32.076947+00	2026-09-07 13:14:32.090501+00	\N	2026-09-07 13:14:32.077188+00	2026-09-07 13:14:32.090652+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bd8dcce2-b144-4df5-90ef-1185ad58e402	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	J3tZcGdodOIG8XOyDvMxI78ozNCGZreQgEGBIyJw4ns=	2026-09-14 13:15:43.987655+00	2026-09-07 13:15:44.103944+00	\N	2026-09-07 13:15:43.988055+00	2026-09-07 13:15:44.103955+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2f52dbe0-7d5a-43ed-9630-1100079e56e0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	sUTXU0R69ixupgGC2ywu5U8xy8U/2wEi+cLufidbZno=	2026-09-14 13:15:44.450442+00	2026-09-07 13:15:44.470867+00	\N	2026-09-07 13:15:44.450529+00	2026-09-07 13:15:44.47102+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a8eff698-2b40-45b7-b9ba-c97e94876f0d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	9wcqTwt9gnaTg7R/iTUMhBEwBzXsMKpqC3lwWEluQpM=	2026-09-14 13:17:10.762792+00	2026-09-07 13:17:37.90417+00	\N	2026-09-07 13:17:10.762872+00	2026-09-07 13:17:37.904362+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1c6b1d44-7b9f-4157-a67e-13d7ade08cd5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	fmG5AXpyuoG02XPgK983/AA0CDKssJmenDxVgnOP+vo=	2026-09-15 05:02:47.590246+00	2026-09-08 05:08:32.228989+00	\N	2026-09-08 05:02:47.592423+00	2026-09-08 05:08:32.229753+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+dbf1804a-95a3-4375-9215-ff612dd6da15	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	UuKJt4/OE1G81RGjWg1fJt39zNaDZrZmCwuEo6xaemc=	2026-09-15 05:16:45.274304+00	2026-09-08 05:16:45.755464+00	\N	2026-09-08 05:16:45.274509+00	2026-09-08 05:16:45.75584+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fc3b6378-a34d-42c7-8903-34b88226773b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uJ2wKiiLpvzS1Ua9vVOLAp6YoX+0Svo+GjJUAGMPE8c=	2026-09-15 05:23:00.065178+00	2026-09-08 05:27:43.749692+00	\N	2026-09-08 05:23:00.06534+00	2026-09-08 05:27:43.749716+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1109699d-a056-4f78-b235-58c410c30f6d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	VMtvd4Hvqi9tM4IkH0aP6Tfxycr4KHnf1Wqtbqkgkhc=	2026-09-15 05:58:48.880671+00	2026-09-08 05:58:49.932864+00	\N	2026-09-08 05:58:48.884035+00	2026-09-08 05:58:49.933809+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+8912c6b0-5bdb-417e-8c84-c7201ee56d1e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	5INV3JM1Jg8eAKFVe+b7obRRjVJuHexOW+c7Fm9qtcA=	2026-09-15 06:01:09.31469+00	2026-09-08 06:02:12.214712+00	\N	2026-09-08 06:01:09.314793+00	2026-09-08 06:02:12.214731+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b6be4624-7aea-4225-98b7-42ea9432e313	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ZaxwzKqxd5OI+4q/KE/QwEPt17ebFUsTQp599yUJVy0=	2026-09-15 06:03:36.5557+00	2026-09-08 06:03:36.651848+00	\N	2026-09-08 06:03:36.555885+00	2026-09-08 06:03:36.652628+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c2edff73-e90c-442e-94df-a6515e4a608d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	m5Rgl8JRsiz4y1yUdvYCxqkrCzU2+ACYT97dELzeaKw=	2026-09-15 06:26:04.80173+00	2026-09-08 06:26:08.79755+00	\N	2026-09-08 06:26:04.816426+00	2026-09-08 06:26:08.856677+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+53cc7487-e12c-4017-a9b2-e434165fff8e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	wkHd0+gY04XHFYAlOMdRSuGctqWw9jE+4ushuSS2CIY=	2026-09-15 06:26:13.156948+00	2026-09-08 06:44:27.310984+00	\N	2026-09-08 06:26:13.158116+00	2026-09-08 06:44:27.310998+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e9e8369e-021a-4470-9f8d-04bf6b093e23	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qmtg5BUciG0SZqLNtqq0wEZdM4LByPa75WXPzni1pEs=	2026-09-15 06:44:38.351151+00	2026-09-08 06:44:38.851642+00	\N	2026-09-08 06:44:38.351259+00	2026-09-08 06:44:38.851654+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ebbced7a-405d-461d-a890-e5b23acfff20	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2qWoNr8I50TSncHqEc8NG7bhSuHJ2VNh8zU701qKO5w=	2026-09-15 06:44:39.126366+00	2026-09-08 06:46:23.603605+00	\N	2026-09-08 06:44:39.126468+00	2026-09-08 06:46:23.605178+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c42d6b98-e336-4b0d-a63e-d030dafc4524	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	kO7JTL6WjgZIaG9WYPJa8Ga+AjbIBCVeNRdxXOJe+qI=	2026-09-15 07:04:48.325145+00	2026-09-08 07:04:49.157795+00	\N	2026-09-08 07:04:48.325326+00	2026-09-08 07:04:49.158264+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+92252a2f-8b53-48d5-a6c9-b002c68cf402	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	XOnYw0h+WbwlGUkw2WJJCCZGyZfATboVXAxVFD2MY78=	2026-09-15 07:07:34.018451+00	2026-09-08 07:07:34.942706+00	\N	2026-09-08 07:07:34.018703+00	2026-09-08 07:07:34.943146+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+00c608f4-3ff6-4caa-8c58-bbb7c9e88586	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3l0syfbJP54nBE4vU/YmkbWwaOYTLriEZG7r3WJca4Q=	2026-09-15 07:11:15.969311+00	2026-09-08 07:11:16.532658+00	\N	2026-09-08 07:11:15.969567+00	2026-09-08 07:11:16.533079+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d1472ed5-2672-41d7-a659-5a43622e7a6f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	XT9WDrOeU5BGoirl4IRq1BfmD7R/BzVR0wzgRqoN7VM=	2026-09-15 07:41:19.495048+00	2026-09-08 07:41:19.570194+00	\N	2026-09-08 07:41:19.509604+00	2026-09-08 07:41:19.571605+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b73cbeb0-286b-426b-ab65-29c1b877c939	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	7GEJ1DqnxVxi54nt1kf40PiUBxqIVtywHJr3w6w3r5o=	2026-09-15 07:41:25.163933+00	2026-09-08 07:41:25.702682+00	\N	2026-09-08 07:41:25.164113+00	2026-09-08 07:41:25.70317+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5fcaaf95-8e3e-41df-8688-1cac1461994a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	tsi5tcaq8/LNfG8m+ga4DXOn7uaX4DcI8+8DMRlcY68=	2026-09-15 07:46:47.776402+00	2026-09-08 07:47:57.755616+00	\N	2026-09-08 07:46:47.776838+00	2026-09-08 07:47:57.755639+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+330dd3e0-7a32-453c-acb3-35ce4b1ab687	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	gmSOnsZNry+6LoJqcRxKgkDT7v6XmCSioIKaaVBx3eA=	2026-09-15 07:54:36.396989+00	2026-09-08 07:54:36.588363+00	\N	2026-09-08 07:54:36.397508+00	2026-09-08 07:54:36.589067+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bc1cee60-80cb-46b4-9bdb-cdbf34b3d75d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ExkMdQX2DQfxVyc3Qh54EaasCJ0HHhwF6D9Mv2+RlBc=	2026-09-15 07:54:46.192447+00	2026-09-08 07:54:46.278108+00	\N	2026-09-08 07:54:46.192684+00	2026-09-08 07:54:46.278909+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6b012370-6a5e-4b2b-9e53-8e220062751c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	JOBIA09v2wBr6kuqoJtaAMGue6jxxlIq1BYCuP0MLaA=	2026-09-15 08:00:16.599007+00	2026-09-08 08:13:15.00702+00	\N	2026-09-08 08:00:16.599199+00	2026-09-08 08:13:15.007081+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3fd027a7-6a49-4868-abba-1ef6b2d6eaa3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Zr8t77wvESzFAbFghrDYg4UJB8dXIdvcJSP0VB2ZDnk=	2026-09-15 09:34:37.428718+00	2026-09-08 09:34:51.262342+00	\N	2026-09-08 09:34:37.429003+00	2026-09-08 09:34:51.262409+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b153c570-8c8b-4919-ba01-fe7800b9b696	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	FAOEyWJPLHeopNQv1HdRZ3nCxLTf8PYKjGg8QN5l4Ug=	2026-09-15 09:34:57.711398+00	2026-09-08 09:35:04.010963+00	\N	2026-09-08 09:34:57.711493+00	2026-09-08 09:35:04.01126+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5293bd5f-abe7-43ec-999c-5742eb0caa50	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Of2Diy5sRgJuXgO4Pd8x4F5LYQWMWcdVwDy55UqSj/o=	2026-09-15 09:35:04.01115+00	2026-09-08 09:39:12.83984+00	\N	2026-09-08 09:35:04.01126+00	2026-09-08 09:39:12.839851+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+31745746-7d99-4f01-a4f6-2aed91dc3660	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	sS3yCadlJClMQBW7aZBDrYGKNsWG8fM2++F+8JA0NFM=	2026-09-15 09:39:13.128073+00	2026-09-08 09:48:29.005342+00	\N	2026-09-08 09:39:13.128177+00	2026-09-08 09:48:29.005617+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+684bed1c-4d8f-41d1-91c0-9110f6590278	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uvP0KUmPUDthk2CM+O+YowIcm7TCePLG5jLmc2V0J4k=	2026-09-15 10:07:06.883541+00	2026-09-08 10:09:53.358455+00	\N	2026-09-08 10:07:06.883698+00	2026-09-08 10:09:53.358464+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1ea119b1-7c0c-4e59-9fce-0c6d9a02f625	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	5654zbOqrJEviX8zjor4LeP2x4uKZrmMv0ZMGVRhiUU=	2026-09-15 09:56:54.255467+00	2026-09-08 10:11:31.04887+00	\N	2026-09-08 09:56:54.255647+00	2026-09-08 10:11:31.049358+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1158dd22-cbc9-40a6-ad3b-cc40c70f8138	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YJI9OLdYm9mueZzk2nxuhVNxDObPMsghdAfWf6vdFyA=	2026-09-14 06:58:06.980995+00	2026-09-07 07:00:55.921883+00	\N	2026-09-07 06:58:06.981203+00	2026-09-07 07:00:55.922179+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+8d0a3198-78ff-407b-8027-d4dbacf105b0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2KXujsBNp/XxhfbIWPD7O8u6y+oj3zwjEvLKYVJM9ew=	2026-09-14 07:31:05.34992+00	2026-09-07 07:58:11.874102+00	\N	2026-09-07 07:31:05.350185+00	2026-09-07 07:58:11.874419+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+75dfdbe5-88e9-492f-994f-4e7581ffaa81	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ks7QpXayXbR39PGIsj8vHRXSt8TikBvBS7ixefSA5h8=	2026-09-14 10:50:34.491898+00	2026-09-07 10:50:38.708525+00	\N	2026-09-07 10:50:34.492021+00	2026-09-07 10:50:38.708791+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fe2c0341-7262-4a68-a543-6222c595e8d5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	9+ponsdbET/7E7h7WcMPOTDqZFt0jI+FKnnpclHzThU=	2026-09-14 10:50:38.708718+00	2026-09-07 11:30:18.490122+00	\N	2026-09-07 10:50:38.708791+00	2026-09-07 11:30:18.49014+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b5c5c5c9-2201-47df-8f52-2f07ddf13557	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uktAwKCtv7eF3Q3V9qBJhCoEXnE53+CC3Xf9+cIfCeg=	2026-09-14 11:59:22.29747+00	2026-09-07 12:07:47.914005+00	\N	2026-09-07 11:59:22.297565+00	2026-09-07 12:07:47.914482+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a514742b-fac7-4a14-954d-c154f3d47b0f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	IseUdDof2gyt3h3mHoJz9uBlPvDPFSBt1XrIPWXojmU=	2026-09-14 13:13:56.488517+00	2026-09-07 13:13:56.759156+00	\N	2026-09-07 13:13:56.488643+00	2026-09-07 13:13:56.759413+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ac6e9760-0a5d-456d-a661-d48f0acafc42	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	no2+cc4jH97q4aTIlw1fneZvp+TfyuTozld4ukIVuRo=	2026-09-14 13:13:56.74524+00	2026-09-07 13:13:57.126901+00	\N	2026-09-07 13:13:56.745355+00	2026-09-07 13:13:57.126908+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b4f27b22-7459-46ab-bf3b-c731e0905e6b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	h5B6L8woXoHGqk6CVa17kfA1NPQXWOIjzjgUU+663xo=	2026-09-14 13:14:25.884356+00	2026-09-07 13:14:25.957735+00	\N	2026-09-07 13:14:25.884437+00	2026-09-07 13:14:25.957912+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1dc7fa32-b5b8-4e70-8b88-44904b559421	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Rzg2KTTYyVEDQzSVu3YMpGZ35LtbHzFos8KIhUdyUzE=	2026-09-14 13:14:31.747484+00	2026-09-07 13:14:31.938382+00	\N	2026-09-07 13:14:31.74795+00	2026-09-07 13:14:31.938523+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9b60f553-4ec4-4250-b77d-358ea74907cd	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	A1wEkYRRYPCj4GfwGQ3LiFYHnjUDUwMK42XWvDv/EuY=	2026-09-14 13:15:44.470967+00	2026-09-07 13:16:10.407111+00	\N	2026-09-07 13:15:44.47102+00	2026-09-07 13:16:10.407333+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+47cfd44b-9ea5-4448-850f-80cff9485ec4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	moIXBAIArh65QCUW0fcIDR0LsE50txVNP1YE7qAo5DY=	2026-09-14 13:16:10.40725+00	2026-09-07 13:17:10.762679+00	\N	2026-09-07 13:16:10.407333+00	2026-09-07 13:17:10.762872+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6947e4ea-2884-4043-8f49-4878bba74b8c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	/+xGYjyvr/yxVxk4tWc1man3gWR5Fl1Au8lK5//uLCQ=	2026-09-14 13:17:37.904291+00	2026-09-07 13:18:02.667902+00	\N	2026-09-07 13:17:37.904362+00	2026-09-07 13:18:02.668068+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+aabea996-a647-41e4-87ae-5acdfe4b3478	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	DwDmdfQAuDrnnrXnS5fEkF5rBT520Z8T+NMQFA8V8mU=	2026-09-15 05:08:32.229497+00	2026-09-08 05:16:45.274009+00	\N	2026-09-08 05:08:32.229753+00	2026-09-08 05:16:45.274509+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+10602b8e-1dfd-4942-a3da-bb57455e3c0c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	tuqYePrRG5egItyOVa6+cgxH9keutOsxm4avPFUze3s=	2026-09-15 05:16:45.755717+00	2026-09-08 05:22:59.392439+00	\N	2026-09-08 05:16:45.75584+00	2026-09-08 05:22:59.392456+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+4482a8ff-74a4-433e-bf62-52f943fe5aa7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	VUvx4DfRmElpiU/CNo/kc7qa1Ex+Ed9FMhkdVRDMNpo=	2026-09-15 05:27:44.331211+00	2026-09-08 05:58:49.932864+00	\N	2026-09-08 05:27:44.331742+00	2026-09-08 05:58:49.933809+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+87bd5834-7d02-4650-b953-8fe06d9f2147	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	zxjnEAwrEKVpoxKIigE8zBD5Le/lOBcDvH7moidRf8g=	2026-09-15 05:58:49.933647+00	2026-09-08 06:01:08.036808+00	\N	2026-09-08 05:58:49.933809+00	2026-09-08 06:01:08.036866+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+29edf181-44bd-42ea-a931-dca9388d2338	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	mRRRwFtLGuPtKp+lzkdNP1e2CjgFAtCcTQ5OzPdPbwY=	2026-09-15 06:02:12.833461+00	2026-09-08 06:02:12.955975+00	\N	2026-09-08 06:02:12.83362+00	2026-09-08 06:02:12.956459+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5c7d2872-d540-4ef8-824d-6dc3dcb60b0d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	6OVvR/BbCl/o5AVOXyhlvVTVrqT/o35AoqrP6uY1edg=	2026-09-15 06:03:36.652448+00	2026-09-08 06:20:05.189344+00	\N	2026-09-08 06:03:36.652628+00	2026-09-08 06:20:05.189377+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+31de43fc-e767-42b1-9b68-ce5c766b5fe6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	WuNoLbR5ztnvJyJU28y4+limU5a8lQ0pXuH+Iv83ipE=	2026-09-15 06:26:08.824916+00	2026-09-08 06:26:12.398229+00	\N	2026-09-08 06:26:08.856677+00	2026-09-08 06:26:12.398248+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+74f7c391-e513-4064-bbd4-554fd1cbcab0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	UeA3wJg/qEAuPNL66CAP1oiC6WTiPlOwgMj+WCIU+Sk=	2026-09-15 06:46:23.604036+00	2026-09-08 07:04:47.781623+00	\N	2026-09-08 06:46:23.605178+00	2026-09-08 07:04:47.781706+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1f44ee68-623f-4ce8-9e06-d5734ee08674	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	P96kkLNuLgfnXadYI3ImXVZysiOU5++cOtCUx8NNBos=	2026-09-15 07:04:49.158097+00	2026-09-08 07:07:33.540254+00	\N	2026-09-08 07:04:49.158264+00	2026-09-08 07:07:33.540328+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0caa2fba-39ed-4531-aff5-31b7a1e7a453	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	NCUXhnrscptYYiSCTUPAAOwBKB1U80lkgqhESRhVFWI=	2026-09-15 07:07:34.943016+00	2026-09-08 07:11:15.434973+00	\N	2026-09-08 07:07:34.943146+00	2026-09-08 07:11:15.435049+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+18837780-f24e-416b-a6a6-d0bbb257d7da	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	vH2bOySTJEFKqia1NWIXFb3UPbH5R3EnKpontlV2Z7I=	2026-09-15 07:11:16.53293+00	2026-09-08 07:41:18.996812+00	\N	2026-09-08 07:11:16.533079+00	2026-09-08 07:41:18.997261+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6ab43b68-a440-4e69-b940-080c391b4c2a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	O4nhxu+9wWWhOufm6EYoJQdEI3xEtuJlgOxuVDb8reU=	2026-09-15 07:41:19.570562+00	2026-09-08 07:41:25.163628+00	\N	2026-09-08 07:41:19.571605+00	2026-09-08 07:41:25.164113+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+22e9a523-e71d-40a1-b0a1-a5e26b40090b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	lqkDGpw0mw3yc/F/+aJE3I1mjsLMn0wu/z6v9cm1BxE=	2026-09-15 07:41:25.70296+00	2026-09-08 07:46:47.775826+00	\N	2026-09-08 07:41:25.70317+00	2026-09-08 07:46:47.776838+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ccdac055-2519-4a15-bf98-84f87264ed24	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	DJVzQbvMd62pxQzUuAB939CwhC3WSFDxVskYUM9CCCE=	2026-09-15 07:47:58.277361+00	2026-09-08 07:54:36.394992+00	\N	2026-09-08 07:47:58.277583+00	2026-09-08 07:54:36.397508+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+08583184-e0aa-4b9a-8fcd-58c046231758	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	06TyrLzWIJmDNabO3FNTGdfNhZtzG2kiwo+38sBaQJg=	2026-09-15 07:54:36.588911+00	2026-09-08 07:54:45.727777+00	\N	2026-09-08 07:54:36.589067+00	2026-09-08 07:54:45.727797+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c93caa8a-ca9d-41f4-b72e-596f957870f9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	fngy1yQRR8qW7xxgbSesXKtbnBUxoVFt9JtlMnu9X60=	2026-09-15 07:54:46.278761+00	2026-09-08 08:00:16.598445+00	\N	2026-09-08 07:54:46.278909+00	2026-09-08 08:00:16.599199+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c34b22e7-755c-4c44-b5a1-cea5d0a8cf3d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	OU519+mZnJV+Z3whPkoTTqEgS5asYHR12sGYWTXhzw4=	2026-09-15 08:13:15.32758+00	2026-09-08 09:34:37.427274+00	\N	2026-09-08 08:13:15.328682+00	2026-09-08 09:34:37.429003+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fc7abebf-dae1-4268-8372-53a4342f6c45	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	o8obT/cI4CKtiw9lf5x3WWv3KL8VVr5y8zLBrBISXvQ=	2026-09-15 09:34:51.714019+00	2026-09-08 09:34:57.454741+00	\N	2026-09-08 09:34:51.714346+00	2026-09-08 09:34:57.454752+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c0a5a064-f15b-4c62-850d-d63bdcc5b98c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	NhGkRRBzVeZweBX+TchF/GxWAk5ezngMeDXZlkRsMkQ=	2026-09-15 09:48:29.005531+00	2026-09-08 09:58:32.302726+00	\N	2026-09-08 09:48:29.005617+00	2026-09-08 09:58:32.303083+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+986ce153-200a-4f72-97b8-74f37e2e5f28	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	7ZroyJRMj6tgxlfuyTrAAJbx6XhvXBXVFPAz3V6C9SU=	2026-09-15 09:58:32.302956+00	2026-09-08 10:07:06.883277+00	\N	2026-09-08 09:58:32.303083+00	2026-09-08 10:07:06.883698+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fcafcbfe-1533-407d-b719-44c43bbbf9f0	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	uZx8e6oExosVXYAXNs96w5K0n8owJcrLKPLU7hy4ZYg=	2026-09-15 10:11:31.049188+00	2026-09-08 10:20:03.798411+00	\N	2026-09-08 10:11:31.049358+00	2026-09-08 10:20:03.799084+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5f76627a-0f45-453b-a5a5-21c8aa627b01	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	DUVJvmrmz5jZ7nWpcI6P5IrKX1hAD7WwrUWK9KS2qkk=	2026-09-15 10:20:03.79895+00	\N	\N	2026-09-08 10:20:03.799084+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+7e18ca1f-702b-452d-ac7f-f12f148b9bce	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ip686qTpd3cfxJqd3jR9wO0b/CqS8qo1W5nuZ+Eb8GM=	2026-09-15 10:09:53.645506+00	2026-09-08 10:20:07.041895+00	\N	2026-09-08 10:09:53.645602+00	2026-09-08 10:20:07.04256+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0b6ae6a2-4b0f-47f1-a9a8-6e01fd3c6142	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Z9Pz+I85F3dVOivcPSGNsw9s9qC+3PGU0ekeuKd2qxg=	2026-09-15 10:20:07.042448+00	2026-09-08 10:24:39.387702+00	\N	2026-09-08 10:20:07.04256+00	2026-09-08 10:24:39.387712+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+34c62387-70a6-4419-afa9-0718774b8572	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ju8E9uFPueQZbMqN5nO0RxA/YQRyD6mWEGcTZiMpSyA=	2026-09-15 10:24:39.653869+00	2026-09-08 10:25:18.348292+00	\N	2026-09-08 10:24:39.654009+00	2026-09-08 10:25:18.348301+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+889f8436-b35b-4921-99bf-3c3ce9aac811	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	FP1jjIeN8D+qGXEVdw85GLKqxVkSwwlj/FsieLNvCL4=	2026-09-15 10:25:18.623397+00	2026-09-08 10:26:58.97454+00	\N	2026-09-08 10:25:18.623518+00	2026-09-08 10:26:58.975329+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6ba74909-9d66-4771-8f06-e84eecf097ac	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	CZwjnnIk9MmKo+80lRuAIjy9Bsw0IDQI/SOEef3SrQI=	2026-09-15 10:26:58.975148+00	2026-09-08 10:27:06.036229+00	\N	2026-09-08 10:26:58.975329+00	2026-09-08 10:27:06.036244+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+265ce27e-e8c8-4233-aff2-3da9be738e83	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ILLwrNVzizSVImaUeXRgXoZ5t8E3+oXeg11p4c56PFE=	2026-09-15 10:27:06.31563+00	2026-09-08 10:47:03.516301+00	\N	2026-09-08 10:27:06.315732+00	2026-09-08 10:47:03.51687+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+24b5c20a-cb7d-4d87-9964-75b3a175c386	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	yIfZlrytGL9sHNKYBRJ63bduexw1avTRN7mogRLQ1Cg=	2026-09-15 10:47:03.516612+00	2026-09-08 11:18:27.628806+00	\N	2026-09-08 10:47:03.51687+00	2026-09-08 11:18:27.629296+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b8ca866c-1a18-4057-b7a2-343a3093fdde	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	zLcjtVb6SqQPBc1N8lRPTHgW/ZIkbXHYFWXA/lo9hGE=	2026-09-15 11:18:27.629143+00	2026-09-08 12:45:55.461792+00	\N	2026-09-08 11:18:27.629296+00	2026-09-08 12:45:55.462343+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0f33cd98-06ad-4ba8-864e-0547c2375a02	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	eScCScEdvv0WARa6gffCHG+UPUxSCXQcoSnKiHL8hEE=	2026-09-15 12:45:55.462161+00	2026-09-08 12:49:07.316391+00	\N	2026-09-08 12:45:55.462343+00	2026-09-08 12:49:07.316661+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+402e0072-5d30-403d-bd4d-9be667c92c55	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	PDguKgxSZwTGQZ91UwFQ79Xw9k9XQ6XUqL6A7UuRuGU=	2026-09-15 12:49:07.31658+00	2026-09-08 12:50:30.244376+00	\N	2026-09-08 12:49:07.316661+00	2026-09-08 12:50:30.245186+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+7138a66a-09ed-49fc-8295-489b9e230a62	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	7QgMbfVC1cHjwyJ9G64wmC3QnwNVeHAqBjRBb6YHXAQ=	2026-09-15 12:50:30.245087+00	2026-09-08 12:56:07.796145+00	\N	2026-09-08 12:50:30.245186+00	2026-09-08 12:56:07.79694+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+331a8a86-7a24-4238-8d4f-164f751f0cb7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	nU7xJxTeA7HjTzm3EsUzuzXSgyjdHpelpYhOQHXis4Q=	2026-09-15 12:56:07.796824+00	2026-09-08 13:06:56.248547+00	\N	2026-09-08 12:56:07.79694+00	2026-09-08 13:06:56.24856+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ef32b736-c3dc-4215-af9a-d94d167500e3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	cWsT/fB9r9ZWY1d88ssjNJXS2XifT3r2IdLKAAg9Nj0=	2026-09-15 13:06:56.575973+00	2026-09-08 13:06:56.675846+00	\N	2026-09-08 13:06:56.576267+00	2026-09-08 13:06:56.675854+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a03ed160-85dd-4dbc-bb51-3494be242fbc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	IRoQ2QVJiR6OhGZLq0258MG1wwFP2af2D0ynzAauWOI=	2026-09-15 13:06:57.22878+00	2026-09-08 13:12:22.211463+00	\N	2026-09-08 13:06:57.228935+00	2026-09-08 13:12:22.211469+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+de3249ad-54d6-470b-a404-38a879d92e58	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	+lMxioN65LGS3yzX5Ho7t5sY2kxOv1sx3PKnrDn6At0=	2026-09-15 13:12:22.542979+00	2026-09-08 13:15:06.022168+00	\N	2026-09-08 13:12:22.543154+00	2026-09-08 13:15:06.02252+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c9ba2925-7885-4c08-944d-92f34cbf34cb	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	OO8MWNQS0ludHPDrxEF7k1BHDzc6u32mJnJ1iX70zWQ=	2026-09-15 13:15:06.022431+00	2026-09-08 13:38:34.974715+00	\N	2026-09-08 13:15:06.02252+00	2026-09-08 13:38:34.974908+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+eb486908-fa5f-4650-812d-3ed2b93a6aa1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uHEcbhv5gvFg0LAWHf1Afkhbu6AtCmWI1V48yUQ1zGI=	2026-09-15 13:38:35.523521+00	2026-09-08 13:49:12.387309+00	\N	2026-09-08 13:38:35.538847+00	2026-09-08 13:49:12.38736+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9829c750-e3e8-4b90-bdce-9b64f7823914	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	XV6JiF1Vi0YtH9UA5mPfQmaj/PphGb1Zh/OvMQKfXUA=	2026-09-15 13:49:12.881016+00	2026-09-08 13:49:34.463476+00	\N	2026-09-08 13:49:12.881293+00	2026-09-08 13:49:34.463673+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+edfd5cdc-45cd-4970-a4af-0f56a459c5f7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	LZv9aRD35IDC5bdY6Vxtl7+nDlbl58hhPkjq6as0cJM=	2026-09-15 13:49:34.834783+00	2026-09-08 14:06:27.541231+00	\N	2026-09-08 13:49:34.846624+00	2026-09-08 14:06:27.541622+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1c689584-f906-4db6-be2d-8aadb1b95569	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	KnJ/7FCKeyG70fcvj8jdOBRsuGSM4mtUJ0/1PjdTDUs=	2026-09-15 14:06:27.541497+00	2026-09-09 06:01:45.233165+00	\N	2026-09-08 14:06:27.541622+00	2026-09-09 06:01:45.233338+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+33202f49-1152-482e-8299-e1fe18e8178b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	jNKM7MecLCeeUEqPvh4iCXGuNrqIdAa55yVWIWsEg/c=	2026-09-16 06:01:45.750757+00	2026-09-09 06:05:46.325267+00	\N	2026-09-09 06:01:45.762886+00	2026-09-09 06:05:46.3256+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+069b185b-044d-4973-b6d3-8631d1fbd98d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	jIYSXse6CZPE6pVRaVS1rqC789AACY7znYPosmuIJ9M=	2026-09-16 06:05:47.064563+00	2026-09-09 06:06:44.817185+00	\N	2026-09-09 06:05:47.079049+00	2026-09-09 06:06:44.818524+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ecf2992d-54c4-46ba-9b18-9fc90f3e74f4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	vl6z9/dO9g1wyhHkUY8yUaqAGUKM6cFLhACe3e022/k=	2026-09-16 06:06:44.817473+00	2026-09-09 06:26:29.441815+00	\N	2026-09-09 06:06:44.818524+00	2026-09-09 06:26:29.443529+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1c23a4d5-aa7d-4326-bf84-d21e34594814	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	o5AzLQHeagj/XrcN0ueFvUkPDtoOvX7xgv1mfzOtvD0=	2026-09-16 06:26:29.442841+00	2026-09-09 06:26:36.022226+00	\N	2026-09-09 06:26:29.443529+00	2026-09-09 06:26:36.022249+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b2ab6971-671e-491d-a831-e6786be10be1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	2HRr0RdOAQyDU0yiNceuLo5KCtqbHztOHba82umxMqQ=	2026-09-16 06:26:36.635845+00	2026-09-09 06:27:27.281056+00	\N	2026-09-09 06:26:36.636019+00	2026-09-09 06:27:27.281387+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+436108bd-478e-4af4-b577-b41f4a0d19cb	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	fR7LuDa9liGGfQlELa+9dCNzbSFnZYxcQWaCqYcq+i8=	2026-09-16 06:27:27.959108+00	2026-09-09 06:32:46.288159+00	\N	2026-09-09 06:27:27.969871+00	2026-09-09 06:32:46.288757+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0cee674c-5909-4a51-af6b-cdd54dbda4c5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	f7r+1uw6LNuOgknleHxFBhQLeOqRgyTVCMOfnP48kbk=	2026-09-16 06:32:46.288519+00	2026-09-09 06:36:38.947036+00	\N	2026-09-09 06:32:46.288757+00	2026-09-09 06:36:38.948063+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+669a5fef-93cf-4ec6-a4d3-5a77e03a6e35	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	vjEyubqfcT2/dmNKu0EK0FQquxUjjB+B84/4R5PijGo=	2026-09-16 06:36:38.947685+00	2026-09-09 06:41:59.277043+00	\N	2026-09-09 06:36:38.948063+00	2026-09-09 06:41:59.788019+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+4aa7bf96-2736-4138-94ba-ffcbc09819ba	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uh2Gn6gamSNZXRkY8qig2GxthjH0eUtJ6UX9SCQ9HvI=	2026-09-16 06:41:59.787097+00	2026-09-09 06:46:08.734331+00	\N	2026-09-09 06:41:59.788019+00	2026-09-09 06:46:08.734538+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6a4cf936-cdea-4c4f-ac66-891e64c3a12e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	HjVtT7rpjcS9Vyz/ZsAj+o17gk6kVAaPYvKTK+6YKzw=	2026-09-16 06:46:09.720849+00	2026-09-09 06:47:01.574208+00	\N	2026-09-09 06:46:09.721291+00	2026-09-09 06:47:01.576413+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d25ee8ca-8a48-4b6d-be02-a1d186009f10	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YZyMQZbqUAmLqf4pVlOLS5l5P4KzYJReNUWc3cvhImk=	2026-09-16 06:47:01.574971+00	2026-09-09 06:47:05.533461+00	\N	2026-09-09 06:47:01.576413+00	2026-09-09 06:47:05.536296+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c7e6acbf-1e04-4781-812c-1e9426e6773a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	fW4qAk9ezOvU54ROrRhiTdnaODZKqvhAvElO5rjRtD8=	2026-09-16 06:47:05.535467+00	2026-09-09 06:51:01.988006+00	\N	2026-09-09 06:47:05.536296+00	2026-09-09 06:51:01.989159+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b4e4956a-63c4-4c8b-8e51-4cd7e783a0a7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	PqXVhw2QmS+FCUgQrpt+uFTFyTYRFaIJIgSOpHMlQ9Q=	2026-09-16 06:51:01.988734+00	2026-09-09 06:57:17.192004+00	\N	2026-09-09 06:51:01.989159+00	2026-09-09 06:57:17.192086+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e2c97027-1adb-4114-9a1d-dffe460aeba1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	5Ms5H4R/OndopPVp6n5e/VhhcZN8vOGZSrQSaMmlcX0=	2026-09-16 06:57:17.777691+00	2026-09-09 06:57:30.396602+00	\N	2026-09-09 06:57:17.77807+00	2026-09-09 06:57:30.396626+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2280bd13-b63e-486d-b3dd-ea65792fa49d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	tI4tbFnQo5162Su3V6TmYRskxUKxiLEw8i51BsMzjew=	2026-09-16 06:57:32.258925+00	2026-09-09 07:01:10.731871+00	\N	2026-09-09 06:57:32.259962+00	2026-09-09 07:01:10.741077+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e40dd16e-57a5-4e71-9fe2-6dba47c081d6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	DXKX2KIN0tuAQhawWEVjYlY3LtgufPlDWMt1Y8lOjf0=	2026-09-16 06:57:32.25893+00	2026-09-09 07:01:10.731873+00	\N	2026-09-09 06:57:32.259962+00	2026-09-09 07:01:10.741077+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0eea2904-d94f-4478-97ba-f90ae0917059	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	d8JO2hScV9IjRPK9i5yTP1lUkWfLlFYTzhOEZhcoM1g=	2026-09-16 07:01:10.740731+00	2026-09-09 07:02:13.587008+00	\N	2026-09-09 07:01:10.741077+00	2026-09-09 07:02:13.601513+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b8bd6339-fafa-46d6-8478-11e2fe92c6c1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	qpyw/xax1FQAxP/pHzDpLha20cxUe5wt++rz5Oa21nQ=	2026-09-16 07:02:14.265546+00	2026-09-09 07:15:18.958841+00	\N	2026-09-09 07:02:14.265875+00	2026-09-09 07:15:18.963468+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+33a78976-7b5c-44fc-a928-360186c25d5a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	+tEO6YY8VxgTFE9gnQGNtFJetNRYSMUfUncD0W0fRhI=	2026-09-16 07:15:18.963236+00	2026-09-09 07:19:28.725979+00	\N	2026-09-09 07:15:18.963468+00	2026-09-09 07:19:28.726109+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+0cbefed5-5a1c-47d3-abad-ab09f0779138	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	g1plXOlL96Abr5oCo0VubbileuDFdt035kJp7W5vnGs=	2026-09-16 07:19:29.155662+00	2026-09-09 07:25:40.4617+00	\N	2026-09-09 07:19:29.157345+00	2026-09-09 07:25:40.502294+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+400b1706-d263-4210-b748-2148c02c1037	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	LWw/gIQQXzXoU7KdZrpt1/65T7zegB04UhnbQnZOPvY=	2026-09-16 07:25:40.486635+00	2026-09-09 07:36:33.483035+00	\N	2026-09-09 07:25:40.502294+00	2026-09-09 07:36:33.483107+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6f850da0-742c-4fd1-bf8a-87df561e3937	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	xARyBf2Pijy2U6UKXZSYL/7WSN2GfVr4vFX4+LjqP7g=	2026-09-16 07:36:34.130044+00	2026-09-09 07:39:50.92541+00	\N	2026-09-09 07:36:34.130376+00	2026-09-09 07:39:50.925544+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bd5c4612-c7d2-4f4a-9cb5-f223d6c88a98	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YuPnQp/EMBzalcqisb5ZmOkxqCHs9oyr03NMYpaaMYo=	2026-09-16 07:39:51.490509+00	2026-09-09 07:40:57.22602+00	\N	2026-09-09 07:39:51.492238+00	2026-09-09 07:40:57.226039+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+20f86771-5f2d-4a0b-8fbd-d723cf5bd0c9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	u8eXZnHDPW/OunQgzPs29oNUEsZHX/y8S5Oy2CnWn1k=	2026-09-16 07:40:57.968727+00	2026-09-09 07:41:58.638825+00	\N	2026-09-09 07:40:57.969214+00	2026-09-09 07:41:58.638836+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c087b070-6f54-4be3-aa63-040234cae1f9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	bAoURPzLwDUilyNuVIstB0tnMLA9z9WFN7LrGHHpCBM=	2026-09-16 07:41:59.352302+00	2026-09-09 07:59:58.384059+00	\N	2026-09-09 07:41:59.352418+00	2026-09-09 07:59:58.384081+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+cf5ae05c-a772-4524-909c-fd58b567b924	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	flp93ase6QooRq9MAOpydy7BUnT4B+kGrKtTqF3M9aI=	2026-09-16 07:59:58.666376+00	2026-09-09 08:00:27.627317+00	\N	2026-09-09 07:59:58.666493+00	2026-09-09 08:00:27.627401+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e90747fe-c112-43e5-bfb5-a9a101bed04d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	mbRv95vF0CIHxqy817jCqr8T/ABgYrSFFX5VezCDxmA=	2026-09-16 08:00:28.196687+00	2026-09-09 09:39:01.050256+00	\N	2026-09-09 08:00:28.209196+00	2026-09-09 09:39:01.050273+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ebe80164-985d-455d-9c6f-e8d65cd547ce	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	QeSvmU2TnGnkOUjZHtnE9RjzWDlTUC4fcmnEv2qrreo=	2026-09-16 09:39:01.39068+00	2026-09-09 09:50:44.742325+00	\N	2026-09-09 09:39:01.390787+00	2026-09-09 09:50:44.777627+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+299481cb-0b41-4e36-bcc9-5600a6f40ad6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	keYXaGuEzAIhWYjJ9mTP4qk/lTDAj6ljAXf1jCRZI1g=	2026-09-16 09:50:44.763084+00	2026-09-09 09:51:15.432791+00	\N	2026-09-09 09:50:44.777627+00	2026-09-09 09:51:15.432808+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+214393aa-6db1-4749-868b-1e34891ae972	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	20CXPec+q92LtAilhmB0lQXvI8Y5m1g9S0mwzzFpx5s=	2026-09-16 09:51:15.741854+00	2026-09-09 09:51:18.048138+00	\N	2026-09-09 09:51:15.741963+00	2026-09-09 09:51:18.048617+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+de15adef-40b5-4cb2-95b1-ed3b880e19ef	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ju1imtY81CVDc9eRIsLbALRdUDiObPrvtcga3BbFwmI=	2026-09-16 09:51:18.048364+00	2026-09-09 09:57:16.736142+00	\N	2026-09-09 09:51:18.048617+00	2026-09-09 09:57:16.736461+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+cc02ee56-4ddc-4892-9213-1b7d159fe54b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	89B6AQOVefpXWnHiLC67XsOCn+mev8ngOo58+PYdLXY=	2026-09-16 09:57:17.55735+00	2026-09-09 10:36:27.760406+00	\N	2026-09-09 09:57:17.572089+00	2026-09-09 10:36:27.762755+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b6ab4490-b095-42e1-83c8-3211543580c4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	8KJZPjT1a1vJ12f/wwZO6Bvu7tgDRhCPzhvuXbg9dN4=	2026-09-16 10:36:27.761214+00	2026-09-09 10:36:29.280257+00	\N	2026-09-09 10:36:27.762755+00	2026-09-09 10:36:29.280283+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b7de53aa-7ba3-4f60-b49f-e927b2ca16f1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	TWq/n3Pie/H0O/UFBfzyBYO+DjLTLlJaFzFSLPigU0s=	2026-09-16 10:36:29.890108+00	2026-09-09 10:49:49.698621+00	\N	2026-09-09 10:36:29.890301+00	2026-09-09 10:49:49.698636+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c06a5890-7e11-44b7-9ce3-e4e590550d98	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	rJfPWaT0Yct4Y2SUDUd+1XNJF6JLW26RrpI8W3S+2RE=	2026-09-16 10:49:50.204801+00	2026-09-09 10:49:54.903047+00	\N	2026-09-09 10:49:50.205069+00	2026-09-09 10:49:54.904601+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3ec64af4-a847-454b-b024-8fe82e058d07	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	dP4tIV7rK6XKwqi5vezdT0FZHC2JNL0wWuZsJu/bd5w=	2026-09-16 10:49:50.212331+00	2026-09-09 10:49:54.955353+00	\N	2026-09-09 10:49:50.212447+00	2026-09-09 10:49:54.955857+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3898f600-55d1-4d60-a9fe-db1727982c45	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	tpjNl/hNPlfsEZOezkf7P+EjqzpsY+afA2d5kkhuHWs=	2026-09-16 10:49:54.904049+00	2026-09-09 10:50:53.491656+00	\N	2026-09-09 10:49:54.904601+00	2026-09-09 10:50:53.530787+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+47c94d61-cf1d-4337-8b8b-d80dcd7b0cfd	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	CXOnH+oUR9Kqc+yTlUv5pMW/dX7udhBsSHF9E56NKSE=	2026-09-16 10:49:54.955676+00	2026-09-09 10:50:53.491734+00	\N	2026-09-09 10:49:54.955857+00	2026-09-09 10:50:53.530787+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1f77d6a0-0364-4672-a130-e8bfea368759	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	K1+4XIJQ0yco+LZ7B4syccWbYcoUPx8a+6W/oX8rSeI=	2026-09-16 10:50:53.511705+00	2026-09-09 10:50:53.760578+00	\N	2026-09-09 10:50:53.530787+00	2026-09-09 10:50:53.760607+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+40ae9e31-c432-441b-accf-161c3617d5d1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Q0rqxMRQJqqeNzGS2TDUpCFzu4Ftjt06O5J3TBAnGrw=	2026-09-16 10:50:54.610379+00	2026-09-09 10:52:34.232605+00	\N	2026-09-09 10:50:54.611612+00	2026-09-09 10:52:34.232667+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b37dca56-8f31-429b-a8ac-a13a1139c55c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	DYHGagsKPdUVtDlr0wExmni1vHScwrehNpvaendkPJ0=	2026-09-16 10:52:34.506072+00	2026-09-09 10:56:39.776921+00	\N	2026-09-09 10:52:34.506302+00	2026-09-09 10:56:39.777287+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e1bd4d93-4a2e-4f3b-b0c3-7d414cda8bca	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	SJ2+7jcXQSGdiS8L3R208v0AQJWMP7BLz4ZVY4k1IWY=	2026-09-16 10:56:39.777167+00	2026-09-09 11:00:20.110921+00	\N	2026-09-09 10:56:39.777287+00	2026-09-09 11:00:20.110941+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ab36c3c7-7e19-408d-a75c-516564db4077	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Rwuq144n42OobslWI0s0v9uukGO5xFaYGS4/+3+8rZ4=	2026-09-16 11:00:20.404643+00	2026-09-09 11:05:03.734295+00	\N	2026-09-09 11:00:20.404777+00	2026-09-09 11:05:03.734306+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+4da3365b-a8ff-47c5-9f71-765e74e2e2b8	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	JhVX5RYgR5zPMfiT8I3Oj63zH0Ny8AneFts3OuQ7kKY=	2026-09-16 11:05:04.00558+00	2026-09-09 11:05:53.623237+00	\N	2026-09-09 11:05:04.005699+00	2026-09-09 11:05:53.623248+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3f34cc05-ab21-4148-bac7-854c9ce69aa6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	t3wLd3jpvHAo9bE5A1IFLBnu7a/CSc2Jls0uS75LU70=	2026-09-16 11:05:53.896595+00	2026-09-09 11:24:18.094048+00	\N	2026-09-09 11:05:53.896688+00	2026-09-09 11:24:18.094061+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f8616f50-55ee-432d-8cdd-79a5d1d4f817	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	pAJqKv8MjkgJWMWS9J36rthfVLDGEXtEBLv/FmR2MLk=	2026-09-16 11:24:18.400268+00	2026-09-09 11:26:37.768406+00	\N	2026-09-09 11:24:18.400395+00	2026-09-09 11:26:37.768415+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d9e643c0-fce4-42ca-94ec-e6531bfeaeaa	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Q+Be7ShhuNLSspij7UDElvp1q+aPVUQ2Q/VmovZNIDM=	2026-09-16 11:26:38.136398+00	2026-09-09 11:35:29.583159+00	\N	2026-09-09 11:26:38.136493+00	2026-09-09 11:35:29.583438+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+868ca432-5e93-463f-adc7-763feda033ee	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	fmD4nC0ixUXzsyPD4NPcBAWEsZyN+y+3XwBYmOTRjj8=	2026-09-16 11:35:29.583337+00	2026-09-09 11:38:21.848671+00	\N	2026-09-09 11:35:29.583438+00	2026-09-09 11:38:21.848958+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+cd76d28e-006c-470b-8863-98837f49b5b5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	kf4JsvwGs3nj/NOwt5GkNYrfxR7DwewglvThh9yUbN8=	2026-09-16 11:38:21.848867+00	2026-09-09 11:41:39.86893+00	\N	2026-09-09 11:38:21.848958+00	2026-09-09 11:41:39.86894+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bf0b92a6-7ede-426e-80a9-568f3cc3577b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	b2WI8RbvJRN4n+xW2/+EeQh9a8M1MxvAs4ubZMb1/KE=	2026-09-16 11:41:40.213177+00	2026-09-09 11:42:07.24294+00	\N	2026-09-09 11:41:40.213305+00	2026-09-09 11:42:07.243178+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+52ed6933-e829-4936-a1c4-4f1f4187b957	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	inZbGGlLdk1kEO2d7wZQvgTQ/eelhza1fRB+yGnYgzQ=	2026-09-16 11:42:07.243101+00	2026-09-09 11:42:11.61964+00	\N	2026-09-09 11:42:07.243178+00	2026-09-09 11:42:11.61983+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b02e46d7-5b05-468f-a2b8-dda3c4eeadb9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Px6k2POnV3bEiUCyfoaMFEAwOulwGvKzvVuIMEzgCvA=	2026-09-16 11:42:11.619763+00	2026-09-09 11:42:56.619924+00	\N	2026-09-09 11:42:11.61983+00	2026-09-09 11:42:56.620102+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c9556105-8c4e-41fd-b02e-c830fb6b7592	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	g7+GAZDsVC7HSXK8hbWJ7WKFSnoJcJM1DEC2GYzOlts=	2026-09-16 11:42:56.620049+00	2026-09-09 11:43:01.643261+00	\N	2026-09-09 11:42:56.620102+00	2026-09-09 11:43:01.64358+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fb70d7f9-91d8-4456-8774-8a41f53c1d3b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	0f4/au0vwCjeb2HpakaSFtzC6TVcsukgKqiVDLBze/I=	2026-09-16 11:43:01.643518+00	2026-09-09 11:46:24.942293+00	\N	2026-09-09 11:43:01.64358+00	2026-09-09 11:46:24.942304+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1cf3f8e6-ca24-4284-8358-1a1e15056c3f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Ag/DtgJRmYvQzyEYGzGZVEVrqz8zkOf777T3ZV5c0DA=	2026-09-16 11:46:25.255724+00	2026-09-09 11:48:05.575395+00	\N	2026-09-09 11:46:25.255873+00	2026-09-09 11:48:05.57561+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6ba71109-41ec-43d5-943a-d45e6559ce1f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	J/DynxY1AIqPpborEFLVuu2syn4RT2oCkK/HdjW197Q=	2026-09-16 11:48:05.575535+00	2026-09-09 12:13:46.736468+00	\N	2026-09-09 11:48:05.57561+00	2026-09-09 12:13:46.736481+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3cedbe5a-7327-4b7c-b3ba-4186d2ce5066	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	oFzS2setbrmo2/t7nuTEDcyWqluAMBmqSOcYlevHTpk=	2026-09-16 12:13:47.004314+00	2026-09-09 12:15:30.576059+00	\N	2026-09-09 12:13:47.004472+00	2026-09-09 12:15:30.576076+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2dce5d38-a58a-48ee-a681-bad00f474802	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	7jOGQ5FHRW5R4SRRFKKLCWZ1ks8F4dGEHfNu6aHQRX0=	2026-09-16 12:15:30.957404+00	2026-09-09 12:27:15.836112+00	\N	2026-09-09 12:15:30.9575+00	2026-09-09 12:27:15.836236+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b8e20ff3-cf3c-455b-873c-7c457067b34e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	uHOl2uxlDLIVjPUGUWI1Tti9CJm2Bcm6iRdX5i660SQ=	2026-09-16 12:27:16.437482+00	\N	\N	2026-09-09 12:27:16.439071+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
@@ -3134,6 +3564,8 @@ a2e2e7fc-4e12-4bd6-85b4-baffcd70c1f3	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	ABC	20
 829211dc-774e-4389-a6c8-b29372b3dde7	08f36c9b-9833-4008-9a58-9b69b5c491e3	SV1	2026-09-02 07:54:30.517916+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	\N	\N	\N
 3a681001-620a-4190-bd6c-1ee7131f2c3f	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	ABCDEFG	2026-09-02 10:24:57.074997+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N	dfksfklsfkslmf	\N	\N
 6cec1e8f-a65e-4c11-8fc3-265376ffe0cc	c8e5ec6b-a151-07b1-ec38-5c7e733dd013	XXXXXXXXX	2026-09-02 11:47:36.563695+00	2026-09-02 11:47:36.954412+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	gkhkjhjk	Issues.xlsx	KYC/20260902_114736_876_AutoDrive_Systems_XXXXXXXXX_Issues.xlsx
+be9fd5f1-6786-4caa-bf68-e9ee4ab4c5a2	d35873d4-c12c-40c3-a66e-78d9f296ef2b	Testing-sub	2026-09-08 13:55:06.603779+00	2026-09-08 13:55:06.914341+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	Hello this is the note about the sub-venture	IN-2026-27-C004-P003.xlsx	KYC/20260908_135506_891_Testing_Testing-sub_IN-2026-27-C004-P003.xlsx
+6fbfe113-eb06-42ca-b34e-e3c75139678b	d35873d4-c12c-40c3-a66e-78d9f296ef2b	Testing-sub2	2026-09-09 07:02:12.586676+00	2026-09-09 07:02:13.087415+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	This is the note of subventure	Sahil Sanjay Lad - Interns Offer Letter.pdf	KYC/20260909_070213_046_Testing_Testing-sub2_Sahil_Sanjay_Lad_-_Interns_Offer_Letter.pdf
 \.
 
 
@@ -3145,28 +3577,28 @@ COPY public.users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Departm
 cf106b1b-6a96-464f-aa63-ddcb77a737e0	new.pm@acme.co	$2a$12$p.MfI7wlBAX2LZkpEvPoEunU.q5UljNMmswtXsI80UcJj8X2CVWM.	New PM	u99	\N	\N	\N	PM	t	t	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 07:55:45.951114+00	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N	Local	\N
 30d629ff-3076-40f8-9c12-fb385b8c2600	admin2@acme.co	$2a$12$aqJIdIL9tzPW5DFE.zVFVurFkCUE0knMbU7.A0A1pBtjA7K4Qk7wS	Test Admin Two	A2	\N	\N	\N	\N	f	t	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 08:15:16.235641+00	2026-08-07 08:15:23.702021+00	40517b71-5e62-182e-73b5-d4070e20a3c2	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	0	\N	\N	\N	Local	\N
 a1878763-b174-41b0-88db-f2ebba76af83	sdsa@gmail.com	$2a$12$.bzyuW3FFq2Uau84IyFnYO1LXxDLXkbxtjVyvzVs71KECK6u2CONy	sadas	ads	sda	\N	\N	sda	t	t	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 09:30:46.654787+00	\N	40517b71-5e62-182e-73b5-d4070e20a3c2	\N	\N	0	\N	\N	\N	Local	\N
-111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$iVxHp.TMFQT6CMyM1zPSW.R4j8DTQ0LjH/m5asAurbpNubsaI.9eO	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-11 11:25:29.999149+00	\N	\N	Local	\N
-1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$7iiOuELOCODSQLtQlJBxvuRNKOAuAv99CS6LRj6V7mpeBfvPCtP9K	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-17 12:22:51.492258+00	\N	\N	Local	\N
-2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$4Pdt4eirX8wdFPf4fbsYS.K7I3v2XBwepME5K0FA0M7mZB6.ZFhfa	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-10 06:59:34.903769+00	\N	2026-08-10 06:59:52.170405+00	Local	\N
 cdee998d-48e3-4ee3-8d3a-8bb394592377	muskan.khan@talakunchi.com		Muskan Khan	EMP-0024	\N	\N	\N	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-09-02 13:49:56.363865+00	2026-09-02 13:49:56.492659+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-02 13:49:56.492649+00	\N	\N	Microsoft	iChQlLTN3U6M_5TwAUzGCL3kvk-lL98qkKkolRLXz4Y
-304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$M6yyh3w6edknpv4zZuS3C.nDRSBjDgeNxBjKPJO/jVKxfhsig0Qc2	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-21 16:45:24.911658+00	\N	\N	Local	\N
 6d1e9837-0276-46b5-a0f8-596f155139c8	dhanshree.pansare@squad1.io		Dhanshree Pansare	EMP-0022	\N	\N	\N	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-09-02 13:36:35.762744+00	2026-09-02 13:37:46.362463+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-02 13:37:46.362439+00	\N	\N	Microsoft	Sjm3sQ3oqL_QkKeIaRJjNGooFHu2Ep6kZSfu3bDFWt4
 833a28fc-a624-4cbe-8e71-56c51eb53ab2	harshada.tawade@squad1.io		Harshada Tawde	EMP-0023	\N	\N	\N	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-09-02 13:42:00.385785+00	2026-09-02 13:42:00.544103+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-02 13:42:00.544091+00	\N	\N	Microsoft	lPJZXPdV3nVq1jRsadsvNIxkWQ9ErILNK93cDwyRfdQ
-40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$rngMdlz3SCySjQMDzjXSQeyPJwvWXiDLKhQG6.nLH5mlVMUB1n7w.	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-09-02 10:02:19.979296+00	\N	2026-08-10 07:02:04.244561+00	Local	\N
-47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$EihvijcYpRz.mWurt4NEUusPYpc.ou.OUWZwnl/RHYCjGtnBBHiDe	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 12:23:35.786937+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-09-03 09:48:23.138001+00	\N	\N	Local	\N
-49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$yKP7fWqV5xToJbKTdL.pE.fe9dbGRzrNf68TXtb4RFJ5I5M3I/LuW	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	\N	\N	\N	Local	\N
-65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$EdON1YwvyBPV3Zys7T6d9OQja15nmiOVLZqiy.7B1EHb6D6V0mfWO	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-10 12:57:13.729958+00	\N	\N	Local	\N
-730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$rjsR0rYmES2R1yO0Txiele/JQDxKq5I3n41zgbPPws/qS0ZLmNZoq	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 12:23:35.786937+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-09-03 09:48:26.843125+00	\N	\N	Local	\N
-9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$JE9tivlXL9DLJSFiwD0ajeclpMomizbb0CZDG9FZKlH/5JFo7OqMW	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-11 06:20:37.412783+00	\N	2026-08-10 06:57:47.765224+00	Local	\N
-a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$C1.RSFWKTSubiB0H5aZZHeeTO57u8GiTR26LpNU9aqS0h5j6tQ9eu	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 12:23:35.786937+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-09-03 12:47:27.34062+00	\N	\N	Local	\N
-a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$XomfSslmBrT8Rgca9XCNbed6xplI2a0dioBFDTh5RU8uO3BVCIOAW	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-20 05:22:57.26898+00	\N	\N	Local	\N
-a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$yG3JPQTM7WUih458LoZ6bOMAR5fzfHZGXyM.9/BatNecOIEUjMoyq	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-17 07:09:47.329355+00	\N	\N	Local	\N
-b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$xnHEVMZ7WaAvtKmdLygrGelTHEillWCAA2VgJilA5FW3GMu0ItiH6	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-11 11:51:44.284921+00	\N	\N	Local	\N
 d1130837-5c69-40b6-a65f-913214e66693	sahil.lad@talakunchi.in		Sahil Lad	EMP-0025	\N	\N	\N	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-09-03 09:47:54.557246+00	2026-09-03 09:50:09.746059+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-03 09:50:09.746032+00	\N	\N	Microsoft	fMKLFL3FPWkLLODUgmnxV0EWlxyoBVNVRa6NVcDMw8k
-b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$DY2Tynr0b90i2d0qA/0AoeuHTeqI6sUf.7H1bFvrI/WpWPsyn5z0.	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-23 19:07:26.049628+00	\N	\N	Local	\N
-dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$4L9XZ9YBvfa45wq3obmbj.D0Gww82IIi3aT3DeY0a5MujU8ToBHqO	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 12:23:35.786937+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-23 16:17:59.549139+00	\N	\N	Local	\N
-e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$oNUP6O.3OFGUxT0QLM7D0em47CwJGLHiz3V5Febc.1zGj56A9uv1a	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-08-07 07:57:04.148765+00	\N	2026-08-07 07:57:03.565302+00	Local	\N
-f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$VgEHBLHQpb.Q72lBQk0b8.VPDAtXDcpCoFIHBYn8UlOxofhoJxaY2	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 07:49:59.669429+00	2026-09-03 12:57:25.654307+00	\N	\N	\N	0	2026-09-03 07:05:49.13962+00	\N	\N	Local	\N
+40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$AkO0CtYosV9Kt0qfdQaXQe14HHH.XPsJ09GY.fKUy.yT9hrVsV4Wi	Dhanshree	u14	\N	\N	DS	\N	t	f	3de8ba61-fd83-4953-9f9e-11e7450ebccd	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-09-02 10:02:19.979296+00	\N	2026-08-10 07:02:04.244561+00	Local	\N
+47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$16.5Uho9qbYOB8qc2MwxSeAb9/GjXeK6n2M1s/wk.8jlELMOkVLwa	HR User	u16	\N	\N	HU	\N	t	f	911d3fd2-2e9a-4a85-a79a-49584031c854	2026-08-10 12:23:35.786937+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-09-03 09:48:23.138001+00	\N	\N	Local	\N
+49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$f1ZBDCI2yhy9WcY8jPS5vO1KLWWCNf.HpK1fBSen6Y/fzR7swY57u	Nikhil Rao	u5	\N	\N	NR	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	\N	\N	\N	Local	\N
+65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$vNuIzIaLqJSQ9wzlqdBp3.nO0QH2cNG.fh3ngbG.q5bpefzyVu5W6	Priya Verma	u6	\N	\N	PV	\N	t	f	3cdaf36a-c349-4239-8533-df54dbdbb770	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-10 12:57:13.729958+00	\N	\N	Local	\N
+730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$5YL4c6bIOkZvk6j6OwD8W.GG3qlBt8P3gMwohYnpte4HTSi4gU47e	Sales User	u18	\N	\N	SU	\N	t	f	34331f88-e6f2-4e48-b6e7-7f6baef11ef9	2026-08-10 12:23:35.786937+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-09-03 09:48:26.843125+00	\N	\N	Local	\N
+9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$3NQWQ.Wiin0kBbUIOjL7cuTDxZCotOfinfXf3HyYPBBYpf77.PL8W	Dev Patel	u9	\N	\N	DP	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-11 06:20:37.412783+00	\N	2026-08-10 06:57:47.765224+00	Local	\N
+a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$rfzKUx6krgeWZ6AAAPWvnujZR4k47xoSTTC/TIY8SFPf108CZJq8C	Vikram Shah	u3	\N	\N	VS	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-20 05:22:57.26898+00	\N	\N	Local	\N
+a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$re2Z5FpS1BrstsAd96rkJ.JVVY3YeY2sMpM4RBEU7gVWyTnmaCWAy	Admin User	u15	\N	\N	AU	\N	t	f	4e1cb2cf-a453-4b80-9ddc-2c6ee042290b	2026-08-10 12:23:35.786937+00	2026-09-09 12:27:16.439071+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-09 12:27:16.417659+00	\N	\N	Local	\N
+111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$Nzkymy3hXTdSWScBbmD7UOyCqlj2EXJeKMMGNqEAY3LuTJSYb.gEO	Meera Joshi	u8	\N	\N	MJ	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-11 11:25:29.999149+00	\N	\N	Local	\N
+1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$DvUsprkN6LAQS2wKIRPRc.KLjDk7BuZZl3PGKBKD8z8Ck338ScVC6	Aarav Mehta	u1	\N	\N	AM	\N	t	f	da95514a-1975-456d-ad0f-06fe33227e9b	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-17 12:22:51.492258+00	\N	\N	Local	\N
+2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$6QYXdI3fAWcMG2a7HoxMzeAPbGQhNjYraWe5Pk/9ljUNAf4qcPqNy	Vikrant Malhotra	u13	\N	\N	VM	\N	t	f	1312980c-d7e6-4394-930e-477a5ae8ece8	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-10 06:59:34.903769+00	\N	2026-08-10 06:59:52.170405+00	Local	\N
+304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$qn5.X6V4f.JgKJOub9SJ1.WxGzAAPK4/pr566p/P.68PHWjTjXG2y	Anita Desai	u12	\N	\N	AD	\N	t	f	b7271bbe-68a7-4165-996e-869c030c76d3	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-21 16:45:24.911658+00	\N	\N	Local	\N
+a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$NOjmmj68RnpzdypVL.4eA./.k6LOMpus45v8GivlTh6ef2kozishG	Sana Iyer	u4	\N	\N	SI	\N	t	f	915f6e40-9ad3-49f9-bbf5-18375e5b49d5	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-17 07:09:47.329355+00	\N	\N	Local	\N
+b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$yYsfPy8aDzU0Gnmddj2F.uqPmpDjm.rV0b59o7fjpqjuKnhRwZDaC	Kavya Nair	u10	\N	\N	KN	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-11 11:51:44.284921+00	\N	\N	Local	\N
+b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$7R2zldP8WHLxltlGcX5vNOQLnAeVr7SsVDDD33Ta26BPm.uuSKlTa	Rahul Gupta	u11	\N	\N	RG	\N	t	f	fd4ad9b6-dc3e-482b-bc1f-dcdb50a68cde	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-23 19:07:26.049628+00	\N	\N	Local	\N
+dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$0fq3MbJDV6PLcoKjOWxywugVg.d9t5nOn4HMcxWB5/mOq7XDIhdLe	Accounts User	u17	\N	\N	AC	\N	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 12:23:35.786937+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-23 16:17:59.549139+00	\N	\N	Local	\N
+e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$V1s1O2ghZEQMiSlk6tlfJ.YJqQCHWKRzFAUkQFFFv5wtZSpt7AnUK	Riya Kapoor	u2	\N	\N	RK	\N	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-08-07 07:57:04.148765+00	\N	2026-08-07 07:57:03.565302+00	Local	\N
+f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$F8hieNKZxZiuwAuW3STUP.CuVK3nGwm2Xv13OU6os01dE6DUmfMpW	Arjun Singh	u7	\N	\N	AS	\N	t	f	9a4276e4-ddbf-438c-af7a-b4e123ae8271	2026-08-07 07:49:59.669429+00	2026-09-09 11:33:15.903685+00	\N	\N	\N	0	2026-09-08 10:20:03.79587+00	\N	\N	Local	\N
 \.
 
 
@@ -3232,6 +3664,22 @@ ALTER TABLE ONLY public.exited_employees
 
 ALTER TABLE ONLY public.mst_cities
     ADD CONSTRAINT "PK_mst_cities" PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_contact_designations PK_mst_contact_designations; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mst_contact_designations
+    ADD CONSTRAINT "PK_mst_contact_designations" PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_contact_types PK_mst_contact_types; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mst_contact_types
+    ADD CONSTRAINT "PK_mst_contact_types" PRIMARY KEY ("Id");
 
 
 --
@@ -3363,11 +3811,35 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
+-- Name: mst_certifications mst_certifications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mst_certifications
+    ADD CONSTRAINT mst_certifications_pkey PRIMARY KEY ("Id");
+
+
+--
 -- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.mst_email_domains
     ADD CONSTRAINT mst_email_domains_pkey PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_employee_statuses mst_employee_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mst_employee_statuses
+    ADD CONSTRAINT mst_employee_statuses_pkey PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_graduation_degrees mst_graduation_degrees_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mst_graduation_degrees
+    ADD CONSTRAINT mst_graduation_degrees_pkey PRIMARY KEY ("Id");
 
 
 --
@@ -3384,6 +3856,14 @@ ALTER TABLE ONLY public.mst_offices
 
 ALTER TABLE ONLY public.mst_offices
     ADD CONSTRAINT mst_offices_pkey PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_post_graduation_degrees mst_post_graduation_degrees_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mst_post_graduation_degrees
+    ADD CONSTRAINT mst_post_graduation_degrees_pkey PRIMARY KEY ("Id");
 
 
 --
@@ -3588,6 +4068,34 @@ CREATE UNIQUE INDEX "IX_mst_cities_CountryId_Name" ON public.mst_cities USING bt
 
 
 --
+-- Name: IX_mst_contact_designations_Code; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "IX_mst_contact_designations_Code" ON public.mst_contact_designations USING btree ("Code");
+
+
+--
+-- Name: IX_mst_contact_designations_Name; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "IX_mst_contact_designations_Name" ON public.mst_contact_designations USING btree ("Name");
+
+
+--
+-- Name: IX_mst_contact_types_Code; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "IX_mst_contact_types_Code" ON public.mst_contact_types USING btree ("Code");
+
+
+--
+-- Name: IX_mst_contact_types_Name; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "IX_mst_contact_types_Name" ON public.mst_contact_types USING btree ("Name");
+
+
+--
 -- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -3634,6 +4142,13 @@ CREATE UNIQUE INDEX "IX_mst_designations_DepartmentId_Name" ON public.mst_design
 --
 
 CREATE UNIQUE INDEX "IX_mst_email_domains_DomainName" ON public.mst_email_domains USING btree ("DomainName");
+
+
+--
+-- Name: IX_mst_employee_statuses_Code; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "IX_mst_employee_statuses_Code" ON public.mst_employee_statuses USING btree ("Code") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
@@ -3943,6 +4458,14 @@ ALTER TABLE ONLY public.employees
 
 
 --
+-- Name: employees FK_employees_mst_employee_statuses_EmployeeStatusId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.employees
+    ADD CONSTRAINT "FK_employees_mst_employee_statuses_EmployeeStatusId" FOREIGN KEY ("EmployeeStatusId") REFERENCES public.mst_employee_statuses("Id") ON DELETE SET NULL;
+
+
+--
 -- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4066,5 +4589,5 @@ ALTER TABLE ONLY public.mst_offices
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LfjcLBnssjF6328nS5LVttVdYEYlBbsjbRhdoW1eFtHvD5gvssTcfB66RtXhFjw
+\unrestrict H5zU9G9UMJRd2XJDAKKP2c885cSoZPL1wUJqMfWSEpDj9NwFBl9laL4MrJhzg8k
 

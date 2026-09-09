@@ -61,6 +61,25 @@ dotnet run --project PMS.API.csproj
 
 ---
 
+## PMO Project Allocation & Client Engagement Manager Auto-Resolution
+
+### Business Requirement
+In employee onboarding and profile management (PMO Section):
+- When an employee is assigned to a `Project Allocated`:
+  1. The selected project maps to its owning Customer (`projects.client_id` → `clients.id`).
+  2. The customer defines the assigned Engagement Manager (`clients.engagement_manager_id` or `projects.engagement_manager_id`).
+  3. `Client Engagement Manager` is automatically resolved and populated for that employee profile.
+
+### Pending Database Generation
+- The backend tables/relations for `projects` (with `client_id`) and relational engagement manager mapping are not yet generated in PostgreSQL.
+- **Frontend Fallback**: Currently implemented as frontend dummy auto-mapping (`dh-employee-directory.index.tsx`) deriving EM from mock `allProjects()` and `allClients()`.
+- **Action Required on Backend Table Generation**:
+  - Expose foreign key relation: `projects.client_id -> clients.id`.
+  - Expose `clients.engagement_manager_id` (or EM contact link).
+  - Add API endpoint or query to fetch project metadata including customer name and assigned Engagement Manager.
+
+---
+
 ## Related Documents
 - [[20_Database_Design_Draft]]
 - [[21_API_Design_Draft]]
