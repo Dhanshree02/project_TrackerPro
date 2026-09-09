@@ -21,11 +21,12 @@ const msalConfig: Configuration = {
     navigateToLoginRequestUrl: false,
   },
   cache: {
-    cacheLocation: "sessionStorage",
-    storeAuthStateInCookie: false,
+    cacheLocation: "localStorage",
+    storeAuthStateInCookie: true,
   },
   system: {
     allowNativeBroker: false,
+    allowNestedPopups: true,
     loggerOptions: {
       logLevel: LogLevel.Warning,
     },

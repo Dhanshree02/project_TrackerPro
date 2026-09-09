@@ -1,9 +1,10 @@
 import { type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, Bell, ChevronDown, Check } from "lucide-react";
+import { Search, Bell, ChevronDown, Check, LogOut, User as UserIcon } from "lucide-react";
 import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
 import { DEMO_PERSONAS, type DemoRoleKey } from "@/lib/demo-roles";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +16,7 @@ import {
 
 export function AppTopbar({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
   const { role, user, assignedIssues, pendingTimesheets } = useRoleContext();
-  const { user: authUser, demoRole, switchDemoRole, status } = useAuth();
+  const { user: authUser, demoRole, switchDemoRole, logout, status } = useAuth();
   const navigate = useNavigate();
   const roleLabel = authUser?.role
     ? (backendRoleLabels[authUser.role] ?? roleLabels[role])
@@ -27,6 +28,16 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
     if (next === demoRole) return;
     await switchDemoRole(next);
     await navigate({ to: "/" });
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      toast.success("Signed out successfully");
+      await navigate({ to: "/login", replace: true });
+    } catch {
+      window.location.href = "/login";
+    }
   };
 
   return (
@@ -70,7 +81,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
           <DropdownMenuTrigger asChild>
             <button
               className="flex items-center gap-2 rounded-md border border-transparent py-1 pl-1 pr-1.5 hover:border-border hover:bg-accent/60 transition-colors"
-              aria-label="Switch access role"
+              aria-label="Switch access role or sign out"
               disabled={status === "loading"}
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
@@ -83,21 +94,40 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
               <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground md:block" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-medium">
-              Switch access role
-            </DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-60">
+            <div className="px-2 py-2">
+              <p className="text-xs font-semibold text-foreground truncate">{user.name}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{user.email || "Pulse PMO User"}</p>
+              <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                {roleLabel}
+              </span>
+            </div>
             <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Switch access persona (Dev)
+            </DropdownMenuLabel>
             {DEMO_PERSONAS.map((persona) => (
               <DropdownMenuItem
                 key={persona.key}
                 onSelect={() => void onSwitchRole(persona.key)}
-                className="flex items-center justify-between"
+                className="flex items-center justify-between text-xs cursor-pointer"
               >
                 <span>{persona.label}</span>
                 {demoRole === persona.key && <Check className="h-3.5 w-3.5 text-primary" />}
               </DropdownMenuItem>
             ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                void handleSignOut();
+              }}
+              onClick={() => void handleSignOut()}
+              className="flex items-center gap-2 text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Sign Out</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

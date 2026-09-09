@@ -255,6 +255,7 @@ public static class RoleBaselines
             "my-team.my-timesheet.view",
             "my-team.my-timesheet.submit",
             "my-team.my-timesheet.edit",
+            Permissions.ClientsRead,
             Permissions.ProjectsRead,
             Permissions.ProjectsWrite,
             Permissions.IssuesRaise,
@@ -292,6 +293,7 @@ public static class RoleBaselines
             "resources.manage",
             "repository.view",
             Permissions.ResourcesManage,
+            Permissions.ResourcesRead,
         ],
 
         // ---- Accounts & Finance ----
@@ -312,6 +314,7 @@ public static class RoleBaselines
             "customers.view",
             "repository.view",
             Permissions.ClientsRead,
+            Permissions.ProjectsRead,
             Permissions.InvoicesRaise,
             Permissions.InvoicesPayment,
             Permissions.ReportsRead,
@@ -337,7 +340,9 @@ public static class RoleBaselines
             "my-team.dashboard.view",
             "my-team.my-timesheet.view",
             "my-team.my-timesheet.submit",
+            Permissions.ClientsRead,
             Permissions.ClientsWrite,
+            Permissions.ProjectsRead,
             Permissions.ProjectsWrite,
             Permissions.WbsRead,
             Permissions.TimesheetsSubmit,

@@ -20,12 +20,14 @@ export function MobileTabs() {
     useRoleContext();
   const { hasPermission, hasAny } = usePermissions();
 
-  const items: NavItem[] = filterNavItems(
-    isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
-    hasPermission,
-    hasAny,
-    { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
-  );
+  const items: NavItem[] = isDhanshree
+    ? DH_NAV_ITEMS
+    : filterNavItems(
+        NAV_ITEMS,
+        hasPermission,
+        hasAny,
+        { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
+      );
   const primary = items.slice(0, MAX_TABS);
   const overflow = items.slice(MAX_TABS);
 

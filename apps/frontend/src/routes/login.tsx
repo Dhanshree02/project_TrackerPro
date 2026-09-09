@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   AlertCircle,
@@ -33,7 +33,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { login, loginWithMicrosoft } = useAuth();
+  const { status, login, loginWithMicrosoft } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -51,6 +51,14 @@ function LoginPage() {
   useEffect(() => {
     let active = true;
     (async () => {
+      // Only process redirect promise if there is a hash or code/state in the URL
+      const hasAuthParams =
+        typeof window !== "undefined" &&
+        (window.location.hash.includes("code=") ||
+          window.location.hash.includes("id_token=") ||
+          window.location.hash.includes("error=") ||
+          window.location.search.includes("code="));
+
       try {
         const response = await handleMsalRedirectResult();
         if (response?.idToken && active) {
@@ -61,10 +69,16 @@ function LoginPage() {
           });
           navigate({ to: "/" });
         }
-      } catch (err) {
-        if (active) {
-          const msg = err instanceof Error ? err.message : "Microsoft redirect sign-in failed.";
-          setError(msg);
+      } catch (err: any) {
+        if (active && hasAuthParams) {
+          const msg = err instanceof Error ? err.message : "Microsoft sign-in failed.";
+          // Suppress benign cache miss when not in a valid auth redirect response
+          if (
+            !msg.includes("no_token_request_cache_error") &&
+            !msg.includes("no token request")
+          ) {
+            setError(msg);
+          }
         }
       }
     })();
@@ -72,6 +86,11 @@ function LoginPage() {
       active = false;
     };
   }, [loginWithMicrosoft, navigate]);
+
+  // If already signed in, navigate straight to the dashboard
+  if (status === "authed") {
+    return <Navigate to="/" replace />;
+  }
 
   if (isPopupCallback) {
     return (
@@ -84,20 +103,23 @@ function LoginPage() {
     );
   }
 
-  // Microsoft Single Sign-On Handler (Full page redirect flow)
+  // Microsoft Single Sign-On Handler (Full Page Redirect Method)
   const handleMicrosoftLogin = async () => {
     setError(null);
     setMsLoading(true);
 
     try {
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem("msal.interaction.status");
-      }
       await loginWithMicrosoftRedirect();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Microsoft sign-in failed to initiate.";
-      setError(msg);
-      toast.error("Microsoft sign-in error", { description: msg });
+      const msg = err instanceof Error ? err.message : "Microsoft sign-in failed.";
+      if (
+        !msg.includes("user_cancelled") &&
+        !msg.includes("cancelled by the user") &&
+        !msg.includes("interaction_in_progress")
+      ) {
+        setError(msg);
+        toast.error("Microsoft sign-in error", { description: msg });
+      }
       setMsLoading(false);
     }
   };

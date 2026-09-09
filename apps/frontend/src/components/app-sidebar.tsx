@@ -41,14 +41,14 @@ export function AppSidebar() {
     });
   };
 
-  // Navigation is permission-driven: only modules the signed-in user may access
-  // are rendered. Dhanshree/Admin keep the super-admin workspace layout.
-  const items: NavItem[] = filterNavItems(
-    isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
-    hasPermission,
-    hasAny,
-    { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
-  );
+  const items: NavItem[] = isDhanshree
+    ? DH_NAV_ITEMS
+    : filterNavItems(
+        NAV_ITEMS,
+        hasPermission,
+        hasAny,
+        { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
+      );
 
   const isActive = (to?: string, exact?: boolean, subSearch?: Record<string, any>) => {
     if (!to) return false;
@@ -83,6 +83,10 @@ export function AppSidebar() {
     // Auto-open My Team if we are in any of its sub-routes
     if (pathname.startsWith("/my-team")) {
       setOpenDropdowns((prev) => ({ ...prev, "My Team": true }));
+    }
+    // Auto-open Settings if we are in any of its sub-routes
+    if (pathname.startsWith("/dh-settings")) {
+      setOpenDropdowns((prev) => ({ ...prev, Settings: true }));
     }
   }, [pathname]);
 

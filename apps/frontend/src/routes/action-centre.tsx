@@ -78,13 +78,22 @@ function ActionCentrePage() {
   const store = useDhStore((s) => s);
   const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
 
-  const visibleTabs: Tab[] = isEmployee
-    ? ["Bucket List", "Notifications"]
-    : isSales
-      ? ["Alerts", "Notifications"]
-      : isPmoFamily
-        ? ["Approvals", "Alerts", "Notifications"]
-        : ["Bucket List", "Approvals", "Alerts", "Notifications"];
+  const visibleTabs = useMemo(() => {
+    const list: Tab[] = [];
+    if (isDhanshree || hasPermission("action.bucket_list") || hasPermission("action-center.bucket-list.view")) {
+      list.push("Bucket List");
+    }
+    if (isDhanshree || hasPermission("action.approvals") || hasPermission("action-center.approvals.view")) {
+      list.push("Approvals");
+    }
+    if (isDhanshree || hasPermission("action.alerts") || hasPermission("action-center.alerts.view")) {
+      list.push("Alerts");
+    }
+    if (isDhanshree || hasPermission("action.notifications") || hasPermission("action-center.notifications.view")) {
+      list.push("Notifications");
+    }
+    return list.length > 0 ? list : (["Notifications"] as Tab[]);
+  }, [isDhanshree, hasPermission]);
 
   const [tab, setTab] = useState<Tab>(visibleTabs[0]);
   const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import {
   changePassword as apiChangePassword,
   getMe,
@@ -16,6 +16,7 @@ import {
   setStoredDemoRole,
   type DemoRoleKey,
 } from "@/lib/demo-roles";
+import { RBAC_STORAGE_KEY } from "@/lib/rbac";
 
 export type AuthStatus = "loading" | "authed" | "anon";
 
@@ -28,6 +29,7 @@ interface AuthContextValue {
   loginWithMicrosoft: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  refreshPermissions: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -48,17 +50,54 @@ async function signInAsDemoRole(role: DemoRoleKey): Promise<AuthUser> {
   }
 }
 
+const AUTH_SESSION_KEY = "pulse_auth_active";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const initialRole = getStoredDemoRole();
-  // Dev mode: always treat the selected demo role as authenticated immediately.
-  const [status, setStatus] = useState<AuthStatus>("authed");
-  const [user, setUser] = useState<AuthUser | null>(() => mockAuthUser(initialRole));
+  const isInitiallyActive = typeof window !== "undefined" && localStorage.getItem(AUTH_SESSION_KEY) === "true";
+
+  const [status, setStatus] = useState<AuthStatus>(() => (isInitiallyActive ? "authed" : "anon"));
+  const [user, setUser] = useState<AuthUser | null>(() => (isInitiallyActive ? mockAuthUser(initialRole) : null));
   const [demoRole, setDemoRole] = useState<DemoRoleKey>(() => initialRole);
+
+  const refreshPermissions = useCallback(() => {
+    const role = getStoredDemoRole();
+    const persona = getDemoPersona(role);
+    setUser((prev) => {
+      if (!prev) return isInitiallyActive ? mockAuthUser(role) : null;
+      return {
+        ...prev,
+        permissions: persona.permissions,
+      };
+    });
+  }, [isInitiallyActive]);
+
+  useEffect(() => {
+    // Listen for custom rbac updates to keep active session in sync
+    const onRbacUpdate = () => {
+      refreshPermissions();
+    };
+    window.addEventListener("pulse-rbac-updated", onRbacUpdate);
+    window.addEventListener("storage", onRbacUpdate);
+    return () => {
+      window.removeEventListener("pulse-rbac-updated", onRbacUpdate);
+      window.removeEventListener("storage", onRbacUpdate);
+    };
+  }, [refreshPermissions]);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
+      const isStoredActive = typeof window !== "undefined" && localStorage.getItem(AUTH_SESSION_KEY) === "true";
+      if (!isStoredActive) {
+        if (!cancelled) {
+          setStatus("anon");
+          setUser(null);
+        }
+        return;
+      }
+
       const role = getStoredDemoRole();
       if (!cancelled) {
         setDemoRole(role);
@@ -82,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
       } catch {
-        // Backend dev bypass allows API calls without a JWT.
+        // Backend dev bypass
       }
 
       try {
@@ -102,23 +141,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     await apiLogin(email, password);
-    const me = await getMe();
-    setUser({ ...me, mustChangePassword: false });
+    try {
+      const me = await getMe();
+      setUser({ ...me, mustChangePassword: false });
+    } catch {
+      const role = getStoredDemoRole();
+      setUser(mockAuthUser(role));
+    }
+    if (typeof window !== "undefined") {
+      localStorage.setItem(AUTH_SESSION_KEY, "true");
+    }
     setStatus("authed");
   };
 
   const loginWithMicrosoft = async (idToken: string) => {
     await apiLoginWithMicrosoft(idToken);
-    const me = await getMe();
-    setUser({ ...me, mustChangePassword: false });
+    try {
+      const me = await getMe();
+      setUser({ ...me, mustChangePassword: false });
+    } catch {
+      const role = getStoredDemoRole();
+      setUser(mockAuthUser(role));
+    }
+    if (typeof window !== "undefined") {
+      localStorage.setItem(AUTH_SESSION_KEY, "true");
+    }
     setStatus("authed");
   };
 
   const switchDemoRole = async (role: DemoRoleKey) => {
-    if (role === demoRole && status === "authed") return;
     setStoredDemoRole(role);
     setDemoRole(role);
     setUser(mockAuthUser(role));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(AUTH_SESSION_KEY, "true");
+    }
     setStatus("authed");
     try {
       await apiLogout();
@@ -132,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(mockAuthUser(role));
     }
     setStatus("authed");
+    window.dispatchEvent(new CustomEvent("pulse-rbac-updated"));
   };
 
   const logout = async () => {
@@ -140,15 +198,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-    const role = getStoredDemoRole();
-    setUser(mockAuthUser(role));
-    setStatus("authed");
-    try {
-      const next = await signInAsDemoRole(role);
-      setUser(next);
-    } catch {
-      setUser(mockAuthUser(role));
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(AUTH_SESSION_KEY);
     }
+    clearSession();
+    setUser(null);
+    setStatus("anon");
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
@@ -168,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithMicrosoft,
         logout,
         changePassword,
+        refreshPermissions,
       }}
     >
       {children}

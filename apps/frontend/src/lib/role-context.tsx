@@ -68,21 +68,33 @@ const userByRole: Record<Role, string> = {
 
 const roleFromBackend: Record<string, Role> = {
   SeniorPm: "senior_pm",
+  senior_pm: "senior_pm",
   EngagementManager: "engagement_manager",
+  engagement_manager: "engagement_manager",
   Pmo: "pmo",
+  pmo: "pmo",
   Hod: "hod",
+  hod: "hod",
   BusinessOwner: "business_owner",
+  business_owner: "business_owner",
   Dhanshree: "dhanshree",
+  dhanshree: "dhanshree",
   Admin: "dhanshree",
-  Sales: "business_owner",
-  Accounts: "pmo",
-  Hr: "business_owner",
-  ProjectManager: "senior_pm",
-  TeamLead: "senior_pm",
-  Employee: "senior_pm",
+  admin: "dhanshree",
+  Sales: "sales_bd",
+  sales_bd: "sales_bd",
+  Accounts: "accounts_finance",
+  accounts_finance: "accounts_finance",
+  Hr: "hr",
+  hr: "hr",
+  ProjectManager: "pm",
+  pm: "pm",
+  TeamLead: "pm",
+  Employee: "employee",
+  employee: "employee",
 };
 
-const fallbackRole: Role = "senior_pm";
+const fallbackRole: Role = "employee";
 
 function mapBackendRole(role?: string | null): Role {
   return (role && roleFromBackend[role]) || fallbackRole;
@@ -132,19 +144,17 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         }
       : getPerson(userByRole[role]);
 
-  const isDhanshree =
-    !!authUser && status === "authed" && (backendRole === "Dhanshree" || backendRole === "Admin");
-  const isEmployee = !!authUser && status === "authed" && backendRole === "Employee";
-  const isHr = !!authUser && status === "authed" && backendRole === "Hr";
-  const isProjectManager = !!authUser && status === "authed" && backendRole === "ProjectManager";
-  const isSeniorPm = !!authUser && status === "authed" && backendRole === "SeniorPm";
-  const isEngagementManager =
-    !!authUser && status === "authed" && backendRole === "EngagementManager";
-  const isPMO = !!authUser && status === "authed" && backendRole === "Pmo";
-  const isHOD = !!authUser && status === "authed" && backendRole === "Hod";
-  const isBO = !!authUser && status === "authed" && backendRole === "BusinessOwner";
-  const isAccounts = !!authUser && status === "authed" && backendRole === "Accounts";
-  const isSales = !!authUser && status === "authed" && backendRole === "Sales";
+  const isDhanshree = role === "dhanshree";
+  const isEmployee = role === "employee";
+  const isHr = role === "hr";
+  const isProjectManager = role === "pm";
+  const isSeniorPm = role === "senior_pm";
+  const isEngagementManager = role === "engagement_manager";
+  const isPMO = role === "pmo";
+  const isHOD = role === "hod";
+  const isBO = role === "business_owner";
+  const isAccounts = role === "accounts_finance";
+  const isSales = role === "sales_bd";
   const isPmFamily = isProjectManager || isSeniorPm || isEngagementManager;
   const isPmoFamily = isPMO || isBO || isHOD;
   /** Business Owner is view-only everywhere; HOD is view-only except approvals / acknowledge. */
@@ -301,6 +311,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
+          window.dispatchEvent(new CustomEvent("pulse-rbac-updated"));
         } catch {
           /* ignore */
         }
@@ -316,6 +327,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
+          window.dispatchEvent(new CustomEvent("pulse-rbac-updated"));
         } catch {
           /* ignore */
         }

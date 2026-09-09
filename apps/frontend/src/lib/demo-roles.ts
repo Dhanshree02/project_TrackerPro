@@ -1,4 +1,6 @@
 import type { AuthUser } from "@/lib/api-client";
+import type { Role } from "@/lib/mock-data";
+import { DEFAULT_ROLE_PERMISSIONS, permissionsForRole } from "@/lib/rbac";
 
 /** Demo personas that can be switched from the topbar without a login page. */
 export type DemoRoleKey =
@@ -19,6 +21,7 @@ export const DEMO_PASSWORD = "Password@123";
 
 export interface DemoPersona {
   key: DemoRoleKey;
+  role: Role;
   label: string;
   email: string;
   name: string;
@@ -27,263 +30,130 @@ export interface DemoPersona {
   permissions: string[];
 }
 
-const EMPLOYEE_PERMS = [
-  "dashboard.view",
-  "action-center.view",
-  "projects.view",
-  "projects.assigned-projects.view",
-  "projects.task.view",
-  "projects.task.update-status",
-  "resources.view",
-  "resources.directory.view",
-  "repository.view",
-  "my-team.dashboard.view",
-  "my-team.my-timesheet.view",
-  "my-team.my-timesheet.submit",
-  "my-team.my-timesheet.edit",
-  "timesheets:submit",
-  "issues:raise",
-];
-
-const HR_PERMS = [
-  "resources.view",
-  "resources.directory.view",
-  "resources.manage",
-  "repository.view",
-  "resources:manage",
-];
-
-const PM_PERMS = [
-  "dashboard.view",
-  "action-center.view",
-  "projects.view",
-  "projects.overview.view",
-  "projects.overview.edit",
-  "projects.budget.view",
-  "projects.team.view",
-  "projects.task.view",
-  "projects.task.create",
-  "projects.task.edit",
-  "projects.task.assign",
-  "projects.task.update-status",
-  "projects.health.view",
-  "projects.health.raise-issue",
-  "projects.health.edit-issue",
-  "projects.health.resolve-issue",
-  "projects.health-issues.view",
-  "projects.alerts.view",
-  "projects.escalation.view",
-  "resources.view",
-  "resources.directory.view",
-  "customers.view",
-  "repository.view",
-  "my-team.dashboard.view",
-  "my-team.timesheet-approval.view",
-  "my-team.timesheet-approval.approve",
-  "my-team.my-timesheet.view",
-  "my-team.my-timesheet.submit",
-  "projects:read",
-  "projects:write",
-  "issues:raise",
-  "timesheets:submit",
-  "timesheets:approve",
-];
-
-const EM_PERMS = [
-  ...PM_PERMS,
-  "projects.communication.view",
-  "projects.communication.create",
-];
-
-const PMO_PERMS = [
-  "dashboard.view",
-  "action-center.view",
-  "projects.view",
-  "projects.overview.view",
-  "projects.invoice-schedule.view",
-  "projects.health.view",
-  "reports.view",
-  "reports.export",
-  "resources.view",
-  "resources.directory.view",
-  "customers.view",
-  "repository.view",
-  "my-team.dashboard.view",
-  "projects:read",
-  "clients:read",
-  "reports:read",
-];
-
-const HOD_PERMS = [
-  ...PMO_PERMS,
-  "approvals.view",
-  "approvals.approve",
-  "my-team.timesheet-approval.view",
-  "my-team.timesheet-approval.approve",
-];
-
-const ACCOUNTS_PERMS = [
-  "dashboard.view",
-  "projects.view",
-  "projects.overview.view",
-  "projects.invoice-schedule.view",
-  "projects.invoice-schedule.manage",
-  "reports.view",
-  "reports.finance.view",
-  "resources.view",
-  "resources.directory.view",
-  "customers.view",
-  "customers.create",
-  "customers.edit",
-  "repository.view",
-  "clients:read",
-  "clients:write",
-  "invoices:raise",
-  "invoices:payment",
-  "reports:read",
-];
-
-const SALES_PERMS = [
-  "dashboard.view",
-  "action-center.view",
-  "projects.view",
-  "projects.create",
-  "projects.overview.view",
-  "projects.health.view",
-  "reports.view",
-  "resources.view",
-  "resources.directory.view",
-  "customers.view",
-  "customers.create",
-  "customers.edit",
-  "repository.view",
-  "clients:write",
-  "clients:read",
-  "projects:write",
-  "projects:read",
-];
-
-const ADMIN_PERMS = [
-  ...new Set([
-    ...EMPLOYEE_PERMS,
-    ...HR_PERMS,
-    ...PM_PERMS,
-    ...EM_PERMS,
-    ...PMO_PERMS,
-    ...HOD_PERMS,
-    ...ACCOUNTS_PERMS,
-    ...SALES_PERMS,
-    "projects.create",
-    "wbs.allocate",
-    "wbs.view",
-    "portfolio.view",
-    "settings.view",
-    "settings.manage_roles",
-    "customers.approve",
-    "users:manage",
-    "roles:manage",
-  ]),
-];
+export const DEMO_ROLE_MAP: Record<DemoRoleKey, Role> = {
+  Employee: "employee",
+  Hr: "hr",
+  ProjectManager: "pm",
+  SeniorPm: "senior_pm",
+  EngagementManager: "engagement_manager",
+  Pmo: "pmo",
+  Hod: "hod",
+  BusinessOwner: "business_owner",
+  Accounts: "accounts_finance",
+  Sales: "sales_bd",
+  Admin: "dhanshree",
+};
 
 export const DEMO_PERSONAS: DemoPersona[] = [
   {
     key: "Employee",
+    role: "employee",
     label: "Employee",
     email: "arjun@acme.co",
     name: "Arjun Singh",
     id: "u7",
     avatar: "AS",
-    permissions: EMPLOYEE_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.employee,
   },
   {
     key: "Hr",
+    role: "hr",
     label: "HR",
     email: "hr@acme.co",
     name: "HR User",
     id: "u16",
     avatar: "HU",
-    permissions: HR_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.hr,
   },
   {
     key: "ProjectManager",
+    role: "pm",
     label: "Project Manager",
     email: "vikram@acme.co",
     name: "Vikram Shah",
     id: "u3",
     avatar: "VS",
-    permissions: PM_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.pm,
   },
   {
     key: "SeniorPm",
+    role: "senior_pm",
     label: "Senior Project Manager",
     email: "aarav@acme.co",
     name: "Aarav Mehta",
     id: "u1",
     avatar: "AM",
-    permissions: PM_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.senior_pm,
   },
   {
     key: "EngagementManager",
+    role: "engagement_manager",
     label: "Engagement Manager",
     email: "riya@acme.co",
     name: "Riya Kapoor",
     id: "u2",
     avatar: "RK",
-    permissions: EM_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.engagement_manager,
   },
   {
     key: "Pmo",
+    role: "pmo",
     label: "PMO",
     email: "rahul@acme.co",
     name: "Rahul Gupta",
     id: "u11",
     avatar: "RG",
-    permissions: PMO_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.pmo,
   },
   {
     key: "Hod",
+    role: "hod",
     label: "HOD",
     email: "anita@acme.co",
     name: "Anita Desai",
     id: "u12",
     avatar: "AD",
-    permissions: HOD_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.hod,
   },
   {
     key: "BusinessOwner",
+    role: "business_owner",
     label: "Business Owner",
     email: "vikrant@acme.co",
     name: "Vikrant Malhotra",
     id: "u13",
     avatar: "VM",
-    permissions: PMO_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.business_owner,
   },
   {
     key: "Accounts",
+    role: "accounts_finance",
     label: "Accounts & Finance",
     email: "accounts@acme.co",
     name: "Accounts User",
     id: "u17",
     avatar: "AC",
-    permissions: ACCOUNTS_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.accounts_finance,
   },
   {
     key: "Sales",
+    role: "sales_bd",
     label: "Sales & BD",
     email: "sales@acme.co",
     name: "Sales User",
     id: "u18",
     avatar: "SU",
-    permissions: SALES_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.sales_bd,
   },
   {
     key: "Admin",
+    role: "dhanshree",
     label: "Admin",
     email: "admin@acme.co",
     name: "Admin User",
     id: "u15",
     avatar: "AU",
-    permissions: ADMIN_PERMS,
+    permissions: DEFAULT_ROLE_PERMISSIONS.dhanshree,
   },
 ];
 
@@ -302,8 +172,18 @@ export function setStoredDemoRole(role: DemoRoleKey): void {
   window.localStorage.setItem(DEMO_ROLE_STORAGE_KEY, role);
 }
 
+export function getDynamicPermissionsForDemoRole(roleKey: DemoRoleKey): string[] {
+  const targetRole = DEMO_ROLE_MAP[roleKey] ?? "employee";
+  return permissionsForRole(targetRole);
+}
+
 export function getDemoPersona(role: DemoRoleKey): DemoPersona {
-  return DEMO_PERSONAS.find((p) => p.key === role) ?? DEMO_PERSONAS[0];
+  const base = DEMO_PERSONAS.find((p) => p.key === role) ?? DEMO_PERSONAS[0];
+  const dynamicPermissions = getDynamicPermissionsForDemoRole(role);
+  return {
+    ...base,
+    permissions: dynamicPermissions,
+  };
 }
 
 export function mockAuthUser(role: DemoRoleKey): AuthUser {

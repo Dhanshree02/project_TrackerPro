@@ -21,8 +21,7 @@ import {
  * Every sidebar / mobile-tab item declares the permission(s) required to see
  * it. The sidebar renders only items the signed-in user is allowed to see, and
  * the route guard (`ROUTE_PERMISSIONS`) blocks direct URL access to everything
- * else. Permission keys mirror the backend catalogue
- * (`Shared/Constants/PermissionCatalog.cs`).
+ * else. Permission keys mirror the backend catalogue.
  */
 
 export interface NavSubItem {
@@ -43,56 +42,58 @@ export interface NavItem {
   subItems?: NavSubItem[];
 }
 
-// ─── Generic (non-Dhanshree) navigation ─────────────────────────────────────
+// ─── Standard Application Navigation Items ──────────────────────────────────
 export const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard.view" },
   {
     to: "/action-centre",
     label: "Action Centre",
     icon: ListChecks,
-    permission: "action-center.view",
+    permission: ["action-center.view", "action.bucket_list", "action.approvals", "action.alerts"],
   },
   { to: "/projects", label: "Projects", icon: FolderKanban, permission: "projects.view" },
   { to: "/reports", label: "Reports", icon: BarChart3, permission: "reports.view" },
-  { to: "/resources", label: "Resources", icon: Users, permission: "resources.view" },
+  {
+    label: "Resources",
+    icon: Users,
+    permission: "resources.view",
+    subItems: [
+      { to: "/dh-employee-directory", label: "Employee Directory", permission: "resources.view" },
+      { to: "/dh-resource-pool", label: "Resource Pool", permission: ["resources.pool", "resources.pool.view"] },
+      { to: "/dh-exit-summary", label: "Exit Summary", permission: ["resources.exit_summary", "resources.exit-summary.view"] },
+    ],
+  },
   { to: "/customers", label: "Customers", icon: Building2, permission: "customers.view" },
   { to: "/my-org", label: "Repository", icon: Building, permission: "repository.view" },
   {
     label: "My Team",
     icon: Users,
-    permission: "my-team.dashboard.view",
+    permission: ["my-team.dashboard.view", "my_team.dashboard", "timesheet.approve", "my-team.timesheet-approval.view"],
     subItems: [
-      { to: "/my-team/", label: "Team Dashboard", permission: "my-team.dashboard.view" },
-      { to: "/timesheet", label: "My Timesheet", permission: "my-team.my-timesheet.view" },
+      { to: "/my-team/", label: "Team Dashboard", permission: ["my-team.dashboard.view", "my_team.dashboard"] },
+      { to: "/timesheet", label: "My Timesheet", permission: ["timesheet.my", "my-team.my-timesheet.view"] },
       {
         to: "/my-team/timesheets",
         label: "Timesheet Approval",
-        permission: ["my-team.timesheet-approval.view", "my-team.timesheet-approval.approve"],
+        permission: ["timesheet.approve", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve"],
       },
     ],
   },
   {
-    to: "/health",
-    label: "Health & Governance",
-    icon: Activity,
-    permission: "projects.health.view",
-  },
-  {
-    to: "/approvals",
-    label: "Approvals",
-    icon: CheckCircle2,
-    permission: [
-      "approvals.view",
-      "my-team.timesheet-approval.approve",
-      "my-team.timesheet-approval.view",
+    label: "Settings",
+    icon: Settings,
+    permission: ["settings.view", "settings.manage_roles", "settings.roles.view"],
+    subItems: [
+      {
+        to: "/dh-settings-security-roles",
+        label: "Roles & Permissions",
+        permission: ["settings.manage_roles", "settings.roles.view", "settings.roles.manage", "settings.view"],
+      },
     ],
   },
-  { to: "/wbs-allocation", label: "WBS Allocation", icon: Inbox, permission: "wbs.allocate" },
-  { to: "/portfolio", label: "Portfolio", icon: Layers, permission: "portfolio.view" },
-  { to: "/dh-settings", label: "Settings", icon: Settings, permission: "settings.view" },
 ];
 
-// ─── Dhanshree / Admin (super-admin workspace) navigation ───────────────────
+// ─── Super Admin (Dhanshree) Navigation Items ───────────────────────────────
 export const DH_NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard.view" },
   {
@@ -108,8 +109,8 @@ export const DH_NAV_ITEMS: NavItem[] = [
     icon: Users,
     permission: "resources.view",
     subItems: [
-      { to: "/dh-employee-directory", label: "Directory & Resource Pool" },
-      { to: "/dh-exit-summary", label: "Exit Summary" },
+      { to: "/dh-employee-directory", label: "Directory & Resource Pool", permission: "resources.view" },
+      { to: "/dh-exit-summary", label: "Exit Summary", permission: "resources.view" },
     ],
   },
   { to: "/customers", label: "Customers", icon: Building2, permission: "customers.view" },
@@ -119,7 +120,7 @@ export const DH_NAV_ITEMS: NavItem[] = [
     icon: Users,
     permission: "my-team.dashboard.view",
     subItems: [
-      { to: "/my-team/", label: "Team Dashboard" },
+      { to: "/my-team/", label: "Team Dashboard", permission: "my-team.dashboard.view" },
       {
         to: "/my-team/timesheets",
         label: "Timesheets",
@@ -127,25 +128,22 @@ export const DH_NAV_ITEMS: NavItem[] = [
       },
     ],
   },
-  { to: "/dh-settings", label: "Settings", icon: Settings, permission: "settings.view" },
+  {
+    label: "Settings",
+    icon: Settings,
+    permission: "settings.view",
+    subItems: [
+      {
+        to: "/dh-settings-security-roles",
+        label: "Roles & Permissions",
+        permission: "settings.view",
+      },
+    ],
+  },
 ];
 
-/**
- * Filters a nav registry to the items the user may see. An item with
- * sub-items is shown when at least one sub-item passes (or it passes on its
- * own); sub-items inherit the parent permission unless they declare their own.
- *
- * Role-driven replacements:
- * - Employee: the "My Team" folder is replaced by a direct "Timesheet" item —
- *   Employees never see the My Team module.
- * - HR: the single "Resources" item becomes the admin-style folder
- *   (Directory + Exit Summary) — HR manages the employee directory
- *   for onboarding (no resource pool).
- * - Employee / PM family / PMO family / Accounts / Sales: Resources opens the
- *   DH directory (view only, basic details).
- * - PM family + PMO family: Health & Governance / Approvals stay hidden
- *   (health lives inside each project; approvals live in Action Centre).
- */
+
+
 export type NavRoleFlags = {
   isEmployee?: boolean;
   isHr?: boolean;
@@ -155,13 +153,19 @@ export type NavRoleFlags = {
   isSales?: boolean;
 };
 
+/**
+ * 100% Permission-driven Navigation Filter.
+ *
+ * Dynamically filters navigation registry based on user's granted permissions.
+ * If Admin enables or disables any module or submodule for any role,
+ * the sidebar dynamically updates immediately.
+ */
 export function filterNavItems(
   items: NavItem[],
   hasPermission: (key: string) => boolean,
   hasAny: (...keys: Array<string | undefined | null>) => boolean,
-  flags: NavRoleFlags = {},
+  _flags: NavRoleFlags = {},
 ): NavItem[] {
-  const { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales } = flags;
   const allowed = (perm?: string | string[]): boolean => {
     if (!perm) return true;
     const list = Array.isArray(perm) ? perm : [perm];
@@ -169,93 +173,58 @@ export function filterNavItems(
   };
 
   const result: NavItem[] = [];
-  for (const item of items) {
-    const parentAllowed = allowed(item.permission);
 
-    if (item.subItems) {
-      const subs = item.subItems
-        .filter((s) => parentAllowed && allowed(s.permission))
-        .map((s) => ({ ...s, permission: undefined }));
-      if (subs.length > 0) result.push({ ...item, permission: undefined, subItems: subs });
+  for (const item of items) {
+    if (item.subItems && item.subItems.length > 0) {
+      // Sub-items filtering
+      const validSubs = item.subItems.filter((sub) => allowed(sub.permission ?? item.permission));
+
+      if (validSubs.length > 0) {
+        // If only 1 subitem is valid (e.g. Employee only having "My Timesheet"), collapse to single link
+        if (validSubs.length === 1 && validSubs[0].to === "/timesheet") {
+          result.push({
+            to: "/timesheet",
+            label: "Timesheet",
+            icon: Clock,
+            permission: undefined,
+          });
+        } else if (validSubs.length === 1 && item.label === "Resources" && !allowed("resources.pool")) {
+          result.push({
+            to: validSubs[0].to,
+            label: item.label,
+            icon: item.icon,
+            permission: undefined,
+          });
+        } else {
+          result.push({
+            ...item,
+            permission: undefined,
+            subItems: validSubs.map((s) => ({ ...s, permission: undefined })),
+          });
+        }
+      } else if (allowed(item.permission) && item.to) {
+        result.push({ ...item, permission: undefined, subItems: undefined });
+      }
       continue;
     }
 
-    if (parentAllowed) result.push({ ...item, permission: undefined });
-  }
-
-  // Employee: hide the My Team folder, surface the Timesheet page directly.
-  if (isEmployee) {
-    const idx = result.findIndex((i) => i.label === "My Team");
-    if (idx >= 0) {
-      const myTeam = result[idx];
-      const hasTimesheet = myTeam.subItems?.some((s) => s.to === "/timesheet");
-      if (hasTimesheet) {
-        result[idx] = {
-          to: "/timesheet",
-          label: "Timesheet",
-          icon: Clock,
-          permission: undefined,
-        };
-      }
+    if (allowed(item.permission)) {
+      result.push({ ...item, permission: undefined });
     }
   }
 
-  // HR: Resources becomes the admin-style directory folder.
-  if (isHr) {
-    const idx = result.findIndex((i) => i.label === "Resources");
-    if (idx >= 0) {
-      result[idx] = {
-        label: "Resources",
-        icon: Users,
-        permission: undefined,
-        subItems: [
-          { to: "/dh-employee-directory", label: "Directory & Resource Pool", permission: "resources.view" },
-          { to: "/dh-exit-summary", label: "Exit Summary", permission: "resources.view" },
-        ],
-      };
-    }
-  }
+  // If user has timesheet.my permission but no team dashboard, ensure Timesheet is reachable
+  const hasMyTimesheet = hasAny("timesheet.my", "my-team.my-timesheet.view");
+  const hasTeamDashboard = hasAny("my-team.dashboard.view", "my_team.dashboard");
+  const hasTimesheetInNav = result.some((r) => r.to === "/timesheet" || r.subItems?.some((s) => s.to === "/timesheet"));
 
-  const useDhDirectory = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  if (useDhDirectory && !isHr) {
-    const idx = result.findIndex((i) => i.label === "Resources");
-    if (idx >= 0) {
-      result[idx] = {
-        to: "/dh-employee-directory",
-        label: "Resources",
-        icon: Users,
-        permission: undefined,
-      };
-    }
-  }
-
-  if (isPmoFamily) {
-    const idx = result.findIndex((i) => i.label === "My Team");
-    if (idx >= 0) {
-      result[idx] = {
-        ...result[idx],
-        subItems: [{ to: "/my-team/", label: "Team Dashboard" }],
-      };
-    }
-  }
-
-  if (isAccounts || isSales) {
-    const idx = result.findIndex((i) => i.label === "Reports");
-    if (idx >= 0) {
-      result[idx] = { ...result[idx], to: "/dh-reports" };
-    }
-  }
-
-  const hideStandalone = isPmFamily || isPmoFamily || isAccounts || isSales;
-  if (hideStandalone) {
-    return result.filter(
-      (i) =>
-        i.label !== "Health & Governance" &&
-        i.label !== "Approvals" &&
-        i.label !== "WBS Allocation" &&
-        i.label !== "Portfolio" &&
-        i.label !== "Settings",
-    );
+  if (hasMyTimesheet && !hasTeamDashboard && !hasTimesheetInNav) {
+    result.push({
+      to: "/timesheet",
+      label: "Timesheet",
+      icon: Clock,
+      permission: undefined,
+    });
   }
 
   return result;
@@ -263,38 +232,41 @@ export function filterNavItems(
 
 // ─── Route guard map ─────────────────────────────────────────────────────────
 // Longest matching prefix wins. `permission: null` = always allowed (any
-// authenticated user). Every route that renders app content must be listed so
-// direct URL access is blocked for users without the permission.
+// authenticated user). Every route that renders app content is listed so
+// direct URL access is blocked for users without the required permission.
 export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] | null }[] = [
-  { prefix: "/dh-settings", permission: "settings.view" },
-  { prefix: "/action-centre", permission: "action-center.view" },
-  { prefix: "/projects/new", permission: "projects.create" },
-  { prefix: "/projects", permission: "projects.view" },
-  { prefix: "/customers", permission: "customers.view" },
-  { prefix: "/dh-reports", permission: "reports.view" },
-  { prefix: "/reports", permission: "reports.view" },
-  { prefix: "/dh-resource-pool", permission: "resources.view" },
-  { prefix: "/dh-exit-summary", permission: "resources.view" },
-  { prefix: "/dh-employee-directory", permission: "resources.view" },
-  { prefix: "/resources", permission: "resources.view" },
+  { prefix: "/dh-settings-security-roles", permission: ["settings.manage_roles", "settings.roles.manage", "roles:manage", "users:manage", "settings.roles.view"] },
+  { prefix: "/dh-settings", permission: ["settings.view", "settings.manage_roles", "settings.roles.view"] },
+  { prefix: "/action-centre", permission: ["action-center.view", "action.bucket_list", "action.approvals", "action.alerts", "action.notifications"] },
+  { prefix: "/projects/new", permission: ["projects.create", "projects:write"] },
+  { prefix: "/projects", permission: ["projects.view", "projects:read"] },
+  { prefix: "/customers", permission: ["customers.view", "clients:read"] },
+  { prefix: "/dh-reports", permission: ["reports.view", "reports:read"] },
+  { prefix: "/reports", permission: ["reports.view", "reports:read"] },
+  { prefix: "/dh-resource-pool", permission: ["resources.view", "resources.pool", "resources.pool.view"] },
+  { prefix: "/dh-exit-summary", permission: ["resources.view", "resources.exit_summary", "resources.exit-summary.view"] },
+  { prefix: "/dh-employee-directory", permission: ["resources.view", "resources.directory.view", "resources:read"] },
+  { prefix: "/resources", permission: ["resources.view", "resources:read"] },
   { prefix: "/my-org", permission: "repository.view" },
   {
     prefix: "/my-team/timesheets",
-    permission: ["my-team.timesheet-approval.view", "my-team.my-timesheet.view"],
+    permission: ["timesheet.approve", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "timesheets:approve"],
   },
-  { prefix: "/my-team", permission: "my-team.dashboard.view" },
-  { prefix: "/timesheet", permission: "my-team.my-timesheet.view" },
-  { prefix: "/health", permission: "projects.health.view" },
+  { prefix: "/my-team", permission: ["my-team.dashboard.view", "my_team.dashboard"] },
+  { prefix: "/timesheet", permission: ["timesheet.my", "my-team.my-timesheet.view", "timesheets:submit"] },
+  { prefix: "/health", permission: ["projects.health.view", "projects.health.issues", "projects.health.manage"] },
   {
     prefix: "/approvals",
     permission: [
       "approvals.view",
+      "approvals.approve",
+      "action.acknowledge",
       "my-team.timesheet-approval.approve",
       "my-team.timesheet-approval.view",
     ],
   },
-  { prefix: "/wbs-allocation", permission: "wbs.allocate" },
-  { prefix: "/allocation", permission: "wbs.allocate" },
+  { prefix: "/wbs-allocation", permission: ["wbs.allocate", "wbs.view", "wbs:allocate", "wbs:read"] },
+  { prefix: "/allocation", permission: ["wbs.allocate", "wbs.view"] },
   { prefix: "/portfolio", permission: "portfolio.view" },
   { prefix: "/change-password", permission: null },
   { prefix: "/access-denied", permission: null },
