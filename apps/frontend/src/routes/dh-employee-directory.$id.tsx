@@ -524,7 +524,6 @@ function EmployeeProfilePage() {
                 {emp.workLocation === "Onsite" && (
                   <Row label="Location (Onsite)" value={emp.projectSite || "—"} />
                 )}
-                <Row label="Office Branch" value={emp.officeBranch} />
               </Grid>
             </div>
           )}

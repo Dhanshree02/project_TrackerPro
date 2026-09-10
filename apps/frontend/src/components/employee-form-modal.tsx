@@ -1562,90 +1562,98 @@ export function EmployeeFormModal({
               </div>
             </FormSection>
 
-            <FormSection title="5. PMO Section">
-              <FormSelect
-                label="Department"
-                options={PMO_DEPARTMENT_OPTIONS}
-                value={form.pmoDepartment}
-                onChange={(v) => {
-                  setField("pmoDepartment", v);
-                  const subDepts = PMO_DEPARTMENT_SUB_DEPARTMENTS[v] ?? [];
-                  if (subDepts.length === 1) {
-                    setField("subDepartment", subDepts[0]);
-                  } else if (!subDepts.includes(form.subDepartment)) {
-                    setField("subDepartment", "");
-                  }
-                }}
-                placeholder="Select department…"
-                showSearch
-              />
-              <FormSelect
-                label="Sub Departments"
-                options={pmoSubDeptOptions}
-                value={form.subDepartment}
-                onChange={(v) => setField("subDepartment", v)}
-                placeholder={
-                  !form.pmoDepartment
-                    ? "Select department first…"
-                    : pmoSubDeptOptions.length === 0
-                      ? "No sub-departments"
-                      : "Select sub-department…"
-                }
-                disabled={!form.pmoDepartment || pmoSubDeptOptions.length === 0}
-                showSearch={pmoSubDeptOptions.length > 4}
-                error={errors.subDepartment}
-              />
-              <FormSelect
-                label="Billable / Non Billable Status"
-                options={[...BILLABLE_STATUS_OPTIONS]}
-                value={form.billableStatus}
-                onChange={(v) => setField("billableStatus", v)}
-                placeholder="Select status…"
-              />
-              <FormSelect
-                label="Client Location"
-                options={[...MUMBAI_RAILWAY_STATIONS]}
-                value={form.clientLocation}
-                onChange={(v) => setField("clientLocation", v)}
-                placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
-                showSearch
-              />
-              <FormSelect
-                label="Project Type"
-                options={[...PROJECT_TYPE_OPTIONS]}
-                value={form.projectType}
-                onChange={(v) => setField("projectType", v)}
-                placeholder="Select project type…"
-              />
-              <FormSelect
-                label="Project Allocated"
-                options={projectAllocatedOptions}
-                value={form.projectAllocated}
-                onChange={(v) => setField("projectAllocated", v)}
-                placeholder="Select allocated project…"
-                showSearch
-              />
-              <div className="space-y-1">
-                <FormField
-                  label="Client Engagement Manager"
-                  name="clientEngManagerMapping"
-                  placeholder={
-                    form.projectAllocated && form.projectAllocated !== "Internal / Bench"
-                      ? "Auto-derived from project's customer"
-                      : "e.g. Name of Client Engagement Manager"
-                  }
-                  value={form.clientEngManagerMapping}
-                  onChange={(v) => setField("clientEngManagerMapping", v)}
-                  onBlur={() => blurField("clientEngManagerMapping")}
-                  error={errors.clientEngManagerMapping}
+            {mode === "edit" && (
+              <FormSection title="5. PMO Section">
+                <FormSelect
+                  label="Department"
+                  options={PMO_DEPARTMENT_OPTIONS}
+                  value={form.pmoDepartment}
+                  onChange={(v) => {
+                    setField("pmoDepartment", v);
+                    const subDepts = PMO_DEPARTMENT_SUB_DEPARTMENTS[v] ?? [];
+                    if (subDepts.length === 1) {
+                      setField("subDepartment", subDepts[0]);
+                    } else if (!subDepts.includes(form.subDepartment)) {
+                      setField("subDepartment", "");
+                    }
+                  }}
+                  placeholder="Select department…"
+                  showSearch
                 />
-                {form.projectAllocated && form.clientEngManagerMapping && form.projectAllocated !== "Internal / Bench" ? (
-                  <p className="text-[11px] text-muted-foreground">
-                    Auto-mapped from {form.projectAllocated} (Customer Engagement Manager)
-                  </p>
-                ) : null}
-              </div>
-            </FormSection>
+                <FormSelect
+                  label="Sub Departments"
+                  options={pmoSubDeptOptions}
+                  value={form.subDepartment}
+                  onChange={(v) => setField("subDepartment", v)}
+                  placeholder={
+                    !form.pmoDepartment
+                      ? "Select department first…"
+                      : pmoSubDeptOptions.length === 0
+                        ? "No sub-departments"
+                        : "Select sub-department…"
+                  }
+                  disabled={!form.pmoDepartment || pmoSubDeptOptions.length === 0}
+                  showSearch={pmoSubDeptOptions.length > 4}
+                  error={errors.subDepartment}
+                />
+                <FormSelect
+                  label="Billable / Non Billable Status"
+                  options={[...BILLABLE_STATUS_OPTIONS]}
+                  value={form.billableStatus}
+                  onChange={(v) => setField("billableStatus", v)}
+                  placeholder="Select status…"
+                />
+                <FormSelect
+                  label="Client Location"
+                  options={[...MUMBAI_RAILWAY_STATIONS]}
+                  value={form.clientLocation}
+                  onChange={(v) => setField("clientLocation", v)}
+                  placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
+                  showSearch
+                />
+                <FormSelect
+                  label="Project Type"
+                  options={[...PROJECT_TYPE_OPTIONS]}
+                  value={form.projectType}
+                  onChange={(v) => setField("projectType", v)}
+                  placeholder="Select project type…"
+                />
+                <FormSelect
+                  label="Project Allocated"
+                  options={projectAllocatedOptions}
+                  value={form.projectAllocated}
+                  onChange={(v) => {
+                    setField("projectAllocated", v);
+                    const autoEM = getEngagementManagerForProject(v);
+                    setField("clientEngManagerMapping", autoEM);
+                  }}
+                  placeholder="Select allocated project…"
+                  showSearch
+                />
+                <div className="space-y-1">
+                  <FormField
+                    label="Client Engagement Manager"
+                    name="clientEngManagerMapping"
+                    disabled
+                    readOnly
+                    placeholder={
+                      form.projectAllocated && form.projectAllocated !== "Internal / Bench"
+                        ? "Auto-derived from project's customer"
+                        : "—"
+                    }
+                    value={form.clientEngManagerMapping}
+                    onChange={(v) => setField("clientEngManagerMapping", v)}
+                    onBlur={() => blurField("clientEngManagerMapping")}
+                    error={errors.clientEngManagerMapping}
+                  />
+                  {form.projectAllocated && form.clientEngManagerMapping && form.projectAllocated !== "Internal / Bench" ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      Auto-mapped from {form.projectAllocated} (Customer Engagement Manager)
+                    </p>
+                  ) : null}
+                </div>
+              </FormSection>
+            )}
           </div>
 
           {/* footer */}

@@ -26,9 +26,11 @@ internal static class EmployeeBulkWorkbook
         "Alternate Phone",
         "Gender",
         "Date of Birth",
-        "Address",
-        "Emergency Contact",
         "Marital Status",
+        "Address",
+        "Emergency Contact Name",
+        "Emergency Contact Number",
+        "Emergency Contact Relation",
         "Nationality",
         "Department",
         "Designation",
@@ -36,26 +38,152 @@ internal static class EmployeeBulkWorkbook
         "Reporting Manager Code",
         "Business Unit",
         "Work Location",
-        "Office Branch",
-        "Category",
-        "Team",
+        "Location (Onsite)",
         "Joining Date",
-        "Status",
-        "Employment Type",
-        "Experience",
+        "Employee Status",
+        "Worker Type",
+        "Bond Delivered",
+        "Bond Duration (Months)",
+        "Bond Expiry Date",
         "Previous Company",
         "PAN",
         "Aadhaar",
         "UAN",
         "Bank Account",
         "Salary Band",
+        "Highest Qualification",
+        "Graduation Passing Year",
+        "Post Graduation Degree",
+        "Post Graduation Passing Year",
+        "Experience Type",
+        "Prior Total Exp (Years)",
+        "Prior Total Exp (Months)",
+        "Prior Relevant Exp (Years)",
+        "Prior Relevant Exp (Months)",
         "Skills",
+        "Certifications",
         "Languages",
+        "PMO Department",
+        "Sub Department",
+        "Billable Status",
+        "Client Location",
+        "Project Type",
+        "Project Allocated",
+        "Client Engagement Manager",
     ];
 
-    public static byte[] BuildSample()
+    public static async Task<byte[]> BuildSampleAsync(AppDbContext db, CancellationToken ct = default)
     {
+        // 1. Fetch live master options from database
+        var departments = await db.Departments
+            .Where(d => d.DeletedAtUtc == null && d.IsActive)
+            .OrderBy(d => d.Name)
+            .Select(d => d.Name)
+            .ToListAsync(ct);
+
+        var designations = await db.Designations
+            .Where(d => d.DeletedAtUtc == null && d.IsActive)
+            .OrderBy(d => d.Name)
+            .Select(d => d.Name)
+            .ToListAsync(ct);
+
+        var roles = await db.JobRoles
+            .Where(r => r.DeletedAtUtc == null && r.IsActive)
+            .OrderBy(r => r.Name)
+            .Select(r => r.Name)
+            .ToListAsync(ct);
+
+        var workLocations = await db.WorkLocations
+            .Where(w => w.DeletedAtUtc == null && w.IsActive)
+            .OrderBy(w => w.SortOrder).ThenBy(w => w.Name)
+            .Select(w => w.Name)
+            .ToListAsync(ct);
+        if (workLocations.Count == 0)
+            workLocations = ["Suvidha Square, Andheri", "Navare Plaza, Dombivli", "Onsite"];
+
+        var businessUnits = await db.BusinessUnits
+            .Where(b => b.DeletedAtUtc == null && b.IsActive)
+            .OrderBy(b => b.Name)
+            .Select(b => b.Name)
+            .ToListAsync(ct);
+        if (businessUnits.Count == 0)
+            businessUnits = ["Talakunchi Networks Private Limited"];
+
+        var employeeStatuses = await db.EmployeeStatuses
+            .Where(s => s.DeletedAtUtc == null && s.IsActive)
+            .OrderBy(s => s.SortOrder).ThenBy(s => s.Name)
+            .Select(s => s.Name)
+            .ToListAsync(ct);
+        if (employeeStatuses.Count == 0)
+            employeeStatuses = ["Active", "Terminated", "Absconded", "Resigned", "Resignation Under Review"];
+
+        var gradDegrees = await db.GraduationDegrees
+            .Where(g => g.DeletedAtUtc == null && g.IsActive)
+            .OrderBy(g => g.Name)
+            .Select(g => g.Name)
+            .ToListAsync(ct);
+        if (gradDegrees.Count == 0)
+            gradDegrees = ["BE", "B.Tech", "B.Sc", "BCA", "B.Com", "BBA", "BA"];
+
+        var postGradDegrees = await db.PostGraduationDegrees
+            .Where(p => p.DeletedAtUtc == null && p.IsActive)
+            .OrderBy(p => p.Name)
+            .Select(p => p.Name)
+            .ToListAsync(ct);
+        if (postGradDegrees.Count == 0)
+            postGradDegrees = ["NA", "M.Tech", "ME", "M.Sc", "MCA", "M.Com", "MBA"];
+
+        var salaryBands = await db.SalaryBands
+            .Where(s => s.DeletedAtUtc == null && s.IsActive)
+            .OrderBy(s => s.Name)
+            .Select(s => s.Name)
+            .ToListAsync(ct);
+        if (salaryBands.Count == 0)
+            salaryBands = ["L1", "L2", "L3", "L4", "L5"];
+
+        var nationalities = await db.Nationalities
+            .Where(n => n.DeletedAtUtc == null && n.IsActive)
+            .OrderBy(n => n.Name)
+            .Select(n => n.Name)
+            .ToListAsync(ct);
+        if (nationalities.Count == 0)
+            nationalities = ["Indian"];
+
+        var managerCodes = await db.Employees
+            .Where(e => e.DeletedAtUtc == null && !string.IsNullOrEmpty(e.EmployeeCode))
+            .OrderBy(e => e.EmployeeCode)
+            .Select(e => e.EmployeeCode)
+            .ToListAsync(ct);
+        if (managerCodes.Count == 0)
+            managerCodes = ["TK-0001"];
+
+        // Fixed categorical options matching frontend options
+        string[] genders = ["Male", "Female", "Other"];
+        string[] maritalStatuses = ["Single", "Married", "Divorced", "Widowed"];
+        string[] emergencyRelations = ["Father", "Mother", "Spouse", "Sibling", "Guardian", "Friend", "Other"];
+        string[] workerTypes = ["Permanent", "Intern", "Contract"];
+        string[] bondDeliveredOptions = ["Yes", "No"];
+        string[] bondDurationOptions = ["0", "12", "24", "36"];
+        string[] expTypes = ["Fresher", "Experienced"];
+        string[] pmoDepartments =
+        [
+            "Core",
+            "Functional - Accounts",
+            "Functional - HR",
+            "Functional - IT Admin",
+            "Functional - Sales",
+            "PMO",
+            "R&D",
+            "Services - Consulting",
+            "Services - Operations",
+            "Services - Testing",
+        ];
+        string[] billableStatuses = ["Billable", "Non-Billable"];
+        string[] projectTypes = ["Long Term", "Short Term", "Internal", "POC"];
+
         using var workbook = new XLWorkbook();
+
+        // ── Sheet 1: Employees ──
         var sheet = workbook.Worksheets.Add("Employees");
         for (var i = 0; i < Headers.Length; i++)
         {
@@ -63,61 +191,177 @@ internal static class EmployeeBulkWorkbook
             cell.Value = Headers[i];
             cell.Style.Font.Bold = true;
             cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#DBEAFE");
+            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            cell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#BFDBFE");
         }
 
+        // Example data row
         var example = new[]
         {
-            "TK-0001",
-            "Sample",
-            "Employee",
-            "sample.employee@talakunchi.com",
-            "sample.personal@gmail.com",
-            "9999911111",
-            "",
-            "Female",
-            "1995-06-15",
-            "Andheri East, Mumbai",
-            "9876543210",
-            "Single",
-            "Indian",
-            "Services - Testing",
-            "PenTester - I",
-            "Employee",
-            "TK-0004",
-            "Enterprise",
-            "Andheri",
-            "Suvidha Square",
-            "Permanent - Without Bond",
-            "Platform",
-            DateOnly.FromDateTime(DateTime.UtcNow.Date).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            "Active",
-            "Full-Time",
-            "4 years",
-            "",
-            "AAAAA9999A",
-            "234567890124",
-            "100987654321",
-            "501234567890",
-            "L2",
-            "C#, React",
-            "English, Hindi",
+            "TK-9999",                                                // 1. TK ID
+            "Sample",                                                 // 2. First Name
+            "Employee",                                               // 3. Last Name
+            "sample.employee@talakunchi.com",                         // 4. Work Email
+            "sample.personal@gmail.com",                              // 5. Personal Email
+            "9820099999",                                             // 6. Phone
+            "9820099998",                                             // 7. Alternate Phone
+            "Female",                                                 // 8. Gender
+            "1995-06-15",                                             // 9. Date of Birth
+            "Single",                                                 // 10. Marital Status
+            "Suvidha Square, Andheri East, Mumbai",                   // 11. Address
+            "Sanjay Employee",                                        // 12. Emergency Contact Name
+            "9811099999",                                             // 13. Emergency Contact Number
+            "Father",                                                 // 14. Emergency Contact Relation
+            "Indian",                                                 // 15. Nationality
+            departments.FirstOrDefault() ?? "Services - Testing",     // 16. Department
+            designations.FirstOrDefault() ?? "PenTester - I",         // 17. Designation
+            roles.FirstOrDefault() ?? "Employee",                     // 18. Role
+            managerCodes.FirstOrDefault() ?? "TK-0001",               // 19. Reporting Manager Code
+            businessUnits.FirstOrDefault() ?? "Talakunchi Networks Private Limited", // 20. Business Unit
+            workLocations.FirstOrDefault() ?? "Suvidha Square, Andheri",             // 21. Work Location
+            "",                                                       // 22. Location (Onsite)
+            DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),    // 23. Joining Date
+            "Active",                                                 // 24. Employee Status
+            "Permanent",                                              // 25. Worker Type
+            "No",                                                     // 26. Bond Delivered
+            "0",                                                      // 27. Bond Duration (Months)
+            "",                                                       // 28. Bond Expiry Date
+            "Tata Consultancy Services",                              // 29. Previous Company
+            "ABCDE9999F",                                             // 30. PAN
+            "234567899999",                                           // 31. Aadhaar
+            "100987659999",                                           // 32. UAN
+            "501234569999",                                           // 33. Bank Account
+            salaryBands.FirstOrDefault() ?? "L3",                     // 34. Salary Band
+            gradDegrees.FirstOrDefault() ?? "B.Tech",                 // 35. Highest Qualification
+            "2018",                                                   // 36. Graduation Passing Year
+            "NA",                                                     // 37. Post Graduation Degree
+            "NA",                                                     // 38. Post Graduation Passing Year
+            "Experienced",                                            // 39. Experience Type
+            "2",                                                      // 40. Prior Total Exp (Years)
+            "6",                                                      // 41. Prior Total Exp (Months)
+            "2",                                                      // 42. Prior Relevant Exp (Years)
+            "0",                                                      // 43. Prior Relevant Exp (Months)
+            "C#, React, SQL",                                         // 44. Skills
+            "ISO 27001",                                              // 45. Certifications
+            "English, Hindi",                                         // 46. Languages
+            "Services - Testing",                                     // 47. PMO Department
+            "Services - Testing - AppSec",                            // 48. Sub Department
+            "Billable",                                               // 49. Billable Status
+            "Andheri",                                                // 50. Client Location
+            "Long Term",                                              // 51. Project Type
+            "Internal / Bench",                                       // 52. Project Allocated
+            "",                                                       // 53. Client Engagement Manager
         };
+
         for (var i = 0; i < example.Length; i++)
             sheet.Cell(2, i + 1).Value = example[i];
+
+        // ── Sheet 2: Lookups ──
+        var lookups = workbook.Worksheets.Add("Lookups");
+
+        int WriteLookupColumn(int col, string header, IReadOnlyList<string> items)
+        {
+            lookups.Cell(1, col).Value = header;
+            lookups.Cell(1, col).Style.Font.Bold = true;
+            for (var r = 0; r < items.Count; r++)
+                lookups.Cell(r + 2, col).Value = items[r];
+            return items.Count;
+        }
+
+        var lCol = 1;
+        var countGenders = WriteLookupColumn(lCol++, "Gender", genders);
+        var countMarital = WriteLookupColumn(lCol++, "MaritalStatus", maritalStatuses);
+        var countRelations = WriteLookupColumn(lCol++, "EmergencyRelation", emergencyRelations);
+        var countNationalities = WriteLookupColumn(lCol++, "Nationality", nationalities);
+        var countDepartments = WriteLookupColumn(lCol++, "Department", departments);
+        var countDesignations = WriteLookupColumn(lCol++, "Designation", designations);
+        var countRoles = WriteLookupColumn(lCol++, "Role", roles);
+        var countManagers = WriteLookupColumn(lCol++, "ReportingManagerCode", managerCodes);
+        var countBusinessUnits = WriteLookupColumn(lCol++, "BusinessUnit", businessUnits);
+        var countWorkLocations = WriteLookupColumn(lCol++, "WorkLocation", workLocations);
+        var countStatuses = WriteLookupColumn(lCol++, "EmployeeStatus", employeeStatuses);
+        var countWorkerTypes = WriteLookupColumn(lCol++, "WorkerType", workerTypes);
+        var countBondDelivered = WriteLookupColumn(lCol++, "BondDelivered", bondDeliveredOptions);
+        var countBondDurations = WriteLookupColumn(lCol++, "BondDurationMonths", bondDurationOptions);
+        var countSalaryBands = WriteLookupColumn(lCol++, "SalaryBand", salaryBands);
+        var countGradDegrees = WriteLookupColumn(lCol++, "GraduationDegree", gradDegrees);
+        var countPostGradDegrees = WriteLookupColumn(lCol++, "PostGraduationDegree", postGradDegrees);
+        var countExpTypes = WriteLookupColumn(lCol++, "ExperienceType", expTypes);
+        var countPmoDepts = WriteLookupColumn(lCol++, "PmoDepartment", pmoDepartments);
+        var countBillable = WriteLookupColumn(lCol++, "BillableStatus", billableStatuses);
+        var countProjectTypes = WriteLookupColumn(lCol++, "ProjectType", projectTypes);
+
+        lookups.Columns().AdjustToContents();
+
+        // ── Apply Data Validations with Stop Style (Must pick from dropdown only) ──
+        void SetListValidation(int targetCol, int lookupCol, int count, string fieldName)
+        {
+            if (count <= 0) return;
+            var colLetter = lookups.Column(lookupCol).ColumnLetter();
+            var range = sheet.Range(2, targetCol, MaxRows, targetCol);
+            var validation = range.CreateDataValidation();
+            validation.List($"=Lookups!${colLetter}$2:${colLetter}${count + 1}", true);
+            validation.ErrorStyle = XLErrorStyle.Stop;
+            validation.ErrorTitle = $"Invalid {fieldName}";
+            validation.ErrorMessage = $"Please select a valid {fieldName} from the dropdown list.";
+            validation.ShowErrorMessage = true;
+            validation.ShowInputMessage = true;
+            validation.InputTitle = fieldName;
+            validation.InputMessage = $"Choose {fieldName} from the list.";
+        }
+
+        SetListValidation(8, 1, countGenders, "Gender");
+        SetListValidation(10, 2, countMarital, "Marital Status");
+        SetListValidation(14, 3, countRelations, "Emergency Contact Relation");
+        SetListValidation(15, 4, countNationalities, "Nationality");
+        SetListValidation(16, 5, countDepartments, "Department");
+        SetListValidation(17, 6, countDesignations, "Designation");
+        SetListValidation(18, 7, countRoles, "Role");
+        SetListValidation(19, 8, countManagers, "Reporting Manager Code");
+        SetListValidation(20, 9, countBusinessUnits, "Business Unit");
+        SetListValidation(21, 10, countWorkLocations, "Work Location");
+        SetListValidation(24, 11, countStatuses, "Employee Status");
+        SetListValidation(25, 12, countWorkerTypes, "Worker Type");
+        SetListValidation(26, 13, countBondDelivered, "Bond Delivered");
+        SetListValidation(27, 14, countBondDurations, "Bond Duration (Months)");
+        SetListValidation(34, 15, countSalaryBands, "Salary Band");
+        SetListValidation(35, 16, countGradDegrees, "Highest Qualification");
+        SetListValidation(37, 17, countPostGradDegrees, "Post Graduation Degree");
+        SetListValidation(39, 18, countExpTypes, "Experience Type");
+        SetListValidation(47, 19, countPmoDepts, "PMO Department");
+        SetListValidation(49, 20, countBillable, "Billable Status");
+        SetListValidation(51, 21, countProjectTypes, "Project Type");
 
         sheet.SheetView.FreezeRows(1);
         sheet.Range(1, 1, 1, Headers.Length).SetAutoFilter();
         sheet.Columns().AdjustToContents(1, 40);
 
+        // ── Sheet 3: Instructions ──
         var notes = workbook.Worksheets.Add("Instructions");
-        notes.Cell(1, 1).Value = "How to use this template";
+        notes.Cell(1, 1).Value = "How to use this Bulk Upload Template";
         notes.Cell(1, 1).Style.Font.Bold = true;
-        notes.Cell(2, 1).Value = "1. Keep the header row exactly as provided on the Employees sheet.";
-        notes.Cell(3, 1).Value = "2. Upload .xlsx only. Other file types are rejected.";
-        notes.Cell(4, 1).Value = "3. Required columns: Employee Code, First Name, Last Name, Work Email.";
-        notes.Cell(5, 1).Value = "4. Work email, personal email, phone, PAN, Aadhaar, and UAN must be unique across the file and the database. Duplicate rows are skipped and an error is shown.";
-        notes.Cell(6, 1).Value = "5. Department, Designation, Role, Nationality, Salary Band, and Reporting Manager Code must match existing values when filled.";
-        notes.Cell(7, 1).Value = "6. Dates should be YYYY-MM-DD. Phone numbers should be 10-digit Indian mobiles.";
+        notes.Cell(1, 1).Style.Font.FontSize = 14;
+
+        string[] instructions =
+        [
+            "1. Keep the header row exactly as provided on the Employees sheet. Do not rename or reorder columns.",
+            "2. Upload .xlsx files only. Other file formats are rejected.",
+            "3. Required fields: TK ID, First Name, Last Name, Work Email.",
+            "4. Dropdown fields: Cells with drop-down validation restrict input to allowed master values. In Excel, select directly from the drop-down menu.",
+            "5. Dynamic Master Values: The Lookups sheet reflects live masters from the system. When new options are added in settings/masters, downloading a fresh template reflects them immediately.",
+            "6. Unique Constraints: Work Email, Personal Email, Phone, Alternate Phone, PAN, Aadhaar, and UAN must be unique across all existing records in TrackerPro.",
+            "7. Date Format: Dates must be formatted as YYYY-MM-DD (e.g. 1995-06-15).",
+            "8. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
+            "9. Experience: If Prior Total / Relevant Exp Years and Months are provided, they will be formatted automatically (e.g. '2 yrs 6 mos').",
+            "10. Up to 500 rows can be imported in a single upload file.",
+        ];
+
+        for (var i = 0; i < instructions.Length; i++)
+        {
+            notes.Cell(i + 3, 1).Value = instructions[i];
+            notes.Cell(i + 3, 1).Style.Font.FontSize = 11;
+        }
+
         notes.Columns().AdjustToContents();
 
         using var stream = new MemoryStream();
@@ -145,7 +389,8 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             var sheet = workbook.Worksheets.FirstOrDefault(w =>
                 w.Name.Equals("Employees", StringComparison.OrdinalIgnoreCase))
                 ?? workbook.Worksheets.FirstOrDefault(w =>
-                    !w.Name.Equals("Instructions", StringComparison.OrdinalIgnoreCase))
+                    !w.Name.Equals("Instructions", StringComparison.OrdinalIgnoreCase)
+                    && !w.Name.Equals("Lookups", StringComparison.OrdinalIgnoreCase))
                 ?? workbook.Worksheets.FirstOrDefault()
                 ?? throw new ConflictException("The Excel file has no worksheets.");
 
@@ -156,7 +401,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 || !headerMap.ContainsKey("workemail"))
             {
                 throw new ConflictException(
-                    "The Excel file is missing required columns: Employee Code, First Name, Last Name, Work Email. Download the sample and try again.");
+                    "The Excel file is missing required columns: TK ID, First Name, Last Name, Work Email. Download the sample and try again.");
             }
 
             var lastRow = sheet.LastRowUsed()?.RowNumber() ?? 1;
@@ -168,6 +413,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             var roles = await db.JobRoles.ToListAsync(ct);
             var nationalities = await db.Nationalities.ToListAsync(ct);
             var salaryBands = await db.SalaryBands.ToListAsync(ct);
+            var employeeStatuses = await db.EmployeeStatuses.ToListAsync(ct);
             var managers = await db.Employees
                 .Select(e => new { e.Id, e.EmployeeCode, Name = e.FirstName + " " + e.LastName })
                 .ToListAsync(ct);
@@ -212,14 +458,14 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 if (string.IsNullOrWhiteSpace(workEmail)) rowErrors.Add("Work Email is required.");
                 else if (!EmailRules.IsValid(workEmail)) rowErrors.Add("Work Email is not a valid email address.");
 
-                var personalEmail = GetValue(values,"personalemail");
+                var personalEmail = GetValue(values, "personalemail");
                 if (!string.IsNullOrWhiteSpace(personalEmail) && !EmailRules.IsValid(personalEmail))
                     rowErrors.Add("Personal Email is not a valid email address.");
 
-                var phone = GetValue(values,"phone");
+                var phone = GetValue(values, "phone");
                 if (!string.IsNullOrWhiteSpace(phone) && !PhoneRules.IsValid(phone))
                     rowErrors.Add("Phone must be a valid 10-digit Indian mobile number.");
-                var altPhone = GetValue(values,"alternatephone");
+                var altPhone = GetValue(values, "alternatephone");
                 if (!string.IsNullOrWhiteSpace(altPhone) && !PhoneRules.IsValid(altPhone))
                     rowErrors.Add("Alternate Phone must be a valid 10-digit Indian mobile number.");
 
@@ -229,14 +475,14 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     EmployeeIdentityGuard.NormalizeEmail(personalEmail),
                     PhoneRules.NullIfEmpty(phone),
                     PhoneRules.NullIfEmpty(altPhone),
-                    EmployeeIdentityGuard.NormalizePan(GetValue(values,"pan")),
-                    EmployeeIdentityGuard.NormalizeAadhaar(GetValue(values,"aadhaar")),
-                    EmployeeIdentityGuard.NormalizeUan(GetValue(values,"uan")));
+                    EmployeeIdentityGuard.NormalizePan(GetValue(values, "pan")),
+                    EmployeeIdentityGuard.NormalizeAadhaar(GetValue(values, "aadhaar")),
+                    EmployeeIdentityGuard.NormalizeUan(GetValue(values, "uan")));
 
                 rowErrors.AddRange(snapshot.Conflicts(identity));
 
                 Guid? departmentId = null;
-                var departmentName = GetValue(values,"department");
+                var departmentName = GetValue(values, "department");
                 if (!string.IsNullOrWhiteSpace(departmentName))
                 {
                     var dept = departments.FirstOrDefault(d =>
@@ -246,7 +492,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
 
                 Guid? designationId = null;
-                var designationName = GetValue(values,"designation");
+                var designationName = GetValue(values, "designation");
                 if (!string.IsNullOrWhiteSpace(designationName))
                 {
                     var matches = designations.Where(d =>
@@ -259,7 +505,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
 
                 Guid? jobRoleId = null;
-                var roleName = GetValue(values,"role");
+                var roleName = GetValue(values, "role");
                 if (!string.IsNullOrWhiteSpace(roleName))
                 {
                     var matches = roles.Where(r => r.Name.Equals(roleName, StringComparison.OrdinalIgnoreCase));
@@ -271,7 +517,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
 
                 Guid? nationalityId = null;
-                var nationalityName = GetValue(values,"nationality");
+                var nationalityName = GetValue(values, "nationality");
                 if (!string.IsNullOrWhiteSpace(nationalityName))
                 {
                     var nationality = nationalities.FirstOrDefault(n =>
@@ -281,7 +527,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
 
                 Guid? salaryBandId = null;
-                var salaryBandName = GetValue(values,"salaryband");
+                var salaryBandName = GetValue(values, "salaryband");
                 if (!string.IsNullOrWhiteSpace(salaryBandName))
                 {
                     var band = salaryBands.FirstOrDefault(b =>
@@ -291,14 +537,24 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
 
                 Guid? reportingManagerId = null;
-                var managerCode = GetValue(values,"reportingmanagercode");
+                var managerCode = GetValue(values, "reportingmanagercode");
                 if (!string.IsNullOrWhiteSpace(managerCode))
                 {
                     var manager = managers.FirstOrDefault(m =>
                         m.EmployeeCode.Equals(managerCode, StringComparison.OrdinalIgnoreCase)
-                        || m.Name.Equals(managerCode, StringComparison.OrdinalIgnoreCase));
+                        || m.Name.Equals(managerCode, StringComparison.OrdinalIgnoreCase)
+                        || $"{m.EmployeeCode} - {m.Name}".Equals(managerCode, StringComparison.OrdinalIgnoreCase));
                     if (manager is null) rowErrors.Add($"Reporting manager '{managerCode}' was not found.");
                     else reportingManagerId = manager.Id;
+                }
+
+                Guid? employeeStatusId = null;
+                var statusName = GetValue(values, "status");
+                if (!string.IsNullOrWhiteSpace(statusName))
+                {
+                    var st = employeeStatuses.FirstOrDefault(s =>
+                        s.Name.Equals(statusName, StringComparison.OrdinalIgnoreCase));
+                    if (st is not null) employeeStatusId = st.Id;
                 }
 
                 if (rowErrors.Count > 0)
@@ -306,6 +562,49 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     errors.Add(new EmployeeBulkRowError(excelRow, NullIfEmpty(code), string.Join(" ", rowErrors)));
                     continue;
                 }
+
+                // Experience mapping
+                var totalYearsStr = GetValue(values, "priortotalexpyears");
+                var totalMonthsStr = GetValue(values, "priortotalexpmonths");
+                var relYearsStr = GetValue(values, "priorrelevantexpyears");
+                var relMonthsStr = GetValue(values, "priorrelevantexpmonths");
+
+                string? priorTotalExp = null;
+                if (!string.IsNullOrWhiteSpace(totalYearsStr) || !string.IsNullOrWhiteSpace(totalMonthsStr))
+                {
+                    var y = int.TryParse(totalYearsStr, out var ty) ? ty : 0;
+                    var m = int.TryParse(totalMonthsStr, out var tm) ? tm : 0;
+                    priorTotalExp = (y == 0 && m == 0) ? "Fresher" : $"{y} yrs {m} mos";
+                }
+                else
+                {
+                    priorTotalExp = NullIfEmpty(GetValue(values, "experience"));
+                }
+
+                string? priorRelevantExp = null;
+                if (!string.IsNullOrWhiteSpace(relYearsStr) || !string.IsNullOrWhiteSpace(relMonthsStr))
+                {
+                    var ry = int.TryParse(relYearsStr, out var rty) ? rty : 0;
+                    var rm = int.TryParse(relMonthsStr, out var rtm) ? rtm : 0;
+                    priorRelevantExp = (ry == 0 && rm == 0) ? "Fresher" : $"{ry} yrs {rm} mos";
+                }
+
+                var expType = NullIfEmpty(GetValue(values, "exptype"));
+                if (string.IsNullOrWhiteSpace(expType))
+                {
+                    expType = (priorTotalExp == "Fresher" || string.IsNullOrWhiteSpace(priorTotalExp)) ? "Fresher" : "Experienced";
+                }
+
+                // Worker Type & Bond mapping
+                var workerType = NullIfEmpty(GetValue(values, "workertype")) ?? "Permanent";
+                var bondDelivered = NullIfEmpty(GetValue(values, "bonddelivered")) ?? "No";
+                var bondDurationStr = GetValue(values, "bonddurationmonths");
+                int? bondDurationMonths = int.TryParse(bondDurationStr, out var bdm) ? bdm : (bondDelivered == "Yes" ? 24 : 0);
+                var bondExpiryDate = ParseDate(GetValue(values, "bondexpirydate"));
+                var bondStatus = bondDelivered == "Yes" ? "Active" : "No";
+                var category = workerType == "Permanent"
+                    ? (bondDelivered == "Yes" ? "Permanent - Bond" : "Permanent - Without Bond")
+                    : workerType;
 
                 var request = new CreateEmployeeRequest(
                     EmployeeCode: code.Trim(),
@@ -315,12 +614,12 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     PersonalEmail: NullIfEmpty(personalEmail),
                     Phone: PhoneRules.NullIfEmpty(phone),
                     AltPhone: PhoneRules.NullIfEmpty(altPhone),
-                    Gender: NullIfEmpty(GetValue(values,"gender")),
-                    DateOfBirth: ParseDate(GetValue(values,"dateofbirth")),
-                    Address: NullIfEmpty(GetValue(values,"address")),
-                    EmergencyContact: PhoneRules.NullIfEmpty(GetValue(values,"emergencycontact")) ?? NullIfEmpty(GetValue(values,"emergencycontact")),
-                    EmergencyContactName: NullIfEmpty(GetValue(values,"emergencycontactname")),
-                    MaritalStatus: NullIfEmpty(GetValue(values,"maritalstatus")),
+                    Gender: NullIfEmpty(GetValue(values, "gender")),
+                    DateOfBirth: ParseDate(GetValue(values, "dateofbirth")),
+                    Address: NullIfEmpty(GetValue(values, "address")),
+                    EmergencyContact: PhoneRules.NullIfEmpty(GetValue(values, "emergencycontact")),
+                    EmergencyContactName: NullIfEmpty(GetValue(values, "emergencycontactname")),
+                    MaritalStatus: NullIfEmpty(GetValue(values, "maritalstatus")),
                     Nationality: NullIfEmpty(nationalityName),
                     NationalityId: nationalityId,
                     DepartmentId: departmentId,
@@ -328,29 +627,29 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     Role: NullIfEmpty(roleName),
                     JobRoleId: jobRoleId,
                     ReportingManagerId: reportingManagerId,
-                    BusinessUnit: NullIfEmpty(GetValue(values,"businessunit")),
-                    WorkLocation: NullIfEmpty(GetValue(values,"worklocation")),
-                    OfficeBranch: NullIfEmpty(GetValue(values,"officebranch")),
-                    Category: NullIfEmpty(GetValue(values,"category")),
-                    Team: NullIfEmpty(GetValue(values,"team")),
-                    JoiningDate: ParseDate(GetValue(values,"joiningdate")),
-                    Status: NullIfEmpty(GetValue(values,"status")) ?? "Active",
-                    ConfirmationStatus: NullIfEmpty(GetValue(values,"status")) ?? "Active",
+                    BusinessUnit: NullIfEmpty(GetValue(values, "businessunit")),
+                    WorkLocation: NullIfEmpty(GetValue(values, "worklocation")),
+                    OfficeBranch: null,
+                    Category: category,
+                    Team: NullIfEmpty(GetValue(values, "team")),
+                    JoiningDate: ParseDate(GetValue(values, "joiningdate")),
+                    Status: NullIfEmpty(statusName) ?? "Active",
+                    ConfirmationStatus: NullIfEmpty(statusName) ?? "Active",
                     ProbationStatus: null,
-                    Experience: NullIfEmpty(GetValue(values,"experience")),
-                    PreviousCompany: NullIfEmpty(GetValue(values,"previouscompany")),
-                    EmploymentType: NullIfEmpty(GetValue(values,"employmenttype")),
+                    Experience: priorTotalExp,
+                    PreviousCompany: NullIfEmpty(GetValue(values, "previouscompany")),
+                    EmploymentType: workerType,
                     ContractType: null,
-                    BondStatus: null,
+                    BondStatus: bondStatus,
                     NoticePeriod: null,
-                    ProjectSite: null,
+                    ProjectSite: NullIfEmpty(GetValue(values, "projectsite")),
                     AssetId: null,
                     ExitType: "NA",
                     ExitReason: "NA",
                     Education: null,
-                    Skills: SplitList(GetValue(values,"skills")),
-                    Certifications: null,
-                    Languages: SplitList(GetValue(values,"languages")),
+                    Skills: SplitList(GetValue(values, "skills")),
+                    Certifications: SplitList(GetValue(values, "certifications")),
+                    Languages: SplitList(GetValue(values, "languages")),
                     KpiScore: null,
                     QuarterlyKpi: null,
                     AnnualRating: null,
@@ -359,15 +658,34 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     ReportingEfficiency: null,
                     PromotionReadiness: null,
                     ManagerFeedback: null,
-                    Pan: EmployeeIdentityGuard.NormalizePan(GetValue(values,"pan")),
-                    BankAccount: NullIfEmpty(GetValue(values,"bankaccount")),
+                    Pan: EmployeeIdentityGuard.NormalizePan(GetValue(values, "pan")),
+                    BankAccount: NullIfEmpty(GetValue(values, "bankaccount")),
                     SalaryBand: NullIfEmpty(salaryBandName),
-                    PfUan: EmployeeIdentityGuard.NormalizeUan(GetValue(values,"uan")),
+                    PfUan: EmployeeIdentityGuard.NormalizeUan(GetValue(values, "uan")),
                     TaxRegime: null,
                     ComplianceStatus: null,
                     SalaryBandId: salaryBandId,
                     ProbationPeriod: null,
-                    Aadhaar: EmployeeIdentityGuard.NormalizeAadhaar(GetValue(values,"aadhaar")));
+                    Aadhaar: EmployeeIdentityGuard.NormalizeAadhaar(GetValue(values, "aadhaar")),
+                    EmployeeStatusId: employeeStatusId,
+                    BondDelivered: bondDelivered,
+                    BondDurationMonths: bondDurationMonths,
+                    BondExpiryDate: bondExpiryDate,
+                    EmergencyContactRelation: NullIfEmpty(GetValue(values, "emergencycontactrelation")),
+                    PmoDepartment: NullIfEmpty(GetValue(values, "pmodepartment")),
+                    SubDepartment: NullIfEmpty(GetValue(values, "subdepartment")),
+                    BillableStatus: NullIfEmpty(GetValue(values, "billablestatus")),
+                    ClientLocation: NullIfEmpty(GetValue(values, "clientlocation")),
+                    ProjectType: NullIfEmpty(GetValue(values, "projecttype")),
+                    ProjectAllocated: NullIfEmpty(GetValue(values, "projectallocated")),
+                    ClientEngManagerMapping: NullIfEmpty(GetValue(values, "clientengmanagermapping")),
+                    GradDegree: NullIfEmpty(GetValue(values, "graddegree")),
+                    GradYear: NullIfEmpty(GetValue(values, "gradyear")),
+                    PostGradDegree: NullIfEmpty(GetValue(values, "postgraddegree")),
+                    PostGradYear: NullIfEmpty(GetValue(values, "postgradyear")),
+                    ExpType: expType,
+                    PriorTotalExp: priorTotalExp,
+                    PriorRelevantExp: priorRelevantExp);
 
                 try
                 {
@@ -407,15 +725,41 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             map[key] = col;
         }
 
+        // Aliases for robustness across different template versions
         if (map.TryGetValue("tkid", out var tkCol)) map.TryAdd("employeecode", tkCol);
         if (map.TryGetValue("employeeid", out var empIdCol)) map.TryAdd("employeecode", empIdCol);
         if (map.TryGetValue("reportingmanagertkid", out var mgrTkCol)) map.TryAdd("reportingmanagercode", mgrTkCol);
         if (map.TryGetValue("reportingmanagerid", out var mgrEmpIdCol)) map.TryAdd("reportingmanagercode", mgrEmpIdCol);
+        if (map.TryGetValue("reportingmanager", out var mgrCol)) map.TryAdd("reportingmanagercode", mgrCol);
         if (map.TryGetValue("pfuan", out var pfCol)) map.TryAdd("uan", pfCol);
         if (map.TryGetValue("aadhar", out var aadharCol)) map.TryAdd("aadhaar", aadharCol);
         if (map.TryGetValue("mobile", out var mobileCol)) map.TryAdd("phone", mobileCol);
         if (map.TryGetValue("altphone", out var altCol)) map.TryAdd("alternatephone", altCol);
-        if (map.TryGetValue("reportingmanager", out var mgrCol)) map.TryAdd("reportingmanagercode", mgrCol);
+        if (map.TryGetValue("onfloorrole", out var onFloorCol)) map.TryAdd("role", onFloorCol);
+        if (map.TryGetValue("locationonsite", out var locOnsiteCol)) map.TryAdd("projectsite", locOnsiteCol);
+        if (map.TryGetValue("onsitelocation", out var onsiteCol)) map.TryAdd("projectsite", onsiteCol);
+        if (map.TryGetValue("employeestatus", out var empStatusCol)) map.TryAdd("status", empStatusCol);
+        if (map.TryGetValue("bondduration", out var bdCol)) map.TryAdd("bonddurationmonths", bdCol);
+        if (map.TryGetValue("highestqualification", out var hqCol)) map.TryAdd("graddegree", hqCol);
+        if (map.TryGetValue("graduationdegree", out var gdCol)) map.TryAdd("graddegree", gdCol);
+        if (map.TryGetValue("graduationpassingyear", out var gpyCol)) map.TryAdd("gradyear", gpyCol);
+        if (map.TryGetValue("graduationyear", out var gyCol)) map.TryAdd("gradyear", gyCol);
+        if (map.TryGetValue("postgraduationpassingyear", out var pgpyCol)) map.TryAdd("postgradyear", pgpyCol);
+        if (map.TryGetValue("postgraduationyear", out var pgyCol)) map.TryAdd("postgradyear", pgyCol);
+        if (map.TryGetValue("experiencetype", out var etCol)) map.TryAdd("exptype", etCol);
+        if (map.TryGetValue("totalexpyears", out var teyCol)) map.TryAdd("priortotalexpyears", teyCol);
+        if (map.TryGetValue("totalexpmonths", out var temCol)) map.TryAdd("priortotalexpmonths", temCol);
+        if (map.TryGetValue("totalexperienceyears", out var tey2Col)) map.TryAdd("priortotalexpyears", tey2Col);
+        if (map.TryGetValue("totalexperiencemonths", out var tem2Col)) map.TryAdd("priortotalexpmonths", tem2Col);
+        if (map.TryGetValue("relevantexpyears", out var reyCol)) map.TryAdd("priorrelevantexpyears", reyCol);
+        if (map.TryGetValue("relevantexpmonths", out var remCol)) map.TryAdd("priorrelevantexpmonths", remCol);
+        if (map.TryGetValue("relevantexperienceyears", out var rey2Col)) map.TryAdd("priorrelevantexpyears", rey2Col);
+        if (map.TryGetValue("relevantexperiencemonths", out var rem2Col)) map.TryAdd("priorrelevantexpmonths", rem2Col);
+        if (map.TryGetValue("emergencycontactnumber", out var ecnCol)) map.TryAdd("emergencycontact", ecnCol);
+        if (map.TryGetValue("emergencycontactphone", out var ecpCol)) map.TryAdd("emergencycontact", ecpCol);
+        if (map.TryGetValue("emergencyrelation", out var erCol)) map.TryAdd("emergencycontactrelation", erCol);
+        if (map.TryGetValue("clientengagementmanager", out var cemCol)) map.TryAdd("clientengmanagermapping", cemCol);
+
         return map;
     }
 

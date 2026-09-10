@@ -127,7 +127,8 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         return entity is null ? null : MapDetail(entity);
     }
 
-    public byte[] GetBulkSampleExcel() => EmployeeBulkWorkbook.BuildSample();
+    public Task<byte[]> GetBulkSampleExcelAsync(CancellationToken ct = default) =>
+        EmployeeBulkWorkbook.BuildSampleAsync(db, ct);
 
     public Task<EmployeeBulkUploadResult> BulkUploadAsync(Stream stream, CancellationToken ct = default) =>
         new EmployeeBulkImporter(db, this).ImportAsync(stream, ct);
@@ -241,6 +242,13 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             ProjectType = request.ProjectType,
             ProjectAllocated = request.ProjectAllocated,
             ClientEngManagerMapping = request.ClientEngManagerMapping,
+            GradDegree = request.GradDegree,
+            GradYear = request.GradYear,
+            PostGradDegree = request.PostGradDegree,
+            PostGradYear = request.PostGradYear,
+            ExpType = request.ExpType,
+            PriorTotalExp = request.PriorTotalExp,
+            PriorRelevantExp = request.PriorRelevantExp,
         };
 
         if (checkIdentity)

@@ -288,9 +288,9 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
 
     [HttpGet("bulk/sample")]
     [RequirePermission(Permissions.ResourcesManage)]
-    public IActionResult BulkSample()
+    public async Task<IActionResult> BulkSample(CancellationToken ct)
     {
-        var bytes = employees.GetBulkSampleExcel();
+        var bytes = await employees.GetBulkSampleExcelAsync(ct);
         return File(
             bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
