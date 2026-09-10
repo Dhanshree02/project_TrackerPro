@@ -37,10 +37,17 @@ export const Route = createFileRoute("/projects/new")({
 
 // ─── Constants (from HTML) ───────────────────────────────────────────────────
 
-const DEPT_SERVICES: Record<
-  string,
-  { id: string; name: string; tool: string; unitPrice: number; days: number }[]
-> = {
+type CatalogService = {
+  id: string;
+  name: string;
+  tool: string;
+  unitPrice: number;
+  days: number;
+  /** Grouping of the existing catalog service — not a new invented offering. */
+  subDept: string;
+};
+
+const DEPT_SERVICES: Record<string, CatalogService[]> = {
   "Penetration Testing": [
     {
       id: "PT001",
@@ -48,6 +55,7 @@ const DEPT_SERVICES: Record<
       tool: "Nessus, Metasploit",
       unitPrice: 60000,
       days: 5,
+      subDept: "Network Penetration Testing",
     },
     {
       id: "PT002",
@@ -55,6 +63,7 @@ const DEPT_SERVICES: Record<
       tool: "Burp Suite, Cobalt Strike",
       unitPrice: 75000,
       days: 6,
+      subDept: "Network Penetration Testing",
     },
     {
       id: "PT003",
@@ -62,6 +71,7 @@ const DEPT_SERVICES: Record<
       tool: "Burp Suite, OWASP ZAP",
       unitPrice: 50000,
       days: 5,
+      subDept: "Web Application Penetration Testing",
     },
     {
       id: "PT004",
@@ -69,6 +79,7 @@ const DEPT_SERVICES: Record<
       tool: "Frida, Burp Suite Mobile",
       unitPrice: 55000,
       days: 5,
+      subDept: "Mobile Application Penetration Testing",
     },
     {
       id: "PT005",
@@ -76,6 +87,7 @@ const DEPT_SERVICES: Record<
       tool: "Postman, Burp Suite",
       unitPrice: 40000,
       days: 4,
+      subDept: "API Penetration Testing",
     },
     {
       id: "PT006",
@@ -83,6 +95,7 @@ const DEPT_SERVICES: Record<
       tool: "Burp Suite, API Fuzzer",
       unitPrice: 45000,
       days: 4,
+      subDept: "Thick Client Penetration Testing",
     },
   ],
   "Vulnerability Assessment": [
@@ -92,6 +105,7 @@ const DEPT_SERVICES: Record<
       tool: "Nessus, OpenVAS, Qualys",
       unitPrice: 35000,
       days: 3,
+      subDept: "Network Vulnerability Assessment",
     },
     {
       id: "VA002",
@@ -99,6 +113,7 @@ const DEPT_SERVICES: Record<
       tool: "Acunetix, Qualys, Rapid7",
       unitPrice: 40000,
       days: 4,
+      subDept: "Web Application Vulnerability Assessment",
     },
     {
       id: "VA003",
@@ -106,6 +121,7 @@ const DEPT_SERVICES: Record<
       tool: "Dome9, CloudSploit",
       unitPrice: 50000,
       days: 4,
+      subDept: "Cloud Infrastructure Vulnerability Assessment",
     },
   ],
   "Red Team & Adversary Simulation": [
@@ -115,6 +131,7 @@ const DEPT_SERVICES: Record<
       tool: "Cobalt Strike, Metasploit, Mimikatz",
       unitPrice: 120000,
       days: 10,
+      subDept: "Adversary Simulation",
     },
     {
       id: "RT002",
@@ -122,6 +139,7 @@ const DEPT_SERVICES: Record<
       tool: "Custom Tools, Cobalt Strike",
       unitPrice: 80000,
       days: 7,
+      subDept: "Adversary Simulation",
     },
   ],
   "Cloud Security": [
@@ -131,6 +149,7 @@ const DEPT_SERVICES: Record<
       tool: "Scout2, CloudMapper, AWS Inspector",
       unitPrice: 55000,
       days: 5,
+      subDept: "AWS Security Assessment",
     },
     {
       id: "CS002",
@@ -138,6 +157,7 @@ const DEPT_SERVICES: Record<
       tool: "Azucar, Microsoft Defender, Qualys",
       unitPrice: 55000,
       days: 5,
+      subDept: "Azure Security Assessment",
     },
     {
       id: "CS003",
@@ -145,6 +165,7 @@ const DEPT_SERVICES: Record<
       tool: "GCP Security Command Center",
       unitPrice: 50000,
       days: 5,
+      subDept: "Google Cloud Security Assessment",
     },
   ],
   "Code & Application Security": [
@@ -154,6 +175,7 @@ const DEPT_SERVICES: Record<
       tool: "SonarQube, Checkmarx, Fortify",
       unitPrice: 65000,
       days: 6,
+      subDept: "Source Code Security Review",
     },
     {
       id: "CODE002",
@@ -161,6 +183,7 @@ const DEPT_SERVICES: Record<
       tool: "Checkmarx, Veracode, Fortify",
       unitPrice: 70000,
       days: 7,
+      subDept: "Static Application Security Testing",
     },
     {
       id: "CODE003",
@@ -168,6 +191,7 @@ const DEPT_SERVICES: Record<
       tool: "Burp Suite, Acunetix, AppScan",
       unitPrice: 60000,
       days: 6,
+      subDept: "Dynamic Application Security Testing",
     },
   ],
   "Compliance & Audit": [
@@ -177,6 +201,7 @@ const DEPT_SERVICES: Record<
       tool: "AuditBoard, Drata, Vanta",
       unitPrice: 85000,
       days: 8,
+      subDept: "ISO 27001 Security Audit",
     },
     {
       id: "COMP002",
@@ -184,6 +209,7 @@ const DEPT_SERVICES: Record<
       tool: "OneTrust, TrustArc, Compliance.ai",
       unitPrice: 75000,
       days: 7,
+      subDept: "GDPR Compliance Assessment",
     },
     {
       id: "COMP003",
@@ -191,6 +217,7 @@ const DEPT_SERVICES: Record<
       tool: "Qualys, Rapid7, Nessus",
       unitPrice: 80000,
       days: 7,
+      subDept: "PCI-DSS Compliance Assessment",
     },
     {
       id: "COMP004",
@@ -198,6 +225,7 @@ const DEPT_SERVICES: Record<
       tool: "AuditBoard, Drata",
       unitPrice: 95000,
       days: 10,
+      subDept: "SOC 2 Type II Audit",
     },
   ],
   "Social Engineering & Awareness": [
@@ -207,6 +235,7 @@ const DEPT_SERVICES: Record<
       tool: "KnowBe4, Gophish, Phish Alert",
       unitPrice: 30000,
       days: 2,
+      subDept: "Phishing Campaign & Assessment",
     },
     {
       id: "SE002",
@@ -214,6 +243,7 @@ const DEPT_SERVICES: Record<
       tool: "LinkedIn Learning, KnowBe4, SANS",
       unitPrice: 45000,
       days: 4,
+      subDept: "Security Awareness Training Program",
     },
     {
       id: "SE003",
@@ -221,6 +251,7 @@ const DEPT_SERVICES: Record<
       tool: "Custom, KnowBe4",
       unitPrice: 35000,
       days: 3,
+      subDept: "Vishing & Pretexting Assessment",
     },
   ],
   "Forensics & Incident Response": [
@@ -230,6 +261,7 @@ const DEPT_SERVICES: Record<
       tool: "EnCase, FTK, Volatility, X-Ways",
       unitPrice: 90000,
       days: 8,
+      subDept: "Digital Forensics Investigation",
     },
     {
       id: "FOR002",
@@ -237,6 +269,7 @@ const DEPT_SERVICES: Record<
       tool: "Splunk, ELK, Rapid7 InsightIDR",
       unitPrice: 75000,
       days: 7,
+      subDept: "Incident Response & Containment",
     },
     {
       id: "FOR003",
@@ -244,6 +277,7 @@ const DEPT_SERVICES: Record<
       tool: "IDA Pro, Ghidra, Wireshark, Cuckoo",
       unitPrice: 70000,
       days: 6,
+      subDept: "Malware Analysis",
     },
   ],
   "Network & Infrastructure": [
@@ -253,6 +287,7 @@ const DEPT_SERVICES: Record<
       tool: "Nmap, Wireshark, NETMON",
       unitPrice: 55000,
       days: 5,
+      subDept: "Network Architecture Security Review",
     },
     {
       id: "NET002",
@@ -260,6 +295,7 @@ const DEPT_SERVICES: Record<
       tool: "Nessus, OpenVAS, Custom Scripts",
       unitPrice: 65000,
       days: 6,
+      subDept: "Firewall & IDS/IPS Configuration Audit",
     },
     {
       id: "NET003",
@@ -267,6 +303,7 @@ const DEPT_SERVICES: Record<
       tool: "Nmap, Shodan, Custom Tools",
       unitPrice: 60000,
       days: 5,
+      subDept: "Network Segmentation Assessment",
     },
   ],
   "Threat Intelligence & Modeling": [
@@ -276,6 +313,7 @@ const DEPT_SERVICES: Record<
       tool: "Microsoft Threat Modeling Tool, IriusRisk",
       unitPrice: 50000,
       days: 4,
+      subDept: "Threat Modeling & Risk Assessment",
     },
     {
       id: "THREAT002",
@@ -283,6 +321,7 @@ const DEPT_SERVICES: Record<
       tool: "MISP, Mandiant, CrowdStrike",
       unitPrice: 40000,
       days: 3,
+      subDept: "Cyber Threat Intelligence Report",
     },
     {
       id: "THREAT003",
@@ -290,9 +329,26 @@ const DEPT_SERVICES: Record<
       tool: "Shodan, Censys, Rapid7 Sonar",
       unitPrice: 45000,
       days: 4,
+      subDept: "Attack Surface Analysis",
     },
   ],
 };
+
+function findCatalogService(svcId: string): CatalogService | undefined {
+  for (const svcs of Object.values(DEPT_SERVICES)) {
+    const hit = svcs.find((s) => s.id === svcId);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+function subDeptsForDept(dept: string): string[] {
+  const seen: string[] = [];
+  for (const s of DEPT_SERVICES[dept] || []) {
+    if (s.subDept && !seen.includes(s.subDept)) seen.push(s.subDept);
+  }
+  return seen;
+}
 
 const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
   "Penetration Testing": "Scope",
@@ -449,6 +505,7 @@ interface ServiceRow {
   rowId: string;
   taskId: string;
   dept: string;
+  subDept: string;
   name: string;
   qty: number;
   description: string;
@@ -643,6 +700,8 @@ function WbsNewProjectPage() {
   // ── Service picker ──
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerDept, setPickerDept] = useState(Object.keys(DEPT_SERVICES)[0]);
+  const [pickerSubDept, setPickerSubDept] = useState("");
+  const [pickerExpanded, setPickerExpanded] = useState<Record<string, boolean>>({});
   const [pickerSearch, setPickerSearch] = useState("");
   const [tempSelected, setTempSelected] = useState<Record<string, Record<string, boolean>>>({});
   const [selectedServices, setSelectedServices] = useState<Record<string, Record<string, boolean>>>(
@@ -727,9 +786,22 @@ function WbsNewProjectPage() {
         if (snap.projectType === "Short term (Ad-hoc)") {
           updated.frequency = "Once";
         }
+        if (!updated.subDept) {
+          updated.subDept =
+            DEPT_SERVICES[r.dept]?.find((s) => s.id === r.rowId)?.subDept ||
+            findCatalogService(r.rowId)?.subDept ||
+            "";
+        }
         return updated;
       });
       setServiceRows(sanitizedRows);
+      const restoredSel: Record<string, Record<string, boolean>> = {};
+      sanitizedRows.forEach((r: { dept?: string; rowId?: string }) => {
+        if (!r.dept || !r.rowId) return;
+        if (!restoredSel[r.dept]) restoredSel[r.dept] = {};
+        restoredSel[r.dept][r.rowId] = true;
+      });
+      setSelectedServices(restoredSel);
     }
     if (snap.invoiceRows?.length) {
       setInvoiceRows(
@@ -778,7 +850,7 @@ function WbsNewProjectPage() {
         previousProjectName: renewalProject?.name,
         clientName: selectedClient?.name ?? "",
         subVentureName: selectedSubVenture,
-        serviceNames: serviceRows.map((r) => r.name),
+        subDepartmentNames: serviceRows.map((r) => r.subDept || ""),
         existingClientProjectCount: countProjectsForClient(allProjects(), selectedClientId),
       }),
     [
@@ -797,14 +869,10 @@ function WbsNewProjectPage() {
   function openPicker() {
     setTempSelected(JSON.parse(JSON.stringify(selectedServices)));
     setPickerOpen(true);
-    const depts = Object.keys(DEPT_SERVICES).filter((dept) => {
-      const group = DEPT_GROUPS[dept];
-      if (contractType === "Resource Based") return group === "Resource";
-      if (contractType === "Scope Based") return group === "Scope";
-      return true;
-    });
-    setPickerDept(depts[0] || "");
+    setPickerDept("");
+    setPickerSubDept("");
     setPickerSearch("");
+    setPickerExpanded({});
   }
 
   function confirmPicker() {
@@ -820,7 +888,10 @@ function WbsNewProjectPage() {
         if (!svc) return;
         const existing = serviceRows.find((r) => r.rowId === svcId);
         if (existing) {
-          const updatedExisting = { ...existing };
+          const updatedExisting = {
+            ...existing,
+            subDept: existing.subDept || svc.subDept,
+          };
           if (DEPT_GROUPS[dept] === "Resource" && updatedExisting.serviceModel !== "NA") {
             updatedExisting.serviceModel = "NA";
           }
@@ -835,6 +906,7 @@ function WbsNewProjectPage() {
             rowId: svcId,
             taskId: `WBS-${String(rowNum + 1).padStart(2, "0")}`,
             dept,
+            subDept: svc.subDept,
             name: svc.name,
             qty: 1,
             description: "",
@@ -969,7 +1041,15 @@ function WbsNewProjectPage() {
     setInvoiceRows((prev) =>
       prev.map((r) => {
         if (r.rowId !== rowId) return r;
-        return { ...r, [field]: value };
+        const next = { ...r, [field]: value };
+        if (field === "invoiceStatus" && value === "Not Raised") {
+          next.paymentStatus = "Not Received";
+          next.paymentDate = "";
+        }
+        if (field === "paymentStatus" && value === "Not Received") {
+          next.paymentDate = "";
+        }
+        return next;
       }),
     );
   }
@@ -990,20 +1070,6 @@ function WbsNewProjectPage() {
       setInvoiceRows([]);
       return;
     }
-
-    const currentYear = new Date().getFullYear();
-    let nextSeq = 1;
-    // Look up max invoice number sequence from CURRENT invoiceRows to preserve numbering
-    invoiceRows.forEach((r) => {
-      const prefix = `INV-${currentYear}-`;
-      if (r.invoiceNumber && r.invoiceNumber.startsWith(prefix)) {
-        const seqStr = r.invoiceNumber.replace(prefix, "");
-        const seq = parseInt(seqStr, 10);
-        if (!isNaN(seq) && seq >= nextSeq) {
-          nextSeq = seq + 1;
-        }
-      }
-    });
 
     const nextRows: InvoiceRow[] = [];
 
@@ -1030,27 +1096,23 @@ function WbsNewProjectPage() {
           currency,
           amount: calculatedAmount,
         };
-      } else {
-        // Generate new invoice number
-        const invoiceNumber = `INV-${currentYear}-${String(nextSeq).padStart(4, "0")}`;
-        nextSeq++;
-
-        return {
-          rowId: lookupKey,
-          serviceId,
-          serviceName,
-          milestone,
-          targetDate: "",
-          unitPrice,
-          qty,
-          currency,
-          amount: calculatedAmount,
-          invoiceStatus: "Not Raised",
-          invoiceNumber,
-          paymentStatus: "Not Received",
-          paymentDate: "",
-        };
       }
+
+      return {
+        rowId: lookupKey,
+        serviceId,
+        serviceName,
+        milestone,
+        targetDate: "",
+        unitPrice,
+        qty,
+        currency,
+        amount: calculatedAmount,
+        invoiceStatus: "Not Raised",
+        invoiceNumber: "",
+        paymentStatus: "Not Received",
+        paymentDate: "",
+      };
     };
 
     const getMonthlyPeriods = (freq: string): number => {
@@ -1132,6 +1194,8 @@ function WbsNewProjectPage() {
     },
     {} as Record<string, string[]>,
   );
+  const pickerGroupNames = Object.keys(deptsByGroup);
+  const pickerSingleGroup = pickerGroupNames.length === 1 ? pickerGroupNames[0] : null;
 
   // ─── Picker count helper ─────────────────────────────────────────────────
 
@@ -1140,9 +1204,36 @@ function WbsNewProjectPage() {
     0,
   );
 
-  const filteredPickerServices = (DEPT_SERVICES[pickerDept] || []).filter((s) =>
-    s.name.toLowerCase().includes(pickerSearch.toLowerCase()),
-  );
+  const pickerSearchQuery = pickerSearch.trim().toLowerCase();
+
+  function pickerServiceMatchesQuery(s: CatalogService, q: string) {
+    if (!q) return true;
+    return (
+      s.name.toLowerCase().includes(q) ||
+      s.id.toLowerCase().includes(q) ||
+      s.tool.toLowerCase().includes(q) ||
+      s.subDept.toLowerCase().includes(q)
+    );
+  }
+
+  const filteredPickerServices = (() => {
+    const withDept = (dept: string, s: CatalogService) => ({ ...s, dept });
+    if (pickerSubDept) {
+      return (DEPT_SERVICES[pickerDept] || [])
+        .filter((s) => s.subDept === pickerSubDept && pickerServiceMatchesQuery(s, pickerSearchQuery))
+        .map((s) => withDept(pickerDept, s));
+    }
+    // No sub-department yet: keep browsing empty, but let search find services
+    // across the current contract-type groups (same as the old department search).
+    if (pickerSearchQuery) {
+      return allowedDepts.flatMap((dept) =>
+        (DEPT_SERVICES[dept] || [])
+          .filter((s) => pickerServiceMatchesQuery(s, pickerSearchQuery))
+          .map((s) => withDept(dept, s)),
+      );
+    }
+    return [];
+  })();
 
   // ─── Form actions ────────────────────────────────────────────────────────
 
@@ -1157,6 +1248,7 @@ function WbsNewProjectPage() {
       services: serviceRows.map((r) => ({
         id: r.rowId,
         department: r.dept,
+        subDepartment: r.subDept || "",
         serviceName: r.name,
         qty: r.qty,
         description: r.description,
@@ -1292,7 +1384,7 @@ function WbsNewProjectPage() {
     setSvSearch("");
   }
 
-  function handleAssignWbs() {
+  async function handleAssignWbs() {
     if (isRenewal && !renewalProject) {
       toast.error("Please select an existing project to renew");
       return;
@@ -1349,6 +1441,21 @@ function WbsNewProjectPage() {
       allEnds[allEnds.length - 1] ??
       new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
 
+    const wbsDetails = buildWbsDetails();
+    if (poFile) {
+      try {
+        wbsDetails.accounts.poFileDataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(poFile);
+        });
+      } catch {
+        toast.error("Could not read the PO document. Please attach it again.");
+        return;
+      }
+    }
+
     const proj = dhStore.addProject({
       name: projectName,
       clientId: selectedClientId,
@@ -1370,7 +1477,7 @@ function WbsNewProjectPage() {
       invoiceValue: invoiceTarget,
       sectionAComments,
       sectionBComments,
-      wbsDetails: buildWbsDetails(),
+      wbsDetails,
       subVenture: selectedSubVenture,
       renewedFromWbsId: isRenewal ? renewalProject?.wbsId : undefined,
     });
@@ -1529,6 +1636,7 @@ function WbsNewProjectPage() {
 
   return (
     <div
+      className="wbs-onboarding-form"
       style={{
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
         background: "#f9fafb",
@@ -1679,7 +1787,7 @@ function WbsNewProjectPage() {
                   }}
                   onBlur={() => setTimeout(() => setWbsDropOpen(false), 150)}
                   style={{
-                    ...inputStyle(false),
+                    ...inputStyle(false, !!wbsSearch),
                     paddingLeft: 32,
                     paddingRight: renewalProject ? 28 : 12,
                   }}
@@ -1875,7 +1983,7 @@ function WbsNewProjectPage() {
                         }, 150)
                       }
                       style={{
-                        ...inputStyle(renewalFieldsLocked),
+                        ...inputStyle(renewalFieldsLocked, !!clientSearch),
                         paddingRight: selectedClientId && !renewalFieldsLocked ? 48 : 32,
                       }}
                     />
@@ -2045,7 +2153,7 @@ function WbsNewProjectPage() {
                         }, 150)
                       }
                       style={{
-                        ...inputStyle(!selectedClientId || renewalFieldsLocked),
+                        ...inputStyle(!selectedClientId || renewalFieldsLocked, !!svSearch),
                         paddingRight: selectedSubVenture && !renewalFieldsLocked ? 48 : 32,
                       }}
                     />
@@ -2242,11 +2350,11 @@ function WbsNewProjectPage() {
                     ? "Same as the selected project"
                     : "Generated from customer, sub-venture, and services"
                 }
-                style={inputStyle(true)}
+                style={inputStyle(true, !!projectName)}
               />
             </FormGroup>
             <FormGroup label="Engagement Manager">
-              <input type="text" value={engagementManager} readOnly style={inputStyle(true)} />
+              <input type="text" value={engagementManager} readOnly style={inputStyle(true, !!engagementManager)} />
             </FormGroup>
           </div>
           {/* Row 2: Contract Type + Sales Person */}
@@ -2263,6 +2371,18 @@ function WbsNewProjectPage() {
                 value={contractType}
                 onChange={(e) => {
                   const val = e.target.value;
+                  const hadServices =
+                    serviceRows.length > 0 || Object.keys(selectedServices).length > 0;
+                  if (val !== contractType && hadServices) {
+                    setSelectedServices({});
+                    setTempSelected({});
+                    setServiceRows([]);
+                    setInvoiceRows([]);
+                    setPickerOpen(false);
+                    toast.success("Services cleared", {
+                      description: "Add services again for the new Contract Type.",
+                    });
+                  }
                   setContractType(val);
                   if (val === "Resource Based") {
                     setProjectType("Long Term");
@@ -2272,7 +2392,7 @@ function WbsNewProjectPage() {
                   setBillingModel("");
                   setPaymentTerms("");
                 }}
-                style={selectStyle(false)}
+                style={selectStyle(false, !!contractType)}
               >
                 <option value="">Select Contract Type</option>
                 <option value="Resource Based">Resource Based</option>
@@ -2283,7 +2403,7 @@ function WbsNewProjectPage() {
               <select
                 value={salesPerson}
                 onChange={(e) => setSalesPerson(e.target.value)}
-                style={selectStyle(false)}
+                style={selectStyle(false, !!salesPerson)}
               >
                 <option value="">Select Sales Person</option>
                 <option value="Abhishek Sharma">Abhishek Sharma</option>
@@ -2319,7 +2439,7 @@ function WbsNewProjectPage() {
                     );
                   }
                 }}
-                style={selectStyle(contractType === "Resource Based" || !contractType)}
+                style={selectStyle(contractType === "Resource Based" || !contractType, !!projectType)}
                 title={!contractType ? "Select a Contract Type first" : ""}
               >
                 {!contractType ? (
@@ -2336,7 +2456,7 @@ function WbsNewProjectPage() {
               </select>
             </FormGroup>
             <FormGroup label="Project Onboarding Date" required>
-              <input type="date" value={projectIssuedDate} readOnly style={inputStyle(true)} />
+              <input type="date" value={projectIssuedDate} readOnly style={inputStyle(true, !!projectIssuedDate)} />
             </FormGroup>
           </div>
         </Card>
@@ -2402,6 +2522,7 @@ function WbsNewProjectPage() {
               <thead style={{ background: "#f3f4f6" }}>
                 <tr>
                   <th style={{ ...thStyle, minWidth: 140 }}>Department</th>
+                  <th style={{ ...thStyle, minWidth: 180 }}>Sub-Department</th>
                   <th style={{ ...thStyle, minWidth: 100 }}>Service ID</th>
                   <th style={{ ...thStyle, minWidth: 200 }}>Service Name</th>
                   <th style={{ ...thStyle, minWidth: 180 }}>Description</th>
@@ -2428,7 +2549,7 @@ function WbsNewProjectPage() {
                 {serviceRows.length === 0 && (
                   <tr>
                     <td
-                      colSpan={20}
+                      colSpan={21}
                       style={{ ...tdStyle, textAlign: "center", color: "#6b7280", padding: 32 }}
                     >
                       No services added. Click "+ Add Services" to begin.
@@ -2437,12 +2558,16 @@ function WbsNewProjectPage() {
                 )}
                 {serviceRows.map((r) => {
                   // helper: red border on empty required cells
-                  const req = (val: string | number) =>
-                    !val || (typeof val === "string" && !val.trim())
-                      ? { ...tblInputStyle, border: "1.5px solid #ef4444" }
-                      : tblInputStyle;
+                  const req = (val: string | number) => {
+                    const filled = Boolean(val) && !(typeof val === "string" && !val.trim());
+                    return filled
+                      ? tblInputStyle(true)
+                      : { ...tblInputStyle(false), border: "1.5px solid #ef4444" };
+                  };
                   const reqSel = (val: string) =>
-                    !val ? { ...tblSelectStyle, border: "1.5px solid #ef4444" } : tblSelectStyle;
+                    val
+                      ? tblSelectStyle(true)
+                      : { ...tblSelectStyle(false), border: "1.5px solid #ef4444" };
                   const isOffsite = r.location === "Offsite";
                   return (
                     <tr key={r.rowId}>
@@ -2451,7 +2576,31 @@ function WbsNewProjectPage() {
                           type="text"
                           value={r.dept}
                           readOnly
-                          style={{ ...tblInputStyle, background: "#f3f4f6", minWidth: 140 }}
+                          title="Department is set when the service is added"
+                          style={{
+                            ...tblInputStyle(true),
+                            minWidth: 140,
+                            background: "#f3f4f6",
+                            color: FIELD_VALUE_COLOR,
+                            WebkitTextFillColor: FIELD_VALUE_COLOR,
+                            cursor: "not-allowed",
+                          }}
+                        />
+                      </td>
+                      <td style={tdStyle}>
+                        <input
+                          type="text"
+                          value={r.subDept || ""}
+                          readOnly
+                          title="Sub-Department is set when the service is added"
+                          style={{
+                            ...tblInputStyle(!!r.subDept),
+                            minWidth: 180,
+                            background: "#f3f4f6",
+                            color: r.subDept ? FIELD_VALUE_COLOR : FIELD_PLACEHOLDER_COLOR,
+                            WebkitTextFillColor: r.subDept ? FIELD_VALUE_COLOR : FIELD_PLACEHOLDER_COLOR,
+                            cursor: "not-allowed",
+                          }}
                         />
                       </td>
                       <td style={tdStyle}>
@@ -2461,10 +2610,11 @@ function WbsNewProjectPage() {
                           readOnly
                           title="Service ID is set when the service is added"
                           style={{
-                            ...tblInputStyle,
+                            ...tblInputStyle(),
                             minWidth: 100,
                             background: "#f3f4f6",
-                            color: "#6b7280",
+                            color: FIELD_VALUE_COLOR,
+                            WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
                           }}
                         />
@@ -2476,10 +2626,11 @@ function WbsNewProjectPage() {
                           readOnly
                           title="Service Name is set when the service is added"
                           style={{
-                            ...tblInputStyle,
+                            ...tblInputStyle(),
                             minWidth: 200,
                             background: "#f3f4f6",
-                            color: "#6b7280",
+                            color: FIELD_VALUE_COLOR,
+                            WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
                           }}
                         />
@@ -2489,7 +2640,7 @@ function WbsNewProjectPage() {
                           type="text"
                           value={r.description}
                           onChange={(e) => updateRow(r.rowId, "description", e.target.value)}
-                          style={{ ...tblInputStyle, minWidth: 180 }}
+                          style={{ ...tblInputStyle(), minWidth: 180 }}
                         />
                       </td>
                       <td style={tdStyle}>
@@ -2498,7 +2649,7 @@ function WbsNewProjectPage() {
                           value={r.qty}
                           min={1}
                           onChange={(e) => updateRow(r.rowId, "qty", Number(e.target.value))}
-                          style={{ ...tblInputStyle, minWidth: 60 }}
+                          style={{ ...tblInputStyle(), minWidth: 60 }}
                         />
                       </td>
                       <td style={{ ...tdStyle, position: "relative", overflow: "visible" }}>
@@ -2524,9 +2675,8 @@ function WbsNewProjectPage() {
                             value="Once"
                             readOnly
                             style={{
-                              ...tblInputStyle,
+                              ...tblInputStyle(true),
                               background: "#f3f4f6",
-                              color: "#9ca3af",
                               cursor: "not-allowed",
                               minWidth: 120,
                               textAlign: "center",
@@ -2552,9 +2702,8 @@ function WbsNewProjectPage() {
                             value="NA"
                             readOnly
                             style={{
-                              ...tblInputStyle,
+                              ...tblInputStyle(true),
                               background: "#f3f4f6",
-                              color: "#9ca3af",
                               cursor: "not-allowed",
                               minWidth: 160,
                               textAlign: "center",
@@ -2598,13 +2747,13 @@ function WbsNewProjectPage() {
                           placeholder={r.location === "Onsite" ? "Enter location…" : "—"}
                           readOnly={r.location !== "Onsite"}
                           style={{
-                            ...tblInputStyle,
+                            ...tblInputStyle(),
                             minWidth: 140,
                             ...(r.location === "Onsite"
                               ? !r.locationText.trim()
                                 ? { border: "1.5px solid #ef4444" }
                                 : {}
-                              : { background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" }),
+                              : { ...tblInputStyle(!!r.locationText), background: "#f3f4f6", cursor: "not-allowed" }),
                           }}
                         />
                       </td>
@@ -2666,10 +2815,11 @@ function WbsNewProjectPage() {
                           readOnly
                           title={`${HOURS_PER_DAY} hours per duration day`}
                           style={{
-                            ...tblInputStyle,
+                            ...tblInputStyle(),
                             minWidth: 80,
                             background: "#f3f4f6",
-                            color: "#6b7280",
+                            color: FIELD_VALUE_COLOR,
+                            WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
                           }}
                         />
@@ -2681,10 +2831,11 @@ function WbsNewProjectPage() {
                           readOnly
                           title="Qty × Duration (Days)"
                           style={{
-                            ...tblInputStyle,
+                            ...tblInputStyle(),
                             minWidth: 80,
                             background: "#f3f4f6",
-                            color: "#6b7280",
+                            color: FIELD_VALUE_COLOR,
+                            WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
                           }}
                         />
@@ -2696,10 +2847,11 @@ function WbsNewProjectPage() {
                           readOnly
                           title="Qty × Duration (Hrs)"
                           style={{
-                            ...tblInputStyle,
+                            ...tblInputStyle(),
                             minWidth: 80,
                             background: "#f3f4f6",
-                            color: "#6b7280",
+                            color: FIELD_VALUE_COLOR,
+                            WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
                           }}
                         />
@@ -2718,7 +2870,7 @@ function WbsNewProjectPage() {
                           type="number"
                           value={r.total}
                           readOnly
-                          style={{ ...tblInputStyle, background: "#f3f4f6", minWidth: 100 }}
+                          style={{ ...tblInputStyle(), background: "#f3f4f6", minWidth: 100 }}
                         />
                       </td>
                       <td style={tdStyle}>
@@ -2776,7 +2928,7 @@ function WbsNewProjectPage() {
                   min={0}
                   max={100}
                   onChange={(e) => setTaxPercent(Number(e.target.value))}
-                  style={{ width: 50, padding: 4, border: "1px solid #ccc", borderRadius: 4 }}
+                  style={{ ...tblInputStyle(true), width: 50, minWidth: 50, minHeight: 28, padding: "4px 6px" }}
                 />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2807,14 +2959,9 @@ function WbsNewProjectPage() {
               onChange={(e) => setSectionAComments(e.target.value)}
               placeholder="Add any remarks, scope notes, or delivery instructions..."
               style={{
-                width: "100%",
+                ...inputStyle(false, !!sectionAComments),
                 minHeight: 80,
-                padding: 10,
-                border: "1px solid #d1d5db",
-                borderRadius: 6,
-                fontFamily: "inherit",
                 resize: "vertical",
-                boxSizing: "border-box",
               }}
             />
           </div>
@@ -2835,7 +2982,7 @@ function WbsNewProjectPage() {
                 value={billingModel}
                 disabled={!projectType}
                 onChange={(e) => onBillingModelChange(e.target.value)}
-                style={selectStyle(!projectType)}
+                style={selectStyle(!projectType, !!billingModel)}
                 title={!projectType ? "Select a Project Type in WBS Information first" : ""}
               >
                 {!projectType ? (
@@ -2867,7 +3014,7 @@ function WbsNewProjectPage() {
                               prev.map((p, i) => (i === idx ? { ...p, label: e.target.value } : p)),
                             )
                           }
-                          style={{ ...inputStyle(false), flex: 1, fontSize: 12 }}
+                          style={{ ...inputStyle(false, !!cp.label), flex: 1, fontSize: 12 }}
                         />
                         <div
                           style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}
@@ -2886,10 +3033,10 @@ function WbsNewProjectPage() {
                             }
                             className="no-spinner"
                             style={{
+                              ...inputStyle(false, cp.pct !== undefined && cp.pct !== null),
                               width: 64,
+                              minHeight: 36,
                               padding: "8px 6px",
-                              border: "1px solid #d1d5db",
-                              borderRadius: 6,
                               fontSize: 13,
                               textAlign: "right",
                             }}
@@ -2987,7 +3134,7 @@ function WbsNewProjectPage() {
                   value={paymentTerms}
                   readOnly
                   placeholder={billingModel ? "Auto-set by billing model" : "—"}
-                  style={inputStyle(true)}
+                  style={inputStyle(true, !!paymentTerms)}
                 />
               )}
             </FormGroup>
@@ -3019,7 +3166,7 @@ function WbsNewProjectPage() {
                   setPoStatus(val);
                   if (val !== "PO Received") setPoFile(null);
                 }}
-                style={selectStyle(false)}
+                style={selectStyle(false, !!poStatus)}
               >
                 <option value="">Select PO Status</option>
                 <option value="PO Received">PO Received</option>
@@ -3128,12 +3275,12 @@ function WbsNewProjectPage() {
                         fontSize: 12,
                       };
 
-                      const invInputStyle: React.CSSProperties = {
-                        ...tblInputStyle,
+                      const invField = (hasValue: boolean): React.CSSProperties => ({
+                        ...tblInputStyle(hasValue),
                         textAlign: "center",
                         textAlignLast: "center",
                         margin: "0 auto",
-                      };
+                      });
 
                       return invoiceRows.map((inv) => {
                         const isHovered = hoveredInvoiceRowId === inv.rowId;
@@ -3184,7 +3331,7 @@ function WbsNewProjectPage() {
                                 onChange={(e) =>
                                   updateInvoiceRowField(inv.rowId, "targetDate", e.target.value)
                                 }
-                                style={invInputStyle}
+                                style={invField(!!inv.targetDate)}
                               />
                             </td>
 
@@ -3215,7 +3362,7 @@ function WbsNewProjectPage() {
                                 onChange={(e) =>
                                   updateInvoiceRowField(inv.rowId, "invoiceStatus", e.target.value)
                                 }
-                                style={{ ...tblSelectStyle, textAlign: "center", textAlignLast: "center" }}
+                                style={{ ...tblSelectStyle(!!inv.invoiceStatus), textAlign: "center", textAlignLast: "center" }}
                               >
                                 <option value="Not Raised">Not Raised</option>
                                 <option value="Raised">Raised</option>
@@ -3224,28 +3371,37 @@ function WbsNewProjectPage() {
 
                             {/* Invoice Number */}
                             <td style={tdStyleOverride}>
-                              <code
+                              <input
+                                type="text"
+                                value={inv.invoiceNumber}
+                                placeholder="Enter invoice number"
+                                onChange={(e) =>
+                                  updateInvoiceRowField(inv.rowId, "invoiceNumber", e.target.value)
+                                }
                                 style={{
-                                  fontFamily: "monospace",
+                                  ...invField(!!inv.invoiceNumber.trim()),
+                                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                                   fontSize: 11,
-                                  background: "rgba(255, 255, 255, 0.6)",
-                                  padding: "2px 6px",
-                                  border: "1px solid rgba(0, 0, 0, 0.08)",
-                                  borderRadius: 4,
                                 }}
-                              >
-                                {inv.invoiceNumber}
-                              </code>
+                              />
                             </td>
 
                             {/* Payment Status */}
                             <td style={tdStyleOverride}>
                               <select
                                 value={inv.paymentStatus}
+                                disabled={inv.invoiceStatus !== "Raised"}
                                 onChange={(e) =>
                                   updateInvoiceRowField(inv.rowId, "paymentStatus", e.target.value)
                                 }
-                                style={{ ...tblSelectStyle, textAlign: "center", textAlignLast: "center" }}
+                                style={{
+                                  ...tblSelectStyle(!!inv.paymentStatus),
+                                  textAlign: "center",
+                                  textAlignLast: "center",
+                                  ...(inv.invoiceStatus !== "Raised"
+                                    ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" }
+                                    : {}),
+                                }}
                               >
                                 <option value="Not Received">Not Received</option>
                                 <option value="Received">Received</option>
@@ -3257,10 +3413,17 @@ function WbsNewProjectPage() {
                               <input
                                 type="date"
                                 value={inv.paymentDate}
+                                disabled={inv.paymentStatus !== "Received"}
+                                readOnly={inv.paymentStatus !== "Received"}
                                 onChange={(e) =>
                                   updateInvoiceRowField(inv.rowId, "paymentDate", e.target.value)
                                 }
-                                style={invInputStyle}
+                                style={{
+                                  ...invField(!!inv.paymentDate),
+                                  ...(inv.paymentStatus !== "Received"
+                                    ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" }
+                                    : {}),
+                                }}
                               />
                             </td>
                           </tr>
@@ -3328,14 +3491,9 @@ function WbsNewProjectPage() {
               onChange={(e) => setSectionBComments(e.target.value)}
               placeholder="Add approval remarks, billing notes, or payment instructions..."
               style={{
-                width: "100%",
+                ...inputStyle(false, !!sectionBComments),
                 minHeight: 80,
-                padding: 10,
-                border: "1px solid #d1d5db",
-                borderRadius: 6,
-                fontFamily: "inherit",
                 resize: "vertical",
-                boxSizing: "border-box",
               }}
             />
           </div>
@@ -3456,16 +3614,19 @@ function WbsNewProjectPage() {
             <div
               style={{
                 flex: 1,
-                overflowY: "auto",
+                overflow: "hidden",
+                minHeight: 0,
                 padding: 20,
                 display: "grid",
                 gridTemplateColumns: "220px 1fr",
                 gap: 20,
               }}
             >
-              {/* Dept list grouped by Contract Type groups (Resource/Scope) */}
-              <div>
-                <h4 style={{ marginBottom: 12, fontSize: 13, fontWeight: 700 }}>Departments</h4>
+              {/* Dept → Sub-Dept tree grouped by Resource / Scope */}
+              <div style={{ overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
+                <h4 style={{ marginBottom: 12, fontSize: 13, fontWeight: 700 }}>
+                  {pickerSingleGroup ? `${pickerSingleGroup} Group` : "Departments"}
+                </h4>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {Object.entries(deptsByGroup).map(([groupName, depts]) => (
                     <div key={groupName}>
@@ -3481,69 +3642,171 @@ function WbsNewProjectPage() {
                           paddingBottom: 4,
                         }}
                       >
-                        {groupName} Group
+                        {pickerSingleGroup ? "Departments" : `${groupName} Group`}
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {depts.map((dept) => (
-                          <div
-                            key={dept}
-                            onClick={() => setPickerDept(dept)}
-                            style={{
-                              padding: 10,
-                              border: "1px solid #d1d5db",
-                              borderRadius: 6,
-                              cursor: "pointer",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              background: dept === pickerDept ? "#dbeafe" : "#fff",
-                              borderColor: dept === pickerDept ? "#1a84d4" : "#d1d5db",
-                            }}
-                          >
-                            <span style={{ fontWeight: 600, fontSize: 12 }}>{dept}</span>
-                            <span
-                              style={{
-                                background: "#1a84d4",
-                                color: "#fff",
-                                padding: "2px 6px",
-                                borderRadius: 10,
-                                fontSize: 10,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {tempSelected[dept] ? Object.keys(tempSelected[dept]).length : 0}
-                            </span>
-                          </div>
-                        ))}
+                        {depts.map((dept) => {
+                          const expanded = !!pickerExpanded[dept];
+                          const selectedCount = tempSelected[dept]
+                            ? Object.keys(tempSelected[dept]).length
+                            : 0;
+                          const isActiveDept = dept === pickerDept;
+                          return (
+                            <div key={dept}>
+                              <div
+                                onClick={() => {
+                                  const nextOpen = !expanded;
+                                  setPickerExpanded((prev) => ({ ...prev, [dept]: nextOpen }));
+                                  if (nextOpen) {
+                                    setPickerDept(dept);
+                                    setPickerSubDept("");
+                                  } else if (pickerDept === dept) {
+                                    setPickerSubDept("");
+                                  }
+                                }}
+                                style={{
+                                  padding: 10,
+                                  border: "1px solid #d1d5db",
+                                  borderRadius: 6,
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  background: isActiveDept && !pickerSubDept ? "#dbeafe" : "#fff",
+                                  borderColor: isActiveDept ? "#1a84d4" : "#d1d5db",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontWeight: 600,
+                                    fontSize: 12,
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: 6,
+                                    lineHeight: 1.35,
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      flexShrink: 0,
+                                      fontSize: 10,
+                                      lineHeight: "16px",
+                                      color: "#6b7280",
+                                    }}
+                                    aria-hidden
+                                  >
+                                    {expanded ? "▼" : "▶"}
+                                  </span>
+                                  {dept}
+                                </span>
+                                <span
+                                  style={{
+                                    background: "#1a84d4",
+                                    color: "#fff",
+                                    padding: "2px 6px",
+                                    borderRadius: 10,
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {selectedCount}
+                                </span>
+                              </div>
+                              {expanded && (
+                                <div
+                                  style={{
+                                    marginTop: 4,
+                                    marginLeft: 8,
+                                    paddingLeft: 8,
+                                    borderLeft: "2px solid #e5e7eb",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 2,
+                                  }}
+                                >
+                                  {subDeptsForDept(dept).map((sub) => {
+                                    const isSelected = pickerDept === dept && pickerSubDept === sub;
+                                    return (
+                                      <div
+                                        key={sub}
+                                        onClick={() => {
+                                          setPickerDept(dept);
+                                          setPickerSubDept(sub);
+                                          setPickerExpanded((prev) => ({ ...prev, [dept]: true }));
+                                        }}
+                                        style={{
+                                          padding: "7px 8px",
+                                          borderRadius: 4,
+                                          cursor: "pointer",
+                                          fontSize: 12,
+                                          fontWeight: isSelected ? 600 : 500,
+                                          color: isSelected ? "#1a5490" : "#374151",
+                                          background: isSelected ? "#dbeafe" : "transparent",
+                                          lineHeight: 1.35,
+                                        }}
+                                      >
+                                        {sub}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
               {/* Services list */}
-              <div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: 0,
+                  overflow: "hidden",
+                }}
+              >
                 <input
                   type="text"
                   placeholder="Search services..."
                   value={pickerSearch}
                   onChange={(e) => setPickerSearch(e.target.value)}
                   style={{
-                    width: "100%",
-                    padding: 8,
-                    border: "1px solid #d1d5db",
-                    borderRadius: 6,
+                    ...inputStyle(false, !!pickerSearch),
                     marginBottom: 12,
-                    boxSizing: "border-box",
+                    flexShrink: 0,
                   }}
                 />
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    overflowY: "auto",
+                    minHeight: 0,
+                    flex: 1,
+                  }}
+                >
+                  {!pickerSubDept && !pickerSearchQuery && (
+                    <div style={{ fontSize: 13, color: "#6b7280", padding: "8px 2px" }}>
+                      Select a Sub-Department to view services.
+                    </div>
+                  )}
+                  {(pickerSubDept || pickerSearchQuery) && filteredPickerServices.length === 0 && (
+                    <div style={{ fontSize: 13, color: "#6b7280", padding: "8px 2px" }}>
+                      No services match your search.
+                    </div>
+                  )}
                   {filteredPickerServices.map((svc) => {
-                    const checked = !!(
-                      tempSelected[pickerDept] && tempSelected[pickerDept][svc.id]
-                    );
+                    const svcDept = svc.dept;
+                    const checked = !!(tempSelected[svcDept] && tempSelected[svcDept][svc.id]);
                     return (
                       <div
-                        key={svc.id}
+                        key={`${svcDept}-${svc.id}`}
                         style={{
                           padding: 12,
                           border: "1px solid #d1d5db",
@@ -3559,13 +3822,13 @@ function WbsNewProjectPage() {
                           onChange={(e) => {
                             setTempSelected((prev) => {
                               const next = { ...prev };
-                              if (!next[pickerDept]) next[pickerDept] = {};
+                              if (!next[svcDept]) next[svcDept] = {};
                               if (e.target.checked) {
-                                next[pickerDept] = { ...next[pickerDept], [svc.id]: true };
+                                next[svcDept] = { ...next[svcDept], [svc.id]: true };
                               } else {
-                                const d = { ...next[pickerDept] };
+                                const d = { ...next[svcDept] };
                                 delete d[svc.id];
-                                next[pickerDept] = d;
+                                next[svcDept] = d;
                               }
                               return next;
                             });
@@ -3689,16 +3952,29 @@ function FormGroup({
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
 
-const inputStyle = (locked: boolean): React.CSSProperties => ({
-  padding: "10px 12px",
+const FIELD_VALUE_COLOR = "#1f2937";
+const FIELD_PLACEHOLDER_COLOR = "#9ca3af";
+
+function fieldColor(hasValue: boolean): string {
+  return hasValue ? FIELD_VALUE_COLOR : FIELD_PLACEHOLDER_COLOR;
+}
+
+const inputStyle = (locked: boolean, hasValue = true): React.CSSProperties => ({
+  padding: "9px 12px",
   border: "1px solid #d1d5db",
   borderRadius: 6,
   fontSize: 13,
+  lineHeight: 1.4,
   fontFamily: "inherit",
   width: "100%",
-  boxSizing: "border-box",
+  height: "auto",
+  minHeight: 40,
+  boxSizing: "border-box" as const,
+  overflow: "visible",
   backgroundColor: locked ? "#f3f4f6" : "#fff",
-  color: locked ? "#6b7280" : "#1f2937",
+  color: fieldColor(hasValue),
+  WebkitTextFillColor: fieldColor(hasValue),
+  opacity: 1,
   cursor: locked ? "not-allowed" : "auto",
 });
 
@@ -3720,29 +3996,36 @@ const selectArrow = (locked: boolean): React.CSSProperties => ({
   cursor: locked ? "not-allowed" : "pointer",
 });
 
-const selectStyle = (locked: boolean): React.CSSProperties => ({
-  ...inputStyle(locked),
+const selectStyle = (locked: boolean, hasValue = true): React.CSSProperties => ({
+  ...inputStyle(locked, hasValue),
   ...selectArrow(locked),
 });
 
-const tblInputStyle: React.CSSProperties = {
+const tblInputStyle = (hasValue = true): React.CSSProperties => ({
   width: "100%",
   minWidth: 120,
   padding: "6px 8px",
   border: "1px solid #d1d5db",
   borderRadius: 4,
   fontSize: 12,
+  lineHeight: 1.4,
+  height: "auto",
+  minHeight: 32,
   boxSizing: "border-box",
+  overflow: "visible",
   fontFamily: "inherit",
-};
+  color: fieldColor(hasValue),
+  WebkitTextFillColor: fieldColor(hasValue),
+  opacity: 1,
+});
 
-const tblSelectStyle: React.CSSProperties = {
-  ...tblInputStyle,
+const tblSelectStyle = (hasValue = true): React.CSSProperties => ({
+  ...tblInputStyle(hasValue),
   ...selectArrow(false),
   padding: "6px 28px 6px 8px",
   backgroundPosition: "right 8px center",
   backgroundSize: "14px 14px",
-};
+});
 
 const thStyle: React.CSSProperties = {
   padding: "10px 8px",
@@ -3852,7 +4135,7 @@ function ResourceLevelCell({
           if (v) dist[v] = 1;
           onChange(v, dist);
         }}
-        style={{ ...tblSelectStyle, minWidth: 110, ...(invalid ? { border: "1.5px solid #ef4444" } : {}) }}
+        style={{ ...tblSelectStyle(!!resourceLevel), minWidth: 110, ...(invalid ? { border: "1.5px solid #ef4444" } : {}) }}
       >
         <option value="">— Select —</option>
         {RESOURCE_LEVELS.map((level) => (
@@ -3973,10 +4256,9 @@ function ResourceLevelCell({
         onClick={() => (open ? setOpen(false) : openPopover())}
         title="Set how many L1 / L2 / Senior resources this service requires"
         style={{
-          ...tblSelectStyle,
+          ...tblSelectStyle(!!formatDist(resourceDist)),
           minWidth: 160,
           textAlign: "left",
-          color: formatDist(resourceDist) ? "#1f2937" : "#9ca3af",
           ...(invalid ? { border: "1.5px solid #ef4444" } : {}),
         }}
       >

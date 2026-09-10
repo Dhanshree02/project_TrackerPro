@@ -5,10 +5,10 @@ export function formatClientProjectCount(existingCount: number): string {
 }
 
 /**
- * Unique selected service names in first-seen order.
- * Empty / whitespace-only names are ignored.
+ * Unique trimmed names in first-seen order.
+ * Empty / whitespace-only values are ignored.
  */
-export function uniqueServiceNames(names: readonly string[]): string[] {
+export function uniqueTrimmedNames(names: readonly string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of names) {
@@ -31,41 +31,50 @@ export function countProjectsForClient(
   return projects.filter((p) => p.clientId === id).length;
 }
 
-/**
- * `{ClientName}({SubVentureName})_{ServiceNameOrMixed}_{ClientProjectCount}`
- *
- * One unique service → that service name. More than one → `Mixed`.
- * Sub-venture is used as stored (hyphenated 3rd-child names included).
- * Returns "" until client, sub-venture, and at least one service are present.
- */
-export function buildOnboardingProjectName(input: {
+export type OnboardingProjectNameInput = {
   clientName: string;
   subVentureName: string;
-  serviceNames: readonly string[];
+  /** Sub-department of each selected service — never service or department names. */
+  subDepartmentNames: readonly string[];
   existingClientProjectCount: number;
-}): string {
+};
+
+/**
+ * One unique sub-department → that name. More than one unique sub-department → `Mixed`.
+ * The descriptive part is never a service name or a department name.
+ */
+export function projectNameDescriptor(subDepartmentNames: readonly string[]): string {
+  const subDepts = uniqueTrimmedNames(subDepartmentNames);
+  if (subDepts.length === 0) return "";
+  return subDepts.length === 1 ? subDepts[0] : "Mixed";
+}
+
+/**
+ * `{ClientName}({SubVentureName})_{SubDepartmentOrMixed}_{ClientProjectCount}`
+ *
+ * Sub-venture is used as stored (hyphenated 3rd-child names included).
+ * Returns "" until client, sub-venture, and at least one sub-department are present.
+ */
+export function buildOnboardingProjectName(input: OnboardingProjectNameInput): string {
   const clientName = input.clientName.trim();
   const subVentureName = input.subVentureName.trim();
-  const services = uniqueServiceNames(input.serviceNames);
-  if (!clientName || !subVentureName || services.length === 0) return "";
+  const descriptor = projectNameDescriptor(input.subDepartmentNames);
+  if (!clientName || !subVentureName || !descriptor) return "";
 
-  const servicePart = services.length === 1 ? services[0] : "Mixed";
   const count = formatClientProjectCount(input.existingClientProjectCount);
-  return `${clientName}(${subVentureName})_${servicePart}_${count}`;
+  return `${clientName}(${subVentureName})_${descriptor}_${count}`;
 }
 
 /**
  * New projects use the generated name. A renewal keeps the selected
  * project's name exactly — no `(1)` suffix and no new-project convention.
  */
-export function resolveOnboardingProjectName(input: {
-  isRenewal: boolean;
-  previousProjectName?: string | null;
-  clientName: string;
-  subVentureName: string;
-  serviceNames: readonly string[];
-  existingClientProjectCount: number;
-}): string {
+export function resolveOnboardingProjectName(
+  input: OnboardingProjectNameInput & {
+    isRenewal: boolean;
+    previousProjectName?: string | null;
+  },
+): string {
   if (input.isRenewal) return (input.previousProjectName ?? "").trim();
   return buildOnboardingProjectName(input);
 }

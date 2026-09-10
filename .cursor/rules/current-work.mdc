@@ -5,9 +5,29 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-10
 
 ## Latest
+
+- **Project Name uses Sub-Department (or Mixed), never service or department.** Format stays `{Client}({Sub-venture})_{descriptor}_{count}`. One selected service, or several that share the same sub-department → that sub-department name. Services from different sub-departments (even under one department) → `Mixed`. Client / sub-venture / client project count are unchanged. Renewal still keeps the previous name.
+
+- **Select Services uses Department → Sub-Department → Service.** Resource Group and Scope Group stay separate. The left heading and the list label are swapped: the title shows **Scope Group** / **Resource Group**, and the small uppercase label is **Departments**. Opening Add Services starts with every department collapsed (`▶`); the user clicks a department to expand and see its sub-departments. Services on the right appear after a sub-department is chosen, or immediately when the user types in Search (across the current contract-type groups). With a sub-department selected, search stays inside that pair. Department badges still count selected services. Service Details table column order is Department → Sub-Department → Service ID → Service Name; both department fields are read-only with dark populated text. Sub-department names come from grouping the existing frontend catalog (`DEPT_SERVICES`) — there is no WBS sub-department API/table. Empty sub-department stays blank (no fake label).
+
+- **Changing Contract Type on project onboarding clears services.** Resource Based and Scope Based offer different service lists. Switching Contract Type after services are added now empties the picker selection, service table, and invoice rows so the previous type’s services do not stay selected. Billing model / payment terms still reset as before.
+
+- **Overview leadership waits for WBS/Team assignment.** After Create WBS, Overview SPM / PM / Team Lead stay “Not yet assigned” (no placeholder people). SPM and PM appear only after Assign SPM / Assign PM in WBS → Project Allocation; Change Leader unlocks after that first allocation. Team Lead appears only after the PM/SPM adds a member on the Team tab and marks **Set as Team Lead** (add checkbox or ⋯ menu). Assign PM/SPM lists all people with role PM / Senior PM, not the dummy Create-WBS placeholders.
+
+- **PO document lives on WBS, view-only on Invoices.** Upload / Replace is on the WBS tab, directly below Invoice Schedule (shown when PO Status is Pending or Received). Overview Project Details no longer has the PO Document row (PO Status field stays). The Invoices tab shows View / Download only after a file is attached — no Add document there. Attaching a file stores it on the project and marks PO as received. PO Received uploads at onboarding also keep the file for View.
+
+- **Invoice Scheduling is manual and status-gated.** Project onboarding no longer auto-fills Invoice Number (`INV-yyyy-…`). The number is typed if the user has one. Payment Status is editable only when Invoice Status is Raised; Date of Payment Received is editable only when Payment Status is Received. Switching back to Not Raised / Not Received clears the downstream fields. After Create WBS, WBS tab Invoice Schedule shows those same rows (Raise Invoice for Not Raised; Raised/Paid when already raised). The Invoices tab lists **Raised** rows only; Invoice Status stays a badge once Raised (cannot reset). Payment Status stays a badge once Received (cannot switch back); Not Received can still be set to Received. Date Of Payment Received is a date input there when payment is Received. Raising later from WBS (Raise Invoice) adds that row to the Invoices tab. Table columns were not added or renamed.
+
+- **Project Onboarding field typography.** Global `select { height: 2.25rem }` was clipping glyphs against the form’s padding. Shared `inputStyle` / `selectStyle` / `tblInputStyle` / `tblSelectStyle` now use `height: auto`, `line-height: 1.4`, and dark value color (`#1f2937`) even when locked. Empty selects/placeholders use muted `#9ca3af`. Scoped `.wbs-onboarding-form` CSS stops disabled opacity fade. Layout and logic unchanged.
+
+- **Customer list + KYC row polish.** Customer Information KYC row is label + View/Download only (filename removed so buttons no longer overlap the card edge). List view: the row itself is not a link — only Customer name and Total / New / Ongoing / Completed / On Hold / Archived counts are clickable. Table headers are centered.
+
+- **Local branch `Sahil-backend-testing2`** created from `origin/deployment-phase1` (`0fa7099`, tracks that remote). API restarted on this code: health + clients + employees 200. Shared Postgres `10.50.30.189` `trackerpro` is up (16 clients, 27 employees).
+
+
 
 - **Employee status catalog boot fixed:** `mst_employee_statuses` migration lacked a primary key on `"Id"`, so FK creation crashed startup and the API returned 404 (stale container). Migration + `DbInitializerHostedService` now add PK idempotently; `DbSeeder.EnsureEmployeeStatusesAsync` runs on every boot (seeds Active/Terminated/Absconded/Resigned/Resignation Under Review). Onboarding API `GET /api/v1/employees/meta/employee-statuses?onboardingOnly=true` returns Active only.
 

@@ -594,9 +594,16 @@ export interface DhNotification {
   }[];
 }
 
+export interface PoDocumentRef {
+  fileName: string;
+  dataUrl: string;
+}
+
 interface DhState {
   extraClients: Client[];
   extraProjects: Project[];
+  /** PO files attached at onboarding or later from the project Invoices tab. */
+  poDocuments: Record<string, PoDocumentRef>;
   subVentureOverrides: Record<string, ClientSubVenture[]>;
   wbsDrafts: WbsDraft[];
   issues: DhIssue[];
@@ -649,6 +656,7 @@ let snapshot: DhState;
 const state: DhState = {
   extraClients: [],
   extraProjects: [],
+  poDocuments: {},
   subVentureOverrides: {},
   wbsDrafts: [],
   onboardedResources: [
@@ -2063,6 +2071,22 @@ function getNextClientSeqId(): string {
   return "C" + String(n).padStart(3, "0");
 }
 
+function patchProjectWbsInvoice(
+  projectId: string,
+  invoiceId: string,
+  patch: Record<string, unknown>,
+) {
+  const apply = (proj: Project | undefined) => {
+    const list = proj?.wbsDetails?.accounts?.invoices as any[] | undefined;
+    if (!list) return;
+    proj!.wbsDetails!.accounts.invoices = list.map((inv) =>
+      inv.id === invoiceId ? { ...inv, ...patch } : inv,
+    );
+  };
+  apply(state.extraProjects.find((p) => p.id === projectId));
+  apply(baseProjects.find((p) => p.id === projectId));
+}
+
 // FY helper: given a date string, return which FY it belongs to (start year)
 function getFYStartForDate(dateIso: string): number {
   const d = new Date(dateIso);
@@ -2291,6 +2315,12 @@ export const dhStore = {
     };
     state.extraProjects.push(p);
 
+    const poName = input.wbsDetails?.accounts?.poFileName as string | undefined;
+    const poData = input.wbsDetails?.accounts?.poFileDataUrl as string | undefined;
+    if (poName && poData) {
+      state.poDocuments = { ...state.poDocuments, [id]: { fileName: poName, dataUrl: poData } };
+    }
+
     // Populate state.invoices with the project's invoices if they exist
     if (input.wbsDetails?.accounts?.invoices) {
       input.wbsDetails.accounts.invoices.forEach((inv: any, idx: number) => {
@@ -2360,13 +2390,26 @@ export const dhStore = {
         },
         accounts: {
           stageName: "Accounts",
-          currentStatus: "PO Not Raised",
+          currentStatus:
+            input.wbsDetails?.accounts?.poStatus === "PO Received"
+              ? "PO Received"
+              : input.wbsDetails?.accounts?.poStatus === "PO Pending"
+                ? "PO Pending"
+                : "PO Not Raised",
           isCompleted: false,
           isActive: false,
           history: [],
         },
       },
     };
+
+    const onboardPo = input.wbsDetails?.accounts?.poStatus;
+    if (onboardPo === "PO Received" || onboardPo === "PO Pending") {
+      state.projectStages[id].accountsDetail = {
+        poStatus: onboardPo === "PO Received" ? "PO Received" : "PO Pending",
+        paymentStatus: "Payment Pending",
+      };
+    }
 
     // Initialize prerequisite record — seed services from WBS so the
     // Service-wise Prerequisite Tracking table shows real service names
@@ -2412,6 +2455,53 @@ export const dhStore = {
 
     emit();
     return p;
+  },
+
+  attachPoDocument(projectId: string, fileName: string, dataUrl: string) {
+    state.poDocuments = {
+      ...state.poDocuments,
+      [projectId]: { fileName, dataUrl },
+    };
+
+    const applyToProject = (proj: Project | undefined) => {
+      if (!proj) return;
+      if (!proj.wbsDetails) return;
+      if (!proj.wbsDetails.accounts) return;
+      proj.wbsDetails.accounts.poFileName = fileName;
+      proj.wbsDetails.accounts.poFileDataUrl = dataUrl;
+      if (!proj.wbsDetails.accounts.poStatus || proj.wbsDetails.accounts.poStatus === "PO Pending") {
+        proj.wbsDetails.accounts.poStatus = "PO Received";
+      }
+    };
+    applyToProject(state.extraProjects.find((p) => p.id === projectId));
+    applyToProject(baseProjects.find((p) => p.id === projectId));
+
+    const tracker = state.projectStages[projectId];
+    if (tracker) {
+      const nextStatus =
+        tracker.stages.accounts.currentStatus === "PO Not Raised" ||
+        tracker.stages.accounts.currentStatus === "PO Pending"
+          ? "PO Received"
+          : tracker.stages.accounts.currentStatus;
+      state.projectStages = {
+        ...state.projectStages,
+        [projectId]: {
+          ...tracker,
+          accountsDetail: {
+            ...(tracker.accountsDetail ?? { poStatus: "PO Pending", paymentStatus: "Payment Pending" }),
+            poStatus: "PO Received",
+          },
+          stages: {
+            ...tracker.stages,
+            accounts: {
+              ...tracker.stages.accounts,
+              currentStatus: nextStatus,
+            },
+          },
+        },
+      };
+    }
+    emit();
   },
 
   raiseIssue(
@@ -2724,6 +2814,20 @@ export const dhStore = {
     p.assignedSpmIds = spmIds;
     p.acknowledgedByPmIds = [];
     p.acknowledgedBySpmIds = [];
+    const existing = state.leadershipAssignments[projectId] ?? {
+      emIds: [],
+      spmIds: [],
+      pmIds: [],
+      tlIds: [],
+    };
+    state.leadershipAssignments = {
+      ...state.leadershipAssignments,
+      [projectId]: {
+        ...existing,
+        pmIds: [...pmIds],
+        spmIds: [...spmIds],
+      },
+    };
     emit();
   },
   acknowledgePmAssignment(projectId: string, pmId: string) {
@@ -3264,6 +3368,16 @@ export const dhStore = {
     }
     if (state.projectTeamDetails[projectId]) {
       delete state.projectTeamDetails[projectId][memberId];
+    }
+    const existing = state.leadershipAssignments[projectId];
+    if (existing?.tlIds?.includes(memberId)) {
+      state.leadershipAssignments = {
+        ...state.leadershipAssignments,
+        [projectId]: {
+          ...existing,
+          tlIds: existing.tlIds.filter((id) => id !== memberId),
+        },
+      };
     }
     emit();
   },
@@ -3993,6 +4107,14 @@ export const dhStore = {
         : i,
     );
 
+    patchProjectWbsInvoice(projectId, invoiceId, {
+      invoiceStatus: "Raised",
+      invoiceNumber,
+      remarks: invoiceNumber,
+      paymentStatus: "Not Received",
+      paymentDate: "",
+    });
+
     this.updateAccountsStage(
       projectId,
       "Invoice Raised",
@@ -4061,24 +4183,10 @@ export const dhStore = {
     let paymentReceivedBy: string | undefined = undefined;
 
     if (paymentStatus === "Received") {
-      const months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-      const d = String(now.getDate()).padStart(2, "0");
-      const m = months[now.getMonth()];
       const y = now.getFullYear();
-      paymentReceivedDate = `${d}-${m}-${y}`;
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      paymentReceivedDate = inv.paymentReceivedDate || `${y}-${m}-${d}`;
       paymentReceivedBy = updatedByName;
     }
 
@@ -4092,6 +4200,11 @@ export const dhStore = {
           }
         : i,
     );
+
+    patchProjectWbsInvoice(projectId, invoiceId, {
+      paymentStatus,
+      paymentDate: paymentReceivedDate,
+    });
 
     const updatedInv = state.invoices.find((i) => i.id === invoiceId)!;
 
@@ -4179,6 +4292,14 @@ export const dhStore = {
         : i,
     );
 
+    patchProjectWbsInvoice(projectId, invoiceId, {
+      invoiceStatus: "Not Raised",
+      invoiceNumber: "",
+      remarks: "",
+      paymentStatus: "Not Received",
+      paymentDate: "",
+    });
+
     this.updateAccountsStage(
       projectId,
       "Invoice Not Raised",
@@ -4186,6 +4307,18 @@ export const dhStore = {
       updatedBy,
       updatedByName,
     );
+    emit();
+  },
+
+  updatePaymentReceivedDate(projectId: string, invoiceId: string, date: string) {
+    const inv = state.invoices.find((i) => i.id === invoiceId);
+    if (!inv) return;
+    if (inv.invoiceStatus !== "Raised" || inv.paymentStatus !== "Received") return;
+
+    state.invoices = state.invoices.map((i) =>
+      i.id === invoiceId ? { ...i, paymentReceivedDate: date } : i,
+    );
+    patchProjectWbsInvoice(projectId, invoiceId, { paymentDate: date });
     emit();
   },
 

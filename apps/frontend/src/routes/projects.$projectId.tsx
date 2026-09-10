@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate, notFound } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useState } from "react";
-import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { fetchClients, mapApiClient } from "@/lib/api/clients";
 import { resolveCustomerRouteId } from "@/lib/client-route-id";
 import { findProjectByWbsId } from "@/lib/project-renewal";
+import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 
@@ -31,6 +32,19 @@ function formatDateString(dateStr: string | undefined | null): string {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function toDateInputValue(raw: string | undefined | null): string {
+  if (!raw?.trim()) return "";
+  const s = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const parsed = Date.parse(s);
+  if (Number.isNaN(parsed)) return "";
+  const d = new Date(parsed);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 /** Apple-like segmented control track / item (clarity + deference). */
@@ -267,10 +281,11 @@ function ProjectDetail() {
 
   // Subscribe to store so runtime-created projects stay live/reactive
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
+  const poDocuments = useDhStore((s) => s.poDocuments);
   const project: Project = useMemo(
     () => allProjects().find((p) => p.id === loaderProject.id) ?? loaderProject,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [loaderProject.id, extraCount]
+    [loaderProject.id, extraCount, poDocuments]
   );
   const client: Client = useMemo(
     () => allClients().find((c) => c.id === project.clientId) ?? loaderClient,
@@ -296,6 +311,9 @@ function ProjectDetail() {
     [client.id, client.name, apiClients],
   );
   const snapshotInvoices = useDhStore((s) => s.invoices);
+  const raisedInvoices = snapshotInvoices.filter(
+    (i) => i.projectId === project.id && i.invoiceStatus === "Raised",
+  );
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
   const [invoiceNumberInput, setInvoiceNumberInput] = useState("");
@@ -391,26 +409,44 @@ function ProjectDetail() {
   const tl = getPerson(project.tlId);
   const team = project.teamIds.map(getPerson);
 
-  const poFileName = useMemo(() => {
-    return project.wbsDetails?.accounts?.poFileName ||
-      (project.wbsDetails?.accounts?.poStatus === "PO Received" ||
-        project.wbsDetails?.accounts?.poStatus === "PO Validated" ||
-        project.wbsDetails?.accounts?.poStatus === "PO Raised" ||
-        (project.id === "p1")
-        ? "PO_Northwind_p1.pdf"
-        : "");
-  }, [project]);
+  const poDoc = poDocuments[project.id];
+  const poFileName = poDoc?.fileName || project.wbsDetails?.accounts?.poFileName || "";
+  const poFileUrl = poDoc?.dataUrl || project.wbsDetails?.accounts?.poFileDataUrl || "";
+  const poStatus = project.wbsDetails?.accounts?.poStatus || "";
+  const showPoDocumentPanel = Boolean(project.wbsDetails?.accounts) && poStatus !== "PO Not Required";
+  const canAttachPo = (isDhanshree || isAccounts || isPmoFamily) && !isViewOnly;
+  const [poPreviewOpen, setPoPreviewOpen] = useState(false);
 
   const handleDownloadPO = () => {
     if (!poFileName) return;
     const element = document.createElement("a");
-    const file = new Blob(["Mock PO File Content for project: " + project.name], { type: 'application/pdf' });
-    element.href = URL.createObjectURL(file);
+    if (poFileUrl) {
+      element.href = poFileUrl;
+    } else {
+      const file = new Blob(["Mock PO File Content for project: " + project.name], { type: "application/pdf" });
+      element.href = URL.createObjectURL(file);
+    }
     element.download = poFileName;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
     toast.success("Download started", { description: poFileName });
+  };
+
+  const handleAttachPo = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      dhStore.attachPoDocument(project.id, file.name, dataUrl);
+      toast.success("PO document attached", { description: file.name });
+    } catch {
+      toast.error("Could not read the PO document. Please try again.");
+    }
   };
 
   // Get project stages - call unconditionally to avoid Rules of Hooks violation
@@ -784,9 +820,23 @@ function ProjectDetail() {
               project={project}
               onRaiseInvoice={(invoiceId) => {
                 setRaiseInvoiceId(invoiceId);
-                setInvoiceNumberInput("");
+                const existing = snapshotInvoices.find((i) => i.id === invoiceId);
+                setInvoiceNumberInput(existing?.invoiceNumber?.trim() || "");
                 setRaiseModalOpen(true);
               }}
+              poDocumentPanel={
+                showPoDocumentPanel ? (
+                  <PoDocumentPanel
+                    fileName={poFileName}
+                    poStatus={poStatus}
+                    canAttach={canAttachPo}
+                    canView={Boolean(poFileUrl)}
+                    onView={() => setPoPreviewOpen(true)}
+                    onDownload={handleDownloadPO}
+                    onAttach={handleAttachPo}
+                  />
+                ) : null
+              }
             />
           )}
 
@@ -808,19 +858,16 @@ function ProjectDetail() {
 
           {tab === "Invoices" && (
             <div className="space-y-4">
-              {poFileName && (
-                <div className="flex justify-end">
-                  <div className="flex items-center gap-2 border border-border rounded-lg p-2 px-3 bg-muted/20">
-                    <span className="text-xs font-semibold text-muted-foreground">Attached PO Document:</span>
-                    <button
-                      onClick={handleDownloadPO}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline hover:text-primary/80"
-                    >
-                      <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                      <span>{poFileName}</span>
-                    </button>
-                  </div>
-                </div>
+              {showPoDocumentPanel && poFileName && (
+                <PoDocumentPanel
+                  fileName={poFileName}
+                  poStatus={poStatus}
+                  canAttach={false}
+                  canView={Boolean(poFileUrl)}
+                  onView={() => setPoPreviewOpen(true)}
+                  onDownload={handleDownloadPO}
+                  onAttach={handleAttachPo}
+                />
               )}
 
               {invoicePmoColumns ? (
@@ -838,7 +885,7 @@ function ProjectDetail() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {snapshotInvoices.filter((i) => i.projectId === project.id).map((inv) => (
+                      {raisedInvoices.map((inv) => (
                         <tr key={inv.id} className="hover:bg-accent/30">
                           <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
                           <td className="px-3 py-2.5 text-center font-medium">{inv.resourceLevel || "—"}</td>
@@ -856,7 +903,7 @@ function ProjectDetail() {
                           <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.paymentReceivedDate || "-"}</td>
                         </tr>
                       ))}
-                      {snapshotInvoices.filter((i) => i.projectId === project.id).length === 0 && (
+                      {raisedInvoices.length === 0 && (
                         <tr><td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
                       )}
                     </tbody>
@@ -881,7 +928,7 @@ function ProjectDetail() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {snapshotInvoices.filter((i) => i.projectId === project.id).map((inv) => {
+                      {raisedInvoices.map((inv) => {
                         const statusTone = inv.invoiceStatus === "Raised" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800";
                         const paymentTone = inv.paymentStatus === "Received" ? "bg-success/10 text-success border-success/30" : "bg-warning/15 text-warning-foreground border-warning/30";
 
@@ -895,42 +942,17 @@ function ProjectDetail() {
                             <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
                             <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
                             <td className="px-3 py-2.5">
-                              {invoiceEditable ? (
-                                <select
-                                  value={inv.invoiceStatus}
-                                  onChange={(e) => {
-                                    const val = e.target.value as "Not Raised" | "Raised";
-                                    if (val === "Raised") {
-                                      setRaiseInvoiceId(inv.id);
-                                      setInvoiceNumberInput("");
-                                      setRaiseModalOpen(true);
-                                    } else {
-                                      dhStore.cancelInvoice(project.id, inv.id, user.id, user.name);
-                                      toast.success("Invoice status reset to Not Raised");
-                                    }
-                                  }}
-                                  className={cn(
-                                    "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
-                                    statusTone
-                                  )}
-                                >
-                                  <option value="Not Raised" className="bg-white text-gray-800">Not Raised</option>
-                                  <option value="Raised" className="bg-white text-gray-800">Raised</option>
-                                </select>
-                              ) : (
-                                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium", statusTone)}>
-                                  {inv.invoiceStatus}
-                                </span>
-                              )}
+                              <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium", statusTone)}>
+                                {inv.invoiceStatus}
+                              </span>
                             </td>
                             <td className="px-3 py-2.5 font-mono text-xs">
                               {inv.invoiceNumber || "-"}
                             </td>
                             <td className="px-3 py-2.5">
-                              {invoiceEditable ? (
+                              {invoiceEditable && inv.paymentStatus !== "Received" ? (
                                 <select
                                   value={inv.paymentStatus}
-                                  disabled={inv.invoiceStatus === "Not Raised"}
                                   onChange={(e) => {
                                     const val = e.target.value as "Not Received" | "Received";
                                     dhStore.updatePaymentStatus(project.id, inv.id, val, user.id, user.name);
@@ -950,13 +972,24 @@ function ProjectDetail() {
                                 </span>
                               )}
                             </td>
-                            <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                              {inv.paymentReceivedDate || "-"}
+                            <td className="px-3 py-2.5">
+                              {invoiceEditable && inv.paymentStatus === "Received" ? (
+                                <input
+                                  type="date"
+                                  value={toDateInputValue(inv.paymentReceivedDate)}
+                                  onChange={(e) =>
+                                    dhStore.updatePaymentReceivedDate(project.id, inv.id, e.target.value)
+                                  }
+                                  className="h-7 rounded-md border border-input bg-white px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                />
+                              ) : (
+                                <span className="text-xs text-muted-foreground">{inv.paymentReceivedDate || "-"}</span>
+                              )}
                             </td>
                           </tr>
                         );
                       })}
-                      {snapshotInvoices.filter((i) => i.projectId === project.id).length === 0 && (
+                      {raisedInvoices.length === 0 && (
                         <tr><td colSpan={11} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
                       )}
                     </tbody>
@@ -1108,6 +1141,14 @@ function ProjectDetail() {
           </div>
         </Modal>
       )}
+
+      <KycDocPreviewModal
+        open={poPreviewOpen}
+        onClose={() => setPoPreviewOpen(false)}
+        previewUrl={poFileUrl || null}
+        fileName={poFileName || "PO_Document"}
+        clientName={project.name}
+      />
     </AppShell>
   );
 }
@@ -1124,7 +1165,17 @@ const LEGACY_WBS_SERVICES = [
   { id: 6, taskId: 'WBS-06', dept: 'Network & Infrastructure', name: 'Network Security Assessment', qty: 1, desc: 'Infrastructure review and segmentation validation', freq: 'Once', delivery: 'Offsite', loc: '', svc: 'Initial + 3 Re-test', format: 'PDF Report', billing: 'Short term (Ad-hoc)', tools: 'Nmap, Wireshark', start: '02 Mar 2026', end: '07 Mar 2026', durDays: 6, durHrs: 48, totalDays: 6, totalHrs: 48 },
 ];
 
-function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project: Project; onRaiseInvoice: (invoiceId: string) => void; onNavigateToHealthAlerts?: () => void }) {
+function WbsTab({
+  project,
+  onRaiseInvoice,
+  onNavigateToHealthAlerts,
+  poDocumentPanel,
+}: {
+  project: Project;
+  onRaiseInvoice: (invoiceId: string) => void;
+  onNavigateToHealthAlerts?: () => void;
+  poDocumentPanel?: React.ReactNode;
+}) {
   const snapshotInvoices = useDhStore((s) => s.invoices);
   const { user, isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
   const hideAmounts = isPmFamily || hideBudget;
@@ -1325,6 +1376,8 @@ function WbsTab({ project, onRaiseInvoice, onNavigateToHealthAlerts }: { project
           </div>
         )}
 
+        {poDocumentPanel}
+
       </div>
     );
   }
@@ -1514,6 +1567,88 @@ function DetailField({ label, value }: { label: string; value?: string | null })
 }
 
 // ---------- Overview ----------
+function PoDocumentPanel({
+  fileName,
+  poStatus,
+  canAttach,
+  canView,
+  onView,
+  onDownload,
+  onAttach,
+}: {
+  fileName: string;
+  poStatus: string;
+  canAttach: boolean;
+  canView: boolean;
+  onView: () => void;
+  onDownload: () => void;
+  onAttach: (file: File | undefined) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const pendingHint =
+    poStatus === "PO Pending"
+      ? "Not attached yet — add the document when the PO is received"
+      : "No document attached";
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/20 p-2 px-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className="text-xs font-semibold text-muted-foreground">PO Document</span>
+        {fileName ? (
+          <span className="truncate text-xs font-medium text-foreground">{fileName}</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">{pendingHint}</span>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {fileName ? (
+          <>
+            <button
+              type="button"
+              onClick={onView}
+              disabled={!canView}
+              title={canView ? "Preview PO document" : "Preview is available after a file is attached"}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Eye className="h-3 w-3" /> View
+            </button>
+            <button
+              type="button"
+              onClick={onDownload}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer"
+            >
+              <Download className="h-3 w-3 text-primary" /> Download
+            </button>
+          </>
+        ) : null}
+        {canAttach ? (
+          <>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              className="hidden"
+              onChange={(e) => {
+                onAttach(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[11px] font-semibold text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer"
+            >
+              <Paperclip className="h-3 w-3" />
+              {fileName ? "Replace" : "Add document"}
+            </button>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function OverviewTab({
   project,
   pm,
@@ -1533,6 +1668,8 @@ function OverviewTab({
   const hideAmounts = isPmFamily || hideBudget;
   // Reactive leadership assignments from store (Dhanshree overrides)
   const leadershipAssignment = useDhStore((s) => s.leadershipAssignments[project.id] ?? null);
+  const prereq = useDhStore((s) => s.prereqs[project.id]);
+  const isWbsCreated = Boolean(project.wbsDetails);
 
   const client = useMemo(() => {
     return allClients().find((c) => c.id === project.clientId);
@@ -1544,20 +1681,31 @@ function OverviewTab({
   }, [leadershipAssignment, project]);
 
   const spms: Person[] = useMemo(() => {
-    if (leadershipAssignment?.spmIds?.length) return leadershipAssignment.spmIds.map(getPerson).filter(Boolean) as Person[];
-    // fallback: prereq assigned SPMs, else default pool
+    if (isWbsCreated) {
+      const ids = leadershipAssignment ? leadershipAssignment.spmIds : (prereq?.assignedSpmIds ?? []);
+      return ids.map(getPerson);
+    }
+    if (leadershipAssignment?.spmIds?.length) return leadershipAssignment.spmIds.map(getPerson);
     return [getPerson("u1")];
-  }, [leadershipAssignment]);
+  }, [isWbsCreated, leadershipAssignment, prereq]);
 
   const pms: Person[] = useMemo(() => {
-    if (leadershipAssignment?.pmIds?.length) return leadershipAssignment.pmIds.map(getPerson).filter(Boolean) as Person[];
+    if (isWbsCreated) {
+      const ids = leadershipAssignment ? leadershipAssignment.pmIds : (prereq?.assignedPmIds ?? []);
+      return ids.map(getPerson);
+    }
+    if (leadershipAssignment?.pmIds?.length) return leadershipAssignment.pmIds.map(getPerson);
     return getProjectPMs(project);
-  }, [leadershipAssignment, project]);
+  }, [isWbsCreated, leadershipAssignment, prereq, project]);
 
   const tls: Person[] = useMemo(() => {
-    if (leadershipAssignment?.tlIds?.length) return leadershipAssignment.tlIds.map(getPerson).filter(Boolean) as Person[];
+    if (isWbsCreated) return (leadershipAssignment?.tlIds ?? []).map(getPerson);
+    if (leadershipAssignment?.tlIds?.length) return leadershipAssignment.tlIds.map(getPerson);
     return getProjectTLs(project);
-  }, [leadershipAssignment, project]);
+  }, [isWbsCreated, leadershipAssignment, project]);
+
+  const hasAllocatedSpm = (prereq?.assignedSpmIds?.length ?? 0) > 0;
+  const hasAllocatedPm = (prereq?.assignedPmIds?.length ?? 0) > 0;
 
   const extraCount = useDhStore((s) => s.extraProjects.length);
   const originalProject = useMemo(
@@ -1681,9 +1829,33 @@ function OverviewTab({
 
         {showLeadership && (
           <div className="grid gap-3 sm:grid-cols-3 items-stretch">
-            <LeadershipBlock title="Senior Project Managers" role="Senior Project Manager" people={spms} project={project} viewOnly={!isDhanshree} />
-            <LeadershipBlock title="Project Managers" role="Project Manager" people={pms} unassigned={isNewWbsProject} project={project} viewOnly={!isDhanshree && !isSeniorPm} />
-            <LeadershipBlock title="Team Leads" role="Team Lead" people={tls} unassigned={isNewWbsProject} project={project} viewOnly={!isDhanshree && !isSeniorPm && !isProjectManager} />
+            <LeadershipBlock
+              title="Senior Project Managers"
+              role="Senior Project Manager"
+              people={spms}
+              unassigned={isWbsCreated ? spms.length === 0 : false}
+              hideChange={isWbsCreated && !hasAllocatedSpm}
+              project={project}
+              viewOnly={!isDhanshree}
+            />
+            <LeadershipBlock
+              title="Project Managers"
+              role="Project Manager"
+              people={pms}
+              unassigned={isWbsCreated ? pms.length === 0 : isNewWbsProject}
+              hideChange={isWbsCreated && !hasAllocatedPm}
+              project={project}
+              viewOnly={!isDhanshree && !isSeniorPm}
+            />
+            <LeadershipBlock
+              title="Team Leads"
+              role="Team Lead"
+              people={tls}
+              unassigned={isWbsCreated ? tls.length === 0 : isNewWbsProject}
+              hideChange={isWbsCreated}
+              project={project}
+              viewOnly={!isDhanshree && !isSeniorPm && !isProjectManager}
+            />
           </div>
         )}
       </div>
@@ -1914,7 +2086,7 @@ function PeopleBlock({ title, people, unassigned }: { title: string; people: Per
 
 // ---------- Leadership Block (Dhanshree only) — chips + Change Leader button ----------
 function LeadershipBlock({
-  title, role, people, unassigned, project, viewOnly = false,
+  title, role, people, unassigned, project, viewOnly = false, hideChange = false,
 }: {
   title: string;
   role: LeadershipRole;
@@ -1922,6 +2094,7 @@ function LeadershipBlock({
   unassigned?: boolean;
   project: Project;
   viewOnly?: boolean;
+  hideChange?: boolean;
 }) {
   const [showPanel, setShowPanel] = useState(false);
   return (
@@ -1943,7 +2116,7 @@ function LeadershipBlock({
           ))
         )}
       </div>
-      {!viewOnly && (
+      {!viewOnly && !hideChange && (
         <button
           onClick={() => setShowPanel(true)}
           className="mt-auto w-full h-7 rounded-md border border-primary/40 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 transition-colors"
@@ -3195,7 +3368,26 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
   const projectTeamOverrides = snapshot.projectTeamDetails[project.id] ?? {};
   const projectTeamAdditionIds = snapshot.projectTeamAdditions[project.id] ?? [];
 
+  const isWbsCreated = Boolean(project.wbsDetails);
+  const teamLeadIds = new Set(snapshot.leadershipAssignments[project.id]?.tlIds ?? []);
+
   const rows = useMemo(() => {
+    // WBS-created projects start with no team. Members are only those added
+    // from this tab — not the placeholder pmId/tlId written at Create WBS.
+    if (isWbsCreated) {
+      return projectTeamAdditionIds
+        .filter((id) => !removedIds.has(id))
+        .map((id) => {
+          const person = getPerson(id);
+          const detail = projectTeamOverrides[id] ?? {
+            duration: "",
+            billability: "Billable" as Billability,
+            resourceType: "Dedicated" as ResourceType,
+          };
+          return { person, ...detail };
+        });
+    }
+
     // Base members from project (PM, TL, team)
     const base = getProjectTeam(project)
       .filter((r) => !removedIds.has(r.person.id))
@@ -3218,7 +3410,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
       });
 
     return [...base, ...additions];
-  }, [project, projectTeamOverrides, projectTeamAdditionIds, removedIds]);
+  }, [project, projectTeamOverrides, projectTeamAdditionIds, removedIds, isWbsCreated]);
 
   const shadowRows = useMemo(() => {
     return shadowTeamIds.map(id => {
@@ -3302,7 +3494,14 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                   <div className="flex items-center gap-2.5">
                     <Avatar name={r.person.name} size={28} />
                     <div>
-                      <div className="text-sm font-semibold leading-tight">{r.person.name}</div>
+                      <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
+                        {r.person.name}
+                        {teamLeadIds.has(r.person.id) && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
+                            <Crown className="h-2.5 w-2.5" /> Team Lead
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-muted-foreground leading-tight">{r.person.role}</div>
                     </div>
                   </div>
@@ -3351,7 +3550,27 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                     </>
                     )}
                     {menuOpen === r.person.id && (
-                      <div className="absolute right-0 top-9 z-10 w-44 overflow-hidden rounded-md border border-border bg-card shadow-lg" onMouseLeave={() => setMenuOpen(null)}>
+                      <div className="absolute right-0 top-9 z-10 w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg" onMouseLeave={() => setMenuOpen(null)}>
+                        {isWbsCreated && (
+                          <button
+                            onClick={() => {
+                              setMenuOpen(null);
+                              const current = snapshot.leadershipAssignments[project.id]?.tlIds ?? [];
+                              const next = current.includes(r.person.id)
+                                ? current.filter((id) => id !== r.person.id)
+                                : [...current, r.person.id];
+                              dhStore.updateLeadershipAssignment(project.id, "Team Lead", next);
+                              toast.success(
+                                current.includes(r.person.id) ? "Team Lead removed" : "Team Lead assigned",
+                                { description: r.person.name },
+                              );
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent"
+                          >
+                            <Crown className="h-3.5 w-3.5 text-muted-foreground" />
+                            {teamLeadIds.has(r.person.id) ? "Remove Team Lead" : "Set as Team Lead"}
+                          </button>
+                        )}
                         {[
                           { k: "praise", label: "Give Praise", icon: Star },
                           { k: "feedback", label: "Give Feedback", icon: MessageSquare },
@@ -3410,7 +3629,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
           teamType={teamTab}
           existingPersonIds={(teamTab === "project" ? rows : shadowRows).map((r) => r.person.id)}
           onClose={() => setShowAddModal(false)}
-          onAdd={(newRow) => {
+          onAdd={(newRow, extras) => {
             if (teamTab === "project") {
               dhStore.addProjectTeamMember(
                 project.id,
@@ -3419,6 +3638,12 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                 newRow.billability,
                 newRow.resourceType,
               );
+              if (extras?.asTeamLead) {
+                const current = snapshot.leadershipAssignments[project.id]?.tlIds ?? [];
+                if (!current.includes(newRow.person.id)) {
+                  dhStore.updateLeadershipAssignment(project.id, "Team Lead", [...current, newRow.person.id]);
+                }
+              }
             } else {
               dhStore.addShadowMember(project.id, newRow.person.id, newRow.duration, "Non-Billable", "Shared Resource");
             }
@@ -3630,12 +3855,13 @@ function AddTeamMemberModal({
   teamType?: TeamTabType;
   existingPersonIds: string[];
   onClose: () => void;
-  onAdd: (row: ReturnType<typeof getProjectTeam>[number]) => void;
+  onAdd: (row: ReturnType<typeof getProjectTeam>[number], extras?: { asTeamLead?: boolean }) => void;
 }) {
   const [selectedPersonId, setSelectedPersonId] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
   const [billability, setBillability] = useState<Billability>("Billable");
   const [resourceType, setResourceType] = useState<ResourceType>("Dedicated");
+  const [asTeamLead, setAsTeamLead] = useState(false);
 
   // Filter out already assigned people
   const availablePeople = people.filter((p) => !existingPersonIds.includes(p.id));
@@ -3658,7 +3884,7 @@ function AddTeamMemberModal({
       resourceType,
     };
 
-    onAdd(newRow);
+    onAdd(newRow, teamType === "project" ? { asTeamLead } : undefined);
   };
 
   return (
@@ -3729,6 +3955,20 @@ function AddTeamMemberModal({
             </div>
           )}
         </Field>
+
+        {teamType === "project" && Boolean(project.wbsDetails) && (
+          <label className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              checked={asTeamLead}
+              onChange={(e) => setAsTeamLead(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-input"
+            />
+            <span className="flex items-center gap-1.5 font-medium">
+              <Crown className="h-3.5 w-3.5 text-primary" /> Set as Team Lead
+            </span>
+          </label>
+        )}
 
         <Field label="Resource Type" required>
           {teamType === "shadow" ? (
@@ -5240,11 +5480,6 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
   const canProjectStart = allCollected && allValidated && prereq.assignedPmIds.length > 0 && prereq.assignedSpmIds.length > 0;
 
   // Get team pool
-  const teamPool = useMemo(() => {
-    const ids = Array.from(new Set([project.pmId, project.tlId, ...project.teamIds]));
-    return ids.map(getPerson);
-  }, [project]);
-
   const stakeholders = useMemo(() => {
     const list: Person[] = [];
 
@@ -5294,9 +5529,6 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
 
     return list;
   }, [project, clientInfo, prereq.assignedSpmIds]);
-
-  const pmPeople = teamPool.filter(p => prereq.assignedPmIds.includes(p.id));
-  const spmPeople = teamPool.filter(p => prereq.assignedSpmIds.includes(p.id));
 
   const statusColor = (status: string) => {
     if (status === "Completed" || status === "Validated" || status === "Collected" || status === "Ready To Start") return "border-success/30 bg-success/10 text-success";
@@ -5464,24 +5696,30 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
               <div>
                 <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Project Managers</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {pmPeople.map(p => (
-                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium">
-                      <Avatar name={p.name} size={14} /> {p.name}
-                    </span>
-                  ))}
-                  {pmPeople.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
+                  {prereq.assignedPmIds.map((id) => {
+                    const p = getPerson(id);
+                    return (
+                      <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium">
+                        <Avatar name={p.name} size={14} /> {p.name}
+                      </span>
+                    );
+                  })}
+                  {prereq.assignedPmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
                 </div>
               </div>
 
               <div>
                 <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Senior PMs</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {spmPeople.map(p => (
-                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium">
-                      <Avatar name={p.name} size={14} /> {p.name}
-                    </span>
-                  ))}
-                  {spmPeople.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
+                  {prereq.assignedSpmIds.map((id) => {
+                    const p = getPerson(id);
+                    return (
+                      <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium">
+                        <Avatar name={p.name} size={14} /> {p.name}
+                      </span>
+                    );
+                  })}
+                  {prereq.assignedSpmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
                 </div>
               </div>
             </div>
@@ -5891,7 +6129,6 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
         <WbsAssignmentModal
           project={project}
           prereq={prereq}
-          teamPool={teamPool}
           clientInfo={clientInfo}
           mode={assignModalMode}
           onClose={() => setAssignModalMode(null)}
@@ -5905,14 +6142,12 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
 function WbsAssignmentModal({
   project,
   prereq,
-  teamPool,
   clientInfo,
   mode,
   onClose,
 }: {
   project: Project;
   prereq: DhProjectPrereq;
-  teamPool: Person[];
   clientInfo: { name: string; type: "NEW" | "OLD"; previousPmIds: string[] } | null;
   mode: "pm" | "spm";
   onClose: () => void;
@@ -5922,22 +6157,20 @@ function WbsAssignmentModal({
   const [pmQuery, setPmQuery] = useState("");
   const [spmQuery, setSpmQuery] = useState("");
 
-  // Show all available team members regardless of client type
-  const filteredPool = useMemo(() => {
-    return teamPool;
-  }, [teamPool]);
+  const pmPool = useMemo(() => people.filter((p) => p.role === "PM"), []);
+  const spmPool = useMemo(() => people.filter((p) => p.role === "Senior PM"), []);
 
-  const pmVisiblePool = filteredPool.filter(p =>
+  const pmVisiblePool = pmPool.filter(p =>
     !selectedSPMs.includes(p.id) &&
     (!pmQuery.trim() || p.name.toLowerCase().includes(pmQuery.toLowerCase()))
   );
-  const spmVisiblePool = filteredPool.filter(p =>
+  const spmVisiblePool = spmPool.filter(p =>
     !selectedPMs.includes(p.id) &&
     (!spmQuery.trim() || p.name.toLowerCase().includes(spmQuery.toLowerCase()))
   );
 
-  const selectedPMPeople = filteredPool.filter(p => selectedPMs.includes(p.id));
-  const selectedSPMPeople = filteredPool.filter(p => selectedSPMs.includes(p.id));
+  const selectedPMPeople = pmPool.filter(p => selectedPMs.includes(p.id));
+  const selectedSPMPeople = spmPool.filter(p => selectedSPMs.includes(p.id));
 
   const togglePM = (id: string) => {
     setSelectedPMs(s => (s.includes(id) ? s.filter(x => x !== id) : [...s, id]));

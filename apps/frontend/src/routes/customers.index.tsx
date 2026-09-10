@@ -94,7 +94,7 @@ type CustomerListRow = {
 };
 
 const CUSTOMER_METRIC_TD_CLS = "px-2 text-center";
-const CUSTOMER_HEADER_CELL_CLS = "px-3 text-left";
+const CUSTOMER_HEADER_CELL_CLS = "px-2 text-center align-middle";
 const CUSTOMER_METRIC_COL_WIDTH = "6.25rem"; /* 100px — fits "Completed" + sort icon */
 
 /** Fixed column widths so metric headers stay evenly spaced (table-fixed redistributes slack otherwise). */
@@ -210,7 +210,7 @@ function SortableTh<T extends string>({
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1 text-left text-xs font-semibold transition-colors select-none",
+          "group mx-auto inline-flex items-center justify-center gap-1 text-center text-xs font-semibold transition-colors select-none",
           active
             ? "text-blue-600 dark:text-blue-400 font-bold"
             : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
@@ -736,7 +736,7 @@ function CustomersPage() {
                 <col key={CUSTOMER_LIST_COLUMNS[idx].key} style={{ width }} />
               ))}
             </colgroup>
-            <thead className="sticky top-0 z-10 bg-blue-100/80 text-left text-xs text-slate-700 shadow-[inset_0_-2px_0_0_#93c5fd] dark:bg-blue-950/55 dark:text-blue-100 dark:shadow-[inset_0_-2px_0_0_#1e3a8a]">
+            <thead className="sticky top-0 z-10 bg-blue-100/80 text-center text-xs text-slate-700 shadow-[inset_0_-2px_0_0_#93c5fd] dark:bg-blue-950/55 dark:text-blue-100 dark:shadow-[inset_0_-2px_0_0_#1e3a8a]">
               <tr>
                 {CUSTOMER_LIST_COLUMNS.map((col, idx, cols) => (
                   <SortableTh
@@ -766,8 +766,7 @@ function CustomersPage() {
                   return (
                     <tr
                       key={c.id}
-                      onClick={() => navigate({ to: "/customers/$clientId", params: { clientId: c.id } })}
-                      className="group/row cursor-pointer bg-card hover:bg-blue-50/30 dark:hover:bg-muted/30 transition-colors"
+                      className="bg-card hover:bg-blue-50/30 dark:hover:bg-muted/30 transition-colors"
                     >
                       {/* Customer */}
                       <td className="px-3 py-2.5">
@@ -776,9 +775,15 @@ function CustomersPage() {
                             {c.logo}
                           </span>
                           <div className="min-w-0">
-                            <span className="block truncate font-medium text-foreground hover:text-primary transition-colors">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                navigate({ to: "/customers/$clientId", params: { clientId: c.id } })
+                              }
+                              className="block max-w-full truncate text-left font-medium text-foreground hover:text-primary hover:underline transition-colors cursor-pointer"
+                            >
                               {c.name}
-                            </span>
+                            </button>
                             <span className="font-mono text-[10px] text-muted-foreground">
                               {formatCustomerId(c.id)}
                             </span>
@@ -818,8 +823,6 @@ function CustomersPage() {
                             "border-slate-300 dark:border-slate-600 bg-slate-100/90 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200",
                             "hover:bg-[#1d1d1f] hover:text-white hover:border-[#1d1d1f] dark:hover:bg-white dark:hover:text-[#1d1d1f] dark:hover:border-white",
                             "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
-                            // E: hovering anywhere on the row lifts all counts so they read as buttons
-                            "group-hover/row:shadow-md group-hover/row:scale-105",
                             total === 0 && "opacity-40 hover:opacity-100",
                           )}
                           title={`Click to filter: ${total} Total Projects`}
@@ -845,8 +848,6 @@ function CustomersPage() {
                             "border-[#0071e3]/60 bg-[#0071e3]/10 text-[#0071e3] dark:border-[#0071e3]/70 dark:bg-[#0071e3]/20 dark:text-[#388bfd]",
                             "hover:bg-[#0071e3] hover:text-white hover:border-[#0071e3]",
                             "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
-                            // E: hovering anywhere on the row lifts all counts so they read as buttons
-                            "group-hover/row:shadow-md group-hover/row:scale-105",
                             newCount === 0 && "opacity-40 hover:opacity-100",
                           )}
                           title={`Click to filter: ${newCount} New Projects`}
@@ -872,8 +873,6 @@ function CustomersPage() {
                             "border-[#5856d6]/60 bg-[#5856d6]/10 text-[#5856d6] dark:border-[#5856d6]/70 dark:bg-[#5856d6]/20 dark:text-[#8b89f7]",
                             "hover:bg-[#5856d6] hover:text-white hover:border-[#5856d6]",
                             "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
-                            // E: hovering anywhere on the row lifts all counts so they read as buttons
-                            "group-hover/row:shadow-md group-hover/row:scale-105",
                             ongoing === 0 && "opacity-40 hover:opacity-100",
                           )}
                           title={`Click to filter: ${ongoing} Ongoing Projects`}
@@ -899,8 +898,6 @@ function CustomersPage() {
                             "border-[#34c759]/60 bg-[#34c759]/10 text-[#248a3d] dark:border-[#34c759]/70 dark:bg-[#34c759]/20 dark:text-[#3cdb63]",
                             "hover:bg-[#34c759] hover:text-white hover:border-[#34c759]",
                             "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
-                            // E: hovering anywhere on the row lifts all counts so they read as buttons
-                            "group-hover/row:shadow-md group-hover/row:scale-105",
                             completed === 0 && "opacity-40 hover:opacity-100",
                           )}
                           title={`Click to filter: ${completed} Completed Projects`}
@@ -926,8 +923,6 @@ function CustomersPage() {
                             "border-[#ff9500]/60 bg-[#ff9500]/10 text-[#cc7700] dark:border-[#ff9500]/70 dark:bg-[#ff9500]/20 dark:text-[#ff9500]",
                             "hover:bg-[#ff9500] hover:text-white hover:border-[#ff9500]",
                             "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
-                            // E: hovering anywhere on the row lifts all counts so they read as buttons
-                            "group-hover/row:shadow-md group-hover/row:scale-105",
                             onHold === 0 && "opacity-40 hover:opacity-100",
                           )}
                           title={`Click to filter: ${onHold} On Hold Projects`}
@@ -953,8 +948,6 @@ function CustomersPage() {
                             "border-[#8e8e93]/60 bg-[#8e8e93]/10 text-[#636366] dark:border-[#8e8e93]/70 dark:bg-[#8e8e93]/20 dark:text-[#a0a0a5]",
                             "hover:bg-[#8e8e93] hover:text-white hover:border-[#8e8e93]",
                             "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
-                            // E: hovering anywhere on the row lifts all counts so they read as buttons
-                            "group-hover/row:shadow-md group-hover/row:scale-105",
                             archived === 0 && "opacity-40 hover:opacity-100",
                           )}
                           title={`Click to filter: ${archived} Archived Projects`}

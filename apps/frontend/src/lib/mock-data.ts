@@ -69,6 +69,7 @@ export interface WBSNode {
 export interface WbsService {
   id: string;
   department: string;
+  subDepartment?: string;
   serviceName: string;
   qty: number;
   description: string;
@@ -118,6 +119,8 @@ export interface WBSDetails {
     contactNumber?: string;
     contactEmail?: string;
     poFileName?: string;
+    /** data URL of the attached PO file (in-memory; used for View after upload). */
+    poFileDataUrl?: string;
     invoices: WbsInvoice[];
   };
 }

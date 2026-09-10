@@ -3,8 +3,9 @@ import {
   buildOnboardingProjectName,
   countProjectsForClient,
   formatClientProjectCount,
+  projectNameDescriptor,
   resolveOnboardingProjectName,
-  uniqueServiceNames,
+  uniqueTrimmedNames,
 } from "./onboarding-project-name";
 
 describe("formatClientProjectCount", () => {
@@ -16,12 +17,45 @@ describe("formatClientProjectCount", () => {
   });
 });
 
-describe("uniqueServiceNames", () => {
+describe("uniqueTrimmedNames", () => {
   it("drops blanks and keeps first-seen casing", () => {
-    expect(uniqueServiceNames([" Infra PT ", "", "AppSec PT", "infra pt"])).toEqual([
-      "Infra PT",
-      "AppSec PT",
-    ]);
+    expect(
+      uniqueTrimmedNames([" Network Penetration Testing ", "", "Web Application Security", "network penetration testing"]),
+    ).toEqual(["Network Penetration Testing", "Web Application Security"]);
+  });
+});
+
+describe("projectNameDescriptor", () => {
+  it("uses the sub-department when one service is selected", () => {
+    expect(projectNameDescriptor(["Network Penetration Testing"])).toBe(
+      "Network Penetration Testing",
+    );
+  });
+
+  it("uses the shared sub-department when every service has the same one", () => {
+    expect(
+      projectNameDescriptor([
+        "Network Penetration Testing",
+        "Network Penetration Testing",
+        "Network Penetration Testing",
+      ]),
+    ).toBe("Network Penetration Testing");
+  });
+
+  it("uses Mixed when selected services have different sub-departments", () => {
+    expect(
+      projectNameDescriptor([
+        "Network Penetration Testing",
+        "Web Application Security",
+        "Mobile Application Security",
+      ]),
+    ).toBe("Mixed");
+  });
+
+  it("uses Mixed even when those sub-departments share a department", () => {
+    expect(
+      projectNameDescriptor(["Network Penetration Testing", "API Penetration Testing"]),
+    ).toBe("Mixed");
   });
 });
 
@@ -39,26 +73,62 @@ describe("countProjectsForClient", () => {
 });
 
 describe("buildOnboardingProjectName", () => {
-  it("uses the service name when only one service is selected", () => {
+  it("uses the sub-department when only one service is selected", () => {
     expect(
       buildOnboardingProjectName({
         clientName: "Kotak",
         subVentureName: "Kotak Securities",
-        serviceNames: ["Infra PT"],
+        subDepartmentNames: ["Network Penetration Testing"],
         existingClientProjectCount: 0,
       }),
-    ).toBe("Kotak(Kotak Securities)_Infra PT_01");
+    ).toBe("Kotak(Kotak Securities)_Network Penetration Testing_01");
   });
 
-  it("uses Mixed when more than one service is selected", () => {
+  it("does not use the service name or the department name", () => {
+    const name = buildOnboardingProjectName({
+      clientName: "Kotak",
+      subVentureName: "Kotak Securities",
+      subDepartmentNames: ["Network Penetration Testing"],
+      existingClientProjectCount: 0,
+    });
+    expect(name).not.toContain("External Network Penetration Testing");
+    expect(name).not.toBe("Kotak(Kotak Securities)_Penetration Testing_01");
+  });
+
+  it("uses the same sub-department when multiple services share it", () => {
     expect(
       buildOnboardingProjectName({
         clientName: "Kotak",
         subVentureName: "Kotak Securities",
-        serviceNames: ["Infra PT", "AppSec PT", "Cloud Security"],
+        subDepartmentNames: [
+          "Network Penetration Testing",
+          "Network Penetration Testing",
+        ],
         existingClientProjectCount: 1,
       }),
-    ).toBe("Kotak(Kotak Securities)_Mixed_02");
+    ).toBe("Kotak(Kotak Securities)_Network Penetration Testing_02");
+  });
+
+  it("uses Mixed when selected services belong to different sub-departments", () => {
+    expect(
+      buildOnboardingProjectName({
+        clientName: "Kotak",
+        subVentureName: "Kotak Securities",
+        subDepartmentNames: ["Network Penetration Testing", "Web Application Security"],
+        existingClientProjectCount: 2,
+      }),
+    ).toBe("Kotak(Kotak Securities)_Mixed_03");
+  });
+
+  it("uses Mixed when services come from different departments", () => {
+    expect(
+      buildOnboardingProjectName({
+        clientName: "Kotak",
+        subVentureName: "Kotak Securities",
+        subDepartmentNames: ["Network Penetration Testing", "Network Vulnerability Assessment"],
+        existingClientProjectCount: 3,
+      }),
+    ).toBe("Kotak(Kotak Securities)_Mixed_04");
   });
 
   it("keeps a hyphenated sub-venture name as-is", () => {
@@ -66,7 +136,7 @@ describe("buildOnboardingProjectName", () => {
       buildOnboardingProjectName({
         clientName: "Kotak",
         subVentureName: "Kotak Securities-Neo",
-        serviceNames: ["Infra PT", "AppSec PT"],
+        subDepartmentNames: ["Network Penetration Testing", "Web Application Security"],
         existingClientProjectCount: 2,
       }),
     ).toBe("Kotak(Kotak Securities-Neo)_Mixed_03");
@@ -75,10 +145,10 @@ describe("buildOnboardingProjectName", () => {
       buildOnboardingProjectName({
         clientName: "Kotak",
         subVentureName: "Kotak Securities-Neo",
-        serviceNames: ["Infra PT"],
+        subDepartmentNames: ["Network Penetration Testing"],
         existingClientProjectCount: 3,
       }),
-    ).toBe("Kotak(Kotak Securities-Neo)_Infra PT_04");
+    ).toBe("Kotak(Kotak Securities-Neo)_Network Penetration Testing_04");
   });
 
   it("continues the client count across later projects", () => {
@@ -86,22 +156,23 @@ describe("buildOnboardingProjectName", () => {
       buildOnboardingProjectName({
         clientName: "Kotak",
         subVentureName: "Kotak Securities",
-        serviceNames: ["AppSec PT"],
+        subDepartmentNames: ["Web Application Penetration Testing"],
         existingClientProjectCount: 1,
       }),
-    ).toBe("Kotak(Kotak Securities)_AppSec PT_02");
+    ).toBe("Kotak(Kotak Securities)_Web Application Penetration Testing_02");
   });
 
-  it("stays empty until client, sub-venture, and a service are all present", () => {
+  it("stays empty until client, sub-venture, and a sub-department are all present", () => {
     const base = {
       clientName: "Kotak",
       subVentureName: "Kotak Securities",
-      serviceNames: ["Infra PT"],
+      subDepartmentNames: ["Network Penetration Testing"],
       existingClientProjectCount: 0,
     };
     expect(buildOnboardingProjectName({ ...base, clientName: "" })).toBe("");
     expect(buildOnboardingProjectName({ ...base, subVentureName: "  " })).toBe("");
-    expect(buildOnboardingProjectName({ ...base, serviceNames: [] })).toBe("");
+    expect(buildOnboardingProjectName({ ...base, subDepartmentNames: [] })).toBe("");
+    expect(buildOnboardingProjectName({ ...base, subDepartmentNames: ["  "] })).toBe("");
   });
 });
 
@@ -109,7 +180,7 @@ describe("resolveOnboardingProjectName", () => {
   const generatedArgs = {
     clientName: "Kotak",
     subVentureName: "Kotak Securities",
-    serviceNames: ["AppSec PT"],
+    subDepartmentNames: ["Web Application Penetration Testing"],
     existingClientProjectCount: 1,
   };
 
@@ -137,7 +208,7 @@ describe("resolveOnboardingProjectName", () => {
         isRenewal: true,
         previousProjectName: "Kotak(Kotak Securities)_Infra PT_01",
       }),
-    ).not.toBe("Kotak(Kotak Securities)_AppSec PT_02");
+    ).not.toBe("Kotak(Kotak Securities)_Web Application Penetration Testing_02");
   });
 
   it("uses the generated name for a normal new project", () => {
@@ -147,6 +218,6 @@ describe("resolveOnboardingProjectName", () => {
         isRenewal: false,
         previousProjectName: "Kotak(Kotak Securities)_Infra PT_01",
       }),
-    ).toBe("Kotak(Kotak Securities)_AppSec PT_02");
+    ).toBe("Kotak(Kotak Securities)_Web Application Penetration Testing_02");
   });
 });
