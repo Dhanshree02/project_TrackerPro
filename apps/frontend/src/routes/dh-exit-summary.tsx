@@ -636,11 +636,7 @@ function ExitSummaryPage() {
 
                       {/* Employee Profile */}
                       <td className="w-64 min-w-[200px] whitespace-nowrap px-4 py-3 font-medium">
-                        <Link
-                          to="/dh-employee-directory/$id"
-                          params={{ id: e.id }}
-                          className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors min-w-0"
-                        >
+                        <div className="flex items-center gap-2.5 text-foreground min-w-0">
                           <Avatar name={e.fullName} size={30} />
                           <div className="truncate">
                             <span className="font-semibold block text-xs truncate" title={e.fullName}>{e.fullName}</span>
@@ -648,7 +644,7 @@ function ExitSummaryPage() {
                               {e.designationName || "Ex-Employee"}
                             </span>
                           </div>
-                        </Link>
+                        </div>
                       </td>
 
                       {/* Department */}
