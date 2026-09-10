@@ -25,7 +25,12 @@ import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { Avatar } from "@/components/pills";
 import { cn } from "@/lib/utils";
-import { fetchAllExitedEmployees, type ApiExitedEmployee } from "@/lib/api/employees";
+import {
+  fetchAllExitedEmployees,
+  fetchDepartmentOptions,
+  type ApiExitedEmployee,
+  type ApiMetaOption,
+} from "@/lib/api/employees";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 
@@ -63,9 +68,9 @@ type ExitSortKey =
 type SortDir = "asc" | "desc";
 
 const EXIT_COLUMNS: { label: string; key: ExitSortKey; className?: string }[] = [
-  { label: "Emp ID", key: "employeeCode", className: "w-36 min-w-[125px]" },
+  { label: "TK ID", key: "employeeCode", className: "w-36 min-w-[125px]" },
   { label: "Employee", key: "fullName", className: "w-64 min-w-[200px]" },
-  { label: "Department & Role", key: "departmentName", className: "w-56 min-w-[180px]" },
+  { label: "Department", key: "departmentName", className: "w-48 min-w-[150px]" },
   { label: "Exit Type", key: "exitType", className: "w-36 min-w-[130px]" },
   { label: "Exit Reason", key: "exitReason", className: "w-64 min-w-[200px]" },
   { label: "Last Working Day", key: "lastWorkingDay", className: "w-48 min-w-[170px]" },
@@ -222,6 +227,7 @@ function ExitSummaryPage() {
   const [typeFilter, setTypeFilter] = useState("");
   const [datePeriodFilter, setDatePeriodFilter] = useState<"all" | "this-month" | "last-3-months" | "this-year">("all");
   const [exits, setExits] = useState<ApiExitedEmployee[]>([]);
+  const [deptCatalog, setDeptCatalog] = useState<ApiMetaOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<ExitSortKey>("exitedAtUtc");
@@ -250,16 +256,22 @@ function ExitSummaryPage() {
   useEffect(() => {
     if (authStatus !== "authed") return;
     void loadExitedData();
+    void fetchDepartmentOptions()
+      .then(setDeptCatalog)
+      .catch(() => undefined);
   }, [authStatus]);
 
   const hasAccess = isDhanshree || isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
   if (!hasAccess) return <Navigate to="/" />;
 
-  const departments = useMemo(
-    () =>
-      Array.from(
-        new Set(exits.map((e) => e.departmentName).filter((d): d is string => Boolean(d))),
-      ).sort(),
+  const departments = useMemo(() => {
+    const fromCatalog = deptCatalog.map((d) => d.name).filter(Boolean);
+    const fromExits = exits.map((e) => e.departmentName).filter((d): d is string => Boolean(d));
+    return Array.from(new Set([...fromCatalog, ...fromExits])).sort();
+  }, [deptCatalog, exits]);
+
+  const impactedDeptsCount = useMemo(
+    () => new Set(exits.map((e) => e.departmentName).filter(Boolean)).size,
     [exits],
   );
 
@@ -462,7 +474,7 @@ function ExitSummaryPage() {
               Depts Impacted
             </div>
             <div className="text-2xl font-bold mt-0.5 tabular-nums text-blue-600 dark:text-blue-400">
-              {departments.length}
+              {impactedDeptsCount}
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">Across organization</div>
           </div>
@@ -481,7 +493,7 @@ function ExitSummaryPage() {
                 type="text"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search by name, ID, department, or reason…"
+                placeholder="Search by name, TK ID, department, or reason…"
                 className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-8 text-xs font-normal text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary transition-all"
               />
               {q && (
@@ -582,7 +594,7 @@ function ExitSummaryPage() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={`skel-${i}`} className="animate-pulse">
-                      <td className="w-28 min-w-[100px] px-4 py-3.5">
+                      <td className="w-36 min-w-[125px] px-4 py-3.5">
                         <div className="h-4 w-16 rounded bg-muted" />
                       </td>
                       <td className="w-64 min-w-[200px] px-4 py-3.5">
@@ -594,7 +606,7 @@ function ExitSummaryPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="w-56 min-w-[180px] px-4 py-3.5">
+                      <td className="w-48 min-w-[150px] px-4 py-3.5">
                         <div className="h-3.5 w-28 rounded bg-muted" />
                       </td>
                       <td className="w-36 min-w-[130px] px-4 py-3.5">
@@ -617,8 +629,8 @@ function ExitSummaryPage() {
                       key={e.id}
                       className="group transition-colors hover:bg-accent/30"
                     >
-                      {/* Emp ID */}
-                      <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground font-medium truncate" title={e.employeeCode}>
+                      {/* TK ID */}
+                      <td className="w-36 min-w-[125px] whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground font-medium truncate" title={e.employeeCode}>
                         {e.employeeCode}
                       </td>
 
@@ -639,10 +651,11 @@ function ExitSummaryPage() {
                         </Link>
                       </td>
 
-                      {/* Department & Role */}
-                      <td className="w-56 min-w-[180px] whitespace-nowrap px-4 py-3 truncate">
-                        <div className="text-xs font-medium text-foreground truncate" title={e.departmentName || "—"}>{e.departmentName || "—"}</div>
-                        <div className="text-[11px] text-muted-foreground truncate" title={e.designationName || "—"}>{e.designationName || "—"}</div>
+                      {/* Department */}
+                      <td className="w-48 min-w-[150px] whitespace-nowrap px-4 py-3 truncate">
+                        <span className="text-xs font-medium text-foreground truncate block" title={e.departmentName || "—"}>
+                          {e.departmentName || "—"}
+                        </span>
                       </td>
 
                       {/* Exit Type */}

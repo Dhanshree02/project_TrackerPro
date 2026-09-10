@@ -232,9 +232,6 @@ function OffboardConfirmDialog({
               readOnly
               className={cn(readOnlyCls, errors.lastWorkingDay && "border-destructive")}
             />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Calculated as resignation date + notice period days.
-            </p>
             {errors.lastWorkingDay ? (
               <p className="mt-1 text-[11px] text-destructive">{errors.lastWorkingDay}</p>
             ) : null}
