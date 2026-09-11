@@ -5,9 +5,23 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-10
+**Last updated:** 2026-09-11
 
 ## Latest
+
+- **Local DB now has the same application data as the shared Docker DB.** After a schema compare, shared-only leftovers (`mst_entra_roles`, `users.AuthProvider`, `users.MicrosoftOid`) were **not** added — they are unused by current code. All 32 app tables were truncated locally and copied from `10.50.30.189` (read-only). Row counts now match (16 clients, 64 sub-ventures, 27 employees, 25 users, …). Pre-sync backup: `%TEMP%\trackerpro-local-before-shared-sync.dump`. Backend `PMS.API` is connected to local `trackerpro` from `::1`.
+
+- **Backend now runs on LOCAL PostgreSQL 18 (`localhost:5432`, db `trackerpro`, user `trackerpro`).** Root `.env` `ConnectionStrings__DefaultConnection` points at localhost; the shared `10.50.30.189` string is kept directly below it, commented out — swap the two lines to go back to the office DB. `.env` is gitignored, so no credentials are committed. Verified via `pg_stat_activity`: `PMS.API` connects from `::1` only.
+
+- **New `database/trackerpro-local.sql`** (32 app tables + `__EFMigrationsHistory`, 29 FKs, 64 indexes, 504 master rows). `database/trackerpro-final.sql` is untouched. Sections: (1) EF idempotent migration script for all 28 repo migrations, (2) runtime schema alignment mirroring `DbInitializerHostedService`, (3) master/reference data pulled read-only from the shared DB with `ON CONFLICT DO NOTHING`. No DROP DATABASE / DROP SCHEMA / DROP TABLE / DELETE / TRUNCATE. Regenerate section 1 with `dotnet ef migrations script --idempotent`. Users, clients, employees and repository rows are deliberately excluded — `DbSeeder` creates them on first run.
+
+- **Two real schema gaps found while generating it.** `employees."EmergencyContactName"` is mapped on `Employee` and read by `EmployeeService`, but no migration and no startup statement creates it — a migration-only DB 500s on every `/api/v1/employees` read. It is now added in section 2 of the local script (app code unchanged). Separately, the shared DB carries three migrations that no longer exist in the repo (`20260831101559_AddCountryPhoneFields`, `20260831103000_AddMissingResourceCatalogAndRepository`, `20260831115855_AddMstEntraRoles`), which left `mst_entra_roles` and `users."AuthProvider"/"MicrosoftOid"` there as orphans. Those are intentionally NOT in the local script.
+
+- **Local employee codes were renumbered `EMP-#### → TK-####`** (33 `employees` + 10 `exited_employees` rows; digits preserved, so `TK-` → `EMP-` reverses it). Migration `20260902180000_AddEmployeeCodeFormatCheck` only allows `TK-####`/`TKI-####`, and `GetEmployeesAsync` → `CompleteEndedNoticePeriodsAsync` writes on read, so the pre-revamp local dataset broke `/api/v1/employees` and startup seeding. `CK_employees_EmployeeCode_Format` is now VALIDATEd (no longer NOT VALID). Pre-change dump: `%TEMP%\trackerpro-local-backup-before-renumber.dump`.
+
+- **Backend has no Projects/WBS/Services/Tasks/Timesheet/Invoice tables.** `AppDbContext` has 30 DbSets covering auth, users/roles, clients/sub-ventures/contacts, employees, master catalogs and repository only. Project Onboarding, WBS, invoices and Action Centre are still frontend mock-driven, so no local DB work is pending for them.
+
+- **Working branch is now `sahil-project-backend`.** Created locally from `Sahil-backend-testing2` at `574dd86` (includes that branch’s project-onboarding commit). Clean working tree; not pushed yet. `Sahil-backend-testing2` is unchanged.
 
 - **Project Name uses Sub-Department (or Mixed), never service or department.** Format stays `{Client}({Sub-venture})_{descriptor}_{count}`. One selected service, or several that share the same sub-department → that sub-department name. Services from different sub-departments (even under one department) → `Mixed`. Client / sub-venture / client project count are unchanged. Renewal still keeps the previous name.
 
