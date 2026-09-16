@@ -371,5 +371,13 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
             ? NotFound(ApiResponse<EmployeeLookupDto>.Fail("NOT_FOUND", "Employee not found."))
             : Ok(ApiResponse<EmployeeLookupDto>.Ok(summary));
     }
+
+    [HttpGet("{idOrCode}/logs")]
+    [RequirePermission(Permissions.ResourcesRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<EmployeeActivityLogDto>>>> Logs(string idOrCode, CancellationToken ct)
+    {
+        var logs = await employees.GetEmployeeLogsAsync(idOrCode, ct);
+        return Ok(ApiResponse<IReadOnlyList<EmployeeActivityLogDto>>.Ok(logs));
+    }
 }
 

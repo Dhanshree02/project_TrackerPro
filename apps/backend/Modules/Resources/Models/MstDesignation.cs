@@ -14,5 +14,7 @@ public class MstDesignation : BaseEntity
 
     public MstDepartment? Department { get; set; }
 
+    public string? SubDepartment { get; set; }
+
     public ICollection<MstRole> Roles { get; set; } = [];
 }

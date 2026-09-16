@@ -71,6 +71,8 @@ public class AppDbContext(
 
     public DbSet<ExitedEmployee> ExitedEmployees => Set<ExitedEmployee>();
 
+    public DbSet<EmployeeActivityLog> EmployeeActivityLogs => Set<EmployeeActivityLog>();
+
     public DbSet<RepositoryItem> RepositoryItems => Set<RepositoryItem>();
 
     public DbSet<RepositoryActivityLog> RepositoryActivityLogs => Set<RepositoryActivityLog>();

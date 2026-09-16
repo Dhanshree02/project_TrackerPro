@@ -37,18 +37,15 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
         {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
 
-      {/* Center: Global Search Bar (Spotlight / Command Palette Style) */}
+      {/* Center: Global Search Bar */}
       <div className="hidden md:flex flex-1 max-w-md justify-center px-2">
         <div className="relative w-full group">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <input
             type="search"
             placeholder="Global search (projects, employees, customers)…"
-            className="h-9 w-full rounded-full border border-border/80 bg-muted/60 hover:bg-muted/90 pl-9 pr-14 text-xs outline-none transition-all focus-visible:border-primary focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/20 shadow-2xs text-foreground placeholder:text-muted-foreground"
+            className="h-9 w-full rounded-full border border-border/80 bg-muted/60 hover:bg-muted/90 pl-9 pr-3 text-xs outline-none transition-all focus-visible:border-primary focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/20 shadow-2xs text-foreground placeholder:text-muted-foreground"
           />
-          <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 select-none items-center gap-0.5 rounded border border-border/80 bg-card px-1.5 font-mono text-[10px] font-medium text-muted-foreground shadow-2xs">
-            ⌘K
-          </kbd>
         </div>
       </div>
 

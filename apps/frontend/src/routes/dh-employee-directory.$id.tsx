@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { X, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle, Clock, History, Mail, UserCheck, RefreshCw, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
@@ -9,8 +9,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   fetchEmployee,
+  fetchEmployeeLogs,
   offboardEmployee,
   toUiEmployee,
+  type EmployeeActivityLog,
 } from "@/lib/api/employees";
 import type { Employee } from "@/lib/employee-data";
 import { EmployeeFormModal } from "@/components/employee-form-modal";
@@ -26,6 +28,72 @@ export const Route = createFileRoute("/dh-employee-directory/$id")({
 });
 
 // ── Helpers ────────────────────────────────────────
+
+function formatDateTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function formatRelativeTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const diff = Date.now() - d.getTime();
+    const secs = Math.floor(diff / 1000);
+    if (secs < 60) return "Just now";
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+function EmpActionBadge({ action }: { action: string }) {
+  const norm = action.toLowerCase();
+  if (norm === "created") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+        <Plus className="h-3 w-3" /> Profile Created
+      </span>
+    );
+  }
+  if (norm === "updated") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+        <History className="h-3 w-3" /> Profile Updated
+      </span>
+    );
+  }
+  if (norm === "offboarded") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+        <AlertTriangle className="h-3 w-3" /> Offboarded
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-medium text-foreground">
+      {action}
+    </span>
+  );
+}
+
 
 function EmpStatusBadge({ status }: { status?: string }) {
   if (!status) return <span className="text-muted-foreground">—</span>;
@@ -285,6 +353,7 @@ const tabs = [
   { id: "employment", label: "Employment & Bond" },
   { id: "education", label: "Education & Experience" },
   { id: "pmo", label: "PMO Information" },
+  { id: "logs", label: "Activity Logs" },
 ] as const;
 
 // ── Main Page ──────────────────────────────────────
@@ -303,7 +372,22 @@ function EmployeeProfilePage() {
   const [offboardConfirmOpen, setOffboardConfirmOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
+  const [logs, setLogs] = useState<EmployeeActivityLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
   const employeeId = decodeURIComponent(id ?? "").trim();
+
+  const loadLogs = async (targetId: string) => {
+    setLoadingLogs(true);
+    try {
+      const data = await fetchEmployeeLogs(targetId);
+      setLogs(data);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
 
   // Load employee detail
   useEffect(() => {
@@ -320,6 +404,7 @@ function EmployeeProfilePage() {
         const loaded = toUiEmployee(detail);
         setEmp(loaded);
         setLoadError(false);
+        void loadLogs(employeeId);
       } catch {
         if (!cancelled) setLoadError(true);
       }
@@ -391,6 +476,8 @@ function EmployeeProfilePage() {
 
   const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
   const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "personal") : tabs;
+  const createdLog = logs.find((l) => l.action.toLowerCase() === "created") ?? logs[logs.length - 1];
+  const lastUpdatedLog = logs.find((l) => l.action.toLowerCase() === "updated");
 
   return (
     <AppShell
@@ -410,10 +497,10 @@ function EmployeeProfilePage() {
 
       {/* Profile Header */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-2xs">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex items-start gap-4 min-w-0 flex-1">
             <Avatar name={`${emp.firstName} ${emp.lastName}`} size={52} />
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-xl font-semibold tracking-tight text-foreground">
                   {emp.firstName} {emp.lastName}
@@ -429,27 +516,39 @@ function EmployeeProfilePage() {
                 {emp.designation || "—"} · {emp.department || "—"}
               </div>
               <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
-                <span>
+                <span className="whitespace-nowrap">
                   ID: <span className="font-mono font-medium text-foreground">{emp.id}</span>
                 </span>
-                <span>
+                <span className="whitespace-nowrap">
                   Email: <span className="font-medium text-foreground">{emp.email}</span>
                 </span>
-                <span>
+                <span className="whitespace-nowrap">
                   Work Location: <span className="font-medium text-foreground">{emp.workLocation || "—"}</span>
                 </span>
-                <span>
+                <span className="whitespace-nowrap">
                   Reporting Manager:{" "}
                   <span className="font-medium text-foreground">{emp.reportingManager || "—"}</span>
                 </span>
-                <span>
+                <span className="whitespace-nowrap">
                   Joining Date: <span className="font-medium text-foreground">{emp.joiningDate || "—"}</span>
                 </span>
+                {createdLog && (
+                  <span className="whitespace-nowrap inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <UserCheck className="h-3.5 w-3.5" />
+                    <span>Created by <strong className="font-semibold text-foreground">{createdLog.performedByEmail}</strong></span>
+                  </span>
+                )}
+                {lastUpdatedLog && (
+                  <span className="whitespace-nowrap inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                    <History className="h-3.5 w-3.5" />
+                    <span>Last edited by <strong className="font-semibold text-foreground">{lastUpdatedLog.performedByEmail}</strong></span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
           {!basicOnly && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setEditOpen(true)}
@@ -518,9 +617,6 @@ function EmployeeProfilePage() {
                 <Row label="On Floor Role" value={emp.role} />
                 <Row label="Reporting Manager" value={emp.reportingManager} />
                 <Row label="Work Location" value={emp.workLocation} />
-                {emp.workLocation === "Onsite" && (
-                  <Row label="Location (Onsite)" value={emp.projectSite || "—"} />
-                )}
               </Grid>
             </div>
           )}
@@ -595,7 +691,7 @@ function EmployeeProfilePage() {
                   label="Relevant Prior Experience"
                   value={emp.priorRelevantExp || "0"}
                 />
-                <div className="col-span-full border-t border-border pt-4 mt-2">
+                <div className="col-span-full pt-2.5">
                   <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-2.5">
                     Certifications
                   </div>
@@ -623,13 +719,125 @@ function EmployeeProfilePage() {
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="PMO Department" value={emp.pmoDepartment} />
-                <Row label="PMO Sub-Department" value={emp.subDepartment} />
                 <Row label="Billable / Non-Billable Status" value={emp.billableStatus} />
                 <Row label="Client Location" value={emp.clientLocation} />
                 <Row label="Project Type" value={emp.projectType} />
                 <Row label="Project Allocated" value={emp.projectAllocated} />
                 <Row label="Client Engagement Manager" value={emp.clientEngManagerMapping} />
               </Grid>
+            </div>
+          )}
+
+
+          {/* ── 6. Activity Logs ── */}
+          {tab === "logs" && (
+            <div className="rounded-xl border border-border bg-card p-6 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" />
+                    <h2 className="text-base font-semibold text-foreground">Profile Activity & Audit Trail</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Record of who created and modified this profile on the basis of user email logins.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    {logs.length} {logs.length === 1 ? "event" : "events"} recorded
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void loadLogs(emp.id)}
+                    disabled={loadingLogs}
+                    title="Refresh activity logs"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-xs font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5", loadingLogs && "animate-spin")} />
+                    Refresh
+                  </button>
+                </div>
+              </div>
+
+              {loadingLogs && logs.length === 0 ? (
+                <div className="py-12 text-center text-xs text-muted-foreground">
+                  <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-muted-foreground" />
+                  Loading activity logs…
+                </div>
+              ) : logs.length === 0 ? (
+                <div className="py-12 text-center text-xs text-muted-foreground">
+                  No activity logs recorded for this employee yet.
+                </div>
+              ) : (
+                <div className="relative border-l-2 border-border/80 ml-3 space-y-6 pl-6 py-2">
+                  {logs.map((log) => {
+                    const isCreated = log.action.toLowerCase() === "created";
+                    const isOffboarded = log.action.toLowerCase() === "offboarded";
+                    return (
+                      <div key={log.id} className="relative group">
+                        {/* Timeline dot */}
+                        <div
+                          className={cn(
+                            "absolute -left-[31px] top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-background",
+                            isCreated
+                              ? "text-emerald-600 ring-2 ring-emerald-500/30"
+                              : isOffboarded
+                                ? "text-rose-600 ring-2 ring-rose-500/30"
+                                : "text-blue-600 ring-2 ring-blue-500/30",
+                          )}
+                        >
+                          {isCreated ? (
+                            <Plus className="h-3 w-3" />
+                          ) : isOffboarded ? (
+                            <AlertTriangle className="h-3 w-3" />
+                          ) : (
+                            <History className="h-3 w-3" />
+                          )}
+                        </div>
+
+                        {/* Event Card */}
+                        <div className="rounded-lg border border-border/90 bg-muted/20 p-4 transition-all hover:bg-muted/40 hover:border-border">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <EmpActionBadge action={log.action} />
+                              <span className="text-xs font-semibold text-foreground">
+                                {log.performedByName || "System User"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="inline-flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {formatDateTime(log.createdAtUtc)}
+                              </span>
+                              {formatRelativeTime(log.createdAtUtc) && (
+                                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                  {formatRelativeTime(log.createdAtUtc)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Login email badge */}
+                          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
+                            <span className="text-muted-foreground text-[11px] font-medium">Logged in as:</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-xs font-mono font-medium text-primary">
+                              <Mail className="h-3 w-3" />
+                              {log.performedByEmail}
+                            </span>
+                          </div>
+
+                          {/* Details note */}
+                          {log.details && (
+                            <div className="mt-2.5 rounded-md border border-border/70 bg-card/80 p-3 text-xs text-foreground/90 font-medium leading-relaxed">
+                              {log.details}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -655,6 +863,7 @@ function EmployeeProfilePage() {
         onClose={() => setEditOpen(false)}
         initialEmployee={emp}
         onSuccess={async (saved) => {
+          const targetId = saved?.id ?? emp.id;
           if (saved) {
             setEmp(saved);
             if (saved.id !== emp.id) {
@@ -670,8 +879,10 @@ function EmployeeProfilePage() {
               setEmp(toUiEmployee(detail));
             } catch {}
           }
+          await loadLogs(targetId);
         }}
       />
     </AppShell>
   );
 }
+

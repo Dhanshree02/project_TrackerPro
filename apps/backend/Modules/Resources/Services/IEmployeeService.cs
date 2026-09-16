@@ -78,4 +78,6 @@ public interface IEmployeeService
     Task<MetaOptionDto> CreatePostGraduationDegreeAsync(string name, CancellationToken ct = default);
 
     Task<EmployeeLookupDto?> GetEmployeeSummaryAsync(string idOrCode, CancellationToken ct = default);
+
+    Task<IReadOnlyList<EmployeeActivityLogDto>> GetEmployeeLogsAsync(string idOrCode, CancellationToken ct = default);
 }

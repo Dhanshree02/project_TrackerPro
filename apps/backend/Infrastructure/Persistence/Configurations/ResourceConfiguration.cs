@@ -27,6 +27,7 @@ public sealed class MstDesignationConfiguration : IEntityTypeConfiguration<MstDe
         builder.HasIndex(x => new { x.DepartmentId, x.Name }).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
         builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.SubDepartment).HasMaxLength(250);
 
         builder.HasOne(x => x.Department)
             .WithMany(d => d.Designations)
@@ -173,7 +174,6 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(x => x.OfficeBranch).HasMaxLength(120);
         builder.Property(x => x.Category).HasMaxLength(80);
         builder.Property(x => x.Team).HasMaxLength(120);
-        builder.Property(x => x.ProjectSite).HasMaxLength(80);
         builder.Property(x => x.Status).HasMaxLength(60);
         builder.Property(x => x.ConfirmationStatus).HasMaxLength(80);
         builder.Property(x => x.ProbationStatus).HasMaxLength(80);
@@ -388,6 +388,20 @@ public sealed class MstPostGraduationDegreeConfiguration : IEntityTypeConfigurat
         builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+    }
+}
+
+public sealed class EmployeeActivityLogConfiguration : IEntityTypeConfiguration<EmployeeActivityLog>
+{
+    public void Configure(EntityTypeBuilder<EmployeeActivityLog> builder)
+    {
+        builder.ToTable("employee_activity_logs");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Action).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.PerformedByEmail).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.PerformedByName).HasMaxLength(255);
+        builder.HasIndex(x => x.EmployeeId);
+        builder.HasIndex(x => x.CreatedAtUtc);
     }
 }
 

@@ -13,7 +13,6 @@ export interface ApiEmployeeListItem {
   workLocation?: string | null;
   officeBranch?: string | null;
   category?: string | null;
-  projectSite?: string | null;
   kpiScore?: number | null;
   status?: string | null;
   createdAtUtc: string;
@@ -82,7 +81,6 @@ export interface ApiEmployeeDetail {
   contractType?: string | null;
   bondStatus?: string | null;
   noticePeriod?: string | null;
-  projectSite?: string | null;
   assetId?: string | null;
   exitType?: string | null;
   exitReason?: string | null;
@@ -177,6 +175,20 @@ export async function fetchEmployees(params: {
 
 export async function fetchEmployee(id: string): Promise<ApiEmployeeDetail> {
   return apiFetch<ApiEmployeeDetail>(`/api/v1/employees/${encodeURIComponent(id)}`);
+}
+
+export interface EmployeeActivityLog {
+  id: string;
+  employeeId: string;
+  action: string;
+  performedByEmail: string;
+  performedByName?: string | null;
+  details?: string | null;
+  createdAtUtc: string;
+}
+
+export async function fetchEmployeeLogs(idOrCode: string): Promise<EmployeeActivityLog[]> {
+  return apiFetch<EmployeeActivityLog[]>(`/api/v1/employees/${encodeURIComponent(idOrCode)}/logs`);
 }
 
 export async function createEmployee(input: Record<string, unknown>): Promise<ApiEmployeeDetail> {
@@ -423,10 +435,6 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     contractType: "",
     bondStatus: "",
     noticePeriod: "",
-    projectSite:
-      item.projectSite === "Onsite" || item.projectSite === "Offsite"
-        ? item.projectSite
-        : ("" as Employee["projectSite"]),
     assetId: "",
     exitType: "NA",
     exitReason: "",
@@ -495,7 +503,6 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     contractType: detail.contractType ?? "",
     bondStatus: detail.bondStatus ?? "",
     noticePeriod: detail.noticePeriod ?? "",
-    projectSite: (detail.projectSite === "Onsite" || detail.projectSite === "Offsite" ? detail.projectSite : "Offsite") as Employee["projectSite"],
     assetId: detail.assetId ?? "",
     exitType: (detail.exitType as Employee["exitType"]) || "NA",
     exitReason: detail.exitReason?.trim() ? detail.exitReason : "NA",

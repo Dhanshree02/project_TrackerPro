@@ -99,7 +99,6 @@ import {
   BILLABLE_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
   PMO_DEPARTMENT_OPTIONS,
-  PMO_DEPARTMENT_SUB_DEPARTMENTS,
   formatExpDisplay,
   type OnboardDocs,
   type OnboardDocErrors,
@@ -158,8 +157,7 @@ type PoolSortKey =
   | "reportingManager"
   | "allocationStatus"
   | "officeBranch"
-  | "workLocation"
-  | "projectSite";
+  | "workLocation";
 type SortDir = "asc" | "desc";
 
 const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
@@ -251,8 +249,6 @@ function comparePoolEmployees(a: Employee, b: Employee, key: PoolSortKey): numbe
         return e.officeBranch;
       case "workLocation":
         return e.workLocation;
-      case "projectSite":
-        return e.projectSite ?? "";
     }
   };
   return sortBlank(valueFor(a)).localeCompare(sortBlank(valueFor(b)), undefined, {
@@ -902,7 +898,6 @@ function EmployeeDirectoryPage() {
       e.contractType,
       e.bondStatus,
       e.noticePeriod,
-      e.projectSite,
       e.assetId,
       e.exitType,
       e.exitReason,
@@ -1186,17 +1181,8 @@ function EmployeeDirectoryPage() {
                         <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
                           {dash(e.reportingManager)}
                         </td>
-                        <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
-                          {e.workLocation === "Onsite" && e.projectSite ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
-                                Onsite
-                              </span>
-                              <span className="text-xs text-foreground truncate max-w-[120px]">{e.projectSite}</span>
-                            </span>
-                          ) : (
-                            dash(e.workLocation)
-                          )}
+                        <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
+                          {dash(e.workLocation)}
                         </td>
                         <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.category}>
                           {dash(e.category)}
@@ -1356,17 +1342,8 @@ function EmployeeDirectoryPage() {
                       <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
                       <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
                       <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
-                      <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
-                        {e.workLocation === "Onsite" && e.projectSite ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
-                              Onsite
-                            </span>
-                            <span className="text-xs text-foreground truncate max-w-[120px]">{e.projectSite}</span>
-                          </span>
-                        ) : (
-                          dash(e.workLocation)
-                        )}
+                      <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
+                        {dash(e.workLocation)}
                       </td>
                       <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5 text-right">
                         <button

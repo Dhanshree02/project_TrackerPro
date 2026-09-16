@@ -12,7 +12,6 @@ public sealed record EmployeeListItemDto(
     string? WorkLocation,
     string? OfficeBranch,
     string? Category,
-    string? ProjectSite,
     decimal? KpiScore,
     string? Status,
     DateTime CreatedAtUtc,
@@ -79,7 +78,6 @@ public sealed record EmployeeDetailDto(
     string? ContractType,
     string? BondStatus,
     string? NoticePeriod,
-    string? ProjectSite,
     string? AssetId,
     string? ExitType,
     string? ExitReason,
@@ -186,7 +184,6 @@ public sealed record CreateEmployeeRequest(
     string? ContractType = null,
     string? BondStatus = null,
     string? NoticePeriod = null,
-    string? ProjectSite = null,
     string? AssetId = null,
     string? ExitType = null,
     string? ExitReason = null,
@@ -268,7 +265,6 @@ public sealed record UpdateEmployeeRequest(
     string? ContractType = null,
     string? BondStatus = null,
     string? NoticePeriod = null,
-    string? ProjectSite = null,
     string? AssetId = null,
     string? ExitType = null,
     string? ExitReason = null,
@@ -336,3 +332,12 @@ public sealed record OffboardEmployeeRequest(
     string? FinalSettlementJson,
     string? ExitType,
     string? ExitReason);
+
+public sealed record EmployeeActivityLogDto(
+    Guid Id,
+    Guid EmployeeId,
+    string Action,
+    string PerformedByEmail,
+    string? PerformedByName,
+    string? Details,
+    DateTime CreatedAtUtc);
