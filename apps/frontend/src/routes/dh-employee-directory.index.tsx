@@ -21,7 +21,7 @@ import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { Avatar, ProgressBar } from "@/components/pills";
-import { cn } from "@/lib/utils";
+import { cn, formatDateDMY } from "@/lib/utils";
 import {
   ALLOWED_WORK_EMAIL_DOMAINS,
   ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS,
@@ -99,6 +99,7 @@ import {
   BILLABLE_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
   PMO_DEPARTMENT_OPTIONS,
+  PMO_DEPARTMENT_SUB_DEPARTMENTS,
   formatExpDisplay,
   type OnboardDocs,
   type OnboardDocErrors,
@@ -157,7 +158,8 @@ type PoolSortKey =
   | "reportingManager"
   | "allocationStatus"
   | "officeBranch"
-  | "workLocation";
+  | "workLocation"
+  | "projectSite";
 type SortDir = "asc" | "desc";
 
 const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
@@ -249,6 +251,8 @@ function comparePoolEmployees(a: Employee, b: Employee, key: PoolSortKey): numbe
         return e.officeBranch;
       case "workLocation":
         return e.workLocation;
+      case "projectSite":
+        return e.projectSite ?? "";
     }
   };
   return sortBlank(valueFor(a)).localeCompare(sortBlank(valueFor(b)), undefined, {
@@ -888,7 +892,7 @@ function EmployeeDirectoryPage() {
       e.officeBranch,
       e.category,
       e.team,
-      e.joiningDate,
+      formatDateDMY(e.joiningDate),
       e.status,
       e.confirmationStatus,
       e.probationStatus,
@@ -898,6 +902,7 @@ function EmployeeDirectoryPage() {
       e.contractType,
       e.bondStatus,
       e.noticePeriod,
+      e.projectSite,
       e.assetId,
       e.exitType,
       e.exitReason,
@@ -1181,14 +1186,23 @@ function EmployeeDirectoryPage() {
                         <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
                           {dash(e.reportingManager)}
                         </td>
-                        <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
-                          {dash(e.workLocation)}
+                        <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
+                          {e.workLocation === "Onsite" && e.projectSite ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
+                                Onsite
+                              </span>
+                              <span className="text-xs text-foreground truncate max-w-[120px]">{e.projectSite}</span>
+                            </span>
+                          ) : (
+                            dash(e.workLocation)
+                          )}
                         </td>
                         <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.category}>
                           {dash(e.category)}
                         </td>
                         <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">
-                          {dash(e.joiningDate)}
+                          {formatDateDMY(e.joiningDate)}
                         </td>
                         <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3.5">
                           <EmpStatusBadge status={e.status} />
@@ -1342,8 +1356,17 @@ function EmployeeDirectoryPage() {
                       <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
                       <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
                       <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
-                      <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation}>
-                        {dash(e.workLocation)}
+                      <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
+                        {e.workLocation === "Onsite" && e.projectSite ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
+                              Onsite
+                            </span>
+                            <span className="text-xs text-foreground truncate max-w-[120px]">{e.projectSite}</span>
+                          </span>
+                        ) : (
+                          dash(e.workLocation)
+                        )}
                       </td>
                       <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5 text-right">
                         <button

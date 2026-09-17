@@ -24,7 +24,7 @@ import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { Avatar } from "@/components/pills";
-import { cn } from "@/lib/utils";
+import { cn, formatDateDMY } from "@/lib/utils";
 import {
   fetchAllExitedEmployees,
   fetchDepartmentOptions,
@@ -45,10 +45,7 @@ export const Route = createFileRoute("/dh-exit-summary")({
 });
 
 function formatDate(value?: string | null): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value.slice(0, 10);
-  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return formatDateDMY(value);
 }
 
 function exitReasonOf(e: ApiExitedEmployee): string {
