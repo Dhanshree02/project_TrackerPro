@@ -58,7 +58,6 @@ import {
   BILLABLE_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
   PMO_DEPARTMENT_OPTIONS,
-  PMO_DEPARTMENT_SUB_DEPARTMENTS,
   formatExpDisplay,
   employeeToOnboardValues,
   type OnboardErrors,
@@ -126,9 +125,14 @@ function FormField({
           {required ? <span className="text-destructive"> *</span> : null}
         </span>
       ) : null}
-      <div className="relative">
+      <div className={cn("relative", prefix && "flex rounded-md")}>
         {prefix ? (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+          <span
+            className={cn(
+              "inline-flex items-center rounded-l-md border border-r-0 bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none",
+              error ? "border-destructive" : "border-input",
+            )}
+          >
             {prefix}
           </span>
         ) : null}
@@ -152,7 +156,7 @@ function FormField({
           onBlur={onBlur}
           className={cn(
             FORM_CONTROL_CLS,
-            prefix && "pl-10",
+            prefix && "rounded-l-none",
             suffix && "pr-16",
             error && "border-destructive focus-visible:ring-destructive",
             readOnly && "cursor-not-allowed bg-muted text-muted-foreground",
@@ -391,11 +395,6 @@ export function EmployeeFormModal({
     } catch {}
     return "Assigned Engagement Manager";
   };
-
-  const pmoSubDeptOptions = useMemo(() => {
-    if (!form.pmoDepartment) return [];
-    return PMO_DEPARTMENT_SUB_DEPARTMENTS[form.pmoDepartment] ?? [];
-  }, [form.pmoDepartment]);
 
   // Load catalogs and initialize form on open
   useEffect(() => {
@@ -898,7 +897,6 @@ export function EmployeeFormModal({
         bondDurationMonths,
         bondExpiryDate,
         bondStatus,
-        projectSite: resolvedWorkLocation === "Onsite" ? blankToNull(form.projectSite) : null,
         assetId: blankToNull(form.assetId),
         education: educationString,
         gradDegree: blankToNull(form.gradDegree),
@@ -1270,7 +1268,6 @@ export function EmployeeFormModal({
                   setForm((prev) => ({
                     ...prev,
                     workLocation: selectedName,
-                    projectSite: selectedName === "Onsite" ? prev.projectSite : "",
                   }));
                 }}
                 onCreate={async (name) => {
@@ -1287,14 +1284,6 @@ export function EmployeeFormModal({
                     return temp;
                   }
                 }}
-              />
-              <FormField
-                label="Location"
-                disabled={form.workLocation !== "Onsite"}
-                placeholder="Enter onsite location"
-                maxLength={200}
-                value={form.workLocation === "Onsite" ? form.projectSite : ""}
-                onChange={(v) => setField("projectSite", v)}
               />
             </FormSection>
 
@@ -1568,33 +1557,9 @@ export function EmployeeFormModal({
                   label="Department"
                   options={PMO_DEPARTMENT_OPTIONS}
                   value={form.pmoDepartment}
-                  onChange={(v) => {
-                    setField("pmoDepartment", v);
-                    const subDepts = PMO_DEPARTMENT_SUB_DEPARTMENTS[v] ?? [];
-                    if (subDepts.length === 1) {
-                      setField("subDepartment", subDepts[0]);
-                    } else if (!subDepts.includes(form.subDepartment)) {
-                      setField("subDepartment", "");
-                    }
-                  }}
+                  onChange={(v) => setField("pmoDepartment", v)}
                   placeholder="Select department…"
                   showSearch
-                />
-                <FormSelect
-                  label="Sub Departments"
-                  options={pmoSubDeptOptions}
-                  value={form.subDepartment}
-                  onChange={(v) => setField("subDepartment", v)}
-                  placeholder={
-                    !form.pmoDepartment
-                      ? "Select department first…"
-                      : pmoSubDeptOptions.length === 0
-                        ? "No sub-departments"
-                        : "Select sub-department…"
-                  }
-                  disabled={!form.pmoDepartment || pmoSubDeptOptions.length === 0}
-                  showSearch={pmoSubDeptOptions.length > 4}
-                  error={errors.subDepartment}
                 />
                 <FormSelect
                   label="Billable / Non Billable Status"

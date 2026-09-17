@@ -101,7 +101,6 @@ export type OnboardField =
   | "jobRoleId"
   | "businessUnit"
   | "team"
-  | "projectSite"
   | "workLocation"
   | "officeBranch"
   | "assetId"
@@ -180,7 +179,6 @@ export const EMPTY_ONBOARD: OnboardValues = {
   jobRoleId: "",
   businessUnit: "Talakunchi Networks Private Limited",
   team: "",
-  projectSite: "",
   workLocation: "",
   officeBranch: "",
   assetId: "",
@@ -561,7 +559,6 @@ export function validateOnboardField(
       return undefined;
     case "businessUnit":
     case "team":
-    case "projectSite":
     case "assetId":
     case "exitType":
     case "exitReason":
@@ -833,7 +830,6 @@ export function employeeToOnboardValues(emp: Employee): OnboardValues {
     jobRoleId: emp.jobRoleId || "",
     businessUnit: emp.businessUnit || "Talakunchi Networks Private Limited",
     team: emp.team || "",
-    projectSite: emp.projectSite || "",
     workLocation: emp.workLocation || "",
     officeBranch: emp.officeBranch || "",
     assetId: emp.assetId || "",

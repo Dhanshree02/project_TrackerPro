@@ -155,6 +155,9 @@ public sealed class DbInitializerHostedService(
                     END IF;
                 END $$;
 
+                ALTER TABLE mst_designations
+                    ADD COLUMN IF NOT EXISTS "SubDepartment" text;
+
                 ALTER TABLE employees
                     ADD COLUMN IF NOT EXISTS "GradDegree" text,
                     ADD COLUMN IF NOT EXISTS "GradYear" text,
@@ -171,6 +174,26 @@ public sealed class DbInitializerHostedService(
                     ADD COLUMN IF NOT EXISTS "ProjectType" text,
                     ADD COLUMN IF NOT EXISTS "ProjectAllocated" text,
                     ADD COLUMN IF NOT EXISTS "ClientEngManagerMapping" text;
+
+                CREATE TABLE IF NOT EXISTS employee_activity_logs (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "EmployeeId" uuid NOT NULL,
+                    "Action" character varying(50) NOT NULL,
+                    "PerformedByEmail" character varying(255) NOT NULL,
+                    "PerformedByName" character varying(255),
+                    "Details" text,
+                    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+                    "UpdatedAtUtc" timestamp with time zone,
+                    "CreatedBy" uuid,
+                    "UpdatedBy" uuid,
+                    "DeletedAtUtc" timestamp with time zone
+                );
+
+                CREATE INDEX IF NOT EXISTS "IX_employee_activity_logs_EmployeeId"
+                    ON employee_activity_logs ("EmployeeId");
+
+                CREATE INDEX IF NOT EXISTS "IX_employee_activity_logs_CreatedAtUtc"
+                    ON employee_activity_logs ("CreatedAtUtc" DESC);
                 """,
                 cancellationToken);
             await DbSeeder.EnsureEmployeeStatusesAsync(db, cancellationToken);
