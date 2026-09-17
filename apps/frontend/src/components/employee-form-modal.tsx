@@ -897,6 +897,7 @@ export function EmployeeFormModal({
         bondDurationMonths,
         bondExpiryDate,
         bondStatus,
+        projectSite: resolvedWorkLocation === "Onsite" ? blankToNull(form.projectSite) : null,
         assetId: blankToNull(form.assetId),
         education: educationString,
         gradDegree: blankToNull(form.gradDegree),
@@ -1268,6 +1269,7 @@ export function EmployeeFormModal({
                   setForm((prev) => ({
                     ...prev,
                     workLocation: selectedName,
+                    projectSite: selectedName === "Onsite" ? prev.projectSite : "",
                   }));
                 }}
                 onCreate={async (name) => {
@@ -1284,6 +1286,14 @@ export function EmployeeFormModal({
                     return temp;
                   }
                 }}
+              />
+              <FormField
+                label="Location"
+                disabled={form.workLocation !== "Onsite"}
+                placeholder="Enter onsite location"
+                maxLength={200}
+                value={form.workLocation === "Onsite" ? form.projectSite : ""}
+                onChange={(v) => setField("projectSite", v)}
               />
             </FormSection>
 

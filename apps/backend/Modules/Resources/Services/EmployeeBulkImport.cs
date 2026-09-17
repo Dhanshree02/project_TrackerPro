@@ -751,6 +751,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     ContractType: null,
                     BondStatus: bondStatus,
                     NoticePeriod: null,
+                    ProjectSite: NullIfEmpty(GetValue(values, "projectsite")),
                     AssetId: NullIfEmpty(GetValue(values, "assetid")),
                     ExitType: "NA",
                     ExitReason: "NA",
@@ -855,6 +856,9 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
         if (map.TryGetValue("reportingmanagertkid", out var mgrTkCol)) map.TryAdd("reportingmanagercode", mgrTkCol);
         if (map.TryGetValue("reportingmanagerid", out var mgrEmpIdCol)) map.TryAdd("reportingmanagercode", mgrEmpIdCol);
         if (map.TryGetValue("reportingmanager", out var mgrCol)) map.TryAdd("reportingmanagercode", mgrCol);
+        if (map.TryGetValue("locationonsite", out var locOnsiteCol)) map.TryAdd("projectsite", locOnsiteCol);
+        if (map.TryGetValue("onsitelocation", out var onsiteCol)) map.TryAdd("projectsite", onsiteCol);
+        if (map.TryGetValue("location", out var locCol)) map.TryAdd("projectsite", locCol);
         if (map.TryGetValue("dateofjoining", out var dojCol)) map.TryAdd("joiningdate", dojCol);
         if (map.TryGetValue("employeestatus", out var empStatusCol)) map.TryAdd("status", empStatusCol);
         if (map.TryGetValue("workertype", out var wtCol)) map.TryAdd("workertype", wtCol);

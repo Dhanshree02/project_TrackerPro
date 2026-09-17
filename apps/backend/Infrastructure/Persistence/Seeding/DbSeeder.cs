@@ -1032,6 +1032,7 @@ public static class DbSeeder
                 OfficeBranch = null,
                 Category = i % 5 == 0 ? "Permanent - Bond" : "Permanent - Without Bond",
                 Team = null,
+                ProjectSite = null,
                 JoiningDate = new DateOnly(2019 + (i % 6), 1 + (i % 12), 10),
                 Status = "Active",
                 ConfirmationStatus = "Active",

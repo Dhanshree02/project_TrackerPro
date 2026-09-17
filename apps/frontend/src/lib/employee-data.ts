@@ -59,6 +59,7 @@ export interface Employee {
   bondStatus: string;
   noticePeriod: string;
   // site details & assets
+  projectSite: string;
   assetId: string;
   exitType: "NA" | "Resign" | "Absconded" | "Terminated" | "Suspension";
   exitReason: string;
@@ -233,6 +234,7 @@ export const employees: Employee[] = Array.from({ length: 48 }, (_, i) => {
   const loc = pick(locations);
   const branch = loc === "Andheri" ? "Suvidha Square" : "Navare Plaza";
   const category = pick(categories);
+  const projectSite = pick(["Onsite", "Offsite"]);
   const assetId = pick([
     `TK-${1000 + Math.floor(r() * 9000)}`,
     `Customer-${1000 + Math.floor(r() * 9000)}`,
@@ -321,6 +323,7 @@ export const employees: Employee[] = Array.from({ length: 48 }, (_, i) => {
     contractType: category.includes("Contract") ? "Fixed Term" : "Permanent",
     bondStatus: category === "Permanent - Bond" ? "Yes — 2 years" : "No",
     noticePeriod: pick(["30 days","60 days","90 days"]),
+    projectSite,
     assetId,
     exitType,
     exitReason,

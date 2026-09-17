@@ -618,6 +618,9 @@ function EmployeeProfilePage() {
                 <Row label="On Floor Role" value={emp.role} />
                 <Row label="Reporting Manager" value={emp.reportingManager} />
                 <Row label="Work Location" value={emp.workLocation} />
+                {emp.workLocation === "Onsite" && (
+                  <Row label="Location (Onsite)" value={emp.projectSite || "—"} />
+                )}
               </Grid>
             </div>
           )}

@@ -174,6 +174,7 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(x => x.OfficeBranch).HasMaxLength(120);
         builder.Property(x => x.Category).HasMaxLength(80);
         builder.Property(x => x.Team).HasMaxLength(120);
+        builder.Property(x => x.ProjectSite).HasMaxLength(80);
         builder.Property(x => x.Status).HasMaxLength(60);
         builder.Property(x => x.ConfirmationStatus).HasMaxLength(80);
         builder.Property(x => x.ProbationStatus).HasMaxLength(80);

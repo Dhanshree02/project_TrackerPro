@@ -13,6 +13,7 @@ export interface ApiEmployeeListItem {
   workLocation?: string | null;
   officeBranch?: string | null;
   category?: string | null;
+  projectSite?: string | null;
   kpiScore?: number | null;
   status?: string | null;
   createdAtUtc: string;
@@ -81,6 +82,7 @@ export interface ApiEmployeeDetail {
   contractType?: string | null;
   bondStatus?: string | null;
   noticePeriod?: string | null;
+  projectSite?: string | null;
   assetId?: string | null;
   exitType?: string | null;
   exitReason?: string | null;
@@ -435,6 +437,7 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     contractType: "",
     bondStatus: "",
     noticePeriod: "",
+    projectSite: item.projectSite ?? "",
     assetId: "",
     exitType: "NA",
     exitReason: "",
@@ -503,6 +506,7 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     contractType: detail.contractType ?? "",
     bondStatus: detail.bondStatus ?? "",
     noticePeriod: detail.noticePeriod ?? "",
+    projectSite: detail.projectSite ?? "",
     assetId: detail.assetId ?? "",
     exitType: (detail.exitType as Employee["exitType"]) || "NA",
     exitReason: detail.exitReason?.trim() ? detail.exitReason : "NA",

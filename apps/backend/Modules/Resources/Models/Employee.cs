@@ -33,6 +33,7 @@ public class Employee : BaseEntity
     public string? OfficeBranch { get; set; }
     public string? Category { get; set; }
     public string? Team { get; set; }
+    public string? ProjectSite { get; set; }
 
     public DateOnly? JoiningDate { get; set; }
     public string? Status { get; set; }

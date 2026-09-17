@@ -85,6 +85,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.WorkLocation,
                 e.OfficeBranch,
                 e.Category,
+                e.ProjectSite,
                 e.KpiScore,
                 e.Status,
                 e.CreatedAtUtc,
@@ -227,6 +228,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             BondExpiryDate = bondExpiryDate,
             BondStatus = bondStatus,
             NoticePeriod = request.NoticePeriod,
+            ProjectSite = request.ProjectSite,
             AssetId = request.AssetId,
             ExitType = string.IsNullOrWhiteSpace(request.ExitType) ? "NA" : request.ExitType,
             ExitReason = string.IsNullOrWhiteSpace(request.ExitReason) ? "NA" : request.ExitReason,
@@ -525,6 +527,11 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         {
             if (entity.NoticePeriod != request.NoticePeriod) changes.Add("Notice Period");
             entity.NoticePeriod = request.NoticePeriod;
+        }
+        if (request.ProjectSite is not null)
+        {
+            if (entity.ProjectSite != request.ProjectSite) changes.Add("Location (Onsite)");
+            entity.ProjectSite = request.ProjectSite;
         }
         if (request.AssetId is not null)
         {
@@ -1339,6 +1346,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.ContractType,
         e.BondStatus,
         e.NoticePeriod,
+        e.ProjectSite,
         e.AssetId,
         e.ExitType,
         e.ExitReason,
