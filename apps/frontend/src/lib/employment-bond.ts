@@ -44,7 +44,12 @@ export function formatBondExpiryDisplay(
 ): string {
   if (bondDelivered !== "Yes") return "No";
   const expiry = computeBondExpiryDate(joiningDate, bondDelivered, durationMonths);
-  return expiry ?? "—";
+  if (!expiry) return "—";
+  const parts = expiry.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return expiry;
 }
 
 export function computeBondStatus(

@@ -16,6 +16,36 @@ export function formatDate(dateStr?: string | Date | null, fallback = "—"): st
 }
 
 /**
+ * Robust date formatter returning strict DD-MM-YYYY format (e.g. 15-05-2026).
+ */
+export function formatDateDMY(value?: string | Date | null, fallback = "—"): string {
+  if (!value) return fallback;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === "—" || trimmed === "NA" || trimmed === "null" || trimmed === "undefined") {
+      return fallback;
+    }
+    // Match YYYY-MM-DD or YYYY-MM-DDT...
+    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[3]}-${isoMatch[2]}-${isoMatch[1]}`;
+    }
+    // Match already DD-MM-YYYY
+    const dmyMatch = trimmed.match(/^(\d{2})-(\d{2})-(\d{4})/);
+    if (dmyMatch) {
+      return trimmed;
+    }
+  }
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return typeof value === "string" ? value : fallback;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+
+/**
  * Currency formatter helper.
  */
 export function formatCurrency(amount: number, currency = "INR"): string {

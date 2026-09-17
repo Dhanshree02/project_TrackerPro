@@ -5,7 +5,7 @@ import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { Avatar } from "@/components/pills";
-import { cn } from "@/lib/utils";
+import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   fetchEmployee,
@@ -529,7 +529,7 @@ function EmployeeProfilePage() {
           {tab === "employment" && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
-                <Row label="Date of Joining" value={emp.joiningDate || "—"} />
+                <Row label="Date of Joining" value={formatDateDMY(emp.joiningDate)} />
                 <Row
                   label="Employment Status"
                   value={<EmpStatusBadge status={emp.confirmationStatus || emp.status} />}
@@ -563,7 +563,7 @@ function EmployeeProfilePage() {
                         : "0 Months"
                   }
                 />
-                <Row label="Bond Expiry Date" value={emp.bondExpiryDate || "—"} />
+                <Row label="Bond Expiry Date" value={formatDateDMY(emp.bondExpiryDate)} />
                 <Row label="Bond Status" value={emp.bondStatus || "—"} />
               </Grid>
             </div>
