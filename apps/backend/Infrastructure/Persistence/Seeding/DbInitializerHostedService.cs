@@ -159,6 +159,7 @@ public sealed class DbInitializerHostedService(
                     ADD COLUMN IF NOT EXISTS "SubDepartment" text;
 
                 ALTER TABLE employees
+                    ADD COLUMN IF NOT EXISTS "ProjectSite" character varying(80),
                     ADD COLUMN IF NOT EXISTS "GradDegree" text,
                     ADD COLUMN IF NOT EXISTS "GradYear" text,
                     ADD COLUMN IF NOT EXISTS "PostGradDegree" text,
