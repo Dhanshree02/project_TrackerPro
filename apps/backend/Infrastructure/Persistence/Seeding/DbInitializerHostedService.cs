@@ -158,8 +158,16 @@ public sealed class DbInitializerHostedService(
                 ALTER TABLE mst_designations
                     ADD COLUMN IF NOT EXISTS "SubDepartment" text;
 
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'projectsite') THEN
+                        ALTER TABLE employees RENAME COLUMN projectsite TO "ProjectSite";
+                    ELSIF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'ProjectSite') THEN
+                        ALTER TABLE employees ADD COLUMN "ProjectSite" character varying(80);
+                    END IF;
+                END $$;
+
                 ALTER TABLE employees
-                    ADD COLUMN IF NOT EXISTS "ProjectSite" character varying(80),
                     ADD COLUMN IF NOT EXISTS "GradDegree" text,
                     ADD COLUMN IF NOT EXISTS "GradYear" text,
                     ADD COLUMN IF NOT EXISTS "PostGradDegree" text,
