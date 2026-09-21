@@ -32,6 +32,7 @@ import {
   fieldInputCls,
 } from "@/lib/form-validation";
 import { useDraggable } from "@/hooks/use-draggable";
+import { useProjectCatalogStore } from "@/lib/masters/project-catalog-store";
 
 export const Route = createFileRoute("/projects/")({
   head: () => ({
@@ -554,8 +555,7 @@ const DEPT_SERVICES: Record<string, string[]> = {
 };
 
 function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
-  const [step, setStep] = useState(1);
-  const [submitting, setSubmitting] = useState(false);
+  const { contractTypes: catalogContractTypes } = useProjectCatalogStore();
   const clients = allClients();
   const [s, setS] = useState<NewProjectState>({
     clientMode: "existing",
@@ -563,7 +563,7 @@ function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
     newClient: { name: "", industry: "", contact: "", email: "" },
     proj: { name: "", description: "", startDate: "", endDate: "", budget: "" },
     wbsHeader: {
-      contractType: "Fixed Price",
+      contractType: "Resource Based",
       projectType: "New Implementation",
       salesPerson: "",
       currency: "USD",
@@ -890,9 +890,9 @@ function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
                       value={s.wbsHeader.contractType}
                       onChange={(e) => updateWbsHeader("contractType", e.target.value)}
                     >
-                      {["Fixed Price", "Time & Material", "Retainer", "Staff Augmentation"].map(
+                      {catalogContractTypes.map(
                         (o) => (
-                          <option key={o}>{o}</option>
+                          <option key={o} value={o}>{o}</option>
                         ),
                       )}
                     </select>

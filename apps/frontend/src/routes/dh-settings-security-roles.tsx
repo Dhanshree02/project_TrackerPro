@@ -1,6 +1,6 @@
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search, ChevronRight, ChevronDown, Save, RotateCcw } from "lucide-react";
+import { Search, ChevronDown, Save, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
@@ -43,12 +43,24 @@ const initialUsers: UserRow[] = [
   { id: "r9", name: "Dev Patel", email: "dev.patel@talakunchi.com", currentRole: "employee" },
   { id: "r10", name: "Kavya Nair", email: "kavya.nair@talakunchi.com", currentRole: "hr" },
   { id: "r11", name: "Rahul Gupta", email: "rahul.gupta@talakunchi.com", currentRole: "pmo" },
-  { id: "r12", name: "Anita Desai", email: "anita.desai@talakunchi.com", currentRole: "hod" },
-  { id: "r13", name: "Vikrant Malhotra", email: "vikrant.malhotra@talakunchi.com", currentRole: "business_owner" },
-  { id: "r14", name: "Sneha Kulkarni", email: "sneha.kulkarni@talakunchi.com", currentRole: "accounts_finance" },
-  { id: "r15", name: "Rohan Sharma", email: "rohan.sharma@talakunchi.com", currentRole: "sales_bd" },
-  { id: "r16", name: "Dhanshree", email: "dhanshree@talakunchi.com", currentRole: "dhanshree" },
+  { id: "r12", name: "Neha Sharma", email: "neha.sharma@talakunchi.com", currentRole: "sales" },
+  { id: "r13", name: "Ananya Desai", email: "ananya.desai@talakunchi.com", currentRole: "accounts" },
+  { id: "r14", name: "Karan Verma", email: "karan.verma@talakunchi.com", currentRole: "employee" },
+  { id: "r15", name: "Pooja Hegde", email: "pooja.hegde@talakunchi.com", currentRole: "employee" },
+  { id: "r16", name: "Aditya Roy", email: "aditya.roy@talakunchi.com", currentRole: "management" },
+  { id: "r17", name: "Dhanshree", email: "dhanshree@talakunchi.com", currentRole: "dhanshree" },
 ];
+
+const STORAGE_KEY = "pulse_custom_role_permissions_v1";
+
+function loadCustomPermissions(): Record<Role, Record<PermissionKey, boolean>> | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 const SCOPE_LABEL: Record<string, string> = {
   involved: "Only projects the person is on",
@@ -70,14 +82,6 @@ function SecurityRolesPage() {
 
   return (
     <AppShell title="Roles & Permissions" subtitle="Who can see and do what — across every module">
-      <nav className="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-        <Link to="/dh-settings" className="hover:text-foreground transition-colors">
-          Settings
-        </Link>
-        <ChevronRight className="h-3 w-3" />
-        <span className="font-medium text-foreground">Roles & Permissions</span>
-      </nav>
-
       <div className="mb-5 flex items-center border-b border-border">
         <button
           onClick={() => setActiveTab("modules")}

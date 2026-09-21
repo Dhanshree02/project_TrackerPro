@@ -24,6 +24,11 @@ import {
   countProjectsForClient,
   resolveOnboardingProjectName,
 } from "@/lib/onboarding-project-name";
+import {
+  useProjectCatalogStore,
+  DEFAULT_DEPT_SERVICES,
+  DEFAULT_DEPT_GROUPS,
+} from "@/lib/masters/project-catalog-store";
 
 export const Route = createFileRoute("/projects/new")({
   validateSearch: (search: Record<string, unknown>): { draftId?: string } => ({
@@ -37,275 +42,8 @@ export const Route = createFileRoute("/projects/new")({
 
 // ─── Constants (from HTML) ───────────────────────────────────────────────────
 
-const DEPT_SERVICES: Record<
-  string,
-  { id: string; name: string; tool: string; unitPrice: number; days: number }[]
-> = {
-  "Penetration Testing": [
-    {
-      id: "PT001",
-      name: "External Network Penetration Testing",
-      tool: "Nessus, Metasploit",
-      unitPrice: 60000,
-      days: 5,
-    },
-    {
-      id: "PT002",
-      name: "Internal Network Penetration Testing",
-      tool: "Burp Suite, Cobalt Strike",
-      unitPrice: 75000,
-      days: 6,
-    },
-    {
-      id: "PT003",
-      name: "Web Application Penetration Testing",
-      tool: "Burp Suite, OWASP ZAP",
-      unitPrice: 50000,
-      days: 5,
-    },
-    {
-      id: "PT004",
-      name: "Mobile Application Penetration Testing",
-      tool: "Frida, Burp Suite Mobile",
-      unitPrice: 55000,
-      days: 5,
-    },
-    {
-      id: "PT005",
-      name: "API Penetration Testing",
-      tool: "Postman, Burp Suite",
-      unitPrice: 40000,
-      days: 4,
-    },
-    {
-      id: "PT006",
-      name: "Thick Client Penetration Testing",
-      tool: "Burp Suite, API Fuzzer",
-      unitPrice: 45000,
-      days: 4,
-    },
-  ],
-  "Vulnerability Assessment": [
-    {
-      id: "VA001",
-      name: "Network Vulnerability Assessment",
-      tool: "Nessus, OpenVAS, Qualys",
-      unitPrice: 35000,
-      days: 3,
-    },
-    {
-      id: "VA002",
-      name: "Web Application Vulnerability Assessment",
-      tool: "Acunetix, Qualys, Rapid7",
-      unitPrice: 40000,
-      days: 4,
-    },
-    {
-      id: "VA003",
-      name: "Cloud Infrastructure Vulnerability Assessment",
-      tool: "Dome9, CloudSploit",
-      unitPrice: 50000,
-      days: 4,
-    },
-  ],
-  "Red Team & Adversary Simulation": [
-    {
-      id: "RT001",
-      name: "Full Spectrum Red Team Exercise",
-      tool: "Cobalt Strike, Metasploit, Mimikatz",
-      unitPrice: 120000,
-      days: 10,
-    },
-    {
-      id: "RT002",
-      name: "Targeted Red Team Engagement",
-      tool: "Custom Tools, Cobalt Strike",
-      unitPrice: 80000,
-      days: 7,
-    },
-  ],
-  "Cloud Security": [
-    {
-      id: "CS001",
-      name: "AWS Security Assessment",
-      tool: "Scout2, CloudMapper, AWS Inspector",
-      unitPrice: 55000,
-      days: 5,
-    },
-    {
-      id: "CS002",
-      name: "Azure Security Assessment",
-      tool: "Azucar, Microsoft Defender, Qualys",
-      unitPrice: 55000,
-      days: 5,
-    },
-    {
-      id: "CS003",
-      name: "Google Cloud Security Assessment",
-      tool: "GCP Security Command Center",
-      unitPrice: 50000,
-      days: 5,
-    },
-  ],
-  "Code & Application Security": [
-    {
-      id: "CODE001",
-      name: "Source Code Security Review",
-      tool: "SonarQube, Checkmarx, Fortify",
-      unitPrice: 65000,
-      days: 6,
-    },
-    {
-      id: "CODE002",
-      name: "Static Application Security Testing (SAST)",
-      tool: "Checkmarx, Veracode, Fortify",
-      unitPrice: 70000,
-      days: 7,
-    },
-    {
-      id: "CODE003",
-      name: "Dynamic Application Security Testing (DAST)",
-      tool: "Burp Suite, Acunetix, AppScan",
-      unitPrice: 60000,
-      days: 6,
-    },
-  ],
-  "Compliance & Audit": [
-    {
-      id: "COMP001",
-      name: "ISO 27001 Security Audit",
-      tool: "AuditBoard, Drata, Vanta",
-      unitPrice: 85000,
-      days: 8,
-    },
-    {
-      id: "COMP002",
-      name: "GDPR Compliance Assessment",
-      tool: "OneTrust, TrustArc, Compliance.ai",
-      unitPrice: 75000,
-      days: 7,
-    },
-    {
-      id: "COMP003",
-      name: "PCI-DSS Compliance Assessment",
-      tool: "Qualys, Rapid7, Nessus",
-      unitPrice: 80000,
-      days: 7,
-    },
-    {
-      id: "COMP004",
-      name: "SOC 2 Type II Audit",
-      tool: "AuditBoard, Drata",
-      unitPrice: 95000,
-      days: 10,
-    },
-  ],
-  "Social Engineering & Awareness": [
-    {
-      id: "SE001",
-      name: "Phishing Campaign & Assessment",
-      tool: "KnowBe4, Gophish, Phish Alert",
-      unitPrice: 30000,
-      days: 2,
-    },
-    {
-      id: "SE002",
-      name: "Security Awareness Training Program",
-      tool: "LinkedIn Learning, KnowBe4, SANS",
-      unitPrice: 45000,
-      days: 4,
-    },
-    {
-      id: "SE003",
-      name: "Vishing & Pretexting Assessment",
-      tool: "Custom, KnowBe4",
-      unitPrice: 35000,
-      days: 3,
-    },
-  ],
-  "Forensics & Incident Response": [
-    {
-      id: "FOR001",
-      name: "Digital Forensics Investigation",
-      tool: "EnCase, FTK, Volatility, X-Ways",
-      unitPrice: 90000,
-      days: 8,
-    },
-    {
-      id: "FOR002",
-      name: "Incident Response & Containment",
-      tool: "Splunk, ELK, Rapid7 InsightIDR",
-      unitPrice: 75000,
-      days: 7,
-    },
-    {
-      id: "FOR003",
-      name: "Malware Analysis",
-      tool: "IDA Pro, Ghidra, Wireshark, Cuckoo",
-      unitPrice: 70000,
-      days: 6,
-    },
-  ],
-  "Network & Infrastructure": [
-    {
-      id: "NET001",
-      name: "Network Architecture Security Review",
-      tool: "Nmap, Wireshark, NETMON",
-      unitPrice: 55000,
-      days: 5,
-    },
-    {
-      id: "NET002",
-      name: "Firewall & IDS/IPS Configuration Audit",
-      tool: "Nessus, OpenVAS, Custom Scripts",
-      unitPrice: 65000,
-      days: 6,
-    },
-    {
-      id: "NET003",
-      name: "Network Segmentation Assessment",
-      tool: "Nmap, Shodan, Custom Tools",
-      unitPrice: 60000,
-      days: 5,
-    },
-  ],
-  "Threat Intelligence & Modeling": [
-    {
-      id: "THREAT001",
-      name: "Threat Modeling & Risk Assessment",
-      tool: "Microsoft Threat Modeling Tool, IriusRisk",
-      unitPrice: 50000,
-      days: 4,
-    },
-    {
-      id: "THREAT002",
-      name: "Cyber Threat Intelligence Report",
-      tool: "MISP, Mandiant, CrowdStrike",
-      unitPrice: 40000,
-      days: 3,
-    },
-    {
-      id: "THREAT003",
-      name: "Attack Surface Analysis",
-      tool: "Shodan, Censys, Rapid7 Sonar",
-      unitPrice: 45000,
-      days: 4,
-    },
-  ],
-};
-
-const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
-  "Penetration Testing": "Scope",
-  "Vulnerability Assessment": "Scope",
-  "Red Team & Adversary Simulation": "Resource",
-  "Cloud Security": "Resource",
-  "Code & Application Security": "Scope",
-  "Compliance & Audit": "Resource",
-  "Social Engineering & Awareness": "Scope",
-  "Forensics & Incident Response": "Resource",
-  "Network & Infrastructure": "Scope",
-  "Threat Intelligence & Modeling": "Resource",
-};
+const DEPT_SERVICES = DEFAULT_DEPT_SERVICES;
+const DEPT_GROUPS = DEFAULT_DEPT_GROUPS;
 
 const BILLING_MODELS: Record<string, string[]> = {
   "Short term (Ad-hoc)": [
@@ -640,9 +378,16 @@ function WbsNewProjectPage() {
   // WBS ID — recomputed from selected client + current FY + next project seq
   const wbsId = selectedClientId ? buildWbsId(selectedClientId) : "—";
 
+  // ── Project Catalog Store (Contract Types, Departments, Services) ──
+  const {
+    contractTypes: catalogContractTypes,
+    deptServices: DEPT_SERVICES,
+    deptGroups: DEPT_GROUPS,
+  } = useProjectCatalogStore();
+
   // ── Service picker ──
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerDept, setPickerDept] = useState(Object.keys(DEPT_SERVICES)[0]);
+  const [pickerDept, setPickerDept] = useState(Object.keys(DEPT_SERVICES)[0] || "Penetration Testing");
   const [pickerSearch, setPickerSearch] = useState("");
   const [tempSelected, setTempSelected] = useState<Record<string, Record<string, boolean>>>({});
   const [selectedServices, setSelectedServices] = useState<Record<string, Record<string, boolean>>>(
@@ -2275,8 +2020,11 @@ function WbsNewProjectPage() {
                 style={selectStyle(false)}
               >
                 <option value="">Select Contract Type</option>
-                <option value="Resource Based">Resource Based</option>
-                <option value="Scope Based">Scope Based</option>
+                {catalogContractTypes.map((ct) => (
+                  <option key={ct} value={ct}>
+                    {ct}
+                  </option>
+                ))}
               </select>
             </FormGroup>
             <FormGroup label="Sales Person" required>

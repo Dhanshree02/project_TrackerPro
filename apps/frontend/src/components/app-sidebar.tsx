@@ -84,6 +84,10 @@ export function AppSidebar() {
     if (pathname.startsWith("/my-team")) {
       setOpenDropdowns((prev) => ({ ...prev, "My Team": true }));
     }
+    // Auto-open Settings if we are in any of its sub-routes
+    if (pathname.startsWith("/dh-settings") || pathname.startsWith("/settings")) {
+      setOpenDropdowns((prev) => ({ ...prev, Settings: true }));
+    }
   }, [pathname]);
 
   const toggleDropdown = (label: string) => {

@@ -20,6 +20,7 @@ import { Route as HealthInterviewSchedulingRouteImport } from './routes/health-i
 import { Route as HealthAdditionalRequirementsRouteImport } from './routes/health-additional-requirements'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as DhSettingsSecurityRolesRouteImport } from './routes/dh-settings-security-roles'
+import { Route as DhSettingsMastersRouteImport } from './routes/dh-settings-masters'
 import { Route as DhSettingsRouteImport } from './routes/dh-settings'
 import { Route as DhResourcePoolRouteImport } from './routes/dh-resource-pool'
 import { Route as DhReportsRouteImport } from './routes/dh-reports'
@@ -38,6 +39,7 @@ import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as MyTeamIndexRouteImport } from './routes/my-team.index'
 import { Route as DhEmployeeDirectoryIndexRouteImport } from './routes/dh-employee-directory.index'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
+import { Route as SettingsMastersRouteImport } from './routes/settings.masters'
 import { Route as ResourcesEmployeeIdRouteImport } from './routes/resources.$employeeId'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
@@ -100,6 +102,11 @@ const HealthRoute = HealthRouteImport.update({
 const DhSettingsSecurityRolesRoute = DhSettingsSecurityRolesRouteImport.update({
   id: '/dh-settings-security-roles',
   path: '/dh-settings-security-roles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DhSettingsMastersRoute = DhSettingsMastersRouteImport.update({
+  id: '/dh-settings-masters',
+  path: '/dh-settings-masters',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DhSettingsRoute = DhSettingsRouteImport.update({
@@ -193,6 +200,11 @@ const CustomersIndexRoute = CustomersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CustomersRoute,
 } as any)
+const SettingsMastersRoute = SettingsMastersRouteImport.update({
+  id: '/settings/masters',
+  path: '/settings/masters',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResourcesEmployeeIdRoute = ResourcesEmployeeIdRouteImport.update({
   id: '/resources/$employeeId',
   path: '/resources/$employeeId',
@@ -238,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/dh-reports': typeof DhReportsRoute
   '/dh-resource-pool': typeof DhResourcePoolRoute
   '/dh-settings': typeof DhSettingsRoute
+  '/dh-settings-masters': typeof DhSettingsMastersRoute
   '/dh-settings-security-roles': typeof DhSettingsSecurityRolesRoute
   '/health': typeof HealthRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
@@ -255,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
   '/resources/$employeeId': typeof ResourcesEmployeeIdRoute
+  '/settings/masters': typeof SettingsMastersRoute
   '/customers/': typeof CustomersIndexRoute
   '/dh-employee-directory/': typeof DhEmployeeDirectoryIndexRoute
   '/my-team/': typeof MyTeamIndexRoute
@@ -273,6 +287,7 @@ export interface FileRoutesByTo {
   '/dh-reports': typeof DhReportsRoute
   '/dh-resource-pool': typeof DhResourcePoolRoute
   '/dh-settings': typeof DhSettingsRoute
+  '/dh-settings-masters': typeof DhSettingsMastersRoute
   '/dh-settings-security-roles': typeof DhSettingsSecurityRolesRoute
   '/health': typeof HealthRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
@@ -289,6 +304,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
   '/resources/$employeeId': typeof ResourcesEmployeeIdRoute
+  '/settings/masters': typeof SettingsMastersRoute
   '/customers': typeof CustomersIndexRoute
   '/dh-employee-directory': typeof DhEmployeeDirectoryIndexRoute
   '/my-team': typeof MyTeamIndexRoute
@@ -310,6 +326,7 @@ export interface FileRoutesById {
   '/dh-reports': typeof DhReportsRoute
   '/dh-resource-pool': typeof DhResourcePoolRoute
   '/dh-settings': typeof DhSettingsRoute
+  '/dh-settings-masters': typeof DhSettingsMastersRoute
   '/dh-settings-security-roles': typeof DhSettingsSecurityRolesRoute
   '/health': typeof HealthRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
@@ -327,6 +344,7 @@ export interface FileRoutesById {
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
   '/resources/$employeeId': typeof ResourcesEmployeeIdRoute
+  '/settings/masters': typeof SettingsMastersRoute
   '/customers/': typeof CustomersIndexRoute
   '/dh-employee-directory/': typeof DhEmployeeDirectoryIndexRoute
   '/my-team/': typeof MyTeamIndexRoute
@@ -349,6 +367,7 @@ export interface FileRouteTypes {
     | '/dh-reports'
     | '/dh-resource-pool'
     | '/dh-settings'
+    | '/dh-settings-masters'
     | '/dh-settings-security-roles'
     | '/health'
     | '/health-additional-requirements'
@@ -366,6 +385,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/projects/new'
     | '/resources/$employeeId'
+    | '/settings/masters'
     | '/customers/'
     | '/dh-employee-directory/'
     | '/my-team/'
@@ -384,6 +404,7 @@ export interface FileRouteTypes {
     | '/dh-reports'
     | '/dh-resource-pool'
     | '/dh-settings'
+    | '/dh-settings-masters'
     | '/dh-settings-security-roles'
     | '/health'
     | '/health-additional-requirements'
@@ -400,6 +421,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/projects/new'
     | '/resources/$employeeId'
+    | '/settings/masters'
     | '/customers'
     | '/dh-employee-directory'
     | '/my-team'
@@ -420,6 +442,7 @@ export interface FileRouteTypes {
     | '/dh-reports'
     | '/dh-resource-pool'
     | '/dh-settings'
+    | '/dh-settings-masters'
     | '/dh-settings-security-roles'
     | '/health'
     | '/health-additional-requirements'
@@ -437,6 +460,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/projects/new'
     | '/resources/$employeeId'
+    | '/settings/masters'
     | '/customers/'
     | '/dh-employee-directory/'
     | '/my-team/'
@@ -458,6 +482,7 @@ export interface RootRouteChildren {
   DhReportsRoute: typeof DhReportsRoute
   DhResourcePoolRoute: typeof DhResourcePoolRoute
   DhSettingsRoute: typeof DhSettingsRoute
+  DhSettingsMastersRoute: typeof DhSettingsMastersRoute
   DhSettingsSecurityRolesRoute: typeof DhSettingsSecurityRolesRoute
   HealthRoute: typeof HealthRoute
   HealthAdditionalRequirementsRoute: typeof HealthAdditionalRequirementsRoute
@@ -472,6 +497,7 @@ export interface RootRouteChildren {
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
   ResourcesEmployeeIdRoute: typeof ResourcesEmployeeIdRoute
+  SettingsMastersRoute: typeof SettingsMastersRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ResourcesIndexRoute: typeof ResourcesIndexRoute
 }
@@ -553,6 +579,13 @@ declare module '@tanstack/react-router' {
       path: '/dh-settings-security-roles'
       fullPath: '/dh-settings-security-roles'
       preLoaderRoute: typeof DhSettingsSecurityRolesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dh-settings-masters': {
+      id: '/dh-settings-masters'
+      path: '/dh-settings-masters'
+      fullPath: '/dh-settings-masters'
+      preLoaderRoute: typeof DhSettingsMastersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dh-settings': {
@@ -681,6 +714,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomersIndexRouteImport
       parentRoute: typeof CustomersRoute
     }
+    '/settings/masters': {
+      id: '/settings/masters'
+      path: '/settings/masters'
+      fullPath: '/settings/masters'
+      preLoaderRoute: typeof SettingsMastersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/resources/$employeeId': {
       id: '/resources/$employeeId'
       path: '/resources/$employeeId'
@@ -780,6 +820,7 @@ const rootRouteChildren: RootRouteChildren = {
   DhReportsRoute: DhReportsRoute,
   DhResourcePoolRoute: DhResourcePoolRoute,
   DhSettingsRoute: DhSettingsRoute,
+  DhSettingsMastersRoute: DhSettingsMastersRoute,
   DhSettingsSecurityRolesRoute: DhSettingsSecurityRolesRoute,
   HealthRoute: HealthRoute,
   HealthAdditionalRequirementsRoute: HealthAdditionalRequirementsRoute,
@@ -794,6 +835,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   ProjectsNewRoute: ProjectsNewRoute,
   ResourcesEmployeeIdRoute: ResourcesEmployeeIdRoute,
+  SettingsMastersRoute: SettingsMastersRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ResourcesIndexRoute: ResourcesIndexRoute,
 }
