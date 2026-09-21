@@ -58,6 +58,32 @@ internal static class EmployeeBulkWorkbook
         "Certification Details",           // 35
     ];
 
+    /// <summary>
+    /// Mandatory fields that must be provided during bulk employee upload.
+    /// In the generated sample Excel file, these headers are highlighted in RED with an asterisk (*).
+    /// </summary>
+    public static readonly HashSet<string> MandatoryHeaders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "TK ID",
+        "First Name",
+        "Last Name",
+        "Work Email",
+        "Phone (Personal)",
+        "Current Address - City",
+        "Emergency Contact Name",
+        "Emergency Contact Number",
+        "Relation with Emergency Contact",
+        "Department",
+        "Designation",
+        "Reporting Manager Code",
+        "Work Location",
+        "Date of Joining",
+        "Employee Status",
+        "Worker Type",
+        "Bond Delivered",
+        "Exp / Fresher",
+    };
+
     private static readonly string[] MumbaiStations =
     [
         // Western Line
@@ -266,10 +292,12 @@ internal static class EmployeeBulkWorkbook
         var managerCodes = await db.Employees
             .Where(e => e.DeletedAtUtc == null && !string.IsNullOrEmpty(e.EmployeeCode))
             .OrderBy(e => e.EmployeeCode)
-            .Select(e => e.EmployeeCode)
+            .Select(e => string.IsNullOrEmpty(e.FirstName)
+                ? e.EmployeeCode
+                : $"{e.EmployeeCode} - {e.FirstName} {e.LastName}".Trim())
             .ToListAsync(ct);
         if (managerCodes.Count == 0)
-            managerCodes = ["TK-0001"];
+            managerCodes = ["TK-0001 - Default Manager"];
 
         // Fixed categorical options matching onboarding form
         string[] emergencyRelations = ["Father", "Mother", "Spouse", "Sibling", "Guardian", "Friend", "Other"];
@@ -288,14 +316,35 @@ internal static class EmployeeBulkWorkbook
 
         // ── Sheet 1: Employees ──
         var sheet = workbook.Worksheets.Add("Employees");
+        sheet.Row(1).Height = 28;
+        sheet.Row(1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
         for (var i = 0; i < Headers.Length; i++)
         {
+            var header = Headers[i];
+            var isMandatory = MandatoryHeaders.Contains(header);
             var cell = sheet.Cell(1, i + 1);
-            cell.Value = Headers[i];
+            cell.Value = isMandatory ? $"{header} *" : header;
             cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#DBEAFE");
-            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-            cell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#BFDBFE");
+            cell.Style.Font.FontSize = 11;
+            cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            if (isMandatory)
+            {
+                // Distinct red highlight for mandatory fields
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#FEE2E2"); // Soft red fill
+                cell.Style.Font.FontColor = XLColor.FromHtml("#991B1B"); // Deep crimson red text
+                cell.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                cell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#EF4444"); // Red border
+            }
+            else
+            {
+                // Soft slate styling for optional fields
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#F1F5F9"); // Soft slate fill
+                cell.Style.Font.FontColor = XLColor.FromHtml("#334155"); // Slate dark text
+                cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                cell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#CBD5E1");
+            }
         }
 
         // Example data row matching all 35 onboarding fields
@@ -315,7 +364,7 @@ internal static class EmployeeBulkWorkbook
             designations.FirstOrDefault() ?? "PenTester - I",         // 12. Designation
             roles.FirstOrDefault() ?? "Employee",                     // 13. On Floor Role
             businessUnits.FirstOrDefault() ?? "Talakunchi Networks Private Limited", // 14. Business Unit
-            managerCodes.FirstOrDefault() ?? "TK-0001",               // 15. Reporting Manager Code
+            managerCodes.FirstOrDefault() ?? "TK-0001 - Default Manager", // 15. Reporting Manager Code
             workLocations.FirstOrDefault() ?? "Suvidha Square, Andheri",             // 16. Work Location
             "",                                                       // 17. Location (Onsite)
             DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),    // 18. Date of Joining
@@ -338,8 +387,14 @@ internal static class EmployeeBulkWorkbook
             "ISO 27001, CEH",                                         // 35. Certification Details
         };
 
+        sheet.Row(2).Height = 22;
+        sheet.Row(2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         for (var i = 0; i < example.Length; i++)
-            sheet.Cell(2, i + 1).Value = example[i];
+        {
+            var cell = sheet.Cell(2, i + 1);
+            cell.Value = example[i];
+            cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        }
 
         // ── Sheet 2: Lookups ──
         var lookups = workbook.Worksheets.Add("Lookups");
@@ -427,28 +482,42 @@ internal static class EmployeeBulkWorkbook
 
         // ── Sheet 3: Instructions ──
         var notes = workbook.Worksheets.Add("Instructions");
+        notes.Row(1).Height = 24;
         notes.Cell(1, 1).Value = "How to use this Bulk Upload Template";
         notes.Cell(1, 1).Style.Font.Bold = true;
         notes.Cell(1, 1).Style.Font.FontSize = 14;
 
+        // Visual alert banner for mandatory fields
+        notes.Row(3).Height = 24;
+        var alertCell = notes.Cell(3, 1);
+        alertCell.Value = "MANDATORY FIELDS: Highlighted in RED with an asterisk (*) on the Employees sheet. All red fields are strictly required.";
+        alertCell.Style.Font.Bold = true;
+        alertCell.Style.Font.FontSize = 11;
+        alertCell.Style.Font.FontColor = XLColor.FromHtml("#991B1B");
+        alertCell.Style.Fill.BackgroundColor = XLColor.FromHtml("#FEE2E2");
+        alertCell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        alertCell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#EF4444");
+
         string[] instructions =
         [
-            "1. Keep the header row exactly as provided on the Employees sheet. Do not rename or reorder columns.",
-            "2. Upload .xlsx files only. Other file formats are rejected.",
-            "3. The template strictly reflects the 4 canonical sections of the Onboarding Form (Personal Info, Organization Assignment, Employment Info, Education & Experience).",
-            "4. Required fields: TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher.",
-            "5. Dropdown validation: Every dropdown column is strictly restricted to its allowed options with ErrorStyle = Stop. Select values directly from the dropdown menu in Excel.",
-            "6. Dynamic Master Values: The Lookups sheet reflects live masters from the system (Departments, Designations, Roles, Business Units, Work Locations, Employee Statuses, Degrees, Managers). When new options are added in Settings/Masters, downloading a fresh template reflects them immediately.",
-            "7. Date Format: Dates must be formatted as YYYY-MM-DD (e.g. 2026-09-10).",
-            "8. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
-            "9. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
-            "10. Up to 500 rows can be imported in a single upload file.",
+            "1. Header Row: Keep the header row exactly as provided on the Employees sheet. Columns highlighted in RED with an asterisk (*) are mandatory.",
+            "2. File Format: Upload .xlsx files only. Other file formats are rejected.",
+            "3. Form Sections: The template strictly reflects the 4 canonical sections of the Onboarding Form (Personal Info, Organization Assignment, Employment Info, Education & Experience).",
+            "4. Required Fields (18): TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher.",
+            "5. Reporting Manager: Select from the dropdown ('TK-XXXX - Manager Name'). You can also provide just the Employee Code (e.g. TK-0001). Employee code is used as the primary identifier to prevent confusion between employees with identical or similar names.",
+            "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel.",
+            "7. Dynamic Masters: The Lookups sheet reflects live masters from the system (Departments, Designations, Roles, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Downloading a fresh template always includes current values.",
+            "8. Date Format: Dates must be formatted as YYYY-MM-DD (e.g. 2026-09-18).",
+            "9. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
+            "10. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
+            "11. Maximum Rows: Up to 500 rows can be imported in a single upload file.",
         ];
 
         for (var i = 0; i < instructions.Length; i++)
         {
-            notes.Cell(i + 3, 1).Value = instructions[i];
-            notes.Cell(i + 3, 1).Style.Font.FontSize = 11;
+            var cell = notes.Cell(i + 5, 1);
+            cell.Value = instructions[i];
+            cell.Style.Font.FontSize = 11;
         }
 
         notes.Columns().AdjustToContents();
@@ -607,8 +676,13 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 var managerCode = GetValue(values, "reportingmanagercode");
                 if (!string.IsNullOrWhiteSpace(managerCode))
                 {
+                    var managerCodePart = managerCode.Contains(" - ")
+                        ? managerCode.Split(" - ")[0].Trim()
+                        : managerCode.Trim();
+
                     var manager = managers.FirstOrDefault(m =>
                         m.EmployeeCode.Equals(managerCode, StringComparison.OrdinalIgnoreCase)
+                        || m.EmployeeCode.Equals(managerCodePart, StringComparison.OrdinalIgnoreCase)
                         || m.Name.Equals(managerCode, StringComparison.OrdinalIgnoreCase)
                         || $"{m.EmployeeCode} - {m.Name}".Equals(managerCode, StringComparison.OrdinalIgnoreCase));
                     if (manager is null) rowErrors.Add($"Reporting manager '{managerCode}' was not found.");

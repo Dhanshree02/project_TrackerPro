@@ -2,7 +2,8 @@
 // Seed attendance data for Jun–Sep 2026.
 // Types: "onsite" | "wfh" | "leave" | "weeklyOff" | "holiday"
 //   weeklyOff is auto-derived for Sat/Sun — no need to seed it.
-//   Past "onsite" entries kept for history; future ones are stripped on load.
+//   Past "onsite" entries kept for history; future ones are stripped on load
+//   (shift is preserved when attendance is stripped).
 //
 // Member IDs:
 //   u1 → Aarav Mehta   u2 → Riya Kapoor   u3 → Vikram Shah
@@ -125,31 +126,44 @@ export const seedScheduleEntries: ScheduleEntry[] = [
   { memberId: "u5", date: "2026-08-26", type: "onsite" },
 
   // ── September 2026 — u1 ──────────────────────────────────────────────────────
-  { memberId: "u1", date: "2026-09-01", type: "onsite",  sequenceId: "u1-sep-01-02" },
-  { memberId: "u1", date: "2026-09-02", type: "onsite",  sequenceId: "u1-sep-01-02" },
-  { memberId: "u1", date: "2026-09-11", type: "leave",   sequenceId: "u1-sep-11-13" },
+  { memberId: "u1", date: "2026-09-01", type: "onsite",  sequenceId: "u1-sep-01-02", shift: "Morning" },
+  { memberId: "u1", date: "2026-09-02", type: "onsite",  sequenceId: "u1-sep-01-02", shift: "Morning" },
+  { memberId: "u1", date: "2026-09-11", type: "leave",   sequenceId: "u1-sep-11-13", shift: "Morning" },
+  { memberId: "u1", date: "2026-09-22", shift: "Morning" },
+  { memberId: "u1", date: "2026-09-23", shift: "Morning" },
+  { memberId: "u1", date: "2026-09-24", shift: "Morning" },
+  { memberId: "u1", date: "2026-09-25", shift: "Afternoon" },
 
   // ── September 2026 — u2 ──────────────────────────────────────────────────────
-  { memberId: "u2", date: "2026-09-07", type: "onsite" },
-  { memberId: "u2", date: "2026-09-17", type: "leave",   sequenceId: "u2-sep-17-20" },
-  { memberId: "u2", date: "2026-09-18", type: "leave",   sequenceId: "u2-sep-17-20" },
+  { memberId: "u2", date: "2026-09-07", type: "onsite", shift: "General" },
+  { memberId: "u2", date: "2026-09-17", type: "leave",  sequenceId: "u2-sep-17-20", shift: "General" },
+  { memberId: "u2", date: "2026-09-18", type: "leave",  sequenceId: "u2-sep-17-20", shift: "General" },
+  { memberId: "u2", date: "2026-09-22", shift: "General" },
+  { memberId: "u2", date: "2026-09-23", shift: "General" },
+  { memberId: "u2", date: "2026-09-24", shift: "Night" },
 
   // ── September 2026 — u3 ──────────────────────────────────────────────────────
-  { memberId: "u3", date: "2026-09-03", type: "onsite" },
-  { memberId: "u3", date: "2026-09-15", type: "leave" },
-  { memberId: "u3", date: "2026-09-28", type: "leave",   sequenceId: "u3-sep-28-30" },
-  { memberId: "u3", date: "2026-09-29", type: "leave",   sequenceId: "u3-sep-28-30" },
-  { memberId: "u3", date: "2026-09-30", type: "leave",   sequenceId: "u3-sep-28-30" },
+  { memberId: "u3", date: "2026-09-03", type: "onsite", shift: "Afternoon" },
+  { memberId: "u3", date: "2026-09-15", type: "leave", shift: "Afternoon" },
+  { memberId: "u3", date: "2026-09-22", shift: "Afternoon" },
+  { memberId: "u3", date: "2026-09-23", shift: "Afternoon" },
+  { memberId: "u3", date: "2026-09-28", type: "leave", sequenceId: "u3-sep-28-30", shift: "Night" },
+  { memberId: "u3", date: "2026-09-29", type: "leave", sequenceId: "u3-sep-28-30", shift: "Night" },
+  { memberId: "u3", date: "2026-09-30", type: "leave", sequenceId: "u3-sep-28-30", shift: "Night" },
 
   // ── September 2026 — u4 ──────────────────────────────────────────────────────
-  { memberId: "u4", date: "2026-09-04", type: "onsite" },
-  { memberId: "u4", date: "2026-09-09", type: "onsite",  sequenceId: "u4-sep-09-10" },
-  { memberId: "u4", date: "2026-09-10", type: "onsite",  sequenceId: "u4-sep-09-10" },
-  { memberId: "u4", date: "2026-09-25", type: "leave",   sequenceId: "u4-sep-25-27" },
+  { memberId: "u4", date: "2026-09-04", type: "onsite", shift: "Morning" },
+  { memberId: "u4", date: "2026-09-09", type: "onsite", sequenceId: "u4-sep-09-10", shift: "Morning" },
+  { memberId: "u4", date: "2026-09-10", type: "onsite", sequenceId: "u4-sep-09-10", shift: "Morning" },
+  { memberId: "u4", date: "2026-09-22", shift: "General" },
+  { memberId: "u4", date: "2026-09-23", shift: "General" },
+  { memberId: "u4", date: "2026-09-25", type: "leave", sequenceId: "u4-sep-25-27", shift: "General" },
 
   // ── September 2026 — u5 ──────────────────────────────────────────────────────
-  { memberId: "u5", date: "2026-09-02", type: "onsite" },
-  { memberId: "u5", date: "2026-09-14", type: "onsite" },
-  { memberId: "u5", date: "2026-09-21", type: "leave",   sequenceId: "u5-sep-21-22" },
-  { memberId: "u5", date: "2026-09-22", type: "leave",   sequenceId: "u5-sep-21-22" },
+  { memberId: "u5", date: "2026-09-02", type: "onsite", shift: "Night" },
+  { memberId: "u5", date: "2026-09-14", type: "onsite", shift: "Night" },
+  { memberId: "u5", date: "2026-09-21", type: "leave", sequenceId: "u5-sep-21-22", shift: "Night" },
+  { memberId: "u5", date: "2026-09-22", type: "leave", sequenceId: "u5-sep-21-22", shift: "Night" },
+  { memberId: "u5", date: "2026-09-24", shift: "Morning" },
+  { memberId: "u5", date: "2026-09-25", shift: "Morning" },
 ];

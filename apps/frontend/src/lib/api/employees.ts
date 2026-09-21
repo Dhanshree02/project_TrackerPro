@@ -140,6 +140,8 @@ export interface ApiExitedEmployee {
   departmentName?: string | null;
   designationName?: string | null;
   reasonForLeaving?: string | null;
+  clearanceCompleted?: boolean;
+  exitRating?: number | null;
 }
 
 export interface ApiMetaOption {

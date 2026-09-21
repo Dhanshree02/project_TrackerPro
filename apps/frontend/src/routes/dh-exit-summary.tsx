@@ -4,9 +4,9 @@ import {
   Search,
   Download,
   UserMinus,
+  User,
   CheckCircle2,
   Clock,
-  Building2,
   ChevronUp,
   ChevronDown,
   ChevronLeft,
@@ -16,7 +16,7 @@ import {
   ExternalLink,
   Calendar,
   FilterX,
-  FileSpreadsheet,
+  FileText,
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -46,6 +46,20 @@ export const Route = createFileRoute("/dh-exit-summary")({
 
 function formatDate(value?: string | null): string {
   return formatDateDMY(value);
+}
+
+function currentQuarter(now = new Date()) {
+  const q = Math.floor(now.getMonth() / 3) + 1;
+  const start = new Date(now.getFullYear(), (q - 1) * 3, 1);
+  const end = new Date(now.getFullYear(), q * 3, 0, 23, 59, 59, 999);
+  return { q, start, end, label: `Q${q}` };
+}
+
+function exitEventDate(e: ApiExitedEmployee): Date | null {
+  const raw = e.lastWorkingDay || e.exitedAtUtc;
+  if (!raw) return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function exitReasonOf(e: ApiExitedEmployee): string {
@@ -267,10 +281,21 @@ function ExitSummaryPage() {
     return Array.from(new Set([...fromCatalog, ...fromExits])).sort();
   }, [deptCatalog, exits]);
 
-  const impactedDeptsCount = useMemo(
-    () => new Set(exits.map((e) => e.departmentName).filter(Boolean)).size,
-    [exits],
+  const quarter = useMemo(() => currentQuarter(), []);
+  const quarterExits = useMemo(
+    () =>
+      exits.filter((e) => {
+        const d = exitEventDate(e);
+        return d !== null && d >= quarter.start && d <= quarter.end;
+      }),
+    [exits, quarter],
   );
+  const completedClearances = quarterExits.filter((e) => e.clearanceCompleted).length;
+  const activeOffboardings = quarterExits.length - completedClearances;
+  const rated = quarterExits.map((e) => e.exitRating).filter((n): n is number => typeof n === "number" && n > 0);
+  const avgExitRating = rated.length
+    ? Math.round((rated.reduce((sum, n) => sum + n, 0) / rated.length) * 10) / 10
+    : null;
 
   const exitTypes = useMemo(
     () =>
@@ -281,12 +306,6 @@ function ExitSummaryPage() {
   );
 
   const now = new Date();
-  const currentMonthCount = exits.filter((e) => {
-    const d = new Date(e.exitedAtUtc);
-    return !Number.isNaN(d.getTime()) && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-
-  const withLwdCount = exits.filter((e) => Boolean(e.lastWorkingDay)).length;
 
   const filtered = useMemo(() => {
     const qTrim = q.trim().toLowerCase();
@@ -419,61 +438,67 @@ function ExitSummaryPage() {
 
       {/* KPI Analytics Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs flex items-center gap-4 transition-all hover:shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-            <UserMinus className="h-6 w-6" />
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 shadow-xs">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-500 dark:bg-rose-500/15 dark:text-rose-400">
+            <User className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Offboarded
+              Total Exits ({quarter.label})
             </div>
-            <div className="text-2xl font-bold mt-0.5 tabular-nums text-foreground">{exits.length}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Historical records</div>
+            <div className="mt-0.5 text-2xl font-bold tabular-nums text-foreground">{quarterExits.length}</div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs flex items-center gap-4 transition-all hover:shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Calendar className="h-6 w-6" />
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 shadow-xs">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
+            <CheckCircle2 className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Exits This Month
+              Completed Clearances
             </div>
-            <div className="text-2xl font-bold mt-0.5 tabular-nums text-emerald-600 dark:text-emerald-400">
-              {currentMonthCount}
+            <div className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+              {completedClearances}
             </div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Current cycle</div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs flex items-center gap-4 transition-all hover:shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Clock className="h-6 w-6" />
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 shadow-xs">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-500 dark:bg-amber-500/15 dark:text-amber-400">
+            <Clock className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              LWD Documented
+              Active Offboardings
             </div>
-            <div className="text-2xl font-bold mt-0.5 tabular-nums text-amber-600 dark:text-amber-400">
-              {withLwdCount}
+            <div className="mt-0.5 text-2xl font-bold tabular-nums text-amber-500 dark:text-amber-400">
+              {activeOffboardings}
             </div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Clearance target set</div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs flex items-center gap-4 transition-all hover:shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            <Building2 className="h-6 w-6" />
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 shadow-xs">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+            <FileText className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Depts Impacted
+              Avg Exit Rating
             </div>
-            <div className="text-2xl font-bold mt-0.5 tabular-nums text-blue-600 dark:text-blue-400">
-              {impactedDeptsCount}
+            <div className="mt-0.5 flex items-baseline gap-1">
+              <span
+                className={cn(
+                  "text-2xl font-bold tabular-nums",
+                  avgExitRating == null
+                    ? "text-muted-foreground"
+                    : "text-blue-600 dark:text-blue-400",
+                )}
+              >
+                {avgExitRating == null ? "0.0" : avgExitRating.toFixed(1)}
+              </span>
+              <span className="text-xs font-medium text-muted-foreground">/ 5.0</span>
             </div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Across organization</div>
           </div>
         </div>
       </div>

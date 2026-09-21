@@ -2,7 +2,7 @@
 // Pure helper functions extracted from the original my-team.tsx.
 // All functions are stateless and independently testable.
 
-import type { CalendarEvent, TeamMember, TeamSchedule } from "../types";
+import type { CalendarEvent, ShiftType, TeamMember, TeamSchedule } from "../types";
 import { attendanceMeta, indicatorColors } from "../constants";
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -26,6 +26,89 @@ export function addDays(date: Date, amount: number): Date {
   const result = new Date(date);
   result.setDate(result.getDate() + amount);
   return result;
+}
+
+/** Parse a YYYY-MM-DD key as a local Date (avoids UTC shift). */
+export function parseDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function isWeekendDate(date: Date): boolean {
+  const weekday = date.getDay();
+  return weekday === 0 || weekday === 6;
+}
+
+/** Monday of the week containing `date` (local, week starts Monday). */
+export function getWeekMonday(date: Date): Date {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  const weekday = result.getDay();
+  const offset = weekday === 0 ? -6 : 1 - weekday;
+  result.setDate(result.getDate() + offset);
+  return result;
+}
+
+export function getMonFriKeys(date: Date): string[] {
+  const monday = getWeekMonday(date);
+  return [0, 1, 2, 3, 4].map((offset) => makeDateKeyFromDate(addDays(monday, offset)));
+}
+
+export function getDateKeysInRange(startKey: string, endKey: string): string[] {
+  const start = parseDateKey(startKey);
+  const end = parseDateKey(endKey);
+  const [from, to] = start <= end ? [start, end] : [end, start];
+  const keys: string[] = [];
+  for (let cursor = new Date(from); cursor <= to; cursor = addDays(cursor, 1)) {
+    keys.push(makeDateKeyFromDate(cursor));
+  }
+  return keys;
+}
+
+export function isDateLocked(
+  dateKey: string,
+  today: Date,
+  holidayMap: Record<string, string>,
+): boolean {
+  const date = parseDateKey(dateKey);
+  date.setHours(0, 0, 0, 0);
+  return date < today || Boolean(holidayMap[dateKey]);
+}
+
+function stripEmptyEvent(event: CalendarEvent | undefined): CalendarEvent | undefined {
+  if (!event) return undefined;
+  if (event.type || event.shift || event.sequenceId) return event;
+  return undefined;
+}
+
+/**
+ * Apply or clear a shift on a member's dates. Skips locked days.
+ * Preserves attendance / sequence. Deletes the entry when nothing remains.
+ */
+export function applyShiftToMemberDates(
+  schedule: TeamSchedule,
+  memberId: string,
+  dateKeys: string[],
+  shift: ShiftType | undefined,
+  isLocked: (dateKey: string) => boolean,
+): TeamSchedule {
+  const nextMember = { ...(schedule[memberId] ?? {}) };
+
+  for (const dateKey of dateKeys) {
+    if (isLocked(dateKey)) continue;
+    const existing = nextMember[dateKey];
+    if (shift) {
+      nextMember[dateKey] = { ...existing, shift };
+      continue;
+    }
+    if (!existing) continue;
+    const { shift: _removed, ...rest } = existing;
+    const nextEvent = stripEmptyEvent(rest);
+    if (nextEvent) nextMember[dateKey] = nextEvent;
+    else delete nextMember[dateKey];
+  }
+
+  return { ...schedule, [memberId]: nextMember };
 }
 
 // ── Schedule helpers ──────────────────────────────────────────────────────────
@@ -95,7 +178,8 @@ export function getAutomaticWeeklyOff(
 
 /**
  * Returns the calendar event for a member on a given date.
- * Explicit events take priority; weekends fall back to an auto Weekly Off.
+ * Explicit attendance wins; a shift-only weekday stays shift-only;
+ * weekends still pick up auto Weekly Off when attendance is unset.
  */
 export function getEventByDate(
   schedule: TeamSchedule,
@@ -103,8 +187,17 @@ export function getEventByDate(
   date: Date,
 ): CalendarEvent | undefined {
   const explicitEvent = getExplicitEvent(schedule, memberId, date);
-  if (explicitEvent) return explicitEvent;
-  return getAutomaticWeeklyOff(schedule, memberId, date);
+  const weeklyOff = getAutomaticWeeklyOff(schedule, memberId, date);
+  if (!explicitEvent) return weeklyOff;
+  if (!weeklyOff) return explicitEvent;
+  return {
+    ...weeklyOff,
+    ...explicitEvent,
+    type: explicitEvent.type ?? weeklyOff.type,
+    title: explicitEvent.title ?? weeklyOff.title,
+    sequenceId: explicitEvent.sequenceId ?? weeklyOff.sequenceId,
+    shift: explicitEvent.shift,
+  };
 }
 
 // ── Header indicator helper ───────────────────────────────────────────────────
@@ -129,9 +222,7 @@ export function getDayIndicator(
     .map((member) => getEventByDate(schedule, member.id, date))
     .filter((event): event is CalendarEvent => Boolean(event));
 
-  const leaveCount = events.filter((event) =>
-    event.type === "leave",
-  ).length;
+  const leaveCount = events.filter((event) => event.type === "leave").length;
 
   if (leaveCount > 1) return indicatorColors.multipleLeave;
   if (leaveCount === 1) return indicatorColors.leave;

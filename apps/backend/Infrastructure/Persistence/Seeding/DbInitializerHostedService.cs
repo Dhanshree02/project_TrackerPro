@@ -205,6 +205,28 @@ public sealed class DbInitializerHostedService(
                     ON employee_activity_logs ("CreatedAtUtc" DESC);
                 """,
                 cancellationToken);
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                ALTER TABLE exited_employees
+                    ADD COLUMN IF NOT EXISTS "ClearanceCompleted" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS "ExitRating" numeric(3, 1);
+
+                UPDATE exited_employees
+                SET "ClearanceCompleted" = true
+                WHERE "ClearanceCompleted" = false
+                  AND "LastWorkingDay" IS NOT NULL
+                  AND "LastWorkingDay" < CURRENT_DATE;
+
+                UPDATE exited_employees e
+                SET "ExitRating" = emp."AnnualRating"
+                FROM employees emp
+                WHERE e."OriginalEmployeeId" = emp."Id"
+                  AND e."ExitRating" IS NULL
+                  AND emp."AnnualRating" IS NOT NULL
+                  AND emp."AnnualRating" > 0
+                  AND emp."AnnualRating" <= 5;
+                """,
+                cancellationToken);
             await DbSeeder.EnsureEmployeeStatusesAsync(db, cancellationToken);
         }
         catch (Exception ex)

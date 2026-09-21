@@ -57,8 +57,9 @@ export const teamDataService = {
 
       schedule[entry.memberId][entry.date] = {
         type: entry.type,
-        title: entry.title ?? attendanceMeta[entry.type].label,
+        title: entry.title ?? (entry.type ? attendanceMeta[entry.type].label : undefined),
         sequenceId: entry.sequenceId,
+        shift: entry.shift,
       };
     });
 

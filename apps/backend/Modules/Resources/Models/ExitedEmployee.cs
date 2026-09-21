@@ -23,6 +23,8 @@ public class ExitedEmployee : BaseEntity
     public string? ExitChecklistJson { get; set; }
     public string? AssetReturnJson { get; set; }
     public string? FinalSettlementJson { get; set; }
+    public bool ClearanceCompleted { get; set; }
+    public decimal? ExitRating { get; set; }
     public DateTime ExitedAtUtc { get; set; } = DateTime.UtcNow;
     public Guid? ExitedBy { get; set; }
 }

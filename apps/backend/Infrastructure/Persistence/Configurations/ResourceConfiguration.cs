@@ -268,6 +268,8 @@ public sealed class ExitedEmployeeConfiguration : IEntityTypeConfiguration<Exite
         builder.Property(x => x.ExitChecklistJson).HasColumnType("jsonb");
         builder.Property(x => x.AssetReturnJson).HasColumnType("jsonb");
         builder.Property(x => x.FinalSettlementJson).HasColumnType("jsonb");
+        builder.Property(x => x.ClearanceCompleted).HasDefaultValue(false);
+        builder.Property(x => x.ExitRating).HasPrecision(3, 1);
     }
 }
 

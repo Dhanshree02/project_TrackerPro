@@ -754,6 +754,11 @@ namespace PMS.API.Migrations
                     b.Property<string>("AssetReturnJson")
                         .HasColumnType("jsonb");
 
+                    b.Property<bool>("ClearanceCompleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -778,6 +783,10 @@ namespace PMS.API.Migrations
 
                     b.Property<string>("ExitChecklistJson")
                         .HasColumnType("jsonb");
+
+                    b.Property<decimal?>("ExitRating")
+                        .HasPrecision(3, 1)
+                        .HasColumnType("numeric(3,1)");
 
                     b.Property<string>("ExitReason")
                         .HasMaxLength(500)

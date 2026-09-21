@@ -828,6 +828,9 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 ExitChecklistJson = request.ExitChecklistJson,
                 AssetReturnJson = request.AssetReturnJson,
                 FinalSettlementJson = request.FinalSettlementJson,
+                ClearanceCompleted = request.ClearanceCompleted
+                    ?? (request.LastWorkingDay is not null && request.LastWorkingDay < TodayInIst()),
+                ExitRating = ClampExitRating(request.ExitRating ?? employee.AnnualRating),
                 ExitedAtUtc = DateTime.UtcNow,
             };
             db.ExitedEmployees.Add(exited);
@@ -840,6 +843,11 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             existingExit.NoticePeriodServed = request.NoticePeriodServed ?? existingExit.NoticePeriodServed;
             existingExit.ExitType = request.ExitType ?? existingExit.ExitType;
             existingExit.ExitReason = request.ExitReason ?? existingExit.ExitReason;
+            if (request.ClearanceCompleted.HasValue)
+                existingExit.ClearanceCompleted = request.ClearanceCompleted.Value;
+            var rating = ClampExitRating(request.ExitRating ?? employee.AnnualRating);
+            if (rating.HasValue)
+                existingExit.ExitRating = rating;
             exited = existingExit;
         }
 
@@ -896,7 +904,9 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.ExitedAtUtc,
                 e.DepartmentName,
                 e.DesignationName,
-                e.ReasonForLeaving))
+                e.ReasonForLeaving,
+                e.ClearanceCompleted,
+                e.ExitRating))
             .ToListAsync(ct);
 
         return new PagedResult<ExitedEmployeeDto>(items, page, perPage, total);
@@ -1266,16 +1276,16 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
     private async Task CompleteEndedNoticePeriodsAsync(CancellationToken ct)
     {
         var today = TodayInIst();
-        var dueIds = await db.ExitedEmployees
+        var dueExits = await db.ExitedEmployees
             .Where(x => x.LastWorkingDay != null && x.LastWorkingDay < today)
-            .Select(x => x.OriginalEmployeeId)
-            .Distinct()
             .ToListAsync(ct);
-        if (dueIds.Count == 0) return;
+        if (dueExits.Count == 0) return;
 
+        foreach (var row in dueExits.Where(x => !x.ClearanceCompleted))
+            row.ClearanceCompleted = true;
+
+        var dueIds = dueExits.Select(x => x.OriginalEmployeeId).Distinct().ToList();
         var stillListed = await db.Employees.Where(e => dueIds.Contains(e.Id)).ToListAsync(ct);
-        if (stillListed.Count == 0) return;
-
         foreach (var employee in stillListed)
             db.Employees.Remove(employee);
         await db.SaveChangesAsync(ct);
@@ -1296,6 +1306,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz));
     }
 
+    private static decimal? ClampExitRating(decimal? value)
+    {
+        if (value is null or <= 0) return null;
+        return Math.Clamp(value.Value, 0.1m, 5.0m);
+    }
+
     private static ExitedEmployeeDto MapExited(ExitedEmployee e) => new(
         e.Id,
         e.OriginalEmployeeId,
@@ -1307,7 +1323,9 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.ExitedAtUtc,
         e.DepartmentName,
         e.DesignationName,
-        e.ReasonForLeaving);
+        e.ReasonForLeaving,
+        e.ClearanceCompleted,
+        e.ExitRating);
 
     private static EmployeeDetailDto MapDetail(Employee e) => new(
         e.Id,

@@ -88,3 +88,8 @@ Desktop.ini
 
 
 .freebuff/
+
+# =========================
+# Scratch & Local Diagnostics
+# =========================
+scratch/

@@ -5,9 +5,17 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-21
 
 ## Latest
+
+- **Last day of the month has 12px trailing padding** so it does not sit flush on the calendar edge. Today column uses primary blue (`bg-primary/15`).
+- **Team calendar cells: shift chips sit below the day, not on the attendance bar.** Sequence pills only join days with the same attendance type (Friday leave no longer melts into Sat/Sun weekly off). Shift is a small `M`/`A`/`N`/`G` badge under the number.
+
+
+- **Team Calendar shifts are per-day.** Removed the month-wide Shift `<select>` beside each name. Each cell now shows attendance colour + a compact `M`/`A`/`N`/`G` glyph. Click opens a popover (attendance + shift + Apply Mon–Fri `DD-MM-YYYY` + Copy previous week). Shift+Click fills a range with the last shift; keys `M` `A` `N` `G` / Delete set or clear shift. Weekend/holiday columns are zebra-tinted. User-facing dates use `formatDateDMY`. `CalendarEvent.shift` lives on the existing `TeamSchedule` map. Files: `modules/my-team/*`, `dummy-data/my-team/scheduleEntries.ts`.
+
+
 
 - **Employee status catalog boot fixed:** `mst_employee_statuses` migration lacked a primary key on `"Id"`, so FK creation crashed startup and the API returned 404 (stale container). Migration + `DbInitializerHostedService` now add PK idempotently; `DbSeeder.EnsureEmployeeStatusesAsync` runs on every boot (seeds Active/Terminated/Absconded/Resigned/Resignation Under Review). Onboarding API `GET /api/v1/employees/meta/employee-statuses?onboardingOnly=true` returns Active only.
 

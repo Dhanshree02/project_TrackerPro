@@ -1,6 +1,6 @@
 // ─── My Team — Constants ─────────────────────────────────────────────────────
 
-import type { AttendanceType, SelectableAttendanceType } from "../types";
+import type { AttendanceType, SelectableAttendanceType, ShiftType } from "../types";
 
 export const attendanceMeta: Record<
   AttendanceType,
@@ -43,7 +43,7 @@ export const indicatorColors = {
   multipleLeave: "#ff6161",
 } as const;
 
-/** Options shown in the per-cell dropdown. */
+/** Options shown in the per-cell attendance list. */
 export const dropdownOptions: Array<{
   label: string;
   type: SelectableAttendanceType;
@@ -53,6 +53,38 @@ export const dropdownOptions: Array<{
   { label: "Leave",          type: "leave"  },
   { label: "Clear",          type: "clear"  },
 ];
+
+export const shiftMeta: Record<
+  ShiftType,
+  { label: string; chip: string; hours: string }
+> = {
+  Morning:   { label: "Morning",   chip: "M", hours: "06:00–14:00" },
+  Afternoon: { label: "Afternoon", chip: "A", hours: "14:00–22:00" },
+  Night:     { label: "Night",     chip: "N", hours: "22:00–06:00" },
+  General:   { label: "General",   chip: "G", hours: "09:00–18:00" },
+};
+
+export const shiftOptions: ShiftType[] = ["Morning", "Afternoon", "Night", "General"];
+
+/** Shared G/M/A/N badge — grey so it stays quiet under the day number. */
+export const shiftChipClass =
+  "flex h-4 min-w-[16px] items-center justify-center rounded px-1 text-[9px] font-semibold leading-none antialiased text-[#6b7280] bg-[#eceef2]";
+
+export const DEFAULT_SHIFT: ShiftType = "General";
+
+export const shiftKeyMap: Record<string, ShiftType> = {
+  m: "Morning",
+  a: "Afternoon",
+  n: "Night",
+  g: "General",
+};
+
+/** Name column width. Day columns use this as a minimum and grow with the window. */
+export const CALENDAR_NAME_COL_PX = 228;
+export const CALENDAR_DAY_COL_PX = 40;
+export const CALENDAR_END_PAD_PX = 12;
+export const CALENDAR_ROW_PX = 72;
+export const CALENDAR_HEADER_PX = 44;
 
 /** Formats a Date as "Jul 2026" */
 export const monthFormatter = new Intl.DateTimeFormat("en-US", {

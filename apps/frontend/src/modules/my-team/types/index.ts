@@ -32,9 +32,11 @@ export type TeamMember = {
 };
 
 export type CalendarEvent = {
-  type: AttendanceType;
+  /** Absent when the day only has a shift assigned. */
+  type?: AttendanceType;
   title?: string;
   sequenceId?: string;
+  shift?: ShiftType;
 };
 
 /** memberId → dateKey (YYYY-MM-DD) → event */
@@ -43,10 +45,13 @@ export type TeamSchedule = Record<string, Record<string, CalendarEvent>>;
 export type ScheduleEntry = {
   memberId: string;
   date: string;
-  type: AttendanceType;
+  type?: AttendanceType;
   sequenceId?: string;
   title?: string;
+  shift?: ShiftType;
 };
+
+export type CellRef = { memberId: string; dateKey: string };
 
 /** A company-wide holiday on a specific date. */
 export type HolidayEntry = {

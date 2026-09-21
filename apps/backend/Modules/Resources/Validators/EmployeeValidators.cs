@@ -170,6 +170,7 @@ public sealed class OffboardEmployeeRequestValidator : AbstractValidator<Offboar
         RuleFor(x => x.NoticePeriodServed).MaximumLength(80);
         RuleFor(x => x.ExitType).MaximumLength(80);
         RuleFor(x => x.ExitReason).MaximumLength(500);
+        RuleFor(x => x.ExitRating).InclusiveBetween(0.1m, 5.0m).When(x => x.ExitRating.HasValue);
     }
 }
 

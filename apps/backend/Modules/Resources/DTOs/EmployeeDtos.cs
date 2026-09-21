@@ -144,7 +144,9 @@ public sealed record ExitedEmployeeDto(
     DateTime ExitedAtUtc,
     string? DepartmentName,
     string? DesignationName,
-    string? ReasonForLeaving);
+    string? ReasonForLeaving,
+    bool ClearanceCompleted = false,
+    decimal? ExitRating = null);
 
 public sealed record MetaOptionDto(Guid Id, string Code, string Name, Guid? ParentId = null);
 
@@ -335,7 +337,9 @@ public sealed record OffboardEmployeeRequest(
     string? AssetReturnJson,
     string? FinalSettlementJson,
     string? ExitType,
-    string? ExitReason);
+    string? ExitReason,
+    bool? ClearanceCompleted = null,
+    decimal? ExitRating = null);
 
 public sealed record EmployeeActivityLogDto(
     Guid Id,
