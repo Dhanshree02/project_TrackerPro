@@ -2,11 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BriefcaseBusiness,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Users,
   Plus,
   X,
 } from "lucide-react";
@@ -47,7 +44,8 @@ import type {
 } from "./types";
 import { CalendarDayCell } from "./components/CalendarDayCell";
 import { Legend, ShiftChipLegend } from "./components/Legend";
-import { SummaryCard } from "./components/SummaryCard";
+import { PresenceCard, type ActiveFilter } from "./components/PresenceCard";
+import { ShiftCoverageCard } from "./components/ShiftCoverageCard";
 
 export function MyTeamPage() {
   const teamMembers = useMemo(() => teamDataService.getTeamMembers(), []);
@@ -80,6 +78,7 @@ export function MyTeamPage() {
     return cleaned;
   });
 
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>({ kind: "all" });
   const [openCell, setOpenCell] = useState<OpenCell>(null);
   const [focusedCell, setFocusedCell] = useState<CellRef | null>(null);
   const [rangeAnchor, setRangeAnchor] = useState<CellRef | null>(null);
@@ -144,21 +143,66 @@ export function MyTeamPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }, [today]);
 
-  const { activeCount, wfhCount, onLeaveCount, onsiteCount } = useMemo(() => {
-    let wfh = 0, onLeave = 0, onsite = 0;
+  const { activeMembers, onsiteMembers, wfhMembers, onLeaveMembers } = useMemo(() => {
+    const onsite: typeof teamMembers = [];
+    const wfh: typeof teamMembers = [];
+    const leave: typeof teamMembers = [];
+    const active: typeof teamMembers = [];
+
     teamMembers.forEach((m) => {
       const event = teamSchedule[m.id]?.[todayKey];
       const type = event?.type;
       if (type === "leave") {
-        onLeave++;
+        leave.push(m);
       } else if (type === "wfh") {
-        wfh++;
+        wfh.push(m);
+        active.push(m);
       } else if (type === "onsite") {
-        onsite++;
+        onsite.push(m);
+        active.push(m);
+      } else if (m.status === "WFH") {
+        wfh.push(m);
+        active.push(m);
+      } else if (m.status === "On Leave" && !event?.shift) {
+        leave.push(m);
+      } else {
+        onsite.push(m);
+        active.push(m);
       }
     });
-    return { activeCount: totalMembers - onLeave, wfhCount: wfh, onLeaveCount: onLeave, onsiteCount: onsite };
-  }, [teamMembers, teamSchedule, todayKey, totalMembers]);
+
+    return { activeMembers: active, onsiteMembers: onsite, wfhMembers: wfh, onLeaveMembers: leave };
+  }, [teamMembers, teamSchedule, todayKey]);
+
+  const shiftMembers = useMemo(() => {
+    const map: Record<ShiftType, typeof teamMembers> = {
+      General: [],
+      Morning: [],
+      Afternoon: [],
+      Night: [],
+    };
+    teamMembers.forEach((m) => {
+      const event = teamSchedule[m.id]?.[todayKey];
+      const shift = event?.shift ?? DEFAULT_SHIFT;
+      if (map[shift]) {
+        map[shift].push(m);
+      }
+    });
+    return map;
+  }, [teamMembers, teamSchedule, todayKey]);
+
+  const filteredMembers = useMemo(() => {
+    if (activeFilter.kind === "all") return teamMembers;
+    if (activeFilter.kind === "presence") {
+      if (activeFilter.status === "onsite") return onsiteMembers;
+      if (activeFilter.status === "wfh") return wfhMembers;
+      if (activeFilter.status === "leave") return onLeaveMembers;
+    }
+    if (activeFilter.kind === "shift") {
+      return shiftMembers[activeFilter.shift as ShiftType] ?? teamMembers;
+    }
+    return teamMembers;
+  }, [activeFilter, teamMembers, onsiteMembers, wfhMembers, onLeaveMembers, shiftMembers]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const isLockedKey = (dateKey: string) => isDateLocked(dateKey, today, holidayMap);
@@ -200,6 +244,7 @@ export function MyTeamPage() {
     }
 
     setRangeAnchor({ memberId, dateKey });
+    setHolidayPanelOpen(false);
     setOpenCell((current) => {
       if (current?.memberId === memberId && current.dateKey === dateKey) return null;
       return { memberId, dateKey };
@@ -231,7 +276,6 @@ export function MyTeamPage() {
       }
       return { ...current, [memberId]: memberSchedule };
     });
-    setOpenCell(null);
   };
 
   const handleShiftSelect = (
@@ -296,7 +340,7 @@ export function MyTeamPage() {
         return;
       }
 
-      const memberIndex = teamMembers.findIndex((member) => member.id === focusedCell.memberId);
+      const memberIndex = filteredMembers.findIndex((member) => member.id === focusedCell.memberId);
       const currentDay = parseDateKey(focusedCell.dateKey).getDate();
       if (memberIndex < 0) return;
 
@@ -310,15 +354,15 @@ export function MyTeamPage() {
 
       event.preventDefault();
       if (nextDay < 1 || nextDay > daysInMonth) return;
-      if (nextMemberIndex < 0 || nextMemberIndex >= teamMembers.length) return;
+      if (nextMemberIndex < 0 || nextMemberIndex >= filteredMembers.length) return;
 
       setOpenCell(null);
-      focusCell(teamMembers[nextMemberIndex].id, makeDateKey(year, monthIndex, nextDay));
+      focusCell(filteredMembers[nextMemberIndex].id, makeDateKey(year, monthIndex, nextDay));
     };
 
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [focusedCell, holidayPanelOpen, teamMembers, daysInMonth, year, monthIndex, holidayMap, today]);
+  }, [focusedCell, holidayPanelOpen, filteredMembers, daysInMonth, year, monthIndex, holidayMap, today]);
 
   // Add a holiday — applies to ALL team members on that date
   const handleAddHoliday = () => {
@@ -373,24 +417,65 @@ export function MyTeamPage() {
       subtitle="Reporting team, availability, and leave visibility"
     >
       <div className="space-y-4">
-        {/* Summary cards */}
-        <section className="grid gap-3 md:grid-cols-4">
-          <SummaryCard label="On leave today" current={onLeaveCount} total={totalMembers} icon={CalendarDays}     />
-          <SummaryCard label="Active today"   current={activeCount}  total={totalMembers} icon={Users}            />
-          <SummaryCard label="Onsite today"   current={onsiteCount}  total={totalMembers} icon={BriefcaseBusiness} />
-          <SummaryCard label="WFH today"      current={wfhCount}     total={totalMembers} icon={BriefcaseBusiness} />
-          
+        {/* Consolidated Minimalist Command Cards (Presence & Shift Coverage) */}
+        <section className="grid gap-3.5 grid-cols-1 md:grid-cols-2">
+          <PresenceCard
+            totalMembers={totalMembers}
+            activeMembers={activeMembers}
+            onsiteMembers={onsiteMembers}
+            wfhMembers={wfhMembers}
+            onLeaveMembers={onLeaveMembers}
+            activeFilter={activeFilter}
+            onSelectFilter={setActiveFilter}
+          />
+          <ShiftCoverageCard
+            totalMembers={totalMembers}
+            shiftMembers={shiftMembers}
+            activeFilter={activeFilter}
+            onSelectFilter={setActiveFilter}
+          />
         </section>
 
         {/* Team calendar */}
         <section>
-          <h2 className="text-sm font-semibold">Team calendar</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Click a future day to set attendance and shift. Shift+Click applies the last shift across a range. Keys: M A N G.
-          </p>
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+            <div>
+              <h2 className="text-sm font-semibold">Team calendar</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Click a future day to set attendance and shift. Shift+Click applies the last shift across a range. Keys: M A N G.
+              </p>
+            </div>
+
+            {/* Filter badge if active */}
+            {activeFilter.kind !== "all" && (
+              <div className="flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-semibold text-primary">
+                <span>
+                  Filtered:{" "}
+                  <strong>
+                    {activeFilter.kind === "presence"
+                      ? activeFilter.status === "onsite"
+                        ? "Onsite"
+                        : activeFilter.status === "wfh"
+                        ? "WFH"
+                        : "On Leave"
+                      : `${activeFilter.shift} Shift`}
+                  </strong>{" "}
+                  ({filteredMembers.length} member{filteredMembers.length === 1 ? "" : "s"})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter({ kind: "all" })}
+                  className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-primary/20 transition-colors"
+                  title="Clear filter"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="mt-5 overflow-hidden rounded-[22px] bg-[#fbfbfc] shadow-[inset_0_0.5px_0_rgba(255,255,255,1),inset_0_0_0_0.5px_rgba(255,255,255,0.7),0_0_0_0.5px_rgba(0,0,0,0.18),0_18px_48px_-20px_rgba(15,23,42,0.28)]">
-            <div className="border-b border-black/[0.06] bg-white/45 px-5 py-3.5 backdrop-blur-xl backdrop-saturate-150">
+            <div className="relative z-30 border-b border-black/[0.06] bg-white/45 px-5 py-3.5 backdrop-blur-xl backdrop-saturate-150">
               {/* ── Month navigation + Add Holiday button ── */}
               <div className="flex items-center gap-3 flex-wrap">
 
@@ -408,12 +493,13 @@ export function MyTeamPage() {
                 </button>
 
                 {/* Add Holiday button + popover */}
-                <div ref={holidayBtnRef} className="relative ml-2">
+                <div ref={holidayBtnRef} className="relative z-40 ml-2">
                   <button
                     type="button"
                     onClick={() => {
                       setHolidayPanelOpen((o) => !o);
                       setHolidayError("");
+                      setOpenCell(null);
                     }}
                     className="inline-flex items-center gap-1.5 rounded-md border border-[#a6c63a] bg-[#f4f9e8] px-3 py-1 text-[11px] font-semibold text-[#4a6b0a] transition hover:bg-[#e2ecc0]"
                   >
@@ -423,7 +509,7 @@ export function MyTeamPage() {
 
                   {/* Popover panel */}
                   {holidayPanelOpen && (
-                    <div className="absolute left-0 top-[calc(100%+6px)] z-[200] w-[260px] rounded-xl border border-[#e1e4eb] bg-white shadow-[0_8px_32px_rgba(34,42,62,0.16)]">
+                    <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[260px] rounded-xl border border-[#e1e4eb] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.18)]">
                       {/* Caret */}
                       <span className="absolute -top-[7px] left-5 h-3.5 w-3.5 rotate-45 border-l border-t border-[#e1e4eb] bg-white" />
 
@@ -542,10 +628,12 @@ export function MyTeamPage() {
                     className="shrink-0 border-b border-black/[0.04]"
                     style={{ height: CALENDAR_HEADER_PX }}
                   />
-                  {teamMembers.map((member) => (
+                  {filteredMembers.map((member, memberIdx) => (
                     <div
                       key={member.id}
-                      className="flex items-center gap-3 px-4"
+                      className={`flex items-center gap-3 px-4 ${
+                        memberIdx < filteredMembers.length - 1 ? "border-b border-[#edf0f4]" : ""
+                      }`}
                       style={{ height: CALENDAR_ROW_PX }}
                     >
                       <div
@@ -578,17 +666,20 @@ export function MyTeamPage() {
                         const weekend = isWeekendDate(date);
                         const holiday = Boolean(holidayMap[dateKey]);
                         const isToday = dateKey === todayKey;
+                        const isPast = date < today && !isToday;
                         return (
                           <div
                             key={day}
-                            className={`relative flex h-full items-center justify-center text-[11px] font-bold ${
+                            className={`relative flex h-full items-center justify-center text-[11px] font-bold border-b border-r border-[#edf0f4] ${
                               isToday
-                                ? "bg-primary/15 text-primary"
-                                : holiday
-                                  ? "bg-[#f4f9e8] text-[#566073]"
-                                  : weekend
-                                    ? "bg-[#f4f5f8] text-[#566073]"
-                                    : "text-[#566073]"
+                                ? "bg-primary/20 text-primary"
+                                : isPast
+                                  ? "bg-[#ebedf3] text-[#8a94a6]"
+                                  : holiday
+                                    ? "bg-[#f4f9e8] text-[#566073]"
+                                    : weekend
+                                      ? "bg-[#f3f4f7] text-[#8a94a6]"
+                                      : "bg-white text-[#334155]"
                             }`}
                           >
                             {weekday}
@@ -601,12 +692,17 @@ export function MyTeamPage() {
                       })}
                   </div>
 
-                  {teamMembers.map((member) => (
-                    <div
-                      key={member.id}
-                      className="grid w-full overflow-visible border-b border-[#edf0f4] last:border-b-0"
-                      style={{ height: CALENDAR_ROW_PX, gridTemplateColumns: dayGridTemplate }}
-                    >
+                  {filteredMembers.map((member, memberIdx) => {
+                    const isLastRow = memberIdx === filteredMembers.length - 1;
+                    const isRowActive = openCell?.memberId === member.id;
+                    return (
+                      <div
+                        key={member.id}
+                        className={`grid w-full overflow-visible border-b border-[#edf0f4] last:border-b-0 ${
+                          isRowActive ? "relative z-40" : "relative z-0"
+                        }`}
+                        style={{ height: CALENDAR_ROW_PX, gridTemplateColumns: dayGridTemplate }}
+                      >
                         {days.map((day) => {
                           const date = new Date(year, monthIndex, day);
                           const dateKey = makeDateKeyFromDate(date);
@@ -626,6 +722,7 @@ export function MyTeamPage() {
                               isPast={date < today}
                               isHoliday={isHoliday}
                               isToday={dateKey === todayKey}
+                              isLastRow={isLastRow}
                               holidayName={holidayMap[dateKey]}
                               weekRangeLabel={`${formatDateDMY(monFri[0])} to ${formatDateDMY(monFri[4])}`}
                               onToggle={(shiftKey) => handleCellToggle(member.id, date, shiftKey)}
@@ -637,8 +734,9 @@ export function MyTeamPage() {
                             />
                           );
                         })}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

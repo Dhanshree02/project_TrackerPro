@@ -66,9 +66,9 @@ export const shiftMeta: Record<
 
 export const shiftOptions: ShiftType[] = ["Morning", "Afternoon", "Night", "General"];
 
-/** Shared G/M/A/N badge — grey so it stays quiet under the day number. */
+/** Shared G/M/A/N badge — uniform square, font-medium for optical balance across letters. */
 export const shiftChipClass =
-  "flex h-4 min-w-[16px] items-center justify-center rounded px-1 text-[9px] font-semibold leading-none antialiased text-[#6b7280] bg-[#eceef2]";
+  "flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[3.5px] text-[9.5px] font-medium leading-none antialiased text-[#64748b] bg-[#eceef2] select-none";
 
 export const DEFAULT_SHIFT: ShiftType = "General";
 

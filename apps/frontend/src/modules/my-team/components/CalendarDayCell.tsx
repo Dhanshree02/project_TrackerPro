@@ -1,10 +1,24 @@
 // ─── My Team — Calendar Day Cell ─────────────────────────────────────────────
 
-import { useEffect, useRef } from "react";
 import { formatDateDMY } from "@/lib/utils";
-import { attendanceMeta, dropdownOptions, shiftMeta, shiftOptions, weekdayFormatter, CALENDAR_ROW_PX, DEFAULT_SHIFT, shiftChipClass } from "../constants";
+import {
+  attendanceMeta,
+  dropdownOptions,
+  shiftMeta,
+  shiftOptions,
+  weekdayFormatter,
+  CALENDAR_ROW_PX,
+  DEFAULT_SHIFT,
+  shiftChipClass,
+} from "../constants";
 import { getEventByDate, isWeekendDate } from "../utils";
 import type { AttendanceType, SelectableAttendanceType, ShiftType, TeamSchedule } from "../types";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/popover";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
 
 interface CalendarDayCellProps {
   memberId: string;
@@ -19,6 +33,7 @@ interface CalendarDayCellProps {
   /** Name of the holiday to show on hover */
   holidayName?: string;
   isToday?: boolean;
+  isLastRow?: boolean;
   weekRangeLabel: string;
   onToggle: (shiftKey: boolean) => void;
   onClose: () => void;
@@ -41,10 +56,10 @@ function buildTooltip(args: {
   if (args.isHoliday && args.holidayName) return `Holiday: ${args.holidayName} · ${dmy}`;
 
   const shiftLabel = `${args.shift ?? DEFAULT_SHIFT} (${shiftMeta[args.shift ?? DEFAULT_SHIFT].hours})`;
-  const attendance = args.attendanceLabel ?? (args.isPast ? "Unmarked" : "Unmarked");
+  const attendance = args.attendanceLabel ?? (args.isPast ? "Unmarked" : "Available to schedule");
 
   if (args.isPast && !args.attendanceLabel && !args.shift) {
-    return `Past date — read only · ${dmy}`;
+    return `Past date (Read only) · ${dmy}`;
   }
 
   return `${args.memberName} · ${dmy} · ${shiftLabel} · ${attendance}`;
@@ -61,6 +76,7 @@ export function CalendarDayCell({
   isHoliday,
   holidayName,
   isToday = false,
+  isLastRow = false,
   weekRangeLabel,
   onToggle,
   onClose,
@@ -69,7 +85,6 @@ export function CalendarDayCell({
   onSelectShift,
   onApplyWeek,
 }: CalendarDayCellProps) {
-  const cellRef = useRef<HTMLDivElement>(null);
   const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
   const event = getEventByDate(schedule, memberId, date);
@@ -77,7 +92,6 @@ export function CalendarDayCell({
   const displayShift = event?.shift ?? DEFAULT_SHIFT;
   const isLocked = isPast || isHoliday;
   const isWeekend = isWeekendDate(date);
-  const alignEnd = date.getDate() > 24;
 
   const attendanceLabel = attendanceType
     ? event?.title ?? attendanceMeta[attendanceType].label
@@ -93,96 +107,113 @@ export function CalendarDayCell({
     shift: displayShift,
   });
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (mouseEvent: MouseEvent) => {
-      if (cellRef.current && !cellRef.current.contains(mouseEvent.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [isOpen, onClose]);
+  // Prefer opening to the side that has the most room (left if late in month, right otherwise)
+  const preferredSide = date.getDate() > 18 ? "left" : "right";
 
   return (
-    <div
-      ref={cellRef}
-      style={{ width: "100%", height: CALENDAR_ROW_PX }}
-      className={`relative flex flex-col items-center justify-center overflow-visible ${
-        isOpen ? "z-[100]" : "z-0"
-      } ${
-        isToday
-          ? "bg-primary/15"
-          : isHoliday
-            ? "bg-[#f4f9e8]"
-            : isWeekend
-              ? "bg-[#f4f5f8]"
-              : ""
-      }`}
+    <Popover
+      open={isOpen && !isLocked}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <div className="relative flex h-7 w-full items-center justify-center">
-        <button
-          type="button"
-          data-cell={`${memberId}-${dateKey}`}
-          aria-disabled={isLocked}
-          aria-label={`${memberName} ${formatDateDMY(date)}`}
-          onFocus={onFocusCell}
-          onClick={(mouseEvent) => {
-            onFocusCell();
-            if (isLocked) return;
-            onToggle(mouseEvent.shiftKey);
-          }}
-          title={tooltipTitle}
-          className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition focus:outline-none ${
-            isFocused
-              ? "ring-2 ring-[#5a49b8]/50 ring-offset-1"
-              : "focus:ring-2 focus:ring-[#5a49b8]/40"
-          } ${
-            isLocked
-              ? "cursor-default opacity-60"
-              : attendanceType
-                ? "text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)] hover:scale-110"
-                : isToday
-                  ? "bg-primary/15 text-primary hover:bg-primary/25 hover:scale-110"
-                  : "text-[#9aa2b2] hover:bg-[#f0eef9] hover:text-[#5a49b8] hover:scale-110"
-          }`}
-          style={
-            attendanceType
-              ? {
-                  backgroundColor: attendanceMeta[attendanceType]?.solid,
-                  color: attendanceMeta[attendanceType]?.textColor,
-                }
-              : undefined
-          }
-        >
-          {date.getDate()}
-        </button>
-      </div>
-
-      <span className={`mt-1 ${shiftChipClass}`}>
-        {shiftMeta[displayShift].chip}
-      </span>
-
-      {isOpen && !isLocked && (
+      <PopoverAnchor asChild>
         <div
-          role="menu"
-          className={`absolute top-[62px] z-[120] w-[220px] rounded-xl border border-[#e1e4eb]/80 bg-white/95 p-2 shadow-lg backdrop-blur-md ${
-            alignEnd ? "right-0" : "left-1/2 -translate-x-1/2"
+          style={{ width: "100%", height: CALENDAR_ROW_PX }}
+          className={`relative flex flex-col items-center justify-center overflow-visible border-r border-[#edf0f4] dark:border-slate-800 ${
+            !isLastRow ? "border-b border-[#edf0f4] dark:border-slate-800" : ""
+          } ${
+            isToday
+              ? "bg-primary/20 dark:bg-primary/25"
+              : isPast
+                ? "bg-[#ebedf3] dark:bg-slate-800/70"
+                : isHoliday
+                  ? "bg-[#f4f9e8] dark:bg-[#202713]"
+                  : isWeekend
+                    ? "bg-[#f3f4f7] dark:bg-slate-800/40"
+                    : "bg-white dark:bg-slate-900"
           }`}
         >
+          <div className="relative flex h-7 w-full items-center justify-center">
+            <button
+              type="button"
+              data-cell={`${memberId}-${dateKey}`}
+              aria-disabled={isLocked}
+              aria-label={`${memberName} ${formatDateDMY(date)}`}
+              onFocus={onFocusCell}
+              onClick={(mouseEvent) => {
+                onFocusCell();
+                if (isLocked) return;
+                onToggle(mouseEvent.shiftKey);
+              }}
+              title={tooltipTitle}
+              className={`relative z-10 p-0 m-0 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold leading-none tabular-nums text-center focus:outline-none ${
+                isFocused
+                  ? "ring-2 ring-[#5a49b8]/50 ring-offset-1"
+                  : "focus:ring-2 focus:ring-[#5a49b8]/40"
+              } ${
+                isLocked
+                  ? "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 opacity-70"
+                  : attendanceType
+                    ? "text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)]"
+                    : isToday
+                      ? "text-primary font-bold cursor-pointer"
+                      : "text-[#1e293b] dark:text-slate-100 font-bold cursor-pointer"
+              }`}
+              style={
+                attendanceType
+                  ? {
+                      backgroundColor: attendanceMeta[attendanceType]?.solid,
+                      color: attendanceMeta[attendanceType]?.textColor,
+                    }
+                  : undefined
+              }
+            >
+              <span className="flex items-center justify-center leading-none text-center -mt-[0.5px]">
+                {date.getDate()}
+              </span>
+            </button>
+          </div>
+
           <span
-            className={`absolute -top-1.5 h-3 w-3 rotate-45 border-l border-t border-[#e1e4eb] bg-white/95 ${
-              alignEnd ? "right-3" : "left-1/2 -translate-x-1/2"
+            className={`mt-1 ${shiftChipClass} ${
+              isPast ? "opacity-75 grayscale-[25%]" : ""
             }`}
-          />
+          >
+            {shiftMeta[displayShift].chip}
+          </span>
+        </div>
+      </PopoverAnchor>
 
-          <p className="relative z-10 px-1.5 pb-1 text-[10px] font-semibold text-[#3d3d5c]">
-            {weekdayFormatter.format(date)} · {formatDateDMY(date)}
-          </p>
+      {/* Screen-aware Portal Popover: opens side-by-side or best fit, no scrollbars */}
+      <PopoverContent
+        side={preferredSide}
+        align="center"
+        sideOffset={10}
+        collisionPadding={16}
+        className="z-[200] w-[230px] rounded-2xl border border-white/60 bg-white/80 p-2.5 shadow-[0_20px_50px_rgba(15,23,42,0.22),0_0_0_1px_rgba(0,0,0,0.06)] backdrop-blur-[32px] backdrop-saturate-180 dark:bg-slate-900/85 dark:border-white/10 outline-none"
+      >
+        <PopoverPrimitive.Arrow
+          className="fill-white/80 stroke-white/60 dark:fill-slate-900/85 dark:stroke-white/10"
+          width={12}
+          height={6}
+        />
 
-          <p className="relative z-10 px-1.5 pb-0.5 text-[9px] font-bold uppercase tracking-wide text-[#9aa2b2]">
-            Attendance
+        {/* Header with Date & Member */}
+        <div className="relative z-10 px-1 pb-1.5 border-b border-black/[0.06] dark:border-white/[0.08] mb-1.5">
+          <p className="text-[11.5px] font-bold text-[#1e293b] dark:text-white leading-tight">
+            {formatDateDMY(date)}
           </p>
+          <p className="text-[9.5px] font-medium text-[#64748b] leading-tight mt-0.5 truncate">
+            {weekdayFormatter.format(date)} · {memberName}
+          </p>
+        </div>
+
+        {/* Attendance options */}
+        <p className="relative z-10 px-1 pb-0.5 text-[9px] font-bold uppercase tracking-wider text-[#9aa2b2]">
+          Attendance
+        </p>
+        <div className="relative z-10 space-y-0.5">
           {dropdownOptions.map((option) => {
             const isClear = option.type === "clear";
             const isActive = !isClear && attendanceType === option.type;
@@ -190,88 +221,83 @@ export function CalendarDayCell({
               <button
                 key={option.type}
                 type="button"
-                role="menuitem"
                 onClick={(clickEvent) => {
                   clickEvent.stopPropagation();
                   onSelectAttendance(option.type);
                 }}
-                className={`relative z-10 flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-[11px] font-medium transition hover:bg-[#f4f2fb] ${
+                className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1 text-left text-[11px] font-medium transition-all ${
                   isClear
-                    ? "mt-0.5 border-t border-[#f0f2f5] text-[#9aa2b2]"
+                    ? "mt-1 border-t border-black/[0.05] dark:border-white/[0.08] pt-1.5 text-[#8b93a3] hover:bg-black/[0.04]"
                     : isActive
-                      ? "bg-[#f4f2fb] text-[#5a49b8]"
-                      : "text-[#596274]"
+                      ? "bg-white/85 text-[#5a49b8] shadow-xs ring-1 ring-[#5a49b8]/30 font-semibold dark:bg-slate-800"
+                      : "text-[#475569] hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/10"
                 }`}
               >
                 {isClear ? (
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-[#d1d5db]" />
                 ) : (
                   <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: attendanceMeta[option.type as AttendanceType]?.solid }}
+                    className="h-2.5 w-2.5 shrink-0 rounded-full shadow-2xs"
+                    style={{
+                      backgroundColor:
+                        attendanceMeta[option.type as AttendanceType]?.solid,
+                    }}
                   />
                 )}
                 {option.label}
               </button>
             );
           })}
+        </div>
 
-          <p className="relative z-10 mt-1 px-1.5 pb-0.5 text-[9px] font-bold uppercase tracking-wide text-[#9aa2b2]">
-            Shift
-          </p>
-          <div className="relative z-10 mb-1 grid grid-cols-4 gap-1 px-1">
-            {shiftOptions.map((shift) => {
-              const meta = shiftMeta[shift];
-              const isActive = displayShift === shift;
-              return (
-                <button
-                  key={shift}
-                  type="button"
-                  role="menuitem"
-                  title={`${meta.label} (${meta.hours})`}
-                  onClick={(clickEvent) => {
-                    clickEvent.stopPropagation();
-                    onSelectShift(shift);
-                  }}
-                  className={`flex flex-col items-center rounded-lg px-1 py-1.5 text-[10px] font-semibold transition ${
-                    isActive
-                      ? "bg-[#eceef2] text-[#4b5563]"
-                      : "bg-[#f7f8fa] text-[#6b7280] hover:bg-[#eceef2]"
-                  }`}
-                >
-                  <span className="text-[11px] font-bold">{meta.chip}</span>
-                  <span className="text-[8px] font-medium opacity-80">{meta.label.slice(0, 3)}</span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Shift options */}
+        <p className="relative z-10 mt-2 px-1 pb-0.5 text-[9px] font-bold uppercase tracking-wider text-[#9aa2b2]">
+          Shift
+        </p>
+        <div className="relative z-10 mb-1 grid grid-cols-4 gap-1 px-0.5">
+          {shiftOptions.map((shift) => {
+            const meta = shiftMeta[shift];
+            const isActive = displayShift === shift;
+            return (
+              <button
+                key={shift}
+                type="button"
+                title={`${meta.label} (${meta.hours})`}
+                onClick={(clickEvent) => {
+                  clickEvent.stopPropagation();
+                  onSelectShift(shift);
+                }}
+                className={`flex flex-col items-center rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-all ${
+                  isActive
+                    ? "bg-white/90 text-[#1e293b] shadow-xs ring-2 ring-primary/40 dark:bg-slate-800 dark:text-white"
+                    : "bg-black/[0.03] text-[#64748b] hover:bg-white/60 dark:bg-white/[0.05] dark:hover:bg-white/10"
+                }`}
+              >
+                <span className="text-[11px] font-bold">{meta.chip}</span>
+                <span className="text-[8px] font-medium opacity-80">
+                  {meta.label.slice(0, 3)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative z-10 mt-1.5 border-t border-black/[0.06] dark:border-white/[0.08] pt-1.5">
           <button
             type="button"
-            role="menuitem"
             onClick={(clickEvent) => {
               clickEvent.stopPropagation();
-              onSelectShift("clear");
+              onApplyWeek();
             }}
-            className="relative z-10 mt-0.5 flex w-full items-center gap-2 rounded-md border-t border-[#f0f2f5] px-2 py-1 text-left text-[11px] font-medium text-[#9aa2b2] transition hover:bg-[#f4f2fb]"
+            className="w-full rounded-xl px-2.5 py-1.5 text-left text-[10.5px] font-semibold text-[#5a49b8] transition-all hover:bg-white/70 dark:hover:bg-white/10 flex items-center justify-between"
           >
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-[#d1d5db]" />
-            Clear shift (General)
+            <span>Apply Mon–Fri</span>
+            <span className="text-[9.5px] font-normal text-muted-foreground">
+              ({weekRangeLabel})
+            </span>
           </button>
-
-          <div className="relative z-10 mt-1.5 border-t border-[#f0f2f5] pt-1.5">
-            <button
-              type="button"
-              onClick={(clickEvent) => {
-                clickEvent.stopPropagation();
-                onApplyWeek();
-              }}
-              className="w-full rounded-md px-2 py-1.5 text-left text-[10px] font-medium text-[#5a49b8] transition hover:bg-[#f4f2fb]"
-            >
-              Apply to Mon–Fri ({weekRangeLabel})
-            </button>
-          </div>
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }
