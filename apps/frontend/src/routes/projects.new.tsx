@@ -17,6 +17,26 @@ import {
   buildProjectDisplayId,
   buildWbsId,
 } from "@/lib/dh-store";
+import { fetchClients, mapApiClient, formatCustomerId, type ApiClient } from "@/lib/api/clients";
+import { fetchServiceHierarchy, type ServiceHierarchyGroup } from "@/lib/api/catalogs";
+import {
+  fetchProjects,
+  fetchNextProjectCode,
+  createProject,
+  addProjectService,
+  createProjectInvoice,
+  saveWbsDraft,
+  publishWbs,
+  uploadProjectDocument,
+  type ApiProject,
+} from "@/lib/api/projects";
+import {
+  fetchProjectDraftById,
+  createProjectDraft,
+  updateProjectDraft,
+  markDraftConverted,
+} from "@/lib/api/project-drafts";
+import { type Project } from "@/lib/mock-data";
 import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
 import { exportWbsWorkbook, type WbsExportInput } from "@/lib/wbs-excel-export";
 import { WbsExcelPreviewModal } from "@/components/wbs-excel-preview";
@@ -554,11 +574,10 @@ function WbsNewProjectPage() {
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
-  const clients = allClients();
 
   if (!isDhanshree && !hasPermission("projects.create")) return <Navigate to="/" />;
 
-  // ── Working-day helpers (Mon–Fri only; Saturday and Sunday never count) ──
+  // ── Working-day calculation helpers (Excludes Saturday & Sunday) ──
   function parseIsoDate(iso: string): Date | null {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
     if (!m) return null;
@@ -572,24 +591,46 @@ function WbsNewProjectPage() {
   }
   function isWeekend(d: Date): boolean {
     const dow = d.getDay();
-    return dow === 0 || dow === 6;
+    return dow === 0 || dow === 6; // Sunday = 0, Saturday = 6
   }
-  /** Inclusive working-day span: start Monday + 5 days → that Friday. */
+  function snapToNextWorkingDay(d: Date): Date {
+    const next = new Date(d.getTime());
+    while (isWeekend(next)) {
+      next.setDate(next.getDate() + 1);
+    }
+    return next;
+  }
+  function snapToPrevWorkingDay(d: Date): Date {
+    const prev = new Date(d.getTime());
+    while (isWeekend(prev)) {
+      prev.setDate(prev.getDate() - 1);
+    }
+    return prev;
+  }
+
+  /**
+   * Add N working days (Monday-Friday) to a start ISO date.
+   * If start date falls on Saturday/Sunday, it is advanced to the next Monday first.
+   * Day 1 is the starting working day.
+   * Additional days skip Saturday and Sunday completely.
+   */
   function addWorkingDays(startIso: string, days: number): string {
-    const start = parseIsoDate(startIso);
-    if (!start || days <= 0) return startIso || "";
-    const d = new Date(start.getTime());
-    let counted = 0;
-    for (let i = 0; i < 3660; i++) {
-      if (!isWeekend(d)) {
-        counted++;
-        if (counted >= days) return formatIsoDate(d);
-      }
+    const parsed = parseIsoDate(startIso);
+    if (!parsed || days <= 0) return startIso || "";
+    const d = snapToNextWorkingDay(parsed);
+    let remaining = days;
+    while (remaining > 1) {
       d.setDate(d.getDate() + 1);
+      if (!isWeekend(d)) {
+        remaining--;
+      }
     }
     return formatIsoDate(d);
   }
-  /** Weekdays from start through end, inclusive. Weekends are skipped. */
+
+  /**
+   * Counts total working days (excluding Saturday & Sunday) between start and end date inclusive.
+   */
   function countWorkingDays(startIso: string, endIso: string): number {
     const start = parseIsoDate(startIso);
     const end = parseIsoDate(endIso);
@@ -603,14 +644,12 @@ function WbsNewProjectPage() {
     return count;
   }
 
-  // Add N calendar months to a YYYY-MM-DD string, returns YYYY-MM-DD
+  // Add N calendar months to a YYYY-MM-DD string, ensuring result is on a working day
   function addCalendarMonths(startIso: string, months: number): string {
-    const d = new Date(startIso);
+    const d = parseIsoDate(startIso) || new Date(startIso);
     d.setMonth(d.getMonth() + months);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${dd}`;
+    const nonWeekend = isWeekend(d) ? snapToPrevWorkingDay(d) : d;
+    return formatIsoDate(nonWeekend);
   }
 
   // Compute end date from a row based on its frequency and duration
@@ -620,9 +659,13 @@ function WbsNewProjectPage() {
     durationDays: number;
   }): string {
     if (!row.startDate) return "";
-    if (row.frequency === "Half yearly") return addCalendarMonths(row.startDate, 6);
-    if (row.frequency === "Yearly") return addCalendarMonths(row.startDate, 12);
-    if (row.durationDays > 0) return addWorkingDays(row.startDate, row.durationDays);
+    const parsedStart = parseIsoDate(row.startDate);
+    const validStart = parsedStart ? snapToNextWorkingDay(parsedStart) : null;
+    const startIso = validStart ? formatIsoDate(validStart) : row.startDate;
+
+    if (row.frequency === "Half yearly") return addCalendarMonths(startIso, 6);
+    if (row.frequency === "Yearly") return addCalendarMonths(startIso, 12);
+    if (row.durationDays > 0) return addWorkingDays(startIso, row.durationDays);
     return "";
   }
 
@@ -643,10 +686,78 @@ function WbsNewProjectPage() {
     return row;
   }
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  // Default start date ensures it is a working day (Mon–Fri)
+  const defaultWorkingStartIso = formatIsoDate(snapToNextWorkingDay(new Date()));
+  const todayIso = defaultWorkingStartIso;
+
+  // ── Dynamic DB Data ──
+  const [dbProjects, setDbProjects] = useState<ApiProject[]>([]);
+  const [dbClients, setDbClients] = useState<ApiClient[]>([]);
+  const [dbServiceHierarchy, setDbServiceHierarchy] = useState<ServiceHierarchyGroup[]>([]);
+  const [nextCodeData, setNextCodeData] = useState<{ projectSeqId: string; wbsId: string; clientProjectCount: number } | null>(null);
+
+  // Load clients, projects, and service hierarchy on mount
+  useEffect(() => {
+    let active = true;
+    fetchProjects({ perPage: 200 }).then((res) => {
+      if (active && res?.items && res.items.length > 0) {
+        setDbProjects(res.items);
+      }
+    }).catch(console.error);
+
+    fetchClients(1, 200).then((res) => {
+      if (active && res && res.length > 0) {
+        setDbClients(res);
+      }
+    }).catch(console.error);
+
+    fetchServiceHierarchy().then((res) => {
+      if (active && res && res.length > 0) {
+        setDbServiceHierarchy(res);
+      }
+    }).catch(console.error);
+
+    return () => { active = false; };
+  }, [extraCount]);
+
+  // Use dbClients mapped to frontend Client format if available, fallback to mock store clients
+  const clients = useMemo(() => {
+    if (dbClients.length > 0) {
+      return dbClients.map(mapApiClient);
+    }
+    return allClients();
+  }, [dbClients, extraCount]);
+
+  // Transform dbServiceHierarchy into dynamic DEPT_SERVICES catalog map if loaded
+  const dynamicDeptServices = useMemo(() => {
+    if (!dbServiceHierarchy || dbServiceHierarchy.length === 0) {
+      return DEPT_SERVICES;
+    }
+    const map: Record<string, CatalogService[]> = {};
+    for (const group of dbServiceHierarchy) {
+      for (const dept of group.departments) {
+        const deptList: CatalogService[] = [];
+        for (const subDept of dept.subDepartments) {
+          for (const svc of subDept.services) {
+            deptList.push({
+              id: svc.code,
+              name: svc.name,
+              tool: svc.defaultTools ?? "",
+              unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
+              days: svc.defaultDurationDays ?? 5,
+              subDept: subDept.name,
+            });
+          }
+        }
+        if (deptList.length > 0) {
+          map[dept.name] = deptList;
+        }
+      }
+    }
+    return Object.keys(map).length > 0 ? map : DEPT_SERVICES;
+  }, [dbServiceHierarchy]);
 
   // ── Header fields ──
-  const projectId = buildProjectDisplayId();
   const [contractType, setContractType] = useState("");
   const [engagementManager, setEngagementManager] = useState("");
   const [salesPerson, setSalesPerson] = useState("");
@@ -657,24 +768,82 @@ function WbsNewProjectPage() {
   const [isRenewal, setIsRenewal] = useState(false);
   const [wbsSearch, setWbsSearch] = useState("");
   const [wbsDropOpen, setWbsDropOpen] = useState(false);
-  const [renewalProject, setRenewalProject] = useState<ReturnType<typeof allProjects>[0] | null>(
-    null,
-  );
+  const [renewalProject, setRenewalProject] = useState<any | null>(null);
 
-  const allProjectsList = allProjects();
-  const filteredByWbs = allProjectsList.filter(
-    (p) =>
-      p.wbsId &&
-      (wbsSearch.trim() === "" ||
-        p.wbsId.toLowerCase().includes(wbsSearch.toLowerCase()) ||
-        p.name.toLowerCase().includes(wbsSearch.toLowerCase())),
-  );
+  const allProjectsList = useMemo(() => {
+    const mock = allProjects();
+    if (dbProjects.length === 0) return mock;
+    const mappedDb = dbProjects.map((p) => ({
+      id: p.id,
+      name: p.name,
+      clientId: p.clientId,
+      wbsId: p.wbsId ?? undefined,
+      subVenture: p.subVentureName ?? undefined,
+      status: (p.status as any) || "ongoing",
+      health: (p.health as any) || "green",
+      progress: p.progress ?? 0,
+      pmId: p.projectManagerId ?? "u3",
+      tlId: p.teamLeadId ?? "u5",
+      teamIds: [],
+      startDate: p.startDate ?? "2026-04-01",
+      endDate: p.endDate ?? "2026-10-31",
+      budget: Number(p.budget) || 0,
+      spent: Number(p.spent) || 0,
+      description: p.description ?? "",
+      wbs: [],
+      tasks: [],
+      engagementManager: p.engagementManager ?? undefined,
+      salesPerson: p.salesPerson ?? undefined,
+      contractType: p.contractType ?? undefined,
+      projectType: p.projectType ?? undefined,
+      currency: p.currency ?? "INR",
+      taxPercent: p.taxPercent ?? 18,
+      totalHours: Number(p.totalHours) || 0,
+      totalDays: Number(p.totalDays) || 0,
+      invoiceValue: Number(p.invoiceValue) || 0,
+      projectSeqId: p.projectCode ?? undefined,
+      renewedFromProjectId: p.renewedFromProjectId ?? undefined,
+      renewedFromWbsId: p.renewedFromWbsId ?? undefined,
+      isRenewal: Boolean(p.renewedFromProjectId || p.renewedFromWbsId),
+    } as Project));
+    const dbIds = new Set(mappedDb.map((d) => d.id));
+    return [...mappedDb, ...mock.filter((m) => !dbIds.has(m.id))];
+  }, [dbProjects, extraCount]);
+
+  const filteredByWbs = useMemo(() => {
+    return allProjectsList.filter((p) => {
+      if (!wbsSearch.trim()) return true;
+      const term = wbsSearch.toLowerCase();
+      const wbsMatch = p.wbsId ? p.wbsId.toLowerCase().includes(term) : false;
+      const nameMatch = p.name ? p.name.toLowerCase().includes(term) : false;
+      const idMatch = p.id ? p.id.toLowerCase().includes(term) : false;
+      const seqMatch = p.projectSeqId ? p.projectSeqId.toLowerCase().includes(term) : false;
+      return wbsMatch || nameMatch || idMatch || seqMatch;
+    });
+  }, [allProjectsList, wbsSearch]);
 
   // ── Client selection (searchable combobox) ──
   const [clientSearch, setClientSearch] = useState("");
   const [clientDropOpen, setClientDropOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState("");
   const selectedClient = clients.find((c) => c.id === selectedClientId) ?? null;
+
+  // Fetch sequential Next Project Code & WBS ID from API whenever selectedClientId changes
+  useEffect(() => {
+    if (!selectedClientId) {
+      setNextCodeData(null);
+      return;
+    }
+    let active = true;
+    fetchNextProjectCode(selectedClientId).then((res) => {
+      if (active && res) {
+        setNextCodeData(res);
+      }
+    }).catch(() => {
+      if (active) setNextCodeData(null);
+    });
+    return () => { active = false; };
+  }, [selectedClientId]);
 
   // ── Sub-venture (searchable, depends on selected client) ──
   const [svSearch, setSvSearch] = useState("");
@@ -694,12 +863,14 @@ function WbsNewProjectPage() {
       c.industry.toLowerCase().includes(clientSearch.toLowerCase()),
   );
 
-  // WBS ID — recomputed from selected client + current FY + next project seq
-  const wbsId = selectedClientId ? buildWbsId(selectedClientId) : "—";
+  // Sequential Project ID and WBS ID (e.g. Project ID: P045, WBS ID: IN-2026-27-C042-P045)
+  // Ensures the selected customer ID (e.g. C042) is always directly reflected in the WBS ID
+  const projectId = nextCodeData?.projectSeqId ?? buildProjectDisplayId();
+  const wbsId = selectedClient ? buildWbsId(selectedClient.id, projectId) : "—";
 
   // ── Service picker ──
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerDept, setPickerDept] = useState(Object.keys(DEPT_SERVICES)[0]);
+  const [pickerDept, setPickerDept] = useState(Object.keys(dynamicDeptServices)[0] ?? "Penetration Testing");
   const [pickerSubDept, setPickerSubDept] = useState("");
   const [pickerExpanded, setPickerExpanded] = useState<Record<string, boolean>>({});
   const [pickerSearch, setPickerSearch] = useState("");
@@ -742,6 +913,10 @@ function WbsNewProjectPage() {
   const [previewInput, setPreviewInput] = useState<WbsExportInput | null>(null);
   const [downloading, setDownloading] = useState(false);
 
+  // ── WBS Creation Confirmation ──
+  const [showCreateWbsConfirm, setShowCreateWbsConfirm] = useState(false);
+  const [isCreatingWbs, setIsCreatingWbs] = useState(false);
+
   // ── Scroll-to-top ──
   const [showScrollTop, setShowScrollTop] = useState(false);
   useEffect(() => {
@@ -750,85 +925,185 @@ function WbsNewProjectPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // ── Draft restoration ──
+  // ── Draft restoration & tracking ──
   const { draftId } = useSearch({ from: "/projects/new" });
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(draftId ?? null);
+  const [currentRowVersion, setCurrentRowVersion] = useState<number>(0);
   const drafts = useDhStore((s) => s.wbsDrafts);
+
   useEffect(() => {
     if (!draftId) return;
-    const draft = drafts.find((d) => d.id === draftId);
-    if (!draft) return;
-    const snap = draft.formSnapshot as any;
-    if (snap.selectedClientId) setSelectedClientId(snap.selectedClientId);
-    if (snap.selectedSubVenture) setSelectedSubVenture(snap.selectedSubVenture);
-    if (snap.contractType) setContractType(snap.contractType);
-    if (snap.engagementManager) setEngagementManager(snap.engagementManager);
-    if (snap.salesPerson) setSalesPerson(snap.salesPerson);
-    if (snap.projectType) setProjectType(snap.projectType);
-    if (snap.billingModel) setBillingModel(snap.billingModel);
-    if (snap.paymentTerms) setPaymentTerms(snap.paymentTerms);
-    setCurrency("INR");
-    if (snap.taxPercent != null) setTaxPercent(snap.taxPercent);
-    if (snap.poStatus) setPoStatus(snap.poStatus);
-    if (snap.poNumber) setPoNumber(snap.poNumber);
-    if (snap.poDate) setPoDate(snap.poDate);
-    if (snap.targetDate) setTargetDate(snap.targetDate);
-    if (snap.contactName) setContactName(snap.contactName);
-    if (snap.contactNumber) setContactNumber(snap.contactNumber);
-    if (snap.contactEmail) setContactEmail(snap.contactEmail);
-    if (snap.sectionAComments) setSectionAComments(snap.sectionAComments);
-    if (snap.sectionBComments) setSectionBComments(snap.sectionBComments);
-    if (snap.serviceRows?.length) {
-      const sanitizedRows = snap.serviceRows.map((r: any) => {
-        let updated = { ...r };
-        if (DEPT_GROUPS[r.dept] === "Resource") {
-          updated.serviceModel = "NA";
+    let active = true;
+
+    async function restoreDraft() {
+      let snap: any = null;
+      let draftTitle = "";
+
+      // 1. Fetch from PostgreSQL backend first
+      try {
+        const backendDraft = await fetchProjectDraftById(draftId!);
+        if (backendDraft && active) {
+          try {
+            snap = JSON.parse(backendDraft.formSnapshotJson);
+            draftTitle = backendDraft.projectName;
+            setCurrentDraftId(backendDraft.id);
+            setCurrentRowVersion(backendDraft.rowVersion);
+          } catch (e) {
+            console.warn("Failed to parse formSnapshotJson from backend:", e);
+          }
         }
-        if (snap.projectType === "Short term (Ad-hoc)") {
-          updated.frequency = "Once";
+      } catch (err) {
+        console.warn("Backend draft fetch failed, trying local store:", err);
+      }
+
+      // 2. Fall back to local zustand store if not found on backend
+      if (!snap) {
+        const localDraft = drafts.find((d) => d.id === draftId);
+        if (localDraft && active) {
+          snap = localDraft.formSnapshot as any;
+          draftTitle = localDraft.projectName;
+          setCurrentDraftId(localDraft.id);
+          setCurrentRowVersion(0);
         }
-        if (!updated.subDept) {
-          updated.subDept =
-            DEPT_SERVICES[r.dept]?.find((s) => s.id === r.rowId)?.subDept ||
-            findCatalogService(r.rowId)?.subDept ||
-            "";
+      }
+
+      if (!snap || !active) return;
+
+      // ── Renewal state restoration ──
+      if (snap.isRenewal) {
+        setIsRenewal(true);
+        if (snap.wbsSearch) setWbsSearch(snap.wbsSearch);
+        if (snap.renewalProject) {
+          setRenewalProject(snap.renewalProject);
+        } else if (snap.wbsSearch && allProjectsList.length > 0) {
+          const term = snap.wbsSearch.toLowerCase();
+          const match = allProjectsList.find(
+            (p: any) =>
+              (p.wbsId && p.wbsId.toLowerCase() === term) ||
+              (p.id && p.id.toLowerCase() === term) ||
+              (p.name && p.name.toLowerCase() === term) ||
+              (p.projectSeqId && p.projectSeqId.toLowerCase() === term)
+          );
+          if (match) setRenewalProject(match);
         }
-        return updated;
-      });
-      setServiceRows(sanitizedRows);
-      const restoredSel: Record<string, Record<string, boolean>> = {};
-      sanitizedRows.forEach((r: { dept?: string; rowId?: string }) => {
-        if (!r.dept || !r.rowId) return;
-        if (!restoredSel[r.dept]) restoredSel[r.dept] = {};
-        restoredSel[r.dept][r.rowId] = true;
-      });
-      setSelectedServices(restoredSel);
+      } else {
+        setIsRenewal(false);
+        setRenewalProject(null);
+        setWbsSearch("");
+      }
+
+      // ── Client & Sub-venture restoration ──
+      if (snap.selectedClientId) setSelectedClientId(snap.selectedClientId);
+      if (snap.clientSearch) {
+        setClientSearch(snap.clientSearch);
+      } else if (snap.clientName) {
+        setClientSearch(snap.clientName);
+      } else if (snap.selectedClientId) {
+        const restoredClient = clients.find((c) => c.id === snap.selectedClientId);
+        if (restoredClient) setClientSearch(restoredClient.name);
+      }
+
+      if (snap.selectedSubVenture) setSelectedSubVenture(snap.selectedSubVenture);
+      if (snap.svSearch) {
+        setSvSearch(snap.svSearch);
+      } else if (snap.selectedSubVenture) {
+        setSvSearch(snap.selectedSubVenture);
+      }
+
+      if (snap.contractType) setContractType(snap.contractType);
+      if (snap.engagementManager) setEngagementManager(snap.engagementManager);
+      if (snap.salesPerson) setSalesPerson(snap.salesPerson);
+      if (snap.projectType) setProjectType(snap.projectType);
+      if (snap.billingModel) setBillingModel(snap.billingModel);
+      if (snap.paymentTerms) setPaymentTerms(snap.paymentTerms);
+      setCurrency("INR");
+      if (snap.taxPercent != null) setTaxPercent(snap.taxPercent);
+      if (snap.poStatus) setPoStatus(snap.poStatus);
+      if (snap.poNumber) setPoNumber(snap.poNumber);
+      if (snap.poDate) setPoDate(snap.poDate);
+      if (snap.targetDate) setTargetDate(snap.targetDate);
+      if (snap.contactName) setContactName(snap.contactName);
+      if (snap.contactNumber) setContactNumber(snap.contactNumber);
+      if (snap.contactEmail) setContactEmail(snap.contactEmail);
+      if (snap.sectionAComments) setSectionAComments(snap.sectionAComments);
+      if (snap.sectionBComments) setSectionBComments(snap.sectionBComments);
+      if (snap.serviceRows?.length) {
+        const sanitizedRows = snap.serviceRows.map((r: any) => {
+          let updated = { ...r };
+          if (DEPT_GROUPS[r.dept] === "Resource") {
+            updated.serviceModel = "NA";
+          }
+          if (snap.projectType === "Short term (Ad-hoc)") {
+            updated.frequency = "Once";
+          }
+          if (!updated.subDept) {
+            updated.subDept =
+              DEPT_SERVICES[r.dept]?.find((s) => s.id === r.rowId)?.subDept ||
+              findCatalogService(r.rowId)?.subDept ||
+              "";
+          }
+          return updated;
+        });
+        setServiceRows(sanitizedRows);
+        const restoredSel: Record<string, Record<string, boolean>> = {};
+        sanitizedRows.forEach((r: { dept?: string; rowId?: string }) => {
+          if (!r.dept || !r.rowId) return;
+          if (!restoredSel[r.dept]) restoredSel[r.dept] = {};
+          restoredSel[r.dept][r.rowId] = true;
+        });
+        setSelectedServices(restoredSel);
+      }
+      if (snap.invoiceRows?.length) {
+        setInvoiceRows(
+          snap.invoiceRows.map((inv: any) => ({
+            rowId: inv.rowId || inv.id || "",
+            serviceId: inv.serviceId || "",
+            serviceName: inv.serviceName || "",
+            milestone: inv.milestone || "",
+            targetDate: inv.targetDate || inv.invoiceDate || "",
+            unitPrice: inv.unitPrice || inv.amount || 0,
+            qty: inv.qty || 1,
+            currency: inv.currency || "INR",
+            amount: inv.amount || 0,
+            invoiceStatus: inv.invoiceStatus || "Not Raised",
+            invoiceNumber: inv.invoiceNumber || inv.remarks || "",
+            paymentStatus: inv.paymentStatus || "Not Received",
+            paymentDate: inv.paymentDate || "",
+          })),
+        );
+      }
+      toast.success("Draft loaded", { description: `"${draftTitle || "Draft"}" restored from database.` });
     }
-    if (snap.invoiceRows?.length) {
-      setInvoiceRows(
-        snap.invoiceRows.map((inv: any) => ({
-          rowId: inv.rowId || inv.id || "",
-          serviceId: inv.serviceId || "",
-          serviceName: inv.serviceName || "",
-          milestone: inv.milestone || "",
-          targetDate: inv.targetDate || inv.invoiceDate || "",
-          unitPrice: inv.unitPrice || inv.amount || 0,
-          qty: inv.qty || 1,
-          currency: inv.currency || "INR",
-          amount: inv.amount || 0,
-          invoiceStatus: inv.invoiceStatus || "Not Raised",
-          invoiceNumber: inv.invoiceNumber || inv.remarks || "",
-          paymentStatus: inv.paymentStatus || "Not Received",
-          paymentDate: inv.paymentDate || "",
-        })),
-      );
-    }
-    // also restore client search display
-    const restoredClient = clients.find((c) => c.id === snap.selectedClientId);
-    if (restoredClient) setClientSearch(restoredClient.name);
-    if (snap.selectedSubVenture) setSvSearch(snap.selectedSubVenture);
-    toast.success("Draft loaded", { description: `"${draft.projectName || "Draft"}" restored.` });
+
+    restoreDraft();
+    return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftId]);
+
+  // Auto-sync client display name when clients catalog finishes loading
+  useEffect(() => {
+    if (selectedClientId && clients.length > 0 && !clientSearch) {
+      const c = clients.find((cl) => cl.id === selectedClientId);
+      if (c) setClientSearch(c.name);
+    }
+  }, [selectedClientId, clients, clientSearch]);
+
+  // Auto-resolve renewal project if wbsSearch is set from draft but renewalProject was pending list load
+  useEffect(() => {
+    if (isRenewal && wbsSearch.trim() && !renewalProject && allProjectsList.length > 0) {
+      const term = wbsSearch.trim().toLowerCase();
+      const match = allProjectsList.find(
+        (p: any) =>
+          (p.wbsId && p.wbsId.toLowerCase() === term) ||
+          (p.id && p.id.toLowerCase() === term) ||
+          (p.name && p.name.toLowerCase() === term) ||
+          (p.projectSeqId && p.projectSeqId.toLowerCase() === term)
+      );
+      if (match) {
+        setRenewalProject(match);
+      }
+    }
+  }, [isRenewal, wbsSearch, renewalProject, allProjectsList]);
 
   // ── Computed totals ──
   const subtotal = serviceRows.reduce((s, r) => s + r.total, 0);
@@ -884,7 +1159,9 @@ function WbsNewProjectPage() {
     let rowNum = 1;
     Object.entries(newSelected).forEach(([dept, svcs]) => {
       Object.keys(svcs as Record<string, boolean>).forEach((svcId) => {
-        const svc = DEPT_SERVICES[dept]?.find((s) => s.id === svcId);
+        const svc =
+          (dynamicDeptServices[dept] || []).find((s) => s.id === svcId) ||
+          (DEPT_SERVICES[dept] || []).find((s) => s.id === svcId);
         if (!svc) return;
         const existing = serviceRows.find((r) => r.rowId === svcId);
         if (existing) {
@@ -897,6 +1174,11 @@ function WbsNewProjectPage() {
           }
           if (projectType === "Short term (Ad-hoc)" && updatedExisting.frequency !== "Once") {
             updatedExisting.frequency = "Once";
+          }
+          if (
+            !updatedExisting.endDate ||
+            countWorkingDays(updatedExisting.startDate, updatedExisting.endDate) !== updatedExisting.durationDays
+          ) {
             updatedExisting.endDate = computeEndDate(updatedExisting);
           }
           rows.push(updatedExisting);
@@ -920,7 +1202,7 @@ function WbsNewProjectPage() {
             billingModel: "",
             deliveryFormat: "",
             tools: svc.tool,
-            startDate: todayIso,
+            startDate: defaultWorkingStartIso,
             endDate: "",
             durationDays: svc.days,
             durationHrs: svc.days * HOURS_PER_DAY,
@@ -965,11 +1247,34 @@ function WbsNewProjectPage() {
           updated.total = Number(updated.qty) * Number(updated.unitPrice);
         }
         if (field === "endDate") {
-          applyDurationDays(updated, countWorkingDays(updated.startDate, String(value)));
+          let endStr = String(value);
+          const endD = parseIsoDate(endStr);
+          if (endD && isWeekend(endD)) {
+            endStr = formatIsoDate(snapToPrevWorkingDay(endD));
+            toast.info(`WBS End Date cannot be on a weekend (Saturday or Sunday). Adjusted to ${endStr}`);
+            updated.endDate = endStr;
+          }
+          applyDurationDays(updated, countWorkingDays(updated.startDate, endStr));
         } else if (field === "durationDays") {
-          applyDurationDays(updated, Number(value));
+          const days = Math.max(1, Number(value) || 1);
+          applyDurationDays(updated, days);
           if (updated.startDate && updated.durationDays > 0) {
             updated.endDate = addWorkingDays(updated.startDate, updated.durationDays);
+          }
+        } else if (field === "startDate") {
+          let startStr = String(value);
+          const startD = parseIsoDate(startStr);
+          if (startD && isWeekend(startD)) {
+            startStr = formatIsoDate(snapToNextWorkingDay(startD));
+            toast.info(`WBS Start Date cannot be on a weekend (Saturday or Sunday). Moved to Monday (${startStr})`);
+            updated.startDate = startStr;
+          }
+          const newEnd = computeEndDate(updated);
+          if (newEnd) {
+            updated.endDate = newEnd;
+            if (updated.frequency === "Half yearly" || updated.frequency === "Yearly") {
+              applyDurationDays(updated, countWorkingDays(updated.startDate, newEnd));
+            }
           }
         } else if (field === "qty") {
           const qty = Math.max(1, Number(updated.qty) || 1);
@@ -981,10 +1286,15 @@ function WbsNewProjectPage() {
         } else if (field === "durationHrs") {
           updated.totalHrs = Number(updated.qty) * Number(updated.durationHrs);
         }
-        // Start / frequency keep duration and move the end date (working days, or months for yearly)
-        if (field === "startDate" || field === "frequency") {
+        // Frequency change recalculates end date and duration for Half yearly / Yearly
+        if (field === "frequency") {
           const newEnd = computeEndDate(updated);
-          if (newEnd) updated.endDate = newEnd;
+          if (newEnd) {
+            updated.endDate = newEnd;
+            if (updated.frequency === "Half yearly" || updated.frequency === "Yearly") {
+              applyDurationDays(updated, countWorkingDays(updated.startDate, newEnd));
+            }
+          }
         }
         return updated;
       }),
@@ -996,28 +1306,36 @@ function WbsNewProjectPage() {
     for (let i = 0; i < serviceRows.length; i++) {
       const r = serviceRows[i];
       const n = i + 1;
-      if (!r.taskId.trim()) return `Row ${n}: Service ID is required`;
+      const sName = r.name ? ` (${r.name})` : "";
+      if (!r.taskId.trim()) return `Row ${n}${sName}: Service ID is required`;
       if (!r.name.trim()) return `Row ${n}: Service Name is required`;
       if (r.qty <= 1) {
-        if (!r.resourceLevel) return `Row ${n}: Resource Level is required`;
+        if (!r.resourceLevel) return `Row ${n}${sName}: Resource Level is required`;
       } else if (distTotal(r.resourceDist || EMPTY_DIST()) !== Number(r.qty)) {
         const assigned = distTotal(r.resourceDist || EMPTY_DIST());
-        return `Row ${n}: Resource Level distribution must equal Qty (${assigned}/${r.qty})`;
+        return `Row ${n}${sName}: Resource Level distribution must equal Qty (${assigned}/${r.qty})`;
       }
-      if (!r.frequency) return `Row ${n}: Frequency is required`;
-      if (!r.location) return `Row ${n}: Delivery Model is required`;
+      if (!r.frequency) return `Row ${n}${sName}: Frequency is required`;
+      if (!r.location) return `Row ${n}${sName}: Delivery Model is required`;
       if (r.location === "Onsite" && !r.locationText.trim())
-        return `Row ${n}: Project Side is required for Onsite`;
-      if (!r.serviceModel) return `Row ${n}: Service Model is required`;
-      if (!r.deliveryFormat.trim()) return `Row ${n}: Final Delivery Format is required`;
-      if (!r.tools.trim()) return `Row ${n}: Tools is required`;
-      if (!r.startDate) return `Row ${n}: WBS Start Date is required`;
-      if (!r.endDate) return `Row ${n}: WBS End Date is required`;
-      if (!r.durationDays) return `Row ${n}: Duration (Days) is required`;
-      if (!r.durationHrs) return `Row ${n}: Duration (Hrs) is required`;
-      if (!r.totalDays) return `Row ${n}: Total Days is required`;
-      if (!r.totalHrs) return `Row ${n}: Total Hrs is required`;
-      if (!r.unitPrice) return `Row ${n}: Unit Price is required`;
+        return `Row ${n}${sName}: Delivery Site is required for Onsite`;
+      if (!r.serviceModel) return `Row ${n}${sName}: Service Model is required`;
+      if (!r.deliveryFormat.trim()) return `Row ${n}${sName}: Final Delivery Format is required`;
+      if (!r.tools.trim()) return `Row ${n}${sName}: Tools is required`;
+      if (!r.startDate) return `Row ${n}${sName}: WBS Start Date is required`;
+      const sDate = parseIsoDate(r.startDate);
+      if (sDate && isWeekend(sDate))
+        return `Row ${n}${sName}: WBS Start Date cannot be on a weekend (Saturday or Sunday)`;
+      if (!r.endDate) return `Row ${n}${sName}: WBS End Date is required`;
+      const eDate = parseIsoDate(r.endDate);
+      if (eDate && isWeekend(eDate))
+        return `Row ${n}${sName}: WBS End Date cannot be on a weekend (Saturday or Sunday)`;
+      if (!r.durationDays || r.durationDays <= 0) return `Row ${n}${sName}: Duration (Days) must be greater than 0`;
+      if (!r.durationHrs || r.durationHrs <= 0) return `Row ${n}${sName}: Duration (Hrs) is required`;
+      if (!r.totalDays || r.totalDays <= 0) return `Row ${n}${sName}: Total Days is required`;
+      if (!r.totalHrs || r.totalHrs <= 0) return `Row ${n}${sName}: Total Hrs is required`;
+      if (r.unitPrice === undefined || r.unitPrice === null || r.unitPrice <= 0)
+        return `Row ${n}${sName}: Unit Price is required and must be greater than 0`;
     }
     return null;
   }
@@ -1045,6 +1363,7 @@ function WbsNewProjectPage() {
         if (field === "invoiceStatus" && value === "Not Raised") {
           next.paymentStatus = "Not Received";
           next.paymentDate = "";
+          next.invoiceNumber = "";
         }
         if (field === "paymentStatus" && value === "Not Received") {
           next.paymentDate = "";
@@ -1178,7 +1497,7 @@ function WbsNewProjectPage() {
   }, [billingModel, currency, servicesDependency, JSON.stringify(customPayments)]);
 
   // Filter departments based on Contract Type
-  const allowedDepts = Object.keys(DEPT_SERVICES).filter((dept) => {
+  const allowedDepts = Object.keys(dynamicDeptServices).filter((dept) => {
     const group = DEPT_GROUPS[dept];
     if (contractType === "Resource Based") return group === "Resource";
     if (contractType === "Scope Based") return group === "Scope";
@@ -1219,7 +1538,7 @@ function WbsNewProjectPage() {
   const filteredPickerServices = (() => {
     const withDept = (dept: string, s: CatalogService) => ({ ...s, dept });
     if (pickerSubDept) {
-      return (DEPT_SERVICES[pickerDept] || [])
+      return (dynamicDeptServices[pickerDept] || [])
         .filter((s) => s.subDept === pickerSubDept && pickerServiceMatchesQuery(s, pickerSearchQuery))
         .map((s) => withDept(pickerDept, s));
     }
@@ -1227,7 +1546,7 @@ function WbsNewProjectPage() {
     // across the current contract-type groups (same as the old department search).
     if (pickerSearchQuery) {
       return allowedDepts.flatMap((dept) =>
-        (DEPT_SERVICES[dept] || [])
+        (dynamicDeptServices[dept] || [])
           .filter((s) => pickerServiceMatchesQuery(s, pickerSearchQuery))
           .map((s) => withDept(dept, s)),
       );
@@ -1307,50 +1626,105 @@ function WbsNewProjectPage() {
     };
   }
 
-  function handleSaveDraft() {
-    if (!projectName.trim()) {
-      toast.error("Project Name is generated after customer, sub-venture, and services are selected");
-      return;
-    }
-    if (!selectedClientId) {
-      toast.error("Please select a customer");
-      return;
-    }
-    const clientName = clients.find((c) => c.id === selectedClientId)?.name ?? selectedClientId;
-    dhStore.saveDraft({
+  async function handleSaveDraft() {
+    const clientName = selectedClientId
+      ? (clients.find((c) => c.id === selectedClientId)?.name ?? clientSearch ?? selectedClientId)
+      : (clientSearch.trim() || null);
+
+    const draftTitle = projectName.trim() || (clientName ? `${clientName} Draft` : "Untitled Draft");
+
+    const formSnapshot = {
       projectName,
+      selectedClientId,
+      clientName: clientName || "",
+      clientSearch: clientSearch || clientName || "",
+      selectedSubVenture,
+      svSearch: svSearch || selectedSubVenture || "",
+      isRenewal,
+      wbsSearch,
+      renewalProject,
+      renewalProjectId: renewalProject?.id ?? null,
+      contractType,
+      engagementManager,
+      salesPerson,
+      projectType,
+      projectIssuedDate,
+      billingModel,
+      paymentTerms,
+      currency,
+      taxPercent,
+      poStatus,
+      poNumber,
+      poDate,
+      targetDate,
+      contactName,
+      contactNumber,
+      contactEmail,
+      sectionAComments,
+      sectionBComments,
+      serviceRows,
+      invoiceRows,
+    };
+    const formSnapshotJson = JSON.stringify(formSnapshot);
+
+    const isGuidClient = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedClientId);
+    const parsedClientId = isGuidClient ? selectedClientId : null;
+    const finalClientName = clientName || clientSearch.trim() || null;
+
+    if (currentDraftId) {
+      try {
+        const updated = await updateProjectDraft(currentDraftId, {
+          projectName: draftTitle,
+          clientId: parsedClientId,
+          clientName: finalClientName,
+          salesPerson: salesPerson || null,
+          savedByName: "Dhanshree",
+          formSnapshotJson,
+          rowVersion: currentRowVersion,
+        });
+        setCurrentRowVersion(updated.rowVersion);
+        toast.success("Draft updated", { description: `"${draftTitle}" saved to database.` });
+        return;
+      } catch (err: any) {
+        if (err?.status === 409 || err?.message?.includes("updated by another user")) {
+          toast.error("This draft was updated by another user. Please reload the latest version before saving.");
+          return;
+        }
+        console.warn("Backend updateDraft failed, falling back to local store:", err);
+      }
+    } else {
+      try {
+        const created = await createProjectDraft({
+          projectName: draftTitle,
+          clientId: parsedClientId,
+          clientName: finalClientName,
+          salesPerson: salesPerson || null,
+          savedByName: "Dhanshree",
+          formSnapshotJson,
+        });
+        setCurrentDraftId(created.id);
+        setCurrentRowVersion(created.rowVersion);
+        toast.success("Draft saved", { description: `"${draftTitle}" saved to database.` });
+        return;
+      } catch (err: any) {
+        console.warn("Backend createDraft failed, falling back to local store:", err);
+      }
+    }
+
+    // Fallback cache in local store if backend call failed
+    const entry = dhStore.saveDraft({
+      projectName: draftTitle,
       clientId: selectedClientId,
-      clientName,
+      clientName: finalClientName || "Unknown Client",
       salesPerson,
       savedBy: "Dhanshree",
       savedAt: new Date().toISOString(),
-      formSnapshot: {
-        projectName,
-        selectedClientId,
-        selectedSubVenture,
-        contractType,
-        engagementManager,
-        salesPerson,
-        projectType,
-        projectIssuedDate,
-        billingModel,
-        paymentTerms,
-        currency,
-        taxPercent,
-        poStatus,
-        poNumber,
-        poDate,
-        targetDate,
-        contactName,
-        contactNumber,
-        contactEmail,
-        sectionAComments,
-        sectionBComments,
-        serviceRows,
-        invoiceRows,
-      },
+      formSnapshot,
     });
-    toast.success("Draft saved", { description: `"${projectName}" saved to your drafts.` });
+    if (!currentDraftId) {
+      setCurrentDraftId(entry.id);
+    }
+    toast.success("Draft saved locally", { description: `"${draftTitle}" cached in local storage.` });
   }
 
   function clearForm() {
@@ -1382,107 +1756,397 @@ function WbsNewProjectPage() {
     setInvoiceRows([]);
     setSelectedSubVenture("");
     setSvSearch("");
+    setCurrentDraftId(null);
+    setCurrentRowVersion(0);
   }
 
-  async function handleAssignWbs() {
+  // Comprehensive form validation: returns first missing/invalid field error message, or null if all valid
+  function validateFullForm(): string | null {
+    // 1. Renewal mode check
     if (isRenewal && !renewalProject) {
-      toast.error("Please select an existing project to renew");
-      return;
+      return "Please select an existing project to renew";
     }
+
+    // 2. Customer
     if (!selectedClientId) {
-      toast.error("Please select a customer");
-      return;
+      return "Please select a customer";
     }
+
+    // 3. End Customer / Sub-venture
     if (!selectedSubVenture.trim()) {
-      toast.error("Please select End Customer / Sub-venture");
-      return;
+      return "Please select End Customer / Sub-venture";
     }
-    if (serviceRows.length === 0) {
-      toast.error("Please add at least one service");
-      return;
-    }
+
+    // 4. Project Name
     if (!projectName.trim()) {
-      toast.error(
-        isRenewal
-          ? "Selected project has no Project Name"
-          : "Project Name is generated after customer, sub-venture, and services are selected",
-      );
-      return;
+      return isRenewal
+        ? "Selected project has no Project Name"
+        : "Project Name is required (ensure Customer, Sub-venture, and Services are selected)";
     }
+
+    // 5. Engagement Manager
+    if (!engagementManager.trim()) {
+      return "Engagement Manager is required";
+    }
+
+    // 6. Contract Type
+    if (!contractType.trim()) {
+      return "Please select Contract Type";
+    }
+
+    // 7. Sales Person
+    if (!salesPerson.trim()) {
+      return "Please select Sales Person";
+    }
+
+    // 8. Project Type
+    if (!projectType.trim()) {
+      return "Please select Project Type";
+    }
+
+    // 9. Project Onboarding Date
+    if (!projectIssuedDate.trim()) {
+      return "Project Onboarding Date is required";
+    }
+
+    // 10. Section A: Services
+    if (serviceRows.length === 0) {
+      return "Please add at least one service in Section A";
+    }
+
+    const serviceErr = validateServiceRows();
+    if (serviceErr) {
+      return serviceErr;
+    }
+
+    // Tax percentage
+    if (taxPercent === undefined || taxPercent === null || isNaN(taxPercent) || taxPercent < 0) {
+      return "Tax (%) is required and must be 0 or greater";
+    }
+
+    // 11. Section B: Accounts Team Details
+    if (!billingModel.trim()) {
+      return "Please select Billing Model in Section B";
+    }
+
     if (billingModel === "Custom") {
+      if (customPayments.length === 0) {
+        return "Please add at least one custom payment term";
+      }
+      for (let i = 0; i < customPayments.length; i++) {
+        const cp = customPayments[i];
+        if (!cp.label.trim()) {
+          return `Custom payment term #${i + 1} name is required`;
+        }
+        if (cp.pct === undefined || cp.pct === null || isNaN(cp.pct) || cp.pct <= 0) {
+          return `Custom payment term "${cp.label}" percentage must be greater than 0%`;
+        }
+      }
       const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
       if (total !== 100) {
-        toast.error(`Custom payment terms must total 100% (currently ${total}%)`);
-        return;
+        return `Custom payment terms must total 100% (currently ${total}%)`;
       }
-      // Serialize custom payments into paymentTerms string
-      const serialized = customPayments
-        .map((p, i) => `${p.pct}% ${p.label || `Payment ${i + 1}`}`)
-        .join(" + ");
-      setPaymentTerms(serialized);
+    } else {
+      if (!paymentTerms.trim()) {
+        return "Payment Terms is required";
+      }
     }
-    const err = validateServiceRows();
+
+    if (!currency.trim()) {
+      return "Currency is required";
+    }
+
+    if (!poStatus.trim()) {
+      return "Please select PO Status in Section B";
+    }
+
+    if (poStatus === "PO Received" && !poFile) {
+      return "Please attach PO Document when PO Status is 'PO Received'";
+    }
+
+    // Invoices schedule
+    if (invoiceRows.length === 0) {
+      return "Invoice scheduling rows must be generated for the selected Billing Model";
+    }
+
+    for (let i = 0; i < invoiceRows.length; i++) {
+      const inv = invoiceRows[i];
+      const desc = `${inv.serviceName} (${inv.milestone})`;
+      if (!inv.targetDate) {
+        return `Please select Invoice Target Date for "${desc}"`;
+      }
+      if (!inv.invoiceStatus) {
+        return `Please select Invoice Status for "${desc}"`;
+      }
+      if (inv.invoiceStatus === "Raised") {
+        if (!inv.invoiceNumber.trim()) {
+          return `Please enter Invoice Number for raised milestone: "${desc}"`;
+        }
+        if (!inv.paymentStatus) {
+          return `Please select Payment Status for "${desc}"`;
+        }
+        if (inv.paymentStatus === "Received" && !inv.paymentDate) {
+          return `Please enter Date of Payment Received for "${desc}"`;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function handleCreateWbsClick() {
+    if (billingModel === "Custom") {
+      const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
+      if (total === 100) {
+        // Serialize custom payments into paymentTerms string
+        const serialized = customPayments
+          .map((p, i) => `${p.pct}% ${p.label || `Payment ${i + 1}`}`)
+          .join(" + ");
+        setPaymentTerms(serialized);
+      }
+    }
+
+    const err = validateFullForm();
     if (err) {
       toast.error(err);
       return;
     }
 
-    // Derive project start/end from the service rows (earliest start → latest end)
-    const allStarts = serviceRows
-      .map((r) => r.startDate)
-      .filter(Boolean)
-      .sort();
-    const allEnds = serviceRows
-      .map((r) => r.endDate)
-      .filter(Boolean)
-      .sort();
-    const projStart = allStarts[0] ?? new Date().toISOString().slice(0, 10);
-    const projEnd =
-      allEnds[allEnds.length - 1] ??
-      new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
+    // Open confirmation popup only when all required fields are validated
+    setShowCreateWbsConfirm(true);
+  }
 
-    const wbsDetails = buildWbsDetails();
-    if (poFile) {
-      try {
-        wbsDetails.accounts.poFileDataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || ""));
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(poFile);
-        });
-      } catch {
-        toast.error("Could not read the PO document. Please attach it again.");
-        return;
-      }
+  async function handleAssignWbs() {
+    if (isCreatingWbs) return;
+
+    const err = validateFullForm();
+    if (err) {
+      toast.error(err);
+      setShowCreateWbsConfirm(false);
+      return;
     }
 
-    const proj = dhStore.addProject({
-      name: projectName,
-      clientId: selectedClientId,
-      description: sectionAComments,
-      startDate: projStart,
-      endDate: projEnd,
-      budget: subtotal,
-      wbsStatus: "assigned",
-      wbsSubStatus: "WBS Assigned",
-      engagementManager,
-      salesPerson,
-      contractType,
-      projectType,
-      projectIssuedDate,
-      currency,
-      taxPercent,
-      totalHours,
-      totalDays,
-      invoiceValue: invoiceTarget,
-      sectionAComments,
-      sectionBComments,
-      wbsDetails,
-      subVenture: selectedSubVenture,
-      renewedFromWbsId: isRenewal ? renewalProject?.wbsId : undefined,
-    });
-    toast.success("WBS created successfully");
-    navigate({ to: "/projects/$projectId", params: { projectId: proj.id } });
+    setIsCreatingWbs(true);
+
+    try {
+
+      // Derive project start/end from the service rows (earliest start → latest end)
+      const validStarts = serviceRows
+        .map((r) => (typeof r.startDate === "string" ? r.startDate.trim() : ""))
+        .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
+        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+      const validEnds = serviceRows
+        .map((r) => (typeof r.endDate === "string" ? r.endDate.trim() : ""))
+        .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
+        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+      const projStart = validStarts[0] ?? new Date().toISOString().slice(0, 10);
+      const projEnd =
+        validEnds[validEnds.length - 1] ??
+        new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
+
+      const wbsDetails = buildWbsDetails();
+      if (poFile) {
+        try {
+          wbsDetails.accounts.poFileDataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(poFile);
+          });
+        } catch {
+          toast.error("Could not read the PO document. Please attach it again.");
+          setIsCreatingWbs(false);
+          return;
+        }
+      }
+
+      let createdBackendProjectId: string | null = null;
+      const isGuidClient = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedClientId);
+
+      // Resolve renewal project and its backend GUID reliably
+      const resolvedRenewalProject = renewalProject || (isRenewal && wbsSearch.trim() ? allProjectsList.find((p) =>
+        (p.wbsId && p.wbsId.trim().toLowerCase() === wbsSearch.trim().toLowerCase()) ||
+        (p.projectSeqId && p.projectSeqId.trim().toLowerCase() === wbsSearch.trim().toLowerCase()) ||
+        (p.id && p.id.trim().toLowerCase() === wbsSearch.trim().toLowerCase()) ||
+        (p.name && p.name.trim().toLowerCase() === wbsSearch.trim().toLowerCase())
+      ) : null);
+
+      let targetRenewalGuid: string | null = null;
+      if (isRenewal && resolvedRenewalProject) {
+        if (resolvedRenewalProject.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedRenewalProject.id)) {
+          targetRenewalGuid = resolvedRenewalProject.id;
+        } else {
+          const matchedDb = dbProjects.find((dp) =>
+            (dp.wbsId && resolvedRenewalProject.wbsId && dp.wbsId.toLowerCase() === resolvedRenewalProject.wbsId.toLowerCase()) ||
+            (dp.projectCode && resolvedRenewalProject.projectSeqId && dp.projectCode.toLowerCase() === resolvedRenewalProject.projectSeqId.toLowerCase()) ||
+            (dp.name.toLowerCase() === resolvedRenewalProject.name.toLowerCase() && dp.clientId === resolvedRenewalProject.clientId)
+          );
+          if (matchedDb) {
+            targetRenewalGuid = matchedDb.id;
+          }
+        }
+      }
+
+      const targetRenewalWbs = isRenewal
+        ? (resolvedRenewalProject?.wbsId || resolvedRenewalProject?.projectSeqId || (wbsSearch.trim() || null))
+        : null;
+
+      if (isGuidClient) {
+        try {
+          const selectedSubVentureObj = selectedClient?.subVentures?.find((sv) => sv.name === selectedSubVenture);
+          const backendProj = await createProject({
+            clientId: selectedClientId,
+            subVentureId: selectedSubVentureObj?.id ?? null,
+            name: projectName,
+            description: sectionAComments,
+            startDate: projStart,
+            endDate: projEnd,
+            budget: subtotal,
+            totalHours,
+            totalDays,
+            invoiceValue: invoiceTarget,
+            wbsStatus: "assigned",
+            wbsSubStatus: "WBS Assigned",
+            contractType,
+            projectType,
+            currency,
+            taxPercent,
+            engagementManager,
+            salesPerson,
+            billingModel,
+            paymentTerms,
+            poStatus: poFile ? "Uploaded" : (poStatus || null),
+            poNumber: poNumber || null,
+            poDate: poDate || null,
+            targetDate: targetDate || null,
+            accountContactName: contactName || null,
+            accountContactPhone: contactNumber || null,
+            accountContactEmail: contactEmail || null,
+            subDepartmentNames: serviceRows.map((r) => r.subDept || ""),
+            renewedFromProjectId: isRenewal ? targetRenewalGuid : null,
+            renewedFromWbsId: isRenewal ? targetRenewalWbs : null,
+          });
+
+          if (backendProj?.id) {
+            createdBackendProjectId = backendProj.id;
+
+            // Save service rows to backend database
+            for (let i = 0; i < serviceRows.length; i++) {
+              const r = serviceRows[i];
+              try {
+                await addProjectService(backendProj.id, {
+                  department: r.dept,
+                  subDepartment: r.subDept || null,
+                  serviceName: r.name,
+                  qty: r.qty,
+                  description: r.description || null,
+                  resourceLevel: r.resourceLevel || null,
+                  frequency: r.frequency || null,
+                  location: r.location || null,
+                  locationText: r.locationText || null,
+                  serviceModel: r.serviceModel || null,
+                  deliveryModel: r.deliveryModel || null,
+                  finalDeliveryFormat: r.deliveryFormat || null,
+                  billingModel: billingModel || r.billingModel || null,
+                  tools: r.tools || null,
+                  startDate: r.startDate || null,
+                  endDate: r.endDate || null,
+                  durationDays: r.durationDays || null,
+                  unitPrice: r.unitPrice || null,
+                  sortOrder: i,
+                });
+              } catch (svcErr) {
+                console.warn("Project service save to database failed:", svcErr);
+              }
+            }
+
+            // Save invoice rows to backend database
+            for (let i = 0; i < invoiceRows.length; i++) {
+              const inv = invoiceRows[i];
+              const isRaised = inv.invoiceStatus === "Raised";
+              try {
+                await createProjectInvoice(backendProj.id, {
+                  milestoneName: inv.milestone,
+                  amount: inv.amount,
+                  taxAmount: inv.amount * ((taxPercent || 18) / 100),
+                  totalAmount: inv.amount * (1 + (taxPercent || 18) / 100),
+                  status: isRaised ? "Raised" : "Pending",
+                  invoiceNumber: isRaised ? (inv.invoiceNumber?.trim() || null) : null,
+                  invoiceDate: inv.targetDate || null,
+                  dueDate: inv.targetDate || null,
+                  remarks: inv.remarks || null,
+                  sortOrder: i,
+                });
+              } catch (invErr) {
+                console.warn("Project invoice save to database failed:", invErr);
+              }
+            }
+
+            if (poFile) {
+              try {
+                await uploadProjectDocument(backendProj.id, poFile, "PO", poNumber, poDate);
+              } catch (docErr) {
+                console.warn("PO document upload failed:", docErr);
+              }
+            }
+          }
+        } catch (backendErr) {
+          console.warn("Backend project creation failed, fallback to local store:", backendErr);
+        }
+      }
+
+      const renewedWbsIdVal = isRenewal
+        ? (targetRenewalWbs || undefined)
+        : undefined;
+
+      const proj = dhStore.addProject({
+        id: createdBackendProjectId ?? undefined,
+        wbsId,
+        projectSeqId: projectId,
+        name: projectName,
+        clientId: selectedClientId,
+        description: sectionAComments,
+        startDate: projStart,
+        endDate: projEnd,
+        budget: subtotal,
+        wbsStatus: "assigned",
+        wbsSubStatus: "WBS Assigned",
+        engagementManager,
+        salesPerson,
+        contractType,
+        projectType,
+        projectIssuedDate,
+        currency,
+        taxPercent,
+        totalHours,
+        totalDays,
+        invoiceValue: invoiceTarget,
+        sectionAComments,
+        sectionBComments,
+        wbsDetails,
+        subVenture: selectedSubVenture,
+        renewedFromWbsId: renewedWbsIdVal,
+        renewedFromProjectId: isRenewal ? (targetRenewalGuid || resolvedRenewalProject?.id || undefined) : undefined,
+        isRenewal: isRenewal,
+      });
+
+      // Mark draft converted so it disappears from the active drafts list
+      if (currentDraftId) {
+        markDraftConverted(currentDraftId).catch(console.error);
+        dhStore.deleteDraft(currentDraftId);
+      }
+
+      setShowCreateWbsConfirm(false);
+      toast.success("WBS created successfully");
+      navigate({ to: "/projects/$projectId", params: { projectId: createdBackendProjectId ?? proj.id } });
+    } catch (err: any) {
+      console.error("WBS Creation error:", err);
+      toast.error(err?.message || "Failed to create WBS. Please try again.");
+    } finally {
+      setIsCreatingWbs(false);
+    }
   }
 
   /**
@@ -1502,6 +2166,11 @@ function WbsNewProjectPage() {
     }
     const rowErr = validateServiceRows();
     if (rowErr) return rowErr;
+    for (const inv of invoiceRows) {
+      if (inv.invoiceStatus === "Raised" && !inv.invoiceNumber.trim()) {
+        return `Please enter Invoice Number for raised milestone: ${inv.milestone}`;
+      }
+    }
     if (!billingModel) return "Please select Billing Model";
     if (billingModel === "Custom") {
       const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
@@ -1879,9 +2548,12 @@ function WbsNewProjectPage() {
                               }}
                             >
                               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
+                                  {pAny.name}
+                                </span>
                                 <span style={{ fontSize: 11, color: "#6b7280" }}>
-                                  {c?.name}
-                                  {pAny.subVenture ? ` · ${pAny.subVenture}` : ""} · {pAny.wbsId}
+                                  {c?.name || "Client"}
+                                  {pAny.subVenture ? ` · ${pAny.subVenture}` : ""} · {pAny.wbsId || pAny.projectSeqId || pAny.id}
                                 </span>
                               </div>
                               <span
@@ -2124,7 +2796,7 @@ function WbsNewProjectPage() {
                       letterSpacing: "0.05em",
                     }}
                   >
-                    End Customer Name / Sub-venture Name
+                    End Customer Name / Sub-venture Name <span style={{ color: "#ef4444" }}>*</span>
                   </div>
                   <div style={{ position: "relative" }}>
                     <input
@@ -2276,15 +2948,7 @@ function WbsNewProjectPage() {
                     Customer ID
                   </div>
                   <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
-                    {selectedClient
-                      ? selectedClient.id.startsWith("C")
-                        ? selectedClient.id
-                        : "C" +
-                          String(clients.findIndex((c) => c.id === selectedClientId) + 1).padStart(
-                            3,
-                            "0",
-                          )
-                      : "—"}
+                    {selectedClient ? formatCustomerId(selectedClient.id) : "—"}
                   </div>
                 </div>
                 <div>
@@ -2299,7 +2963,7 @@ function WbsNewProjectPage() {
                     Project ID
                   </div>
                   <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
-                    {buildProjectDisplayId()}
+                    {projectId}
                   </div>
                 </div>
               </div>
@@ -2353,8 +3017,15 @@ function WbsNewProjectPage() {
                 style={inputStyle(true, !!projectName)}
               />
             </FormGroup>
-            <FormGroup label="Engagement Manager">
-              <input type="text" value={engagementManager} readOnly style={inputStyle(true, !!engagementManager)} />
+            <FormGroup label="Engagement Manager" required>
+              <input
+                type="text"
+                value={engagementManager}
+                onChange={(e) => setEngagementManager(e.target.value)}
+                readOnly={renewalFieldsLocked}
+                placeholder="Enter engagement manager"
+                style={inputStyle(renewalFieldsLocked, !!engagementManager)}
+              />
             </FormGroup>
           </div>
           {/* Row 2: Contract Type + Sales Person */}
@@ -2793,7 +3464,7 @@ function WbsNewProjectPage() {
                           min={r.startDate || undefined}
                           onChange={(e) => updateRow(r.rowId, "endDate", e.target.value)}
                           style={{ ...req(r.endDate), minWidth: 140 }}
-                          title="WBS End Date — weekends do not count toward Duration (Days)"
+                          title="WBS End Date"
                         />
                       </td>
                       <td style={tdStyle}>
@@ -2805,7 +3476,7 @@ function WbsNewProjectPage() {
                             updateRow(r.rowId, "durationDays", Number(e.target.value))
                           }
                           style={{ ...req(r.durationDays), minWidth: 80 }}
-                          title="Working days Mon–Fri between WBS Start and End"
+                          title="Duration in days between WBS Start and End"
                         />
                       </td>
                       <td style={tdStyle}>
@@ -3217,7 +3888,9 @@ function WbsNewProjectPage() {
                         <tr>
                           <th style={{ ...thStyleOverride, minWidth: 160 }}>Service Name</th>
                           <th style={{ ...thStyleOverride, minWidth: 140 }}>Milestone / Period</th>
-                          <th style={{ ...thStyleOverride, minWidth: 130 }}>Invoice Target Date</th>
+                          <th style={{ ...thStyleOverride, minWidth: 130 }}>
+                            Invoice Target Date <span style={{ color: "#ef4444" }}>*</span>
+                          </th>
                           <th style={{ ...thStyleOverride, minWidth: 100 }}>Unit Price</th>
                           <th style={{ ...thStyleOverride, minWidth: 60 }}>Qty</th>
                           <th style={{ ...thStyleOverride, minWidth: 80 }}>Currency</th>
@@ -3331,7 +4004,10 @@ function WbsNewProjectPage() {
                                 onChange={(e) =>
                                   updateInvoiceRowField(inv.rowId, "targetDate", e.target.value)
                                 }
-                                style={invField(!!inv.targetDate)}
+                                style={{
+                                  ...invField(!!inv.targetDate),
+                                  ...(!inv.targetDate ? { border: "1.5px solid #ef4444" } : {}),
+                                }}
                               />
                             </td>
 
@@ -3374,7 +4050,8 @@ function WbsNewProjectPage() {
                               <input
                                 type="text"
                                 value={inv.invoiceNumber}
-                                placeholder="Enter invoice number"
+                                disabled={inv.invoiceStatus !== "Raised"}
+                                placeholder={inv.invoiceStatus === "Raised" ? "Enter invoice # *" : "—"}
                                 onChange={(e) =>
                                   updateInvoiceRowField(inv.rowId, "invoiceNumber", e.target.value)
                                 }
@@ -3382,6 +4059,11 @@ function WbsNewProjectPage() {
                                   ...invField(!!inv.invoiceNumber.trim()),
                                   fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                                   fontSize: 11,
+                                  ...(inv.invoiceStatus !== "Raised"
+                                    ? { backgroundColor: "#f3f4f6", cursor: "not-allowed", color: "#9ca3af" }
+                                    : !inv.invoiceNumber.trim()
+                                      ? { borderColor: "#ef4444", backgroundColor: "#fef2f2" }
+                                      : {}),
                                 }}
                               />
                             </td>
@@ -3420,9 +4102,11 @@ function WbsNewProjectPage() {
                                 }
                                 style={{
                                   ...invField(!!inv.paymentDate),
-                                  ...(inv.paymentStatus !== "Received"
-                                    ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" }
-                                    : {}),
+                                  ...(inv.paymentStatus === "Received" && !inv.paymentDate
+                                    ? { border: "1.5px solid #ef4444" }
+                                    : inv.paymentStatus !== "Received"
+                                      ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" }
+                                      : {}),
                                 }}
                               />
                             </td>
@@ -3439,7 +4123,7 @@ function WbsNewProjectPage() {
           {/* PO Details (conditional) */}
           {poStatus === "PO Received" && (
             <div style={{ marginBottom: 16 }}>
-              <FormGroup label="Attach PO Document">
+              <FormGroup label="Attach PO Document" required>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <label
                     style={{
@@ -3448,6 +4132,7 @@ function WbsNewProjectPage() {
                       alignItems: "center",
                       gap: 6,
                       cursor: "pointer",
+                      ...(!poFile ? { border: "1.5px solid #ef4444" } : {}),
                     }}
                   >
                     📎 Choose File
@@ -3515,7 +4200,7 @@ function WbsNewProjectPage() {
             >
               {exporting ? "Preparing preview…" : "Export WBS"}
             </button>
-            <button onClick={handleAssignWbs} style={btnStyle("primary")}>
+            <button onClick={handleCreateWbsClick} style={btnStyle("primary")}>
               Create WBS
             </button>
           </div>
@@ -3564,6 +4249,114 @@ function WbsNewProjectPage() {
           <polyline points="18 15 12 9 6 15" />
         </svg>
       </button>
+
+      {/* ── Confirm WBS Creation Modal ── */}
+      {showCreateWbsConfirm && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isCreatingWbs) setShowCreateWbsConfirm(false);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 1050,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.04)",
+              width: "100%",
+              maxWidth: 440,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid #e5e7eb",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a5490" }}>Confirm WBS Creation</div>
+              <button
+                onClick={() => {
+                  if (!isCreatingWbs) setShowCreateWbsConfirm(false);
+                }}
+                disabled={isCreatingWbs}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: 22,
+                  color: "#6b7280",
+                  cursor: isCreatingWbs ? "not-allowed" : "pointer",
+                  lineHeight: 1,
+                  padding: "0 4px",
+                }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: "24px 20px", fontSize: 14, color: "#374151", lineHeight: 1.6 }}>
+              Are you sure you want to create the WBS for this project?
+            </div>
+
+            <div
+              style={{
+                padding: "12px 20px 16px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 10,
+                borderTop: "1px solid #f3f4f6",
+                background: "#fafafa",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowCreateWbsConfirm(false)}
+                disabled={isCreatingWbs}
+                style={{
+                  ...btnStyle("secondary"),
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  ...(isCreatingWbs ? { opacity: 0.6, cursor: "not-allowed" } : {}),
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAssignWbs}
+                disabled={isCreatingWbs}
+                style={{
+                  ...btnStyle("primary"),
+                  padding: "8px 18px",
+                  fontSize: 13,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  ...(isCreatingWbs ? { opacity: 0.7, cursor: "not-allowed" } : {}),
+                }}
+              >
+                {isCreatingWbs ? "Creating WBS…" : "OK — Create WBS"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Service Picker Modal ── */}
       {pickerOpen && (

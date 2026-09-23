@@ -22,10 +22,10 @@ export function HealthPill({ status }: { status: HealthStatus }) {
   );
 }
 
-export function RenewedProjectTag() {
+export function RenewedProjectTag({ className }: { className?: string } = {}) {
   return (
-    <span className={cn(base, "bg-violet-50 text-violet-800 border-violet-200")}>
-      Renewed Project
+    <span className={cn(base, "bg-violet-50 text-violet-700 border-violet-200/80 font-semibold", className)}>
+      Renewed
     </span>
   );
 }

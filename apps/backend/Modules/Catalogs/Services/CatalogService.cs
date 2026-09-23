@@ -68,4 +68,148 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
             .Select(t => new CatalogOptionDto(t.Id, t.Code, t.Name, null, null))
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<ServiceGroupDto>> GetServiceGroupsAsync(CancellationToken ct = default)
+    {
+        return await db.ServiceGroups
+            .Where(g => g.IsActive)
+            .OrderBy(g => g.SortOrder)
+            .ThenBy(g => g.Name)
+            .Select(g => new ServiceGroupDto(g.Id, g.Code, g.Name, g.SortOrder))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ServiceDepartmentDto>> GetServiceDepartmentsAsync(
+        Guid? groupId = null,
+        CancellationToken ct = default)
+    {
+        var query = db.ServiceDepartments
+            .Include(d => d.Group)
+            .Where(d => d.IsActive);
+
+        if (groupId.HasValue)
+        {
+            query = query.Where(d => d.GroupId == groupId.Value);
+        }
+
+        return await query
+            .OrderBy(d => d.SortOrder)
+            .ThenBy(d => d.Name)
+            .Select(d => new ServiceDepartmentDto(
+                d.Id,
+                d.Code,
+                d.Name,
+                d.GroupId,
+                d.Group != null ? d.Group.Name : string.Empty,
+                d.SortOrder))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ServiceSubDepartmentDto>> GetServiceSubDepartmentsAsync(
+        Guid? departmentId = null,
+        CancellationToken ct = default)
+    {
+        var query = db.ServiceSubDepartments
+            .Include(s => s.Department)
+            .Where(s => s.IsActive);
+
+        if (departmentId.HasValue)
+        {
+            query = query.Where(s => s.DepartmentId == departmentId.Value);
+        }
+
+        return await query
+            .OrderBy(s => s.SortOrder)
+            .ThenBy(s => s.Name)
+            .Select(s => new ServiceSubDepartmentDto(
+                s.Id,
+                s.Code,
+                s.Name,
+                s.DepartmentId,
+                s.Department != null ? s.Department.Name : string.Empty,
+                s.SortOrder))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ServiceCatalogOptionDto>> GetServiceCatalogAsync(
+        Guid? subDepartmentId = null,
+        CancellationToken ct = default)
+    {
+        var query = db.ServiceCatalogs
+            .Include(c => c.SubDepartment)
+            .Where(c => c.IsActive);
+
+        if (subDepartmentId.HasValue)
+        {
+            query = query.Where(c => c.SubDepartmentId == subDepartmentId.Value);
+        }
+
+        return await query
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.Name)
+            .Select(c => new ServiceCatalogOptionDto(
+                c.Id,
+                c.Code,
+                c.Name,
+                c.SubDepartmentId,
+                c.SubDepartment != null ? c.SubDepartment.Name : string.Empty,
+                c.DefaultTools,
+                c.DefaultUnitPrice,
+                c.DefaultDurationDays,
+                c.Description,
+                c.SortOrder))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ServiceHierarchyGroupDto>> GetServiceHierarchyAsync(CancellationToken ct = default)
+    {
+        var groups = await db.ServiceGroups
+            .Where(g => g.IsActive)
+            .OrderBy(g => g.SortOrder)
+            .ThenBy(g => g.Name)
+            .Include(g => g.Departments.Where(d => d.IsActive))
+                .ThenInclude(d => d.SubDepartments.Where(s => s.IsActive))
+                    .ThenInclude(s => s.Services.Where(c => c.IsActive))
+            .ToListAsync(ct);
+
+        return groups.Select(g => new ServiceHierarchyGroupDto(
+            g.Id,
+            g.Code,
+            g.Name,
+            g.SortOrder,
+            g.Departments
+                .OrderBy(d => d.SortOrder)
+                .ThenBy(d => d.Name)
+                .Select(d => new ServiceHierarchyDeptDto(
+                    d.Id,
+                    d.Code,
+                    d.Name,
+                    g.Code,
+                    g.Name,
+                    d.SortOrder,
+                    d.SubDepartments
+                        .OrderBy(s => s.SortOrder)
+                        .ThenBy(s => s.Name)
+                        .Select(s => new ServiceHierarchySubDeptDto(
+                            s.Id,
+                            s.Code,
+                            s.Name,
+                            s.SortOrder,
+                            s.Services
+                                .OrderBy(c => c.SortOrder)
+                                .ThenBy(c => c.Name)
+                                .Select(c => new ServiceHierarchyItemDto(
+                                    c.Id,
+                                    c.Code,
+                                    c.Name,
+                                    c.DefaultTools,
+                                    c.DefaultUnitPrice,
+                                    c.DefaultDurationDays,
+                                    c.Description,
+                                    c.SortOrder))
+                                .ToList()))
+                        .ToList()))
+                .ToList()))
+            .ToList();
+    }
 }

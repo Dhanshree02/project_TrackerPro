@@ -5,9 +5,25 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-11
+**Last updated:** 2026-09-24
 
 ## Latest
+
+- **Shadow Team Resource list = DB interns.** Candidates endpoint accepts `?internsOnly=true` (EmploymentType=Intern / `TKI-*` / intern role text). Status filter accepts `Active%` (covers Active - Probation). Project Team still excludes interns; Shadow Add Member uses SearchableSelect against that query. Shadow add still persists in `dh-store` (registers the intern so the row name resolves). No new migration.
+
+- **Add Team Member date-range bug fixed.** DateRangePicker stored `DD/MM/YYYY` but re-parsed with `new Date("24/09/2026")` (invalid in browsers), so picking an end date cleared the range while the inputs still looked filled — Add then failed with “select both start and end dates”. Now parses `DD/MM/YYYY` explicitly.
+
+- **Team Lead Edit + Overview sync + ⋮ menu overflow.** Edit Allocation on Project Team now has **Set as Team Lead** (same as Add). Setting lead updates `project.TeamLeadId` and syncs `leadershipAssignments` so Overview + project card show the name. ⋮ menu uses `position: fixed` (opens up near viewport bottom) so it is no longer clipped by the table scroll. Backend demotes other leads when one is set.
+
+- **Multiple Team Leads.** Project Team can mark several members as Team Lead; Overview Change Leader for Team Lead lists only Project Team members (multi-select); all selected names show as chips under Overview Team Leads + project card. Backend no longer demotes other leads.
+
+- **Shadow Team now persists in DB.** Root cause of empty table after refresh: Shadow adds only wrote to `dh-store` (browser memory/local), never the API. Added `IsShadowTeam` on `project_team_members` (migration `20260923203958_AddProjectTeamMemberIsShadowTeam`). `GET/POST …/team-members?shadow=true` / `isShadowTeam:true`. Shadow tab loads/adds/edits/removes via API like Project Team.
+
+- **Project Team Members backend + DB live.** New table `project_team_members` (migration `20260923193605_AddProjectTeamMembersTable`) with FKs to `projects`, `employees`, `mst_departments`; unique `(ProjectId, EmployeeId)` where not soft-deleted. APIs under `/api/v1/projects/{id}/team-members` (+ `/candidates`). Interns excluded via EmploymentType/`TKI-`/role text. Dept/SubDept taken from employee (not trusted from client). Team tab Project Team path loads/adds/edits/removes via API; Shadow Team unchanged (still local store). UI layout/labels kept.
+
+- **Projects list empty because API was down + wrong `PagedResult` args (fixed).** Local DB already has **47** rows in `projects` (none soft-deleted). Backend was not listening on `:5194`, so `/projects` loaded nothing. Also `GetProjectsAsync` had swapped `PagedResult` constructor args (`total`/`page`/`pageSize`) — rebuilt API now returns `page=1, perPage=…, total=47`. Frontend shows a clear error + Retry when the API is unreachable; list requests use `perPage: 500` (backend clamp raised to 500). No DB schema change — no new EF migration. Seed path remains `DbSeeder.SeedProjectsAsync` (runs only when `projects` is empty).
+
+- **PM/SPM name display lag fixed (Overview + WBS).** Assign/Change Leader saved real employee GUIDs, but chips used `getPerson()` against mock `people` only — so the name showed late (GUID / wrong until refresh). Added a `knownPeople` directory (`registerPeople` / `hydrateKnownPeople` in `mock-data.ts`, persisted in `dh-store`), register on assign + employee fetch, and Overview/WBS re-resolve chips from that cache so the name appears immediately.
 
 - **Local DB now has the same application data as the shared Docker DB.** After a schema compare, shared-only leftovers (`mst_entra_roles`, `users.AuthProvider`, `users.MicrosoftOid`) were **not** added — they are unused by current code. All 32 app tables were truncated locally and copied from `10.50.30.189` (read-only). Row counts now match (16 clients, 64 sub-ventures, 27 employees, 25 users, …). Pre-sync backup: `%TEMP%\trackerpro-local-before-shared-sync.dump`. Backend `PMS.API` is connected to local `trackerpro` from `::1`.
 

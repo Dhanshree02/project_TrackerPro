@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Shared.Constants;
 using PMS.API.Modules.Customers.Models;
+using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Repository.Models;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
@@ -46,6 +47,8 @@ public static class DbSeeder
         await SeedReportingManagersAsync(db, ct);
         await db.SaveChangesAsync(ct);
         await SeedClientsAsync(db, users, ct);
+        await db.SaveChangesAsync(ct);
+        await SeedProjectsAsync(db, ct);
         await db.SaveChangesAsync(ct);
         await SeedRepositoryAsync(db, ct);
         await db.SaveChangesAsync(ct);
@@ -1371,6 +1374,336 @@ public static class DbSeeder
                     CreatedAtUtc = accessDate
                 });
             }
+        }
+    }
+
+    // ---------- Projects, Tasks & Invoices ----------
+
+    private static async Task SeedProjectsAsync(AppDbContext db, CancellationToken ct)
+    {
+        if (await db.Projects.AnyAsync(ct)) return; // Idempotent
+
+        var allClients = await db.Clients.Include(c => c.SubVentures).ToDictionaryAsync(c => c.Id, ct);
+        var subVenturesByName = await db.SubVentures.ToDictionaryAsync(s => $"{s.ClientId}_{s.Name.ToLower()}", s => s.Id, ct);
+
+        // Pre-fetch employees for assignment linking
+        var employees = await db.Employees.Where(e => e.DeletedAtUtc == null && e.Status == "Active").ToListAsync(ct);
+        var defaultEmpId = employees.FirstOrDefault()?.Id;
+
+        // Sub-venture mappings for projects p1 to p43
+        var projectSubventures = new Dictionary<string, string>
+        {
+            ["p1"] = "Northwind Retail Banking",
+            ["p2"] = "Northwind Digital Payments",
+            ["p3"] = "Helix Clinical Research",
+            ["p4"] = "Helix Biotech Division",
+            ["p5"] = "Orbit E-Commerce",
+            ["p6"] = "Orbit Hypermarket",
+            ["p7"] = "Zenith Freight Services",
+            ["p8"] = "Zenith Warehouse Operations",
+            ["p9"] = "Lumen Smart Grid",
+            ["p10"] = "CloudSync AI Platform",
+            ["p11"] = "FinTech Digital Banking",
+            ["p12"] = "MediCare Hospital Systems",
+            ["p13"] = "EcoGreen Sustainability Consulting",
+            ["p14"] = "AutoDrive Autonomous Systems",
+            ["p15"] = "Northwind Corporate Banking",
+            ["p16"] = "Northwind Treasury Services",
+            ["p17"] = "Northwind Wealth Management",
+            ["p18"] = "Northwind Financial Services",
+            ["p19"] = "Helix Manufacturing",
+            ["p20"] = "Helix Global Healthcare",
+            ["p21"] = "Helix Medical Devices",
+            ["p22"] = "Orbit Fashion",
+            ["p23"] = "Orbit Supply Chain",
+            ["p24"] = "Orbit Digital Commerce",
+            ["p25"] = "Zenith International Logistics",
+            ["p26"] = "Zenith Fleet Management",
+            ["p27"] = "Lumen Renewable Energy",
+            ["p28"] = "Lumen Power Distribution",
+            ["p29"] = "Lumen Solar Division",
+            ["p30"] = "CloudSync Data Engineering",
+            ["p31"] = "CloudSync Machine Learning",
+            ["p32"] = "FinTech Payment Solutions",
+            ["p33"] = "FinTech Risk & Compliance",
+            ["p34"] = "FinTech Lending",
+            ["p35"] = "MediCare Telemedicine",
+            ["p36"] = "MediCare Diagnostics",
+            ["p37"] = "MediCare Patient Services",
+            ["p38"] = "EcoGreen Waste Management",
+            ["p39"] = "EcoGreen Renewable Projects",
+            ["p40"] = "EcoGreen Water Management",
+            ["p41"] = "AutoDrive Connected Vehicles",
+            ["p42"] = "AutoDrive EV Solutions",
+            ["p43"] = "AutoDrive Manufacturing"
+        };
+
+        var projectSeedData = new (string Id, string Name, string ClientKey, string? WbsId, string Status, string Health, int Progress, string StartDate, string EndDate, decimal Budget, decimal Spent, string Desc)[]
+        {
+            ("p1", "Core Banking Modernization", "c1", "IN-2025-26-C001-P006", "ongoing", "amber", 62, "2026-02-01", "2026-08-30", 1200000m, 740000m, "Modernize legacy core banking platform to a cloud-native microservices stack."),
+            ("p2", "Mobile Banking App v3", "c1", "IN-2025-26-C001-P002", "ongoing", "green", 78, "2026-01-15", "2026-06-30", 480000m, 360000m, "Next-gen mobile app with biometric auth and real-time payments."),
+            ("p3", "Clinical Data Platform", "c2", "IN-2025-26-C002-P011", "ongoing", "red", 35, "2026-03-01", "2026-09-15", 950000m, 410000m, "Unified clinical trials data platform with HIPAA compliance."),
+            ("p4", "Pharma Sales Dashboard", "c2", "IN-2025-26-C002-P008", "on_hold", "amber", 45, "2026-02-10", "2026-07-20", 320000m, 180000m, "Sales analytics dashboard with territory performance views."),
+            ("p5", "Omnichannel Commerce", "c3", "IN-2025-26-C003-P004", "ongoing", "green", 58, "2026-01-20", "2026-08-10", 760000m, 420000m, "Unified storefront across web, mobile and in-store kiosks."),
+            ("p6", "POS Migration", "c3", "IN-2024-25-C003-P002", "ongoing", "green", 65, "2025-09-01", "2026-03-30", 280000m, 265000m, "Migrated 1,200 POS terminals to new cloud-managed platform."),
+            ("p7", "Fleet Tracking System", "c4", "IN-2025-26-C004-P009", "ongoing", "amber", 48, "2026-02-15", "2026-09-01", 540000m, 280000m, "Real-time GPS tracking and route optimization for 5,000 vehicles."),
+            ("p8", "Warehouse Automation", "c4", "IN-2025-26-C004-P001", "ongoing", "green", 70, "2026-01-05", "2026-07-15", 890000m, 600000m, "Robotics + WMS integration across 4 distribution centers."),
+            ("p9", "Smart Grid Analytics", "c5", "IN-2025-26-C005-P010", "ongoing", "amber", 55, "2026-02-20", "2026-10-10", 1050000m, 510000m, "Predictive load balancing and outage detection across the grid."),
+            ("p10", "AI-Powered Analytics Platform", "c6", "IN-2025-26-C006-P012", "ongoing", "green", 82, "2026-03-01", "2026-08-30", 750000m, 615000m, "Machine learning pipeline for real-time data analytics and insights."),
+            ("p11", "Digital Wallet MVP", "c7", "IN-2025-26-C007-P003", "ongoing", "green", 65, "2026-01-15", "2026-06-20", 580000m, 377000m, "Mobile-first digital payment wallet with blockchain security."),
+            ("p12", "Hospital Management System", "c8", "IN-2025-26-C008-P007", "ongoing", "amber", 48, "2026-02-10", "2026-09-25", 920000m, 441600m, "Comprehensive EHR and patient management system for 50+ hospitals."),
+            ("p13", "Carbon Tracking Platform", "c9", "IN-2025-26-C009-P005", "ongoing", "green", 71, "2026-01-20", "2026-07-31", 640000m, 454400m, "Enterprise platform for monitoring and reducing carbon footprint."),
+            ("p14", "Autonomous Vehicle Control", "c10", "IN-2025-26-C010-P013", "ongoing", "red", 38, "2026-03-10", "2026-11-15", 1200000m, 456000m, "Advanced control system for autonomous vehicle fleet management."),
+            ("p15", "Internet Banking Portal", "c1", "IN-2024-25-C001-P003", "archived", "green", 100, "2024-06-01", "2025-01-15", 520000m, 510000m, "Full-featured internet banking portal with 2FA and real-time notifications."),
+            ("p16", "Fraud Detection ML Model", "c1", "IN-2023-24-C001-P006", "completed", "green", 100, "2024-02-01", "2024-10-30", 680000m, 665000m, "Machine learning pipeline for real-time transaction fraud detection."),
+            ("p17", "API Gateway Revamp", "c1", "IN-2026-27-C001-P001", "ongoing", "green", 0, "2026-06-01", "2026-12-31", 390000m, 0m, "Rebuild API gateway with rate limiting, OAuth 2.0 and developer portal."),
+            ("p18", "Loan Origination System", "c1", "IN-2023-24-C001-P005", "archived", "amber", 72, "2023-09-01", "2024-04-30", 450000m, 420000m, "End-to-end digital loan origination and approval workflow system."),
+            ("p19", "Lab Information System", "c2", "IN-2023-24-C002-P007", "completed", "green", 100, "2024-01-10", "2024-09-20", 610000m, 590000m, "Digital laboratory information system for sample tracking and reporting."),
+            ("p20", "Regulatory Compliance Portal", "c2", "IN-2026-27-C002-P002", "ongoing", "green", 0, "2026-06-10", "2026-12-20", 280000m, 0m, "Centralized portal for managing FDA/EMA regulatory submissions."),
+            ("p21", "Drug Trial Management", "c2", "IN-2023-24-C002-P002", "archived", "amber", 68, "2023-05-01", "2024-01-31", 730000m, 690000m, "Phase II/III clinical trial participant management and data collection."),
+            ("p22", "Loyalty Rewards Platform", "c3", "IN-2023-24-C003-P008", "completed", "green", 100, "2024-03-01", "2024-11-30", 340000m, 330000m, "Points-based loyalty engine with gamification for 5M+ customers."),
+            ("p23", "Inventory AI Forecasting", "c3", "IN-2026-27-C003-P001", "ongoing", "green", 0, "2026-06-05", "2026-11-30", 420000m, 0m, "AI-driven demand forecasting and automated replenishment system."),
+            ("p24", "Customer Data Platform", "c3", "IN-2023-24-C003-P005", "archived", "amber", 55, "2023-01-15", "2023-09-30", 490000m, 460000m, "Unified customer data platform integrating 12 data sources."),
+            ("p25", "Supply Chain Visibility", "c4", "IN-2024-25-C004-P005", "completed", "green", 100, "2024-04-01", "2024-12-15", 570000m, 555000m, "End-to-end supply chain visibility platform with IoT sensor integration."),
+            ("p26", "Driver Mobile App", "c4", "IN-2026-27-C004-P002", "ongoing", "green", 0, "2026-06-15", "2026-11-20", 220000m, 0m, "Driver-facing mobile app for route optimization and POD collection."),
+            ("p27", "Renewable Energy Dashboard", "c5", "IN-2024-25-C005-P003", "archived", "green", 100, "2024-02-01", "2024-10-31", 460000m, 445000m, "Executive dashboard for real-time monitoring of solar and wind assets."),
+            ("p28", "Customer Energy Portal", "c5", "IN-2026-27-C005-P001", "ongoing", "green", 0, "2026-06-08", "2026-12-15", 310000m, 0m, "Self-service portal for residential customers to track usage and billing."),
+            ("p29", "Grid Modernization Program", "c5", "IN-2023-24-C005-P004", "completed", "amber", 61, "2023-06-01", "2024-03-31", 870000m, 840000m, "Phase 1 smart meter rollout across 3 states."),
+            ("p30", "Data Lakehouse Migration", "c6", "IN-2026-27-C006-P001", "ongoing", "green", 0, "2026-06-01", "2026-11-30", 490000m, 0m, "Migrate 3PB data warehouse to modern lakehouse architecture on Snowflake."),
+            ("p31", "MLOps Framework", "c6", "IN-2024-25-C006-P002", "archived", "green", 100, "2024-03-15", "2024-11-30", 380000m, 365000m, "Production ML model lifecycle management with drift detection and retraining."),
+            ("p32", "Cross-Border Payments", "c7", "IN-2026-27-C007-P001", "ongoing", "amber", 0, "2026-06-12", "2027-01-31", 920000m, 0m, "SWIFT-compliant cross-border payment rails for 40+ countries."),
+            ("p33", "KYC Automation", "c7", "IN-2024-25-C007-P002", "completed", "green", 100, "2024-01-01", "2024-08-31", 540000m, 525000m, "AI-driven KYC document verification reducing manual review by 80%."),
+            ("p34", "Open Banking API Suite", "c7", "IN-2023-24-C007-P001", "archived", "amber", 44, "2023-03-01", "2023-10-15", 320000m, 300000m, "PSD2-compliant open banking API suite for third-party integrators."),
+            ("p35", "Telemedicine Platform", "c8", "IN-2024-25-C008-P004", "completed", "green", 100, "2024-05-01", "2025-01-15", 670000m, 650000m, "HIPAA-compliant video consultation and remote monitoring platform."),
+            ("p36", "Insurance Claims Automation", "c8", "IN-2026-27-C008-P001", "ongoing", "green", 0, "2026-06-20", "2026-12-31", 380000m, 0m, "AI-powered claims processing reducing settlement time from 30 to 3 days."),
+            ("p37", "Patient Engagement App", "c8", "IN-2023-24-C008-P003", "archived", "amber", 52, "2023-07-01", "2024-03-31", 290000m, 270000m, "Patient-facing app for appointment booking, reminders and health records."),
+            ("p38", "ESG Reporting Engine", "c9", "IN-2024-25-C009-P002", "completed", "green", 100, "2024-02-15", "2024-10-30", 420000m, 405000m, "Automated ESG data aggregation and reporting aligned to GRI and TCFD standards."),
+            ("p39", "Waste Management IoT", "c9", "IN-2026-27-C009-P001", "ongoing", "green", 0, "2026-06-18", "2026-12-20", 360000m, 0m, "Smart bin monitoring network with route optimization for waste collectors."),
+            ("p40", "Water Quality Platform", "c9", "IN-2023-24-C009-P004", "archived", "amber", 48, "2023-04-01", "2023-11-30", 310000m, 290000m, "IoT sensor network for real-time water quality monitoring across 200 sites."),
+            ("p41", "ADAS Integration Suite", "c10", "IN-2024-25-C010-P003", "completed", "green", 100, "2024-01-20", "2024-11-30", 980000m, 960000m, "Advanced driver-assistance system integration for 3 OEM partners."),
+            ("p42", "V2X Communication Platform", "c10", "IN-2026-27-C010-P001", "ongoing", "amber", 0, "2026-06-25", "2027-02-28", 1100000m, 0m, "Vehicle-to-everything communication layer for smart city integration."),
+            ("p43", "OBD Diagnostics Cloud", "c10", "IN-2023-24-C010-P002", "archived", "amber", 38, "2023-08-01", "2024-04-30", 430000m, 400000m, "Cloud-based OBD-II diagnostics aggregation for fleet health monitoring.")
+        };
+
+        var taskTitles = new (string Title, string Stage, int Progress, decimal EstHours)[]
+        {
+            ("External Network Penetration Testing", "Completed", 100, 40m),
+            ("Web Application Penetration Testing", "Completed", 100, 32m),
+            ("Cloud Infrastructure Assessment", "Ongoing", 65, 40m),
+            ("Source Code Security Review", "Ready to Start", 40, 48m),
+            ("ISO 27001 Security Audit", "On Hold (Internal)", 20, 64m),
+            ("Phishing Campaign & Assessment", "Ready to Start", 0, 16m)
+        };
+
+        var projectCounter = 1;
+        foreach (var (pId, name, clientKey, wbsId, status, health, progress, startDate, endDate, budget, spent, desc) in projectSeedData)
+        {
+            var clientId = StableGuid("client-" + clientKey);
+            Guid? subVentureId = null;
+
+            if (projectSubventures.TryGetValue(pId, out var svName))
+            {
+                var svKey = $"{clientId}_{svName.ToLower()}";
+                if (subVenturesByName.TryGetValue(svKey, out var svGuid))
+                {
+                    subVentureId = svGuid;
+                }
+            }
+
+            var projectGuid = StableGuid("project-" + pId);
+            var projectCode = $"P{projectCounter:D3}";
+            projectCounter++;
+
+            var finalWbsId = wbsId ?? $"IN-2026-27-C{int.Parse(clientKey.TrimStart('c')):D3}-{projectCode}";
+
+            var project = new Project
+            {
+                Id = projectGuid,
+                ProjectCode = projectCode,
+                WbsId = finalWbsId,
+                Name = name,
+                Description = desc,
+                ClientId = clientId,
+                SubVentureId = subVentureId,
+                Status = status,
+                Health = health,
+                Progress = progress,
+                ContractType = "Fixed Price",
+                ProjectType = "Short term (Ad-hoc)",
+                Currency = "USD",
+                TaxPercent = 18m,
+                StartDate = DateOnly.Parse(startDate),
+                EndDate = DateOnly.Parse(endDate),
+                Budget = budget,
+                Spent = spent,
+                TotalHours = 240m,
+                TotalDays = 30m,
+                InvoiceValue = budget,
+                WbsStatus = status == "archived" ? "Archived" : (status == "completed" ? "Approved" : "Published"),
+                WbsSubStatus = status == "archived" ? "Archived" : (status == "completed" ? "Completed" : "Active"),
+                BillingModel = "50-50",
+                PaymentTerms = "Net 30 Days",
+                PoStatus = "Uploaded",
+                PoNumber = $"PO-{finalWbsId.Split('-').Last()}",
+                PoDate = DateOnly.Parse(startDate).AddDays(-5),
+                CreatedAtUtc = DateTime.UtcNow.AddDays(-100)
+            };
+
+            db.Projects.Add(project);
+
+            // Seed 2 default Project Services
+            var s1 = new ProjectServiceEntity
+            {
+                Id = StableGuid($"{pId}-service-1"),
+                ProjectId = projectGuid,
+                Department = "Penetration Testing",
+                SubDepartment = "Network Penetration Testing",
+                ServiceName = "External Network Penetration Testing",
+                ResourceLevel = "Senior",
+                Frequency = "One Time",
+                Location = "Remote",
+                ServiceModel = "Black Box",
+                DeliveryModel = "Fixed Scope",
+                FinalDeliveryFormat = "PDF Report",
+                BillingModel = "50-50",
+                Qty = 1,
+                UnitPrice = budget * 0.6m,
+                Total = budget * 0.6m,
+                DurationDays = 15,
+                DurationHours = 120,
+                TotalDays = 15,
+                TotalHours = 120,
+                CreatedAtUtc = project.CreatedAtUtc
+            };
+            s1.ResourceLevels.Add(new ProjectServiceResourceLevel
+            {
+                Id = Guid.NewGuid(),
+                ProjectServiceId = s1.Id,
+                Level = "Senior",
+                Count = 1,
+                CreatedAtUtc = s1.CreatedAtUtc
+            });
+            db.ProjectServices.Add(s1);
+
+            var s2 = new ProjectServiceEntity
+            {
+                Id = StableGuid($"{pId}-service-2"),
+                ProjectId = projectGuid,
+                Department = "Vulnerability Assessment",
+                SubDepartment = "Web Application Vulnerability Assessment",
+                ServiceName = "Web Application Vulnerability Assessment",
+                ResourceLevel = "Mid",
+                Frequency = "One Time",
+                Location = "Remote",
+                ServiceModel = "Grey Box",
+                DeliveryModel = "Fixed Scope",
+                FinalDeliveryFormat = "PDF Report",
+                BillingModel = "50-50",
+                Qty = 1,
+                UnitPrice = budget * 0.4m,
+                Total = budget * 0.4m,
+                DurationDays = 15,
+                DurationHours = 120,
+                TotalDays = 15,
+                TotalHours = 120,
+                CreatedAtUtc = project.CreatedAtUtc
+            };
+            s2.ResourceLevels.Add(new ProjectServiceResourceLevel
+            {
+                Id = Guid.NewGuid(),
+                ProjectServiceId = s2.Id,
+                Level = "Mid",
+                Count = 1,
+                CreatedAtUtc = s2.CreatedAtUtc
+            });
+            db.ProjectServices.Add(s2);
+
+            // Seed tasks for this project
+            var taskIdx = 1;
+            foreach (var (title, tStage, tProg, estHours) in taskTitles)
+            {
+                var taskGuid = StableGuid($"{pId}-task-{taskIdx}");
+                var task = new ProjectTask
+                {
+                    Id = taskGuid,
+                    ProjectId = projectGuid,
+                    ProjectServiceId = taskIdx <= 3 ? s1.Id : s2.Id,
+                    Title = title,
+                    Description = $"{title} execution phase",
+                    Period = "Q1",
+                    Phase = $"AP{taskIdx}",
+                    Stage = tStage,
+                    Priority = taskIdx % 2 == 0 ? "high" : "medium",
+                    EstimatedHours = estHours,
+                    UtilizedHours = (estHours * tProg) / 100m,
+                    Progress = tProg,
+                    SortOrder = taskIdx,
+                    PlannedStartDate = project.StartDate?.AddDays(taskIdx * 5),
+                    PlannedEndDate = project.StartDate?.AddDays(taskIdx * 5 + 7),
+                    ActualStartDate = tProg > 0 ? project.StartDate?.AddDays(taskIdx * 5) : null,
+                    ActualEndDate = tProg == 100 ? project.StartDate?.AddDays(taskIdx * 5 + 7) : null,
+                    CreatedAtUtc = project.CreatedAtUtc
+                };
+                db.ProjectTasks.Add(task);
+
+                // Add default assignment if employees exist
+                if (defaultEmpId.HasValue)
+                {
+                    db.ProjectTaskAssignments.Add(new ProjectTaskAssignment
+                    {
+                        Id = StableGuid($"{pId}-task-{taskIdx}-assign-1"),
+                        TaskId = taskGuid,
+                        EmployeeId = defaultEmpId.Value,
+                        Role = "Lead",
+                        AllocatedHours = estHours,
+                        UtilizedHours = task.UtilizedHours,
+                        CreatedAtUtc = project.CreatedAtUtc
+                    });
+                }
+
+                taskIdx++;
+            }
+
+            // Seed 2 milestone invoices (50% upfront, 50% on completion)
+            var inv1Amount = budget * 0.5m;
+            var inv1Tax = inv1Amount * 0.18m;
+            db.ProjectInvoices.Add(new ProjectInvoice
+            {
+                Id = StableGuid($"{pId}-inv-1"),
+                ProjectId = projectGuid,
+                MilestoneName = "Initial Milestone (50% Advance)",
+                Percentage = 50m,
+                Amount = inv1Amount,
+                TaxAmount = inv1Tax,
+                TotalAmount = inv1Amount + inv1Tax,
+                Status = progress >= 50 ? "Paid" : "Raised",
+                InvoiceNumber = $"INV-{pId.ToUpper()}-01",
+                InvoiceDate = project.StartDate,
+                DueDate = project.StartDate?.AddDays(30),
+                PaymentDate = progress >= 50 ? project.StartDate?.AddDays(15) : null,
+                SortOrder = 1,
+                CreatedAtUtc = project.CreatedAtUtc
+            });
+
+            var inv2Amount = budget * 0.5m;
+            var inv2Tax = inv2Amount * 0.18m;
+            db.ProjectInvoices.Add(new ProjectInvoice
+            {
+                Id = StableGuid($"{pId}-inv-2"),
+                ProjectId = projectGuid,
+                MilestoneName = "Final Milestone (50% on Sign-off)",
+                Percentage = 50m,
+                Amount = inv2Amount,
+                TaxAmount = inv2Tax,
+                TotalAmount = inv2Amount + inv2Tax,
+                Status = progress == 100 ? "Paid" : (progress >= 50 ? "Raised" : "Pending"),
+                InvoiceNumber = $"INV-{pId.ToUpper()}-02",
+                InvoiceDate = project.EndDate?.AddDays(-15),
+                DueDate = project.EndDate?.AddDays(15),
+                PaymentDate = progress == 100 ? project.EndDate?.AddDays(5) : null,
+                SortOrder = 2,
+                CreatedAtUtc = project.CreatedAtUtc
+            });
         }
     }
 

@@ -32,8 +32,18 @@ function AllocationPage() {
   const [history, setHistory] = useState<AllocationEvent[]>(allocationHistory);
   const [selectedId, setSelectedId] = useState<string>(initialProjects[0].id);
 
-  const selected = projs.find((p) => p.id === selectedId)!;
-  const client = clients.find((c) => c.id === selected.clientId)!;
+  const selected = projs.find((p) => p.id === selectedId) ?? projs[0];
+  const client = clients.find((c) => c.id === selected?.clientId) ?? {
+    id: selected?.clientId ?? "",
+    name: "Client",
+    industry: "General",
+    status: "active",
+    health: "green",
+    projectCount: 1,
+    totalRevenue: 0,
+    accountManagerId: "u1",
+    logo: "",
+  };
 
   const seniorPMs = people.filter((p) => p.role === "Senior PM");
   const ems = people.filter((p) => p.role === "Engagement Manager");

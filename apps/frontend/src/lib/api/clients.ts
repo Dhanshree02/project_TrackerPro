@@ -6,19 +6,9 @@ import {
   type ClientSubVenture,
 } from "@/lib/mock-data";
 
-/** Formats a deterministic, consistent, and readable Customer ID e.g. CUST-C8E5EC6B */
-export function formatCustomerId(id?: string | null): string {
-  if (!id) return "—";
-  const trimmed = id.trim();
-  if (trimmed.startsWith("CUST-") || trimmed.startsWith("CL-") || trimmed.startsWith("C-")) {
-    return trimmed;
-  }
-  if (/^\d+$/.test(trimmed)) {
-    return `CUST-${trimmed.padStart(4, "0")}`;
-  }
-  const clean = trimmed.replace(/-/g, "").toUpperCase();
-  return `CUST-${clean.slice(0, 8)}`;
-}
+import { allClients, formatCustomerId } from "@/lib/dh-store";
+
+export { formatCustomerId };
 
 /** Wire shape returned by GET /api/v1/clients (camelCase JSON). */
 export interface ApiClientContact {

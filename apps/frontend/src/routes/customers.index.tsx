@@ -1887,7 +1887,7 @@ function NewClientModal({
               <Field label="Customer ID">
                 <input
                   className={cn(readOnlyCls, "font-mono")}
-                  value="Auto-generated on creation"
+                  value={s.customerId || "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0")}
                   readOnly
                 />
               </Field>
@@ -2006,7 +2006,7 @@ function NewClientModal({
           {selectedExisting && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Customer ID">
-                <input className={readOnlyCls} value={selectedExisting.id} readOnly />
+                <input className={cn(readOnlyCls, "font-mono")} value={formatCustomerId(selectedExisting.id)} readOnly />
               </Field>
               <Field label="Billing Medium" required>
                 {selectedExisting.billingMedium ? (
@@ -2282,7 +2282,7 @@ function NewClientModal({
               v={
                 selectedExisting
                   ? formatCustomerId(selectedExisting.id)
-                  : "Auto-assigned on creation"
+                  : (s.customerId || ("C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0")))
               }
             />
             {!selectedExisting && (

@@ -6,25 +6,67 @@ import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
 import { useRoleContext } from "@/lib/role-context";
 import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person, type WbsService } from "@/lib/mock-data";
-import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar } from "@/components/pills";
+import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType, people as dhPeople } from "@/lib/dh-helpers";
 import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/dh-store";
 import { Modal } from "@/routes/projects.index";
 import { Field } from "@/components/form-row";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { cn } from "@/lib/utils";
-import { fetchClients, mapApiClient } from "@/lib/api/clients";
+import { fetchClients, mapApiClient, formatCustomerId } from "@/lib/api/clients";
+import {
+  fetchProject,
+  fetchProjects,
+  mapApiProjectToProject,
+  updateProjectStatus,
+  uploadProjectDocument,
+  getProjectDocumentDownloadUrl,
+  updateTaskStage,
+  addTaskAssignment,
+  fetchProjectTasks,
+  fetchProjectServices,
+  fetchProjectInvoices,
+  createProjectInvoice,
+  updateProjectInvoice,
+  type ApiProject,
+} from "@/lib/api/projects";
+import {
+  fetchProjectTeamMembers,
+  searchProjectTeamCandidates,
+  addProjectTeamMember as apiAddProjectTeamMember,
+  updateProjectTeamMember as apiUpdateProjectTeamMember,
+  removeProjectTeamMember as apiRemoveProjectTeamMember,
+  parseAllocationDuration,
+  formatAllocationDuration,
+  type ApiProjectTeamMember,
+  type ApiProjectTeamCandidate,
+} from "@/lib/api/project-team-members";
 import { resolveCustomerRouteId } from "@/lib/client-route-id";
-import { findProjectByWbsId } from "@/lib/project-renewal";
+import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
+import { findProjectByWbsId, isRenewedProject } from "@/lib/project-renewal";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
+import { fetchEmployees, type ApiEmployeeListItem } from "@/lib/api/employees";
 
-// Helper function for consistent date formatting (prevents hydration mismatch)
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${m}/${d}/${y}`;
+// Helper function for consistent date formatting in DD/MM/YYYY (date/month/year)
+function formatDate(dateInput: Date | string | undefined | null): string {
+  if (!dateInput) return "—";
+  if (typeof dateInput === "string") {
+    const trimmed = dateInput.trim();
+    if (!trimmed) return "—";
+    const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [, y, m, d] = match;
+      return `${d}/${m}/${y}`;
+    }
+  }
+  const dObj = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (isNaN(dObj.getTime())) return "—";
+  const y = dObj.getFullYear();
+  const m = String(dObj.getMonth() + 1).padStart(2, "0");
+  const d = String(dObj.getDate()).padStart(2, "0");
+  return `${d}/${m}/${y}`;
 }
 
 function formatDateString(dateStr: string | undefined | null): string {
@@ -81,15 +123,37 @@ function DateRangePicker({
   value: string;
   onChange: (val: string) => void;
 }) {
-  // Parse "M/D/YYYY → M/D/YYYY" → DateRange
+  // Parse "DD/MM/YYYY → DD/MM/YYYY" (formatDate output). Do NOT use
+  // `new Date("24/09/2026")` — browsers treat slash dates as invalid/US-only.
+  const parseStoredDate = (raw: string | undefined): Date | undefined => {
+    const s = raw?.trim();
+    if (!s) return undefined;
+    const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (dmy) {
+      const day = Number(dmy[1]);
+      const month = Number(dmy[2]);
+      const year = Number(dmy[3]);
+      const d = new Date(year, month - 1, day);
+      if (isNaN(d.getTime()) || d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+        return undefined;
+      }
+      return d;
+    }
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) {
+      const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+      return isNaN(d.getTime()) ? undefined : d;
+    }
+    const fallback = new Date(s);
+    return isNaN(fallback.getTime()) ? undefined : fallback;
+  };
+
   const parsedRange = useMemo<DateRange>(() => {
     if (!value) return { from: undefined, to: undefined };
     const parts = value.split(" → ");
-    const from = parts[0] ? new Date(parts[0]) : undefined;
-    const to = parts[1] ? new Date(parts[1]) : undefined;
     return {
-      from: from && !isNaN(from.getTime()) ? from : undefined,
-      to: to && !isNaN(to.getTime()) ? to : undefined,
+      from: parseStoredDate(parts[0]),
+      to: parseStoredDate(parts[1]),
     };
   }, [value]);
 
@@ -112,6 +176,12 @@ function DateRangePicker({
   const [fromInput, setFromInput] = useState(toInputFmt(parsedRange.from));
   const [toInput, setToInput] = useState(toInputFmt(parsedRange.to));
 
+  // Keep text inputs in sync when the stored value re-parses successfully
+  useEffect(() => {
+    setFromInput(toInputFmt(parsedRange.from));
+    setToInput(toInputFmt(parsedRange.to));
+  }, [parsedRange.from?.getTime(), parsedRange.to?.getTime()]);
+
   const commit = (from: Date | undefined, to: Date | undefined) => {
     if (from && to) onChange(`${formatDate(from)} → ${formatDate(to)}`);
     else if (from) onChange(`${formatDate(from)} → `);
@@ -129,13 +199,14 @@ function DateRangePicker({
 
   // Click on end calendar
   const handleToDay = (day: Date) => {
+    const from = parsedRange.from ?? parseInputFmt(fromInput);
     // end must not be before start
-    if (parsedRange.from && day < parsedRange.from) {
+    if (from && day < from) {
       toast.error("End date must be after start date");
       return;
     }
     setToInput(toInputFmt(day));
-    commit(parsedRange.from, day);
+    commit(from, day);
   };
 
   const handleFromInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,16 +303,64 @@ function DateRangePicker({
 }
 
 export const Route = createFileRoute("/projects/$projectId")({
-  loader: ({ params }): { project: Project; client: Client } => {
-    const project = allProjects().find((p) => p.id === params.projectId);
-    if (!project) throw notFound();
-    const client = allClients().find((c) => c.id === project.clientId)!;
+  ssr: false,
+  loader: async ({ params }): Promise<{ project?: Project; client?: Client }> => {
+    const rawId = params.projectId ? decodeURIComponent(params.projectId).trim() : "";
+
+    // 1. Look up in local / persisted store by ID, lowercase ID, WBS ID, or ProjectSeqId
+    let project = allProjects().find(
+      (p) =>
+        p.id === rawId ||
+        p.id.toLowerCase() === rawId.toLowerCase() ||
+        p.wbsId === rawId ||
+        p.projectSeqId?.toLowerCase() === rawId.toLowerCase()
+    );
+
+    // 2. If not found in store, attempt fetching from backend API
+    if (!project) {
+      try {
+        const apiProj = await fetchProject(rawId);
+        if (apiProj) {
+          let apiServices: any[] = [];
+          let apiInvoices: any[] = [];
+          try {
+            apiServices = await fetchProjectServices(apiProj.id);
+          } catch (svcErr) {
+            console.warn("Could not fetch project services from backend", svcErr);
+          }
+          try {
+            apiInvoices = await fetchProjectInvoices(apiProj.id);
+          } catch (invErr) {
+            console.warn("Could not fetch project invoices from backend", invErr);
+          }
+          project = mapApiProjectToProject(apiProj, apiServices, apiInvoices);
+        }
+      } catch (err) {
+        console.warn("Could not fetch project from backend", err);
+      }
+    }
+
+    // 3. Resolve client if project found
+    let client: Client | undefined = undefined;
+    if (project) {
+      client = allClients().find((c) => c.id === project.clientId);
+      if (!client && project.clientId) {
+        try {
+          const dbClients = await fetchClients(1, 200);
+          const matched = dbClients.find((c) => c.id === project.clientId);
+          if (matched) client = mapApiClient(matched);
+        } catch {
+          // fallback
+        }
+      }
+    }
+
     return { project, client };
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData?.project.name ?? "Project"} — Pulse PMO` },
-      { name: "description", content: loaderData?.project.description ?? "Project details." },
+      { title: `${loaderData?.project?.name ?? "Project"} — Pulse PMO` },
+      { name: "description", content: loaderData?.project?.description ?? "Project details." },
     ],
   }),
   component: ProjectDetail,
@@ -264,7 +383,10 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
 }
 
 function ProjectDetail() {
-  const { project: loaderProject, client: loaderClient } = Route.useLoaderData() as { project: Project; client: Client };
+  const params = Route.useParams();
+  const loaderData = Route.useLoaderData() as { project?: Project; client?: Client } | undefined;
+  const rawId = params.projectId ? decodeURIComponent(params.projectId).trim() : "";
+
   const {
     user,
     isDhanshree,
@@ -282,16 +404,82 @@ function ProjectDetail() {
   // Subscribe to store so runtime-created projects stay live/reactive
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
   const poDocuments = useDhStore((s) => s.poDocuments);
-  const project: Project = useMemo(
-    () => allProjects().find((p) => p.id === loaderProject.id) ?? loaderProject,
+
+  const [dbProject, setDbProject] = useState<ApiProject | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (rawId && (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId) || rawId.length > 20)) {
+      fetchProject(rawId).then((p) => {
+        if (!cancelled && p) setDbProject(p);
+      }).catch(console.error);
+    }
+    return () => { cancelled = true; };
+  }, [rawId]);
+
+  // Live project resolution from store (hydrated from localStorage), loaderData, or fallback
+  const project: Project | undefined = useMemo(() => {
+    const fromStore = allProjects().find(
+      (p) =>
+        p.id === rawId ||
+        p.id.toLowerCase() === rawId.toLowerCase() ||
+        p.wbsId === rawId ||
+        p.projectSeqId?.toLowerCase() === rawId.toLowerCase(),
+    );
+    if (fromStore) return fromStore;
+    if (dbProject) return mapApiProjectToProject(dbProject);
+    return loaderData?.project;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [loaderProject.id, extraCount, poDocuments]
-  );
-  const client: Client = useMemo(
-    () => allClients().find((c) => c.id === project.clientId) ?? loaderClient,
+  }, [rawId, extraCount, poDocuments, dbProject, loaderData?.project]);
+
+  const client: Client = useMemo(() => {
+    if (!project) return loaderData?.client ?? {
+      id: "unknown",
+      name: "Client",
+      industry: "General",
+      status: "active",
+      health: "green",
+      projectCount: 1,
+      totalRevenue: 0,
+      accountManagerId: "u1",
+      logo: "",
+    };
+    return allClients().find((c) => c.id === project.clientId) ?? loaderData?.client ?? {
+      id: project.clientId,
+      name: "Client",
+      industry: "General",
+      status: "active",
+      health: "green",
+      projectCount: 1,
+      totalRevenue: 0,
+      accountManagerId: "u1",
+      logo: "",
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [project.clientId, extraCount]
-  );
+  }, [project?.clientId, extraCount, loaderData?.client]);
+
+  if (!project) {
+    return (
+      <AppShell>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center text-center p-6">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <Folder className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">Project Not Found</h2>
+          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+            We couldn't find a project matching <span className="font-mono font-medium text-foreground">{rawId}</span>.
+          </p>
+          <div className="mt-5 flex gap-3">
+            <Link
+              to="/projects"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              Back to Projects
+            </Link>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
   const [apiClients, setApiClients] = useState<Array<{ id: string; name: string }>>([]);
   useEffect(() => {
     let cancelled = false;
@@ -310,6 +498,13 @@ function ProjectDetail() {
     () => resolveCustomerRouteId(client.id, client.name, apiClients),
     [client.id, client.name, apiClients],
   );
+
+  useEffect(() => {
+    if (project?.id && project.wbsDetails?.accounts?.invoices) {
+      dhStore.syncProjectInvoices(project.id, project.wbsDetails.accounts.invoices);
+    }
+  }, [project?.id, project?.wbsDetails?.accounts?.invoices]);
+
   const snapshotInvoices = useDhStore((s) => s.invoices);
   const raisedInvoices = snapshotInvoices.filter(
     (i) => i.projectId === project.id && i.invoiceStatus === "Raised",
@@ -399,6 +594,9 @@ function ProjectDetail() {
       setClosureErrorModalOpen(true);
     } else {
       dhStore.archiveProject(project.id, user.id, user.name);
+      updateProjectStatus(project.id, "archived").catch((err) => {
+        console.warn("Failed to archive project on backend:", err);
+      });
       toast.success("Project Closure Successful!", {
         description: `Project "${project.name}" has been transferred to Archived Projects.`,
       });
@@ -443,6 +641,9 @@ function ProjectDetail() {
         reader.readAsDataURL(file);
       });
       dhStore.attachPoDocument(project.id, file.name, dataUrl);
+      uploadProjectDocument(project.id, file, "PO").catch((err) => {
+        console.warn("Failed to upload PO document to backend:", err);
+      });
       toast.success("PO document attached", { description: file.name });
     } catch {
       toast.error("Could not read the PO document. Please try again.");
@@ -740,6 +941,7 @@ function ProjectDetail() {
               <div className="flex flex-wrap items-center gap-2">
                 <HealthPill status={project.health} />
                 <StatusPill status={project.status} />
+                {isRenewedProject(project) && <RenewedProjectTag />}
                 {isViewOnly && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground">
                     <Lock className="h-3 w-3" /> View only
@@ -753,24 +955,6 @@ function ProjectDetail() {
           </div>
 
           <div className="flex shrink-0 flex-wrap items-end gap-5 sm:justify-end">
-            <div>
-              <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-                <Calendar className="h-3 w-3" /> Timeline
-              </div>
-              <p className="mt-0.5 text-[12px] font-semibold tabular-nums tracking-tight">
-                {formatDateString(project.startDate)} → {formatDateString(project.endDate)}
-              </p>
-            </div>
-            {!(hideBudget || isPmFamily) && project.budget != null && (
-              <div>
-                <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-                  <Wallet className="h-3 w-3" /> Budget
-                </div>
-                <p className="mt-0.5 text-[12px] font-semibold tabular-nums tracking-tight">
-                  {project.currency ?? "INR"} {Number(project.budget).toLocaleString()}
-                </p>
-              </div>
-            )}
             <div className="min-w-[132px]">
               <div className="flex items-center justify-between gap-2 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
                 <span>Progress</span>
@@ -808,6 +992,7 @@ function ProjectDetail() {
           {tab === "Overview" && (
             <OverviewTab
               project={project}
+              client={client}
               pm={pm}
               tl={tl}
               team={team}
@@ -818,6 +1003,7 @@ function ProjectDetail() {
           {tab === "WBS" && (
             <WbsTab
               project={project}
+              client={client}
               onRaiseInvoice={(invoiceId) => {
                 setRaiseInvoiceId(invoiceId);
                 const existing = snapshotInvoices.find((i) => i.id === invoiceId);
@@ -889,7 +1075,24 @@ function ProjectDetail() {
                         <tr key={inv.id} className="hover:bg-accent/30">
                           <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
                           <td className="px-3 py-2.5 text-center font-medium">{inv.resourceLevel || "—"}</td>
-                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.invoiceTargetDate}</td>
+                          <td className="px-3 py-2.5">
+                            {invoiceEditable ? (
+                              <input
+                                type="date"
+                                value={toDateInputValue(inv.invoiceTargetDate)}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  dhStore.updateInvoiceTargetDate(project.id, inv.id, val);
+                                  updateProjectInvoice(project.id, inv.id, { invoiceDate: val || null, dueDate: val || null }).catch((err) =>
+                                    console.warn("Backend invoice date update failed:", err)
+                                  );
+                                }}
+                                className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              />
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{inv.invoiceTargetDate || "—"}</span>
+                            )}
+                          </td>
                           <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
                           <td className="px-3 py-2.5">
                             <span className={cn(
@@ -900,7 +1103,25 @@ function ProjectDetail() {
                             </span>
                           </td>
                           <td className="px-3 py-2.5 font-mono text-xs">{inv.invoiceNumber || "-"}</td>
-                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.paymentReceivedDate || "-"}</td>
+                          <td className="px-3 py-2.5">
+                            {invoiceEditable ? (
+                              <input
+                                type="date"
+                                value={toDateInputValue(inv.paymentReceivedDate)}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  dhStore.updatePaymentReceivedDate(project.id, inv.id, val);
+                                  updateProjectInvoice(project.id, inv.id, {
+                                    paymentDate: val || null,
+                                    status: val ? "Paid" : "Raised",
+                                  }).catch((err) => console.warn("Backend payment date update failed:", err));
+                                }}
+                                className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              />
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{inv.paymentReceivedDate || "-"}</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                       {raisedInvoices.length === 0 && (
@@ -927,7 +1148,7 @@ function ProjectDetail() {
                         <th className="px-3 py-2 font-medium">Date Of Payment Received</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
+                    <tbody className="divide-y border-border">
                       {raisedInvoices.map((inv) => {
                         const statusTone = inv.invoiceStatus === "Raised" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800";
                         const paymentTone = inv.paymentStatus === "Received" ? "bg-success/10 text-success border-success/30" : "bg-warning/15 text-warning-foreground border-warning/30";
@@ -936,7 +1157,24 @@ function ProjectDetail() {
                           <tr key={inv.id} className="hover:bg-accent/30">
                             <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
                             <td className="px-3 py-2.5 text-center font-medium">{inv.resourceLevel || "—"}</td>
-                            <td className="px-3 py-2.5 text-xs text-muted-foreground">{inv.invoiceTargetDate}</td>
+                            <td className="px-3 py-2.5">
+                              {invoiceEditable ? (
+                                <input
+                                  type="date"
+                                  value={toDateInputValue(inv.invoiceTargetDate)}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    dhStore.updateInvoiceTargetDate(project.id, inv.id, val);
+                                    updateProjectInvoice(project.id, inv.id, { invoiceDate: val || null, dueDate: val || null }).catch((err) =>
+                                      console.warn("Backend invoice date update failed:", err)
+                                    );
+                                  }}
+                                  className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                />
+                              ) : (
+                                <span className="text-xs text-muted-foreground">{inv.invoiceTargetDate || "—"}</span>
+                              )}
+                            </td>
                             <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
                             <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
                             <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
@@ -973,14 +1211,19 @@ function ProjectDetail() {
                               )}
                             </td>
                             <td className="px-3 py-2.5">
-                              {invoiceEditable && inv.paymentStatus === "Received" ? (
+                              {invoiceEditable ? (
                                 <input
                                   type="date"
                                   value={toDateInputValue(inv.paymentReceivedDate)}
-                                  onChange={(e) =>
-                                    dhStore.updatePaymentReceivedDate(project.id, inv.id, e.target.value)
-                                  }
-                                  className="h-7 rounded-md border border-input bg-white px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    dhStore.updatePaymentReceivedDate(project.id, inv.id, val);
+                                    updateProjectInvoice(project.id, inv.id, {
+                                      paymentDate: val || null,
+                                      status: val ? "Paid" : "Raised",
+                                    }).catch((err) => console.warn("Backend payment date update failed:", err));
+                                  }}
+                                  className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 />
                               ) : (
                                 <span className="text-xs text-muted-foreground">{inv.paymentReceivedDate || "-"}</span>
@@ -1129,6 +1372,24 @@ function ProjectDetail() {
                   }
                   if (raiseInvoiceId) {
                     dhStore.raiseInvoice(project.id, raiseInvoiceId, invoiceNumberInput.trim(), user.id, user.name);
+                    const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raiseInvoiceId);
+                    if (isGuid) {
+                      updateProjectInvoice(project.id, raiseInvoiceId, {
+                        invoiceNumber: invoiceNumberInput.trim(),
+                        status: "Raised",
+                        invoiceDate: new Date().toISOString().slice(0, 10),
+                      }).catch((err) => {
+                        console.warn("Failed to update invoice on backend:", err);
+                      });
+                    } else {
+                      createProjectInvoice(project.id, {
+                        invoiceNumber: invoiceNumberInput.trim(),
+                        status: "Raised",
+                        invoiceDate: new Date().toISOString().slice(0, 10),
+                      }).catch((err) => {
+                        console.warn("Failed to create invoice on backend:", err);
+                      });
+                    }
                     toast.success("Invoice raised successfully!");
                   }
                   setRaiseModalOpen(false);
@@ -1167,11 +1428,13 @@ const LEGACY_WBS_SERVICES = [
 
 function WbsTab({
   project,
+  client,
   onRaiseInvoice,
   onNavigateToHealthAlerts,
   poDocumentPanel,
 }: {
   project: Project;
+  client?: Client;
   onRaiseInvoice: (invoiceId: string) => void;
   onNavigateToHealthAlerts?: () => void;
   poDocumentPanel?: React.ReactNode;
@@ -1187,6 +1450,7 @@ function WbsTab({
     const totalServices = wbsDetails.services.reduce((acc: number, curr: any) => acc + curr.total, 0);
     const tax = totalServices * 0.18;
     const grandTotal = totalServices + tax;
+    const currency = wbsDetails.currency || project.currency || "INR";
 
     return (
       <div className="space-y-5">
@@ -1195,85 +1459,85 @@ function WbsTab({
             <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
             <div className="space-y-2">
               <InfoRow label="WBS ID" value={project.wbsId || "—"} />
-              <InfoRow label="Contract Type" value={wbsDetails.contractType} />
-              <InfoRow label="Project Type" value={wbsDetails.projectType} />
+              <InfoRow label="Contract Type" value={project.contractType || wbsDetails.contractType || "—"} />
+              <InfoRow label="Project Type" value={project.projectType || wbsDetails.projectType || "—"} />
               <InfoRow
                 label="Engagement Manager"
                 value={project.engagementManager || wbsDetails.engagementManager || "—"}
               />
-              <InfoRow label="Sales Person" value={wbsDetails.salesPerson} />
+              <InfoRow label="Sales Person" value={project.salesPerson || wbsDetails.salesPerson || "—"} />
             </div>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
             <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
             <div className="space-y-2">
-              <InfoRow label="Billing Model" value={wbsDetails.accounts.billingModel} />
-              <InfoRow label="Payment Terms" value={wbsDetails.accounts.paymentTerms} />
+              <InfoRow label="Billing Model" value={wbsDetails.accounts?.billingModel || (project as any).billingModel || "—"} />
+              <InfoRow label="Payment Terms" value={wbsDetails.accounts?.paymentTerms || (project as any).paymentTerms || "—"} />
               {!hideAmounts && (
-                <InfoRow label="Total Services Value" value={`${wbsDetails.currency} ${totalServices.toLocaleString()}`} />
+                <InfoRow label="Total Services Value" value={`${currency} ${(totalServices || project.budget || 0).toLocaleString()}`} />
               )}
-              <InfoRow label="Currency" value={wbsDetails.currency} />
+              <InfoRow label="Currency" value={currency} />
             </div>
           </div>
         </div>
 
         {!hidePrereq && (
-          <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+          <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
         )}
 
         <div>
           <h3 className="mb-3 text-sm font-semibold">Services & Deliverables from WBS</h3>
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-xs">
-              <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
+          <div className="overflow-x-auto rounded-lg border border-border shadow-xs bg-card">
+            <table className="min-w-[1950px] w-full text-xs text-left divide-y divide-border">
+              <thead className="bg-muted/60 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-2 font-medium">Department</th>
-                  <th className="px-3 py-2 font-medium">Service ID</th>
-                  <th className="px-3 py-2 font-medium">Service Name</th>
-                  <th className="px-3 py-2 font-medium">Description</th>
-                  <th className="px-3 py-2 font-medium">Resource Level</th>
-                  <th className="px-3 py-2 font-medium">Qty</th>
-                  <th className="px-3 py-2 font-medium">Frequency</th>
-                  <th className="px-3 py-2 font-medium">Service Model</th>
-                  <th className="px-3 py-2 font-medium">Delivery Model</th>
-                  <th className="px-3 py-2 font-medium">Delivery Site</th>
-                  <th className="px-3 py-2 font-medium">Delivery Format</th>
-                  <th className="px-3 py-2 font-medium">Tools</th>
-                  <th className="px-3 py-2 font-medium">Billing Model</th>
-                  <th className="px-3 py-2 font-medium">WBS Start Date</th>
-                  <th className="px-3 py-2 font-medium">WBS End Date</th>
-                  <th className="px-3 py-2 font-medium">Duration Days</th>
-                  <th className="px-3 py-2 font-medium">Duration Hours</th>
-                  <th className="px-3 py-2 font-medium">Total Days</th>
-                  <th className="px-3 py-2 font-medium">Total Hours</th>
+                  <th className="px-4 py-3 min-w-[150px] whitespace-nowrap">Department</th>
+                  <th className="px-4 py-3 min-w-[110px] whitespace-nowrap">Service ID</th>
+                  <th className="px-4 py-3 min-w-[200px] whitespace-nowrap">Service Name</th>
+                  <th className="px-4 py-3 min-w-[220px] max-w-[320px] whitespace-nowrap">Description</th>
+                  <th className="px-4 py-3 min-w-[120px] text-center whitespace-nowrap">Resource Level</th>
+                  <th className="px-4 py-3 min-w-[70px] text-center whitespace-nowrap">Qty</th>
+                  <th className="px-4 py-3 min-w-[110px] whitespace-nowrap">Frequency</th>
+                  <th className="px-4 py-3 min-w-[130px] whitespace-nowrap">Service Model</th>
+                  <th className="px-4 py-3 min-w-[120px] whitespace-nowrap">Delivery Model</th>
+                  <th className="px-4 py-3 min-w-[120px] whitespace-nowrap">Delivery Site</th>
+                  <th className="px-4 py-3 min-w-[130px] whitespace-nowrap">Delivery Format</th>
+                  <th className="px-4 py-3 min-w-[110px] whitespace-nowrap">Tools</th>
+                  <th className="px-4 py-3 min-w-[120px] whitespace-nowrap">Billing Model</th>
+                  <th className="px-4 py-3 min-w-[120px] text-center whitespace-nowrap">WBS Start Date</th>
+                  <th className="px-4 py-3 min-w-[120px] text-center whitespace-nowrap">WBS End Date</th>
+                  <th className="px-4 py-3 min-w-[100px] text-center whitespace-nowrap">Duration Days</th>
+                  <th className="px-4 py-3 min-w-[100px] text-center whitespace-nowrap">Duration Hours</th>
+                  <th className="px-4 py-3 min-w-[90px] text-center whitespace-nowrap">Total Days</th>
+                  <th className="px-4 py-3 min-w-[90px] text-center whitespace-nowrap">Total Hours</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border/60">
                 {wbsDetails.services.map((svc: any) => (
-                  <tr key={svc.id} className="hover:bg-accent/30">
-                    <td className="px-3 py-2">{svc.department}</td>
-                    <td className="px-3 py-2 font-mono text-muted-foreground">{svc.id}</td>
-                    <td className="px-3 py-2 font-medium">{svc.serviceName}</td>
-                    <td className="px-3 py-2 max-w-[140px] truncate cursor-default" title={svc.description}>{svc.description}</td>
-                    <td className="px-3 py-2 text-center font-medium">{svc.resourceLevel || "—"}</td>
-                    <td className="px-3 py-2 text-center">{svc.qty}</td>
-                    <td className="px-3 py-2">{svc.frequency ?? "—"}</td>
-                    <td className="px-3 py-2">{svc.serviceModel ?? "—"}</td>
-                    <td className="px-3 py-2">{svc.location || "—"}</td>
-                    <td className="px-3 py-2">{svc.locationText || "—"}</td>
-                    <td className="px-3 py-2">{(svc as any).finalDelivery ?? (svc as any).deliveryFormat ?? svc.finalDeliveryFormat ?? "—"}</td>
-                    <td className="px-3 py-2">{svc.tools ?? "—"}</td>
-                    <td className="px-3 py-2">{svc.billingModel || wbsDetails.accounts.billingModel || "—"}</td>
-                    <td className="px-3 py-2">{svc.startDate}</td>
-                    <td className="px-3 py-2">{svc.endDate}</td>
-                    <td className="px-3 py-2 text-center">{(svc as any).durationDays ?? svc.duration ?? "—"}</td>
-                    <td className="px-3 py-2 text-center">{(svc as any).durationHours ?? (svc.duration ? svc.duration * 8 : "—")}</td>
-                    <td className="px-3 py-2 text-center">{svc.totalDays ?? "—"}</td>
-                    <td className="px-3 py-2 text-center">{svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : "—")}</td>
+                  <tr key={svc.id} className="hover:bg-accent/25 transition-colors">
+                    <td className="px-4 py-2.5 font-medium whitespace-nowrap">{svc.department}</td>
+                    <td className="px-4 py-2.5 font-mono text-muted-foreground whitespace-nowrap">{svc.id}</td>
+                    <td className="px-4 py-2.5 font-semibold text-foreground whitespace-nowrap">{svc.serviceName}</td>
+                    <td className="px-4 py-2.5 max-w-[320px] truncate cursor-default text-muted-foreground" title={svc.description}>{svc.description || "—"}</td>
+                    <td className="px-4 py-2.5 text-center font-medium whitespace-nowrap">{svc.resourceLevel || "—"}</td>
+                    <td className="px-4 py-2.5 text-center font-semibold whitespace-nowrap">{svc.qty}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.frequency ?? "—"}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.serviceModel ?? "—"}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.deliveryModel || svc.location || "—"}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.locationText || "—"}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{(svc as any).finalDelivery ?? (svc as any).deliveryFormat ?? svc.finalDeliveryFormat ?? "—"}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.tools ?? "—"}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">{svc.billingModel || wbsDetails.accounts.billingModel || "—"}</td>
+                    <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.startDate || "—"}</td>
+                    <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.endDate || "—"}</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{(svc as any).durationDays ?? svc.duration ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{(svc as any).durationHours ?? (svc.duration ? svc.duration * 8 : "—")}</td>
+                    <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalDays ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : "—")}</td>
                   </tr>
                 ))}
                 {wbsDetails.services.length === 0 && (
-                  <tr><td colSpan={18} className="px-3 py-6 text-center text-sm text-muted-foreground">No services defined.</td></tr>
+                  <tr><td colSpan={19} className="px-4 py-8 text-center text-sm text-muted-foreground">No services defined.</td></tr>
                 )}
               </tbody>
             </table>
@@ -1319,12 +1583,30 @@ function WbsTab({
                     const isPaid = liveInv?.paymentStatus === "Received";
                     const isRaised = liveInv?.invoiceStatus === "Raised";
                     const displayInvoiceNo = liveInv?.invoiceNumber || inv.remarks || "-";
-                    const displayDate = liveInv?.invoiceTargetDate || inv.invoiceDate;
+                    const displayDate = liveInv?.invoiceTargetDate || inv.targetDate || inv.invoiceDate || "";
 
                     return (
                       <tr key={inv.id} className="hover:bg-accent/30">
                         <td className="px-3 py-2 font-medium">{inv.milestone}</td>
-                        <td className="px-3 py-2">{displayDate}</td>
+                        <td className="px-3 py-2">
+                          {canRaise ? (
+                            <input
+                              type="date"
+                              value={toDateInputValue(displayDate)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const invId = liveInv?.id || inv.id;
+                                dhStore.updateInvoiceTargetDate(project.id, invId, val);
+                                updateProjectInvoice(project.id, invId, { invoiceDate: val || null, dueDate: val || null }).catch((err) =>
+                                  console.warn("Backend invoice date update failed:", err)
+                                );
+                              }}
+                              className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">{displayDate || "—"}</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2 font-mono text-xs">{displayInvoiceNo}</td>
                         <td className="px-3 py-2 font-medium">{wbsDetails.currency} {inv.amount.toLocaleString()}</td>
                         <td className="px-3 py-2 text-right">
@@ -1337,10 +1619,11 @@ function WbsTab({
                               <span className="inline-flex rounded-full bg-blue-100 border border-blue-200 px-2 py-0.5 text-[11px] font-medium text-blue-800">
                                 Raised
                               </span>
-                              {canRaise && liveInv && (
+                              {canRaise && (
                                 <button
                                   onClick={() => {
-                                    dhStore.updatePaymentStatus(project.id, liveInv.id, "Received", user.id, user.name);
+                                    const invId = liveInv?.id || inv.id;
+                                    dhStore.updatePaymentStatus(project.id, invId, "Received", user.id, user.name);
                                     toast.success("Payment marked as Received");
                                   }}
                                   className="inline-flex items-center gap-1 rounded bg-success px-2 py-0.5 text-[10px] font-semibold text-success-foreground hover:bg-success/90 cursor-pointer"
@@ -1350,9 +1633,9 @@ function WbsTab({
                               )}
                             </div>
                           ) : (
-                            canRaise && liveInv ? (
+                            canRaise ? (
                               <button
-                                onClick={() => onRaiseInvoice(liveInv.id)}
+                                onClick={() => onRaiseInvoice(liveInv?.id || inv.id)}
                                 className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
                               >
                                 Raise Invoice
@@ -1396,78 +1679,78 @@ function WbsTab({
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
           <div className="space-y-2">
-            <InfoRow label="WBS ID" value={project.wbsId || wbsId} />
-            <InfoRow label="Contract Type" value={project.contractType || "Fixed Price"} />
+            <InfoRow label="WBS ID" value={project.wbsId || "—"} />
+            <InfoRow label="Contract Type" value={project.contractType || "—"} />
             <InfoRow label="Engagement Manager" value={project.engagementManager || "—"} />
-            <InfoRow label="Sales Person" value={project.salesPerson || "Amit Verma"} />
+            <InfoRow label="Sales Person" value={project.salesPerson || "—"} />
           </div>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
           <div className="space-y-2">
-            <InfoRow label="Project Type" value="Short term (Ad-hoc)" />
-            <InfoRow label="Billing Model" value="70% Advance + 30% on Delivery" />
-            {!hideAmounts && <InfoRow label="Total Amount" value="---------" muted />}
-            <InfoRow label="Currency" value="---------" muted />
+            <InfoRow label="Project Type" value={project.projectType || "—"} />
+            <InfoRow label="Billing Model" value={(project as any).billingModel || "—"} />
+            {!hideAmounts && <InfoRow label="Total Amount" value={`${project.currency || "INR"} ${(project.budget || 0).toLocaleString()}`} />}
+            <InfoRow label="Currency" value={project.currency || "INR"} />
           </div>
         </div>
       </div>
 
       {/* PMO Intake & Prerequisite Workflow — hidden for PM family and Accounts */}
       {!hidePrereq && (
-        <WbsPrerequisiteSection project={project} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+        <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
       )}
 
       {/* Services Table */}
       <div>
         <h3 className="mb-3 text-sm font-semibold">Services & Deliverables from WBS</h3>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-xs">
-            <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
+        <div className="overflow-x-auto rounded-lg border border-border shadow-xs bg-card">
+          <table className="min-w-[1950px] w-full text-xs text-left divide-y divide-border">
+            <thead className="bg-muted/60 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium">#</th>
-                <th className="px-3 py-2 font-medium">Department</th>
-                <th className="px-3 py-2 font-medium">Service ID</th>
-                <th className="px-3 py-2 font-medium">Service Name</th>
-                <th className="px-3 py-2 font-medium">Description</th>
-                <th className="px-3 py-2 font-medium">Qty</th>
-                <th className="px-3 py-2 font-medium">Frequency</th>
-                <th className="px-3 py-2 font-medium">Service Model</th>
-                <th className="px-3 py-2 font-medium">Delivery Model</th>
-                <th className="px-3 py-2 font-medium">Delivery Site</th>
-                <th className="px-3 py-2 font-medium">Delivery Format</th>
-                <th className="px-3 py-2 font-medium">Tools</th>
-                <th className="px-3 py-2 font-medium">Billing Model</th>
-                <th className="px-3 py-2 font-medium">WBS Start Date</th>
-                <th className="px-3 py-2 font-medium">WBS End Date</th>
-                <th className="px-3 py-2 font-medium">Duration Days</th>
-                <th className="px-3 py-2 font-medium">Duration Hours</th>
-                <th className="px-3 py-2 font-medium">Total Days</th>
-                <th className="px-3 py-2 font-medium">Total Hours</th>
+                <th className="px-4 py-3 min-w-[60px] whitespace-nowrap">#</th>
+                <th className="px-4 py-3 min-w-[150px] whitespace-nowrap">Department</th>
+                <th className="px-4 py-3 min-w-[110px] whitespace-nowrap">Service ID</th>
+                <th className="px-4 py-3 min-w-[200px] whitespace-nowrap">Service Name</th>
+                <th className="px-4 py-3 min-w-[220px] max-w-[320px] whitespace-nowrap">Description</th>
+                <th className="px-4 py-3 min-w-[70px] text-center whitespace-nowrap">Qty</th>
+                <th className="px-4 py-3 min-w-[110px] whitespace-nowrap">Frequency</th>
+                <th className="px-4 py-3 min-w-[130px] whitespace-nowrap">Service Model</th>
+                <th className="px-4 py-3 min-w-[120px] whitespace-nowrap">Delivery Model</th>
+                <th className="px-4 py-3 min-w-[120px] whitespace-nowrap">Delivery Site</th>
+                <th className="px-4 py-3 min-w-[130px] whitespace-nowrap">Delivery Format</th>
+                <th className="px-4 py-3 min-w-[110px] whitespace-nowrap">Tools</th>
+                <th className="px-4 py-3 min-w-[120px] whitespace-nowrap">Billing Model</th>
+                <th className="px-4 py-3 min-w-[120px] text-center whitespace-nowrap">WBS Start Date</th>
+                <th className="px-4 py-3 min-w-[120px] text-center whitespace-nowrap">WBS End Date</th>
+                <th className="px-4 py-3 min-w-[100px] text-center whitespace-nowrap">Duration Days</th>
+                <th className="px-4 py-3 min-w-[100px] text-center whitespace-nowrap">Duration Hours</th>
+                <th className="px-4 py-3 min-w-[90px] text-center whitespace-nowrap">Total Days</th>
+                <th className="px-4 py-3 min-w-[90px] text-center whitespace-nowrap">Total Hours</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border/60">
               {wbsServices.map((svc) => (
-                <tr key={svc.id} className="hover:bg-accent/30">
-                  <td className="px-3 py-2">{svc.id}</td>
-                  <td className="px-3 py-2">{svc.dept}</td>
-                  <td className="px-3 py-2 font-mono text-muted-foreground">{svc.taskId}</td>
-                  <td className="px-3 py-2 font-medium">{svc.name}</td>
-                  <td className="px-3 py-2 max-w-[140px] truncate cursor-default" title={svc.desc}>{svc.desc}</td>
-                  <td className="px-3 py-2 text-center">{svc.qty}</td>
-                  <td className="px-3 py-2">{svc.freq}</td>
-                  <td className="px-3 py-2">{svc.svc}</td>
-                  <td className="px-3 py-2">{svc.delivery}</td>
-                  <td className="px-3 py-2">{svc.loc || "—"}</td>
-                  <td className="px-3 py-2">{svc.format}</td>
-                  <td className="px-3 py-2">{svc.tools}</td>
-                  <td className="px-3 py-2">{svc.billing}</td>
-                  <td className="px-3 py-2">{svc.start}</td>
-                  <td className="px-3 py-2">{svc.end}</td>
-                  <td className="px-3 py-2 text-center">{svc.durDays}</td>
-                  <td className="px-3 py-2 text-center">{svc.durHrs}</td>
-                  <td className="px-3 py-2 text-center">{svc.totalDays}</td>
-                  <td className="px-3 py-2 text-center">{svc.totalHrs}</td>
+                <tr key={svc.id} className="hover:bg-accent/25 transition-colors">
+                  <td className="px-4 py-2.5 whitespace-nowrap">{svc.id}</td>
+                  <td className="px-4 py-2.5 font-medium whitespace-nowrap">{svc.dept}</td>
+                  <td className="px-4 py-2.5 font-mono text-muted-foreground whitespace-nowrap">{svc.taskId}</td>
+                  <td className="px-4 py-2.5 font-semibold text-foreground whitespace-nowrap">{svc.name}</td>
+                  <td className="px-4 py-2.5 max-w-[320px] truncate cursor-default text-muted-foreground" title={svc.desc}>{svc.desc}</td>
+                  <td className="px-4 py-2.5 text-center font-semibold whitespace-nowrap">{svc.qty}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">{svc.freq}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">{svc.svc}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">{svc.delivery}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">{svc.loc || "—"}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">{svc.format}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">{svc.tools}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">{svc.billing}</td>
+                  <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.start}</td>
+                  <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.end}</td>
+                  <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{svc.durDays}</td>
+                  <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{svc.durHrs}</td>
+                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalDays}</td>
+                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalHrs}</td>
                 </tr>
               ))}
             </tbody>
@@ -1591,17 +1874,23 @@ function PoDocumentPanel({
       : "No document attached";
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/20 p-2 px-3">
-      <div className="flex min-w-0 items-center gap-2">
-        <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <span className="text-xs font-semibold text-muted-foreground">PO Document</span>
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+        <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground font-semibold">
+          <Paperclip className="h-3.5 w-3.5 shrink-0" />
+          <span>PO Document</span>
+        </div>
         {fileName ? (
-          <span className="truncate text-xs font-medium text-foreground">{fileName}</span>
+          <span className="min-w-0 flex-1 truncate font-medium text-foreground" title={fileName}>
+            {fileName}
+          </span>
         ) : (
-          <span className="text-xs text-muted-foreground">{pendingHint}</span>
+          <span className="min-w-0 flex-1 truncate text-muted-foreground italic">
+            {pendingHint}
+          </span>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
         {fileName ? (
           <>
             <button
@@ -1609,14 +1898,14 @@ function PoDocumentPanel({
               onClick={onView}
               disabled={!canView}
               title={canView ? "Preview PO document" : "Preview is available after a file is attached"}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Eye className="h-3 w-3" /> View
             </button>
             <button
               type="button"
               onClick={onDownload}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer"
             >
               <Download className="h-3 w-3 text-primary" /> Download
             </button>
@@ -1637,7 +1926,7 @@ function PoDocumentPanel({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[11px] font-semibold text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer"
             >
               <Paperclip className="h-3 w-3" />
               {fileName ? "Replace" : "Add document"}
@@ -1651,12 +1940,14 @@ function PoDocumentPanel({
 
 function OverviewTab({
   project,
+  client: propClient,
   pm,
   tl,
   team,
   customerRouteId,
 }: {
   project: Project;
+  client?: Client;
   pm: Person;
   tl: Person;
   team: Person[];
@@ -1669,43 +1960,99 @@ function OverviewTab({
   // Reactive leadership assignments from store (Dhanshree overrides)
   const leadershipAssignment = useDhStore((s) => s.leadershipAssignments[project.id] ?? null);
   const prereq = useDhStore((s) => s.prereqs[project.id]);
+  // Re-resolve chip names when API employees are registered after assign / page load
+  const knownPeople = useDhStore((s) => s.knownPeople);
   const isWbsCreated = Boolean(project.wbsDetails);
 
+  useEffect(() => {
+    let active = true;
+    fetchEmployees({ perPage: 100 })
+      .then((res) => {
+        if (!active || !res?.items?.length) return;
+        dhStore.registerPeople(
+          res.items.map((emp) => ({
+            id: emp.id,
+            name: emp.fullName,
+            role: emp.designation || emp.role || "User",
+            email: emp.workEmail || "",
+          })),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
+
   const client = useMemo(() => {
-    return allClients().find((c) => c.id === project.clientId);
-  }, [project.clientId]);
+    return propClient ?? allClients().find((c) => c.id === project.clientId);
+  }, [propClient, project.clientId]);
 
   const ems: Person[] = useMemo(() => {
     if (leadershipAssignment?.emIds?.length) return leadershipAssignment.emIds.map(getPerson).filter(Boolean) as Person[];
     return getProjectEMs(project);
-  }, [leadershipAssignment, project]);
+  }, [leadershipAssignment, project, knownPeople]);
 
   const spms: Person[] = useMemo(() => {
-    if (isWbsCreated) {
-      const ids = leadershipAssignment ? leadershipAssignment.spmIds : (prereq?.assignedSpmIds ?? []);
-      return ids.map(getPerson);
+    if (leadershipAssignment?.spmIds?.length) {
+      return leadershipAssignment.spmIds.map(getPerson).filter(Boolean);
     }
-    if (leadershipAssignment?.spmIds?.length) return leadershipAssignment.spmIds.map(getPerson);
-    return [getPerson("u1")];
-  }, [isWbsCreated, leadershipAssignment, prereq]);
+    if (prereq?.assignedSpmIds?.length) {
+      return prereq.assignedSpmIds.map(getPerson).filter(Boolean);
+    }
+    if ((project as any).seniorProjectManagerId) {
+      return [getPerson((project as any).seniorProjectManagerId)].filter(Boolean);
+    }
+    return [];
+  }, [leadershipAssignment, prereq, project, knownPeople]);
 
   const pms: Person[] = useMemo(() => {
-    if (isWbsCreated) {
-      const ids = leadershipAssignment ? leadershipAssignment.pmIds : (prereq?.assignedPmIds ?? []);
-      return ids.map(getPerson);
+    if (leadershipAssignment?.pmIds?.length) {
+      return leadershipAssignment.pmIds.map(getPerson).filter(Boolean);
     }
-    if (leadershipAssignment?.pmIds?.length) return leadershipAssignment.pmIds.map(getPerson);
-    return getProjectPMs(project);
-  }, [isWbsCreated, leadershipAssignment, prereq, project]);
+    if (prereq?.assignedPmIds?.length) {
+      return prereq.assignedPmIds.map(getPerson).filter(Boolean);
+    }
+    if ((project as any).projectManagerId) {
+      return [getPerson((project as any).projectManagerId)].filter(Boolean);
+    }
+    if (project.pmId) {
+      return [getPerson(project.pmId)].filter(Boolean);
+    }
+    if ((project as any).projectManagerName) {
+      return [getPerson((project as any).projectManagerName)].filter(Boolean);
+    }
+    return [];
+  }, [leadershipAssignment, prereq, project, knownPeople]);
 
   const tls: Person[] = useMemo(() => {
-    if (isWbsCreated) return (leadershipAssignment?.tlIds ?? []).map(getPerson);
-    if (leadershipAssignment?.tlIds?.length) return leadershipAssignment.tlIds.map(getPerson);
-    return getProjectTLs(project);
-  }, [isWbsCreated, leadershipAssignment, project]);
-
-  const hasAllocatedSpm = (prereq?.assignedSpmIds?.length ?? 0) > 0;
-  const hasAllocatedPm = (prereq?.assignedPmIds?.length ?? 0) > 0;
+    if (leadershipAssignment?.tlIds?.length) {
+      const list = leadershipAssignment.tlIds.map(getPerson).filter(Boolean) as Person[];
+      if (list.length > 0) return list;
+    }
+    if (prereq?.assignedTlIds?.length) {
+      const list = prereq.assignedTlIds.map(getPerson).filter(Boolean) as Person[];
+      if (list.length > 0) return list;
+    }
+    if (project.teamLeadId) {
+      const p = getPerson(project.teamLeadId);
+      if (p) return [p];
+    }
+    if (project.tlId) {
+      const p = getPerson(project.tlId);
+      if (p) return [p];
+    }
+    if (project.teamLeadName?.trim()) {
+      return [{
+        id: project.teamLeadId || project.teamLeadName,
+        name: project.teamLeadName,
+        role: "Team Lead",
+        avatar: project.teamLeadName.slice(0, 2).toUpperCase(),
+        email: "",
+      }];
+    }
+    return [];
+  }, [leadershipAssignment, prereq, project, knownPeople]);
 
   const extraCount = useDhStore((s) => s.extraProjects.length);
   const originalProject = useMemo(
@@ -1715,8 +2062,22 @@ function OverviewTab({
 
   const wbs = project.wbsDetails;
   const hasWbsData = !!(project.wbsId || wbs);
-  // A WBS-created project with no team assigned yet — PM/TL/team are placeholders
-  const isNewWbsProject = hasWbsData && project.teamIds.length === 0;
+
+  // Derive project start date as the earliest service start date and end date as the latest service end date
+  const services = (wbs?.services ?? []) as any[];
+  const validStarts = services
+    .map((s) => (typeof s.startDate === "string" ? s.startDate.trim() : ""))
+    .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  const validEnds = services
+    .map((s) => (typeof s.endDate === "string" ? s.endDate.trim() : ""))
+    .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  const effectiveStartDate = validStarts.length > 0 ? validStarts[0] : project.startDate;
+  const effectiveEndDate = validEnds.length > 0 ? validEnds[validEnds.length - 1] : project.endDate;
+
   const totalServices = wbs ? wbs.services.reduce((a, b) => a + b.total, 0) : 0;
   const currency = wbs?.currency ?? project.currency ?? "INR";
   const taxPct = wbs ? (project.taxPercent ?? 18) : 18;
@@ -1748,8 +2109,8 @@ function OverviewTab({
           </p>
         ) : null}
         <div className="grid gap-3 sm:grid-cols-3">
-          <Info icon={Calendar} label="Start" value={formatDate(new Date(project.startDate))} />
-          <Info icon={Calendar} label="End" value={formatDate(new Date(project.endDate))} />
+          <Info icon={Calendar} label="Start" value={formatDate(effectiveStartDate)} />
+          <Info icon={Calendar} label="End" value={formatDate(effectiveEndDate)} />
           {!hideAmounts && (
             <Info icon={Wallet} label="Budget" value={`${currency} ${(project.budget / 1000).toFixed(0)}k`} sub={`Spent ${currency} ${(project.spent / 1000).toFixed(0)}k`} />
           )}
@@ -1785,7 +2146,6 @@ function OverviewTab({
                 { label: "Billing Model", value: wbs?.accounts?.billingModel },
                 { label: "Payment Terms", value: wbs?.accounts?.paymentTerms },
                 { label: "PO Status", value: wbs?.accounts?.poStatus },
-                { label: "WBS Status", value: project.wbsSubStatus ?? project.wbsStatus },
               ]
                 .filter((f) => Boolean(f.value?.trim()))
                 .map((f) => (
@@ -1833,8 +2193,7 @@ function OverviewTab({
               title="Senior Project Managers"
               role="Senior Project Manager"
               people={spms}
-              unassigned={isWbsCreated ? spms.length === 0 : false}
-              hideChange={isWbsCreated && !hasAllocatedSpm}
+              unassigned={spms.length === 0}
               project={project}
               viewOnly={!isDhanshree}
             />
@@ -1842,8 +2201,7 @@ function OverviewTab({
               title="Project Managers"
               role="Project Manager"
               people={pms}
-              unassigned={isWbsCreated ? pms.length === 0 : isNewWbsProject}
-              hideChange={isWbsCreated && !hasAllocatedPm}
+              unassigned={pms.length === 0}
               project={project}
               viewOnly={!isDhanshree && !isSeniorPm}
             />
@@ -1851,8 +2209,7 @@ function OverviewTab({
               title="Team Leads"
               role="Team Lead"
               people={tls}
-              unassigned={isWbsCreated ? tls.length === 0 : isNewWbsProject}
-              hideChange={isWbsCreated}
+              unassigned={tls.length === 0}
               project={project}
               viewOnly={!isDhanshree && !isSeniorPm && !isProjectManager}
             />
@@ -1861,49 +2218,45 @@ function OverviewTab({
       </div>
       {showLeadership && (
         <aside className="space-y-3">
-          {client && (
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border pb-2">
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground" /> Customer Information
-              </h3>
-              <div className="space-y-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Customer Name</span>
-                  {customerRouteId ? (
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: customerRouteId }}
-                      className="font-semibold text-primary hover:underline block truncate"
-                    >
-                      {client.name}
-                    </Link>
-                  ) : (
-                    <span className="font-semibold text-foreground block truncate">{client.name}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Contact Person</span>
-                  <span className="font-medium text-foreground block truncate">{client.contactName ?? client.contact.split("@")[0]}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Email</span>
-                  <span className="font-medium text-foreground block truncate">{client.contact}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Phone</span>
-                  <span className="font-medium text-foreground block">{client.contactPhone ?? "—"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Designation</span>
-                  <span className="font-medium text-foreground block truncate">{client.contactDesignation ?? "—"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Contact Type</span>
-                  <span className="font-semibold text-primary block">{client.contactType ?? "—"}</span>
-                </div>
+          <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border pb-2">
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" /> Customer Information
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Customer ID</span>
+                <span className="font-semibold text-primary block font-mono">
+                  {formatCustomerId(client?.id || project.clientId)}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Customer Name</span>
+                {customerRouteId ? (
+                  <Link
+                    to="/customers/$clientId"
+                    params={{ clientId: customerRouteId }}
+                    className="font-semibold text-primary hover:underline block truncate"
+                  >
+                    {client?.name || "Customer"}
+                  </Link>
+                ) : (
+                  <span className="font-semibold text-foreground block truncate">{client?.name || "Customer"}</span>
+                )}
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Name</span>
+                <span className="font-medium text-foreground block truncate">{client?.groupSpocName || client?.contactName || "—"}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Contact</span>
+                <span className="font-medium text-foreground block truncate">{client?.groupSpocContact || client?.contactPhone || "—"}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Country / Region</span>
+                <span className="font-medium text-foreground block truncate">{[client?.city, client?.country].filter(Boolean).join(", ") || client?.country || "—"}</span>
               </div>
             </div>
-          )}
+          </div>
           {isDhanshree && (
             <div className="rounded-lg border border-border bg-accent/30 p-4">
               <ExtensionRequestCard project={project} />
@@ -2136,6 +2489,107 @@ function LeadershipBlock({
   );
 }
 
+// ---------- Database Leader Roster & Workload Stats Helpers ----------
+export interface ManagerRosterItem {
+  id: string;
+  name: string;
+  role: string;
+  designation: string;
+}
+
+export interface ManagerWorkloadStats {
+  total: number;
+  ongoing: number;
+  completed: number;
+  freePct: number;
+  projectCodes: string[];
+}
+
+export const DB_PM_FALLBACK: ManagerRosterItem[] = [
+  { id: "00000000-0000-4000-8000-000000000006", name: "Divya Rao", role: "PM", designation: "Associate Project Manager" },
+  { id: "00000000-0000-4000-8000-000000000011", name: "Harsh Nair", role: "PM", designation: "Associate PMO - I" },
+  { id: "00000000-0000-4000-8000-000000000003", name: "Rohan Mehta", role: "PM", designation: "DevSecOps Practitioner - II" },
+];
+
+export const DB_SPM_FALLBACK: ManagerRosterItem[] = [
+  { id: "00000000-0000-4000-8000-000000000017", name: "Vikram Gupta", role: "Senior PM", designation: "Senior PMO - I" },
+  { id: "00000000-0000-4000-8000-000000000004", name: "Sneha Iyer", role: "Senior PM", designation: "SOC Lead - I" },
+];
+
+export function isEmployeePM(emp: { id: string; fullName: string; designation?: string | null }): boolean {
+  const name = (emp.fullName || "").trim();
+  const id = emp.id;
+  const des = (emp.designation || "").toLowerCase();
+  if (id === "00000000-0000-4000-8000-000000000006" || name === "Divya Rao") return true;
+  if (id === "00000000-0000-4000-8000-000000000011" || name === "Harsh Nair") return true;
+  if (id === "00000000-0000-4000-8000-000000000003" || name === "Rohan Mehta") return true;
+  if (des.includes("project manager") && !des.includes("senior")) return true;
+  if (des.includes("associate pmo")) return true;
+  return false;
+}
+
+export function isEmployeeSPM(emp: { id: string; fullName: string; designation?: string | null }): boolean {
+  const name = (emp.fullName || "").trim();
+  const id = emp.id;
+  const des = (emp.designation || "").toLowerCase();
+  if (id === "00000000-0000-4000-8000-000000000017" || name === "Vikram Gupta") return true;
+  if (id === "00000000-0000-4000-8000-000000000004" || name === "Sneha Iyer") return true;
+  if (des.includes("senior project manager") || des.includes("senior pmo")) return true;
+  return false;
+}
+
+export function calculateManagerStats(
+  person: { id: string; name: string; role?: string },
+  allDbProjects: any[],
+  allPrereqs: Record<string, DhProjectPrereq> = {}
+): ManagerWorkloadStats {
+  const pName = (person.name || "").toLowerCase().trim();
+  const pId = (person.id || "").toLowerCase().trim();
+
+  const assignedProjects = (allDbProjects || []).filter((proj) => {
+    const projPmId = (proj.projectManagerId || proj.pmId || "").toLowerCase();
+    const projPmName = (proj.projectManagerName || "").toLowerCase().trim();
+    const projEm = (proj.engagementManager || "").toLowerCase().trim();
+    const storePrereq = allPrereqs[proj.id];
+    const inStorePm = storePrereq?.assignedPmIds?.some((id: string) => id === person.id || id.toLowerCase() === pId);
+    const inStoreSpm = storePrereq?.assignedSpmIds?.some((id: string) => id === person.id || id.toLowerCase() === pId);
+
+    return (
+      (projPmId && projPmId === pId) ||
+      (projPmName && projPmName === pName) ||
+      (projEm && projEm === pName) ||
+      inStorePm ||
+      inStoreSpm ||
+      (proj.teamIds && proj.teamIds.includes(person.id))
+    );
+  });
+
+  const total = assignedProjects.length;
+  const ongoing = assignedProjects.filter(
+    (p) => (p.status || "").toLowerCase() === "ongoing"
+  ).length;
+  const completed = assignedProjects.filter(
+    (p) => (p.status || "").toLowerCase() === "completed" || (p.status || "").toLowerCase() === "archived"
+  ).length;
+
+  // Free % = ((Total Assigned Projects - Ongoing Projects) / Total Assigned Projects) × 100
+  // If Total Assigned Projects = 0 => Free % = 100
+  const freePct = total > 0
+    ? Math.round(((total - ongoing) / total) * 100)
+    : 100;
+
+  const projectCodes = assignedProjects
+    .map((p) => p.projectCode || p.wbsId || p.name)
+    .filter(Boolean)
+    .slice(0, 5);
+
+  return { total, ongoing, completed, freePct, projectCodes };
+}
+
+// Stable empty array — never use `?? []` inside a useDhStore selector (new [] each
+// call → useSyncExternalStore infinite re-render / "Maximum update depth exceeded").
+const EMPTY_ID_LIST: string[] = [];
+
 // ---------- Change Leader Panel — direct assign / deassign ----------
 function ChangeLeaderPanel({
   project, role, assignedPeople, onClose,
@@ -2146,16 +2600,150 @@ function ChangeLeaderPanel({
   onClose: () => void;
 }) {
   const [search, setSearch] = useState("");
-  // Working copy of assigned IDs — saved on "Done"
+  // Working copy of assigned IDs — saved on "Done" (multi-select supported)
   const [assignedIds, setAssignedIds] = useState<string[]>(assignedPeople.map((p) => p.id));
+  const [saving, setSaving] = useState(false);
 
-  const allPeople = dhPeople;
+  const allPrereqs = useDhStore((s) => s.prereqs);
+  const projectTeamAdditionIds =
+    useDhStore((s) => s.projectTeamAdditions[project.id]) ?? EMPTY_ID_LIST;
+  const storeTlIds =
+    useDhStore((s) => s.leadershipAssignments[project.id]?.tlIds) ?? EMPTY_ID_LIST;
+  const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
+  const [dbEmployees, setDbEmployees] = useState<ApiEmployeeListItem[]>([]);
+  const [projectTeamMembers, setProjectTeamMembers] = useState<ApiProjectTeamMember[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchProjects({ perPage: 100 })
+      .then((res) => {
+        if (active && res?.items && res.items.length > 0) {
+          setDbProjects(res.items);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch projects for ChangeLeaderPanel", err));
+
+    fetchEmployees({ perPage: 100 })
+      .then((res) => {
+        if (active && res?.items && res.items.length > 0) {
+          setDbEmployees(res.items);
+          dhStore.registerPeople(
+            res.items.map((emp) => ({
+              id: emp.id,
+              name: emp.fullName,
+              role: emp.designation || emp.role || "User",
+              email: emp.workEmail || "",
+            })),
+          );
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch employees for ChangeLeaderPanel", err));
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Team Lead picker lists only people already on this project's Project Team
+  useEffect(() => {
+    if (role !== "Team Lead") return;
+    let active = true;
+    if (isApiGuid(project.id)) {
+      fetchProjectTeamMembers(project.id)
+        .then((items) => {
+          if (!active) return;
+          setProjectTeamMembers(items);
+          dhStore.registerPeople(
+            items.map((m) => ({
+              id: m.employeeId,
+              name: m.employeeName,
+              role: m.employeeRole || "Team Member",
+              email: m.employeeEmail || "",
+            })),
+          );
+        })
+        .catch((err) => console.warn("Failed to load project team for Team Lead picker", err));
+    }
+    return () => {
+      active = false;
+    };
+  }, [role, project.id]);
+
+  const candidatePool = useMemo(() => {
+    if (role === "Project Manager") {
+      const fromApi = dbEmployees.filter(isEmployeePM).map((emp) => ({
+        id: emp.id,
+        name: emp.fullName,
+        role: "Project Manager",
+        designation: emp.designation || "Project Manager",
+      }));
+      return fromApi.length > 0 ? fromApi : DB_PM_FALLBACK;
+    }
+    if (role === "Senior Project Manager") {
+      const fromApi = dbEmployees.filter(isEmployeeSPM).map((emp) => ({
+        id: emp.id,
+        name: emp.fullName,
+        role: "Senior Project Manager",
+        designation: emp.designation || "Senior Project Manager",
+      }));
+      return fromApi.length > 0 ? fromApi : DB_SPM_FALLBACK;
+    }
+    if (role === "Engagement Manager") {
+      const fromApi = dbEmployees.filter(
+        (e) => (e.designation || "").toLowerCase().includes("engagement manager") || (e.role || "").toLowerCase().includes("engagement manager")
+      ).map((emp) => ({
+        id: emp.id,
+        name: emp.fullName,
+        role: "Engagement Manager",
+        designation: emp.designation || "Engagement Manager",
+      }));
+      if (fromApi.length > 0) return fromApi;
+      return dhPeople.filter((p) => p.role === "Engagement Manager");
+    }
+    if (role === "Team Lead") {
+      if (projectTeamMembers.length > 0) {
+        return projectTeamMembers.map((m) => ({
+          id: m.employeeId,
+          name: m.employeeName,
+          role: m.employeeRole || "Team Member",
+          designation: m.department || m.employeeRole || "Project Team",
+          email: m.employeeEmail || "",
+        }));
+      }
+      // Mock / local store fallback: people already on this project's team
+      const ids = Array.from(new Set([
+        ...projectTeamAdditionIds,
+        ...storeTlIds,
+        ...assignedPeople.map((p) => p.id),
+      ]));
+      return ids.map((id) => {
+        const p = getPerson(id);
+        return {
+          id: p.id,
+          name: p.name,
+          role: p.role || "Team Member",
+          designation: "Project Team",
+          email: p.email || "",
+        };
+      }).filter((p) => p.id && p.id !== "unknown" && p.name && p.name !== "Unknown User");
+    }
+    return dhPeople;
+  }, [role, dbEmployees, projectTeamMembers, projectTeamAdditionIds, storeTlIds, assignedPeople]);
+
+  const resolveAssignedPerson = (id: string) => {
+    const fromPool = candidatePool.find((p) => p.id === id);
+    if (fromPool) return fromPool;
+    return getPerson(id);
+  };
 
   const visible = useMemo(() =>
-    allPeople.filter((p) =>
-      !search.trim() || p.name.toLowerCase().includes(search.toLowerCase()) || p.role.toLowerCase().includes(search.toLowerCase())
+    candidatePool.filter((p) =>
+      !search.trim() ||
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.role.toLowerCase().includes(search.toLowerCase()) ||
+      ((p as any).designation || "").toLowerCase().includes(search.toLowerCase())
     ),
-    [search, allPeople]
+    [search, candidatePool]
   );
 
   const toggle = (id: string) => {
@@ -2164,27 +2752,72 @@ function ChangeLeaderPanel({
     );
   };
 
-  const handleDone = () => {
-    dhStore.updateLeadershipAssignment(project.id, role, assignedIds);
-    const names = assignedIds.map((id) => getPerson(id).name).join(", ") || "None";
-    toast.success(`${role} updated`, { description: names });
-    onClose();
+  const handleDone = async () => {
+    const peopleForRole = assignedIds.map((id) => {
+      const p = resolveAssignedPerson(id);
+      return { id: p.id, name: p.name, role: p.role, email: (p as any).email || "" };
+    });
+    setSaving(true);
+    try {
+      // Persist Team Lead flags on Project Team members (multi-select)
+      if (role === "Team Lead" && isApiGuid(project.id)) {
+        const members = projectTeamMembers.length
+          ? projectTeamMembers
+          : await fetchProjectTeamMembers(project.id);
+        await Promise.all(
+          members.map(async (m) => {
+            const shouldBeLead = assignedIds.includes(m.employeeId);
+            if (m.isTeamLead === shouldBeLead) return;
+            await apiUpdateProjectTeamMember(project.id, m.id, { isTeamLead: shouldBeLead });
+          }),
+        );
+      }
+
+      dhStore.updateLeadershipAssignment(project.id, role, assignedIds, peopleForRole);
+      if (role === "Project Manager" && project.id && project.id.length > 20) {
+        const pmIdToSave = assignedIds[0] || null;
+        try {
+          await fetch(`http://localhost:5194/api/v1/projects/${project.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: project.name,
+              description: project.description,
+              status: project.status,
+              health: project.health,
+              progress: project.progress,
+              projectManagerId: pmIdToSave && pmIdToSave.includes("-") ? pmIdToSave : undefined,
+            }),
+          });
+        } catch (err) {
+          console.warn("Failed to persist PM assignment to backend:", err);
+        }
+      }
+      const names = peopleForRole.map((p) => p.name).join(", ") || "None";
+      toast.success(`${role} updated`, { description: names });
+      onClose();
+    } catch (err) {
+      toast.error("Could not update leaders", {
+        description: err instanceof Error ? err.message : "API error",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <Modal title={`Change Leader — ${role}`} onClose={onClose} draggable>
       <div className="space-y-3">
-
         {/* Currently assigned chips */}
         <div>
           <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
-            Currently Assigned
+            Currently Assigned{role === "Team Lead" ? " (multiple allowed)" : ""}
           </p>
           <div className="flex flex-wrap gap-1.5 min-h-[28px]">
             {assignedIds.length === 0
               ? <span className="text-xs italic text-muted-foreground">No one assigned</span>
               : assignedIds.map((id) => {
-                const p = getPerson(id);
+                const p = resolveAssignedPerson(id);
                 return (
                   <span key={id} className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs text-primary">
                     <Avatar name={p.name} size={14} />
@@ -2205,15 +2838,32 @@ function ChangeLeaderPanel({
 
         {/* Search + full list */}
         <div>
-          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
-            All Leaders
-          </p>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+              {role === "Project Manager"
+                ? "Database Project Managers"
+                : role === "Senior Project Manager"
+                  ? "Database Senior Project Managers"
+                  : role === "Team Lead"
+                    ? "Project Team members"
+                    : "All Leaders"}
+            </p>
+            <span className="text-[10px] text-muted-foreground">
+              {visible.length} available
+            </span>
+          </div>
           <div className="relative mb-2">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or role…"
+              placeholder={
+                role === "Team Lead"
+                  ? "Search project team by name…"
+                  : role === "Project Manager"
+                    ? "Search PM by name or designation…"
+                    : "Search by name or role…"
+              }
               className="h-8 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
               autoFocus
             />
@@ -2222,6 +2872,16 @@ function ChangeLeaderPanel({
           <ul className="max-h-64 overflow-y-auto divide-y divide-border rounded-md border border-border">
             {visible.map((p) => {
               const isAssigned = assignedIds.includes(p.id);
+              const designationText = (p as any).designation || p.role;
+              const showWorkload = role !== "Team Lead";
+              const stats = showWorkload ? calculateManagerStats(p, dbProjects, allPrereqs) : null;
+              const freeColor = stats
+                ? stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive"
+                : "";
+              const barColor = stats
+                ? stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive"
+                : "";
+
               return (
                 <li key={p.id}>
                   <button
@@ -2232,12 +2892,31 @@ function ChangeLeaderPanel({
                     )}
                   >
                     <Avatar name={p.name} size={24} />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{p.name}</div>
-                      <div className="text-[10px] text-muted-foreground">{p.role}</div>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-gray-800 truncate">{p.name}</span>
+                        {showWorkload && stats && (
+                          <span className={cn("font-bold text-[10px] tabular-nums shrink-0", freeColor)}>
+                            {stats.freePct}% free
+                          </span>
+                        )}
+                      </div>
+                      {showWorkload && stats ? (
+                        <>
+                          <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
+                            <span className="truncate">{designationText}</span>
+                            <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
+                          </div>
+                          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                            <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-[10px] text-muted-foreground truncate">{designationText}</div>
+                      )}
                     </div>
                     <div className={cn(
-                      "shrink-0 h-4 w-4 rounded border flex items-center justify-center transition-colors",
+                      "shrink-0 h-4 w-4 rounded border flex items-center justify-center transition-colors ml-1",
                       isAssigned
                         ? "bg-primary border-primary text-primary-foreground"
                         : "border-input bg-card"
@@ -2249,7 +2928,11 @@ function ChangeLeaderPanel({
               );
             })}
             {visible.length === 0 && (
-              <li className="px-3 py-6 text-center text-xs text-muted-foreground">No match</li>
+              <li className="px-3 py-6 text-center text-xs text-muted-foreground">
+                {role === "Team Lead"
+                  ? "No project team members yet — add them on the Team tab first"
+                  : "No match"}
+              </li>
             )}
           </ul>
         </div>
@@ -2263,10 +2946,11 @@ function ChangeLeaderPanel({
             Cancel
           </button>
           <button
-            onClick={handleDone}
-            className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            onClick={() => void handleDone()}
+            disabled={saving}
+            className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
-            Save Changes
+            {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>
@@ -2709,12 +3393,14 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   const usingDummy = !project.wbsDetails?.services?.length;
 
   const visibleTree = useMemo(() => {
-    if (usingDummy || !prereq) return tree;
-    const filtered = tree.filter((svcFolder) => {
-      const pSvc = prereq.services?.find((s) => s.serviceId === svcFolder.serviceId);
+    if (usingDummy) return tree;
+    if (!prereq) return [];
+    return tree.filter((svcFolder) => {
+      const pSvc = prereq.services?.find(
+        (s) => s.serviceId === svcFolder.serviceId || s.serviceName === svcFolder.serviceName
+      );
       return pSvc ? pSvc.isReady : false;
     });
-    return filtered.length > 0 ? filtered : tree;
   }, [tree, prereq, usingDummy]);
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
@@ -3155,6 +3841,9 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                 onChange={(e) => {
                                                   const v = e.target.value as TreeTaskStage;
                                                   dhStore.updateTreeTaskState(project.id, t.id, { stage: v });
+                                                  updateTaskStage(project.id, t.id, v).catch((err) => {
+                                                    console.warn("Failed to update task stage on backend:", err);
+                                                  });
                                                   toast.success("Stage updated", { description: `${t.taskId} → ${v}` });
                                                 }}
                                                 className={cn("h-7 rounded-full border px-2 text-[10px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring text-center", treeStageCls(t.stage))}
@@ -3207,6 +3896,9 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
             const dueDate = parentSvc?.wbsEndDate || "";
 
             dhStore.assignResourcesToTreeTask(project.id, assignFor.id, ids, taskTitle, dueDate, "medium");
+            ids.forEach((resId) => {
+              addTaskAssignment(project.id, assignFor.id, { resourceId: resId, role: "Member" }).catch(() => {});
+            });
             toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
             setAssignFor(null);
           }}
@@ -3348,7 +4040,59 @@ function DefaultTeamTab({ project, pm, tl, team }: { project: Project; pm: Perso
 
 // ---------- Dhanshree Team ----------
 type ActionType = null | "view" | "edit" | "remove" | "praise" | "feedback" | "request" | "add";
+function isApiGuid(id: string | undefined | null): boolean {
+  return Boolean(id && id.includes("-") && id.length > 20);
+}
+
 type TeamTabType = "project" | "shadow";
+
+type ProjectTeamRow = {
+  memberId?: string;
+  person: Person;
+  duration: string;
+  billability: Billability;
+  resourceType: ResourceType;
+  department?: string;
+  subDepartment?: string;
+  isTeamLead?: boolean;
+  isShadowTeam?: boolean;
+};
+
+function mapApiTeamMemberToRow(m: ApiProjectTeamMember): ProjectTeamRow {
+  return {
+    memberId: m.id,
+    person: {
+      id: m.employeeId,
+      name: m.employeeName,
+      role: m.employeeRole || "Team Member",
+      avatar: m.employeeName.slice(0, 2).toUpperCase(),
+      email: m.employeeEmail || "",
+    },
+    duration: formatAllocationDuration(m.allocationStartDate, m.allocationEndDate),
+    billability: (m.billability === "Non-Billable" ? "Non-Billable" : "Billable") as Billability,
+    resourceType: (m.resourceType === "Shared Resource" ? "Shared Resource" : "Dedicated") as ResourceType,
+    department: m.department || "—",
+    subDepartment: m.subDepartment || "—",
+    isTeamLead: m.isTeamLead,
+    isShadowTeam: m.isShadowTeam,
+  };
+}
+
+/** Keep Overview / project-card Team Lead chips in sync with DB team-lead flags. */
+function syncTeamLeadsToStore(projectId: string, rows: ProjectTeamRow[]) {
+  const leads = rows.filter((r) => r.isTeamLead);
+  dhStore.updateLeadershipAssignment(
+    projectId,
+    "Team Lead",
+    leads.map((r) => r.person.id),
+    leads.map((r) => ({
+      id: r.person.id,
+      name: r.person.name,
+      role: r.person.role || "Team Lead",
+      email: r.person.email || "",
+    })),
+  );
+}
 
 function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?: boolean }) {
   const snapshot = useDhStore((s) => s);
@@ -3356,11 +4100,16 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
 
   const [teamTab, setTeamTab] = useState<TeamTabType>("project");
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [action, setAction] = useState<{ type: ActionType; person: Person | null }>({ type: null, person: null });
   const [showAddModal, setShowAddModal] = useState(false);
+  const [apiTeamRows, setApiTeamRows] = useState<ProjectTeamRow[] | null>(null);
+  const [apiShadowRows, setApiShadowRows] = useState<ProjectTeamRow[] | null>(null);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const useApiTeam = isApiGuid(project.id);
   const removedIds = useMemo(() => new Set(snapshot.projectTeamRemovals[project.id] ?? []), [snapshot.projectTeamRemovals, project.id]);
 
-  // Reactive access to DhStore shadow team records
+  // Reactive access to DhStore shadow team records (fallback for non-API projects)
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
   const shadowDetails = snapshot.shadowTeamDetails[project.id] ?? {};
 
@@ -3369,9 +4118,60 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
   const projectTeamAdditionIds = snapshot.projectTeamAdditions[project.id] ?? [];
 
   const isWbsCreated = Boolean(project.wbsDetails);
-  const teamLeadIds = new Set(snapshot.leadershipAssignments[project.id]?.tlIds ?? []);
+  const teamLeadIds = new Set([
+    ...(snapshot.leadershipAssignments[project.id]?.tlIds ?? []),
+    ...(apiTeamRows?.filter((r) => r.isTeamLead).map((r) => r.person.id) ?? []),
+  ]);
 
-  const rows = useMemo(() => {
+  const reloadApiTeam = async () => {
+    if (!useApiTeam) return;
+    setTeamLoading(true);
+    try {
+      const [projectItems, shadowItems] = await Promise.all([
+        fetchProjectTeamMembers(project.id),
+        fetchProjectTeamMembers(project.id, { shadow: true }),
+      ]);
+      const mappedProject = projectItems.map(mapApiTeamMemberToRow);
+      const mappedShadow = shadowItems.map(mapApiTeamMemberToRow);
+      setApiTeamRows(mappedProject);
+      setApiShadowRows(mappedShadow);
+      syncTeamLeadsToStore(project.id, mappedProject);
+      // Register people so names resolve after refresh
+      dhStore.registerPeople(
+        [...mappedProject, ...mappedShadow].map((r) => ({
+          id: r.person.id,
+          name: r.person.name,
+          role: r.person.role,
+          email: r.person.email || "",
+        })),
+      );
+    } catch (err) {
+      console.warn("Failed to load project team members", err);
+      toast.error("Could not load project team", {
+        description: err instanceof Error ? err.message : "API error",
+      });
+      setApiTeamRows([]);
+      setApiShadowRows([]);
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (useApiTeam) {
+      void reloadApiTeam();
+    } else {
+      setApiTeamRows(null);
+      setApiShadowRows(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id, useApiTeam]);
+
+  const rows = useMemo((): ProjectTeamRow[] => {
+    if (useApiTeam && apiTeamRows) {
+      return apiTeamRows;
+    }
+
     // WBS-created projects start with no team. Members are only those added
     // from this tab — not the placeholder pmId/tlId written at Create WBS.
     if (isWbsCreated) {
@@ -3410,27 +4210,132 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
       });
 
     return [...base, ...additions];
-  }, [project, projectTeamOverrides, projectTeamAdditionIds, removedIds, isWbsCreated]);
+  }, [project, projectTeamOverrides, projectTeamAdditionIds, removedIds, isWbsCreated, useApiTeam, apiTeamRows]);
 
-  const shadowRows = useMemo(() => {
-    return shadowTeamIds.map(id => {
+  const shadowRows = useMemo((): ProjectTeamRow[] => {
+    if (useApiTeam && apiShadowRows) {
+      return apiShadowRows;
+    }
+    return shadowTeamIds.map((id) => {
       const person = getPerson(id);
-      const detail = shadowDetails[id] || { duration: `${new Date(project.startDate).toLocaleDateString()} → ${new Date(project.endDate).toLocaleDateString()}`, billability: "Non-Billable" as Billability, resourceType: "Shared Resource" as ResourceType };
+      const detail = shadowDetails[id] || {
+        duration: `${new Date(project.startDate).toLocaleDateString()} → ${new Date(project.endDate).toLocaleDateString()}`,
+        billability: "Non-Billable" as Billability,
+        resourceType: "Shared Resource" as ResourceType,
+      };
       return {
         person,
         duration: detail.duration,
         billability: detail.billability,
-        resourceType: detail.resourceType
+        resourceType: detail.resourceType,
       };
     });
-  }, [shadowTeamIds, shadowDetails, project]);
+  }, [useApiTeam, apiShadowRows, shadowTeamIds, shadowDetails, project]);
 
-  const updateRow = (id: string, patch: Partial<typeof rows[number]>) => {
+  const updateRow = async (id: string, patch: Partial<ProjectTeamRow> & { isTeamLead?: boolean }) => {
+    if (useApiTeam && apiTeamRows) {
+      const row = apiTeamRows.find((r) => r.person.id === id);
+      if (!row?.memberId) return;
+      const dates = parseAllocationDuration(patch.duration ?? row.duration);
+      try {
+        const updated = await apiUpdateProjectTeamMember(project.id, row.memberId, {
+          billability: patch.billability ?? row.billability,
+          resourceType: patch.resourceType ?? row.resourceType,
+          allocationStartDate: dates?.start,
+          allocationEndDate: dates?.end,
+          isTeamLead: patch.isTeamLead,
+        });
+        const nextRows = (apiTeamRows ?? []).map((r) => {
+          if (r.memberId === updated.id) return mapApiTeamMemberToRow(updated);
+          return r;
+        });
+        setApiTeamRows(nextRows);
+        syncTeamLeadsToStore(project.id, nextRows);
+      } catch (err) {
+        toast.error("Could not update team member", {
+          description: err instanceof Error ? err.message : "API error",
+        });
+      }
+      return;
+    }
     dhStore.updateProjectTeamMember(project.id, id, patch);
+    if (typeof patch.isTeamLead === "boolean") {
+      const current = snapshot.leadershipAssignments[project.id]?.tlIds ?? [];
+      const next = patch.isTeamLead
+        ? (current.includes(id) ? current : [...current, id])
+        : current.filter((x) => x !== id);
+      const person = getPerson(id);
+      dhStore.updateLeadershipAssignment(
+        project.id,
+        "Team Lead",
+        next,
+        person ? [{ id: person.id, name: person.name, role: person.role, email: person.email || "" }] : undefined,
+      );
+    }
   };
-  const removeRow = (id: string) => {
+  const removeRow = async (id: string) => {
+    if (useApiTeam && apiTeamRows) {
+      const row = apiTeamRows.find((r) => r.person.id === id);
+      if (!row?.memberId) return;
+      try {
+        await apiRemoveProjectTeamMember(project.id, row.memberId);
+        const nextRows = (apiTeamRows ?? []).filter((r) => r.person.id !== id);
+        setApiTeamRows(nextRows);
+        syncTeamLeadsToStore(project.id, nextRows);
+        toast.success("Resource removed from team");
+      } catch (err) {
+        toast.error("Could not remove team member", {
+          description: err instanceof Error ? err.message : "API error",
+        });
+      }
+      return;
+    }
     dhStore.removeProjectTeamMember(project.id, id);
     toast.success("Resource removed from team");
+  };
+
+  const updateShadowRow = async (id: string, patch: Partial<ProjectTeamRow>) => {
+    if (useApiTeam && apiShadowRows) {
+      const row = apiShadowRows.find((r) => r.person.id === id);
+      if (!row?.memberId) return;
+      const dates = parseAllocationDuration(patch.duration ?? row.duration);
+      try {
+        const updated = await apiUpdateProjectTeamMember(project.id, row.memberId, {
+          allocationStartDate: dates?.start,
+          allocationEndDate: dates?.end,
+          billability: "Non-Billable",
+          resourceType: "Shared Resource",
+        });
+        setApiShadowRows((prev) =>
+          (prev ?? []).map((r) => (r.memberId === updated.id ? mapApiTeamMemberToRow(updated) : r)),
+        );
+      } catch (err) {
+        toast.error("Could not update shadow member", {
+          description: err instanceof Error ? err.message : "API error",
+        });
+      }
+      return;
+    }
+    dhStore.updateShadowMember(project.id, id, patch);
+  };
+
+  const removeShadowRow = async (id: string) => {
+    if (useApiTeam && apiShadowRows) {
+      const row = apiShadowRows.find((r) => r.person.id === id);
+      if (!row?.memberId) return;
+      try {
+        await apiRemoveProjectTeamMember(project.id, row.memberId);
+        setApiShadowRows((prev) => (prev ?? []).filter((r) => r.person.id !== id));
+        toast.success("Shadow team member removed");
+      } catch (err) {
+        toast.error("Could not remove shadow member", {
+          description: err instanceof Error ? err.message : "API error",
+        });
+      }
+      return;
+    }
+    dhStore.removeShadowMember(project.id, id);
+    toast.success("Shadow team member removed");
   };
 
   // Access-blocked guard AFTER all hooks
@@ -3473,7 +4378,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
         </button>
         )}
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="rounded-lg border border-border overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -3487,7 +4392,10 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {(teamTab === "project" ? rows : shadowRows).map((r) => (
+            {teamLoading && (
+              <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">Loading team…</td></tr>
+            )}
+            {!teamLoading && (teamTab === "project" ? rows : shadowRows).map((r) => (
               <tr key={r.person.id} className="hover:bg-accent/30">
                 {/* Resource — left aligned with avatar */}
                 <td className="px-4 py-3">
@@ -3496,7 +4404,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                     <div>
                       <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
                         {r.person.name}
-                        {teamLeadIds.has(r.person.id) && (
+                        {teamTab === "project" && teamLeadIds.has(r.person.id) && (
                           <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
                             <Crown className="h-2.5 w-2.5" /> Team Lead
                           </span>
@@ -3507,9 +4415,17 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                   </div>
                 </td>
                 {/* Department — center */}
-                <td className="px-3 py-3 text-center text-sm align-middle">{getDept(r.person)}</td>
+                <td className="px-3 py-3 text-center text-sm align-middle">
+                  {teamTab === "project" && "department" in r && r.department
+                    ? r.department
+                    : getDept(r.person)}
+                </td>
                 {/* Sub Department — center */}
-                <td className="px-3 py-3 text-center text-sm text-muted-foreground align-middle">{getSubDept(r.person)}</td>
+                <td className="px-3 py-3 text-center text-sm text-muted-foreground align-middle">
+                  {teamTab === "project" && "subDepartment" in r && r.subDepartment
+                    ? r.subDepartment
+                    : getSubDept(r.person)}
+                </td>
                 {/* Allocation Duration — center, monospaced */}
                 <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{r.duration || "—"}</td>
                 {/* Billability — center pill */}
@@ -3536,7 +4452,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                 </td>
                 {/* Actions — center */}
                 <td className="px-3 py-3 text-center align-middle">
-                  <div className="relative inline-flex items-center gap-1">
+                  <div className="inline-flex items-center gap-1">
                     <button title="View" onClick={() => setAction({ type: "view", person: r.person })}
                       className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Eye className="h-3.5 w-3.5" /></button>
                     {!readOnly && (
@@ -3545,21 +4461,74 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                       className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
                     <button title="Remove" onClick={() => setAction({ type: "remove", person: r.person })}
                       className="rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
-                    <button title="More" onClick={() => setMenuOpen(menuOpen === r.person.id ? null : r.person.id)}
-                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><MoreHorizontal className="h-3.5 w-3.5" /></button>
+                    <button
+                      title="More"
+                      onClick={(e) => {
+                        if (menuOpen === r.person.id) {
+                          setMenuOpen(null);
+                          setMenuPos(null);
+                          return;
+                        }
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        const menuWidth = 192;
+                        const menuHeight = teamTab === "project" && isWbsCreated ? 168 : 132;
+                        const openUp = rect.bottom + menuHeight > window.innerHeight - 8;
+                        const top = openUp ? Math.max(8, rect.top - menuHeight - 4) : rect.bottom + 4;
+                        const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+                        setMenuPos({ top, left });
+                        setMenuOpen(r.person.id);
+                      }}
+                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </button>
                     </>
                     )}
-                    {menuOpen === r.person.id && (
-                      <div className="absolute right-0 top-9 z-10 w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg" onMouseLeave={() => setMenuOpen(null)}>
-                        {isWbsCreated && (
+                    {menuOpen === r.person.id && menuPos && (
+                      <div
+                        className="fixed z-[9999] w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg"
+                        style={{ top: menuPos.top, left: menuPos.left }}
+                        onMouseLeave={() => { setMenuOpen(null); setMenuPos(null); }}
+                      >
+                        {teamTab === "project" && isWbsCreated && (
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               setMenuOpen(null);
+                              setMenuPos(null);
+                              const isLead = teamLeadIds.has(r.person.id);
+                              if (useApiTeam && apiTeamRows) {
+                                const row = apiTeamRows.find((x) => x.person.id === r.person.id);
+                                if (!row?.memberId) return;
+                                try {
+                                  const updated = await apiUpdateProjectTeamMember(project.id, row.memberId, {
+                                    isTeamLead: !isLead,
+                                  });
+                                  const nextRows = (apiTeamRows ?? []).map((x) =>
+                                    x.memberId === updated.id ? mapApiTeamMemberToRow(updated) : x,
+                                  );
+                                  setApiTeamRows(nextRows);
+                                  syncTeamLeadsToStore(project.id, nextRows);
+                                  toast.success(
+                                    isLead ? "Team Lead removed" : "Team Lead assigned",
+                                    { description: r.person.name },
+                                  );
+                                } catch (err) {
+                                  toast.error("Could not update Team Lead", {
+                                    description: err instanceof Error ? err.message : "API error",
+                                  });
+                                }
+                                return;
+                              }
                               const current = snapshot.leadershipAssignments[project.id]?.tlIds ?? [];
                               const next = current.includes(r.person.id)
                                 ? current.filter((id) => id !== r.person.id)
                                 : [...current, r.person.id];
-                              dhStore.updateLeadershipAssignment(project.id, "Team Lead", next);
+                              dhStore.updateLeadershipAssignment(project.id, "Team Lead", next, [{
+                                id: r.person.id,
+                                name: r.person.name,
+                                role: r.person.role,
+                                email: r.person.email || "",
+                              }]);
                               toast.success(
                                 current.includes(r.person.id) ? "Team Lead removed" : "Team Lead assigned",
                                 { description: r.person.name },
@@ -3576,7 +4545,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                           { k: "feedback", label: "Give Feedback", icon: MessageSquare },
                           { k: "request", label: "Request Feedback", icon: Send },
                         ].map((o) => (
-                          <button key={o.k} onClick={() => { setMenuOpen(null); setAction({ type: o.k as ActionType, person: r.person }); }}
+                          <button key={o.k} onClick={() => { setMenuOpen(null); setMenuPos(null); setAction({ type: o.k as ActionType, person: r.person }); }}
                             className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent">
                             <o.icon className="h-3.5 w-3.5 text-muted-foreground" /> {o.label}
                           </button>
@@ -3587,7 +4556,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                 </td>
               </tr>
             ))}
-            {(teamTab === "project" ? rows : shadowRows).length === 0 && (
+            {!teamLoading && (teamTab === "project" ? rows : shadowRows).length === 0 && (
               <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">No {teamTab} team members allocated</td></tr>
             )}
           </tbody>
@@ -3600,23 +4569,24 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
           person={action.person}
           project={project}
           teamType={teamTab}
+          canSetTeamLead={teamTab === "project" && isWbsCreated}
+          isTeamLead={teamLeadIds.has(action.person.id)}
           row={teamTab === "project" ? rows.find((r) => r.person.id === action.person!.id) : shadowRows.find((r) => r.person.id === action.person!.id)}
           onClose={() => setAction({ type: null, person: null })}
-          onSaveEdit={(patch) => {
+          onSaveEdit={async (patch) => {
             if (teamTab === "project") {
-              updateRow(action.person!.id, patch);
+              await updateRow(action.person!.id, patch);
             } else {
-              dhStore.updateShadowMember(project.id, action.person!.id, patch);
+              await updateShadowRow(action.person!.id, patch);
             }
             toast.success("Resource updated");
             setAction({ type: null, person: null });
           }}
-          onConfirmRemove={() => {
+          onConfirmRemove={async () => {
             if (teamTab === "project") {
-              removeRow(action.person!.id);
+              await removeRow(action.person!.id);
             } else {
-              dhStore.removeShadowMember(project.id, action.person!.id);
-              toast.success("Shadow team member removed");
+              await removeShadowRow(action.person!.id);
             }
             setAction({ type: null, person: null });
           }}
@@ -3629,8 +4599,37 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
           teamType={teamTab}
           existingPersonIds={(teamTab === "project" ? rows : shadowRows).map((r) => r.person.id)}
           onClose={() => setShowAddModal(false)}
-          onAdd={(newRow, extras) => {
+          onAdd={async (newRow, extras) => {
             if (teamTab === "project") {
+              if (useApiTeam) {
+                const dates = parseAllocationDuration(newRow.duration);
+                if (!dates) {
+                  toast.error("Please select both start and end dates for allocation duration");
+                  return;
+                }
+                try {
+                  const created = await apiAddProjectTeamMember(project.id, {
+                    employeeId: newRow.person.id,
+                    allocationStartDate: dates.start,
+                    allocationEndDate: dates.end,
+                    billability: newRow.billability,
+                    resourceType: newRow.resourceType,
+                    isTeamLead: Boolean(extras?.asTeamLead),
+                    isShadowTeam: false,
+                  });
+                  const mapped = mapApiTeamMemberToRow(created);
+                  const nextRows = [...(apiTeamRows ?? []), mapped];
+                  setApiTeamRows(nextRows);
+                  syncTeamLeadsToStore(project.id, nextRows);
+                  toast.success("Team member added");
+                  setShowAddModal(false);
+                } catch (err) {
+                  toast.error("Could not add team member", {
+                    description: err instanceof Error ? err.message : "API error",
+                  });
+                }
+                return;
+              }
               dhStore.addProjectTeamMember(
                 project.id,
                 newRow.person.id,
@@ -3641,10 +4640,62 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
               if (extras?.asTeamLead) {
                 const current = snapshot.leadershipAssignments[project.id]?.tlIds ?? [];
                 if (!current.includes(newRow.person.id)) {
-                  dhStore.updateLeadershipAssignment(project.id, "Team Lead", [...current, newRow.person.id]);
+                  dhStore.updateLeadershipAssignment(
+                    project.id,
+                    "Team Lead",
+                    [...current, newRow.person.id],
+                    [{
+                      id: newRow.person.id,
+                      name: newRow.person.name,
+                      role: newRow.person.role,
+                      email: newRow.person.email || "",
+                    }],
+                  );
                 }
               }
+            } else if (useApiTeam) {
+              const dates = parseAllocationDuration(newRow.duration);
+              if (!dates) {
+                toast.error("Please select both start and end dates for allocation duration");
+                return;
+              }
+              try {
+                const created = await apiAddProjectTeamMember(project.id, {
+                  employeeId: newRow.person.id,
+                  allocationStartDate: dates.start,
+                  allocationEndDate: dates.end,
+                  billability: "Non-Billable",
+                  resourceType: "Shared Resource",
+                  isTeamLead: false,
+                  isShadowTeam: true,
+                });
+                const mapped = mapApiTeamMemberToRow(created);
+                setApiShadowRows((prev) => [...(prev ?? []), mapped]);
+                dhStore.registerPeople([
+                  {
+                    id: mapped.person.id,
+                    name: mapped.person.name,
+                    role: mapped.person.role,
+                    email: mapped.person.email || "",
+                  },
+                ]);
+                toast.success("Shadow team member added");
+                setShowAddModal(false);
+              } catch (err) {
+                toast.error("Could not add shadow member", {
+                  description: err instanceof Error ? err.message : "API error",
+                });
+              }
+              return;
             } else {
+              dhStore.registerPeople([
+                {
+                  id: newRow.person.id,
+                  name: newRow.person.name,
+                  role: newRow.person.role,
+                  email: newRow.person.email || "",
+                },
+              ]);
               dhStore.addShadowMember(project.id, newRow.person.id, newRow.duration, "Non-Billable", "Shared Resource");
             }
             toast.success("Team member added");
@@ -3656,18 +4707,37 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
   );
 }
 
-function TeamActionModal({ action, person, project, row, teamType = "project", onClose, onSaveEdit, onConfirmRemove }: {
+function TeamActionModal({
+  action,
+  person,
+  project,
+  row,
+  teamType = "project",
+  canSetTeamLead = false,
+  isTeamLead = false,
+  onClose,
+  onSaveEdit,
+  onConfirmRemove,
+}: {
   action: Exclude<ActionType, null>; person: Person; project: Project;
-  row?: { person: Person; duration: string; billability: Billability; resourceType: ResourceType };
+  row?: { person: Person; duration: string; billability: Billability; resourceType: ResourceType; isTeamLead?: boolean };
   teamType?: TeamTabType;
+  canSetTeamLead?: boolean;
+  isTeamLead?: boolean;
   onClose: () => void;
-  onSaveEdit: (patch: { billability?: Billability; resourceType?: ResourceType; duration?: string }) => void;
-  onConfirmRemove: () => void;
+  onSaveEdit: (patch: {
+    billability?: Billability;
+    resourceType?: ResourceType;
+    duration?: string;
+    isTeamLead?: boolean;
+  }) => void | Promise<void>;
+  onConfirmRemove: () => void | Promise<void>;
 }) {
   const [editState, setEditState] = useState({
     billability: row?.billability ?? ("Billable" as Billability),
     resourceType: row?.resourceType ?? ("Dedicated" as ResourceType),
     duration: row?.duration ?? "",
+    asTeamLead: isTeamLead,
   });
   const [praise, setPraise] = useState({ message: "", tag: "Team Player" });
   const [feedback, setFeedback] = useState({ strengths: "", improvements: "", comments: "", rating: 4 });
@@ -3757,12 +4827,31 @@ function TeamActionModal({ action, person, project, row, teamType = "project", o
             )}
           </Field>
 
+          {canSetTeamLead && (
+            <label className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={editState.asTeamLead}
+                onChange={(e) => setEditState((s) => ({ ...s, asTeamLead: e.target.checked }))}
+                className="h-3.5 w-3.5 rounded border-input"
+              />
+              <span className="flex items-center gap-1.5 font-medium">
+                <Crown className="h-3.5 w-3.5 text-primary" /> Set as Team Lead
+              </span>
+            </label>
+          )}
+
           <div className="flex justify-end gap-2 border-t border-border pt-3">
             <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
             <button
               onClick={() => onSaveEdit(teamType === "shadow"
                 ? { duration: editState.duration, billability: "Non-Billable", resourceType: "Shared Resource" }
-                : editState
+                : {
+                    billability: editState.billability,
+                    resourceType: editState.resourceType,
+                    duration: editState.duration,
+                    ...(canSetTeamLead ? { isTeamLead: editState.asTeamLead } : {}),
+                  }
               )}
               className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
@@ -3855,59 +4944,164 @@ function AddTeamMemberModal({
   teamType?: TeamTabType;
   existingPersonIds: string[];
   onClose: () => void;
-  onAdd: (row: ReturnType<typeof getProjectTeam>[number], extras?: { asTeamLead?: boolean }) => void;
+  onAdd: (
+    row: ReturnType<typeof getProjectTeam>[number],
+    extras?: { asTeamLead?: boolean },
+  ) => void | Promise<void>;
 }) {
   const [selectedPersonId, setSelectedPersonId] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
   const [billability, setBillability] = useState<Billability>("Billable");
   const [resourceType, setResourceType] = useState<ResourceType>("Dedicated");
   const [asTeamLead, setAsTeamLead] = useState(false);
+  const [candidates, setCandidates] = useState<ApiProjectTeamCandidate[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [resourceQuery, setResourceQuery] = useState("");
+  const [selectedCandidate, setSelectedCandidate] = useState<ApiProjectTeamCandidate | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  // Project Team + Shadow Team both load from DB when the project is an API GUID.
+  // Shadow uses internsOnly=true (TKI- / EmploymentType=Intern / intern role text).
+  const useApiResources = isApiGuid(project.id);
+  const internsOnly = teamType === "shadow";
 
-  // Filter out already assigned people
+  // Debounce server search against live DB
+  useEffect(() => {
+    if (!useApiResources) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setCandidatesLoading(true);
+      searchProjectTeamCandidates(project.id, resourceQuery.trim() || undefined, 100, {
+        internsOnly,
+      })
+        .then((items) => {
+          if (!active) return;
+          const filtered = items.filter((c) => !existingPersonIds.includes(c.id));
+          // Keep the currently selected employee visible even if a new search omits them
+          if (
+            selectedCandidate &&
+            !filtered.some((c) => c.id === selectedCandidate.id) &&
+            !existingPersonIds.includes(selectedCandidate.id)
+          ) {
+            filtered.unshift(selectedCandidate);
+          }
+          setCandidates(filtered);
+        })
+        .catch((err) => {
+          console.warn("Failed to load team candidates", err);
+          if (active) toast.error(internsOnly ? "Could not load interns" : "Could not load employees");
+        })
+        .finally(() => {
+          if (active) setCandidatesLoading(false);
+        });
+    }, resourceQuery.trim() ? 250 : 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [useApiResources, internsOnly, project.id, resourceQuery, existingPersonIds.join("|"), selectedCandidate?.id]);
+
+  // Filter out already assigned people (mock path)
   const availablePeople = people.filter((p) => !existingPersonIds.includes(p.id));
 
-  const handleAdd = () => {
+  const resourceOptions = useMemo(() => {
+    if (useApiResources) {
+      return candidates.map((c) => ({
+        value: c.id,
+        label: c.fullName,
+        subLabel: [c.employeeCode, c.role || c.designation, c.department]
+          .filter(Boolean)
+          .join(" · "),
+      }));
+    }
+    return availablePeople.map((p) => ({
+      value: p.id,
+      label: p.name,
+      subLabel: p.role,
+    }));
+  }, [useApiResources, candidates, availablePeople]);
+
+  const handleAdd = async () => {
     if (!selectedPersonId) {
       toast.error("Please select a team member");
       return;
     }
-    if (!duration || !duration.includes(" → ") || duration.startsWith(" → ") || duration.endsWith(" → ")) {
+    // Same parser as the API path — rejects incomplete "start → " ranges
+    const dates = parseAllocationDuration(duration);
+    if (!dates) {
       toast.error("Please select both start and end dates for allocation duration");
       return;
     }
 
-    const selectedPerson = getPerson(selectedPersonId);
+    const selectedPerson = useApiResources && selectedCandidate
+      ? {
+          id: selectedCandidate.id,
+          name: selectedCandidate.fullName,
+          role: selectedCandidate.role || selectedCandidate.designation || "Team Member",
+          avatar: selectedCandidate.fullName.slice(0, 2).toUpperCase(),
+          email: selectedCandidate.workEmail,
+        }
+      : getPerson(selectedPersonId);
+
     const newRow: ReturnType<typeof getProjectTeam>[number] = {
       person: selectedPerson,
       duration,
-      billability,
-      resourceType,
+      billability: teamType === "shadow" ? "Non-Billable" : billability,
+      resourceType: teamType === "shadow" ? "Shared Resource" : resourceType,
     };
 
-    onAdd(newRow, teamType === "project" ? { asTeamLead } : undefined);
+    setSubmitting(true);
+    try {
+      await onAdd(newRow, teamType === "project" ? { asTeamLead } : undefined);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Modal title="Add Team Member" onClose={onClose} wide={false} draggable>
       <div className="space-y-4">
         <Field label="Resource" required>
-          <select
-            value={selectedPersonId}
-            onChange={(e) => setSelectedPersonId(e.target.value)}
-            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">Select a team member...</option>
-            {availablePeople.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} — {p.role}
-              </option>
-            ))}
-          </select>
+          <SearchableSelect
+            placeholder={
+              candidatesLoading && candidates.length === 0
+                ? internsOnly
+                  ? "Loading interns…"
+                  : "Loading employees…"
+                : internsOnly
+                  ? "Search / Select an intern..."
+                  : "Search / Select a team member..."
+            }
+            searchPlaceholder="Search by name, code, or email…"
+            showSearch
+            clearable
+            disabled={useApiResources && candidatesLoading && candidates.length === 0}
+            disabledHint={
+              internsOnly
+                ? "Loading interns from database…"
+                : "Loading employees from database…"
+            }
+            options={resourceOptions}
+            value={selectedPersonId || undefined}
+            onChange={(id) => {
+              const nextId = id || "";
+              setSelectedPersonId(nextId);
+              if (!nextId) {
+                setSelectedCandidate(null);
+                return;
+              }
+              setSelectedCandidate(candidates.find((c) => c.id === nextId) ?? selectedCandidate);
+            }}
+            onSearchChange={useApiResources ? setResourceQuery : undefined}
+          />
         </Field>
 
         <Field label="Department" required>
           {selectedPersonId ? (
-            <div className="px-3 py-2 text-sm text-muted-foreground">{getDept(getPerson(selectedPersonId))}</div>
+            <div className="px-3 py-2 text-sm text-muted-foreground">
+              {useApiResources
+                ? (selectedCandidate?.department || "—")
+                : getDept(getPerson(selectedPersonId))}
+            </div>
           ) : (
             <div className="px-3 py-2 text-sm text-muted-foreground">—</div>
           )}
@@ -3915,7 +5109,11 @@ function AddTeamMemberModal({
 
         <Field label="Sub Department" required>
           {selectedPersonId ? (
-            <div className="px-3 py-2 text-sm text-muted-foreground">{getSubDept(getPerson(selectedPersonId))}</div>
+            <div className="px-3 py-2 text-sm text-muted-foreground">
+              {useApiResources
+                ? (selectedCandidate?.subDepartment || "—")
+                : getSubDept(getPerson(selectedPersonId))}
+            </div>
           ) : (
             <div className="px-3 py-2 text-sm text-muted-foreground">—</div>
           )}
@@ -3997,8 +5195,9 @@ function AddTeamMemberModal({
             Cancel
           </button>
           <button
-            onClick={handleAdd}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            onClick={() => void handleAdd()}
+            disabled={submitting}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             Add Team Member
           </button>
@@ -4097,7 +5296,17 @@ function HealthTab({ project }: { project: Project }) {
 
   // Check if user has access to Client Communication
   const canAccessClientComm = ["Dhanshree", "PMO", "Project Manager", "Engagement Manager", "Senior Project Manager", "Head of Delivery", "Business Operations"].includes(user.role);
-  const client = clients.find((c) => c.id === project.clientId)!;
+  const client = allClients().find((c) => c.id === project.clientId) ?? {
+    id: project.clientId,
+    name: "Client",
+    industry: "General",
+    status: "active" as const,
+    health: "green" as const,
+    projectCount: 1,
+    totalRevenue: 0,
+    accountManagerId: "u1",
+    logo: "",
+  };
 
   // Employee: Health shows only Issues / Alerts / Appreciation — all view-only
   // apart from raising an issue and writing an appreciation.
@@ -5383,43 +6592,75 @@ function PrerequisiteValidationPanel({ prereq, project, isEM }: { prereq: DhProj
 
 // ---------- WBS Prerequisite Section Helpers ----------
 function getPMStats(pmId: string): { total: number; ongoing: number; completed: number; freePct: number } {
-  const all = projects.filter(p => p.pmId === pmId || p.teamIds?.includes(pmId));
-  const total = all.length;
-  const ongoing = all.filter(p => p.status === "ongoing").length;
-  const completed = all.filter(p => p.status === "completed").length;
-  // Free % = completed / total × 100 (more completed = more capacity freed up)
-  const freePct = total > 0 ? Math.round((completed / total) * 100) : 100;
-  return { total, ongoing, completed, freePct };
+  const person = getPerson(pmId);
+  const stats = calculateManagerStats(person, allProjects(), {});
+  return { total: stats.total, ongoing: stats.ongoing, completed: stats.completed, freePct: stats.freePct };
 }
 
 function getOngoingProjectCountForPM(pmId: string): number {
-  return projects.filter(p => p.pmId === pmId && p.status === "ongoing").length;
+  const person = getPerson(pmId);
+  const stats = calculateManagerStats(person, allProjects(), {});
+  return stats.ongoing;
 }
 
-function getClientInfo(clientId: string) {
-  const client = allClients().find((c: any) => c.id === clientId);
+function getClientInfo(clientId: string, clientProp?: Client | null, subVentureName?: string) {
+  const client = clientProp || allClients().find((c: any) => c.id === clientId);
   if (!client) return null;
+
+  const svName = (subVentureName ?? "").trim();
+  const matchedSv = svName
+    ? client.subVentures?.find(
+        (sv: any) => sv.name.trim().toLowerCase() === svName.toLowerCase() || sv.id === svName
+      )
+    : client.subVentures?.[0];
+
+  let contacts: any[] = [];
+  if (matchedSv?.contacts && matchedSv.contacts.length > 0) {
+    contacts = matchedSv.contacts;
+  } else if (client.contacts && client.contacts.length > 0) {
+    contacts = client.contacts;
+  } else if (client.contactName || client.contact) {
+    contacts = [{
+      name: client.contactName || (client.contact ? client.contact.split("@")[0] : "Primary Contact"),
+      email: client.contactEmail || client.contact || "—",
+      phone: (client as any).contactPhone || "—",
+      designation: (client as any).contactDesignation || "—",
+      contactType: (client as any).contactType || "Primary",
+    }];
+  }
+
   return {
     name: client.name,
     type: client.clientType || "NEW",
-    previousPmIds: client.previousPmIds || [],
-    contacts: (client.contacts && client.contacts.length > 0)
-      ? client.contacts
-      : [{
-          name: client.contactName || client.contact?.split("@")[0] || "Primary Contact",
-          email: client.contact || "—",
-          phone: (client as any).contactPhone || "—",
-          designation: (client as any).contactDesignation || "—",
-          contactType: (client as any).contactType || "Primary",
-        }]
+    subVentureName: matchedSv?.name || svName || undefined,
+    previousPmIds: (client as any).previousPmIds || [],
+    contacts,
   };
 }
 
-function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project: Project; onNavigateToHealthAlerts?: () => void }) {
-  const snapshot = useDhStore((s) => s);
-  const prereqs = snapshot.prereqs;
+function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: { project: Project; client?: Client; onNavigateToHealthAlerts?: () => void }) {
+  const allPrereqs = useDhStore((s) => s.prereqs);
+  const prereqData = allPrereqs[project.id];
+  const knownPeople = useDhStore((s) => s.knownPeople);
+  const alerts = useDhStore((s) => s.alerts);
   const { user, isSales, isViewOnly } = useRoleContext();
   const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
+
+  const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
+
+  useEffect(() => {
+    let active = true;
+    fetchProjects({ perPage: 100 })
+      .then((res) => {
+        if (active && res?.items && res.items.length > 0) {
+          setDbProjects(res.items);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch projects for PM workload", err));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Escalation Modal States
   const [escalationModalOpen, setEscalationModalOpen] = useState(false);
@@ -5432,18 +6673,74 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
   const [escResolutionDate, setEscResolutionDate] = useState("");
   const [escAttachmentName, setEscAttachmentName] = useState("");
 
-  const prereq = prereqs[project.id] ?? {
-    projectId: project.id,
-    validation: "Validation Pending",
-    collection: "NA",
-    assignedPmIds: [],
-    assignedSpmIds: [],
-    isProjectReadyToStart: false,
-    services: [],
-    auditTrail: []
-  };
+  const defaultPmIds = useMemo(() => {
+    if (prereqData?.assignedPmIds?.length) return prereqData.assignedPmIds;
+    const pmId = (project as any).projectManagerId || project.pmId;
+    if (pmId) return [pmId];
+    if ((project as any).projectManagerName) {
+      const p = getPerson((project as any).projectManagerName);
+      if (p?.id) return [p.id];
+    }
+    return [];
+  }, [prereqData, project]);
 
-  const servicesList = prereq.services || [];
+  const defaultSpmIds = useMemo(() => {
+    if (prereqData?.assignedSpmIds?.length) return prereqData.assignedSpmIds;
+    const spmId = (project as any).seniorProjectManagerId;
+    if (spmId) return [spmId];
+    return [];
+  }, [prereqData, project]);
+
+  const prereq = useMemo(() => {
+    if (prereqData) {
+      return {
+        ...prereqData,
+        assignedPmIds: (prereqData.assignedPmIds && prereqData.assignedPmIds.length > 0) ? prereqData.assignedPmIds : defaultPmIds,
+        assignedSpmIds: (prereqData.assignedSpmIds && prereqData.assignedSpmIds.length > 0) ? prereqData.assignedSpmIds : defaultSpmIds,
+      };
+    }
+    return {
+      projectId: project.id,
+      validation: "Validation Pending" as const,
+      collection: "NA" as const,
+      assignedPmIds: defaultPmIds,
+      assignedSpmIds: defaultSpmIds,
+      isProjectReadyToStart: false,
+      services: [],
+      auditTrail: []
+    };
+  }, [prereqData, defaultPmIds, defaultSpmIds, project.id]);
+
+  const servicesList: DhServicePrereq[] = useMemo(() => {
+    const rawServices: any[] = project.wbsDetails?.services?.length
+      ? project.wbsDetails.services
+      : dummyWbsServices(project);
+
+    const storeServices = prereq.services || [];
+
+    return rawServices.map((svc: any, i: number) => {
+      const svcId = svc.id ?? `svc-${i}`;
+      const existing = storeServices.find(
+        (s) => s.serviceId === svcId || s.serviceName === (svc.serviceName ?? svc.department)
+      );
+      if (existing) {
+        return {
+          ...existing,
+          serviceId: svcId,
+          serviceName: svc.serviceName ?? svc.department ?? existing.serviceName,
+        };
+      }
+      const isResourceDept = DEPT_GROUPS[svc.department] === "Resource";
+      return {
+        serviceId: svcId,
+        serviceName: svc.serviceName ?? svc.department ?? `Service ${i + 1}`,
+        collectionStatus: (isResourceDept ? "NA" : "Pending To Collect") as any,
+        validationStatus: (isResourceDept ? "NA" : "Pending To Validate") as any,
+        billingStatus: "Advance Pending" as const,
+        isReady: false,
+      };
+    });
+  }, [project.wbsDetails?.services, project.startDate, project.endDate, project.name, prereq.services]);
 
   // Auto-calculated Project Level statuses
   const allCollected = servicesList.length > 0 && servicesList.every(s => {
@@ -5461,8 +6758,27 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
   const projectCollectionStatus = allCollected ? "Completed" : "Pending";
   const projectValidationStatus = allValidated ? "Validated" : "Pending";
 
-  // Get client info
-  const clientInfo = getClientInfo(project.clientId);
+  // Get client & subventure info
+  const clientInfo = getClientInfo(project.clientId, client, project.subVenture);
+
+  // Sub-venture dynamic SPOC contacts
+  const [subVentureContacts, setSubVentureContacts] = useState<any[]>(() => {
+    return clientInfo?.contacts || [];
+  });
+
+  useEffect(() => {
+    let active = true;
+    fetchSubVentureSpocs(project.clientId, project.subVenture || "")
+      .then((spocs) => {
+        if (active && spocs && spocs.length > 0) {
+          setSubVentureContacts(spocs);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch sub-venture spocs", err));
+    return () => {
+      active = false;
+    };
+  }, [project.clientId, project.subVenture, clientInfo?.contacts]);
 
   // Tagged previous managers based on roles
   const clientPrevPMs = useMemo(() => {
@@ -5494,8 +6810,8 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
       if (tlObj) list.push(tlObj);
     }
     // Add EM
-    const client = allClients().find((c) => c.id === project.clientId);
-    const emName = project.engagementManager || client?.engagementManager || "Riya Kapoor";
+    const clientRecord = client || allClients().find((c) => c.id === project.clientId);
+    const emName = project.engagementManager || clientRecord?.engagementManager || "Riya Kapoor";
     const emObj = people.find((p) => p.name === emName || p.role === "Engagement Manager");
     if (emObj && !list.some(p => p.id === emObj.id)) list.push(emObj);
 
@@ -5528,7 +6844,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
     });
 
     return list;
-  }, [project, clientInfo, prereq.assignedSpmIds]);
+  }, [project, clientInfo, prereq.assignedSpmIds, client]);
 
   const statusColor = (status: string) => {
     if (status === "Completed" || status === "Validated" || status === "Collected" || status === "Ready To Start") return "border-success/30 bg-success/10 text-success";
@@ -5548,54 +6864,73 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
         <h3 className="text-sm font-semibold mb-4 text-gray-900">PMO Intake & Prerequisite Workflow</h3>
 
         {/* STEP 1: CLIENT PROFILE & STEP 2: PM/SPM ASSIGNMENT */}
-        <div className="grid gap-4 md:grid-cols-3 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch mb-4">
 
           {/* CLIENT PROFILE INFORMATION */}
-          <div className="md:col-span-2 rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm">
+          <div className={cn("rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full",
+            isSales ? "lg:col-span-12" : "lg:col-span-7 xl:col-span-8"
+          )}>
             <div className="flex items-center gap-2 border-b border-border pb-2">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
-              <h4 className="text-sm font-bold text-gray-800">Customer Profile Information</h4>
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
+              <h4 className="text-xs font-bold text-gray-800">Customer Profile Information</h4>
             </div>
 
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Customer ID</span>
-                <span className="font-semibold text-gray-800">{project.clientId}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground text-[11px]">Customer ID</span>
+                <span className="font-semibold text-gray-800 font-mono text-[11px]">
+                  {formatCustomerId(client?.id || project.clientId)}
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Customer Name</span>
-                <span className="font-semibold text-gray-800">{clientInfo?.name}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Customer Type</span>
-                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
-                  clientInfo?.type === "NEW" ? "border-green-200/50 bg-green-50/50 text-green-700" : "border-blue-200/50 bg-blue-50/50 text-blue-700"
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground text-[11px]">Customer Type</span>
+                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase",
+                  (client?.clientType || clientInfo?.type) === "NEW" ? "border-green-200/50 bg-green-50/50 text-green-700" : "border-blue-200/50 bg-blue-50/50 text-blue-700"
                 )}>
-                  {clientInfo?.type === "NEW" ? "🆕 NEW" : "🔄 OLD"}
+                  {(client?.clientType || clientInfo?.type) === "NEW" ? "🆕 NEW" : "🔄 OLD"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground text-[11px]">Customer Name</span>
+                <span className="font-semibold text-gray-800 truncate text-[11px]">{client?.name || clientInfo?.name || "Customer"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground text-[11px]">Sub-Venture / Division</span>
+                <span className={cn("truncate text-[11px]", project.subVenture ? "font-semibold text-primary" : "text-muted-foreground")}>
+                  {project.subVenture || "—"}
                 </span>
               </div>
             </div>
 
-            {/* SPOC Contact Persons */}
-            {clientInfo?.contacts && clientInfo.contacts.length > 0 && (
-              <div className="space-y-2 pt-3 border-t border-border">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
-                  Customer SPOC Contacts ({clientInfo.contacts.length})
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {clientInfo.contacts.map((spoc: any, idx: number) => (
-                    <div key={idx} className="rounded-md border border-border bg-muted/20 p-2.5 text-xs space-y-1">
-                      <div className="flex items-center justify-between font-semibold text-gray-800">
-                        <span className="truncate">{spoc.name}</span>
+            {/* Sub-venture SPOC Contact Persons (Max 3, adaptive columns) */}
+            {subVentureContacts && subVentureContacts.length > 0 && (
+              <div className="space-y-2 pt-2.5 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                    {project.subVenture ? `${project.subVenture} SPOC Contacts` : "Sub-Venture / Customer SPOC Contacts"} ({subVentureContacts.length})
+                  </p>
+                  {subVentureContacts.length > 3 && (
+                    <span className="text-[9px] text-muted-foreground italic">Showing 3 of {subVentureContacts.length}</span>
+                  )}
+                </div>
+                <div className={cn("grid gap-2",
+                  subVentureContacts.slice(0, 3).length === 1 ? "grid-cols-1 max-w-sm" :
+                  subVentureContacts.slice(0, 3).length === 2 ? "grid-cols-1 sm:grid-cols-2" :
+                  "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                )}>
+                  {subVentureContacts.slice(0, 3).map((spoc: any, idx: number) => (
+                    <div key={idx} className="rounded-md border border-border bg-muted/20 p-2 text-xs space-y-1">
+                      <div className="flex items-center justify-between font-semibold text-gray-800 gap-1">
+                        <span className="truncate text-[11px]">{spoc.name}</span>
                         {spoc.contactType && (
-                          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary shrink-0">
+                          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[8px] font-medium text-primary shrink-0">
                             {spoc.contactType}
                           </span>
                         )}
                       </div>
-                      {spoc.designation && <div className="text-[10px] text-muted-foreground font-medium">{spoc.designation}</div>}
-                      <div className="text-[11px] text-muted-foreground flex flex-col gap-0.5 pt-1 border-t border-border/40 font-mono">
-                        {spoc.email && spoc.email !== "—" && <div className="truncate">✉ {spoc.email}</div>}
+                      {spoc.designation && <div className="text-[10px] text-muted-foreground font-medium truncate">{spoc.designation}</div>}
+                      <div className="text-[10px] text-muted-foreground flex flex-col gap-0.5 pt-1 border-t border-border/40 font-mono">
+                        {spoc.email && spoc.email !== "—" && <div className="truncate" title={spoc.email}>✉ {spoc.email}</div>}
                         {spoc.phone && spoc.phone !== "—" && <div>📞 {spoc.phone}</div>}
                       </div>
                     </div>
@@ -5604,155 +6939,81 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
               </div>
             )}
 
-            {/* Previously Assigned Project Managers display */}
-            {clientInfo?.type === "OLD" && (
-              <div className="space-y-3 pt-3 border-t border-border">
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">Previously Assigned Project Managers</p>
-                  {clientPrevPMs.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {clientPrevPMs.map((pm: any) => {
-                        const stats = getPMStats(pm.id);
-                        const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
-                        return (
-                          <div key={pm.id} className="rounded-md border border-border p-2.5 bg-muted/20 text-[10px] space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5">
-                                <Avatar name={pm.name} size={18} />
-                                <span className="font-bold text-gray-800 text-xs">{pm.name}</span>
-                              </div>
-                              <span className={`font-bold text-sm tabular-nums ${freeColor}`}>{stats.freePct}% free</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <span className="rounded px-1.5 py-0.5 bg-muted font-semibold">Total: {stats.total}</span>
-                              <span className="rounded px-1.5 py-0.5 bg-info/10 text-info font-semibold">Ongoing: {stats.ongoing}</span>
-                              <span className="rounded px-1.5 py-0.5 bg-success/10 text-success font-semibold">Completed: {stats.completed}</span>
-                            </div>
-                            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                              <div className={`h-full rounded-full transition-all ${stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive"}`}
-                                style={{ width: `${stats.freePct}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-muted-foreground italic">No PM historical assignments available.</p>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">Previously Assigned Senior PMs</p>
-                  {clientPrevSPMs.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {clientPrevSPMs.map((pm: any) => {
-                        const stats = getPMStats(pm.id);
-                        const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
-                        return (
-                          <div key={pm.id} className="rounded-md border border-border p-2.5 bg-muted/20 text-[10px] space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5">
-                                <Avatar name={pm.name} size={18} />
-                                <span className="font-bold text-gray-800 text-xs">{pm.name}</span>
-                              </div>
-                              <span className={`font-bold text-sm tabular-nums ${freeColor}`}>{stats.freePct}% free</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <span className="rounded px-1.5 py-0.5 bg-muted font-semibold">Total: {stats.total}</span>
-                              <span className="rounded px-1.5 py-0.5 bg-info/10 text-info font-semibold">Ongoing: {stats.ongoing}</span>
-                              <span className="rounded px-1.5 py-0.5 bg-success/10 text-success font-semibold">Completed: {stats.completed}</span>
-                            </div>
-                            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                              <div className={`h-full rounded-full transition-all ${stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive"}`}
-                                style={{ width: `${stats.freePct}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-muted-foreground italic">No Senior PM historical assignments available.</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {clientInfo?.type === "NEW" && (
-              <div className="pt-3 border-t border-border rounded-md p-3 bg-muted/30 text-center text-xs text-muted-foreground font-medium">
-                No historical PM/SPM assignments available.
-              </div>
-            )}
           </div>
 
           {/* PM/SPM ASSIGNMENT FLOW */}
           {!isSales && (
-          <div className="rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 border-b border-border pb-2">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-purple-500/20 text-xs font-semibold text-purple-600">2</span>
-              <h4 className="text-sm font-bold text-gray-800">Project Allocation</h4>
-            </div>
-
-            <div className="space-y-3 text-xs leading-relaxed">
-              <div>
-                <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Project Managers</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {prereq.assignedPmIds.map((id) => {
-                    const p = getPerson(id);
-                    return (
-                      <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium">
-                        <Avatar name={p.name} size={14} /> {p.name}
-                      </span>
-                    );
-                  })}
-                  {prereq.assignedPmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
-                </div>
+          <div className="lg:col-span-5 xl:col-span-4 rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 border-b border-border pb-2">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-purple-500/20 text-xs font-semibold text-purple-600">2</span>
+                <h4 className="text-xs font-bold text-gray-800">Project Allocation</h4>
               </div>
 
-              <div>
-                <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Senior PMs</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {prereq.assignedSpmIds.map((id) => {
-                    const p = getPerson(id);
-                    return (
-                      <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium">
-                        <Avatar name={p.name} size={14} /> {p.name}
-                      </span>
-                    );
-                  })}
-                  {prereq.assignedSpmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
+              <div className="space-y-2.5 text-xs leading-relaxed">
+                <div>
+                  <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Project Managers</p>
+                  <div className="flex flex-wrap gap-1.5" key={`pm-${Object.keys(knownPeople).length}`}>
+                    {prereq.assignedPmIds.map((id) => {
+                      const p = getPerson(id);
+                      return (
+                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
+                          <Avatar name={p.name} size={14} /> {p.name}
+                        </span>
+                      );
+                    })}
+                    {prereq.assignedPmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Senior PMs</p>
+                  <div className="flex flex-wrap gap-1.5" key={`spm-${Object.keys(knownPeople).length}`}>
+                    {prereq.assignedSpmIds.map((id) => {
+                      const p = getPerson(id);
+                      return (
+                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
+                          <Avatar name={p.name} size={14} /> {p.name}
+                        </span>
+                      );
+                    })}
+                    {prereq.assignedSpmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => setAssignModalMode("pm")}
-                disabled={!canShowAssignment || isViewOnly}
-                className={cn(
-                  "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
-                  canShowAssignment
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                )}
-              >
-                <UserPlus className="h-3.5 w-3.5" /> Assign PM
-              </button>
-              <button
-                onClick={() => setAssignModalMode("spm")}
-                disabled={!canShowAssignment || isViewOnly}
-                className={cn(
-                  "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
-                  canShowAssignment
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                )}
-              >
-                <UserPlus className="h-3.5 w-3.5" /> Assign SPM
-              </button>
+            <div className="space-y-2 pt-2 border-t border-border/50">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setAssignModalMode("pm")}
+                  disabled={!canShowAssignment || isViewOnly}
+                  className={cn(
+                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                    canShowAssignment
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                  )}
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Assign PM
+                </button>
+                <button
+                  onClick={() => setAssignModalMode("spm")}
+                  disabled={!canShowAssignment || isViewOnly}
+                  className={cn(
+                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                    canShowAssignment
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                  )}
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Assign SPM
+                </button>
+              </div>
+              {!canShowAssignment && (
+                <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
+              )}
             </div>
-            {!canShowAssignment && (
-              <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
-            )}
           </div>
           )}
         </div>
@@ -5789,7 +7050,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
                     const canStart = isCollected && isValidated && isBillingOk;
                     const isReady = svc.isReady ?? false;
 
-                    const svcEscalations = snapshot.alerts.filter((a) => a.projectId === project.id && a.kind === "Escalation" && a.serviceName === svc.serviceName);
+                    const svcEscalations = alerts.filter((a) => a.projectId === project.id && a.kind === "Escalation" && a.serviceName === svc.serviceName);
                     const activeEsc = svcEscalations.find((e) => e.status !== "Resolved" && e.status !== "Closed");
 
                     return (
@@ -6139,6 +7400,7 @@ function WbsPrerequisiteSection({ project, onNavigateToHealthAlerts }: { project
 }
 
 // Updated Assignment Modal with intelligent filtering
+// Updated Assignment Modal with intelligent filtering and workload stats
 function WbsAssignmentModal({
   project,
   prereq,
@@ -6157,16 +7419,68 @@ function WbsAssignmentModal({
   const [pmQuery, setPmQuery] = useState("");
   const [spmQuery, setSpmQuery] = useState("");
 
-  const pmPool = useMemo(() => people.filter((p) => p.role === "PM"), []);
-  const spmPool = useMemo(() => people.filter((p) => p.role === "Senior PM"), []);
+  const allPrereqs = useDhStore((s) => s.prereqs);
+  const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
+  const [dbEmployees, setDbEmployees] = useState<ApiEmployeeListItem[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchProjects({ perPage: 100 })
+      .then((res) => {
+        if (active && res?.items && res.items.length > 0) {
+          setDbProjects(res.items);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch projects for assign modal", err));
+
+    fetchEmployees({ perPage: 100 })
+      .then((res) => {
+        if (active && res?.items && res.items.length > 0) {
+          setDbEmployees(res.items);
+          dhStore.registerPeople(
+            res.items.map((emp) => ({
+              id: emp.id,
+              name: emp.fullName,
+              role: emp.designation || emp.role || "User",
+              email: emp.workEmail || "",
+            })),
+          );
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch employees for assign modal", err));
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const pmPool = useMemo(() => {
+    const fromApi = dbEmployees.filter(isEmployeePM).map((emp) => ({
+      id: emp.id,
+      name: emp.fullName,
+      role: "PM",
+      designation: emp.designation || "Project Manager",
+    }));
+    return fromApi.length > 0 ? fromApi : DB_PM_FALLBACK;
+  }, [dbEmployees]);
+
+  const spmPool = useMemo(() => {
+    const fromApi = dbEmployees.filter(isEmployeeSPM).map((emp) => ({
+      id: emp.id,
+      name: emp.fullName,
+      role: "Senior PM",
+      designation: emp.designation || "Senior Project Manager",
+    }));
+    return fromApi.length > 0 ? fromApi : DB_SPM_FALLBACK;
+  }, [dbEmployees]);
 
   const pmVisiblePool = pmPool.filter(p =>
     !selectedSPMs.includes(p.id) &&
-    (!pmQuery.trim() || p.name.toLowerCase().includes(pmQuery.toLowerCase()))
+    (!pmQuery.trim() || p.name.toLowerCase().includes(pmQuery.toLowerCase()) || p.designation.toLowerCase().includes(pmQuery.toLowerCase()))
   );
   const spmVisiblePool = spmPool.filter(p =>
     !selectedPMs.includes(p.id) &&
-    (!spmQuery.trim() || p.name.toLowerCase().includes(spmQuery.toLowerCase()))
+    (!spmQuery.trim() || p.name.toLowerCase().includes(spmQuery.toLowerCase()) || p.designation.toLowerCase().includes(spmQuery.toLowerCase()))
   );
 
   const selectedPMPeople = pmPool.filter(p => selectedPMs.includes(p.id));
@@ -6194,7 +7508,30 @@ function WbsAssignmentModal({
     const finalPMs = mode === "pm" ? selectedPMs : prereq.assignedPmIds;
     const finalSPMs = mode === "spm" ? selectedSPMs : prereq.assignedSpmIds;
 
-    dhStore.assignPMs(project.id, finalPMs, finalSPMs);
+    const peopleForAssign = [
+      ...pmPool.filter((p) => finalPMs.includes(p.id)),
+      ...spmPool.filter((p) => finalSPMs.includes(p.id)),
+    ].map((p) => ({ id: p.id, name: p.name, role: p.role }));
+
+    dhStore.assignPMsWithPeople(project.id, finalPMs, finalSPMs, peopleForAssign);
+
+    // Sync to backend if project ID is a valid GUID
+    if (project.id && project.id.length > 20) {
+      const pmIdToSave = finalPMs[0] || null;
+      fetch(`http://localhost:5194/api/v1/projects/${project.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: project.name,
+          description: project.description,
+          status: project.status,
+          health: project.health,
+          progress: project.progress,
+          projectManagerId: pmIdToSave && pmIdToSave.includes("-") ? pmIdToSave : undefined,
+        }),
+      }).catch((err) => console.warn("Failed to persist PM assignment to backend:", err));
+    }
+
     toast.success(
       mode === "pm" ? "PM Assigned" : "Senior PM Assigned",
       {
@@ -6213,8 +7550,8 @@ function WbsAssignmentModal({
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">
           {mode === "pm"
-            ? "Select one or more Project Managers to assign to this project."
-            : "Select one or more Senior Project Managers to assign to this project."}
+            ? "Select one or more Project Managers to assign to this project based on their workload."
+            : "Select one or more Senior Project Managers to assign to this project based on their workload."}
         </p>
 
         <div>
@@ -6243,22 +7580,37 @@ function WbsAssignmentModal({
                   ))}
                 </div>
               )}
-              <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-md border border-border">
+              <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
                 {pmVisiblePool.map(p => {
                   const isSel = selectedPMs.includes(p.id);
-                  const ongoingCount = getOngoingProjectCountForPM(p.id);
+                  const stats = calculateManagerStats(p, dbProjects, allPrereqs);
+                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                  const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
                   return (
                     <li key={p.id}>
                       <button
                         onClick={() => togglePM(p.id)}
-                        className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 text-xs", isSel && "bg-primary/5")}
+                        className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
                       >
-                        <Avatar name={p.name} size={22} />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium">{p.name}</div>
-                          <div className="text-[10px] text-muted-foreground">{ongoingCount} Ongoing Projects</div>
+                        <Avatar name={p.name} size={24} />
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-800">{p.name}</span>
+                            <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
+                              {stats.freePct}% free
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
+                            <span className="truncate">{p.designation}</span>
+                            <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
+                          </div>
+                          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                            <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
+                          </div>
                         </div>
-                        {isSel && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
+                        <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                          {isSel && <Check className="h-4 w-4 text-primary" />}
+                        </div>
                       </button>
                     </li>
                   );
@@ -6295,22 +7647,37 @@ function WbsAssignmentModal({
                   ))}
                 </div>
               )}
-              <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-md border border-border">
+              <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
                 {spmVisiblePool.map(p => {
                   const isSel = selectedSPMs.includes(p.id);
-                  const ongoingCount = getOngoingProjectCountForPM(p.id);
+                  const stats = calculateManagerStats(p, dbProjects, allPrereqs);
+                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                  const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
                   return (
                     <li key={p.id}>
                       <button
                         onClick={() => toggleSPM(p.id)}
-                        className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 text-xs", isSel && "bg-primary/5")}
+                        className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
                       >
-                        <Avatar name={p.name} size={22} />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium">{p.name}</div>
-                          <div className="text-[10px] text-muted-foreground">{ongoingCount} Ongoing Projects</div>
+                        <Avatar name={p.name} size={24} />
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-800">{p.name}</span>
+                            <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
+                              {stats.freePct}% free
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
+                            <span className="truncate">{p.designation}</span>
+                            <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
+                          </div>
+                          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                            <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
+                          </div>
                         </div>
-                        {isSel && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
+                        <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                          {isSel && <Check className="h-4 w-4 text-primary" />}
+                        </div>
                       </button>
                     </li>
                   );

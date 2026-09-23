@@ -20,7 +20,11 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
-import { allClients, allProjects, dhStore, useDhStore, type WbsDraft } from "@/lib/dh-store";
+import { allClients, dhStore, useDhStore, type WbsDraft } from "@/lib/dh-store";
+import { fetchProjectDrafts, deleteProjectDraft, type ProjectDraftListDto } from "@/lib/api/project-drafts";
+import { fetchProjects, type ApiProject } from "@/lib/api/projects";
+import { fetchClients, mapApiClient, type ApiClient } from "@/lib/api/clients";
+import { type Project, type Client, people, type Person } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { isRenewedProject } from "@/lib/project-renewal";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/dh-helpers";
@@ -67,17 +71,171 @@ function ProjectsPage() {
   };
   const [q, setQ] = useState("");
   const [draftsOpen, setDraftsOpen] = useState(false);
+  const [backendDrafts, setBackendDrafts] = useState<ProjectDraftListDto[]>([]);
+  const [loadingDrafts, setLoadingDrafts] = useState(false);
+  const [draftSearch, setDraftSearch] = useState("");
 
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
-  const drafts = useDhStore((s) => s.wbsDrafts);
-  const projects = useMemo(() => allProjects(), [extraCount]);
-  const clients = useMemo(() => allClients(), [extraCount]);
+  const localDrafts = useDhStore((s) => s.wbsDrafts);
+  const leadershipAssignments = useDhStore((s) => s.leadershipAssignments);
+  const prereqs = useDhStore((s) => s.prereqs);
+
+  const loadDrafts = async (searchQuery?: string) => {
+    setLoadingDrafts(true);
+    try {
+      const res = await fetchProjectDrafts({
+        perPage: 100,
+        search: searchQuery !== undefined ? searchQuery : draftSearch,
+      });
+      if (res?.items) {
+        setBackendDrafts(res.items);
+      }
+    } catch (e) {
+      console.warn("Failed to load drafts from backend, using local store:", e);
+    } finally {
+      setLoadingDrafts(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDrafts();
+  }, [draftsOpen]);
+
+  const drafts = useMemo(() => {
+    if (backendDrafts.length > 0) return backendDrafts;
+    return localDrafts.map((ld) => ({
+      id: ld.id,
+      projectName: ld.projectName,
+      clientId: ld.clientId,
+      clientName: ld.clientName,
+      salesPerson: ld.salesPerson,
+      createdByName: ld.savedBy || "Local User",
+      updatedByName: ld.savedBy || null,
+      status: "active",
+      rowVersion: 0,
+      createdAtUtc: ld.savedAt,
+      updatedAtUtc: ld.savedAt,
+    }));
+  }, [backendDrafts, localDrafts]);
+
+  async function handleDeleteDraft(draftId: string) {
+    try {
+      await deleteProjectDraft(draftId);
+      toast.success("Draft deleted");
+    } catch {
+      dhStore.deleteDraft(draftId);
+      toast.success("Draft deleted from local storage");
+    }
+    loadDrafts();
+  }
+
+  // Live database records only — no mock data
+  const [dbProjects, setDbProjects] = useState<ApiProject[]>([]);
+  const [dbClients, setDbClients] = useState<ApiClient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    setLoadError(null);
+
+    Promise.all([
+      fetchProjects({ perPage: 500 }),
+      fetchClients(1, 200),
+    ])
+      .then(([projRes, clientRes]) => {
+        if (!active) return;
+        if (projRes?.items) {
+          setDbProjects(projRes.items);
+        } else {
+          setDbProjects([]);
+        }
+        if (clientRes) {
+          setDbClients(clientRes);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!active) return;
+        setDbProjects([]);
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "Could not load projects from the API. Is the backend running on port 5194?";
+        setLoadError(message);
+        toast.error("Projects failed to load", { description: message });
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [extraCount]);
+
+  const clients = useMemo(() => {
+    return dbClients.map(mapApiClient);
+  }, [dbClients]);
+
+  const projects = useMemo(() => {
+    return dbProjects.map((p) => {
+      const renewedFromProjId = p.renewedFromProjectId ?? undefined;
+      const renewedFromWbs = p.renewedFromWbsId ?? undefined;
+      const isRenewalVal = Boolean(
+        renewedFromProjId ||
+        renewedFromWbs ||
+        p.renewedFromProjectId ||
+        p.renewedFromWbsId
+      );
+
+      return {
+        id: p.id,
+        name: p.name,
+        clientId: p.clientId,
+        wbsId: p.wbsId ?? undefined,
+        subVenture: p.subVentureName ?? undefined,
+        status: (p.status as any) || "ongoing",
+        health: (p.health as any) || "green",
+        progress: p.progress ?? 0,
+        pmId: p.projectManagerId ?? "",
+        tlId: p.teamLeadId ?? "",
+        teamIds: [],
+        startDate: p.startDate ?? "",
+        endDate: p.endDate ?? "",
+        budget: Number(p.budget) || 0,
+        spent: Number(p.spent) || 0,
+        description: p.description ?? "",
+        wbs: [],
+        tasks: [],
+        engagementManager: p.engagementManager ?? undefined,
+        salesPerson: p.salesPerson ?? undefined,
+        contractType: p.contractType ?? undefined,
+        projectType: p.projectType ?? undefined,
+        currency: p.currency ?? "INR",
+        taxPercent: p.taxPercent ?? 18,
+        totalHours: Number(p.totalHours) || 0,
+        totalDays: Number(p.totalDays) || 0,
+        invoiceValue: Number(p.invoiceValue) || 0,
+        projectSeqId: p.projectCode ?? undefined,
+        renewedFromProjectId: renewedFromProjId,
+        renewedFromWbsId: renewedFromWbs,
+        isRenewal: isRenewalVal,
+        projectManagerId: p.projectManagerId ?? undefined,
+        projectManagerName: p.projectManagerName ?? undefined,
+        teamLeadId: p.teamLeadId ?? undefined,
+        teamLeadName: p.teamLeadName ?? undefined,
+        seniorProjectManager: undefined,
+      } as Project;
+    });
+  }, [dbProjects]);
 
   const visible = useMemo(() => {
     const assignedIds = new Set(assignedProjects.map((p) => p.id));
     return projects.filter((p) => {
       // Extra WBS-created projects are not in the static assignment list.
-      if (!assignedIds.has(p.id) && !isDhanshree) return false;
+      if (!assignedIds.has(p.id) && !isDhanshree && dbProjects.length === 0) return false;
       const isArchived =
         p.status === "completed" || p.status === "archived" || (p.status as any) === "Archived";
       if (tab === "Active Projects" && isArchived) return false;
@@ -88,7 +246,7 @@ function ProjectsPage() {
         v.toLowerCase().includes(q.toLowerCase()),
       );
     });
-  }, [tab, q, projects, clients, assignedProjects, isDhanshree]);
+  }, [tab, q, projects, clients, assignedProjects, isDhanshree, dbProjects.length]);
 
   if (!isDhanshree && !hasPermission("projects.view")) return <Navigate to="/" />;
 
@@ -188,13 +346,78 @@ function ProjectsPage() {
         </div>
       </div>
 
-      {view === "card" ? (
+      {isLoading ? (
+        view === "card" ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm animate-pulse h-56"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-1/3 bg-muted rounded" />
+                    <div className="h-4 w-3/4 bg-muted rounded" />
+                  </div>
+                </div>
+                <div className="space-y-2 mt-4">
+                  <div className="h-2 bg-muted rounded" />
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <div className="h-3 bg-muted rounded" />
+                    <div className="h-3 bg-muted rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm p-4">
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-10 bg-muted/60 rounded animate-pulse" />
+              ))}
+            </div>
+          </div>
+        )
+      ) : loadError ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center space-y-2">
+          <p className="text-sm font-semibold text-destructive">Could not load projects from the database</p>
+          <p className="text-xs text-muted-foreground max-w-lg mx-auto">{loadError}</p>
+          <p className="text-xs text-muted-foreground">
+            Start the API with <code className="rounded bg-muted px-1">dotnet run --project apps/backend/PMS.API.csproj --urls http://localhost:5194</code> against local Postgres, then refresh.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-2 inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Retry
+          </button>
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          No projects found in the database for this filter.
+        </div>
+      ) : view === "card" ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((p, i) => {
-            const client = clients.find((c) => c.id === p.clientId)!;
-            const ems = getProjectEMs(p);
-            const pms = getProjectPMs(p);
-            const tls = getProjectTLs(p);
+            const client = clients.find((c) => c.id === p.clientId) ?? {
+              id: p.clientId,
+              name: "Client",
+              logo: (p.name || "P").slice(0, 2).toUpperCase(),
+              industry: "General",
+              status: "active" as const,
+              health: "green" as const,
+              projectCount: 1,
+              totalRevenue: 0,
+              accountManagerId: "u1",
+            };
+            const clientLogo = client.logo || (client.name || "P").slice(0, 2).toUpperCase();
+            const ems = getCardEMs(p, leadershipAssignments);
+            const spms = getCardSPMs(p, leadershipAssignments, prereqs);
+            const pms = getCardPMs(p, leadershipAssignments, prereqs);
+            const tls = getCardTLs(p, leadershipAssignments, prereqs);
             return (
               <article
                 key={p.id}
@@ -206,20 +429,18 @@ function ProjectsPage() {
                 <div>
                   <header className="flex items-start gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-sm font-semibold text-primary-foreground group-hover:scale-105 transition-transform">
-                      {client.logo}
+                      {clientLogo}
                     </div>
                     <div className="min-w-0 flex-1">
-                      {isRenewedProject(p) && (
-                        <div className="mb-1">
-                          <RenewedProjectTag />
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
+                          <span className="font-mono">{p.projectSeqId || p.id.toUpperCase()}</span>
+                          <span>•</span>
+                          <span className="truncate">{client.name || "Client"}</span>
                         </div>
-                      )}
-                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <span className="font-mono">{p.id.toUpperCase()}</span>
-                        <span>•</span>
-                        <span>{client.name}</span>
+                        {isRenewedProject(p) && <RenewedProjectTag className="shrink-0" />}
                       </div>
-                      <div className="truncate text-sm font-semibold group-hover:text-primary transition-colors">
+                      <div className="truncate text-sm font-semibold group-hover:text-primary transition-colors mt-0.5">
                         {p.name}
                       </div>
                     </div>
@@ -236,35 +457,41 @@ function ProjectsPage() {
                     </div>
                     <ProgressBar value={p.progress} />
                   </div>
-                  <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 text-xs">
                     <div>
                       <dt className="text-muted-foreground">Start</dt>
                       <dd className="font-medium tabular-nums">
-                        {new Date(p.startDate).toLocaleDateString()}
+                        {p.startDate ? new Date(p.startDate).toLocaleDateString() : "—"}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-muted-foreground">End</dt>
                       <dd className="font-medium tabular-nums">
-                        {new Date(p.endDate).toLocaleDateString()}
+                        {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
                       </dd>
                     </div>
-                    <div className="col-span-2">
-                      <dt className="text-muted-foreground">Engagement Mgr</dt>
-                      <dd>
-                        <PeopleSummary list={ems} />
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground truncate">Engagement Manager</dt>
+                      <dd className="mt-0.5">
+                        <PeopleSummary list={ems} emptyText="Not Assigned" />
                       </dd>
                     </div>
-                    <div className="col-span-2">
-                      <dt className="text-muted-foreground">Project Mgr</dt>
-                      <dd>
-                        <PeopleSummary list={pms} />
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground truncate">Senior Project Manager</dt>
+                      <dd className="mt-0.5">
+                        <PeopleSummary list={spms} emptyText="Not Assigned" />
                       </dd>
                     </div>
-                    <div className="col-span-2">
-                      <dt className="text-muted-foreground">Team Lead</dt>
-                      <dd>
-                        <PeopleSummary list={tls} />
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground truncate">Project Manager</dt>
+                      <dd className="mt-0.5">
+                        <PeopleSummary list={pms} emptyText="Not Assigned" />
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground truncate">Team Lead</dt>
+                      <dd className="mt-0.5">
+                        <PeopleSummary list={tls} emptyText="Not Assigned" />
                       </dd>
                     </div>
                   </dl>
@@ -296,7 +523,17 @@ function ProjectsPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {visible.map((p) => {
-                const client = clients.find((c) => c.id === p.clientId)!;
+                const client = clients.find((c) => c.id === p.clientId) ?? {
+                  id: p.clientId,
+                  name: "Client",
+                  logo: (p.name || "P").slice(0, 2).toUpperCase(),
+                  industry: "General",
+                  status: "active" as const,
+                  health: "green" as const,
+                  projectCount: 1,
+                  totalRevenue: 0,
+                  accountManagerId: "u1",
+                };
                 const ems = getProjectEMs(p);
                 const pms = getProjectPMs(p);
                 return (
@@ -308,15 +545,15 @@ function ProjectsPage() {
                     className="hover:bg-accent/50 cursor-pointer transition-colors group"
                   >
                     <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground group-hover:text-primary font-medium transition-colors">
-                      {p.id.toUpperCase()}
+                      {p.projectSeqId || p.id.toUpperCase()}
                     </td>
                     <td className="px-3 py-2.5 font-medium group-hover:text-primary transition-colors">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {isRenewedProject(p) && <RenewedProjectTag />}
+                      <div className="flex flex-col items-start gap-1">
                         <span>{p.name}</span>
+                        {isRenewedProject(p) && <RenewedProjectTag />}
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{client.name}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{client.name || "Client"}</td>
                     <td className="px-3 py-2.5">
                       <StatusPill status={p.status} />
                     </td>
@@ -329,10 +566,10 @@ function ProjectsPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
-                      {new Date(p.startDate).toLocaleDateString()}
+                      {p.startDate ? new Date(p.startDate).toLocaleDateString() : "—"}
                     </td>
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
-                      {new Date(p.endDate).toLocaleDateString()}
+                      {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
                     </td>
                     <td className="px-3 py-2.5">
                       <PeopleSummary list={ems} />
@@ -359,42 +596,68 @@ function ProjectsPage() {
 
       {/* ── Drafts panel ── */}
       {draftsOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setDraftsOpen(false)}>
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-[2px] transition-all duration-200"
+          onClick={() => setDraftsOpen(false)}
+        >
           <aside
-            className="flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl"
+            className="flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl animate-in slide-in-from-right duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div>
-                <h2 className="text-sm font-semibold">Saved Drafts</h2>
-                <p className="text-[11px] text-muted-foreground">
-                  {drafts.length} draft{drafts.length !== 1 ? "s" : ""} saved
-                </p>
+            <div className="flex flex-col gap-2.5 border-b border-border px-4 py-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    Saved Drafts
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    {drafts.length} shared draft{drafts.length !== 1 ? "s" : ""} available
+                  </p>
+                </div>
+                <button
+                  onClick={() => setDraftsOpen(false)}
+                  className="rounded-md p-1.5 hover:bg-accent text-muted-foreground hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                onClick={() => setDraftsOpen(false)}
-                className="rounded-md p-1.5 hover:bg-accent"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={draftSearch}
+                  onChange={(e) => {
+                    setDraftSearch(e.target.value);
+                    loadDrafts(e.target.value);
+                  }}
+                  placeholder="Search drafts by project or client…"
+                  className="h-8 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
             </div>
 
             {/* List */}
             <div className="flex-1 overflow-y-auto">
-              {drafts.length === 0 ? (
+              {loadingDrafts && drafts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <p className="text-xs text-muted-foreground">Loading drafts from database…</p>
+                </div>
+              ) : drafts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
                   <FileText className="h-10 w-10 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">No drafts saved yet</p>
+                  <p className="text-sm text-muted-foreground">No drafts found</p>
                   <p className="text-xs text-muted-foreground">
-                    Use "Save Draft" on the New Project page to save your work
+                    Use "Save Draft" in Project Onboarding to save shared work
                   </p>
                 </div>
               ) : (
                 <ul className="divide-y divide-border">
-                  {drafts.map((d: WbsDraft) => (
-                    <li key={d.id} className="group px-4 py-3 hover:bg-accent/40">
+                  {drafts.map((d) => (
+                    <li key={d.id} className="group px-4 py-3 hover:bg-accent/40 transition-colors">
                       <div className="flex items-start gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                           <FileText className="h-4 w-4" />
@@ -402,10 +665,12 @@ function ProjectsPage() {
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold">{d.projectName}</p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              {d.clientName}
-                            </span>
+                            {d.clientName && (
+                              <span className="flex items-center gap-1 font-medium text-foreground/80">
+                                <User className="h-3 w-3" />
+                                {d.clientName}
+                              </span>
+                            )}
                             {d.salesPerson && (
                               <span className="flex items-center gap-1">
                                 · Sales: {d.salesPerson}
@@ -414,8 +679,10 @@ function ProjectsPage() {
                           </div>
                           <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
                             <Clock className="h-3 w-3" />
-                            Saved by {d.savedBy} ·{" "}
-                            {new Date(d.savedAt).toLocaleString("en-IN", {
+                            {d.updatedByName
+                              ? `Updated by ${d.updatedByName}`
+                              : `Created by ${d.createdByName}`} ·{" "}
+                            {new Date(d.updatedAtUtc || d.createdAtUtc).toLocaleString("en-IN", {
                               day: "2-digit",
                               month: "short",
                               year: "numeric",
@@ -435,10 +702,7 @@ function ProjectsPage() {
                             <ArrowRight className="h-3 w-3" /> Open
                           </button>
                           <button
-                            onClick={() => {
-                              dhStore.deleteDraft(d.id);
-                              toast.success("Draft deleted");
-                            }}
+                            onClick={() => handleDeleteDraft(d.id)}
                             className="inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-3 w-3" /> Delete
@@ -457,15 +721,113 @@ function ProjectsPage() {
   );
 }
 
-function PeopleSummary({ list }: { list: ReturnType<typeof getProjectEMs> }) {
+function resolvePerson(idOrName?: string | null): Person | null {
+  if (!idOrName) return null;
+  const trimmed = idOrName.trim();
+  if (!trimmed || trimmed === "—" || trimmed.toLowerCase() === "not assigned") return null;
+  const found = people.find(
+    (p) => p.id === trimmed || p.name.toLowerCase() === trimmed.toLowerCase()
+  );
+  if (found) return found;
+  return {
+    id: trimmed,
+    name: trimmed,
+    role: "User",
+    avatar: trimmed.slice(0, 2).toUpperCase(),
+    email: "",
+  };
+}
+
+function getCardEMs(
+  p: Project,
+  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
+): Person[] {
+  const la = leadershipAssignments[p.id];
+  if (la?.emIds && Array.isArray(la.emIds) && la.emIds.length > 0) {
+    const list = la.emIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  const em = resolvePerson(p.engagementManager);
+  return em ? [em] : [];
+}
+
+function getCardSPMs(
+  p: Project,
+  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
+  prereqs: Record<string, any>,
+): Person[] {
+  const la = leadershipAssignments[p.id];
+  if (la?.spmIds && Array.isArray(la.spmIds) && la.spmIds.length > 0) {
+    const list = la.spmIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  const pr = prereqs[p.id];
+  if (pr?.assignedSpmIds && Array.isArray(pr.assignedSpmIds) && pr.assignedSpmIds.length > 0) {
+    const list = pr.assignedSpmIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  const spm = resolvePerson(p.seniorProjectManager);
+  return spm ? [spm] : [];
+}
+
+function getCardPMs(
+  p: Project,
+  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
+  prereqs: Record<string, any>,
+): Person[] {
+  const la = leadershipAssignments[p.id];
+  if (la?.pmIds && Array.isArray(la.pmIds) && la.pmIds.length > 0) {
+    const list = la.pmIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  const pr = prereqs[p.id];
+  if (pr?.assignedPmIds && Array.isArray(pr.assignedPmIds) && pr.assignedPmIds.length > 0) {
+    const list = pr.assignedPmIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  const pm = resolvePerson(p.projectManagerName || p.projectManagerId || p.pmId);
+  return pm ? [pm] : [];
+}
+
+function getCardTLs(
+  p: Project,
+  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
+  prereqs: Record<string, any>,
+): Person[] {
+  const la = leadershipAssignments[p.id];
+  if (la?.tlIds && Array.isArray(la.tlIds) && la.tlIds.length > 0) {
+    const list = la.tlIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  const pr = prereqs[p.id];
+  if (pr?.assignedTlIds && Array.isArray(pr.assignedTlIds) && pr.assignedTlIds.length > 0) {
+    const list = pr.assignedTlIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  const tl = resolvePerson(p.teamLeadName || p.teamLeadId || p.tlId);
+  return tl ? [tl] : [];
+}
+
+function PeopleSummary({
+  list,
+  emptyText = "—",
+}: {
+  list: Person[];
+  emptyText?: string;
+}) {
+  if (!list || list.length === 0) {
+    return <span className="text-muted-foreground text-xs font-normal">{emptyText}</span>;
+  }
   const s = formatPeopleSummary(list);
-  if (s.primary === "—") return <span className="text-muted-foreground">—</span>;
+  if (!s.primary || s.primary === "—") {
+    return <span className="text-muted-foreground text-xs font-normal">{emptyText}</span>;
+  }
   return (
-    <div className="flex items-center gap-1.5">
-      <Avatar name={list[0].name} size={20} />
-      <span className="truncate text-xs">{s.primary}</span>
+    <div className="flex items-center gap-1.5 min-w-0">
+      <Avatar name={list[0].name} size={18} />
+      <span className="truncate text-xs font-medium">{s.primary}</span>
       {s.more > 0 && (
-        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shrink-0">
           +{s.more}
         </span>
       )}

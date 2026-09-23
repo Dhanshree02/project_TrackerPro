@@ -96,7 +96,17 @@ function WbsAllocationPage() {
   });
 
   const selected = requests.find((r) => r.id === selectedId) ?? filtered[0] ?? requests[0];
-  const client = clients.find((c) => c.id === selected.clientId)!;
+  const client = clients.find((c) => c.id === selected?.clientId) ?? {
+    id: selected?.clientId ?? "",
+    name: "Client",
+    industry: "General",
+    status: "active",
+    health: "green",
+    projectCount: 1,
+    totalRevenue: 0,
+    accountManagerId: "u1",
+    logo: "",
+  };
 
   // candidates per role with fit scores
   const candidatesByRole = useMemo(() => {
@@ -280,7 +290,17 @@ function WbsAllocationPage() {
           </header>
           <ul className="max-h-[calc(100vh-260px)] divide-y divide-border overflow-y-auto">
             {filtered.map((r) => {
-              const c = clients.find((cl) => cl.id === r.clientId)!;
+              const c = clients.find((cl) => cl.id === r.clientId) ?? {
+                id: r.clientId,
+                name: "Client",
+                industry: "General",
+                status: "active",
+                health: "green",
+                projectCount: 1,
+                totalRevenue: 0,
+                accountManagerId: "u1",
+                logo: "",
+              };
               const filled = r.slots.filter((s) => s.personId).length;
               return (
                 <li key={r.id}>

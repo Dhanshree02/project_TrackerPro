@@ -10,6 +10,7 @@ public sealed partial class FileStorageService : IFileStorageService
 
     // Human-readable document folders under the repo-root Documents/ tree.
     public const string KycFolder = "KYC";
+    public const string PoFolder = "PO";
     public const string TechFolder = "Tech. SOPs";
     public const string PmsFolder = "PMS. SOPs";
     public const string ImpFolder = "IMP Templates";
@@ -55,6 +56,7 @@ public sealed partial class FileStorageService : IFileStorageService
 
         Directory.CreateDirectory(_documentsRoot);
         Directory.CreateDirectory(Path.Combine(_documentsRoot, KycFolder));
+        Directory.CreateDirectory(Path.Combine(_documentsRoot, PoFolder));
         Directory.CreateDirectory(Path.Combine(_documentsRoot, TechFolder));
         Directory.CreateDirectory(Path.Combine(_documentsRoot, PmsFolder));
         Directory.CreateDirectory(Path.Combine(_documentsRoot, ImpFolder));
@@ -120,6 +122,14 @@ public sealed partial class FileStorageService : IFileStorageService
     {
         var sanitizedCode = SanitizeIdentifier(projectCode);
         var sanitizedCategory = SanitizeCategory(category);
+
+        if (sanitizedCategory.Equals("po", StringComparison.OrdinalIgnoreCase))
+        {
+            var poDir = Path.Combine(_documentsRoot, PoFolder);
+            Directory.CreateDirectory(poDir);
+            return await SaveFileInternalAsync(poDir, file, PoFolder, "PO", ct);
+        }
+
         var targetDir = Path.Combine(_storageRoot, "projects", sanitizedCode, sanitizedCategory);
         Directory.CreateDirectory(targetDir);
 
@@ -320,8 +330,98 @@ public sealed partial class FileStorageService : IFileStorageService
         return null;
     }
 
+    public (Stream Stream, string ContentType, string DownloadFileName)? GetProjectFileStream(string relativePathOrFileName)
+    {
+        if (string.IsNullOrWhiteSpace(relativePathOrFileName)) return null;
+
+        var docCandidate = Path.IsPathRooted(relativePathOrFileName)
+            ? relativePathOrFileName
+            : Path.Combine(_documentsRoot, relativePathOrFileName);
+
+        if (File.Exists(docCandidate))
+        {
+            var ext = Path.GetExtension(docCandidate);
+            return (OpenReadStream(docCandidate), GetContentType(ext), ExtractOriginalName(Path.GetFileName(docCandidate)));
+        }
+
+        var poCandidate = Path.Combine(_documentsRoot, PoFolder, Path.GetFileName(relativePathOrFileName));
+        if (File.Exists(poCandidate))
+        {
+            var ext = Path.GetExtension(poCandidate);
+            return (OpenReadStream(poCandidate), GetContentType(ext), ExtractOriginalName(Path.GetFileName(poCandidate)));
+        }
+
+        var candidate = Path.IsPathRooted(relativePathOrFileName)
+            ? relativePathOrFileName
+            : Path.Combine(_storageRoot, relativePathOrFileName);
+
+        if (File.Exists(candidate))
+        {
+            var ext = Path.GetExtension(candidate);
+            return (OpenReadStream(candidate), GetContentType(ext), ExtractOriginalName(Path.GetFileName(candidate)));
+        }
+
+        return null;
+    }
+
+    public bool DeleteProjectFile(string relativePathOrFileName)
+    {
+        if (string.IsNullOrWhiteSpace(relativePathOrFileName)) return false;
+
+        var docCandidate = Path.IsPathRooted(relativePathOrFileName)
+            ? relativePathOrFileName
+            : Path.Combine(_documentsRoot, relativePathOrFileName);
+
+        if (File.Exists(docCandidate))
+        {
+            try
+            {
+                File.Delete(docCandidate);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not delete project document {Path}", docCandidate);
+            }
+        }
+
+        var poCandidate = Path.Combine(_documentsRoot, PoFolder, Path.GetFileName(relativePathOrFileName));
+        if (File.Exists(poCandidate))
+        {
+            try
+            {
+                File.Delete(poCandidate);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not delete project PO document {Path}", poCandidate);
+            }
+        }
+
+        var candidate = Path.IsPathRooted(relativePathOrFileName)
+            ? relativePathOrFileName
+            : Path.Combine(_storageRoot, relativePathOrFileName);
+
+        if (File.Exists(candidate))
+        {
+            try
+            {
+                File.Delete(candidate);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not delete project document {Path}", candidate);
+            }
+        }
+
+        return false;
+    }
+
     private static FileStream OpenReadStream(string path) =>
         new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
 
     public (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string category, string fileName)
     {

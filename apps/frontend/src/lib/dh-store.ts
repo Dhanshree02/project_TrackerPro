@@ -13,7 +13,10 @@ import {
   type Client,
   type ClientSubVenture,
   type Project,
+  type Person,
   getPerson,
+  registerPeople as registerPeopleInDirectory,
+  hydrateKnownPeople,
   type TimesheetStatus,
   type TimesheetEntry,
   type CellCommentData,
@@ -631,6 +634,8 @@ interface DhState {
     string,
     { emIds: string[]; spmIds: string[]; pmIds: string[]; tlIds: string[] }
   >;
+  /** Cached id→person for API employees so leadership chips show names immediately. */
+  knownPeople: Record<string, Person>;
   timesheets: DhTimesheet[];
   approvals: DhCentralApproval[];
   onboardedResources: OnboardedResource[];
@@ -1481,6 +1486,7 @@ const state: DhState = {
   projectTeamRemovals: {},
   leadershipChangeRequests: [],
   leadershipAssignments: {},
+  knownPeople: {},
   timesheets: baseTimesheets.map((t) => ({
     ...t,
     comments: t.rejectionReason
@@ -2016,10 +2022,74 @@ state.notifications.forEach((n, idx) => {
   n.id = `NTF-${String(num).padStart(3, "0")}`;
 });
 
-// Initialise snapshot after state definition
+const PERSIST_KEY = "trackerpro_store_state_v2";
+
+function loadPersistedState() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(PERSIST_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data && typeof data === "object") {
+      if (Array.isArray(data.extraProjects)) state.extraProjects = data.extraProjects;
+      if (Array.isArray(data.extraClients)) state.extraClients = data.extraClients;
+      if (data.leadershipAssignments) state.leadershipAssignments = { ...state.leadershipAssignments, ...data.leadershipAssignments };
+      if (data.knownPeople && typeof data.knownPeople === "object") {
+        state.knownPeople = { ...state.knownPeople, ...data.knownPeople };
+        hydrateKnownPeople(state.knownPeople);
+      }
+      if (data.prereqs) state.prereqs = { ...state.prereqs, ...data.prereqs };
+      if (Array.isArray(data.invoices)) state.invoices = data.invoices;
+      if (Array.isArray(data.wbsDrafts)) state.wbsDrafts = data.wbsDrafts;
+      if (data.serviceAllocationRows) state.serviceAllocationRows = { ...state.serviceAllocationRows, ...data.serviceAllocationRows };
+      if (Array.isArray(data.extensionRequests)) state.extensionRequests = data.extensionRequests;
+      if (Array.isArray(data.issues)) state.issues = data.issues;
+      if (Array.isArray(data.alerts)) state.alerts = data.alerts;
+      if (Array.isArray(data.appreciations)) state.appreciations = data.appreciations;
+      if (Array.isArray(data.comments)) state.comments = data.comments;
+    }
+  } catch (err) {
+    console.warn("Failed to load persisted TrackerPro store state:", err);
+  }
+}
+
+let persistTimer: any = null;
+
+function persistState() {
+  if (typeof window === "undefined") return;
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    try {
+      const toSave = {
+        extraProjects: state.extraProjects,
+        extraClients: state.extraClients,
+        leadershipAssignments: state.leadershipAssignments,
+        knownPeople: state.knownPeople,
+        prereqs: state.prereqs,
+        invoices: state.invoices,
+        wbsDrafts: state.wbsDrafts,
+        serviceAllocationRows: state.serviceAllocationRows,
+        extensionRequests: state.extensionRequests,
+        issues: state.issues,
+        alerts: state.alerts,
+        appreciations: state.appreciations,
+        comments: state.comments,
+      };
+      window.localStorage.setItem(PERSIST_KEY, JSON.stringify(toSave));
+    } catch (err) {
+      console.warn("Failed to persist TrackerPro store state:", err);
+    }
+  }, 100);
+}
+
+// Hydrate state from localStorage on init
+loadPersistedState();
+
+// Initialise snapshot after state definition and hydration
 snapshot = { ...state };
 
 function emit() {
+  persistState();
   // Replace snapshot with a new shallow copy so useSyncExternalStore detects change
   snapshot = { ...state };
   listeners.forEach((l) => l());
@@ -2094,39 +2164,94 @@ function getFYStartForDate(dateIso: string): number {
   return month >= 3 ? d.getFullYear() : d.getFullYear() - 1;
 }
 
-// Next project sequential number → padded to 3 digits with "P" prefix e.g. "P001"
-// Global across ALL clients, resets each financial year (April 1).
-// Only counts projects that have an ASSIGNED wbsId in this FY — not all projects by startDate.
+// Formats a deterministic, consistent Customer ID e.g. C042, matching Customer 360 & WBS ID format
+export function formatCustomerId(id?: string | null): string {
+  if (!id) return "—";
+  const trimmed = id.trim();
+
+  // 1. If it already starts with CUST-, CL-, C-, or C followed by digits (e.g. C042, C42, CUST-042)
+  const cMatch = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(trimmed);
+  if (cMatch && cMatch[1]) {
+    return `C${cMatch[1].padStart(3, "0")}`;
+  }
+
+  if (/^c(\d+)$/i.test(trimmed)) {
+    const num = trimmed.slice(1);
+    return `C${num.padStart(3, "0")}`;
+  }
+
+  // 2. Look up position in allClients()
+  try {
+    const clientsList = allClients();
+    const idx = clientsList.findIndex((c) => c.id === trimmed);
+    if (idx >= 0) {
+      return `C${String(idx + 1).padStart(3, "0")}`;
+    }
+  } catch {
+    // fallback if store not yet initialized
+  }
+
+  // 3. If numeric string e.g. "42"
+  if (/^\d+$/.test(trimmed)) {
+    return `C${trimmed.padStart(3, "0")}`;
+  }
+
+  // 4. Fallback for raw GUIDs: deterministic 3-digit sequence
+  let hash = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    hash = ((hash << 5) - hash + trimmed.charCodeAt(i)) | 0;
+  }
+  const seq = (Math.abs(hash) % 900) + 1;
+  return `C${String(seq).padStart(3, "0")}`;
+}
+
+// Next project sequential number → padded to 3 digits with "P" prefix e.g. "P044", "P045"
+// Determines the next highest sequence number across all projects in the system.
 function getNextProjectSeqNum(): string {
-  const fyStartYear = getCurrentFYStart();
-  const fyPrefix = `IN-${fyStartYear}-${String(fyStartYear + 1).slice(-2)}-`;
-  // Count base projects with a wbsId belonging to this FY
-  const baseCount = baseProjects.filter((p) => p.wbsId?.startsWith(fyPrefix)).length;
-  // Count extra projects created this FY (they always get wbsId on creation)
-  const fyStart = getFYStartDate(fyStartYear);
-  const fyEnd = getFYStartDate(fyStartYear + 1);
-  const extraCount = state.extraProjects.filter((p) => {
-    const d = p.projectIssuedDate ?? p.startDate ?? "";
-    return d >= fyStart && d < fyEnd;
-  }).length;
-  return "P" + String(baseCount + extraCount + 1).padStart(3, "0");
+  const all = allProjects();
+  let maxNum = 0;
+  for (const p of all) {
+    const idMatch = /^p(\d+)$/i.exec(p.id);
+    if (idMatch && idMatch[1]) {
+      const num = parseInt(idMatch[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+    if (p.projectSeqId) {
+      const pSeqMatch = /^P(\d+)$/i.exec(p.projectSeqId);
+      if (pSeqMatch && pSeqMatch[1]) {
+        const num = parseInt(pSeqMatch[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+    if (p.wbsId) {
+      const wbsMatch = /-P(\d+)$/i.exec(p.wbsId);
+      if (wbsMatch && wbsMatch[1]) {
+        const num = parseInt(wbsMatch[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+  }
+  const nextNum = Math.max(maxNum + 1, all.length + 1);
+  return "P" + String(nextNum).padStart(3, "0");
 }
 
 // Build WBS ID: IN-YYYY-YY-CLIENTID-PROJECTID
-// e.g. IN-2026-27-C011-P005
+// e.g. IN-2026-27-C042-P045
 // - FY derived from today's date (April 1 boundary)
-// - ClientID = position of client in allClients() padded to 3 digits with "C" prefix
-// - ProjectID = global sequential count within this FY across all clients
-export function buildWbsId(clientId: string): string {
+// - ClientID = Formatted Customer ID e.g. C042, C011, C001
+// - ProjectID = Sequential Project ID e.g. P044, P045
+export function buildWbsId(clientId: string, projectSeqIdParam?: string): string {
   const fyStartYear = getCurrentFYStart();
   const fyEnd = String(fyStartYear + 1).slice(-2); // last 2 digits of next year
-  const clientIdx = allClients().findIndex((c) => c.id === clientId);
-  const paddedClientId = "C" + String(clientIdx + 1).padStart(3, "0");
-  const projSeq = getNextProjectSeqNum();
-  return `IN-${fyStartYear}-${fyEnd}-${paddedClientId}-${projSeq}`;
+  
+  const paddedClientId = formatCustomerId(clientId);
+  const safeCustCode = (paddedClientId && paddedClientId !== "—") ? paddedClientId : "C001";
+
+  const projSeq = projectSeqIdParam || getNextProjectSeqNum();
+  return `IN-${fyStartYear}-${fyEnd}-${safeCustCode}-${projSeq}`;
 }
 
-// Build the display Project ID: P001, P002… (FY-scoped)
+// Build the display Project ID: P044, P045… (system sequential)
 export function buildProjectDisplayId(): string {
   return getNextProjectSeqNum();
 }
@@ -2250,10 +2375,14 @@ export const dhStore = {
     sectionBComments?: string;
     subVenture?: string;
     renewedFromWbsId?: string;
+    renewedFromProjectId?: string;
+    isRenewal?: boolean;
+    wbsId?: string;
+    projectSeqId?: string;
   }) {
-    const id = uid("p");
-    const seqId = getNextProjectSeqNum();
-    const wbsAutoId = buildWbsId(input.clientId);
+    const id = input.id || uid("p");
+    const seqId = input.projectSeqId || getNextProjectSeqNum();
+    const wbsAutoId = input.wbsId || buildWbsId(input.clientId);
     const now = new Date().toISOString();
 
     // Auto-generate one task per WBS service row with real data
@@ -2312,6 +2441,8 @@ export const dhStore = {
       wbsId: wbsAutoId,
       subVenture: input.subVenture,
       renewedFromWbsId: input.renewedFromWbsId?.trim() || undefined,
+      renewedFromProjectId: input.renewedFromProjectId?.trim() || undefined,
+      isRenewal: Boolean(input.isRenewal || input.renewedFromWbsId?.trim() || input.renewedFromProjectId?.trim()),
     };
     state.extraProjects.push(p);
 
@@ -2808,10 +2939,21 @@ export const dhStore = {
     emit();
   },
   assignPMs(projectId: string, pmIds: string[], spmIds: string[]) {
+    if (!state.prereqs[projectId]) {
+      state.prereqs[projectId] = {
+        projectId,
+        validation: "Validation Pending",
+        collection: "NA",
+        assignedPmIds: [],
+        assignedSpmIds: [],
+        isProjectReadyToStart: false,
+        services: [],
+        auditTrail: [],
+      };
+    }
     const p = state.prereqs[projectId];
-    if (!p) return;
-    p.assignedPmIds = pmIds;
-    p.assignedSpmIds = spmIds;
+    p.assignedPmIds = [...pmIds];
+    p.assignedSpmIds = [...spmIds];
     p.acknowledgedByPmIds = [];
     p.acknowledgedBySpmIds = [];
     const existing = state.leadershipAssignments[projectId] ?? {
@@ -2828,6 +2970,35 @@ export const dhStore = {
         spmIds: [...spmIds],
       },
     };
+    emit();
+  },
+  /** Prefer this when assigning so chips get real names, not raw employee GUIDs. */
+  assignPMsWithPeople(
+    projectId: string,
+    pmIds: string[],
+    spmIds: string[],
+    people: Array<{ id: string; name: string; role?: string; avatar?: string; email?: string }>,
+  ) {
+    this.registerPeople(people);
+    this.assignPMs(projectId, pmIds, spmIds);
+  },
+  registerPeople(
+    people: Array<{ id: string; name: string; role?: string; avatar?: string; email?: string }>,
+  ) {
+    if (!people?.length) return;
+    registerPeopleInDirectory(people);
+    const next = { ...state.knownPeople };
+    let changed = false;
+    for (const e of people) {
+      if (!e?.id || !e?.name?.trim()) continue;
+      const resolved = getPerson(e.id);
+      if (!next[e.id] || next[e.id].name !== resolved.name) {
+        next[e.id] = resolved;
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    state.knownPeople = next;
     emit();
   },
   acknowledgePmAssignment(projectId: string, pmId: string) {
@@ -3721,65 +3892,152 @@ export const dhStore = {
     updatedById: string,
     updatedByName: string,
   ) {
-    const p = state.prereqs[projectId];
-    if (!p) return;
+    const currentPrereq = state.prereqs[projectId] || {
+      projectId,
+      validation: "Validation Pending",
+      collection: "Initiated",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+      services: [],
+      auditTrail: [],
+    };
 
-    if (!p.services) {
-      // No services seeded — initialize empty; new projects always get seeded
-      // from WBS services in addProject. Only legacy base projects fall here.
-      p.services = [];
+    const rawSvcs =
+      allProjects().find((x) => x.id === projectId)?.wbsDetails?.services ?? [];
+    let servicesList = currentPrereq.services ? [...currentPrereq.services] : [];
+
+    let svcIndex = servicesList.findIndex(
+      (s) => s.serviceId === serviceId || s.serviceName === serviceId,
+    );
+    let oldVal = "Advance Pending";
+
+    if (svcIndex === -1) {
+      const matched = rawSvcs.find(
+        (x: any, i: number) =>
+          (x.id ?? `svc-${i}`) === serviceId || x.serviceName === serviceId,
+      );
+      const isResourceDept = matched
+        ? DEPT_GROUPS[matched.department] === "Resource"
+        : false;
+      const newSvc: DhServicePrereq = {
+        serviceId,
+        serviceName: matched?.serviceName ?? matched?.department ?? serviceId,
+        collectionStatus: (isResourceDept ? "NA" : "Pending To Collect") as any,
+        validationStatus: (isResourceDept ? "NA" : "Pending To Validate") as any,
+        billingStatus: "Advance Pending" as const,
+        isReady: false,
+        [field]: value,
+      };
+      if (field === "collectionStatus" && value === "Pending To Collect") {
+        newSvc.validationStatus = "Pending To Validate";
+      }
+      servicesList.push(newSvc);
+    } else {
+      const existing = servicesList[svcIndex];
+      oldVal = (existing as any)[field] ?? "Advance Pending";
+      const updatedSvc = {
+        ...existing,
+        [field]: value,
+      };
+      if (field === "collectionStatus" && value === "Pending To Collect") {
+        updatedSvc.validationStatus = "Pending To Validate";
+      }
+      servicesList[svcIndex] = updatedSvc;
     }
 
-    const svc = p.services.find((s) => s.serviceId === serviceId);
-    if (!svc) return;
-
-    const oldVal = svc[field];
-    (svc as any)[field] = value;
-
-    // Automatically disable validation dropdown and set status to "Pending To Validate" if collection is Pending To Collect
-    if (field === "collectionStatus" && value === "Pending To Collect") {
-      svc.validationStatus = "Pending To Validate";
-    }
-
-    // Push audit entry
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10);
     const timeStr = now.toTimeString().slice(0, 8);
 
-    if (!p.auditTrail) p.auditTrail = [];
-    p.auditTrail.unshift({
-      id: uid("aud"),
-      fieldChanged:
-        field === "collectionStatus"
-          ? "Collection Status"
-          : field === "validationStatus"
-            ? "Validation Status"
-            : "Billing Status",
-      updatedBy: updatedById,
-      updatedByName,
-      date: dateStr,
-      time: timeStr,
-      oldStatus: oldVal ?? "Advance Pending",
-      newStatus: value,
-    });
+    const auditTrail = [
+      {
+        id: uid("aud"),
+        fieldChanged:
+          field === "collectionStatus"
+            ? ("Collection Status" as const)
+            : field === "validationStatus"
+              ? ("Validation Status" as const)
+              : ("Billing Status" as const),
+        updatedBy: updatedById,
+        updatedByName,
+        date: dateStr,
+        time: timeStr,
+        oldStatus: oldVal,
+        newStatus: value,
+      },
+      ...(currentPrereq.auditTrail || []),
+    ];
 
-    // Auto-calculate project level prerequisite validation and collection status
-    const allCollected = p.services.every((s) => s.collectionStatus === "Collected");
-    const allValidated = p.services.every((s) => s.validationStatus === "Validated");
+    const allCollected = servicesList.every(
+      (s) => s.collectionStatus === "Collected" || s.collectionStatus === "NA",
+    );
+    const allValidated = servicesList.every(
+      (s) => s.validationStatus === "Validated" || s.validationStatus === "NA",
+    );
 
-    p.collection = allCollected ? "Received" : "Initiated";
-    p.validation = allValidated ? "Validated" : "Validation Pending";
+    state.prereqs = {
+      ...state.prereqs,
+      [projectId]: {
+        ...currentPrereq,
+        services: servicesList,
+        auditTrail,
+        collection: allCollected ? "Received" : "Initiated",
+        validation: allValidated ? "Validated" : "Validation Pending",
+      },
+    };
 
     emit();
   },
 
   setServicePrereqReady(projectId: string, serviceId: string, isReady: boolean) {
-    const p = state.prereqs[projectId];
-    if (!p) return;
-    if (!p.services) p.services = [];
-    const svc = p.services.find((s) => s.serviceId === serviceId);
-    if (!svc) return;
-    svc.isReady = isReady;
+    const currentPrereq = state.prereqs[projectId] || {
+      projectId,
+      validation: "Validation Pending",
+      collection: "Initiated",
+      assignedPmIds: [],
+      assignedSpmIds: [],
+      services: [],
+      auditTrail: [],
+    };
+
+    const rawSvcs =
+      allProjects().find((x) => x.id === projectId)?.wbsDetails?.services ?? [];
+    let servicesList = currentPrereq.services ? [...currentPrereq.services] : [];
+    let svcIndex = servicesList.findIndex(
+      (s) => s.serviceId === serviceId || s.serviceName === serviceId,
+    );
+
+    if (svcIndex === -1) {
+      const matched = rawSvcs.find(
+        (x: any, i: number) =>
+          (x.id ?? `svc-${i}`) === serviceId || x.serviceName === serviceId,
+      );
+      const isResourceDept = matched
+        ? DEPT_GROUPS[matched.department] === "Resource"
+        : false;
+      servicesList.push({
+        serviceId,
+        serviceName: matched?.serviceName ?? matched?.department ?? serviceId,
+        collectionStatus: (isResourceDept ? "NA" : "Collected") as any,
+        validationStatus: (isResourceDept ? "NA" : "Validated") as any,
+        billingStatus: "Advance Received" as const,
+        isReady,
+      });
+    } else {
+      servicesList[svcIndex] = {
+        ...servicesList[svcIndex],
+        isReady,
+      };
+    }
+
+    state.prereqs = {
+      ...state.prereqs,
+      [projectId]: {
+        ...currentPrereq,
+        services: servicesList,
+      },
+    };
+
     emit();
   },
 
@@ -3861,7 +4119,21 @@ export const dhStore = {
     return appId;
   },
 
-  updateLeadershipAssignment(projectId: string, role: LeadershipRole, ids: string[]) {
+  updateLeadershipAssignment(
+    projectId: string,
+    role: LeadershipRole,
+    ids: string[],
+    people?: Array<{ id: string; name: string; role?: string; avatar?: string; email?: string }>,
+  ) {
+    if (people?.length) {
+      registerPeopleInDirectory(people);
+      const nextKnown = { ...state.knownPeople };
+      for (const e of people) {
+        if (!e?.id || !e?.name?.trim()) continue;
+        nextKnown[e.id] = getPerson(e.id);
+      }
+      state.knownPeople = nextKnown;
+    }
     const existing = state.leadershipAssignments[projectId] ?? {
       emIds: [],
       spmIds: [],
@@ -3880,6 +4152,25 @@ export const dhStore = {
         ...(role === "Team Lead" ? { tlIds: ids } : {}),
       },
     };
+    // Keep state.prereqs synced as well
+    if (role === "Project Manager" || role === "Senior Project Manager" || role === "Team Lead") {
+      if (!state.prereqs[projectId]) {
+        state.prereqs[projectId] = {
+          projectId,
+          validation: "Validation Pending",
+          collection: "NA",
+          assignedPmIds: [],
+          assignedSpmIds: [],
+          isProjectReadyToStart: false,
+          services: [],
+          auditTrail: [],
+        };
+      }
+      const p = state.prereqs[projectId];
+      if (role === "Project Manager") p.assignedPmIds = [...ids];
+      if (role === "Senior Project Manager") p.assignedSpmIds = [...ids];
+      if (role === "Team Lead") p.assignedTlIds = [...ids];
+    }
     emit();
   },
 
@@ -4310,15 +4601,89 @@ export const dhStore = {
     emit();
   },
 
+  syncProjectInvoices(projectId: string, invoices: any[]) {
+    if (!invoices || !Array.isArray(invoices)) return;
+
+    const existingMap = new Map(
+      state.invoices.filter((i) => i.projectId === projectId).map((i) => [i.id, i]),
+    );
+
+    const mergedInvoices: DhInvoice[] = invoices.map((inv: any, idx: number) => {
+      const existing = existingMap.get(inv.id);
+      const isRaised =
+        existing?.invoiceStatus === "Raised" ||
+        inv.invoiceStatus === "Raised" ||
+        inv.status === "Raised";
+      const isPaid =
+        existing?.paymentStatus === "Received" ||
+        inv.paymentStatus === "Received" ||
+        inv.status === "Paid" ||
+        Boolean(inv.paymentDate || inv.paymentReceivedDate);
+
+      return {
+        id: inv.id || `${projectId}-inv-${idx}`,
+        projectId,
+        milestone: inv.milestone || inv.milestoneName || `Milestone ${idx + 1}`,
+        invoiceTargetDate:
+          existing?.invoiceTargetDate ||
+          inv.invoiceTargetDate ||
+          inv.targetDate ||
+          inv.invoiceDate ||
+          "",
+        unitPrice: inv.unitPrice || inv.amount || 0,
+        qty: inv.qty || 1,
+        currency: inv.currency || "INR",
+        invoiceAmount: inv.invoiceAmount || inv.amount || 0,
+        invoiceStatus: isRaised ? "Raised" : "Not Raised",
+        invoiceNumber: existing?.invoiceNumber || inv.invoiceNumber || "",
+        paymentStatus: isPaid ? "Received" : "Not Received",
+        paymentReceivedDate:
+          existing?.paymentReceivedDate || inv.paymentReceivedDate || inv.paymentDate || "",
+        raisedBy: existing?.raisedBy || (isRaised ? "Dhanshree" : undefined),
+        raisedDate:
+          existing?.raisedDate ||
+          inv.raisedDate ||
+          (isRaised ? inv.targetDate || inv.invoiceDate : undefined),
+        paymentReceivedBy:
+          existing?.paymentReceivedBy || (isPaid ? "Accounts" : undefined),
+        serviceId: inv.serviceId,
+        serviceName: inv.serviceName,
+        resourceLevel: inv.resourceLevel,
+      };
+    });
+
+    state.invoices = [
+      ...state.invoices.filter((i) => i.projectId !== projectId),
+      ...mergedInvoices,
+    ];
+    emit();
+  },
+
+  updateInvoiceTargetDate(projectId: string, invoiceId: string, targetDate: string) {
+    state.invoices = state.invoices.map((i) =>
+      i.id === invoiceId ? { ...i, invoiceTargetDate: targetDate } : i,
+    );
+    patchProjectWbsInvoice(projectId, invoiceId, { targetDate, invoiceDate: targetDate });
+    emit();
+  },
+
   updatePaymentReceivedDate(projectId: string, invoiceId: string, date: string) {
     const inv = state.invoices.find((i) => i.id === invoiceId);
     if (!inv) return;
-    if (inv.invoiceStatus !== "Raised" || inv.paymentStatus !== "Received") return;
+
+    const paymentStatus = date.trim() ? "Received" : "Not Received";
 
     state.invoices = state.invoices.map((i) =>
-      i.id === invoiceId ? { ...i, paymentReceivedDate: date } : i,
+      i.id === invoiceId
+        ? {
+            ...i,
+            paymentReceivedDate: date,
+            paymentStatus,
+            paymentReceivedBy: date.trim() ? "Accounts" : undefined,
+          }
+        : i,
     );
-    patchProjectWbsInvoice(projectId, invoiceId, { paymentDate: date });
+    patchProjectWbsInvoice(projectId, invoiceId, { paymentDate: date, paymentStatus });
     emit();
   },
 
