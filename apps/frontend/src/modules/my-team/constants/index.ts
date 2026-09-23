@@ -80,7 +80,7 @@ export const shiftKeyMap: Record<string, ShiftType> = {
 };
 
 /** Name column width. Day columns use this as a minimum and grow with the window. */
-export const CALENDAR_NAME_COL_PX = 228;
+export const CALENDAR_NAME_COL_PX = 240;
 export const CALENDAR_DAY_COL_PX = 40;
 export const CALENDAR_END_PAD_PX = 12;
 export const CALENDAR_ROW_PX = 72;

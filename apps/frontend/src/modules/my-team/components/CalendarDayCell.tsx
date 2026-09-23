@@ -28,10 +28,14 @@ interface CalendarDayCellProps {
   isOpen: boolean;
   isFocused: boolean;
   isPast: boolean;
-  /** This date has been declared a company holiday — not user-editable */
+  /** This date has been declared a holiday for this employee */
   isHoliday: boolean;
   /** Name of the holiday to show on hover */
   holidayName?: string;
+  /** Optional comment or reason for this employee's holiday */
+  holidayComment?: string;
+  /** Whether this day is a weekly off according to employee's working days */
+  isWeeklyOff?: boolean;
   isToday?: boolean;
   isLastRow?: boolean;
   weekRangeLabel: string;
@@ -48,15 +52,26 @@ function buildTooltip(args: {
   date: Date;
   isHoliday: boolean;
   holidayName?: string;
+  holidayComment?: string;
   isPast: boolean;
+  isWeeklyOff?: boolean;
   attendanceLabel?: string;
   shift?: ShiftType;
 }): string {
   const dmy = formatDateDMY(args.date);
-  if (args.isHoliday && args.holidayName) return `Holiday: ${args.holidayName} · ${dmy}`;
+  if (args.isHoliday && args.holidayName) {
+    const commentPart = args.holidayComment ? ` (${args.holidayComment})` : "";
+    return `Holiday: ${args.holidayName}${commentPart} · ${dmy}`;
+  }
 
   const shiftLabel = `${args.shift ?? DEFAULT_SHIFT} (${shiftMeta[args.shift ?? DEFAULT_SHIFT].hours})`;
-  const attendance = args.attendanceLabel ?? (args.isPast ? "Unmarked" : "Available to schedule");
+  const attendance =
+    args.attendanceLabel ??
+    (args.isPast
+      ? "Unmarked"
+      : args.isWeeklyOff
+        ? "Weekly Off"
+        : "Available to schedule");
 
   if (args.isPast && !args.attendanceLabel && !args.shift) {
     return `Past date (Read only) · ${dmy}`;
@@ -75,6 +90,8 @@ export function CalendarDayCell({
   isPast,
   isHoliday,
   holidayName,
+  holidayComment,
+  isWeeklyOff,
   isToday = false,
   isLastRow = false,
   weekRangeLabel,
@@ -87,11 +104,14 @@ export function CalendarDayCell({
 }: CalendarDayCellProps) {
   const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-  const event = getEventByDate(schedule, memberId, date);
-  const attendanceType = event?.type;
+  const isWeekend = isWeeklyOff !== undefined ? isWeeklyOff : isWeekendDate(date);
+  const event = getEventByDate(schedule, memberId, date, isWeekend);
+  const rawAttendanceType = event?.type;
+  // Holidays do not have colored circles; only weekly off (yellow~orange) or explicit attendance have circles.
+  const attendanceType =
+    isHoliday || rawAttendanceType === "holiday" ? undefined : rawAttendanceType;
   const displayShift = event?.shift ?? DEFAULT_SHIFT;
   const isLocked = isPast || isHoliday;
-  const isWeekend = isWeekendDate(date);
 
   const attendanceLabel = attendanceType
     ? event?.title ?? attendanceMeta[attendanceType].label
@@ -102,7 +122,9 @@ export function CalendarDayCell({
     date,
     isHoliday,
     holidayName,
+    holidayComment,
     isPast,
+    isWeeklyOff: isWeekend,
     attendanceLabel,
     shift: displayShift,
   });
@@ -128,7 +150,7 @@ export function CalendarDayCell({
               : isPast
                 ? "bg-[#ebedf3] dark:bg-slate-800/70"
                 : isHoliday
-                  ? "bg-[#f4f9e8] dark:bg-[#202713]"
+                  ? "bg-[#f1f3f8] dark:bg-slate-800/50"
                   : isWeekend
                     ? "bg-[#f3f4f7] dark:bg-slate-800/40"
                     : "bg-white dark:bg-slate-900"
@@ -152,13 +174,15 @@ export function CalendarDayCell({
                   ? "ring-2 ring-[#5a49b8]/50 ring-offset-1"
                   : "focus:ring-2 focus:ring-[#5a49b8]/40"
               } ${
-                isLocked
-                  ? "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 opacity-70"
-                  : attendanceType
-                    ? "text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)]"
-                    : isToday
-                      ? "text-primary font-bold cursor-pointer"
-                      : "text-[#1e293b] dark:text-slate-100 font-bold cursor-pointer"
+                isHoliday
+                  ? "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 font-semibold"
+                  : isLocked
+                    ? "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 opacity-70"
+                    : attendanceType
+                      ? "text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)] font-bold"
+                      : isToday
+                        ? "text-primary font-bold cursor-pointer"
+                        : "text-[#1e293b] dark:text-slate-100 font-bold cursor-pointer"
               }`}
               style={
                 attendanceType

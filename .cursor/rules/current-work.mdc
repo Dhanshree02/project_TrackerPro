@@ -5,9 +5,11 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-23
 
 ## Latest
+
+- **My Team calendar is stored in Postgres.** Employees appear only when they have an Engagement Manager (`employees."EngagementManagerEmployeeId"`), a Manager (`ReportingManagerId`), and a PM (`ProjectManagerId`), and the signed-in user is one of those three. New tables: `team_day_entries` (attendance + shift per day), `team_member_schedules` (working days + notes), `team_member_holidays`. API: `GET /api/v1/my-team/calendar`, `PUT /api/v1/my-team/days`, `PUT /api/v1/my-team/members/{id}/schedule`. The Team Dashboard loads and saves through that API. Timesheets are unchanged. Migration `20260923120000_AddTeamSchedule` is applied on the Docker `trackerpro` database, and the `pms_backend` image was rebuilt so port 5194 serves the new routes. `apps/backend/.env` still points at `localhost:5433`, which is not the running Postgres — `dotnet run` from that folder will miss this database until that connection string matches `127.0.0.1:5432` / `trackerpro`.
 
 - **Last day of the month has 12px trailing padding** so it does not sit flush on the calendar edge. Today column uses primary blue (`bg-primary/15`).
 - **Team calendar cells: shift chips sit below the day, not on the attendance bar.** Sequence pills only join days with the same attendance type (Friday leave no longer melts into Sat/Sun weekly off). Shift is a small `M`/`A`/`N`/`G` badge under the number.

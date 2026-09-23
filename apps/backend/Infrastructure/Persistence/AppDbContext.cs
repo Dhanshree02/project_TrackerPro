@@ -3,6 +3,7 @@ using PMS.API.Infrastructure.Authorization;
 using PMS.API.Shared.Common.Models;
 using PMS.API.Modules.Auth.Models;
 using PMS.API.Modules.Customers.Models;
+using PMS.API.Modules.MyTeam.Models;
 using PMS.API.Modules.Repository.Models;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
@@ -78,6 +79,12 @@ public class AppDbContext(
     public DbSet<RepositoryActivityLog> RepositoryActivityLogs => Set<RepositoryActivityLog>();
 
     public DbSet<RepositoryDepartment> RepositoryDepartments => Set<RepositoryDepartment>();
+
+    public DbSet<TeamDayEntry> TeamDayEntries => Set<TeamDayEntry>();
+
+    public DbSet<TeamMemberSchedule> TeamMemberSchedules => Set<TeamMemberSchedule>();
+
+    public DbSet<TeamMemberHoliday> TeamMemberHolidays => Set<TeamMemberHoliday>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

@@ -233,6 +233,19 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
             .HasForeignKey(x => x.ReportingManagerId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(x => x.EngagementManagerEmployee)
+            .WithMany()
+            .HasForeignKey(x => x.EngagementManagerEmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ProjectManager)
+            .WithMany()
+            .HasForeignKey(x => x.ProjectManagerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.EngagementManagerEmployeeId);
+        builder.HasIndex(x => x.ProjectManagerId);
+
         builder.HasOne(x => x.EmployeeStatus)
             .WithMany()
             .HasForeignKey(x => x.EmployeeStatusId)

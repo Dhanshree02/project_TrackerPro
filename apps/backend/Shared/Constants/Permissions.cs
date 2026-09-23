@@ -37,6 +37,9 @@ public static class Permissions
     // ---- Approvals ----
     public const string ApprovalsManage = "approvals:manage";
 
+    // ---- My Team ----
+    public const string MyTeamDashboardView = "my-team.dashboard.view";
+
     // ---- Resources ----
     public const string ResourcesRead = "resources:read";
     public const string ResourcesManage = "resources:manage";

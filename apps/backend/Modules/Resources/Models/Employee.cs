@@ -28,6 +28,12 @@ public class Employee : BaseEntity
     public string? Role { get; set; }
     public Guid? JobRoleId { get; set; }
     public Guid? ReportingManagerId { get; set; }
+
+    /// <summary>This person's Engagement Manager. Not the customer EM on clients.</summary>
+    public Guid? EngagementManagerEmployeeId { get; set; }
+
+    /// <summary>This person's Project Manager.</summary>
+    public Guid? ProjectManagerId { get; set; }
     public string? BusinessUnit { get; set; }
     public string? WorkLocation { get; set; }
     public string? OfficeBranch { get; set; }
@@ -100,4 +106,8 @@ public class Employee : BaseEntity
     public MstSalaryBand? SalaryBandRef { get; set; }
     public MstEmployeeStatus? EmployeeStatus { get; set; }
     public Employee? ReportingManager { get; set; }
+
+    public Employee? EngagementManagerEmployee { get; set; }
+
+    public Employee? ProjectManager { get; set; }
 }

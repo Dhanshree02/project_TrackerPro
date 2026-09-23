@@ -149,7 +149,17 @@ export function getAutomaticWeeklyOff(
   schedule: TeamSchedule,
   memberId: string,
   date: Date,
+  isWeeklyOffDay?: boolean,
 ): CalendarEvent | undefined {
+  if (isWeeklyOffDay !== undefined) {
+    if (!isWeeklyOffDay) return undefined;
+    return {
+      type: "weeklyOff",
+      title: attendanceMeta.weeklyOff.label,
+      sequenceId: `off-${memberId}-${makeDateKeyFromDate(date)}`,
+    };
+  }
+
   const weekday = date.getDay();
   if (weekday !== 0 && weekday !== 6) return undefined;
 
@@ -179,15 +189,16 @@ export function getAutomaticWeeklyOff(
 /**
  * Returns the calendar event for a member on a given date.
  * Explicit attendance wins; a shift-only weekday stays shift-only;
- * weekends still pick up auto Weekly Off when attendance is unset.
+ * weekly offs pick up auto Weekly Off when attendance is unset.
  */
 export function getEventByDate(
   schedule: TeamSchedule,
   memberId: string,
   date: Date,
+  isWeeklyOffDay?: boolean,
 ): CalendarEvent | undefined {
   const explicitEvent = getExplicitEvent(schedule, memberId, date);
-  const weeklyOff = getAutomaticWeeklyOff(schedule, memberId, date);
+  const weeklyOff = getAutomaticWeeklyOff(schedule, memberId, date, isWeeklyOffDay);
   if (!explicitEvent) return weeklyOff;
   if (!weeklyOff) return explicitEvent;
   return {
