@@ -1,6 +1,6 @@
 // ─── My Team — Presence & Availability Card (Minimal & Interactive) ───────────
 
-import { Building2, CalendarOff, Home, UserCheck } from "lucide-react";
+import { Building2, CalendarOff, Home, MapPin, UserCheck } from "lucide-react";
 import type { TeamMember } from "../types";
 import {
   Tooltip,
@@ -11,13 +11,14 @@ import {
 
 export type ActiveFilter =
   | { kind: "all" }
-  | { kind: "presence"; status: "onsite" | "wfh" | "leave" }
+  | { kind: "presence"; status: "onsite" | "offsite" | "wfh" | "leave" }
   | { kind: "shift"; shift: string };
 
 interface PresenceCardProps {
   totalMembers: number;
   activeMembers: TeamMember[];
   onsiteMembers: TeamMember[];
+  offsiteMembers: TeamMember[];
   wfhMembers: TeamMember[];
   onLeaveMembers: TeamMember[];
   activeFilter: ActiveFilter;
@@ -28,6 +29,7 @@ export function PresenceCard({
   totalMembers,
   activeMembers,
   onsiteMembers,
+  offsiteMembers,
   wfhMembers,
   onLeaveMembers,
   activeFilter,
@@ -39,7 +41,7 @@ export function PresenceCard({
       ? Math.round((activeMembers.length / totalMembers) * 100)
       : 0;
 
-  const handleToggle = (status: "onsite" | "wfh" | "leave") => {
+  const handleToggle = (status: "onsite" | "offsite" | "wfh" | "leave") => {
     if (isPresentActive && activeFilter.status === status) {
       onSelectFilter({ kind: "all" });
     } else {
@@ -132,7 +134,7 @@ export function PresenceCard({
                 }`}
               >
                 <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#8b75c8]/20 text-[#8b75c8]">
-                  <Building2 className="h-2.5 w-2.5" />
+                  <MapPin className="h-2.5 w-2.5" />
                 </span>
                 <span>Onsite</span>
                 <span
@@ -147,6 +149,36 @@ export function PresenceCard({
               </button>
             </TooltipTrigger>
             {renderTooltipContent("Onsite Today", onsiteMembers)}
+          </Tooltip>
+
+          {/* Offsite Pill */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => handleToggle("offsite")}
+                className={`group flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                  isPresentActive && activeFilter.status === "offsite"
+                    ? "bg-[#6366f1]/20 text-[#4338ca] ring-2 ring-[#6366f1]/50 shadow-xs dark:bg-[#6366f1]/30 dark:text-indigo-200"
+                    : "bg-black/[0.03] text-foreground hover:bg-black/[0.06] dark:bg-white/[0.05] dark:hover:bg-white/[0.1]"
+                }`}
+              >
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#6366f1]/20 text-[#6366f1]">
+                  <Building2 className="h-2.5 w-2.5" />
+                </span>
+                <span>Offsite</span>
+                <span
+                  className={`rounded-md px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums ${
+                    isPresentActive && activeFilter.status === "offsite"
+                      ? "bg-[#6366f1] text-white"
+                      : "bg-black/[0.06] text-foreground dark:bg-white/[0.1]"
+                  }`}
+                >
+                  {offsiteMembers.length}
+                </span>
+              </button>
+            </TooltipTrigger>
+            {renderTooltipContent("Offsite Today", offsiteMembers)}
           </Tooltip>
 
           {/* WFH Pill */}

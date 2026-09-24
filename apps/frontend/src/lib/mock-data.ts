@@ -9,7 +9,34 @@ export type Role =
   | "pm"
   | "hr"
   | "accounts_finance"
-  | "sales_bd";
+  | "sales_bd"
+  | "CEO"
+  | "COO"
+  | "CTO"
+  | "IT Admin"
+  | "Accounts"
+  | "HR"
+  | "Sales Manager"
+  | "Sales team member"
+  | "PMO"
+  | "EngagementManager"
+  | "Intern"
+  | "Testing HOD"
+  | "Testing Senior Manager"
+  | "Testing-Manager"
+  | "Testing-Team Leader"
+  | "Testing-Team Member"
+  | "Consulting-HOD"
+  | "Consulting-Senior Manager"
+  | "Consulting-Manager"
+  | "Consulting-Team Leader"
+  | "Consulting-Team member"
+  | "SOC-HOD"
+  | "SOC-Senior Manager"
+  | "SOC-Manager"
+  | "SOC-Team Leader"
+  | "SOC-Team Member"
+  | "R&D - Team member";
 
 export type ProjectStatus = "ongoing" | "completed" | "on_hold" | "archived";
 export type HealthStatus = "green" | "amber" | "red";
@@ -600,19 +627,48 @@ export const clients: Client[] = [
   },
 ];
 
-// Senior PM (u1) is assigned c1, c2, c3. EM (u2) is assigned c2, c4, c5. PMO (u11) sees everything.
+const allClientsList = ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"];
+
+// Client assignments per role
 export const assignments: Record<Role, string[]> = {
+  CEO: allClientsList,
+  COO: allClientsList,
+  CTO: allClientsList,
+  "IT Admin": allClientsList,
+  Accounts: allClientsList,
+  HR: allClientsList,
+  "Sales Manager": allClientsList,
+  "Sales team member": allClientsList,
+  PMO: allClientsList,
+  EngagementManager: ["c2", "c4", "c5", "c6"],
+  Intern: [],
+  "Testing HOD": allClientsList,
+  "Testing Senior Manager": ["c1", "c2", "c3"],
+  "Testing-Manager": ["c1", "c2", "c3"],
+  "Testing-Team Leader": ["c1", "c2", "c3"],
+  "Testing-Team Member": [],
+  "Consulting-HOD": allClientsList,
+  "Consulting-Senior Manager": ["c1", "c2", "c3"],
+  "Consulting-Manager": ["c1", "c2", "c3"],
+  "Consulting-Team Leader": ["c1", "c2", "c3"],
+  "Consulting-Team member": [],
+  "SOC-HOD": allClientsList,
+  "SOC-Senior Manager": ["c1", "c2", "c3"],
+  "SOC-Manager": ["c1", "c2", "c3"],
+  "SOC-Team Leader": ["c1", "c2", "c3"],
+  "SOC-Team Member": [],
+  "R&D - Team member": [],
   senior_pm: ["c1", "c2", "c3"],
   engagement_manager: ["c2", "c4", "c5", "c6"],
-  pmo: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
-  hod: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
-  business_owner: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
-  dhanshree: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
+  pmo: allClientsList,
+  hod: allClientsList,
+  business_owner: allClientsList,
+  dhanshree: allClientsList,
   employee: [],
   pm: ["c1", "c2", "c3"],
-  hr: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
-  accounts_finance: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
-  sales_bd: ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"],
+  hr: allClientsList,
+  accounts_finance: allClientsList,
+  sales_bd: allClientsList,
 };
 
 // PM "buckets" — capacity tracking

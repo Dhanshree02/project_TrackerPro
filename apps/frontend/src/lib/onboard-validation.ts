@@ -99,6 +99,7 @@ export type OnboardField =
   | "departmentId"
   | "designationId"
   | "jobRoleId"
+  | "role"
   | "businessUnit"
   | "team"
   | "projectSite"
@@ -178,6 +179,7 @@ export const EMPTY_ONBOARD: OnboardValues = {
   departmentId: "",
   designationId: "",
   jobRoleId: "",
+  role: "",
   businessUnit: "Talakunchi Networks Private Limited",
   team: "",
   projectSite: "",
@@ -248,6 +250,7 @@ export const ONBOARD_FIELDS: OnboardField[] = [
   "departmentId",
   "designationId",
   "jobRoleId",
+  "role",
   "reportingManagerId",
   "workLocation",
   "joiningDate",
@@ -475,6 +478,7 @@ export function validateOnboardField(
       return undefined;
     }
     case "jobRoleId":
+    case "role":
       return undefined;
     case "workEmail": {
       const v = (values.workEmail || "").trim();
@@ -831,6 +835,7 @@ export function employeeToOnboardValues(emp: Employee): OnboardValues {
     departmentId: emp.departmentId || "",
     designationId: emp.designationId || "",
     jobRoleId: emp.jobRoleId || "",
+    role: emp.role || "",
     businessUnit: emp.businessUnit || "Talakunchi Networks Private Limited",
     team: emp.team || "",
     projectSite: emp.projectSite || "",

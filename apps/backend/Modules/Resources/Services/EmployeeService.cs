@@ -291,6 +291,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 CreatedAtUtc = DateTime.UtcNow
             });
             await db.SaveChangesAsync(ct);
+            await SyncLinkedUserAsync(entity, ct);
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
@@ -770,6 +771,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 CreatedAtUtc = DateTime.UtcNow
             });
             await db.SaveChangesAsync(ct);
+            await SyncLinkedUserAsync(entity, ct);
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
@@ -931,7 +933,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         return await query
             .OrderBy(d => d.Name)
-            .Select(d => new MetaOptionDto(d.Id, d.Code, d.Name, d.DepartmentId))
+            .Select(d => new MetaOptionDto(d.Id, d.Code, d.Name, d.DepartmentId, d.DefaultRoleId))
             .ToListAsync(ct);
     }
 
@@ -1175,6 +1177,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
     public async Task<MetaOptionDto> CreateDesignationAsync(
         string name,
         Guid departmentId,
+        Guid? defaultRoleId = null,
         CancellationToken ct = default)
     {
         var trimmed = RequireName(name);
@@ -1184,7 +1187,14 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         var existing = await db.Designations.FirstOrDefaultAsync(
             d => d.DepartmentId == departmentId && d.Name == trimmed, ct);
         if (existing is not null)
-            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.DepartmentId);
+        {
+            if (defaultRoleId.HasValue && existing.DefaultRoleId != defaultRoleId)
+            {
+                existing.DefaultRoleId = defaultRoleId;
+                await db.SaveChangesAsync(ct);
+            }
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.DepartmentId, existing.DefaultRoleId);
+        }
 
         var entity = new MstDesignation
         {
@@ -1193,11 +1203,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 c => db.Designations.AnyAsync(d => d.Code == c, ct)),
             Name = trimmed,
             DepartmentId = departmentId,
+            DefaultRoleId = defaultRoleId,
             IsActive = true,
         };
         db.Designations.Add(entity);
         await db.SaveChangesAsync(ct);
-        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DepartmentId);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DepartmentId, entity.DefaultRoleId);
     }
 
     public async Task<MetaOptionDto> CreateJobRoleAsync(
@@ -1421,16 +1432,66 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             entity.NationalityId = await ResolveNationalityIdAsync(entity.Nationality, ct);
         }
 
-        if (entity.JobRoleId is Guid roleId)
+        if (entity.DesignationId is Guid desigId)
         {
-            var role = await db.JobRoles.FirstOrDefaultAsync(r => r.Id == roleId, ct);
-            if (role is not null) entity.Role = role.Name;
+            var desig = await db.Designations.Include(d => d.DefaultRole).FirstOrDefaultAsync(d => d.Id == desigId, ct);
+            if (desig?.DefaultRole is not null && (string.IsNullOrWhiteSpace(entity.Role) || entity.Role == "Employee" || entity.Role == desig.Name))
+            {
+                entity.Role = desig.DefaultRole.Name;
+            }
         }
 
         if (entity.SalaryBandId is Guid bandId)
         {
             var band = await db.SalaryBands.FirstOrDefaultAsync(b => b.Id == bandId, ct);
             if (band is not null) entity.SalaryBand = band.Name;
+        }
+    }
+
+    private async Task SyncLinkedUserAsync(Employee entity, CancellationToken ct)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.Email == entity.WorkEmail || u.EmployeeId == entity.EmployeeCode, ct);
+        if (user is null) return;
+
+        bool updated = false;
+
+        string? deptName = entity.Department?.Name;
+        if (deptName is null && entity.DepartmentId is Guid deptId)
+        {
+            var dept = await db.Departments.FirstOrDefaultAsync(d => d.Id == deptId, ct);
+            deptName = dept?.Name;
+        }
+
+        string? desigName = entity.Designation?.Name;
+        if (desigName is null && entity.DesignationId is Guid desigId)
+        {
+            var desig = await db.Designations.FirstOrDefaultAsync(d => d.Id == desigId, ct);
+            desigName = desig?.Name;
+        }
+
+        if (!string.IsNullOrWhiteSpace(deptName) && user.Department != deptName)
+        {
+            user.Department = deptName;
+            updated = true;
+        }
+        if (!string.IsNullOrWhiteSpace(desigName) && user.Designation != desigName)
+        {
+            user.Designation = desigName;
+            updated = true;
+        }
+        if (!string.IsNullOrWhiteSpace(entity.Role))
+        {
+            var rbacRole = await db.Roles.FirstOrDefaultAsync(r => r.Name == entity.Role, ct);
+            if (rbacRole is not null && user.RoleId != rbacRole.Id)
+            {
+                user.RoleId = rbacRole.Id;
+                updated = true;
+            }
+        }
+        if (updated)
+        {
+            await db.SaveChangesAsync(ct);
         }
     }
 

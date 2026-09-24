@@ -53,85 +53,92 @@ public static class DbSeeder
 
     // ---------- Roles ----------
 
+    private record RoleDef(string Key, string DisplayName, string Description);
+
+    private static readonly RoleDef[] SystemRoles =
+    [
+        new("CEO", "Chief Executive Officer", "Global executive visibility, business analytics, all approvals."),
+        new("COO", "Chief Operating Officer", "Operational oversight across all departments and projects."),
+        new("CTO", "Chief Technology Officer", "Technical architecture, R&D governance, engineering oversight."),
+        new("IT Admin", "IT Administrator", "IT infrastructure, corporate email domains, device & user setup."),
+        new("Accounts", "Accounts & Finance", "Invoicing schedule, milestone payments, PO tracking, financial reports."),
+        new("HR", "Human Resources", "Employee directory, onboarding/offboarding, skills, KPI/rating tabs."),
+        new("Sales Manager", "Sales Manager", "Customer onboarding, client management, proposal drafting, pipeline."),
+        new("Sales team member", "Sales Team Member", "Proposal drafting, pipeline viewing, sales reports."),
+        new("PMO", "Project Management Office", "Global governance, WBS allocation, timesheet monitoring, approvals."),
+        new("EngagementManager", "Engagement Manager (EM)", "Customer relationship, client project overview, health & escalations."),
+        new("Intern", "Intern", "Read-only training access to assigned tasks and document repository."),
+        new("Testing HOD", "Testing Head of Department", "Complete oversight of Testing department, health escalations, approvals."),
+        new("Testing Senior Manager", "Testing Senior Manager", "Delivery oversight across testing projects, QA resource management."),
+        new("Testing-Manager", "Testing Project Manager", "QA project tasks, test deliverables, defect tracking, QA timesheets."),
+        new("Testing-Team Leader", "Testing Team Leader", "Test run execution, defect triage, test task assignment, timesheet review."),
+        new("Testing-Team Member", "Testing Team Member", "Test execution, defect logging, task status updates, own timesheets."),
+        new("Consulting-HOD", "Consulting Head of Dept", "Complete oversight of Consulting department, GRC engagements."),
+        new("Consulting-Senior Manager", "Consulting Senior Manager", "Delivery oversight across consulting & audit projects."),
+        new("Consulting-Manager", "Consulting Project Manager", "GRC audit projects, client deliverables, audit timesheet approvals."),
+        new("Consulting-Team Leader", "Consulting Team Leader", "Senior audit execution, audit task assignment, timesheet review."),
+        new("Consulting-Team member", "Consulting Team Member", "Audit checklists, evidence collection, task updates, own timesheets."),
+        new("SOC-HOD", "SOC Head of Department", "Complete oversight of SOC/Operations, 24/7 monitoring governance."),
+        new("SOC-Senior Manager", "SOC Senior Manager", "Operations delivery oversight, client SLA tracking, incident reviews."),
+        new("SOC-Manager", "SOC Manager", "Incident management, shift scheduling, operations timesheets."),
+        new("SOC-Team Leader", "SOC Shift / Team Leader", "Shift oversight, alert escalation, task assignments, timesheet review."),
+        new("SOC-Team Member", "SOC Team Member", "SIEM monitoring, alert analysis, shift logs, own timesheets."),
+        new("R&D - Team member", "R&D Team Member", "Python/Tool development, sprint tasks, code repository, own timesheets."),
+    ];
+
     private static async Task<Dictionary<string, Role>> SeedRolesAsync(AppDbContext db, CancellationToken ct)
     {
-        // Canonical system-role keys (UserRole enum names) + Admin.
-        var roleKeys = Enum.GetNames<UserRole>().OrderBy(k => k).ToList();
-
         var existing = await db.Roles.ToDictionaryAsync(r => r.Name, ct);
         var roles = new Dictionary<string, Role>();
 
-        foreach (var key in roleKeys)
+        // Purge any obsolete legacy roles that are not part of the active 27 discrete roles
+        var validKeys = SystemRoles.Select(r => r.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var obsoleteRoles = existing.Values.Where(r => !validKeys.Contains(r.Name)).ToList();
+        if (obsoleteRoles.Count > 0)
         {
-            if (existing.TryGetValue(key, out var found))
+            foreach (var obs in obsoleteRoles)
             {
-                // Upgrade legacy-only roles (created before RBAC) to the baseline
-                // once; custom roles and already-migrated roles are untouched.
+                var audits = await db.RolePermissionAudits.Where(a => a.RoleId == obs.Id).ToListAsync(ct);
+                if (audits.Count > 0) db.RolePermissionAudits.RemoveRange(audits);
+                db.Roles.Remove(obs);
+                existing.Remove(obs.Name);
+            }
+            await db.SaveChangesAsync(ct);
+        }
+
+        foreach (var def in SystemRoles)
+        {
+            if (existing.TryGetValue(def.Key, out var found))
+            {
                 var hasDotKeys = found.Permissions.Any(p => p.Contains('.'));
                 if (found.Permissions.Count == 0 || !hasDotKeys)
                 {
-                    found.Permissions = [.. RoleBaselines.For(key)];
+                    found.Permissions = [.. RoleBaselines.For(def.Key)];
                 }
 
-                found.DisplayName = DisplayName(key);
-                found.Description ??= RoleDescription(key);
+                found.DisplayName = def.DisplayName;
+                found.Description = def.Description;
                 found.IsSystemRole = true;
                 found.IsActive = true;
-                roles[key] = found;
+                roles[def.Key] = found;
                 continue;
             }
 
             var entity = new Role
             {
-                Name = key,
-                DisplayName = DisplayName(key),
-                Description = RoleDescription(key),
+                Name = def.Key,
+                DisplayName = def.DisplayName,
+                Description = def.Description,
                 IsSystemRole = true,
                 IsActive = true,
-                Permissions = [.. RoleBaselines.For(key)],
+                Permissions = [.. RoleBaselines.For(def.Key)],
             };
             db.Roles.Add(entity);
-            roles[key] = entity;
+            roles[def.Key] = entity;
         }
 
         return roles;
     }
-
-    private static string DisplayName(string key) => key switch
-    {
-        nameof(UserRole.SeniorPm) => "Senior Project Manager",
-        nameof(UserRole.EngagementManager) => "Engagement Manager",
-        nameof(UserRole.Pmo) => "PMO",
-        nameof(UserRole.Hod) => "HOD",
-        nameof(UserRole.BusinessOwner) => "Business Owner",
-        nameof(UserRole.Dhanshree) => "Admin (Dhanshree)",
-        nameof(UserRole.Sales) => "Sales & Business Development",
-        nameof(UserRole.Accounts) => "Accounts & Finance",
-        nameof(UserRole.Hr) => "HR",
-        nameof(UserRole.ProjectManager) => "Project Manager",
-        nameof(UserRole.TeamLead) => "Team Lead",
-        nameof(UserRole.Employee) => "Employee",
-        nameof(UserRole.Admin) => "Admin",
-        _ => key,
-    };
-
-    private static string RoleDescription(string key) => key switch
-    {
-        nameof(UserRole.Admin) => "Super-admin — full access to every module, submodule and action.",
-        nameof(UserRole.Dhanshree) => "Super-admin (legacy account) — full access to every module.",
-        nameof(UserRole.SeniorPm) => "Owns delivery of assigned projects; approves PM timesheets.",
-        nameof(UserRole.EngagementManager) => "Owns customer relationship and delivery for assigned accounts.",
-        nameof(UserRole.Pmo) => "Governance, WBS allocation and timesheet monitoring (view-oriented).",
-        nameof(UserRole.Hod) => "Department oversight across projects, resources and approvals.",
-        nameof(UserRole.BusinessOwner) => "Executive oversight of the project portfolio.",
-        nameof(UserRole.ProjectManager) => "Runs assigned projects end-to-end; approves team timesheets.",
-        nameof(UserRole.TeamLead) => "Leads a delivery team; submits timesheets and raises issues.",
-        nameof(UserRole.Employee) => "Executes assigned tasks; submits own timesheets.",
-        nameof(UserRole.Hr) => "HR resource/directory management only.",
-        nameof(UserRole.Accounts) => "Finance — invoices, payments and finance reports.",
-        nameof(UserRole.Sales) => "Sales & business development — new projects and customers.",
-        _ => key,
-    };
 
     // ---------- Users ----------
 
@@ -140,25 +147,37 @@ public static class DbSeeder
     {
         var seed = new (string Id, string Name, string Email, string Avatar, string Role)[]
         {
-            ("u1", "Aarav Mehta", "aarav@acme.co", "AM", nameof(UserRole.SeniorPm)),
-            ("u2", "Riya Kapoor", "riya@acme.co", "RK", nameof(UserRole.EngagementManager)),
-            ("u3", "Vikram Shah", "vikram@acme.co", "VS", nameof(UserRole.ProjectManager)),
-            ("u4", "Sana Iyer", "sana@acme.co", "SI", nameof(UserRole.ProjectManager)),
-            ("u5", "Nikhil Rao", "nikhil@acme.co", "NR", nameof(UserRole.TeamLead)),
-            ("u6", "Priya Verma", "priya@acme.co", "PV", nameof(UserRole.TeamLead)),
-            ("u7", "Arjun Singh", "arjun@acme.co", "AS", nameof(UserRole.Employee)),
-            ("u8", "Meera Joshi", "meera@acme.co", "MJ", nameof(UserRole.Employee)),
-            ("u9", "Dev Patel", "dev@acme.co", "DP", nameof(UserRole.Employee)),
-            ("u10", "Kavya Nair", "kavya@acme.co", "KN", nameof(UserRole.Employee)),
-            ("u11", "Rahul Gupta", "rahul@acme.co", "RG", nameof(UserRole.Pmo)),
-            ("u12", "Anita Desai", "anita@acme.co", "AD", nameof(UserRole.Hod)),
-            ("u13", "Vikrant Malhotra", "vikrant@acme.co", "VM", nameof(UserRole.BusinessOwner)),
-            ("u14", "Dhanshree", "dhanshree@acme.co", "DS", nameof(UserRole.Dhanshree)),
-            // Test users for the RBAC roles that previously had no seeded account.
-            ("u15", "Admin User", "admin@acme.co", "AU", nameof(UserRole.Admin)),
-            ("u16", "HR User", "hr@acme.co", "HU", nameof(UserRole.Hr)),
-            ("u17", "Accounts User", "accounts@acme.co", "AC", nameof(UserRole.Accounts)),
-            ("u18", "Sales User", "sales@acme.co", "SU", nameof(UserRole.Sales)),
+            ("u1", "Aarav Mehta", "aarav@acme.co", "AM", "Consulting-Senior Manager"),
+            ("u2", "Riya Kapoor", "riya@acme.co", "RK", "EngagementManager"),
+            ("u3", "Vikram Shah", "vikram@acme.co", "VS", "SOC-Manager"),
+            ("u4", "Sana Iyer", "sana@acme.co", "SI", "Consulting-Manager"),
+            ("u5", "Nikhil Rao", "nikhil@acme.co", "NR", "SOC-Team Leader"),
+            ("u6", "Priya Verma", "priya@acme.co", "PV", "Consulting-Team Leader"),
+            ("u7", "Arjun Singh", "arjun@acme.co", "AS", "Testing-Team Member"),
+            ("u8", "Meera Joshi", "meera@acme.co", "MJ", "Testing-Team Member"),
+            ("u9", "Dev Patel", "dev@acme.co", "DP", "Testing-Team Member"),
+            ("u10", "Kavya Nair", "kavya@acme.co", "KN", "Testing-Team Member"),
+            ("u11", "Rahul Gupta", "rahul@acme.co", "RG", "PMO"),
+            ("u12", "Anita Desai", "anita@acme.co", "AD", "Consulting-HOD"),
+            ("u13", "Vikrant Malhotra", "vikrant@acme.co", "VM", "CEO"),
+            ("u14", "Dhanshree Pansare", "dhanshree@acme.co", "DP", "COO"),
+            ("u15", "Admin User", "admin@acme.co", "AU", "IT Admin"),
+            ("u16", "HR User", "hr@acme.co", "HU", "HR"),
+            ("u17", "Accounts User", "accounts@acme.co", "AC", "Accounts"),
+            ("u18", "Sales User", "sales@acme.co", "SU", "Sales Manager"),
+            ("u19", "Kunal Deshmukh", "kunal.deshmukh@acme.co", "KD", "CTO"),
+            ("u20", "Pooja Sharma", "pooja.sharma@acme.co", "PS", "Sales team member"),
+            ("u21", "Ananya Verma", "ananya.verma@acme.co", "AV", "Intern"),
+            ("u22", "Girish Shenoy", "girish.shenoy@acme.co", "GS", "Testing HOD"),
+            ("u23", "Suresh Pillai", "suresh.pillai@acme.co", "SP", "Testing Senior Manager"),
+            ("u24", "Manoj Bhatt", "manoj.bhatt@acme.co", "MB", "Testing-Manager"),
+            ("u25", "Kiran Mathur", "kiran.mathur@acme.co", "KM", "Testing-Team Leader"),
+            ("u26", "Swati Mishra", "swati.mishra@acme.co", "SM", "Consulting-Team member"),
+            ("u27", "Rajesh Kadam", "rajesh.kadam@acme.co", "RK", "SOC-HOD"),
+            ("u28", "Deepak Sawant", "deepak.sawant@acme.co", "DS", "SOC-Senior Manager"),
+            ("u29", "Amit Pandey", "amit.pandey@acme.co", "AP", "SOC-Team Leader"),
+            ("u30", "Pooja Nair", "pooja.nair@acme.co", "PN", "SOC-Team Member"),
+            ("u31", "Kavya Desai", "kavya.desai@acme.co", "KD", "R&D - Team member"),
         };
 
         // Some imported/legacy user rows have NULL PasswordHash. The User entity
@@ -167,14 +186,24 @@ public static class DbSeeder
             """UPDATE users SET "PasswordHash" = '' WHERE "PasswordHash" IS NULL""",
             ct);
 
-        var existing = await db.Users.ToDictionaryAsync(u => u.EmployeeId, ct);
+        var existingUsers = await db.Users.ToListAsync(ct);
+        var existingById = existingUsers.ToDictionary(u => u.Id);
+        var existingByEmail = existingUsers
+            .GroupBy(u => u.Email, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var existingByCode = existingUsers
+            .GroupBy(u => u.EmployeeId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var users = new Dictionary<string, User>();
 
         for (var i = 0; i < seed.Length; i++)
         {
             var (id, name, email, avatar, role) = seed[i];
+            var targetGuid = StableGuid("user-" + id);
 
-            if (existing.TryGetValue(id, out var found))
+            if (existingById.TryGetValue(targetGuid, out var found)
+                || existingByEmail.TryGetValue(email, out found)
+                || existingByCode.TryGetValue(id, out found))
             {
                 // Keep the demo environment testable: every seeded account always
                 // signs in with the same dev password and is never forced to change it.

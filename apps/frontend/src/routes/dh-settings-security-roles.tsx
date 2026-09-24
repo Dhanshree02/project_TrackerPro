@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Search, ChevronDown, Save, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, ChevronDown, Save, RotateCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
@@ -15,6 +15,14 @@ import {
   ROLE_PROJECT_SCOPE,
   type PermissionKey,
 } from "@/lib/rbac";
+import {
+  fetchUsers,
+  fetchRoles,
+  updateUser,
+  updateRolePermissions,
+  resetRoleToBaseline,
+  type ApiRole,
+} from "@/lib/api/users";
 
 export const Route = createFileRoute("/dh-settings-security-roles")({
   head: () => ({
@@ -31,36 +39,26 @@ interface UserRow {
   name: string;
   email: string;
   currentRole: Role;
+  initialRole: Role;
 }
 
 const initialUsers: UserRow[] = [
-  { id: "r1", name: "Aarav Mehta", email: "aarav.mehta@talakunchi.com", currentRole: "senior_pm" },
-  { id: "r2", name: "Riya Kapoor", email: "riya.kapoor@talakunchi.com", currentRole: "engagement_manager" },
-  { id: "r3", name: "Vikram Shah", email: "vikram.shah@talakunchi.com", currentRole: "pm" },
-  { id: "r4", name: "Sana Iyer", email: "sana.iyer@talakunchi.com", currentRole: "pm" },
-  { id: "r7", name: "Arjun Singh", email: "arjun.singh@talakunchi.com", currentRole: "employee" },
-  { id: "r8", name: "Meera Joshi", email: "meera.joshi@talakunchi.com", currentRole: "employee" },
-  { id: "r9", name: "Dev Patel", email: "dev.patel@talakunchi.com", currentRole: "employee" },
-  { id: "r10", name: "Kavya Nair", email: "kavya.nair@talakunchi.com", currentRole: "hr" },
-  { id: "r11", name: "Rahul Gupta", email: "rahul.gupta@talakunchi.com", currentRole: "pmo" },
-  { id: "r12", name: "Neha Sharma", email: "neha.sharma@talakunchi.com", currentRole: "sales" },
-  { id: "r13", name: "Ananya Desai", email: "ananya.desai@talakunchi.com", currentRole: "accounts" },
-  { id: "r14", name: "Karan Verma", email: "karan.verma@talakunchi.com", currentRole: "employee" },
-  { id: "r15", name: "Pooja Hegde", email: "pooja.hegde@talakunchi.com", currentRole: "employee" },
-  { id: "r16", name: "Aditya Roy", email: "aditya.roy@talakunchi.com", currentRole: "management" },
-  { id: "r17", name: "Dhanshree", email: "dhanshree@talakunchi.com", currentRole: "dhanshree" },
+  { id: "r1", name: "Aarav Mehta", email: "aarav.mehta@talakunchi.com", currentRole: "senior_pm", initialRole: "senior_pm" },
+  { id: "r2", name: "Riya Kapoor", email: "riya.kapoor@talakunchi.com", currentRole: "engagement_manager", initialRole: "engagement_manager" },
+  { id: "r3", name: "Vikram Shah", email: "vikram.shah@talakunchi.com", currentRole: "pm", initialRole: "pm" },
+  { id: "r4", name: "Sana Iyer", email: "sana.iyer@talakunchi.com", currentRole: "pm", initialRole: "pm" },
+  { id: "r7", name: "Arjun Singh", email: "arjun.singh@talakunchi.com", currentRole: "employee", initialRole: "employee" },
+  { id: "r8", name: "Meera Joshi", email: "meera.joshi@talakunchi.com", currentRole: "employee", initialRole: "employee" },
+  { id: "r9", name: "Dev Patel", email: "dev.patel@talakunchi.com", currentRole: "employee", initialRole: "employee" },
+  { id: "r10", name: "Kavya Nair", email: "kavya.nair@talakunchi.com", currentRole: "hr", initialRole: "hr" },
+  { id: "r11", name: "Rahul Gupta", email: "rahul.gupta@talakunchi.com", currentRole: "pmo", initialRole: "pmo" },
+  { id: "r12", name: "Neha Sharma", email: "neha.sharma@talakunchi.com", currentRole: "sales", initialRole: "sales" },
+  { id: "r13", name: "Ananya Desai", email: "ananya.desai@talakunchi.com", currentRole: "accounts", initialRole: "accounts" },
+  { id: "r14", name: "Karan Verma", email: "karan.verma@talakunchi.com", currentRole: "employee", initialRole: "employee" },
+  { id: "r15", name: "Pooja Hegde", email: "pooja.hegde@talakunchi.com", currentRole: "employee", initialRole: "employee" },
+  { id: "r16", name: "Aditya Roy", email: "aditya.roy@talakunchi.com", currentRole: "management", initialRole: "management" },
+  { id: "r17", name: "Dhanshree", email: "dhanshree@talakunchi.com", currentRole: "dhanshree", initialRole: "dhanshree" },
 ];
-
-const STORAGE_KEY = "pulse_custom_role_permissions_v1";
-
-function loadCustomPermissions(): Record<Role, Record<PermissionKey, boolean>> | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
 
 const SCOPE_LABEL: Record<string, string> = {
   involved: "Only projects the person is on",
@@ -118,6 +116,40 @@ function UserRoleAccessTab() {
   const [q, setQ] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [users, setUsers] = useState<UserRow[]>(() => [...initialUsers]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    fetchUsers({ perPage: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        if (res?.items && res.items.length > 0) {
+          const rows: UserRow[] = res.items.map((u) => {
+            const rawRole = u.role || "";
+            const matchedRole = (APP_ROLES.find(
+              (r) => r.toLowerCase() === rawRole.toLowerCase() || r === rawRole,
+            ) || "employee") as Role;
+            return {
+              id: u.id,
+              name: u.name,
+              email: u.email,
+              currentRole: matchedRole,
+              initialRole: matchedRole,
+            };
+          });
+          setUsers(rows);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     let list = users;
@@ -131,6 +163,26 @@ function UserRoleAccessTab() {
 
   const changeRole = (id: string, newRole: Role) => {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, currentRole: newRole } : u)));
+  };
+
+  const handleSave = async () => {
+    const changed = users.filter((u) => u.currentRole !== u.initialRole);
+    if (changed.length === 0) {
+      toast.info("No changes to save.");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await Promise.all(
+        changed.map((u) => updateUser(u.id, { role: u.currentRole })),
+      );
+      setUsers((prev) => prev.map((u) => ({ ...u, initialRole: u.currentRole })));
+      toast.success("Roles updated", { description: `${changed.length} user role assignment(s) saved to database.` });
+    } catch {
+      toast.error("Failed to update user roles.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -158,10 +210,11 @@ function UserRoleAccessTab() {
           ))}
         </select>
         <button
-          onClick={() => toast.success("Roles updated", { description: `${users.length} user role assignments saved.` })}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
-          <Save className="h-3.5 w-3.5" />
+          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           Save Changes
         </button>
       </div>
@@ -177,37 +230,51 @@ function UserRoleAccessTab() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((u) => (
-              <tr key={u.id} className="hover:bg-accent/30 transition-colors">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                      {u.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
-                    </span>
-                    <span className="font-medium">{u.name}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                    {ROLE_LABELS[u.currentRole]}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <select
-                    value={u.currentRole}
-                    onChange={(e) => changeRole(u.id, e.target.value as Role)}
-                    className="h-8 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {APP_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABELS[r]}
-                      </option>
-                    ))}
-                  </select>
+            {isLoading ? (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-muted-foreground text-xs">
+                  Loading users...
                 </td>
               </tr>
-            ))}
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-muted-foreground text-xs">
+                  No users found.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((u) => (
+                <tr key={u.id} className="hover:bg-accent/30 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                        {u.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
+                      </span>
+                      <span className="font-medium">{u.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      {ROLE_LABELS[u.currentRole] || u.currentRole}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={u.currentRole}
+                      onChange={(e) => changeRole(u.id, e.target.value as Role)}
+                      className="h-8 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {APP_ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {ROLE_LABELS[r]}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -220,9 +287,17 @@ function ModuleAccessTab() {
   const getPermissionsFor = ctx.getPermissionsFor ?? ((r: Role) => DEFAULT_ROLE_PERMISSIONS[r] ?? []);
   const setRolePermissions = ctx.setRolePermissions ?? (() => {});
   const resetRolePermissions = ctx.resetRolePermissions ?? (() => {});
-  const [selectedRole, setSelectedRole] = useState<Role>("employee");
+  const [selectedRole, setSelectedRole] = useState<Role>("Testing-Team Member");
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({ Projects: true });
-  const [draft, setDraft] = useState<PermissionKey[]>(() => getPermissionsFor("employee"));
+  const [draft, setDraft] = useState<PermissionKey[]>(() => getPermissionsFor("Testing-Team Member"));
+  const [backendRoles, setBackendRoles] = useState<ApiRole[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    fetchRoles()
+      .then((roles) => setBackendRoles(roles ?? []))
+      .catch(() => {});
+  }, []);
 
   const switchRole = (role: Role) => {
     setSelectedRole(role);
@@ -248,8 +323,7 @@ function ModuleAccessTab() {
   return (
     <>
       <p className="mb-4 text-xs text-muted-foreground">
-        Defaults match the agreed access for each role. Saving applies immediately in this workspace (until the backend is live).
-        Use the role switcher in the top bar to preview.
+        Defaults match the master catalog permissions for each role. Saving updates both local state and the database role permissions.
       </p>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -265,13 +339,21 @@ function ModuleAccessTab() {
           ))}
         </select>
         <span className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground">
-          Data scope: {SCOPE_LABEL[ROLE_PROJECT_SCOPE[selectedRole]]}
+          Data scope: {SCOPE_LABEL[ROLE_PROJECT_SCOPE[selectedRole]] || "Department"}
         </span>
         <span className="text-[11px] text-muted-foreground">{enabledCount} permissions on</span>
         <button
-          onClick={() => {
+          onClick={async () => {
+            const matchedBackendRole = backendRoles.find(
+              (r) => r.name.toLowerCase() === selectedRole.toLowerCase(),
+            );
+            if (matchedBackendRole) {
+              try {
+                await resetRoleToBaseline(matchedBackendRole.id);
+              } catch {}
+            }
             resetRolePermissions(selectedRole);
-            setDraft(DEFAULT_ROLE_PERMISSIONS[selectedRole]);
+            setDraft(DEFAULT_ROLE_PERMISSIONS[selectedRole] ?? []);
             toast.message("Reset to defaults", { description: ROLE_LABELS[selectedRole] });
           }}
           className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-accent"
@@ -280,15 +362,28 @@ function ModuleAccessTab() {
           Reset
         </button>
         <button
-          onClick={() => {
+          onClick={async () => {
+            setIsSaving(true);
+            const matchedBackendRole = backendRoles.find(
+              (r) => r.name.toLowerCase() === selectedRole.toLowerCase(),
+            );
+            if (matchedBackendRole) {
+              try {
+                await updateRolePermissions(matchedBackendRole.id, draft);
+              } catch (e: any) {
+                toast.error("Failed to save to database", { description: e?.message });
+              }
+            }
             setRolePermissions(selectedRole, draft);
+            setIsSaving(false);
             toast.success("Permissions saved", {
               description: `Access for ${ROLE_LABELS[selectedRole]} updated.`,
             });
           }}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          disabled={isSaving}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          <Save className="h-3.5 w-3.5" />
+          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           Save Permissions
         </button>
       </div>

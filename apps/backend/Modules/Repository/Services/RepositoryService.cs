@@ -452,7 +452,10 @@ public class RepositoryService(
     private async Task<ViewerScope> ResolveViewerScopeAsync(CancellationToken ct)
     {
         var role = currentUser.Role ?? "";
-        if (string.Equals(role, nameof(UserRole.Admin), StringComparison.OrdinalIgnoreCase)
+        if (string.Equals(role, "CEO", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, "COO", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, "IT Admin", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, nameof(UserRole.Admin), StringComparison.OrdinalIgnoreCase)
             || string.Equals(role, nameof(UserRole.Dhanshree), StringComparison.OrdinalIgnoreCase)
             || string.Equals(role, nameof(UserRole.BusinessOwner), StringComparison.OrdinalIgnoreCase)
             || currentUser.HasPermission(Permissions.UsersManage))

@@ -48,6 +48,7 @@ import {
   toUiEmployee,
   type ApiMetaOption,
 } from "@/lib/api/employees";
+import { fetchRoles, type ApiRole } from "@/lib/api/users";
 import {
   EMPTY_ONBOARD,
   validateOnboardField,
@@ -341,6 +342,7 @@ export function EmployeeFormModal({
   const [gradDegreeOptions, setGradDegreeOptions] = useState<ApiMetaOption[]>([]);
   const [postGradDegreeOptions, setPostGradDegreeOptions] = useState<ApiMetaOption[]>([]);
   const [certOptions, setCertOptions] = useState<ApiMetaOption[]>([]);
+  const [rbacRoleOptions, setRbacRoleOptions] = useState<ApiRole[]>([]);
 
   // Split parts
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
@@ -491,6 +493,10 @@ export function EmployeeFormModal({
       .then((certs) => setCertOptions(certs ?? []))
       .catch(() => toast.error("Could not load certifications"));
 
+    void fetchRoles()
+      .then((roles) => setRbacRoleOptions(roles ?? []))
+      .catch(() => {});
+
     void fetchReportingManagerOptions()
       .then((mgrs) => {
         const list = mgrs ?? [];
@@ -543,6 +549,21 @@ export function EmployeeFormModal({
       setRoleOptions([]);
       return;
     }
+
+    // Auto-map RBAC Role if designation has defaultRoleId (Approach 1)
+    const matchedDesig = desigOptions.find((d) => d.id === form.designationId);
+    if (matchedDesig?.defaultRoleId && rbacRoleOptions.length > 0) {
+      const matchedRole = rbacRoleOptions.find(
+        (r) => r.id === matchedDesig.defaultRoleId || r.name.toLowerCase() === matchedDesig.defaultRoleId?.toLowerCase(),
+      );
+      if (matchedRole) {
+        setForm((prev) => {
+          if (prev.role && mode === "edit" && prev.designationId === initialEmployee?.designationId) return prev;
+          return { ...prev, role: matchedRole.name };
+        });
+      }
+    }
+
     let cancelled = false;
     void fetchJobRoleOptions(form.designationId)
       .then((roles) => {
@@ -562,7 +583,7 @@ export function EmployeeFormModal({
     return () => {
       cancelled = true;
     };
-  }, [open, form.designationId]);
+  }, [open, form.designationId, desigOptions, rbacRoleOptions, mode, initialEmployee]);
 
   const selectedWorkLoc = useMemo(() => {
     if (!form.workLocation) return undefined;
@@ -876,7 +897,7 @@ export function EmployeeFormModal({
         departmentId: resolvedDepartmentId,
         designationId: resolvedDesignationId,
         jobRoleId: resolvedJobRoleId,
-        role: resolvedRoleName,
+        role: form.role || resolvedRoleName,
         reportingManagerId: resolvedReportingManagerId,
         businessUnit: resolvedBusinessUnit,
         workLocation: resolvedWorkLocation,
@@ -1179,7 +1200,18 @@ export function EmployeeFormModal({
                 valueId={form.designationId}
                 disabled={!form.departmentId}
                 disabledHint="Select a department first"
-                onSelect={(id) => setField("designationId", id)}
+                onSelect={(id) => {
+                  setField("designationId", id);
+                  const matchedDesig = desigOptions.find((d) => d.id === id);
+                  if (matchedDesig?.defaultRoleId && rbacRoleOptions.length > 0) {
+                    const matchedRole = rbacRoleOptions.find(
+                      (r) => r.id === matchedDesig.defaultRoleId || r.name.toLowerCase() === matchedDesig.defaultRoleId?.toLowerCase(),
+                    );
+                    if (matchedRole) {
+                      setField("role", matchedRole.name);
+                    }
+                  }
+                }}
                 onCreate={async (name) => {
                   const trimmed = name.trim();
                   const existing = desigOptions.find(
@@ -1191,6 +1223,32 @@ export function EmployeeFormModal({
                   return temp;
                 }}
               />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-foreground flex items-center justify-between">
+                  <span>Assigned RBAC Role <span className="text-destructive">*</span></span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Auto-mapped</span>
+                </label>
+                <select
+                  value={form.role}
+                  onChange={(e) => setField("role", e.target.value)}
+                  disabled={!form.designationId}
+                  className={cn(
+                    "h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                  )}
+                >
+                  <option value="">Select RBAC Role...</option>
+                  {rbacRoleOptions.map((r) => (
+                    <option key={r.id} value={r.name}>
+                      {r.displayName || r.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[10px] text-muted-foreground">
+                  Default software permissions from catalog (overridable)
+                </span>
+              </div>
               <CreatableCatalogSelect
                 label="On Floor Role"
                 options={roleOptions}

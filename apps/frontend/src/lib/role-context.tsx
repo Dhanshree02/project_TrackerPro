@@ -53,6 +53,34 @@ interface RoleContextValue {
 const RoleContext = createContext<RoleContextValue | null>(null);
 
 const userByRole: Record<Role, string> = {
+  CEO: "u13",
+  COO: "u14",
+  CTO: "u19",
+  "IT Admin": "u15",
+  Accounts: "u17",
+  HR: "u16",
+  "Sales Manager": "u18",
+  "Sales team member": "u20",
+  PMO: "u11",
+  EngagementManager: "u2",
+  Intern: "u21",
+  "Testing HOD": "u22",
+  "Testing Senior Manager": "u23",
+  "Testing-Manager": "u24",
+  "Testing-Team Leader": "u25",
+  "Testing-Team Member": "u7",
+  "Consulting-HOD": "u12",
+  "Consulting-Senior Manager": "u1",
+  "Consulting-Manager": "u4",
+  "Consulting-Team Leader": "u6",
+  "Consulting-Team member": "u26",
+  "SOC-HOD": "u27",
+  "SOC-Senior Manager": "u28",
+  "SOC-Manager": "u3",
+  "SOC-Team Leader": "u29",
+  "SOC-Team Member": "u30",
+  "R&D - Team member": "u31",
+  // Legacy keys
   senior_pm: "u1",
   engagement_manager: "u2",
   pmo: "u11",
@@ -61,47 +89,98 @@ const userByRole: Record<Role, string> = {
   dhanshree: "u14",
   pm: "u3",
   employee: "u7",
-  hr: "u10",
-  accounts_finance: "u14",
-  sales_bd: "u15",
+  hr: "u16",
+  accounts_finance: "u17",
+  sales_bd: "u18",
 };
 
 const roleFromBackend: Record<string, Role> = {
-  SeniorPm: "senior_pm",
-  EngagementManager: "engagement_manager",
-  Pmo: "pmo",
-  Hod: "hod",
-  BusinessOwner: "business_owner",
-  Dhanshree: "dhanshree",
-  Admin: "dhanshree",
-  Sales: "business_owner",
-  Accounts: "pmo",
-  Hr: "business_owner",
-  ProjectManager: "senior_pm",
-  TeamLead: "senior_pm",
-  Employee: "senior_pm",
+  CEO: "CEO",
+  COO: "COO",
+  CTO: "CTO",
+  "IT Admin": "IT Admin",
+  Accounts: "Accounts",
+  HR: "HR",
+  "Sales Manager": "Sales Manager",
+  "Sales team member": "Sales team member",
+  PMO: "PMO",
+  EngagementManager: "EngagementManager",
+  Intern: "Intern",
+  "Testing HOD": "Testing HOD",
+  "Testing Senior Manager": "Testing Senior Manager",
+  "Testing-Manager": "Testing-Manager",
+  "Testing-Team Leader": "Testing-Team Leader",
+  "Testing-Team Member": "Testing-Team Member",
+  "Consulting-HOD": "Consulting-HOD",
+  "Consulting-Senior Manager": "Consulting-Senior Manager",
+  "Consulting-Manager": "Consulting-Manager",
+  "Consulting-Team Leader": "Consulting-Team Leader",
+  "Consulting-Team member": "Consulting-Team member",
+  "SOC-HOD": "SOC-HOD",
+  "SOC-Senior Manager": "SOC-Senior Manager",
+  "SOC-Manager": "SOC-Manager",
+  "SOC-Team Leader": "SOC-Team Leader",
+  "SOC-Team Member": "SOC-Team Member",
+  "R&D - Team member": "R&D - Team member",
+  // Legacy aliases
+  SeniorPm: "Consulting-Senior Manager",
+  ProjectManager: "Testing-Manager",
+  TeamLead: "Testing-Team Leader",
+  Employee: "Testing-Team Member",
+  BusinessOwner: "CEO",
+  Dhanshree: "COO",
+  Admin: "CEO",
+  Pmo: "PMO",
+  Hod: "Testing HOD",
+  Hr: "HR",
+  Sales: "Sales Manager",
 };
 
-const fallbackRole: Role = "senior_pm";
+const fallbackRole: Role = "CEO";
 
 function mapBackendRole(role?: string | null): Role {
   return (role && roleFromBackend[role]) || fallbackRole;
 }
 
 export const backendRoleLabels: Record<string, string> = {
+  CEO: "Chief Executive Officer",
+  COO: "Chief Operating Officer",
+  CTO: "Chief Technology Officer",
+  "IT Admin": "IT Administrator",
+  Accounts: "Accounts & Finance",
+  HR: "Human Resources",
+  "Sales Manager": "Sales Manager",
+  "Sales team member": "Sales Team Member",
+  PMO: "Project Management Office",
+  EngagementManager: "Engagement Manager",
+  Intern: "Intern",
+  "Testing HOD": "Testing Head of Department",
+  "Testing Senior Manager": "Testing Senior Manager",
+  "Testing-Manager": "Testing Project Manager",
+  "Testing-Team Leader": "Testing Team Leader",
+  "Testing-Team Member": "Testing Team Member",
+  "Consulting-HOD": "Consulting Head of Department",
+  "Consulting-Senior Manager": "Consulting Senior Manager",
+  "Consulting-Manager": "Consulting Project Manager",
+  "Consulting-Team Leader": "Consulting Team Leader",
+  "Consulting-Team member": "Consulting Team Member",
+  "SOC-HOD": "SOC Head of Department",
+  "SOC-Senior Manager": "SOC Senior Manager",
+  "SOC-Manager": "SOC Manager",
+  "SOC-Team Leader": "SOC Team Leader",
+  "SOC-Team Member": "SOC Team Member",
+  "R&D - Team member": "R&D Team Member",
   Admin: "Admin",
   Dhanshree: "Admin (Dhanshree)",
   SeniorPm: "Senior Project Manager",
-  EngagementManager: "Engagement Manager",
-  Pmo: "PMO",
-  Hod: "HOD",
-  BusinessOwner: "Business Owner",
   ProjectManager: "Project Manager",
   TeamLead: "Team Lead",
   Employee: "Employee",
+  BusinessOwner: "Business Owner",
+  Hod: "Head of Department",
+  Pmo: "PMO",
   Hr: "HR",
-  Accounts: "Accounts & Finance",
-  Sales: "Sales & Business Development",
+  Sales: "Sales & BD",
 };
 
 const initialsOf = (name: string) =>
@@ -133,22 +212,84 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       : getPerson(userByRole[role]);
 
   const isDhanshree =
-    !!authUser && status === "authed" && (backendRole === "Dhanshree" || backendRole === "Admin");
-  const isEmployee = !!authUser && status === "authed" && backendRole === "Employee";
-  const isHr = !!authUser && status === "authed" && backendRole === "Hr";
-  const isProjectManager = !!authUser && status === "authed" && backendRole === "ProjectManager";
-  const isSeniorPm = !!authUser && status === "authed" && backendRole === "SeniorPm";
+    !!authUser &&
+    status === "authed" &&
+    (backendRole === "CEO" ||
+      backendRole === "COO" ||
+      backendRole === "Admin" ||
+      backendRole === "Dhanshree");
+
+  const isBO =
+    !!authUser &&
+    status === "authed" &&
+    (backendRole === "CEO" || backendRole === "COO" || backendRole === "BusinessOwner");
+
+  const isHOD =
+    !!authUser &&
+    status === "authed" &&
+    (backendRole === "Testing HOD" ||
+      backendRole === "Consulting-HOD" ||
+      backendRole === "SOC-HOD" ||
+      backendRole === "Hod");
+
+  const isSeniorPm =
+    !!authUser &&
+    status === "authed" &&
+    (backendRole === "Testing Senior Manager" ||
+      backendRole === "Consulting-Senior Manager" ||
+      backendRole === "SOC-Senior Manager" ||
+      backendRole === "SeniorPm");
+
+  const isProjectManager =
+    !!authUser &&
+    status === "authed" &&
+    (backendRole === "Testing-Manager" ||
+      backendRole === "Consulting-Manager" ||
+      backendRole === "SOC-Manager" ||
+      backendRole === "ProjectManager");
+
+  const isTeamLead =
+    !!authUser &&
+    status === "authed" &&
+    (backendRole === "Testing-Team Leader" ||
+      backendRole === "Consulting-Team Leader" ||
+      backendRole === "SOC-Team Leader" ||
+      backendRole === "TeamLead");
+
+  const isEmployee =
+    !!authUser &&
+    status === "authed" &&
+    (backendRole === "Testing-Team Member" ||
+      backendRole === "Consulting-Team member" ||
+      backendRole === "SOC-Team Member" ||
+      backendRole === "R&D - Team member" ||
+      backendRole === "Intern" ||
+      backendRole === "Sales team member" ||
+      backendRole === "Employee");
+
+  const isHr =
+    !!authUser && status === "authed" && (backendRole === "HR" || backendRole === "Hr");
+
   const isEngagementManager =
     !!authUser && status === "authed" && backendRole === "EngagementManager";
-  const isPMO = !!authUser && status === "authed" && backendRole === "Pmo";
-  const isHOD = !!authUser && status === "authed" && backendRole === "Hod";
-  const isBO = !!authUser && status === "authed" && backendRole === "BusinessOwner";
-  const isAccounts = !!authUser && status === "authed" && backendRole === "Accounts";
-  const isSales = !!authUser && status === "authed" && backendRole === "Sales";
-  const isPmFamily = isProjectManager || isSeniorPm || isEngagementManager;
+
+  const isPMO =
+    !!authUser && status === "authed" && (backendRole === "PMO" || backendRole === "Pmo");
+
+  const isAccounts =
+    !!authUser && status === "authed" && backendRole === "Accounts";
+
+  const isSales =
+    !!authUser &&
+    status === "authed" &&
+    (backendRole === "Sales Manager" ||
+      backendRole === "Sales team member" ||
+      backendRole === "Sales");
+
+  const isPmFamily = isProjectManager || isSeniorPm || isEngagementManager || isTeamLead;
   const isPmoFamily = isPMO || isBO || isHOD;
   /** Business Owner is view-only everywhere; HOD is view-only except approvals / acknowledge. */
-  const isViewOnly = isBO || isHOD;
+  const isViewOnly = isBO || isHOD || backendRole === "Intern";
   const hideBudget = isPmoFamily;
 
   const directoryPersonId = people.find(
@@ -382,10 +523,43 @@ export function useRoleContext() {
 }
 
 export const roleLabels: Record<Role, string> = {
+  CEO: "CEO",
+  COO: "COO",
+  CTO: "CTO",
+  "IT Admin": "IT Admin",
+  Accounts: "Accounts & Finance",
+  HR: "Human Resources",
+  "Sales Manager": "Sales Manager",
+  "Sales team member": "Sales Team Member",
+  PMO: "PMO",
+  EngagementManager: "Engagement Manager",
+  Intern: "Intern",
+  "Testing HOD": "Testing HOD",
+  "Testing Senior Manager": "Testing Senior Manager",
+  "Testing-Manager": "Testing Project Manager",
+  "Testing-Team Leader": "Testing Team Leader",
+  "Testing-Team Member": "Testing Team Member",
+  "Consulting-HOD": "Consulting HOD",
+  "Consulting-Senior Manager": "Consulting Senior Manager",
+  "Consulting-Manager": "Consulting Project Manager",
+  "Consulting-Team Leader": "Consulting Team Leader",
+  "Consulting-Team member": "Consulting Team Member",
+  "SOC-HOD": "SOC HOD",
+  "SOC-Senior Manager": "SOC Senior Manager",
+  "SOC-Manager": "SOC Manager",
+  "SOC-Team Leader": "SOC Team Leader",
+  "SOC-Team Member": "SOC Team Member",
+  "R&D - Team member": "R&D Team Member",
+  // Legacy keys
   senior_pm: "Senior Project Manager",
   engagement_manager: "Engagement Manager",
   pmo: "PMO",
   hod: "Head of Department",
   business_owner: "Business Owner",
   dhanshree: "Admin",
+  employee: "Employee",
+  pm: "Project Manager",
+  hr: "HR",
+  accounts_finance: "Accounts & Finance",
+  sales_bd: "Sales & BD",
 };

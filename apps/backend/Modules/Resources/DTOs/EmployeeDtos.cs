@@ -148,9 +148,9 @@ public sealed record ExitedEmployeeDto(
     bool ClearanceCompleted = false,
     decimal? ExitRating = null);
 
-public sealed record MetaOptionDto(Guid Id, string Code, string Name, Guid? ParentId = null);
+public sealed record MetaOptionDto(Guid Id, string Code, string Name, Guid? ParentId = null, Guid? DefaultRoleId = null);
 
-public sealed record CreateCatalogItemRequest(string Name, Guid? ParentId = null);
+public sealed record CreateCatalogItemRequest(string Name, Guid? ParentId = null, Guid? DefaultRoleId = null);
 
 public sealed record CreateEmployeeRequest(
     string EmployeeCode,

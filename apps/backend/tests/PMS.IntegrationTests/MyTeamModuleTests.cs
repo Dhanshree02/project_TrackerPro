@@ -192,7 +192,7 @@ public class MyTeamModuleTests : IClassFixture<WebApplicationFactory<Program>>
         if (existing is not null) return existing.Id;
 
         var employee = NewEmployee(user.Name, "Link");
-        employee.WorkEmail = $"link.{Guid.NewGuid():N}@acme.co";
+        employee.WorkEmail = $"link.{Guid.NewGuid():N}@trackerpro.test";
         employee.UserId = user.Id;
         db.Employees.Add(employee);
         await db.SaveChangesAsync();
@@ -204,7 +204,7 @@ public class MyTeamModuleTests : IClassFixture<WebApplicationFactory<Program>>
         EmployeeCode = "TK-" + Random.Shared.Next(1000, 9999).ToString("0000"),
         FirstName = first,
         LastName = last + Random.Shared.Next(100, 999),
-        WorkEmail = $"myteam.{Guid.NewGuid():N}@acme.co",
+        WorkEmail = $"myteam.{Guid.NewGuid():N}@trackerpro.test",
         Status = "Active",
     };
 

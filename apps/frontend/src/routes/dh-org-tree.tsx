@@ -26,7 +26,7 @@ const orgData: OrgNode = {
   name: "Rakesh Menon",
   role: "Chief Executive Officer / Director",
   dept: "Executive Office",
-  email: "rakesh.menon@acmecorp.com",
+  email: "rakesh.menon@talakunchi.com",
   phone: "+91 98765 43210",
   location: "Suvidha Square, Andheri",
   reports: [
@@ -35,7 +35,7 @@ const orgData: OrgNode = {
       name: "Sunita Verma",
       role: "VP of Engineering",
       dept: "Engineering",
-      email: "sunita.verma@acmecorp.com",
+      email: "sunita.verma@talakunchi.com",
       phone: "+91 98765 43211",
       location: "Suvidha Square, Andheri",
       reports: [
@@ -44,7 +44,7 @@ const orgData: OrgNode = {
           name: "David Thomas",
           role: "Tech Lead - Platform",
           dept: "Engineering",
-          email: "david.thomas@acmecorp.com",
+          email: "david.thomas@talakunchi.com",
           phone: "+91 98765 43212",
           location: "Navare Plaza, Dombivli",
         },
@@ -53,7 +53,7 @@ const orgData: OrgNode = {
           name: "Anu Krishnan",
           role: "Engineering Manager - Apps",
           dept: "Engineering",
-          email: "anu.krishnan@acmecorp.com",
+          email: "anu.krishnan@talakunchi.com",
           phone: "+91 98765 43213",
           location: "Suvidha Square, Andheri",
         }
@@ -64,7 +64,7 @@ const orgData: OrgNode = {
       name: "Mohit Bansal",
       role: "VP of Product Management",
       dept: "Product",
-      email: "mohit.bansal@acmecorp.com",
+      email: "mohit.bansal@talakunchi.com",
       phone: "+91 98765 43214",
       location: "Navare Plaza, Dombivli",
       reports: [
@@ -73,7 +73,7 @@ const orgData: OrgNode = {
           name: "Lakshmi Iyer",
           role: "Senior Product Manager",
           dept: "Product",
-          email: "lakshmi.iyer@acmecorp.com",
+          email: "lakshmi.iyer@talakunchi.com",
           phone: "+91 98765 43215",
           location: "Navare Plaza, Dombivli",
         }
@@ -84,7 +84,7 @@ const orgData: OrgNode = {
       name: "Priya Sharma",
       role: "Director of UX Design",
       dept: "Design",
-      email: "priya.sharma@acmecorp.com",
+      email: "priya.sharma@talakunchi.com",
       phone: "+91 98765 43216",
       location: "Suvidha Square, Andheri",
       reports: [
@@ -93,7 +93,7 @@ const orgData: OrgNode = {
           name: "Rajesh Nair",
           role: "UX Design Lead",
           dept: "Design",
-          email: "rajesh.nair@acmecorp.com",
+          email: "rajesh.nair@talakunchi.com",
           phone: "+91 98765 43217",
           location: "Suvidha Square, Andheri",
         }

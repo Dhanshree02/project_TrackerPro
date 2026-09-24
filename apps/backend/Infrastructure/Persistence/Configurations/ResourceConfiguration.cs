@@ -33,6 +33,11 @@ public sealed class MstDesignationConfiguration : IEntityTypeConfiguration<MstDe
             .WithMany(d => d.Designations)
             .HasForeignKey(x => x.DepartmentId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.DefaultRole)
+            .WithMany()
+            .HasForeignKey(x => x.DefaultRoleId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

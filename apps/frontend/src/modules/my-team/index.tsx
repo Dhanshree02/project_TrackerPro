@@ -103,8 +103,9 @@ export function MyTeamPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }, [today]);
 
-  const { activeMembers, onsiteMembers, wfhMembers, onLeaveMembers } = useMemo(() => {
+  const { activeMembers, onsiteMembers, offsiteMembers, wfhMembers, onLeaveMembers } = useMemo(() => {
     const onsite: typeof teamMembers = [];
+    const offsite: typeof teamMembers = [];
     const wfh: typeof teamMembers = [];
     const leave: typeof teamMembers = [];
     const active: typeof teamMembers = [];
@@ -120,18 +121,20 @@ export function MyTeamPage() {
       } else if (type === "onsite") {
         onsite.push(m);
         active.push(m);
-      } else if (m.status === "WFH") {
-        wfh.push(m);
-        active.push(m);
-      } else if (m.status === "On Leave" && !event?.shift) {
-        leave.push(m);
       } else {
-        onsite.push(m);
+        // Default white (unmarked cell) is Offsite
+        offsite.push(m);
         active.push(m);
       }
     });
 
-    return { activeMembers: active, onsiteMembers: onsite, wfhMembers: wfh, onLeaveMembers: leave };
+    return {
+      activeMembers: active,
+      onsiteMembers: onsite,
+      offsiteMembers: offsite,
+      wfhMembers: wfh,
+      onLeaveMembers: leave,
+    };
   }, [teamMembers, teamSchedule, todayKey]);
 
   const shiftMembers = useMemo(() => {
@@ -155,6 +158,7 @@ export function MyTeamPage() {
     if (activeFilter.kind === "all") return teamMembers;
     if (activeFilter.kind === "presence") {
       if (activeFilter.status === "onsite") return onsiteMembers;
+      if (activeFilter.status === "offsite") return offsiteMembers;
       if (activeFilter.status === "wfh") return wfhMembers;
       if (activeFilter.status === "leave") return onLeaveMembers;
     }
@@ -162,7 +166,7 @@ export function MyTeamPage() {
       return shiftMembers[activeFilter.shift as ShiftType] ?? teamMembers;
     }
     return teamMembers;
-  }, [activeFilter, teamMembers, onsiteMembers, wfhMembers, onLeaveMembers, shiftMembers]);
+  }, [activeFilter, teamMembers, onsiteMembers, offsiteMembers, wfhMembers, onLeaveMembers, shiftMembers]);
 
   const loadCalendar = useCallback(async (month: Date) => {
     const start = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -435,6 +439,7 @@ export function MyTeamPage() {
             totalMembers={totalMembers}
             activeMembers={activeMembers}
             onsiteMembers={onsiteMembers}
+            offsiteMembers={offsiteMembers}
             wfhMembers={wfhMembers}
             onLeaveMembers={onLeaveMembers}
             activeFilter={activeFilter}
@@ -467,6 +472,8 @@ export function MyTeamPage() {
                     {activeFilter.kind === "presence"
                       ? activeFilter.status === "onsite"
                         ? "Onsite"
+                        : activeFilter.status === "offsite"
+                        ? "Offsite"
                         : activeFilter.status === "wfh"
                         ? "WFH"
                         : "On Leave"

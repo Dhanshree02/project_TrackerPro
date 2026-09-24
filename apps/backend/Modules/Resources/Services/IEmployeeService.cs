@@ -54,7 +54,7 @@ public interface IEmployeeService
 
     Task<MetaOptionDto> CreateDepartmentAsync(string name, CancellationToken ct = default);
 
-    Task<MetaOptionDto> CreateDesignationAsync(string name, Guid departmentId, CancellationToken ct = default);
+    Task<MetaOptionDto> CreateDesignationAsync(string name, Guid departmentId, Guid? defaultRoleId = null, CancellationToken ct = default);
 
     Task<MetaOptionDto> CreateJobRoleAsync(string name, Guid designationId, CancellationToken ct = default);
 

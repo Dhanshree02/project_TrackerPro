@@ -150,6 +150,7 @@ export async function resetRolePermissions(id: string): Promise<ApiRole> {
     method: "POST",
   });
 }
+export const resetRoleToBaseline = resetRolePermissions;
 
 /** The module → submodule → action permission tree (Settings UI). */
 export async function fetchPermissionCatalog(): Promise<ApiPermissionModule[]> {

@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-23
+**Last updated:** 2026-09-24
+
+- **Employee DB table cleared and re-seeded with 59 employees.** Matches exact requested breakdown across RBAC roles & departments (Core CEO/COO/CTO: 3, IT Admin: 1, Accounts: 1, HR: 1, Sales Mgr & 4 TM: 5, PMO: 1, EM: 2, R&D: 1, SOC HOD/SrMgr/Mgr/3 TL/5 TM: 11, Consulting HOD/SrMgr/Mgr/2 TL/5 TM: 10, Testing HOD/SrMgr/3 Mgr/3 TL/5 TM: 13, Interns: 10). Linked with 59 matching user accounts (dev password `Password@123`), reporting managers catalog, and hierarchical team relationships. Dump updated in `database/trackerpro-final.sql`.
 
 ## Latest
 

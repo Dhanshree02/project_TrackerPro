@@ -99,7 +99,7 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     {
         if (request.ParentId is not Guid departmentId)
             return BadRequest(ApiResponse<MetaOptionDto>.Fail("VALIDATION_ERROR", "Department is required."));
-        var created = await employees.CreateDesignationAsync(request.Name, departmentId, ct);
+        var created = await employees.CreateDesignationAsync(request.Name, departmentId, request.DefaultRoleId, ct);
         return Ok(ApiResponse<MetaOptionDto>.Ok(created));
     }
 

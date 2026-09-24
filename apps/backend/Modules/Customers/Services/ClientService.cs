@@ -14,17 +14,12 @@ namespace PMS.API.Modules.Customers.Services;
 public sealed class ClientService(AppDbContext db, ICurrentUserService currentUser) : IClientService
 {
     // Roles that see every client.
-    private static readonly UserRole[] GlobalVisibilityRoles =
-    [
-        UserRole.Admin,
-        UserRole.Dhanshree,
-        UserRole.Pmo,
-        UserRole.Hod,
-        UserRole.BusinessOwner,
-        UserRole.Sales,
-        UserRole.Accounts,
-        UserRole.Hr,
-    ];
+    private static readonly HashSet<string> GlobalVisibilityRoleNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Admin", "Dhanshree", "CEO", "COO", "CTO", "PMO", "Pmo", "Hod", "BusinessOwner",
+        "Sales", "Sales Manager", "Sales team member", "Accounts", "HR", "Hr", "IT Admin",
+        "Testing HOD", "Consulting-HOD", "SOC-HOD"
+    };
 
     public async Task<PagedResult<ClientDto>> GetClientsAsync(
         int page,
@@ -282,13 +277,14 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         var query = db.Clients.AsQueryable();
 
         var role = currentUser.Role;
-        if (!Enum.TryParse<UserRole>(role, ignoreCase: true, out var userRole) ||
-            !GlobalVisibilityRoles.Contains(userRole))
+        var isGlobal = !string.IsNullOrEmpty(role) && GlobalVisibilityRoleNames.Contains(role);
+        if (!isGlobal)
         {
             var userId = currentUser.UserId;
+            var isEmOrSpm = string.Equals(role, "EngagementManager", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(role, "SeniorPm", StringComparison.OrdinalIgnoreCase);
 
-            if ((userRole is UserRole.SeniorPm or UserRole.EngagementManager) &&
-                !string.IsNullOrWhiteSpace(currentUser.Name))
+            if (isEmOrSpm && !string.IsNullOrWhiteSpace(currentUser.Name))
             {
                 var name = currentUser.Name;
                 query = query.Where(c =>

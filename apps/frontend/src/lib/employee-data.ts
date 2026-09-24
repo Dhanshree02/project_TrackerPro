@@ -287,7 +287,7 @@ export const employees: Employee[] = Array.from({ length: 48 }, (_, i) => {
     id: `EMP-${String(1001 + i)}`,
     firstName,
     lastName,
-    email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@acmecorp.com`,
+    email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@talakunchi.com`,
     personalEmail: `${firstName.toLowerCase()}${Math.floor(r() * 90 + 10)}@gmail.com`,
     phone: `+91 ${9000000000 + Math.floor(r() * 999999999)}`,
     altPhone: `+91 ${9000000000 + Math.floor(r() * 999999999)}`,

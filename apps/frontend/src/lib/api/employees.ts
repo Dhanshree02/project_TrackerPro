@@ -149,6 +149,7 @@ export interface ApiMetaOption {
   code: string;
   name: string;
   parentId?: string | null;
+  defaultRoleId?: string | null;
 }
 
 interface PagedEnvelope<T> {
