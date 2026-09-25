@@ -22,6 +22,7 @@ interface RoleContextValue {
   getPermissionsFor: (role: Role) => PermissionKey[];
   setRolePermissions: (role: Role, perms: PermissionKey[]) => void;
   resetRolePermissions: (role: Role) => void;
+  isAdmin: boolean;
   isPMO: boolean;
   isHOD: boolean;
   isBO: boolean;
@@ -220,6 +221,14 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       backendRole === "Admin" ||
       backendRole === "Dhanshree");
 
+  const isAdmin =
+    role === "Admin" ||
+    role === "dhanshree" ||
+    authUser?.role?.toLowerCase() === "admin" ||
+    authUser?.role?.toLowerCase() === "dhanshree" ||
+    backendRole?.toLowerCase() === "admin" ||
+    backendRole?.toLowerCase() === "dhanshree";
+
   const isBO =
     !!authUser &&
     status === "authed" &&
@@ -352,7 +361,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     if (isHOD && hodProjectIds) {
       return projects.filter((p) => hodProjectIds.has(p.id));
     }
-    if (isPMO || isBO || isAccounts || isSales || isDhanshree) {
+    if (isAdmin || isPMO || isBO || isAccounts || isSales || isDhanshree) {
       return projects;
     }
     return projects.filter((p) => assignedClientIds.includes(p.clientId));
@@ -381,7 +390,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       );
       return clients.filter((c) => clientIds.has(c.id));
     }
-    if (isPmFamily || isPmoFamily || isAccounts || isSales || isDhanshree) {
+    if (isAdmin || isPmFamily || isPmoFamily || isAccounts || isSales || isDhanshree) {
       if (isHOD && hodProjectIds) {
         const clientIds = new Set(
           projects.filter((p) => hodProjectIds.has(p.id)).map((p) => p.clientId),
@@ -469,12 +478,12 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const can = useCallback(
     (perm: string): boolean => {
-      if (isDhanshree) return true;
+      if (isAdmin || isDhanshree) return true;
       if (hasPermission(perm)) return true;
       const currentRolePerms = getPermissionsFor(role);
       return currentRolePerms.includes(perm as PermissionKey);
     },
-    [isDhanshree, hasPermission, getPermissionsFor, role],
+    [isAdmin, isDhanshree, hasPermission, getPermissionsFor, role],
   );
 
   return (
@@ -487,6 +496,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         getPermissionsFor,
         setRolePermissions,
         resetRolePermissions,
+        isAdmin,
         isPMO,
         isHOD,
         isBO,

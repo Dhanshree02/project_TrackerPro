@@ -356,7 +356,7 @@ function Dashboard() {
               <p className="text-xs text-muted-foreground">Latest activity</p>
             </div>
             <Link
-              to={hideHealthLink ? "/projects" : "/health"}
+              to="/projects"
               className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
               Open <ArrowRight className="h-3 w-3" />

@@ -322,6 +322,13 @@ export function MyTeamPage() {
         } else {
           delete memberSchedule[dateKey];
         }
+      } else if (type === "leave") {
+        // Leave has NO shift data: completely clear shift and remove "G"
+        memberSchedule[dateKey] = {
+          type: "leave",
+          title: attendanceMeta.leave.label,
+          shift: undefined,
+        };
       } else {
         memberSchedule[dateKey] = {
           ...currentEvent,
@@ -332,13 +339,21 @@ export function MyTeamPage() {
       }
       return { ...current, [memberId]: memberSchedule };
     });
+
+    // When clicked on leave, directly mark and close menu immediately (no waiting for shift)
+    if (type === "leave") {
+      setOpenCell(null);
+    }
+
     if (!isLockedMemberKey(memberId, dateKey)) {
       void teamDataService
         .upsertDays({
           employeeId: memberId,
           dates: [dateKey],
           attendance: type,
-          ...(type === "clear" ? {} : { shift: existing?.shift ?? DEFAULT_SHIFT }),
+          ...(type === "clear" || type === "leave"
+            ? {}
+            : { shift: existing?.shift ?? DEFAULT_SHIFT }),
         })
         .catch(reportSaveError);
     }
@@ -350,7 +365,28 @@ export function MyTeamPage() {
     shift: ShiftType | "clear",
   ) => {
     const dateKey = makeDateKeyFromDate(date);
-    writeShift(memberId, [dateKey], shift === "clear" ? DEFAULT_SHIFT : shift);
+    const currentEvent = teamSchedule[memberId]?.[dateKey];
+    // If user assigns a shift to a day that was on leave, clear leave so it becomes active
+    if (currentEvent?.type === "leave") {
+      setTeamSchedule((current) => {
+        const memberSchedule = { ...current[memberId] };
+        memberSchedule[dateKey] = {
+          type: undefined,
+          shift: shift === "clear" ? DEFAULT_SHIFT : shift,
+        };
+        return { ...current, [memberId]: memberSchedule };
+      });
+      void teamDataService
+        .upsertDays({
+          employeeId: memberId,
+          dates: [dateKey],
+          attendance: "clear",
+          shift: shift === "clear" ? DEFAULT_SHIFT : shift,
+        })
+        .catch(reportSaveError);
+    } else {
+      writeShift(memberId, [dateKey], shift === "clear" ? DEFAULT_SHIFT : shift);
+    }
     setOpenCell(null);
   };
 

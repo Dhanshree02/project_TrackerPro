@@ -63,7 +63,6 @@ export const NAV_ITEMS: NavItem[] = [
     permission: "my-team.dashboard.view",
     subItems: [
       { to: "/my-team/", label: "Team Dashboard", permission: "my-team.dashboard.view" },
-      { to: "/timesheet", label: "My Timesheet", permission: "my-team.my-timesheet.view" },
       {
         to: "/my-team/timesheets",
         label: "Timesheet Approval",
@@ -71,24 +70,6 @@ export const NAV_ITEMS: NavItem[] = [
       },
     ],
   },
-  {
-    to: "/health",
-    label: "Health & Governance",
-    icon: Activity,
-    permission: "projects.health.view",
-  },
-  {
-    to: "/approvals",
-    label: "Approvals",
-    icon: CheckCircle2,
-    permission: [
-      "approvals.view",
-      "my-team.timesheet-approval.approve",
-      "my-team.timesheet-approval.view",
-    ],
-  },
-  { to: "/wbs-allocation", label: "WBS Allocation", icon: Inbox, permission: "wbs.allocate" },
-  { to: "/portfolio", label: "Portfolio", icon: Layers, permission: "portfolio.view" },
   {
     label: "Settings",
     icon: Settings,
@@ -152,6 +133,7 @@ export const DH_NAV_ITEMS: NavItem[] = [
  * own); sub-items inherit the parent permission unless they declare their own.
  *
  * Role-driven replacements:
+ * - Admin: sees every module and every sub-item without filtering.
  * - Employee: the "My Team" folder is replaced by a direct "Timesheet" item —
  *   Employees never see the My Team module.
  * - HR: the single "Resources" item becomes the admin-style folder
@@ -163,6 +145,7 @@ export const DH_NAV_ITEMS: NavItem[] = [
  *   (health lives inside each project; approvals live in Action Centre).
  */
 export type NavRoleFlags = {
+  isAdmin?: boolean;
   isEmployee?: boolean;
   isHr?: boolean;
   isPmFamily?: boolean;
@@ -177,7 +160,17 @@ export function filterNavItems(
   hasAny: (...keys: Array<string | undefined | null>) => boolean,
   flags: NavRoleFlags = {},
 ): NavItem[] {
-  const { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales } = flags;
+  const { isAdmin, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales } = flags;
+
+  // Admin has super-admin visibility into every module and submodule
+  if (isAdmin) {
+    return items.map((item) => ({
+      ...item,
+      permission: undefined,
+      subItems: item.subItems?.map((s) => ({ ...s, permission: undefined })),
+    }));
+  }
+
   const allowed = (perm?: string | string[]): boolean => {
     if (!perm) return true;
     const list = Array.isArray(perm) ? perm : [perm];
@@ -264,14 +257,7 @@ export function filterNavItems(
 
   const hideStandalone = isPmFamily || isPmoFamily || isAccounts || isSales;
   if (hideStandalone) {
-    return result.filter(
-      (i) =>
-        i.label !== "Health & Governance" &&
-        i.label !== "Approvals" &&
-        i.label !== "WBS Allocation" &&
-        i.label !== "Portfolio" &&
-        i.label !== "Settings",
-    );
+    return result.filter((i) => i.label !== "Settings");
   }
 
   return result;

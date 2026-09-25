@@ -38,13 +38,13 @@ interface CalendarDayCellProps {
   isWeeklyOff?: boolean;
   isToday?: boolean;
   isLastRow?: boolean;
-  weekRangeLabel: string;
+  weekRangeLabel?: string;
   onToggle: (shiftKey: boolean) => void;
   onClose: () => void;
   onFocusCell: () => void;
   onSelectAttendance: (type: SelectableAttendanceType) => void;
   onSelectShift: (shift: ShiftType | "clear") => void;
-  onApplyWeek: () => void;
+  onApplyWeek?: () => void;
 }
 
 function buildTooltip(args: {
@@ -64,7 +64,9 @@ function buildTooltip(args: {
     return `Holiday: ${args.holidayName}${commentPart} · ${dmy}`;
   }
 
-  const shiftLabel = `${args.shift ?? DEFAULT_SHIFT} (${shiftMeta[args.shift ?? DEFAULT_SHIFT].hours})`;
+  const shiftLabel = args.shift
+    ? `${args.shift} (${shiftMeta[args.shift].hours}) · `
+    : "";
   const attendance =
     args.attendanceLabel ??
     (args.isPast
@@ -77,7 +79,7 @@ function buildTooltip(args: {
     return `Past date (Read only) · ${dmy}`;
   }
 
-  return `${args.memberName} · ${dmy} · ${shiftLabel} · ${attendance}`;
+  return `${args.memberName} · ${dmy} · ${shiftLabel}${attendance}`;
 }
 
 export function CalendarDayCell({
@@ -110,7 +112,9 @@ export function CalendarDayCell({
   // Holidays do not have colored circles; only weekly off (yellow~orange) or explicit attendance have circles.
   const attendanceType =
     isHoliday || rawAttendanceType === "holiday" ? undefined : rawAttendanceType;
-  const displayShift = event?.shift ?? DEFAULT_SHIFT;
+  const isLeave = attendanceType === "leave" || rawAttendanceType === "leave";
+  // On leave, people have NO shift data ("G" is removed)
+  const displayShift = isLeave ? undefined : (event?.shift ?? DEFAULT_SHIFT);
   const isLocked = isPast || isHoliday;
 
   const attendanceLabel = attendanceType
@@ -199,13 +203,17 @@ export function CalendarDayCell({
             </button>
           </div>
 
-          <span
-            className={`mt-1 ${shiftChipClass} ${
-              isPast ? "opacity-75 grayscale-[25%]" : ""
-            }`}
-          >
-            {shiftMeta[displayShift].chip}
-          </span>
+          {!isLeave && displayShift ? (
+            <span
+              className={`mt-1 ${shiftChipClass} ${
+                isPast ? "opacity-75 grayscale-[25%]" : ""
+              }`}
+            >
+              {shiftMeta[displayShift].chip}
+            </span>
+          ) : (
+            <span className="mt-1 h-3.5" aria-hidden="true" />
+          )}
         </div>
       </PopoverAnchor>
 
@@ -275,13 +283,18 @@ export function CalendarDayCell({
         </div>
 
         {/* Shift options */}
-        <p className="relative z-10 mt-2 px-1 pb-0.5 text-[9px] font-bold uppercase tracking-wider text-[#9aa2b2]">
-          Shift
-        </p>
+        <div className="relative z-10 flex items-center justify-between px-1 mt-2 pb-0.5">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-[#9aa2b2]">
+            Shift
+          </p>
+          {isLeave && (
+            <span className="text-[9px] text-[#f59e0b] font-semibold">None (On Leave)</span>
+          )}
+        </div>
         <div className="relative z-10 mb-1 grid grid-cols-4 gap-1 px-0.5">
           {shiftOptions.map((shift) => {
             const meta = shiftMeta[shift];
-            const isActive = displayShift === shift;
+            const isActive = !isLeave && displayShift === shift;
             return (
               <button
                 key={shift}
@@ -304,22 +317,6 @@ export function CalendarDayCell({
               </button>
             );
           })}
-        </div>
-
-        <div className="relative z-10 mt-1.5 border-t border-black/[0.06] dark:border-white/[0.08] pt-1.5">
-          <button
-            type="button"
-            onClick={(clickEvent) => {
-              clickEvent.stopPropagation();
-              onApplyWeek();
-            }}
-            className="w-full rounded-xl px-2.5 py-1.5 text-left text-[10.5px] font-semibold text-[#5a49b8] transition-all hover:bg-white/70 dark:hover:bg-white/10 flex items-center justify-between"
-          >
-            <span>Apply Mon–Fri</span>
-            <span className="text-[9.5px] font-normal text-muted-foreground">
-              ({weekRangeLabel})
-            </span>
-          </button>
         </div>
       </PopoverContent>
     </Popover>

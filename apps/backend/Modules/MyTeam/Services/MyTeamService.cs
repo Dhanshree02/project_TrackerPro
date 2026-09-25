@@ -96,6 +96,12 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             var nextAttendance = setAttendance ? attendance : row?.Attendance;
             var nextShift = setShift ? shift : row?.Shift;
 
+            // When an employee is on leave, they have no shift data
+            if (string.Equals(nextAttendance, "leave", StringComparison.OrdinalIgnoreCase))
+            {
+                nextShift = null;
+            }
+
             if (nextAttendance is null && nextShift is null)
             {
                 if (row is not null) db.TeamDayEntries.Remove(row);

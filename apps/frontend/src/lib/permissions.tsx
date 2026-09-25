@@ -28,13 +28,15 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PermissionsContextValue>(() => {
     const permissions = user?.permissions ?? [];
     const set = new Set(permissions);
+    const roleLower = user?.role?.toLowerCase();
+    const isAdmin = roleLower === "admin" || roleLower === "dhanshree";
     return {
       permissions,
-      hasPermission: (key: string) => set.has(key),
-      hasAny: (...keys) => keys.some((k) => !!k && set.has(k)),
-      hasAll: (...keys) => keys.every((k) => !k || set.has(k)),
+      hasPermission: (key: string) => isAdmin || set.has(key),
+      hasAny: (...keys) => isAdmin || keys.some((k) => !!k && set.has(k)),
+      hasAll: (...keys) => isAdmin || keys.every((k) => !k || set.has(k)),
     };
-  }, [user?.permissions]);
+  }, [user?.permissions, user?.role]);
 
   return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>;
 }

@@ -12,6 +12,7 @@ export function AppSidebar() {
   const {
     assignedIssues,
     pendingTimesheets,
+    isAdmin,
     isPMO,
     isHOD,
     isBO,
@@ -42,12 +43,12 @@ export function AppSidebar() {
   };
 
   // Navigation is permission-driven: only modules the signed-in user may access
-  // are rendered. Dhanshree/Admin keep the super-admin workspace layout.
+  // are rendered. Admin and Dhanshree get full super-admin workspace navigation.
   const items: NavItem[] = filterNavItems(
-    isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
+    isAdmin || isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
     hasPermission,
     hasAny,
-    { isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
+    { isAdmin, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
   );
 
   const isActive = (to?: string, exact?: boolean, subSearch?: Record<string, any>) => {
