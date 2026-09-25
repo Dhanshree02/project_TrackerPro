@@ -6,6 +6,7 @@ import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
  * Older legacy roles have been completely removed.
  */
 export type DemoRoleKey =
+  | "Admin"
   | "CEO"
   | "COO"
   | "CTO"
@@ -49,7 +50,17 @@ export interface DemoPersona {
 }
 
 export const DEMO_PERSONAS: DemoPersona[] = [
-  // ── Executive Leadership ──
+  // ── Executive Leadership & Administration ──
+  {
+    key: "Admin",
+    label: "Admin",
+    category: "Executive Leadership",
+    email: "admin@acme.co",
+    name: "Admin User",
+    id: "u15",
+    avatar: "AU",
+    permissions: DEFAULT_ROLE_PERMISSIONS["Admin"] ?? DEFAULT_ROLE_PERMISSIONS["CEO"] ?? [],
+  },
   {
     key: "CEO",
     label: "CEO",
@@ -86,10 +97,10 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     key: "IT Admin",
     label: "IT Admin",
     category: "Functional Support",
-    email: "admin@acme.co",
-    name: "Admin User",
-    id: "u15",
-    avatar: "AU",
+    email: "itadmin@acme.co",
+    name: "IT Admin User",
+    id: "u32",
+    avatar: "IT",
     permissions: DEFAULT_ROLE_PERMISSIONS["IT Admin"] ?? [],
   },
   {

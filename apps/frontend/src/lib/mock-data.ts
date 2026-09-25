@@ -1,4 +1,5 @@
 export type Role =
+  | "Admin"
   | "senior_pm"
   | "engagement_manager"
   | "pmo"
@@ -631,6 +632,7 @@ const allClientsList = ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c
 
 // Client assignments per role
 export const assignments: Record<Role, string[]> = {
+  Admin: allClientsList,
   CEO: allClientsList,
   COO: allClientsList,
   CTO: allClientsList,

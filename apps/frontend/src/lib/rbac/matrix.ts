@@ -105,7 +105,7 @@ const BO_VIEW = PMO_CORE.filter(
 );
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
-  // 27 discrete roles
+  Admin: allKeys,
   CEO: allKeys,
   COO: keys(
     "dashboard.view",

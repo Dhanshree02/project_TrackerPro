@@ -53,10 +53,11 @@ interface RoleContextValue {
 const RoleContext = createContext<RoleContextValue | null>(null);
 
 const userByRole: Record<Role, string> = {
+  Admin: "u15",
   CEO: "u13",
   COO: "u14",
   CTO: "u19",
-  "IT Admin": "u15",
+  "IT Admin": "u32",
   Accounts: "u17",
   HR: "u16",
   "Sales Manager": "u18",
@@ -95,6 +96,7 @@ const userByRole: Record<Role, string> = {
 };
 
 const roleFromBackend: Record<string, Role> = {
+  Admin: "Admin",
   CEO: "CEO",
   COO: "COO",
   CTO: "CTO",
@@ -129,7 +131,6 @@ const roleFromBackend: Record<string, Role> = {
   Employee: "Testing-Team Member",
   BusinessOwner: "CEO",
   Dhanshree: "COO",
-  Admin: "CEO",
   Pmo: "PMO",
   Hod: "Testing HOD",
   Hr: "HR",
@@ -523,6 +524,7 @@ export function useRoleContext() {
 }
 
 export const roleLabels: Record<Role, string> = {
+  Admin: "Admin",
   CEO: "CEO",
   COO: "COO",
   CTO: "CTO",

@@ -57,6 +57,7 @@ public static class DbSeeder
 
     private static readonly RoleDef[] SystemRoles =
     [
+        new("Admin", "Admin", "Super-admin — full access to every module, submodule and action."),
         new("CEO", "Chief Executive Officer", "Global executive visibility, business analytics, all approvals."),
         new("COO", "Chief Operating Officer", "Operational oversight across all departments and projects."),
         new("CTO", "Chief Technology Officer", "Technical architecture, R&D governance, engineering oversight."),
@@ -161,7 +162,7 @@ public static class DbSeeder
             ("u12", "Anita Desai", "anita@acme.co", "AD", "Consulting-HOD"),
             ("u13", "Vikrant Malhotra", "vikrant@acme.co", "VM", "CEO"),
             ("u14", "Dhanshree Pansare", "dhanshree@acme.co", "DP", "COO"),
-            ("u15", "Admin User", "admin@acme.co", "AU", "IT Admin"),
+            ("u15", "Admin User", "admin@acme.co", "AU", "Admin"),
             ("u16", "HR User", "hr@acme.co", "HU", "HR"),
             ("u17", "Accounts User", "accounts@acme.co", "AC", "Accounts"),
             ("u18", "Sales User", "sales@acme.co", "SU", "Sales Manager"),
@@ -178,6 +179,7 @@ public static class DbSeeder
             ("u29", "Amit Pandey", "amit.pandey@acme.co", "AP", "SOC-Team Leader"),
             ("u30", "Pooja Nair", "pooja.nair@acme.co", "PN", "SOC-Team Member"),
             ("u31", "Kavya Desai", "kavya.desai@acme.co", "KD", "R&D - Team member"),
+            ("u32", "IT Admin User", "itadmin@acme.co", "IT", "IT Admin"),
         };
 
         // Some imported/legacy user rows have NULL PasswordHash. The User entity
