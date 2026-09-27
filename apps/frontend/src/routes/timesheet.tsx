@@ -8,6 +8,8 @@ import { usePermissions } from "@/lib/permissions";
 import { people, projects, timesheets } from "@/lib/mock-data";
 import { TimesheetStatusPill } from "@/components/pills";
 import { cn } from "@/lib/utils";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
+import { HourField } from "@/components/hour-field";
 
 export const Route = createFileRoute("/timesheet")({
   head: () => ({
@@ -221,7 +223,7 @@ function TimesheetPage() {
                       {d}
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-right font-medium">Total</th>
+                  <th className="px-3 py-2 text-center font-medium">Total</th>
                   <th className="px-2 py-2"></th>
                 </tr>
               </thead>
@@ -232,54 +234,46 @@ function TimesheetPage() {
                   return (
                     <tr key={r.id}>
                       <td className="px-3 py-2 align-top">
-                        <select
-                          value={r.projectId}
-                          onChange={(e) =>
-                            update(r.id, {
-                              projectId: e.target.value,
-                              taskId: tasksByProject[e.target.value]?.[0]?.id ?? "",
-                            })
-                          }
-                          className="form-input mb-1 w-full"
-                        >
-                          {projects.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          value={r.taskId}
-                          onChange={(e) => update(r.id, { taskId: e.target.value })}
-                          className="form-input w-full"
-                        >
-                          {tasks.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.title}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex flex-col gap-1.5">
+                          <SearchableSelect
+                            options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                            value={r.projectId}
+                            onChange={(projectId) =>
+                              update(r.id, {
+                                projectId,
+                                taskId: tasksByProject[projectId]?.[0]?.id ?? "",
+                              })
+                            }
+                            placeholder="Select project"
+                            searchPlaceholder="Search projects…"
+                            clearable={false}
+                          />
+                          <SearchableSelect
+                            options={tasks.map((t) => ({ value: t.id, label: t.title }))}
+                            value={r.taskId}
+                            onChange={(taskId) => update(r.id, { taskId })}
+                            placeholder="Select task"
+                            searchPlaceholder="Search tasks…"
+                            clearable={false}
+                          />
+                        </div>
                       </td>
                       {r.hours.map((h, di) => (
                         <td key={di} className="px-2 py-2 text-center align-top">
-                          <input
-                            type="number"
-                            min={0}
-                            max={24}
-                            step={0.5}
+                          <HourField
                             value={h}
-                            onChange={(e) => setHour(r.id, di, e.target.value)}
-                            className="form-input h-9 w-14 text-center tabular-nums"
+                            label={`${days[di]} hours`}
+                            onChange={(hours) => setHour(r.id, di, String(hours))}
                           />
                         </td>
                       ))}
-                      <td className="px-3 py-2 text-right align-top font-semibold tabular-nums">
-                        {rowTotal}
+                      <td className="px-3 py-2 text-center align-middle">
+                        <span className="text-lg font-semibold tabular-nums leading-none">{rowTotal}</span>
                       </td>
-                      <td className="px-2 py-2 align-top">
+                      <td className="px-2 py-2 text-center align-middle">
                         <button
                           onClick={() => remove(r.id)}
-                          className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-destructive"
+                          className="inline-flex rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-destructive"
                           aria-label="Remove"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -297,7 +291,7 @@ function TimesheetPage() {
                       {d}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-right tabular-nums">{total}</td>
+                  <td className="px-3 py-2 text-center text-base tabular-nums">{total}</td>
                   <td />
                 </tr>
               </tfoot>

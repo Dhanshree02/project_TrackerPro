@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   LayoutGrid,
   List,
@@ -1343,6 +1344,8 @@ export function Modal({
   children,
   onClose,
   wide,
+  extraWide,
+  portal,
   fullScreen,
   draggable,
 }: {
@@ -1350,6 +1353,8 @@ export function Modal({
   children: React.ReactNode;
   onClose: () => void;
   wide?: boolean;
+  extraWide?: boolean;
+  portal?: boolean;
   fullScreen?: boolean;
   draggable?: boolean;
 }) {
@@ -1400,11 +1405,12 @@ export function Modal({
     };
   }, []);
 
-  return (
+  const overlay = (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center overscroll-none",
-        fullScreen ? "bg-background p-0" : "bg-black/40 p-4",
+        "fixed inset-0 flex items-center justify-center overscroll-none",
+        portal ? "z-[100]" : "z-50",
+        fullScreen ? "bg-background p-0" : portal ? "bg-black/50 p-4 backdrop-blur-[1px]" : "bg-black/40 p-4",
       )}
       onClick={!fullScreen && !draggable ? onClose : undefined}
       onWheel={(e) => {
@@ -1421,7 +1427,7 @@ export function Modal({
           fullScreen
             ? "w-full h-full rounded-none shadow-none"
             : "max-h-[90vh] w-full rounded-xl shadow-xl",
-          !fullScreen && wide ? "max-w-3xl" : !fullScreen ? "max-w-lg" : "",
+          !fullScreen && extraWide ? "max-w-[1180px]" : !fullScreen && wide ? "max-w-3xl" : !fullScreen ? "max-w-lg" : "",
         )}
         style={draggable ? { willChange: "transform" } : undefined}
         onClick={(e) => e.stopPropagation()}
@@ -1457,4 +1463,7 @@ export function Modal({
       </div>
     </div>
   );
+
+  if (portal && typeof document !== "undefined") return createPortal(overlay, document.body);
+  return overlay;
 }

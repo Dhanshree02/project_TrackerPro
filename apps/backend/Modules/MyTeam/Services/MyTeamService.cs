@@ -197,16 +197,15 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
         await db.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Direct reports of the signed-in employee. Engagement manager and project
+    /// manager links do not grant team-dashboard access.
+    /// </summary>
     private IQueryable<Employee> TeamQuery(Guid callerId) =>
         db.Employees.Where(e =>
             e.Status != null
             && e.Status.ToLower() == "active"
-            && e.EngagementManagerEmployeeId != null
-            && e.ReportingManagerId != null
-            && e.ProjectManagerId != null
-            && (e.EngagementManagerEmployeeId == callerId
-                || e.ReportingManagerId == callerId
-                || e.ProjectManagerId == callerId));
+            && e.ReportingManagerId == callerId);
 
     private async Task<Employee> RequireTeamMemberAsync(Guid employeeId, CancellationToken ct)
     {

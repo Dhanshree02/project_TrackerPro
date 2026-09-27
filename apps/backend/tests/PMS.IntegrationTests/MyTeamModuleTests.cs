@@ -26,23 +26,24 @@ public class MyTeamModuleTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task Calendar_IsScopedToEmManagerAndPm()
+    public async Task Calendar_IsScopedToReportingManager()
     {
         var graph = await SeedGraphAsync();
-
-        await AuthorizeAsync("dhanshree@acme.co");
-        var asEm = await GetCalendarAsync();
-        Assert.Contains(asEm.Members, m => m.Id == graph.MemberId);
-        Assert.DoesNotContain(asEm.Members, m => m.Id == graph.IncompleteId);
-        Assert.DoesNotContain(asEm.Members, m => m.Id == graph.OutsiderId);
 
         await AuthorizeAsync("aarav@acme.co");
         var asManager = await GetCalendarAsync();
         Assert.Contains(asManager.Members, m => m.Id == graph.MemberId);
+        Assert.Contains(asManager.Members, m => m.Id == graph.IncompleteId);
+        Assert.DoesNotContain(asManager.Members, m => m.Id == graph.OutsiderId);
+
+        await AuthorizeAsync("dhanshree@acme.co");
+        var asEm = await GetCalendarAsync();
+        Assert.DoesNotContain(asEm.Members, m => m.Id == graph.MemberId);
+        Assert.DoesNotContain(asEm.Members, m => m.Id == graph.IncompleteId);
 
         await AuthorizeAsync("vikram@acme.co");
         var asPm = await GetCalendarAsync();
-        Assert.Contains(asPm.Members, m => m.Id == graph.MemberId);
+        Assert.DoesNotContain(asPm.Members, m => m.Id == graph.MemberId);
     }
 
     [Fact]
@@ -88,7 +89,7 @@ public class MyTeamModuleTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task ScheduleSave_ReplacesHolidays_AndClearsNonWorkingDays()
     {
         var graph = await SeedGraphAsync();
-        await AuthorizeAsync("vikram@acme.co");
+        await AuthorizeAsync("aarav@acme.co");
         var saturday = NextWeekday(DayOfWeek.Saturday);
         var monday = NextWeekday(DayOfWeek.Monday);
 

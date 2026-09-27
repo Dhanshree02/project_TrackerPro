@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { X, AlertTriangle, Clock, History, Mail, UserCheck, RefreshCw, Plus } from "lucide-react";
+import { createPortal } from "react-dom";
+import { X, AlertTriangle, Clock, History, Mail, RefreshCw, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
@@ -211,9 +212,13 @@ function OffboardConfirmDialog({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={onCancel} />
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]"
+      onClick={onCancel}
+    >
       <div
         className="relative w-full max-w-lg rounded-xl border border-destructive/30 bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
@@ -223,7 +228,7 @@ function OffboardConfirmDialog({
             <AlertTriangle className="h-5 w-5 text-destructive" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground">Offboard Employee?</h2>
+            <h2 className="text-base font-semibold text-foreground">Offboard Employee</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               This action cannot be undone. They will appear on Exit Summary immediately
               and stay in the directory until the day after last working day (notice period
@@ -342,7 +347,8 @@ function OffboardConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -477,8 +483,6 @@ function EmployeeProfilePage() {
 
   const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
   const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "personal") : tabs;
-  const createdLog = logs.find((l) => l.action.toLowerCase() === "created") ?? logs[logs.length - 1];
-  const lastUpdatedLog = logs.find((l) => l.action.toLowerCase() === "updated");
 
   return (
     <AppShell
@@ -498,53 +502,18 @@ function EmployeeProfilePage() {
 
       {/* Profile Header */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="flex items-start gap-4 min-w-0 flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
             <Avatar name={`${emp.firstName} ${emp.lastName}`} size={52} />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-xl font-semibold tracking-tight text-foreground">
                   {emp.firstName} {emp.lastName}
                 </h1>
-                <div className="flex flex-wrap items-center gap-2">
-                  <EmpStatusBadge status={emp.confirmationStatus || emp.status} />
-                  <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
-                    {emp.category}
-                  </span>
-                </div>
+                <EmpStatusBadge status={emp.confirmationStatus || emp.status} />
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
                 {emp.designation || "—"} · {emp.department || "—"}
-              </div>
-              <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
-                <span className="whitespace-nowrap">
-                  ID: <span className="font-mono font-medium text-foreground">{emp.id}</span>
-                </span>
-                <span className="whitespace-nowrap">
-                  Email: <span className="font-medium text-foreground">{emp.email}</span>
-                </span>
-                <span className="whitespace-nowrap">
-                  Work Location: <span className="font-medium text-foreground">{emp.workLocation || "—"}</span>
-                </span>
-                <span className="whitespace-nowrap">
-                  Reporting Manager:{" "}
-                  <span className="font-medium text-foreground">{emp.reportingManager || "—"}</span>
-                </span>
-                <span className="whitespace-nowrap">
-                  Joining Date: <span className="font-medium text-foreground">{emp.joiningDate || "—"}</span>
-                </span>
-                {createdLog && (
-                  <span className="whitespace-nowrap inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                    <UserCheck className="h-3.5 w-3.5" />
-                    <span>Created by <strong className="font-semibold text-foreground">{createdLog.performedByEmail}</strong></span>
-                  </span>
-                )}
-                {lastUpdatedLog && (
-                  <span className="whitespace-nowrap inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                    <History className="h-3.5 w-3.5" />
-                    <span>Last edited by <strong className="font-semibold text-foreground">{lastUpdatedLog.performedByEmail}</strong></span>
-                  </span>
-                )}
               </div>
             </div>
           </div>

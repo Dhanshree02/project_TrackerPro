@@ -16,6 +16,7 @@ import {
   getPerson,
   type TimesheetStatus,
   type TimesheetEntry,
+  type TimesheetEntryDecision,
   type CellCommentData,
   type CellCommentMessage,
 } from "@/lib/mock-data";
@@ -3323,6 +3324,49 @@ export const dhStore = {
       }
     }
     emit();
+  },
+
+  reviewTimesheetEntries(
+    id: string,
+    entryIndexes: number[],
+    decision: TimesheetEntryDecision,
+    comment: string,
+    updatedBy: string,
+    updatedById: string,
+  ): boolean {
+    const ts = state.timesheets.find((x) => x.id === id);
+    if (!ts) return false;
+    const indexes = [...new Set(entryIndexes)].filter(
+      (index) => index >= 0 && index < ts.entries.length,
+    );
+    if (indexes.length === 0 || !comment.trim()) return false;
+    for (const index of indexes) ts.entries[index].reviewDecision = decision;
+
+    const allDecided = ts.entries.every((entry) => entry.reviewDecision);
+    if (!allDecided) {
+      ts.comments.push({
+        id: uid("cm"),
+        authorId: updatedById,
+        authorName: updatedBy,
+        text: comment.trim(),
+        at: new Date().toISOString(),
+      });
+      emit();
+      return false;
+    }
+
+    const decisions = ts.entries.map((entry) => entry.reviewDecision);
+    let status: TimesheetStatus = "approved";
+    let finalComment = comment.trim();
+    if (decisions.some((item) => item === "rejected")) status = "rejected";
+    else if (decisions.some((item) => item === "change_requested")) {
+      status = "rejected";
+      if (!finalComment.startsWith("[Change Requested]")) {
+        finalComment = `[Change Requested] ${finalComment}`;
+      }
+    }
+    this.updateTimesheetStatus(id, status, finalComment, updatedBy, updatedById);
+    return true;
   },
 
   updateTimesheetStatus(

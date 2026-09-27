@@ -73,7 +73,10 @@ export function TaskStatusPill({ status }: { status: TaskStatus }) {
   return <span className={cn(base, map[status])}>{label}</span>;
 }
 
-export function TimesheetStatusPill({ status }: { status: TimesheetStatus }) {
+export function TimesheetStatusPill({ status }: { status: TimesheetStatus | "change_requested" }) {
+  if (status === "change_requested") {
+    return <span className={cn(base, "bg-warning/10 text-warning-foreground border-warning/30")}>Changes requested</span>;
+  }
   const map: Record<TimesheetStatus, string> = {
     draft: "bg-muted text-muted-foreground border-border",
     submitted: "bg-info/10 text-info border-info/30",

@@ -16,7 +16,7 @@ describe("employment bond helpers", () => {
 
   it("computes expiry from DOJ and duration when bond is delivered", () => {
     expect(computeBondExpiryDate("2026-09-10", "Yes", "12")).toBe("2027-09-10");
-    expect(formatBondExpiryDisplay("2026-09-10", "Yes", "12")).toBe("2027-09-10");
+    expect(formatBondExpiryDisplay("2026-09-10", "Yes", "12")).toBe("10-09-2027");
     expect(computeBondStatus("Yes", "2026-09-10", "12")).toBe("In bond");
   });
 });

@@ -23,6 +23,7 @@ interface RoleContextValue {
   setRolePermissions: (role: Role, perms: PermissionKey[]) => void;
   resetRolePermissions: (role: Role) => void;
   isAdmin: boolean;
+  isItAdmin: boolean;
   isPMO: boolean;
   isHOD: boolean;
   isBO: boolean;
@@ -280,6 +281,11 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const isHr =
     !!authUser && status === "authed" && (backendRole === "HR" || backendRole === "Hr");
 
+  const isItAdmin =
+    !!authUser &&
+    status === "authed" &&
+    (backendRole === "IT Admin" || role === "IT Admin");
+
   const isEngagementManager =
     !!authUser && status === "authed" && backendRole === "EngagementManager";
 
@@ -497,6 +503,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         setRolePermissions,
         resetRolePermissions,
         isAdmin,
+        isItAdmin,
         isPMO,
         isHOD,
         isBO,

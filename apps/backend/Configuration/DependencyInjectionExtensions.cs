@@ -11,6 +11,7 @@ using PMS.API.Modules.Auth.Services;
 using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Modules.Customers.Services;
 using PMS.API.Modules.MyTeam.Services;
+using PMS.API.Modules.Timesheets.Services;
 using PMS.API.Modules.Repository.Services;
 using PMS.API.Modules.Resources.Services;
 using PMS.API.Modules.Users.Services;
@@ -55,6 +56,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRepositoryService, RepositoryService>();
         services.AddScoped<IMyTeamService, MyTeamService>();
+        services.AddScoped<ITimesheetService, TimesheetService>();
 
         // ---- FluentValidation validators (scanned from this assembly) ----
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);

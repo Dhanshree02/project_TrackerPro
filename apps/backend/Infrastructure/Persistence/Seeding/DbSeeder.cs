@@ -148,7 +148,7 @@ public static class DbSeeder
     {
         var seed = new (string Id, string Name, string Email, string Avatar, string Role)[]
         {
-            ("u1", "Aarav Mehta", "aarav@acme.co", "AM", "Consulting-Senior Manager"),
+            ("u1", "Aarav Mehta", "aarav@acme.co", "AM", "SOC-Senior Manager"),
             ("u2", "Riya Kapoor", "riya@acme.co", "RK", "EngagementManager"),
             ("u3", "Vikram Shah", "vikram@acme.co", "VS", "SOC-Manager"),
             ("u4", "Sana Iyer", "sana@acme.co", "SI", "Consulting-Manager"),

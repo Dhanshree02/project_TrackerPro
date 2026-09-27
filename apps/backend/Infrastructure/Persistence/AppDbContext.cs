@@ -4,6 +4,7 @@ using PMS.API.Shared.Common.Models;
 using PMS.API.Modules.Auth.Models;
 using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.MyTeam.Models;
+using PMS.API.Modules.Timesheets.Models;
 using PMS.API.Modules.Repository.Models;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
@@ -85,6 +86,12 @@ public class AppDbContext(
     public DbSet<TeamMemberSchedule> TeamMemberSchedules => Set<TeamMemberSchedule>();
 
     public DbSet<TeamMemberHoliday> TeamMemberHolidays => Set<TeamMemberHoliday>();
+
+    public DbSet<TimesheetWeek> TimesheetWeeks => Set<TimesheetWeek>();
+
+    public DbSet<TimesheetEntry> TimesheetEntries => Set<TimesheetEntry>();
+
+    public DbSet<TimesheetEntryDay> TimesheetEntryDays => Set<TimesheetEntryDay>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

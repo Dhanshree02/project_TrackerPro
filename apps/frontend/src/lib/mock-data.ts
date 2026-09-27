@@ -318,6 +318,8 @@ export interface CellCommentData {
   history: CellCommentMessage[];
 }
 
+export type TimesheetEntryDecision = "approved" | "rejected" | "change_requested";
+
 export interface TimesheetEntry {
   taskId: string;
   projectId: string;
@@ -325,6 +327,7 @@ export interface TimesheetEntry {
   note?: string;
   notes?: string[];
   cellComments?: Record<number, CellCommentData>;
+  reviewDecision?: TimesheetEntryDecision;
 }
 
 export interface Timesheet {
@@ -367,10 +370,56 @@ export const people: Person[] = [
     email: "vikrant@acme.co",
   },
   { id: "u14", name: "Dhanshree", role: "Dhanshree", avatar: "DS", email: "dhanshree@acme.co" },
+  { id: "TK-0003", name: "Kunal Deshmukh", role: "Director and Chief Technology Officer", avatar: "KD", email: "kunal.deshmukh@acme.co" },
+  { id: "TK-0004", name: "Admin User", role: "Admin", avatar: "AU", email: "admin@acme.co" },
+  { id: "TK-0004-IT", name: "IT Admin User", role: "IT Admin", avatar: "IT", email: "itadmin@acme.co" },
+  { id: "TK-0005", name: "Accounts User", role: "Senior Accountant - I", avatar: "AU", email: "accounts@acme.co" },
+  { id: "TK-0006", name: "HR User", role: "HR Head", avatar: "HU", email: "hr@acme.co" },
+  { id: "TK-0007", name: "Sales User", role: "Sales Manager", avatar: "SU", email: "sales@acme.co" },
+  { id: "TK-0008", name: "Nikhil Khanna", role: "Sales Associate", avatar: "NK", email: "nikhil.khanna@acme.co" },
+  { id: "TK-0009", name: "Pooja Sharma", role: "Sales Associate", avatar: "PS", email: "pooja.sharma@acme.co" },
+  { id: "TK-0010", name: "Rohit Verma", role: "Associate Customer Success Representative - I", avatar: "RV", email: "rohit.verma@acme.co" },
+  { id: "TK-0011", name: "Sneha Reddy", role: "Associate Customer Success Representative - II", avatar: "SR", email: "sneha.reddy@acme.co" },
+  { id: "TK-0014", name: "Pradeep Singh", role: "Engagement Manager", avatar: "PS", email: "pradeep.singh@acme.co" },
+  { id: "TK-0015", name: "Kavya Desai", role: "Python Developer - II", avatar: "KD", email: "kavya.desai@acme.co" },
+  { id: "TK-0016", name: "Rajesh Kadam", role: "SOC HOD", avatar: "RK", email: "rajesh.kadam@acme.co" },
+  { id: "TK-0017", name: "Deepak Sawant", role: "SOC Senior Manager", avatar: "DS", email: "deepak.sawant@acme.co" },
+  { id: "TK-0019", name: "Sneha Iyer", role: "SOC Lead - I", avatar: "SI", email: "sneha.iyer@acme.co" },
+  { id: "TK-0021", name: "Amit Pandey", role: "SOC Shift Lead - I", avatar: "AP", email: "amit.pandey@acme.co" },
+  { id: "TK-0022", name: "Karthik Bose", role: "SOC Analyst - I", avatar: "KB", email: "karthik.bose@acme.co" },
+  { id: "TK-0023", name: "Ankit Verma", role: "SOC Analyst - II", avatar: "AV", email: "ankit.verma@acme.co" },
+  { id: "TK-0024", name: "Aditya Reddy", role: "SIEM Admin - II", avatar: "AR", email: "aditya.reddy@acme.co" },
+  { id: "TK-0025", name: "Manish Tiwari", role: "SOC Consultant - I", avatar: "MT", email: "manish.tiwari@acme.co" },
+  { id: "TK-0026", name: "Pooja Nair", role: "SOC Analyst - III", avatar: "PN", email: "pooja.nair@acme.co" },
+  { id: "TK-0031", name: "Siddharth Roy", role: "Senior GRC Auditor - II", avatar: "SR", email: "siddharth.roy@acme.co" },
+  { id: "TK-0032", name: "Ira Kapoor", role: "GRC Auditor - I", avatar: "IK", email: "ira.kapoor@acme.co" },
+  { id: "TK-0033", name: "Meera Nambiar", role: "GRC Auditor - II", avatar: "MN", email: "meera.nambiar@acme.co" },
+  { id: "TK-0034", name: "Rajat Singhal", role: "GRC Auditor - III", avatar: "RS", email: "rajat.singhal@acme.co" },
+  { id: "TK-0035", name: "Swati Mishra", role: "GRC Auditor - IV", avatar: "SM", email: "swati.mishra@acme.co" },
+  { id: "TK-0036", name: "Varun Saxena", role: "GRC Auditor - I", avatar: "VS", email: "varun.saxena@acme.co" },
+  { id: "TK-0037", name: "Girish Shenoy", role: "Testing HOD", avatar: "GS", email: "girish.shenoy@acme.co" },
+  { id: "TK-0038", name: "Suresh Pillai", role: "Manager - I", avatar: "SP", email: "suresh.pillai@acme.co" },
+  { id: "TK-0039", name: "Alok Kumar", role: "Associate Manager - III", avatar: "AK", email: "alok.kumar@acme.co" },
+  { id: "TK-0040", name: "Divya Rao", role: "Associate Project Manager", avatar: "DR", email: "divya.rao@acme.co" },
+  { id: "TK-0041", name: "Manoj Bhatt", role: "DevSecOps Specialist - II", avatar: "MB", email: "manoj.bhatt@acme.co" },
+  { id: "TK-0042", name: "Gaurav Joshi", role: "DevSecOps Associate", avatar: "GJ", email: "gaurav.joshi@acme.co" },
+  { id: "TK-0043", name: "Kiran Mathur", role: "Associate Manager - I", avatar: "KM", email: "kiran.mathur@acme.co" },
+  { id: "TK-0044", name: "Ramesh Nair", role: "Associate Manager - II", avatar: "RN", email: "ramesh.nair@acme.co" },
+  { id: "TK-0045", name: "Priya Sharma", role: "PenTester - I", avatar: "PS", email: "priya.sharma@acme.co" },
+  { id: "TKI-0001", name: "Ananya Verma", role: "Intern", avatar: "AV", email: "ananya.verma@acme.co" },
+  { id: "TKI-0002", name: "Rohan Joshi", role: "Intern", avatar: "RJ", email: "rohan.joshi@acme.co" },
+  { id: "TKI-0003", name: "Tanvi Deshmukh", role: "Intern", avatar: "TD", email: "tanvi.deshmukh@acme.co" },
+  { id: "TKI-0004", name: "Ayush Saxena", role: "Intern", avatar: "AS", email: "ayush.saxena@acme.co" },
+  { id: "TKI-0005", name: "Simran Kaur", role: "Intern", avatar: "SK", email: "simran.kaur@acme.co" },
+  { id: "TKI-0006", name: "Naveen Choudhary", role: "Intern", avatar: "NC", email: "naveen.choudhary@acme.co" },
+  { id: "TKI-0007", name: "Bhavna Patel", role: "Intern", avatar: "BP", email: "bhavna.patel@acme.co" },
+  { id: "TKI-0008", name: "Harsh Wardhan", role: "Intern", avatar: "HW", email: "harsh.wardhan@acme.co" },
+  { id: "TKI-0009", name: "Akash Jain", role: "Intern", avatar: "AJ", email: "akash.jain@acme.co" },
+  { id: "TKI-0010", name: "Kunal Mehra", role: "Intern", avatar: "KM", email: "kunal.mehra@acme.co" },
 ];
 
 export const getPerson = (id: string) =>
-  people.find((p) => p.id === id) || {
+  people.find((p) => p.id === id || p.email.toLowerCase() === (id || "").toLowerCase()) || {
     id: id || "unknown",
     name: id || "Unknown User",
     role: "User",

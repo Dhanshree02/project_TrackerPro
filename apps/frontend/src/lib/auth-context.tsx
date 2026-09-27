@@ -37,7 +37,7 @@ async function signInAsDemoRole(role: DemoRoleKey): Promise<AuthUser> {
     const me = await getMe();
     return {
       ...me,
-      role: persona.key,
+      role: persona.roleKey ?? me.role ?? persona.key,
       mustChangePassword: false,
       permissions: persona.permissions,
     };
@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       const role = getStoredDemoRole();
+      const currentPersona = getDemoPersona(role);
       if (!cancelled) {
         setDemoRole(role);
         setUser(mockAuthUser(role));
@@ -72,9 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (cancelled) return;
           setUser({
             ...me,
-            role,
+            role: currentPersona.roleKey ?? me.role ?? role,
             mustChangePassword: false,
-            permissions: getDemoPersona(role).permissions,
+            permissions: currentPersona.permissions,
           });
           setStatus("authed");
           return;

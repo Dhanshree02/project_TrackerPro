@@ -11,7 +11,6 @@ import {
   Inbox,
   Layers,
   Settings,
-  Clock,
   type LucideIcon,
 } from "lucide-react";
 
@@ -60,13 +59,11 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "My Team",
     icon: Users,
-    permission: "my-team.dashboard.view",
     subItems: [
-      { to: "/my-team/", label: "Team Dashboard", permission: "my-team.dashboard.view" },
+      { to: "/my-team/", label: "Team Dashboard" },
       {
         to: "/my-team/timesheets",
         label: "Timesheet Approval",
-        permission: ["my-team.timesheet-approval.view", "my-team.timesheet-approval.approve"],
       },
     ],
   },
@@ -106,13 +103,11 @@ export const DH_NAV_ITEMS: NavItem[] = [
   {
     label: "My Team",
     icon: Users,
-    permission: "my-team.dashboard.view",
     subItems: [
       { to: "/my-team/", label: "Team Dashboard" },
       {
         to: "/my-team/timesheets",
         label: "Timesheets",
-        permission: "my-team.timesheet-approval.view",
       },
     ],
   },
@@ -134,8 +129,6 @@ export const DH_NAV_ITEMS: NavItem[] = [
  *
  * Role-driven replacements:
  * - Admin: sees every module and every sub-item without filtering.
- * - Employee: the "My Team" folder is replaced by a direct "Timesheet" item —
- *   Employees never see the My Team module.
  * - HR: the single "Resources" item becomes the admin-style folder
  *   (Directory + Exit Summary) — HR manages the employee directory
  *   for onboarding (no resource pool).
@@ -146,6 +139,7 @@ export const DH_NAV_ITEMS: NavItem[] = [
  */
 export type NavRoleFlags = {
   isAdmin?: boolean;
+  isItAdmin?: boolean;
   isEmployee?: boolean;
   isHr?: boolean;
   isPmFamily?: boolean;
@@ -160,7 +154,7 @@ export function filterNavItems(
   hasAny: (...keys: Array<string | undefined | null>) => boolean,
   flags: NavRoleFlags = {},
 ): NavItem[] {
-  const { isAdmin, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales } = flags;
+  const { isAdmin, isItAdmin, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales } = flags;
 
   // Admin has super-admin visibility into every module and submodule
   if (isAdmin) {
@@ -192,25 +186,8 @@ export function filterNavItems(
     if (parentAllowed) result.push({ ...item, permission: undefined });
   }
 
-  // Employee: hide the My Team folder, surface the Timesheet page directly.
-  if (isEmployee) {
-    const idx = result.findIndex((i) => i.label === "My Team");
-    if (idx >= 0) {
-      const myTeam = result[idx];
-      const hasTimesheet = myTeam.subItems?.some((s) => s.to === "/timesheet");
-      if (hasTimesheet) {
-        result[idx] = {
-          to: "/timesheet",
-          label: "Timesheet",
-          icon: Clock,
-          permission: undefined,
-        };
-      }
-    }
-  }
-
-  // HR: Resources becomes the admin-style directory folder.
-  if (isHr) {
+  // HR & IT Admin: Resources becomes the directory & resource pool folder.
+  if (isHr || isItAdmin) {
     const idx = result.findIndex((i) => i.label === "Resources");
     if (idx >= 0) {
       result[idx] = {
@@ -226,7 +203,7 @@ export function filterNavItems(
   }
 
   const useDhDirectory = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  if (useDhDirectory && !isHr) {
+  if (useDhDirectory && !isHr && !isItAdmin) {
     const idx = result.findIndex((i) => i.label === "Resources");
     if (idx >= 0) {
       result[idx] = {
@@ -243,7 +220,14 @@ export function filterNavItems(
     if (idx >= 0) {
       result[idx] = {
         ...result[idx],
-        subItems: [{ to: "/my-team/", label: "Team Dashboard" }],
+        subItems: [
+          { to: "/my-team/", label: "Team Dashboard" },
+          {
+            to: "/my-team/timesheets",
+            label: "Timesheet Approval",
+            permission: undefined,
+          },
+        ],
       };
     }
   }
@@ -285,9 +269,9 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] 
   { prefix: "/my-org", permission: "repository.view" },
   {
     prefix: "/my-team/timesheets",
-    permission: ["my-team.timesheet-approval.view", "my-team.my-timesheet.view"],
+    permission: null,
   },
-  { prefix: "/my-team", permission: "my-team.dashboard.view" },
+  { prefix: "/my-team", permission: null },
   { prefix: "/timesheet", permission: "my-team.my-timesheet.view" },
   { prefix: "/health", permission: "projects.health.view" },
   {

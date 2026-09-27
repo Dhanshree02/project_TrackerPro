@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Search, Plus, Check, X } from "lucide-react";
 import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import { cn } from "@/lib/utils";
@@ -54,9 +55,11 @@ export function SearchableSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [openUp, setOpenUp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
 
   const normalizedOptions: SearchableSelectOption[] = useMemo(
     () =>
@@ -91,29 +94,45 @@ export function SearchableSelect({
       return;
     }
     const handlePointerDown = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) {
-      setOpenUp(false);
-      return;
-    }
-    const el = containerRef.current;
-    if (el) {
+    if (!isOpen) return;
+    const placeMenu = () => {
+      const el = buttonRef.current;
+      if (!el) return;
       const rect = el.getBoundingClientRect();
-      setOpenUp(window.innerHeight - rect.bottom < 260);
-    }
+      const upward = window.innerHeight - rect.bottom < 260 && rect.top > 260;
+      setMenuStyle({
+        position: "fixed",
+        left: rect.left,
+        width: Math.max(rect.width, 220),
+        zIndex: 80,
+        ...(upward
+          ? { bottom: window.innerHeight - rect.top + 4 }
+          : { top: rect.bottom + 4 }),
+      });
+    };
+    placeMenu();
+    window.addEventListener("resize", placeMenu);
+    window.addEventListener("scroll", placeMenu, true);
+    let focusTimer: ReturnType<typeof setTimeout> | undefined;
     if (showSearch) {
-      setTimeout(() => {
+      focusTimer = setTimeout(() => {
         searchInputRef.current?.focus();
       }, 50);
     }
+    return () => {
+      window.removeEventListener("resize", placeMenu);
+      window.removeEventListener("scroll", placeMenu, true);
+      if (focusTimer) clearTimeout(focusTimer);
+    };
   }, [isOpen, showSearch]);
 
   const handleSelect = (val: string) => {
@@ -151,10 +170,26 @@ export function SearchableSelect({
 
       <div className="relative">
         <button
+          ref={buttonRef}
           type="button"
           disabled={disabled}
           onClick={() => {
-            if (!disabled) setIsOpen((prev) => !prev);
+            if (disabled) return;
+            const el = buttonRef.current;
+            if (el) {
+              const rect = el.getBoundingClientRect();
+              const upward = window.innerHeight - rect.bottom < 260 && rect.top > 260;
+              setMenuStyle({
+                position: "fixed",
+                left: rect.left,
+                width: Math.max(rect.width, 220),
+                zIndex: 80,
+                ...(upward
+                  ? { bottom: window.innerHeight - rect.top + 4 }
+                  : { top: rect.bottom + 4 }),
+              });
+            }
+            setIsOpen((prev) => !prev);
           }}
           className={cn(
             FORM_CONTROL_CLS,
@@ -199,12 +234,12 @@ export function SearchableSelect({
           </div>
         </button>
 
-        {isOpen && !disabled && (
+        {isOpen && !disabled &&
+          createPortal(
           <div
-            className={cn(
-              "absolute left-0 z-50 max-h-60 w-full min-w-[220px] rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden",
-              openUp ? "bottom-full mb-1" : "top-full mt-1",
-            )}
+            ref={menuRef}
+            style={menuStyle}
+            className="max-h-60 min-w-[220px] rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden"
             role="listbox"
           >
             {/* Search Input */}
@@ -297,7 +332,8 @@ export function SearchableSelect({
                 </div>
               )}
             </div>
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
 

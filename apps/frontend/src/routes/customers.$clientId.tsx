@@ -116,7 +116,7 @@ function CustomerDetailPage() {
   const { client: routeClient } = Route.useLoaderData();
   const { clientId } = Route.useParams();
   const searchParams = Route.useSearch();
-  const { isDhanshree, isSales } = useRoleContext();
+  const { isDhanshree, isSales, isAdmin } = useRoleContext();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
 
@@ -291,7 +291,7 @@ function CustomerDetailPage() {
     [mockClientId, extraCount],
   );
 
-  if (!isDhanshree && !hasPermission("customers.view")) return <Navigate to="/customers" />;
+  if (!isAdmin && !isDhanshree && !hasPermission("customers.view")) return <Navigate to="/customers" />;
 
   // Loading / not-found states (after all hooks).
   if (clientLoading) {
@@ -505,7 +505,7 @@ function CustomerDetailPage() {
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   <span>ENGAGEMENT MANAGER</span>
-                  {(isDhanshree || hasPermission("customers.edit")) && !isSales && (
+                  {(isAdmin || isDhanshree || hasPermission("customers.edit") || hasPermission("customers.change_em")) && !isSales && (
                     <button
                       type="button"
                       onClick={openEmPicker}

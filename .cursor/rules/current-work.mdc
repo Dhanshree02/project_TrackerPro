@@ -5,13 +5,29 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-27
 
 - **Employee DB table cleared and re-seeded with 59 employees.** Matches exact requested breakdown across RBAC roles & departments (Core CEO/COO/CTO: 3, IT Admin: 1, Accounts: 1, HR: 1, Sales Mgr & 4 TM: 5, PMO: 1, EM: 2, R&D: 1, SOC HOD/SrMgr/Mgr/3 TL/5 TM: 11, Consulting HOD/SrMgr/Mgr/2 TL/5 TM: 10, Testing HOD/SrMgr/3 Mgr/3 TL/5 TM: 13, Interns: 10). Linked with 59 matching user accounts (dev password `Password@123`), reporting managers catalog, and hierarchical team relationships. Dump updated in `database/trackerpro-final.sql`.
 
 ## Latest
 
-- **My Team calendar is stored in Postgres.** Employees appear only when they have an Engagement Manager (`employees."EngagementManagerEmployeeId"`), a Manager (`ReportingManagerId`), and a PM (`ProjectManagerId`), and the signed-in user is one of those three. New tables: `team_day_entries` (attendance + shift per day), `team_member_schedules` (working days + notes), `team_member_holidays`. API: `GET /api/v1/my-team/calendar`, `PUT /api/v1/my-team/days`, `PUT /api/v1/my-team/members/{id}/schedule`. The Team Dashboard loads and saves through that API. Timesheets are unchanged. Migration `20260923120000_AddTeamSchedule` is applied on the Docker `trackerpro` database, and the `pms_backend` image was rebuilt so port 5194 serves the new routes. `apps/backend/.env` still points at `localhost:5433`, which is not the running Postgres — `dotnet run` from that folder will miss this database until that connection string matches `127.0.0.1:5432` / `trackerpro`.
+- **My Timesheet shows the Draft label only after Save draft.** Submit removes it from that screen. Status after submit stays on Timesheet Approval. Team Dashboard and Timesheet Approval no longer depend on the old permission key, so employees can open both. The manager approves, rejects, or requests changes on the logged-hour lines. Approved weeks stay approved. Rejected and change-requested weeks can be edited in My Timesheet and submitted again. My Team stays in the menu for every employee. `timesheets`, `timesheet_entries`, and `timesheet_entry_days` hold the week, each project/task line, and the hours plus comment for Monday–Sunday. Project and task are saved as the ids and names the screen already uses. Foreign keys to the project tables wait until those tables are merged. Save draft keeps the week off the approval list. Submit sends it to the employee's reporting manager. Copy last week reads the previous week's hours and comments.
+
+- **Offboard Employee covers the app with the same dark blur.** The title no longer ends with a question mark.
+
+- **A commented hour shows its comment on hover above the review dialog.** Day note uses the same full-page dark blur as Review Timesheet and Onboard New Employee.
+
+- **Review Timesheet covers the sidebar with the same dark blur as Onboard New Employee.** The dialog is portaled above the app (`z-[100]`, `bg-black/50 backdrop-blur-[1px]`). Logged Hours Breakdown sits in a wider dialog so the day columns fit, and the grid keeps a visible horizontal scrollbar when the window is narrower than the table.
+
+- **Timesheet review selects projects, then confirms the decision.** The hours grid has a checkbox per project. Approve, Reject, and Request Changes stay disabled until at least one project is selected and a comment is written, then a confirmation asks before the decision is saved. A commented hour shows only the comment text on hover. Clicking it opens that comment alone — no employee/day/project card, author, date, request clarification, or add response.
+
+- **Timesheet Approval table uses the Resources directory table.** Blue sticky header, column dividers, sortable headers, avatar rows, and the blue footer with per-page, Previous/Next, and the page count. The review hours grid uses the same header and row padding.
+
+- **Timesheet project and task pickers use the resources searchable dropdown.** Hours cells are plain text fields (no spinner); zero stays blank until you type. The row total is a larger centered number, and the delete button sits in the middle of the row. Same control on `/my-team/timesheets` and `/timesheet`.
+
+- **Timesheet sub-tabs use the Projects pill toggle.** My Timesheet / Timesheet Approval on `/my-team/timesheets` is the same bordered `bg-card` control as Active / Archived / All Projects (`rounded-lg border`, active `bg-primary`).
+
+- **Team Dashboard lists the signed-in user's direct reports.** An active employee appears when `employees."ReportingManagerId"` is that user's employee id. Engagement manager and project manager links do not add anyone to the roster, and those two links are no longer required. Vikrant therefore sees Dhanshree and Kunal even though they have no EM or PM. Attendance, shift, working days, and holidays already persist on the Docker instance: `PUT /api/v1/my-team/days` updates the same `team_day_entries` row (leave clears shift; a holiday date returns 400), and `PUT /api/v1/my-team/members/{id}/schedule` writes `team_member_schedules` plus `team_member_holidays`. API: `GET /api/v1/my-team/calendar`. Timesheets are unchanged. Docker Postgres is `localhost:5433` (`pms_postgres`); `pms_backend` on port 5194 uses `Host=postgres_db`. `apps/backend/.env` points at `localhost:5432`, so `dotnet run` from that folder does not hit this database.
 
 - **Last day of the month has 12px trailing padding** so it does not sit flush on the calendar edge. Today column uses primary blue (`bg-primary/15`).
 - **Team calendar cells: shift chips sit below the day, not on the attendance bar.** Sequence pills only join days with the same attendance type (Friday leave no longer melts into Sat/Sun weekly off). Shift is a small `M`/`A`/`N`/`G` badge under the number.

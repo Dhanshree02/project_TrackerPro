@@ -245,7 +245,7 @@ function SortableTh<T extends string>({
 }
 
 function CustomersPage() {
-  const { isDhanshree, isBO, assignedProjects } = useRoleContext();
+  const { isAdmin, isDhanshree, can, assignedProjects } = useRoleContext();
   const navigate = useNavigate();
   const [view, setViewState] = useState<"card" | "list">(() => {
     if (typeof window !== "undefined") {
@@ -290,9 +290,16 @@ function CustomersPage() {
     void refreshApiClients();
   }, [refreshApiClients]);
 
-  // Only users holding clients:write may onboard new customers (RBAC).
+  // Only users holding customers.create or clients:write (or Admins) may onboard new customers (RBAC).
   const canCreateClient =
-    !isBO && (authUser ? authUser.permissions.includes("clients:write") : true);
+    isAdmin ||
+    isDhanshree ||
+    (can ? can("customers.create") : false) ||
+    Boolean(
+      authUser?.permissions?.some(
+        (p) => p === "customers.create" || p === "clients:write",
+      ),
+    );
 
   // Subscribe to store so newly created projects appear immediately
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
