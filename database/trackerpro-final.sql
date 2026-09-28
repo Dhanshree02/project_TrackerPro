@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict NoZn7skxFr1YrvfYczmZp5XCq7VCxXATO0r3lgGXUYf24WSMzmsgodRpK0HgK1a
+\restrict ghnNnMfKQIyKjbvMMUKzdd2c8jXVdA5UsEUa3jQlKeJeTXBWT1I3iwFgUJdqp2W
 
 -- Dumped from database version 16.15
 -- Dumped by pg_dump version 16.15
@@ -23,7 +23,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: postgres
+-- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."__EFMigrationsHistory" (
@@ -32,10 +32,8 @@ CREATE TABLE public."__EFMigrationsHistory" (
 );
 
 
-ALTER TABLE public."__EFMigrationsHistory" OWNER TO postgres;
-
 --
--- Name: client_assignments; Type: TABLE; Schema: public; Owner: postgres
+-- Name: client_assignments; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.client_assignments (
@@ -44,10 +42,8 @@ CREATE TABLE public.client_assignments (
 );
 
 
-ALTER TABLE public.client_assignments OWNER TO postgres;
-
 --
--- Name: client_contacts; Type: TABLE; Schema: public; Owner: postgres
+-- Name: client_contacts; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.client_contacts (
@@ -71,10 +67,8 @@ CREATE TABLE public.client_contacts (
 );
 
 
-ALTER TABLE public.client_contacts OWNER TO postgres;
-
 --
--- Name: clients; Type: TABLE; Schema: public; Owner: postgres
+-- Name: clients; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.clients (
@@ -114,10 +108,8 @@ CREATE TABLE public.clients (
 );
 
 
-ALTER TABLE public.clients OWNER TO postgres;
-
 --
--- Name: employee_activity_logs; Type: TABLE; Schema: public; Owner: postgres
+-- Name: employee_activity_logs; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.employee_activity_logs (
@@ -135,10 +127,8 @@ CREATE TABLE public.employee_activity_logs (
 );
 
 
-ALTER TABLE public.employee_activity_logs OWNER TO postgres;
-
 --
--- Name: employees; Type: TABLE; Schema: public; Owner: postgres
+-- Name: employees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.employees (
@@ -233,10 +223,8 @@ CREATE TABLE public.employees (
 );
 
 
-ALTER TABLE public.employees OWNER TO postgres;
-
 --
--- Name: exited_employees; Type: TABLE; Schema: public; Owner: postgres
+-- Name: exited_employees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.exited_employees (
@@ -271,10 +259,8 @@ CREATE TABLE public.exited_employees (
 );
 
 
-ALTER TABLE public.exited_employees OWNER TO postgres;
-
 --
--- Name: mst_business_units; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_business_units; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_business_units (
@@ -291,10 +277,8 @@ CREATE TABLE public.mst_business_units (
 );
 
 
-ALTER TABLE public.mst_business_units OWNER TO postgres;
-
 --
--- Name: mst_certifications; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_certifications; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_certifications (
@@ -310,10 +294,8 @@ CREATE TABLE public.mst_certifications (
 );
 
 
-ALTER TABLE public.mst_certifications OWNER TO postgres;
-
 --
--- Name: mst_cities; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_cities; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_cities (
@@ -330,10 +312,8 @@ CREATE TABLE public.mst_cities (
 );
 
 
-ALTER TABLE public.mst_cities OWNER TO postgres;
-
 --
--- Name: mst_contact_designations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_contact_designations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_contact_designations (
@@ -350,10 +330,8 @@ CREATE TABLE public.mst_contact_designations (
 );
 
 
-ALTER TABLE public.mst_contact_designations OWNER TO postgres;
-
 --
--- Name: mst_contact_types; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_contact_types; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_contact_types (
@@ -370,10 +348,8 @@ CREATE TABLE public.mst_contact_types (
 );
 
 
-ALTER TABLE public.mst_contact_types OWNER TO postgres;
-
 --
--- Name: mst_countries; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_countries; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_countries (
@@ -391,10 +367,8 @@ CREATE TABLE public.mst_countries (
 );
 
 
-ALTER TABLE public.mst_countries OWNER TO postgres;
-
 --
--- Name: mst_departments; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_departments; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_departments (
@@ -410,10 +384,8 @@ CREATE TABLE public.mst_departments (
 );
 
 
-ALTER TABLE public.mst_departments OWNER TO postgres;
-
 --
--- Name: mst_designations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_designations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_designations (
@@ -432,10 +404,8 @@ CREATE TABLE public.mst_designations (
 );
 
 
-ALTER TABLE public.mst_designations OWNER TO postgres;
-
 --
--- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_email_domains; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_email_domains (
@@ -453,10 +423,8 @@ CREATE TABLE public.mst_email_domains (
 );
 
 
-ALTER TABLE public.mst_email_domains OWNER TO postgres;
-
 --
--- Name: mst_employee_statuses; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_employee_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_employee_statuses (
@@ -474,10 +442,8 @@ CREATE TABLE public.mst_employee_statuses (
 );
 
 
-ALTER TABLE public.mst_employee_statuses OWNER TO postgres;
-
 --
--- Name: mst_entra_roles; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_entra_roles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_entra_roles (
@@ -497,10 +463,8 @@ CREATE TABLE public.mst_entra_roles (
 );
 
 
-ALTER TABLE public.mst_entra_roles OWNER TO postgres;
-
 --
--- Name: mst_graduation_degrees; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_graduation_degrees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_graduation_degrees (
@@ -516,10 +480,8 @@ CREATE TABLE public.mst_graduation_degrees (
 );
 
 
-ALTER TABLE public.mst_graduation_degrees OWNER TO postgres;
-
 --
--- Name: mst_industries; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_industries; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_industries (
@@ -535,10 +497,8 @@ CREATE TABLE public.mst_industries (
 );
 
 
-ALTER TABLE public.mst_industries OWNER TO postgres;
-
 --
--- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_nationalities; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_nationalities (
@@ -554,10 +514,8 @@ CREATE TABLE public.mst_nationalities (
 );
 
 
-ALTER TABLE public.mst_nationalities OWNER TO postgres;
-
 --
--- Name: mst_offices; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_offices; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_offices (
@@ -575,10 +533,8 @@ CREATE TABLE public.mst_offices (
 );
 
 
-ALTER TABLE public.mst_offices OWNER TO postgres;
-
 --
--- Name: mst_post_graduation_degrees; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_post_graduation_degrees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_post_graduation_degrees (
@@ -594,10 +550,8 @@ CREATE TABLE public.mst_post_graduation_degrees (
 );
 
 
-ALTER TABLE public.mst_post_graduation_degrees OWNER TO postgres;
-
 --
--- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_reporting_managers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_reporting_managers (
@@ -617,10 +571,8 @@ CREATE TABLE public.mst_reporting_managers (
 );
 
 
-ALTER TABLE public.mst_reporting_managers OWNER TO postgres;
-
 --
--- Name: mst_roles; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_roles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_roles (
@@ -637,10 +589,8 @@ CREATE TABLE public.mst_roles (
 );
 
 
-ALTER TABLE public.mst_roles OWNER TO postgres;
-
 --
--- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_salary_bands; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_salary_bands (
@@ -656,10 +606,87 @@ CREATE TABLE public.mst_salary_bands (
 );
 
 
-ALTER TABLE public.mst_salary_bands OWNER TO postgres;
+--
+-- Name: mst_service_catalog; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mst_service_catalog (
+    "Id" uuid NOT NULL,
+    "Code" character varying(50) NOT NULL,
+    "Name" character varying(255) NOT NULL,
+    "SubDepartmentId" uuid NOT NULL,
+    "DefaultTools" character varying(500),
+    "DefaultUnitPrice" numeric(18,2),
+    "DefaultDurationDays" integer,
+    "Description" text,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
 
 --
--- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: mst_service_departments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mst_service_departments (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "Name" character varying(150) NOT NULL,
+    "GroupId" uuid NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: mst_service_groups; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mst_service_groups (
+    "Id" uuid NOT NULL,
+    "Code" character varying(40) NOT NULL,
+    "Name" character varying(100) NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: mst_service_sub_departments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mst_service_sub_departments (
+    "Id" uuid NOT NULL,
+    "Code" character varying(120) NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "DepartmentId" uuid NOT NULL,
+    "IsActive" boolean DEFAULT true NOT NULL,
+    "SortOrder" integer DEFAULT 0 NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: mst_work_locations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.mst_work_locations (
@@ -676,10 +703,270 @@ CREATE TABLE public.mst_work_locations (
 );
 
 
-ALTER TABLE public.mst_work_locations OWNER TO postgres;
+--
+-- Name: project_documents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.project_documents (
+    "Id" uuid NOT NULL,
+    "ProjectId" uuid NOT NULL,
+    "DocumentType" character varying(80) NOT NULL,
+    "FileName" character varying(255) NOT NULL,
+    "OriginalFileName" character varying(255) NOT NULL,
+    "FilePath" character varying(500) NOT NULL,
+    "ContentType" character varying(120) NOT NULL,
+    "SizeBytes" bigint NOT NULL,
+    "Description" text,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
 
 --
--- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: postgres
+-- Name: project_drafts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.project_drafts (
+    "Id" uuid NOT NULL,
+    "ProjectName" character varying(255) NOT NULL,
+    "ClientId" uuid,
+    "ClientName" character varying(255),
+    "SalesPerson" character varying(150),
+    "FormSnapshotJson" jsonb NOT NULL,
+    "CreatedByName" character varying(150) NOT NULL,
+    "UpdatedByName" character varying(150),
+    "Status" character varying(40) DEFAULT 'active'::character varying NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: project_invoices; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.project_invoices (
+    "Id" uuid NOT NULL,
+    "ProjectId" uuid NOT NULL,
+    "MilestoneName" character varying(255) NOT NULL,
+    "Percentage" numeric(5,2),
+    "Amount" numeric(18,2) NOT NULL,
+    "TaxAmount" numeric(18,2) NOT NULL,
+    "TotalAmount" numeric(18,2) NOT NULL,
+    "Status" character varying(40) NOT NULL,
+    "InvoiceNumber" character varying(80),
+    "InvoiceDate" date,
+    "DueDate" date,
+    "PaymentDate" date,
+    "Remarks" text,
+    "SortOrder" integer NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: project_services; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.project_services (
+    "Id" uuid NOT NULL,
+    "ProjectId" uuid NOT NULL,
+    "ServiceCatalogId" uuid,
+    "TaskId" character varying(50),
+    "Department" character varying(150) NOT NULL,
+    "SubDepartment" character varying(200),
+    "ServiceName" character varying(255) NOT NULL,
+    "Qty" integer NOT NULL,
+    "Description" text,
+    "ResourceLevel" character varying(80),
+    "Frequency" character varying(40),
+    "Location" character varying(40),
+    "LocationText" character varying(200),
+    "ServiceModel" character varying(40),
+    "DeliveryModel" character varying(80),
+    "FinalDeliveryFormat" character varying(120),
+    "BillingModel" character varying(80),
+    "Tools" character varying(500),
+    "StartDate" date,
+    "EndDate" date,
+    "DurationDays" integer,
+    "DurationHours" integer,
+    "TotalDays" integer,
+    "TotalHours" integer,
+    "UnitPrice" numeric(18,2),
+    "Total" numeric(18,2),
+    "SortOrder" integer NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: project_task_assignment_history; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.project_task_assignment_history (
+    "Id" uuid NOT NULL,
+    "TaskId" uuid NOT NULL,
+    "EmployeeId" uuid NOT NULL,
+    "Action" character varying(20) NOT NULL,
+    "ResourceName" character varying(200) NOT NULL,
+    "TeamType" character varying(30) NOT NULL,
+    "OccurredAtUtc" timestamp with time zone NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: project_task_assignments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.project_task_assignments (
+    "Id" uuid NOT NULL,
+    "TaskId" uuid NOT NULL,
+    "EmployeeId" uuid NOT NULL,
+    "Role" character varying(50) NOT NULL,
+    "AllocatedHours" numeric(10,2),
+    "UtilizedHours" numeric(10,2) NOT NULL,
+    "TimerStartedAtUtc" timestamp with time zone,
+    "TimerAccumulatedSeconds" bigint NOT NULL,
+    "IsActive" boolean NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: project_tasks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.project_tasks (
+    "Id" uuid NOT NULL,
+    "ProjectId" uuid NOT NULL,
+    "ProjectServiceId" uuid,
+    "Title" character varying(255) NOT NULL,
+    "Description" text,
+    "Period" character varying(40),
+    "Phase" character varying(80),
+    "Stage" character varying(60) NOT NULL,
+    "Priority" character varying(20) NOT NULL,
+    "PlannedStartDate" date,
+    "PlannedEndDate" date,
+    "ActualStartDate" date,
+    "ActualEndDate" date,
+    "EstimatedHours" numeric(10,2),
+    "UtilizedHours" numeric(10,2) NOT NULL,
+    "Progress" integer NOT NULL,
+    "SortOrder" integer NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: project_team_members; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.project_team_members (
+    "Id" uuid NOT NULL,
+    "ProjectId" uuid NOT NULL,
+    "EmployeeId" uuid NOT NULL,
+    "DepartmentId" uuid,
+    "SubDepartment" character varying(200),
+    "AllocationStartDate" date NOT NULL,
+    "AllocationEndDate" date NOT NULL,
+    "Billability" character varying(40) NOT NULL,
+    "IsTeamLead" boolean NOT NULL,
+    "ResourceType" character varying(40) NOT NULL,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone,
+    "IsShadowTeam" boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: projects; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.projects (
+    "Id" uuid NOT NULL,
+    "ProjectCode" character varying(50) NOT NULL,
+    "WbsId" character varying(80),
+    "Name" character varying(255) NOT NULL,
+    "Description" text,
+    "ClientId" uuid NOT NULL,
+    "SubVentureId" uuid,
+    "Status" character varying(40) NOT NULL,
+    "Health" character varying(20) NOT NULL,
+    "Progress" integer NOT NULL,
+    "ContractType" character varying(80),
+    "ProjectType" character varying(80),
+    "Currency" character varying(10) NOT NULL,
+    "TaxPercent" numeric(5,2) NOT NULL,
+    "StartDate" date,
+    "EndDate" date,
+    "Budget" numeric(18,2),
+    "Spent" numeric(18,2) NOT NULL,
+    "TotalHours" numeric(10,2),
+    "TotalDays" numeric(10,2),
+    "InvoiceValue" numeric(18,2),
+    "ProjectManagerId" uuid,
+    "TeamLeadId" uuid,
+    "EngagementManager" character varying(150),
+    "EngagementManagerId" uuid,
+    "SalesPerson" character varying(150),
+    "SalesPersonId" uuid,
+    "ProjectIssuedDate" date,
+    "SectionAComments" text,
+    "SectionBComments" text,
+    "WbsStatus" character varying(40) NOT NULL,
+    "WbsSubStatus" character varying(80),
+    "RenewedFromProjectId" uuid,
+    "PoStatus" character varying(40),
+    "PoNumber" character varying(80),
+    "PoDate" date,
+    "BillingModel" character varying(80),
+    "PaymentTerms" character varying(120),
+    "TargetDate" date,
+    "AccountContactName" character varying(150),
+    "AccountContactPhone" character varying(40),
+    "AccountContactEmail" character varying(255),
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.refresh_tokens (
@@ -697,10 +984,8 @@ CREATE TABLE public.refresh_tokens (
 );
 
 
-ALTER TABLE public.refresh_tokens OWNER TO postgres;
-
 --
--- Name: repository; Type: TABLE; Schema: public; Owner: postgres
+-- Name: repository; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.repository (
@@ -719,10 +1004,8 @@ CREATE TABLE public.repository (
 );
 
 
-ALTER TABLE public.repository OWNER TO postgres;
-
 --
--- Name: repository_activity_logs; Type: TABLE; Schema: public; Owner: postgres
+-- Name: repository_activity_logs; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.repository_activity_logs (
@@ -741,10 +1024,8 @@ CREATE TABLE public.repository_activity_logs (
 );
 
 
-ALTER TABLE public.repository_activity_logs OWNER TO postgres;
-
 --
--- Name: repository_departments; Type: TABLE; Schema: public; Owner: postgres
+-- Name: repository_departments; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.repository_departments (
@@ -753,10 +1034,8 @@ CREATE TABLE public.repository_departments (
 );
 
 
-ALTER TABLE public.repository_departments OWNER TO postgres;
-
 --
--- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: postgres
+-- Name: role_permission_audits; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.role_permission_audits (
@@ -782,10 +1061,8 @@ CREATE TABLE public.role_permission_audits (
 );
 
 
-ALTER TABLE public.role_permission_audits OWNER TO postgres;
-
 --
--- Name: roles; Type: TABLE; Schema: public; Owner: postgres
+-- Name: roles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.roles (
@@ -804,10 +1081,8 @@ CREATE TABLE public.roles (
 );
 
 
-ALTER TABLE public.roles OWNER TO postgres;
-
 --
--- Name: sub_ventures; Type: TABLE; Schema: public; Owner: postgres
+-- Name: sub_ventures; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.sub_ventures (
@@ -825,10 +1100,8 @@ CREATE TABLE public.sub_ventures (
 );
 
 
-ALTER TABLE public.sub_ventures OWNER TO postgres;
-
 --
--- Name: team_day_entries; Type: TABLE; Schema: public; Owner: postgres
+-- Name: team_day_entries; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.team_day_entries (
@@ -845,10 +1118,8 @@ CREATE TABLE public.team_day_entries (
 );
 
 
-ALTER TABLE public.team_day_entries OWNER TO postgres;
-
 --
--- Name: team_member_holidays; Type: TABLE; Schema: public; Owner: postgres
+-- Name: team_member_holidays; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.team_member_holidays (
@@ -865,10 +1136,8 @@ CREATE TABLE public.team_member_holidays (
 );
 
 
-ALTER TABLE public.team_member_holidays OWNER TO postgres;
-
 --
--- Name: team_member_schedules; Type: TABLE; Schema: public; Owner: postgres
+-- Name: team_member_schedules; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.team_member_schedules (
@@ -884,10 +1153,8 @@ CREATE TABLE public.team_member_schedules (
 );
 
 
-ALTER TABLE public.team_member_schedules OWNER TO postgres;
-
 --
--- Name: timesheet_entries; Type: TABLE; Schema: public; Owner: postgres
+-- Name: timesheet_entries; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.timesheet_entries (
@@ -906,10 +1173,8 @@ CREATE TABLE public.timesheet_entries (
 );
 
 
-ALTER TABLE public.timesheet_entries OWNER TO postgres;
-
 --
--- Name: timesheet_entry_days; Type: TABLE; Schema: public; Owner: postgres
+-- Name: timesheet_entry_days; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.timesheet_entry_days (
@@ -926,10 +1191,8 @@ CREATE TABLE public.timesheet_entry_days (
 );
 
 
-ALTER TABLE public.timesheet_entry_days OWNER TO postgres;
-
 --
--- Name: timesheets; Type: TABLE; Schema: public; Owner: postgres
+-- Name: timesheets; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.timesheets (
@@ -950,10 +1213,8 @@ CREATE TABLE public.timesheets (
 );
 
 
-ALTER TABLE public.timesheets OWNER TO postgres;
-
 --
--- Name: users; Type: TABLE; Schema: public; Owner: postgres
+-- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.users (
@@ -983,10 +1244,8 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO postgres;
-
 --
--- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin;
@@ -1025,11 +1284,24 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 20260921133000_AddExitedEmployeeClearanceAndRating	10.0.4
 20260923120000_AddTeamSchedule	10.0.4
 20260927183000_AddTimesheets	10.0.4
+20260914182626_AddServiceCatalogMasterTables	10.0.4
+20260914183236_AddProjectsTable	10.0.4
+20260914184206_AddProjectServicesAndResourceLevels	10.0.4
+20260914185552_AddProjectTasks	10.0.4
+20260914190040_AddProjectTaskAssignments	10.0.4
+20260914190333_AddProjectInvoices	10.0.4
+20260914190754_AddProjectDocuments	10.0.4
+20260923152157_AddProjectDraftsTable	10.0.4
+20260923193605_AddProjectTeamMembersTable	10.0.4
+20260923203958_AddProjectTeamMemberIsShadowTeam	10.0.4
+20260924060647_AddProjectTaskLeafIdentity	10.0.4
+20260927191151_AddProjectTaskAssignmentHistory	10.0.4
+20260928051557_DropProjectServiceResourceLevels	10.0.4
 \.
 
 
 --
--- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: client_assignments; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.client_assignments ("ClientId", "UserId") FROM stdin;
@@ -1041,7 +1313,7 @@ f61741ca-2c63-917f-ee7f-ae00cdbc08cb	e7554ba2-e546-93ce-1e88-a073badd78a2
 
 
 --
--- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: client_contacts; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Country", "PhoneCode") FROM stdin;
@@ -1069,7 +1341,7 @@ da906f79-0a12-4776-b06d-50ef0b151465	\N	be9fd5f1-6786-4caa-bf68-e9ee4ab4c5a2	Dha
 
 
 --
--- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince", "SalesManager", "SalesManagerId", "KycDocumentPath", "BillingMedium", "GroupSpocName", "GroupSpocContact") FROM stdin;
@@ -1093,7 +1365,7 @@ fb5d93e7-e434-c041-30e9-707384e99cf1	FinTech Global	Finance	FG	dev@fintechglobal
 
 
 --
--- Data for Name: employee_activity_logs; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: employee_activity_logs; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.employee_activity_logs ("Id", "EmployeeId", "Action", "PerformedByEmail", "PerformedByName", "Details", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1101,7 +1373,7 @@ COPY public.employee_activity_logs ("Id", "EmployeeId", "Action", "PerformedByEm
 
 
 --
--- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "JobRoleId", "NationalityId", "ProbationPeriod", "SalaryBandId", "Aadhaar", "EmergencyContactName", "EmployeeStatusId", "BondDelivered", "BondDurationMonths", "BondExpiryDate", "GradDegree", "GradYear", "PostGradDegree", "PostGradYear", "ExpType", "PriorTotalExp", "PriorRelevantExp", "EmergencyContactRelation", "PmoDepartment", "SubDepartment", "BillableStatus", "ClientLocation", "ProjectType", "ProjectAllocated", "ClientEngManagerMapping", "ProjectSite", "EngagementManagerEmployeeId", "ProjectManagerId") FROM stdin;
@@ -1149,6 +1421,7 @@ COPY public.employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail
 00000000-0000-4000-8000-000000000056	TKI-0007	Bhavna	Patel	bhavna.patel@acme.co	\N	9820001056	\N	\N	2002-05-15	101, Suvidha Square, Andheri	9811101056	Single	Indian	be8e036d-ad13-4c79-89ec-294e490a6816	2076a9b1-e432-46a9-99b1-36e732159856	Intern	00000000-0000-4000-8000-000000000031	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent	\N	2026-01-10	Active	Active	Completed	0 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1056	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Services - Consulting"]	["CompTIA Security+"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1290F	501234561056	L1	100112341056	New Regime	Compliant	00000000-0000-4000-9000-000000000056	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	6c0bebbb-cc4d-4433-83e9-d65fb5291d75	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	37016f9a-2474-400d-99ae-18157aaad035	234567891056	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Fresher	0	0	Family	Services - Consulting	Intern	Non-Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000014	00000000-0000-4000-8000-000000000029
 00000000-0000-4000-8000-000000000057	TKI-0008	Harsh	Wardhan	harsh.wardhan@acme.co	\N	9820001057	\N	\N	2002-05-15	101, Navare Plaza, Dombivli	9811101057	Single	Indian	898c36e9-1cb7-4c56-9148-a3b6893c0149	bb7ccd5f-2f60-49fb-b984-f11fc47add22	Intern	00000000-0000-4000-8000-000000000015	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent	\N	2026-01-10	Active	Active	Completed	0 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1057	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "R&D (Research & Development)"]	["CompTIA Security+"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1291F	501234561057	L1	100112341057	New Regime	Compliant	00000000-0000-4000-9000-000000000057	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	859254f8-a1b4-4812-b1d0-aacf111f7235	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	37016f9a-2474-400d-99ae-18157aaad035	234567891057	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Fresher	0	0	Family	R&D (Research & Development)	Intern	Non-Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000013	00000000-0000-4000-8000-000000000003
 00000000-0000-4000-8000-000000000058	TKI-0009	Akash	Jain	akash.jain@acme.co	\N	9820001058	\N	\N	2002-05-15	101, Suvidha Square, Andheri	9811101058	Single	Indian	13c91c98-00ae-4211-acb8-d06e35953806	e2b10def-c91d-45da-94c5-f5530e743aa2	Intern	00000000-0000-4000-8000-000000000007	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent	\N	2026-01-10	Active	Active	Completed	0 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1058	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Functional - Sales"]	["CompTIA Security+"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1292F	501234561058	L1	100112341058	New Regime	Compliant	00000000-0000-4000-9000-000000000058	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	0b340900-7bd0-4931-8978-832c678c7cbd	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	37016f9a-2474-400d-99ae-18157aaad035	234567891058	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Fresher	0	0	Family	Functional - Sales	Intern	Non-Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000013	00000000-0000-4000-8000-000000000007
+00000000-0000-4000-8000-000000000028	TK-0028	Aarav	Mehta	aarav@acme.co	\N	9820001028	\N	\N	1992-06-20	101, Suvidha Square, Andheri	9811101028	Single	Indian	be8e036d-ad13-4c79-89ec-294e490a6816	dadac355-1ddc-457c-935a-d297da3a883d	Consulting-Senior Manager	00000000-0000-4000-8000-000000000027	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent	\N	2021-04-15	Active	Active	Completed	4.5 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1028	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Services - Consulting"]	["CEH", "ISO 27001"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1262F	501234561028	L4	100112341028	New Regime	Compliant	1a077a8c-4029-8ded-d563-19e9b4bdf301	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	61cc6cff-4f61-4a1d-90f5-9eb9f61c54f3	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891028	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Experienced	4.5	4.5	Family	Services - Consulting	Principal Manager - I	Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000014	00000000-0000-4000-8000-000000000027
 00000000-0000-4000-8000-000000000019	TK-0019	Sneha	Iyer	sneha.iyer@acme.co	\N	9820001019	\N	\N	1992-06-20	101, Navare Plaza, Dombivli	9811101019	Single	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	SOC-Team Leader	00000000-0000-4000-8000-000000000018	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent	\N	2021-04-15	Active	Active	Completed	4.5 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1019	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Services - Operations"]	["CEH", "ISO 27001"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1253F	501234561019	L3	100112341019	New Regime	Compliant	00000000-0000-4000-9000-000000000019	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	8366d816-724b-456b-9d0e-85399c2324b7	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	20ffbe9b-96ca-496e-ab2e-50ccf3c91246	234567891019	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Experienced	4.5	4.5	Family	Services - Operations	SOC Lead - I	Non-Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000013	00000000-0000-4000-8000-000000000018
 00000000-0000-4000-8000-000000000039	TK-0039	Alok	Kumar	alok.kumar@acme.co	\N	9820001039	\N	\N	1992-06-20	101, Navare Plaza, Dombivli	9811101039	Single	Indian	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Manager	00000000-0000-4000-8000-000000000038	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent	\N	2021-04-15	Active	Active	Completed	4.5 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1039	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Services - Testing"]	["CEH", "ISO 27001"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1273F	501234561039	L4	100112341039	New Regime	Compliant	00000000-0000-4000-9000-000000000039	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	a3d0a1e1-b4a8-4ae5-8577-cd2019268494	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891039	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Experienced	4.5	4.5	Family	Services - Testing	Associate Manager - III	Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000013	00000000-0000-4000-8000-000000000039
 00000000-0000-4000-8000-000000000003	TK-0003	Kunal	Deshmukh	kunal.deshmukh@acme.co	\N	9820001003	\N	\N	1992-06-20	101, Navare Plaza, Dombivli	9811101003	Single	Indian	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	0525d830-ead9-44a0-871f-91b7845fec26	CTO	00000000-0000-4000-8000-000000000001	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent	\N	2021-04-15	Active	Active	Completed	4.5 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1003	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Core"]	["CEH", "ISO 27001"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1237F	501234561003	L5	100112341003	New Regime	Compliant	00000000-0000-4000-9000-000000000003	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	0028e31d-d2ff-4a71-b5b2-5f0566961d46	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	e5f5511b-dea6-421c-8c0e-b271e4ee5d43	234567891003	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Experienced	4.5	4.5	Family	Core	Director and Chief Technology Officer	Non-Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	\N	\N
@@ -1163,12 +1436,11 @@ COPY public.employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail
 00000000-0000-4000-8000-000000000011	TK-0011	Sneha	Reddy	sneha.reddy@acme.co	\N	9820001011	\N	\N	1992-06-20	101, Navare Plaza, Dombivli	9811101011	Single	Indian	13c91c98-00ae-4211-acb8-d06e35953806	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	Sales team member	00000000-0000-4000-8000-000000000007	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent	\N	2021-04-15	Active	Active	Completed	4.5 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1011	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Functional - Sales"]	["CEH", "ISO 27001"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1245F	501234561011	L2	100112341011	New Regime	Compliant	00000000-0000-4000-9000-000000000011	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	21eac166-3ba7-40c5-a780-bbc7b3e96ddb	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	ebed343e-301f-4984-b292-fa8d1cb1623c	234567891011	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Experienced	4.5	4.5	Family	Functional - Sales	Associate Customer Success Representative - II	Non-Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000013	00000000-0000-4000-8000-000000000007
 00000000-0000-4000-8000-000000000012	TK-0012	Rahul	Gupta	rahul@acme.co	\N	9820001012	\N	\N	1992-06-20	101, Suvidha Square, Andheri	9811101012	Single	Indian	8e4e88f1-e294-4554-80cc-92ed6169caeb	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	PMO	00000000-0000-4000-8000-000000000002	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent	\N	2021-04-15	Active	Active	Completed	4.5 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1012	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Functional - Project Management"]	["CEH", "ISO 27001"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1246F	501234561012	L4	100112341012	New Regime	Compliant	b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	446498d0-e9e6-4dbb-8fbe-b87bb853a2af	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891012	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Experienced	4.5	4.5	Family	Functional - Project Management	Senior PMO - I	Non-Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000013	00000000-0000-4000-8000-000000000002
 00000000-0000-4000-8000-000000000059	TKI-0010	Kunal	Mehra	kunal.mehra@acme.co	\N	9820001059	\N	\N	2002-05-15	101, Navare Plaza, Dombivli	9811101059	Single	Indian	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	Intern	00000000-0000-4000-8000-000000000004	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent	\N	2026-01-10	Active	Active	Completed	0 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1059	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Functional - IT Administration"]	["CompTIA Security+"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1293F	501234561059	L1	100112341059	New Regime	Compliant	00000000-0000-4000-9000-000000000059	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	f43fddea-4dd9-4603-a79c-1710224115ae	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	37016f9a-2474-400d-99ae-18157aaad035	234567891059	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Fresher	0	0	Family	Functional - IT Administration	Intern	Non-Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000013	00000000-0000-4000-8000-000000000004
-00000000-0000-4000-8000-000000000028	TK-0028	Aarav	Mehta	aarav@acme.co	\N	9820001028	\N	\N	1992-06-20	101, Suvidha Square, Andheri	9811101028	Single	Indian	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	dadac355-1ddc-457c-935a-d297da3a883d	SOC-Senior Manager	00000000-0000-4000-8000-000000000027	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent	\N	2021-04-15	Active	Active	Completed	4.5 years	\N	Full-time	Permanent	No	60 days	TK-ASSET-1028	\N	\N	B.Tech Computer Science	["Communication", "Technical Problem Solving", "Services - Operations"]	["CEH", "ISO 27001"]	["English", "Hindi"]	85.0	85.0	4.0	90.0	95.0	88.0	Ready Now	Key professional contributor.	ABCDE1262F	501234561028	L4	100112341028	New Regime	Compliant	1a077a8c-4029-8ded-d563-19e9b4bdf301	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N	61cc6cff-4f61-4a1d-90f5-9eb9f61c54f3	79686ca4-102c-456d-a08e-bdf9ac4c7a26	\N	822f92eb-c6fa-4c0f-a8ec-e4c2d16af583	234567891028	Emergency Contact	e273e2ed-5fd3-4564-bb87-09a71cd4779a	\N	\N	\N	\N	\N	\N	\N	Experienced	4.5	4.5	Family	Services - Operations	Principal Manager - I	Billable	Mumbai	Long Term	PMS TrackerPro Enterprise	Riya Kapoor	\N	00000000-0000-4000-8000-000000000014	00000000-0000-4000-8000-000000000027
 \.
 
 
 --
--- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: exited_employees; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.exited_employees ("Id", "OriginalEmployeeId", "EmployeeCode", "FullName", "DepartmentName", "DesignationName", "WorkEmail", "PersonalEmail", "Phone", "StatusAtExit", "ExitType", "ExitReason", "ResignationDate", "LastWorkingDay", "ReasonForLeaving", "NoticePeriodServed", "ExitChecklistJson", "AssetReturnJson", "FinalSettlementJson", "ExitedAtUtc", "ExitedBy", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "ClearanceCompleted", "ExitRating") FROM stdin;
@@ -1178,7 +1450,7 @@ d88f3e1e-3d11-481f-b074-d6c8250141e5	00000000-0000-4000-8000-000000000011	TK-001
 
 
 --
--- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_business_units; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1187,7 +1459,7 @@ COPY public.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "
 
 
 --
--- Data for Name: mst_certifications; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_certifications; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_certifications ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1224,7 +1496,7 @@ fc483ca5-d867-433f-a4d6-bac79879517f	crtp	CRTP	t	2026-09-08 04:59:44.231454+00	\
 
 
 --
--- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_cities; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_cities ("Id", "Code", "Name", "IsActive", "CountryId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1369,7 +1641,7 @@ fe6526bc-a57b-4c6e-8094-be6327614409	in_tiruchirappalli	Tiruchirappalli	t	f6f989
 
 
 --
--- Data for Name: mst_contact_designations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_contact_designations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_contact_designations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1382,7 +1654,7 @@ COPY public.mst_contact_designations ("Id", "Code", "Name", "IsActive", "SortOrd
 
 
 --
--- Data for Name: mst_contact_types; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_contact_types; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_contact_types ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1394,7 +1666,7 @@ b28647ac-40d2-449e-b90c-b71cbae83f8d	technical	Technical	t	3	2026-09-09 07:39:28
 
 
 --
--- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_countries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_countries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "PhoneCode", "PhoneDigits") FROM stdin;
@@ -1442,7 +1714,7 @@ ecb5e362-682e-46d2-bee2-ef0b022ebb13	BD	Bangladesh	t	2026-08-20 11:37:05.749911+
 
 
 --
--- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_departments; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_departments ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1460,7 +1732,7 @@ be8e036d-ad13-4c79-89ec-294e490a6816	services_consulting	Services - Consulting	t
 
 
 --
--- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_designations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "SubDepartment", "DefaultRoleId") FROM stdin;
@@ -1474,6 +1746,7 @@ dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	services_consulting_senior_grc_auditor_i	Se
 3e60b693-d3dd-4481-95c4-9f02da21625c	services_consulting_senior_grc_auditor_ii	Senior GRC Auditor - II	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.91882+00	\N	\N	\N	\N	\N	701aaa2c-a899-4def-bf5f-e17511874409
 195d6a81-8457-4b60-9382-6a3a0664f0e9	services_consulting_associate_manager_iii	Associate Manager - III	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.920769+00	\N	\N	\N	\N	\N	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a
 2b1558e3-158a-4a84-ae80-053129861a64	services_consulting_senior_vice_president_principal_consultant	Senior Vice President - Principal Consultant	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.922717+00	\N	\N	\N	\N	\N	64c49f37-a38a-46a6-9622-7427f1501658
+dadac355-1ddc-457c-935a-d297da3a883d	services_consulting_principal_manager_i	Principal Manager - I	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.903029+00	2026-09-03 07:11:32.975424+00	\N	\N	\N	\N	64c49f37-a38a-46a6-9622-7427f1501658
 4f972924-350a-47fb-a6b6-f2b34bb6b621	services_testing_pentester_i	PenTester - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.928383+00	\N	\N	\N	\N	\N	92aa9169-28d9-4754-a570-553b067642ed
 0b6ab354-1fcf-4a00-9be3-e58e99c425ed	services_testing_pentester_ii	PenTester - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.930296+00	\N	\N	\N	\N	\N	92aa9169-28d9-4754-a570-553b067642ed
 163d8c87-8f90-4295-a926-2e912c625a1c	services_testing_pentester_iii	PenTester - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.932399+00	\N	\N	\N	\N	\N	92aa9169-28d9-4754-a570-553b067642ed
@@ -1556,12 +1829,11 @@ bb7ccd5f-2f60-49fb-b984-f11fc47add22	rd_research_and_deve_intern	Intern	t	898c36
 0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	services_operations_intern	Intern	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.904989+00	\N	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
 2076a9b1-e432-46a9-99b1-36e732159856	services_consulting_intern	Intern	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.924658+00	\N	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
 47dbf38f-c022-47bc-8444-d0dfb35ff3fd	services_testing_intern	Intern	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:52.004312+00	\N	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-dadac355-1ddc-457c-935a-d297da3a883d	services_operations_principal_manager_i	Principal Manager - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.903029+00	2026-09-03 07:11:32.975424+00	\N	\N	\N	\N	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7
 \.
 
 
 --
--- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_email_domains ("Id", "Code", "DomainName", "DisplayName", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1572,7 +1844,7 @@ fb66fff9-7911-47de-bde7-ab5fb5ab0757	squad1_io	squad1.io	@squad1.io	t	3	2026-08-
 
 
 --
--- Data for Name: mst_employee_statuses; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_employee_statuses; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_employee_statuses ("Id", "Code", "Name", "IsActive", "AllowOnboarding", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1585,7 +1857,7 @@ e273e2ed-5fd3-4564-bb87-09a71cd4779a	active	Active	t	t	1	2026-09-07 06:03:13.270
 
 
 --
--- Data for Name: mst_entra_roles; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_entra_roles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_entra_roles ("Id", "Code", "EntraRoleValue", "PulseRoleName", "DisplayName", "Description", "IsActive", "Priority", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1601,7 +1873,7 @@ ae03e32f-220a-4ec7-98ad-6818a75762f1	entra_hr	Hr	Hr	Pulse HR	Resources & reposit
 
 
 --
--- Data for Name: mst_graduation_degrees; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_graduation_degrees; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_graduation_degrees ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1619,7 +1891,7 @@ e89b166b-ebc0-4132-8170-92ea1e78e9d0	be	BE	t	2026-09-08 04:59:44.231454+00	\N	\N
 
 
 --
--- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_industries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_industries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1640,7 +1912,7 @@ cd116cba-a939-4cb7-bd0f-233019a005b0	finance	Finance	f	2026-08-18 07:55:36.16659
 
 
 --
--- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_nationalities ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1688,7 +1960,7 @@ fe29360e-bc38-4557-8653-98b749b34fe0	indonesian	Indonesian	t	2026-08-20 12:25:01
 
 
 --
--- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_offices; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1696,7 +1968,7 @@ COPY public.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "So
 
 
 --
--- Data for Name: mst_post_graduation_degrees; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_post_graduation_degrees; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_post_graduation_degrees ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1713,7 +1985,7 @@ ec8299cf-acb1-4a26-aed5-a03db0ff8bfe	ms	MS	t	2026-09-08 04:59:44.231454+00	\N	\N
 
 
 --
--- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email", "EmployeeId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1743,6 +2015,7 @@ f5fc991e-50c0-4c7f-98f3-00c8066eee89	kunal_mehra	Kunal Mehra	Intern	kunal.mehra@
 57925ef2-bc23-461d-a9d5-1ad4be938cd0	rohan_joshi	Rohan Joshi	Intern	rohan.joshi@acme.co	00000000-0000-4000-8000-000000000051	t	4	2026-09-25 04:27:46.284354+00	\N	\N	\N	\N
 c5d6bcd4-445c-46aa-bb33-7497adbd6c46	priya_sharma	Priya Sharma	PenTester - I	priya.sharma@acme.co	00000000-0000-4000-8000-000000000045	t	2	2026-09-25 04:27:46.284354+00	\N	\N	\N	\N
 e44a4f7f-1f76-4325-bc10-58812b22d865	simran_kaur	Simran Kaur	Intern	simran.kaur@acme.co	00000000-0000-4000-8000-000000000054	t	6	2026-09-25 04:27:46.284354+00	\N	\N	\N	\N
+a07dfbd5-cdc1-4da9-b354-1229dec56728	nikhil_khanna	Nikhil Khanna	Sales Executive	nikhil.khanna@acme.co	00000000-0000-4000-8000-000000000008	t	13	2026-09-24 12:28:46.094618+00	2026-09-25 06:07:57.176135+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 00000000-0000-4000-8000-000000000101	vikrant_malhotra	Vikrant Malhotra	Director and Chief Executive Officer	vikrant@acme.co	00000000-0000-4000-8000-000000000001	t	1	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N
 00000000-0000-4000-8000-000000000102	dhanshree_pansare	Dhanshree Pansare	Director and Chief Operating Officer	dhanshree@acme.co	00000000-0000-4000-8000-000000000002	t	2	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N
 00000000-0000-4000-8000-000000000103	kunal_deshmukh	Kunal Deshmukh	Director and Chief Technology Officer	kunal.deshmukh@acme.co	00000000-0000-4000-8000-000000000003	t	3	2026-09-24 11:20:42.604481+00	\N	\N	\N	\N
@@ -1779,16 +2052,15 @@ e44a4f7f-1f76-4325-bc10-58812b22d865	simran_kaur	Simran Kaur	Intern	simran.kaur@
 2d3bd4d9-52e5-4760-a0b1-4d786d4c75d2	bhavna_patel	Bhavna Patel	Intern	bhavna.patel@acme.co	00000000-0000-4000-8000-000000000056	t	1	2026-09-24 12:53:42.49824+00	\N	\N	\N	\N
 aa054bdc-7cb5-4c0c-988d-96b595911c13	harsh_wardhan	Harsh Wardhan	Intern	harsh.wardhan@acme.co	00000000-0000-4000-8000-000000000057	t	3	2026-09-24 12:53:42.49824+00	\N	\N	\N	\N
 b7220d2c-af72-4d9a-891c-0faca2cbda5f	dev_patel	Dev Patel	Red Team Practitioner - II	dev@acme.co	00000000-0000-4000-8000-000000000048	t	2	2026-09-24 12:53:42.49824+00	\N	\N	\N	\N
-56d083e9-3242-464e-b774-ae119333e0b5	sneha_reddy	Sneha Reddy	Associate Customer Success Representative - II	sneha.reddy@acme.co	00000000-0000-4000-8000-000000000011	t	1	2026-09-27 14:11:08.720198+00	\N	\N	\N	\N
-6ee743e1-6f63-42c9-b814-021160a99278	tanvi_deshmukh	Tanvi Deshmukh	Intern	tanvi.deshmukh@acme.co	00000000-0000-4000-8000-000000000052	t	3	2026-09-27 14:11:08.720198+00	\N	\N	\N	\N
-86cc9148-a59a-4743-a646-33b1a7994ce3	swati_mishra	Swati Mishra	GRC Auditor - IV	swati.mishra@acme.co	00000000-0000-4000-8000-000000000035	t	2	2026-09-27 14:11:08.720198+00	\N	\N	\N	\N
-f94b2136-27d7-404b-b286-6027e51c4eb1	varun_saxena	Varun Saxena	GRC Auditor - I	varun.saxena@acme.co	00000000-0000-4000-8000-000000000036	t	4	2026-09-27 14:11:08.720198+00	\N	\N	\N	\N
-a07dfbd5-cdc1-4da9-b354-1229dec56728	nikhil_khanna	Nikhil Khanna	Sales Executive	nikhil.khanna@acme.co	00000000-0000-4000-8000-000000000008	t	13	2026-09-24 12:28:46.094618+00	2026-09-27 15:20:10.463338+00	\N	47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	\N
+43df527c-54b2-4457-a305-383b2265ed8d	swati_mishra	Swati Mishra	GRC Auditor - IV	swati.mishra@acme.co	00000000-0000-4000-8000-000000000035	t	2	2026-09-25 05:11:30.739409+00	\N	\N	\N	\N
+46a7dd69-d00b-49f1-9148-8295824d89dc	varun_saxena	Varun Saxena	GRC Auditor - I	varun.saxena@acme.co	00000000-0000-4000-8000-000000000036	t	4	2026-09-25 05:11:30.739409+00	\N	\N	\N	\N
+9501738d-a3cd-444b-99af-266af1c5ad94	sneha_reddy	Sneha Reddy	Associate Customer Success Representative - II	sneha.reddy@acme.co	00000000-0000-4000-8000-000000000011	t	1	2026-09-25 05:11:30.739409+00	\N	\N	\N	\N
+a205916c-a247-430e-b0d6-5b42abd908f6	tanvi_deshmukh	Tanvi Deshmukh	Intern	tanvi.deshmukh@acme.co	00000000-0000-4000-8000-000000000052	t	3	2026-09-25 05:11:30.739409+00	\N	\N	\N	\N
 \.
 
 
 --
--- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_roles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1842,6 +2114,7 @@ ebdc343e-9f43-4715-8a37-4861594c4b0a	functional_hr_senior_hr_executive_i_hr	HR	t
 20d077b9-894b-4bf3-b491-5df765e645f0	services_testing_associate_manager_ii_team_leader_tl_	Team Leader (TL)	t	168d11d7-ca26-4d61-b870-51779dc63023	2026-09-03 11:55:46.803606+00	\N	\N	\N	\N
 5a206a6a-dabc-4dfe-b28f-00cc01bc11da	services_testing_red_team_practitioner_ii_team_member_tm_	Team Member (TM)	t	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	2026-09-03 11:55:46.803606+00	\N	\N	\N	\N
 074ea1a8-d519-4cda-87a4-978cd1eec45a	services_consulting_grc_auditor_i_team_member_tm_	Team Member (TM)	t	1e7faab8-273d-40df-9f9a-485160186c5a	2026-09-03 11:55:46.803606+00	\N	\N	\N	\N
+61cc6cff-4f61-4a1d-90f5-9eb9f61c54f3	services_consulting_principal_manager_i_sr_manager_sr_mng_	Sr. Manager (Sr.Mng.)	t	dadac355-1ddc-457c-935a-d297da3a883d	2026-09-03 11:55:46.803606+00	\N	\N	\N	\N
 95337b72-6733-48f5-ba8c-cd2afbcbc1e4	functional_accounts_accountant_ii_manager_mng_	Manager (Mng.)	t	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	2026-09-03 11:55:46.803606+00	\N	\N	\N	\N
 3e28d4a4-7d87-41ed-b921-a39dd937df76	functional_sales_associate_customer_success_representative_i_team_member_tm_	Team Member (TM)	t	272973a6-c052-4aef-bf32-9e24f7eb6cc9	2026-09-03 11:55:46.803606+00	\N	\N	\N	\N
 b4e88d70-1263-47af-96a9-203ee422e8b1	services_operations_soc_consultant_ii_team_member_tm_	Team Member (TM)	t	911f6d7f-8d43-40f2-897a-2f416abf8cf9	2026-09-03 11:55:46.803606+00	\N	\N	\N	\N
@@ -1885,12 +2158,11 @@ b3c75d81-80a1-4240-8b1e-020000000002	services_operations_soc_sr_manager_sr_manag
 b3c75d81-80a1-4240-8b1e-020000000003	services_operations_soc_hod_head_of_department_hod_	Head Of Department (HOD)	t	b3c75d81-80a1-4240-8b1e-010000000003	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N
 b3c75d81-80a1-4240-8b1e-020000000004	services_testing_hod_head_of_department_hod_	Head Of Department (HOD)	t	b3c75d81-80a1-4240-8b1e-010000000004	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N
 b3c75d81-80a1-4240-8b1e-020000000005	functional_sales_manager_manager_mng_	Manager (Mng.)	t	b3c75d81-80a1-4240-8b1e-010000000005	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N
-61cc6cff-4f61-4a1d-90f5-9eb9f61c54f3	services_operations_principal_manager_i_sr_manager_sr_mng_	Sr. Manager (Sr.Mng.)	t	dadac355-1ddc-457c-935a-d297da3a883d	2026-09-03 11:55:46.803606+00	\N	\N	\N	\N
 \.
 
 
 --
--- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_salary_bands ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1903,7 +2175,115 @@ ebed343e-301f-4984-b292-fa8d1cb1623c	l2	L2	t	2026-08-20 12:51:10.222702+00	\N	\N
 
 
 --
--- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: mst_service_catalog; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mst_service_catalog ("Id", "Code", "Name", "SubDepartmentId", "DefaultTools", "DefaultUnitPrice", "DefaultDurationDays", "Description", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+d0000001-0000-0000-0000-000000000001	PT001	External Network Penetration Testing	c0000001-0000-0000-0000-000000000001	Nessus, Metasploit	60000.00	5	\N	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000002-0000-0000-0000-000000000002	PT002	Internal Network Penetration Testing	c0000001-0000-0000-0000-000000000001	Burp Suite, Cobalt Strike	75000.00	6	\N	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000003-0000-0000-0000-000000000003	PT003	Web Application Penetration Testing	c0000002-0000-0000-0000-000000000002	Burp Suite, OWASP ZAP	50000.00	5	\N	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000004-0000-0000-0000-000000000004	PT004	Mobile Application Penetration Testing	c0000003-0000-0000-0000-000000000003	Frida, Burp Suite Mobile	55000.00	5	\N	t	4	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000005-0000-0000-0000-000000000005	PT005	API Penetration Testing	c0000004-0000-0000-0000-000000000004	Postman, Burp Suite	40000.00	4	\N	t	5	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000006-0000-0000-0000-000000000006	PT006	Thick Client Penetration Testing	c0000005-0000-0000-0000-000000000005	Burp Suite, API Fuzzer	45000.00	4	\N	t	6	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000007-0000-0000-0000-000000000007	VA001	Network Vulnerability Assessment	c0000006-0000-0000-0000-000000000006	Nessus, OpenVAS, Qualys	35000.00	3	\N	t	7	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000008-0000-0000-0000-000000000008	VA002	Web Application Vulnerability Assessment	c0000007-0000-0000-0000-000000000007	Acunetix, Qualys, Rapid7	40000.00	4	\N	t	8	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000009-0000-0000-0000-000000000009	VA003	Cloud Infrastructure Vulnerability Assessment	c0000008-0000-0000-0000-000000000008	Dome9, CloudSploit	50000.00	4	\N	t	9	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000000a-0000-0000-0000-00000000000a	RT001	Full Spectrum Red Team Exercise	c0000009-0000-0000-0000-000000000009	Cobalt Strike, Metasploit, Mimikatz	120000.00	10	\N	t	10	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000000b-0000-0000-0000-00000000000b	RT002	Targeted Red Team Engagement	c0000009-0000-0000-0000-000000000009	Custom Tools, Cobalt Strike	80000.00	7	\N	t	11	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000000c-0000-0000-0000-00000000000c	CS001	AWS Security Assessment	c000000a-0000-0000-0000-00000000000a	Scout2, CloudMapper, AWS Inspector	55000.00	5	\N	t	12	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000000d-0000-0000-0000-00000000000d	CS002	Azure Security Assessment	c000000b-0000-0000-0000-00000000000b	Azucar, Microsoft Defender, Qualys	55000.00	5	\N	t	13	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000000e-0000-0000-0000-00000000000e	CS003	Google Cloud Security Assessment	c000000c-0000-0000-0000-00000000000c	GCP Security Command Center	50000.00	5	\N	t	14	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000000f-0000-0000-0000-00000000000f	CODE001	Source Code Security Review	c000000d-0000-0000-0000-00000000000d	SonarQube, Checkmarx, Fortify	65000.00	6	\N	t	15	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000010-0000-0000-0000-000000000010	CODE002	Static Application Security Testing (SAST)	c000000e-0000-0000-0000-00000000000e	Checkmarx, Veracode, Fortify	70000.00	7	\N	t	16	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000011-0000-0000-0000-000000000011	CODE003	Dynamic Application Security Testing (DAST)	c000000f-0000-0000-0000-00000000000f	Burp Suite, Acunetix, AppScan	60000.00	6	\N	t	17	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000012-0000-0000-0000-000000000012	COMP001	ISO 27001 Security Audit	c0000010-0000-0000-0000-000000000010	AuditBoard, Drata, Vanta	85000.00	8	\N	t	18	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000013-0000-0000-0000-000000000013	COMP002	GDPR Compliance Assessment	c0000011-0000-0000-0000-000000000011	OneTrust, TrustArc, Compliance.ai	75000.00	7	\N	t	19	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000014-0000-0000-0000-000000000014	COMP003	PCI-DSS Compliance Assessment	c0000012-0000-0000-0000-000000000012	Qualys, Rapid7, Nessus	80000.00	7	\N	t	20	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000015-0000-0000-0000-000000000015	COMP004	SOC 2 Type II Audit	c0000013-0000-0000-0000-000000000013	AuditBoard, Drata	95000.00	10	\N	t	21	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000016-0000-0000-0000-000000000016	SE001	Phishing Campaign & Assessment	c0000014-0000-0000-0000-000000000014	KnowBe4, Gophish, Phish Alert	30000.00	2	\N	t	22	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000017-0000-0000-0000-000000000017	SE002	Security Awareness Training Program	c0000015-0000-0000-0000-000000000015	LinkedIn Learning, KnowBe4, SANS	45000.00	4	\N	t	23	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000018-0000-0000-0000-000000000018	SE003	Vishing & Pretexting Assessment	c0000016-0000-0000-0000-000000000016	Custom, KnowBe4	35000.00	3	\N	t	24	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000019-0000-0000-0000-000000000019	FOR001	Digital Forensics Investigation	c0000017-0000-0000-0000-000000000017	EnCase, FTK, Volatility, X-Ways	90000.00	8	\N	t	25	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000001a-0000-0000-0000-00000000001a	FOR002	Incident Response & Containment	c0000018-0000-0000-0000-000000000018	Splunk, ELK, Rapid7 InsightIDR	75000.00	7	\N	t	26	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000001b-0000-0000-0000-00000000001b	FOR003	Malware Analysis	c0000019-0000-0000-0000-000000000019	IDA Pro, Ghidra, Wireshark, Cuckoo	70000.00	6	\N	t	27	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000001c-0000-0000-0000-00000000001c	NET001	Network Architecture Security Review	c000001a-0000-0000-0000-00000000001a	Nmap, Wireshark, NETMON	55000.00	5	\N	t	28	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000001d-0000-0000-0000-00000000001d	NET002	Firewall & IDS/IPS Configuration Audit	c000001b-0000-0000-0000-00000000001b	Nessus, OpenVAS, Custom Scripts	65000.00	6	\N	t	29	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000001e-0000-0000-0000-00000000001e	NET003	Network Segmentation Assessment	c000001c-0000-0000-0000-00000000001c	Nmap, Shodan, Custom Tools	60000.00	5	\N	t	30	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000001f-0000-0000-0000-00000000001f	THREAT001	Threat Modeling & Risk Assessment	c000001d-0000-0000-0000-00000000001d	Microsoft Threat Modeling Tool, IriusRisk	50000.00	4	\N	t	31	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000020-0000-0000-0000-000000000020	THREAT002	Cyber Threat Intelligence Report	c000001e-0000-0000-0000-00000000001e	MISP, Mandiant, CrowdStrike	40000.00	3	\N	t	32	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d0000021-0000-0000-0000-000000000021	THREAT003	Attack Surface Analysis	c000001f-0000-0000-0000-00000000001f	Shodan, Censys, Rapid7 Sonar	45000.00	4	\N	t	33	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_service_departments; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mst_service_departments ("Id", "Code", "Name", "GroupId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+b0000001-0000-0000-0000-000000000001	PEN_TESTING	Penetration Testing	a2222222-2222-2222-2222-222222222222	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+b0000002-0000-0000-0000-000000000002	VULN_ASSESSMENT	Vulnerability Assessment	a2222222-2222-2222-2222-222222222222	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+b0000003-0000-0000-0000-000000000003	RED_TEAM	Red Team & Adversary Simulation	a1111111-1111-1111-1111-111111111111	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+b0000004-0000-0000-0000-000000000004	CLOUD_SECURITY	Cloud Security	a1111111-1111-1111-1111-111111111111	t	4	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+b0000005-0000-0000-0000-000000000005	CODE_APP_SECURITY	Code & Application Security	a2222222-2222-2222-2222-222222222222	t	5	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+b0000006-0000-0000-0000-000000000006	COMPLIANCE_AUDIT	Compliance & Audit	a1111111-1111-1111-1111-111111111111	t	6	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+b0000007-0000-0000-0000-000000000007	SOCIAL_ENGINEERING	Social Engineering & Awareness	a2222222-2222-2222-2222-222222222222	t	7	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+b0000008-0000-0000-0000-000000000008	FORENSICS_IR	Forensics & Incident Response	a1111111-1111-1111-1111-111111111111	t	8	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+b0000009-0000-0000-0000-000000000009	NETWORK_INFRA	Network & Infrastructure	a2222222-2222-2222-2222-222222222222	t	9	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+b000000a-0000-0000-0000-00000000000a	THREAT_INTEL	Threat Intelligence & Modeling	a1111111-1111-1111-1111-111111111111	t	10	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_service_groups; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mst_service_groups ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+a1111111-1111-1111-1111-111111111111	RESOURCE	Resource	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+a2222222-2222-2222-2222-222222222222	SCOPE	Scope	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_service_sub_departments; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mst_service_sub_departments ("Id", "Code", "Name", "DepartmentId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+c0000001-0000-0000-0000-000000000001	SUB_NET_PT	Network Penetration Testing	b0000001-0000-0000-0000-000000000001	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000002-0000-0000-0000-000000000002	SUB_WEB_PT	Web Application Penetration Testing	b0000001-0000-0000-0000-000000000001	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000003-0000-0000-0000-000000000003	SUB_MOB_PT	Mobile Application Penetration Testing	b0000001-0000-0000-0000-000000000001	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000004-0000-0000-0000-000000000004	SUB_API_PT	API Penetration Testing	b0000001-0000-0000-0000-000000000001	t	4	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000005-0000-0000-0000-000000000005	SUB_THICK_PT	Thick Client Penetration Testing	b0000001-0000-0000-0000-000000000001	t	5	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000006-0000-0000-0000-000000000006	SUB_NET_VA	Network Vulnerability Assessment	b0000002-0000-0000-0000-000000000002	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000007-0000-0000-0000-000000000007	SUB_WEB_VA	Web Application Vulnerability Assessment	b0000002-0000-0000-0000-000000000002	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000008-0000-0000-0000-000000000008	SUB_CLOUD_VA	Cloud Infrastructure Vulnerability Assessment	b0000002-0000-0000-0000-000000000002	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000009-0000-0000-0000-000000000009	SUB_ADV_SIM	Adversary Simulation	b0000003-0000-0000-0000-000000000003	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000000a-0000-0000-0000-00000000000a	SUB_AWS_SEC	AWS Security Assessment	b0000004-0000-0000-0000-000000000004	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000000b-0000-0000-0000-00000000000b	SUB_AZURE_SEC	Azure Security Assessment	b0000004-0000-0000-0000-000000000004	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000000c-0000-0000-0000-00000000000c	SUB_GCP_SEC	Google Cloud Security Assessment	b0000004-0000-0000-0000-000000000004	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000000d-0000-0000-0000-00000000000d	SUB_CODE_REV	Source Code Security Review	b0000005-0000-0000-0000-000000000005	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000000e-0000-0000-0000-00000000000e	SUB_SAST	Static Application Security Testing	b0000005-0000-0000-0000-000000000005	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000000f-0000-0000-0000-00000000000f	SUB_DAST	Dynamic Application Security Testing	b0000005-0000-0000-0000-000000000005	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000010-0000-0000-0000-000000000010	SUB_ISO27001	ISO 27001 Security Audit	b0000006-0000-0000-0000-000000000006	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000011-0000-0000-0000-000000000011	SUB_GDPR	GDPR Compliance Assessment	b0000006-0000-0000-0000-000000000006	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000012-0000-0000-0000-000000000012	SUB_PCIDSS	PCI-DSS Compliance Assessment	b0000006-0000-0000-0000-000000000006	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000013-0000-0000-0000-000000000013	SUB_SOC2	SOC 2 Type II Audit	b0000006-0000-0000-0000-000000000006	t	4	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000014-0000-0000-0000-000000000014	SUB_PHISHING	Phishing Campaign & Assessment	b0000007-0000-0000-0000-000000000007	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000015-0000-0000-0000-000000000015	SUB_AWARENESS	Security Awareness Training Program	b0000007-0000-0000-0000-000000000007	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000016-0000-0000-0000-000000000016	SUB_VISHING	Vishing & Pretexting Assessment	b0000007-0000-0000-0000-000000000007	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000017-0000-0000-0000-000000000017	SUB_FORENSICS	Digital Forensics Investigation	b0000008-0000-0000-0000-000000000008	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000018-0000-0000-0000-000000000018	SUB_IR	Incident Response & Containment	b0000008-0000-0000-0000-000000000008	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c0000019-0000-0000-0000-000000000019	SUB_MALWARE	Malware Analysis	b0000008-0000-0000-0000-000000000008	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000001a-0000-0000-0000-00000000001a	SUB_NET_ARCH	Network Architecture Security Review	b0000009-0000-0000-0000-000000000009	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000001b-0000-0000-0000-00000000001b	SUB_FIREWALL	Firewall & IDS/IPS Configuration Audit	b0000009-0000-0000-0000-000000000009	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000001c-0000-0000-0000-00000000001c	SUB_NET_SEG	Network Segmentation Assessment	b0000009-0000-0000-0000-000000000009	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000001d-0000-0000-0000-00000000001d	SUB_THREAT_MOD	Threat Modeling & Risk Assessment	b000000a-0000-0000-0000-00000000000a	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000001e-0000-0000-0000-00000000001e	SUB_THREAT_REP	Cyber Threat Intelligence Report	b000000a-0000-0000-0000-00000000000a	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c000001f-0000-0000-0000-00000000001f	SUB_ATTACK_SURF	Attack Surface Analysis	b000000a-0000-0000-0000-00000000000a	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1914,7 +2294,79 @@ COPY public.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "
 
 
 --
--- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: project_documents; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.project_documents ("Id", "ProjectId", "DocumentType", "FileName", "OriginalFileName", "FilePath", "ContentType", "SizeBytes", "Description", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+\.
+
+
+--
+-- Data for Name: project_drafts; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.project_drafts ("Id", "ProjectName", "ClientId", "ClientName", "SalesPerson", "FormSnapshotJson", "CreatedByName", "UpdatedByName", "Status", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+\.
+
+
+--
+-- Data for Name: project_invoices; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.project_invoices ("Id", "ProjectId", "MilestoneName", "Percentage", "Amount", "TaxAmount", "TotalAmount", "Status", "InvoiceNumber", "InvoiceDate", "DueDate", "PaymentDate", "Remarks", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+\.
+
+
+--
+-- Data for Name: project_services; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.project_services ("Id", "ProjectId", "ServiceCatalogId", "TaskId", "Department", "SubDepartment", "ServiceName", "Qty", "Description", "ResourceLevel", "Frequency", "Location", "LocationText", "ServiceModel", "DeliveryModel", "FinalDeliveryFormat", "BillingModel", "Tools", "StartDate", "EndDate", "DurationDays", "DurationHours", "TotalDays", "TotalHours", "UnitPrice", "Total", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+\.
+
+
+--
+-- Data for Name: project_task_assignment_history; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.project_task_assignment_history ("Id", "TaskId", "EmployeeId", "Action", "ResourceName", "TeamType", "OccurredAtUtc", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+\.
+
+
+--
+-- Data for Name: project_task_assignments; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.project_task_assignments ("Id", "TaskId", "EmployeeId", "Role", "AllocatedHours", "UtilizedHours", "TimerStartedAtUtc", "TimerAccumulatedSeconds", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+\.
+
+
+--
+-- Data for Name: project_tasks; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.project_tasks ("Id", "ProjectId", "ProjectServiceId", "Title", "Description", "Period", "Phase", "Stage", "Priority", "PlannedStartDate", "PlannedEndDate", "ActualStartDate", "ActualEndDate", "EstimatedHours", "UtilizedHours", "Progress", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+\.
+
+
+--
+-- Data for Name: project_team_members; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.project_team_members ("Id", "ProjectId", "EmployeeId", "DepartmentId", "SubDepartment", "AllocationStartDate", "AllocationEndDate", "Billability", "IsTeamLead", "ResourceType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "IsShadowTeam") FROM stdin;
+\.
+
+
+--
+-- Data for Name: projects; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.projects ("Id", "ProjectCode", "WbsId", "Name", "Description", "ClientId", "SubVentureId", "Status", "Health", "Progress", "ContractType", "ProjectType", "Currency", "TaxPercent", "StartDate", "EndDate", "Budget", "Spent", "TotalHours", "TotalDays", "InvoiceValue", "ProjectManagerId", "TeamLeadId", "EngagementManager", "EngagementManagerId", "SalesPerson", "SalesPersonId", "ProjectIssuedDate", "SectionAComments", "SectionBComments", "WbsStatus", "WbsSubStatus", "RenewedFromProjectId", "PoStatus", "PoNumber", "PoDate", "BillingModel", "PaymentTerms", "TargetDate", "AccountContactName", "AccountContactPhone", "AccountContactEmail", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+\.
+
+
+--
+-- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.refresh_tokens ("Id", "UserId", "TokenHash", "ExpiresAtUtc", "RevokedAtUtc", "ReplacedByTokenHash", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1942,8 +2394,10 @@ af90baef-422b-428d-8017-819a930a8129	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	OL1lUx
 37c927c0-1446-4b54-b129-a85ee6083ad8	b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	imrkQ2PcF21S9YcP5unCEcoTPh2pRpok1XVAnVScBjU=	2026-10-01 13:52:05.739828+00	2026-09-24 13:52:10.772368+00	\N	2026-09-24 13:52:05.740145+00	2026-09-24 13:52:10.772388+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 e85e2a6d-c39b-4a85-a923-7707a07742aa	00000000-0000-4000-9000-000000000050	rQasgNBxfIwd+JGm/s3c3h3MEDqbqyErzzByIHmG9gI=	2026-10-01 13:52:11.877301+00	2026-09-24 13:52:30.221987+00	\N	2026-09-24 13:52:11.877448+00	2026-09-24 13:52:30.222008+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 30a4bb8f-c0cf-4041-bc81-a62de0819f1f	00000000-0000-4000-9000-000000000026	6WWCg50Qx6z9j7zb8CRvsUG7OXZHo+3mayJ3M2tQD9M=	2026-10-01 13:52:30.672783+00	2026-09-24 13:53:15.664067+00	\N	2026-09-24 13:52:30.672929+00	2026-09-24 13:53:15.685391+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+654cf7c6-5c05-4500-9654-0f7098d57116	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	32POqdtfKhNpLcOtZ8jyFu+Ee5pnSewIus9q9NaGORg=	2026-10-01 13:53:51.745124+00	\N	\N	2026-09-24 13:53:51.745324+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 cee7386d-7fa6-4601-ab32-c74cdc2a80de	00000000-0000-4000-9000-000000000026	70hxtt7IA4kB5tTUUQN0sMJr9mTA4gGwuKJuVheBXkM=	2026-10-01 13:53:15.681643+00	2026-09-24 13:53:55.507906+00	\N	2026-09-24 13:53:15.685391+00	2026-09-24 13:53:55.507926+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 00f6b01b-fc2d-4f79-8626-90826f49c101	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	5Y1J0JtZ6CL69793TNKuKSVrLrC7jGS5Z8jm+cXXlDQ=	2026-10-01 13:53:39.005679+00	2026-09-24 13:53:56.002569+00	\N	2026-09-24 13:53:39.00594+00	2026-09-24 13:53:56.003127+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2efd068c-6c5d-4a62-95cb-f34ddc3cb91e	730809c0-fc01-a664-03ca-28e0e32d0393	rDFSDOAbkqWWf0Vxm0gxOdzEhfaBCTpLapI2sSiX6/M=	2026-10-01 13:53:59.214927+00	\N	\N	2026-09-24 13:53:59.215215+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 58880be6-c35f-4b7f-bb31-e3ce9031ebb4	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	xn/NgVWB0gaHLIwZeRFWxyAyvz4oSLswhSJchrJ5u7c=	2026-10-01 13:53:56.002895+00	2026-09-24 13:56:04.382041+00	\N	2026-09-24 13:53:56.003127+00	2026-09-24 13:56:04.382063+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 7d7d1ad0-e931-48fd-9c59-b805abefbeb3	00000000-0000-4000-9000-000000000050	L3M7PkNMasCy/f86Nf0/fO9yZFao3zaQxxxhxUvAnTA=	2026-10-01 13:54:12.229806+00	2026-09-24 13:56:05.51828+00	\N	2026-09-24 13:54:12.230211+00	2026-09-24 13:56:05.518616+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 665400bd-3c44-46cd-8fbb-ccabd5dc0a4a	00000000-0000-4000-9000-000000000050	XTtMU7YRVrUy2h2/8MY2++uegDeVAh4MywiURi4RiIQ=	2026-10-01 13:56:05.51848+00	2026-09-24 13:56:09.251228+00	\N	2026-09-24 13:56:05.518616+00	2026-09-24 13:56:09.25124+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
@@ -1955,155 +2409,55 @@ dc86c1c9-afd5-4f06-ac65-e484014eaf9e	00000000-0000-4000-9000-000000000017	Hgp5o9
 1f352908-5cc1-4eae-b724-e6e509ce33a6	00000000-0000-4000-9000-000000000017	wGmXY815SzciZJi0k7LO1BPW5PNAEb/WiLrQbt7kbyw=	2026-10-02 04:33:23.974712+00	2026-09-25 04:34:17.636554+00	\N	2026-09-25 04:33:23.977904+00	2026-09-25 04:34:17.63762+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 f42add20-30c6-45d8-97a2-e8454591fb17	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	WcSCZwQ8L8NNmP7oLOgVGvC9zlsTSYqhP4Ker2l70Z8=	2026-10-01 14:00:08.767616+00	2026-09-25 04:34:32.688091+00	\N	2026-09-24 14:00:08.767781+00	2026-09-25 04:34:32.688565+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
 36932913-8197-495f-a3dc-c44a58b38431	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	poqcsqoB+juQMlX/3kGI+DyTQlQJ2Ufn1Haz42ewFKs=	2026-10-02 04:34:32.688445+00	2026-09-25 04:35:18.816119+00	\N	2026-09-25 04:34:32.688565+00	2026-09-25 04:35:18.81658+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-573bc169-b02c-41e6-86a0-97fdfa11719b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	pfuIg+1z+6PKdtxAzg6Sa908gkbcp8NuhbGA41hjYe8=	2026-10-02 04:41:38.568739+00	2026-09-27 14:11:12.447456+00	\N	2026-09-25 04:41:38.568957+00	2026-09-27 14:11:12.455293+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-654cf7c6-5c05-4500-9654-0f7098d57116	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	32POqdtfKhNpLcOtZ8jyFu+Ee5pnSewIus9q9NaGORg=	2026-10-01 13:53:51.745124+00	2026-09-27 14:16:49.259392+00	\N	2026-09-24 13:53:51.745324+00	2026-09-27 14:16:49.259791+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-e337964e-19c3-4303-bc5b-dddc4e69118e	f2f23eb1-efb6-f0a7-c57e-0ead09121a21	UPnUxI9anB4iTl5qf4kSNGKQGM547yFpXxHi4RWNC9M=	2026-10-04 14:16:49.259593+00	\N	\N	2026-09-27 14:16:49.259791+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-070c4019-26e7-4595-bf43-7ebb4fb4688e	00000000-0000-4000-9000-000000000040	Rb5LZp8RCuT8q8rkQgeDXAZhNb72NDnSeozZ91QAlBg=	2026-10-04 14:18:49.022307+00	\N	\N	2026-09-27 14:18:49.022527+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-5120f43e-2681-4a19-852e-8885d26a67df	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	/el4F/zTN+IYitMverGopflIk6TyKVrWReo+lUJNFpU=	2026-10-04 14:11:12.454127+00	2026-09-27 14:22:56.276609+00	\N	2026-09-27 14:11:12.455293+00	2026-09-27 14:22:56.276634+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-ab2fabe0-bf3b-4438-917a-3f422414ead3	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	xx3VCjknTd8one3LvzDIjCkw5TAZdLcZJYfrJBj4L60=	2026-10-02 04:35:18.816456+00	2026-09-27 14:23:03.094904+00	\N	2026-09-25 04:35:18.81658+00	2026-09-27 14:23:03.095231+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-d375dc18-99cd-4530-a7b5-043fdda29c16	00000000-0000-4000-9000-000000000017	74HdN7QavRavaxkC7CkU+OIeyqtB4ysZA/xdeEEe91o=	2026-10-02 04:34:17.637322+00	2026-09-27 14:26:39.348038+00	\N	2026-09-25 04:34:17.63762+00	2026-09-27 14:26:39.348505+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-850412c9-b1d4-4d0b-ac8f-47bf233ed180	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	OIJTEEkDAiDXulnIJlWWt+IaiOxhKUL7/JYtOLnbOLA=	2026-10-04 14:22:56.513831+00	2026-09-27 14:23:02.808797+00	\N	2026-09-27 14:22:56.514041+00	2026-09-27 14:23:02.808824+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-462c2039-6716-4ed3-bc35-92793c872ea2	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	dyPJvs+B0xhg2GZJoXBA2m5SnZfVoMweiBz5odS8JNg=	2026-10-04 14:23:03.095094+00	2026-09-27 14:23:09.47087+00	\N	2026-09-27 14:23:03.095231+00	2026-09-27 14:23:09.470902+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-8e47ae3c-48a1-4a54-92ad-2fcf0971d209	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	nTpOJmrUhY7fW7NoPiifb7ixY2dlF4CmitTAtDvYsrw=	2026-10-04 14:23:09.761037+00	2026-09-27 14:23:20.940662+00	\N	2026-09-27 14:23:09.761135+00	2026-09-27 14:23:20.940701+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-5b482ab4-327e-473e-9c81-f08a46af9f25	00000000-0000-4000-9000-000000000059	pkTz+l/HZ4oCJWsexDT5bBcvIG3PF6mNmadu6wLP5gs=	2026-10-04 14:23:21.310325+00	2026-09-27 14:23:55.861154+00	\N	2026-09-27 14:23:21.310415+00	2026-09-27 14:23:55.861308+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f4320078-55fe-46e7-8138-fdc4ca99d6a0	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vTWTgullEadmjvzzwqElGMpTy5Sk/XAomvvzbAEB7iQ=	2026-10-04 14:23:56.123088+00	2026-09-27 14:26:16.118068+00	\N	2026-09-27 14:23:56.123239+00	2026-09-27 14:26:16.118148+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-2efd068c-6c5d-4a62-95cb-f34ddc3cb91e	730809c0-fc01-a664-03ca-28e0e32d0393	rDFSDOAbkqWWf0Vxm0gxOdzEhfaBCTpLapI2sSiX6/M=	2026-10-01 13:53:59.214927+00	2026-09-27 14:26:16.38258+00	\N	2026-09-24 13:53:59.215215+00	2026-09-27 14:26:16.38335+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-85820302-6b24-4562-882a-3662ce5cea81	730809c0-fc01-a664-03ca-28e0e32d0393	rd7pJPGzinXoWzvSCl8A+UdMc844qXwDw6Opr35FxLk=	2026-10-04 14:26:16.383064+00	2026-09-27 14:26:25.555996+00	\N	2026-09-27 14:26:16.38335+00	2026-09-27 14:26:25.556023+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-e4e85146-78ed-4185-b279-8bb985e0e8ba	b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	5H0ytYH3Ffjs6LPGpG5/5bUz1LZYMTIjOFuTNn+Ge68=	2026-10-04 14:26:25.853278+00	2026-09-27 14:26:39.054354+00	\N	2026-09-27 14:26:25.853383+00	2026-09-27 14:26:39.054379+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-87bb3181-6a23-4151-9a27-683539b233c2	00000000-0000-4000-9000-000000000017	ct1jxFyRMjgqBqcN3zE2cEUkRbk+gkCpfN7gu4VLe3w=	2026-10-04 14:26:39.34833+00	2026-09-27 14:26:53.122869+00	\N	2026-09-27 14:26:39.348505+00	2026-09-27 14:26:53.12307+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-977c277e-b13f-4b03-aefc-63249b01e8b9	00000000-0000-4000-9000-000000000019	Vt4hqhlFEPtTgvt8iIudiE0FWShrLrZcxbO+ymROSVk=	2026-10-04 14:26:53.422027+00	2026-09-27 14:26:59.904696+00	\N	2026-09-27 14:26:53.422128+00	2026-09-27 14:26:59.904734+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f42c4150-26f0-4b87-be1b-f18b8b8d3749	1a077a8c-4029-8ded-d563-19e9b4bdf301	KgeJU6oEAU5fpHA5MjItPKYPY93PZMXLr2ByFV6CEkY=	2026-10-04 14:27:00.187387+00	2026-09-27 14:27:06.28973+00	\N	2026-09-27 14:27:00.187461+00	2026-09-27 14:27:06.290126+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c6b92b1d-1dd2-4cb4-b129-69ee99e99b9b	00000000-0000-4000-9000-000000000052	pSQGBv6Aqr+jyyP5CjLK2xIJFnlrcSSo4whJKwlI8wc=	2026-10-04 14:27:06.532035+00	2026-09-27 14:27:19.341521+00	\N	2026-09-27 14:27:06.532116+00	2026-09-27 14:27:19.341549+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-1e99adc7-8ac6-4db0-8c55-f4d041667f90	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Vkv8pDjRgx00KuBl28m8Cc1sUIfB3CXbeW7MZV9+Rkw=	2026-10-04 14:27:19.587077+00	2026-09-27 14:27:46.167419+00	\N	2026-09-27 14:27:19.587185+00	2026-09-27 14:27:46.167446+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-afcf48e4-c7ff-4c38-87f0-7cb6c20e44cb	dc139a9d-b996-7354-6c27-72659ea2fd59	7uzfi0NCz7FQMs+tWOForjUvAUCQeyP3dYFUB+wM4gY=	2026-10-04 14:27:47.023384+00	2026-09-27 14:29:02.533629+00	\N	2026-09-27 14:27:47.023466+00	2026-09-27 14:29:02.534378+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-caf5919f-e907-41ca-9a8b-eadd67fea7e7	dc139a9d-b996-7354-6c27-72659ea2fd59	yqp7z1OhtBundzHZ1CK/FspR5drHWyZSml9wKOBiAv0=	2026-10-04 14:29:02.534157+00	2026-09-27 14:29:14.965916+00	\N	2026-09-27 14:29:02.534378+00	2026-09-27 14:29:14.966525+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-202b98de-f77f-4a2b-86d6-06e4b9bac4d7	dc139a9d-b996-7354-6c27-72659ea2fd59	M+Pr5CuV/XSC8hbuWQZJEODXcTk0QtRHQzJ3lt81Fp4=	2026-10-04 14:29:14.966277+00	2026-09-27 14:30:03.916079+00	\N	2026-09-27 14:29:14.966525+00	2026-09-27 14:30:03.916291+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-7f6ad492-fef5-443d-9de0-5890cd1f22fd	dc139a9d-b996-7354-6c27-72659ea2fd59	0+3PRpbF3QGWontqxbPwsjdhqRyCtN2gIeHHRz/uYDE=	2026-10-04 14:30:03.916227+00	2026-09-27 14:30:31.714303+00	\N	2026-09-27 14:30:03.916291+00	2026-09-27 14:30:31.714349+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-9abe5859-2768-4cde-a887-96602e02bb30	47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	sYtrqzy2jb2h6MvggzOCqtGlAq2RM5rkfHCBmivSUE4=	2026-10-04 14:30:31.971786+00	2026-09-27 14:33:26.971256+00	\N	2026-09-27 14:30:31.971961+00	2026-09-27 14:33:26.971276+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f40688ab-81bf-4d32-8637-3a00ad574fec	b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	QjHfsOrzgu17I/X4TxjEPYvA9A5dnDmagyq4uSjrud4=	2026-10-04 14:33:27.250554+00	2026-09-27 14:34:38.716271+00	\N	2026-09-27 14:33:27.250685+00	2026-09-27 14:34:38.716297+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-5e2771c8-51a3-467e-9fb3-66da109255d2	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	lt+AkJNw7HmcD1FkZrbq/CLanCbjnnl5QhJ7p4UD408=	2026-10-04 14:32:42.537112+00	2026-09-27 14:34:39.044525+00	\N	2026-09-27 14:32:42.537187+00	2026-09-27 14:34:39.044967+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-d0ad711b-2831-4741-a232-bc57f484d956	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Ke0Y2dFsFAP33MBD8PL3ARglbVbrQVUFdr4uafz39RE=	2026-10-04 14:34:39.044823+00	2026-09-27 14:36:04.690631+00	\N	2026-09-27 14:34:39.044967+00	2026-09-27 14:36:04.690652+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-9b04a1cb-4adc-40a1-a9a7-010bb382136e	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	moQjE22yXOQ3346zoO5X15j/TEPFZAEJSNzSMS1oSTU=	2026-10-04 14:36:04.989316+00	2026-09-27 14:36:08.895048+00	\N	2026-09-27 14:36:04.989445+00	2026-09-27 14:36:08.895321+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c0dbf394-6875-49fe-a765-0bff28472fe5	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	B2v0W1aopeGfOpQ4L/0a19Bq10WoHUvJMjEHHV6rlvE=	2026-10-04 14:36:08.895235+00	2026-09-27 14:36:21.871105+00	\N	2026-09-27 14:36:08.895321+00	2026-09-27 14:36:21.871124+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f74cd03f-b41e-450d-b7c0-46bfdc55cfb9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	eYtnQsl9qhIi0AXoxeSiAnm4mlH+Y2xsthpzv2uOFnw=	2026-10-04 14:36:22.175752+00	2026-09-27 14:36:41.811061+00	\N	2026-09-27 14:36:22.175921+00	2026-09-27 14:36:41.811081+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-37c2ad17-faf7-464a-ad5d-b1f97a5e4025	730809c0-fc01-a664-03ca-28e0e32d0393	6KkNCLm3KFgPRH0dre6AxoN2KPkhfTSSe9C/r1Kp3BU=	2026-10-04 14:36:42.1062+00	2026-09-27 14:36:46.503613+00	\N	2026-09-27 14:36:42.106289+00	2026-09-27 14:36:46.50363+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-0fc1b886-4dc5-4a66-b4a4-a195c84656cc	00000000-0000-4000-9000-000000000057	9muLnOPtoxgDBo/Zbg+QBL9TR1EDa5+76GEf5mn/HRQ=	2026-10-04 14:36:46.751985+00	2026-09-27 14:36:50.252185+00	\N	2026-09-27 14:36:46.7521+00	2026-09-27 14:36:50.252203+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-df9958a3-9223-41b2-9456-b917fa316bab	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	o2g/h17QlMWv9C99LzKo2wtGsgbDaxlBC24d8uFSlgc=	2026-10-04 14:36:50.55506+00	2026-09-27 14:37:10.505894+00	\N	2026-09-27 14:36:50.555364+00	2026-09-27 14:37:10.507013+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c118f523-06c7-4b49-805d-4811f8b2cbed	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	BzM2lfZx+Z5CtYzVUBFA4K+pYhcRab/iMdCLdAuZnVY=	2026-10-04 14:37:10.506254+00	2026-09-27 14:39:20.027006+00	\N	2026-09-27 14:37:10.507013+00	2026-09-27 14:39:20.028748+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-49a62d49-61d0-48d5-aac8-88840783fa3b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	T9JzVarzT8DLOlQfQ4ai58KrWjWRQiFqHgt/M2sILz0=	2026-10-04 14:39:20.028427+00	2026-09-27 14:46:27.501732+00	\N	2026-09-27 14:39:20.028748+00	2026-09-27 14:46:27.50224+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-3142ffab-55b7-4672-85e1-c64a38295113	730809c0-fc01-a664-03ca-28e0e32d0393	3ckJKlydfM/pIIqt2XvbRbj28vMNNw2thE+t4ab8gBI=	2026-10-04 14:46:27.827371+00	2026-09-27 14:46:33.528526+00	\N	2026-09-27 14:46:27.827771+00	2026-09-27 14:46:33.528818+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-fd890cb6-7386-4cd3-bb43-c1b6a989d289	730809c0-fc01-a664-03ca-28e0e32d0393	mlFHbmPNyIVNgFyk/3IlCNgWwPnQAb0y3OX15JRkG2o=	2026-10-04 14:46:33.528691+00	2026-09-27 14:46:55.671319+00	\N	2026-09-27 14:46:33.528818+00	2026-09-27 14:46:55.671513+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c957e9ed-843a-4131-9410-471eecbb5459	730809c0-fc01-a664-03ca-28e0e32d0393	Qc+EJr5n0dozLFlsLpdgw3diIbl5XtVGu9CXOME3veU=	2026-10-04 14:46:55.671439+00	2026-09-27 14:47:04.427825+00	\N	2026-09-27 14:46:55.671513+00	2026-09-27 14:47:04.42798+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-2cfbafe5-862e-4d02-af71-3e36bcb0a49f	730809c0-fc01-a664-03ca-28e0e32d0393	Obpmd4n6qdbVYIEsbhiPkLrfyAPEN/NU99BvjXU30hw=	2026-10-04 14:47:04.427925+00	2026-09-27 14:47:18.613299+00	\N	2026-09-27 14:47:04.42798+00	2026-09-27 14:47:18.613518+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-1c027e47-0aa5-4448-aecd-da282b4baff5	730809c0-fc01-a664-03ca-28e0e32d0393	FWm0DB/qujnFlPGG9zGdeweknDgQNT+b9sHWr5Yf388=	2026-10-04 14:47:18.613432+00	2026-09-27 14:47:30.523137+00	\N	2026-09-27 14:47:18.613518+00	2026-09-27 14:47:30.523286+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-68b09128-6d97-493e-80f8-0ae30f51ca99	730809c0-fc01-a664-03ca-28e0e32d0393	pclZ39D1iY/3cxCKeYhUXY+uXnru6OJUBJuU5D3K4tc=	2026-10-04 14:47:30.523227+00	2026-09-27 14:47:36.537623+00	\N	2026-09-27 14:47:30.523286+00	2026-09-27 14:47:36.537817+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-6b516ea7-21cd-486e-8fbd-b567a29948f7	730809c0-fc01-a664-03ca-28e0e32d0393	y88hNzsMeRZUJ7e351kZ9XQ84LibriWBqv0dsqjQ2V8=	2026-10-04 14:47:36.537738+00	2026-09-27 14:47:42.469681+00	\N	2026-09-27 14:47:36.537817+00	2026-09-27 14:47:42.469695+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-a2fc9ce9-06b2-42d3-a525-f6f9ce840302	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	+fQcUnmrwpVLZ87DeKk74B/BJ/HwwxSyk+kNaEj1sHE=	2026-10-04 14:54:57.925352+00	2026-09-27 14:55:05.795989+00	\N	2026-09-27 14:54:57.925669+00	2026-09-27 14:55:05.796413+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-76edfc4b-422e-4519-ba35-7cab7ccb8e28	40517b71-5e62-182e-73b5-d4070e20a3c2	fLbISJKhJ+YpNLnFFalHh0MQArpp4O5pHrpKA/XQ+nY=	2026-10-04 14:55:06.007132+00	2026-09-27 14:55:54.398827+00	\N	2026-09-27 14:55:06.007258+00	2026-09-27 14:55:54.399011+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c0682f13-9b13-41cb-a069-e997515e27cf	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	DWkOEyyQa1ite2meGP2SmGNAcvfcEP2jeaj/ob/BylY=	2026-10-04 14:47:42.776774+00	2026-09-27 14:58:07.70541+00	\N	2026-09-27 14:47:42.776842+00	2026-09-27 14:58:07.706889+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-ffb38c3f-92b3-4c13-892e-6cf80ce8afda	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	pehTZThWjKe+1Xb548CB6MJS7Vrs4k03PSQr5WE8wq8=	2026-10-04 14:55:05.79627+00	2026-09-27 14:59:16.901826+00	\N	2026-09-27 14:55:05.796413+00	2026-09-27 14:59:16.912473+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-cbb41e16-7201-45cc-a328-1dcc301d4deb	40517b71-5e62-182e-73b5-d4070e20a3c2	IHX3WC9pDy8nieRyIQiPvmybpeNdo9XNR7s4zborgwY=	2026-10-04 14:55:54.398962+00	2026-09-27 14:59:17.240812+00	\N	2026-09-27 14:55:54.399011+00	2026-09-27 14:59:17.241474+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c54a9a12-815b-41f1-9128-a04a5665053b	a0000000-0000-0000-0000-000000000032	PC2eque552w4moHFpA2AUT0LVMRErLLyxLsPSF6x/mI=	2026-10-04 14:32:31.346012+00	2026-09-27 15:02:23.305539+00	\N	2026-09-27 14:32:31.346143+00	2026-09-27 15:02:23.305985+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-dbd5f535-355e-4482-8cd5-85ac2dc618e0	1a077a8c-4029-8ded-d563-19e9b4bdf301	gfjJrdavoYEBaSfPwkiOcKoCvFy1b2UUzmQSoFpaoFc=	2026-10-04 14:55:06.434591+00	2026-09-27 17:49:30.108323+00	\N	2026-09-27 14:55:06.434685+00	2026-09-27 17:49:30.108581+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f1c2efa2-1390-4cfe-a7bd-c1f8b67c92fc	a37e30de-15f3-bf1e-fa9f-4a98da9033ab	yh0lR8X6oWobshnaBxTXw5PvQaRfIK/QxUKtKxX5zbM=	2026-10-04 14:59:17.69532+00	\N	\N	2026-09-27 14:59:17.695459+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
-447f9833-923b-433c-95db-af8a01126816	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	JjXJjJch9AI2M7srfxWZqnEOADIXuV0t9p0GyDABO5A=	2026-10-04 14:59:16.908243+00	2026-09-27 14:59:41.281205+00	\N	2026-09-27 14:59:16.912473+00	2026-09-27 14:59:41.28204+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-bf804546-e503-4d37-8f12-50193401fbfc	e7554ba2-e546-93ce-1e88-a073badd78a2	HdTHWUa7WTf67Wcp8f7dK13Cz+DtW9pFhuUxJE2F43Q=	2026-10-04 14:59:17.467142+00	2026-09-27 14:59:41.64281+00	\N	2026-09-27 14:59:17.467251+00	2026-09-27 14:59:41.64301+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-6dac3408-a485-45b8-a13b-bbd69dfb1063	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	6BFHF1fH9SD/TA08Mji7LyBQvYMeHj1m9SdXrTsZL4g=	2026-10-04 14:58:07.706365+00	2026-09-27 15:02:05.53896+00	\N	2026-09-27 14:58:07.706889+00	2026-09-27 15:02:05.539053+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-3a010ade-2bba-4d25-8669-13a3985880ae	40517b71-5e62-182e-73b5-d4070e20a3c2	RV1zCUNCWR26GjEtJZ2FcWTX4OUqah53pfK0LPqPeSA=	2026-10-04 14:59:17.241114+00	2026-09-27 15:02:05.7779+00	\N	2026-09-27 14:59:17.241474+00	2026-09-27 15:02:05.778816+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-3d0729ea-0d64-4aa9-9f64-3cae1d7ce9e4	40517b71-5e62-182e-73b5-d4070e20a3c2	6d5alJN4AhSEwgJEWYsSOW0mGJni/q672LZ+wltCfXE=	2026-10-04 15:02:05.778578+00	2026-09-27 15:02:23.057022+00	\N	2026-09-27 15:02:05.778816+00	2026-09-27 15:02:23.057076+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-8c0d1a3e-8def-4113-85c7-6c90c260a483	a0000000-0000-0000-0000-000000000032	IfL/q4eEYM72MHt8HUubvcfmr5exytM2C76JX5S+1nU=	2026-10-04 15:02:23.305851+00	2026-09-27 15:02:33.286455+00	\N	2026-09-27 15:02:23.305985+00	2026-09-27 15:02:33.286527+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-b74a2aec-c662-49c4-b426-4f316b2123be	00000000-0000-4000-9000-000000000059	S9+z5v5Zgqc9AavbfLE1HxtHZkItrZwgIN7xh/FisQU=	2026-10-04 15:02:33.644631+00	2026-09-27 15:02:37.665541+00	\N	2026-09-27 15:02:33.644754+00	2026-09-27 15:02:37.665585+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-0ebad695-4521-4101-b076-3284c5868038	dc139a9d-b996-7354-6c27-72659ea2fd59	d95YNCgRt3kmLrohm9FaBDCNKFxM9XPqRYISg/uTVlc=	2026-10-04 15:02:37.952301+00	2026-09-27 15:02:41.597095+00	\N	2026-09-27 15:02:37.952412+00	2026-09-27 15:02:41.597649+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-da752ab9-9c31-4886-a4d1-7ebf146d9d64	dc139a9d-b996-7354-6c27-72659ea2fd59	LjwWg7wsWtjnmz6Lu24U9cLV5o8u+Di6e+zbHbmH54o=	2026-10-04 15:02:41.597348+00	2026-09-27 15:02:52.318273+00	\N	2026-09-27 15:02:41.597649+00	2026-09-27 15:02:52.318297+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-4934723a-c5d1-418e-940c-55eac50bc5bf	00000000-0000-4000-9000-000000000011	YfA+eVn7bUJtJXH9F4EYfO/Ixc8lPW0sOkLGvVfQavs=	2026-10-04 15:02:52.612236+00	2026-09-27 15:03:01.410125+00	\N	2026-09-27 15:02:52.612342+00	2026-09-27 15:03:01.410196+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-39a2ecbb-1469-4827-bf33-aaf89ddee015	b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	B/D3YBMJzQzixk7DW+UY8G98iUkboyp2cIgQynuKbyI=	2026-10-04 15:03:01.689573+00	2026-09-27 15:03:06.770279+00	\N	2026-09-27 15:03:01.689779+00	2026-09-27 15:03:06.770302+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f464345b-7662-4f9c-a0ac-77cb5493d702	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	JQ7Ho4Nsf6IuCkM5uSyuk9SlgEA0Ksd44h99Y4lF2fY=	2026-10-04 14:59:41.281792+00	2026-09-27 15:05:46.933139+00	\N	2026-09-27 14:59:41.28204+00	2026-09-27 15:05:46.934078+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-0afabab1-0848-4103-9f95-26613c81726a	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	aHnEYZYnPGVCd2m3EYmKQWpHNAPNRPWcJ8vabeh7SzU=	2026-10-04 15:05:46.933707+00	2026-09-27 15:06:10.72394+00	\N	2026-09-27 15:05:46.934078+00	2026-09-27 15:06:10.724724+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-51824390-5317-4b94-8b5e-e136233933e4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	yhOnix09doMXEGwv8v234uK46ZFaDblqidIwmRrG/dg=	2026-10-04 15:03:07.061027+00	2026-09-27 15:06:15.494346+00	\N	2026-09-27 15:03:07.061261+00	2026-09-27 15:06:15.494394+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-2400eb0a-adab-435d-85ae-ed83b7029b6c	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	o2VUXuBobzB5y9PjimmBLSSqaA1aWK1T/QEt5BUEobM=	2026-10-04 15:06:10.724457+00	2026-09-27 15:06:23.797367+00	\N	2026-09-27 15:06:10.724724+00	2026-09-27 15:06:23.79741+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-04780f85-ea32-4227-863e-c313b6f562d7	00000000-0000-4000-9000-000000000059	KBQV41dM+w/UtGtzUOjdYXbOFuXZcmr+sXOPGYb+EAQ=	2026-10-04 15:06:15.81056+00	2026-09-27 15:06:25.208547+00	\N	2026-09-27 15:06:15.81086+00	2026-09-27 15:06:25.208592+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-891f612e-6930-4b6d-8a6c-61d637cb1795	40517b71-5e62-182e-73b5-d4070e20a3c2	oh/0eo/HrpcX6nIqeypExMRKF4AG+QFBvJd3hRdX5Kw=	2026-10-04 15:06:24.094537+00	2026-09-27 15:06:27.451668+00	\N	2026-09-27 15:06:24.094709+00	2026-09-27 15:06:27.452023+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-4c703594-bd9e-4fd3-99be-73f3e97a0468	40517b71-5e62-182e-73b5-d4070e20a3c2	Bm4NHqL0HudYZzB3S8/j5WI/GpxkitvJfZh1QNa6umA=	2026-10-04 15:06:27.451938+00	2026-09-27 15:07:11.230771+00	\N	2026-09-27 15:06:27.452023+00	2026-09-27 15:07:11.231623+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c493ed81-aa53-404b-a4fa-cb1a5e5ada8f	40517b71-5e62-182e-73b5-d4070e20a3c2	GdQZOMAXi3B21TFtlHixL71xLWBn0FACdOW5k65rjF4=	2026-10-04 15:07:11.231264+00	2026-09-27 15:07:40.851184+00	\N	2026-09-27 15:07:11.231623+00	2026-09-27 15:07:40.851273+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-22f91e14-dfae-4352-8068-f1c75a95c836	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	doDoQOuVbRk2T7vg+nWji2PMmBao/FV5Q6rx1IX8LNs=	2026-10-04 15:06:25.516301+00	2026-09-27 15:07:41.129979+00	\N	2026-09-27 15:06:25.516494+00	2026-09-27 15:07:41.130616+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-0dd14f38-4f45-4124-905a-2b21972e670c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	weMudDFNJ+BiVua0yRl9o3mkFWkJh8kOjt8yaQ64gZs=	2026-10-04 15:07:41.130393+00	2026-09-27 15:11:00.34611+00	\N	2026-09-27 15:07:41.130616+00	2026-09-27 15:11:00.348754+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-863e6fc1-29db-44b5-a060-f4993c6c82c6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	JNwYaeJUPTjHUu6/tw71YVJ8ePJBdm47E7PISXY+y7Y=	2026-10-04 15:11:00.348104+00	2026-09-27 15:11:00.466424+00	\N	2026-09-27 15:11:00.348754+00	2026-09-27 15:11:00.466454+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-3d6bfc3a-f809-46fb-8ccf-f3278fc4aa69	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	56WviCtNfyAFHAFiqV8VAFhh+Wfj9etFsdvqGAxpfw0=	2026-10-04 15:19:39.755457+00	2026-09-27 15:21:37.328678+00	\N	2026-09-27 15:19:39.75554+00	2026-09-27 15:21:37.329194+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-357264a1-8e86-479f-a991-a3f60efb93a0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	wiMl6R7LITvb+M3kPYmnGtdYtucF+Rd+Hp3A55YH+18=	2026-10-04 15:12:05.353292+00	2026-09-27 15:16:14.490217+00	\N	2026-09-27 15:12:05.353578+00	2026-09-27 15:16:14.491396+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-7bff085c-ce07-40d7-955f-b9030ddc8e55	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	XajtNCZHKsjKG0T8jxHwqypK5nKR5hxnk6eeFH+3jP4=	2026-10-04 15:11:00.701321+00	2026-09-27 15:19:10.587321+00	\N	2026-09-27 15:11:00.701466+00	2026-09-27 15:19:10.58742+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-40d83be3-8677-4be0-b474-4b47026d309e	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	WiqIu9ZZy2WU7cD1BWNFFMEYtcHXeYy4rHaltNSBGH0=	2026-10-04 15:19:10.821582+00	2026-09-27 15:19:20.316512+00	\N	2026-09-27 15:19:10.821859+00	2026-09-27 15:19:20.316576+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-62d766f0-92db-40cb-bbef-3d2cc6e81ae3	730809c0-fc01-a664-03ca-28e0e32d0393	jyNIYWIqKuYppcREjh9jy1PzUUVOxm/T9yDyfFH6G9M=	2026-10-04 14:55:06.222222+00	2026-09-27 15:19:20.608789+00	\N	2026-09-27 14:55:06.222303+00	2026-09-27 15:19:20.609921+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-6f024949-4580-4abe-b3cd-3f1319e0ab13	730809c0-fc01-a664-03ca-28e0e32d0393	VzEmVDfQQsmtlt9mZGw3Uv1yCjmlrp733n3Tg/lreNc=	2026-10-04 15:19:20.609423+00	2026-09-27 15:19:25.492489+00	\N	2026-09-27 15:19:20.609921+00	2026-09-27 15:19:25.493718+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f5793cae-c547-4db1-8759-e675bafd382d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	+Gofw7mabL0/7hoYD7sDmmd1/a+Yov5unnciECxsO6s=	2026-10-04 15:16:14.490906+00	2026-09-27 15:19:39.754856+00	\N	2026-09-27 15:16:14.491396+00	2026-09-27 15:19:39.75554+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-0d146a03-a892-4474-babb-314674b10d01	730809c0-fc01-a664-03ca-28e0e32d0393	AVN9I25XIm31eZiZkrCxtI93QVO9H0040iVauVIE7ZI=	2026-10-04 15:19:25.492923+00	2026-09-27 15:19:47.180701+00	\N	2026-09-27 15:19:25.493718+00	2026-09-27 15:19:47.180726+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c68e5ed7-27b7-41de-9ffc-02741b0aa5e9	00000000-0000-4000-9000-000000000011	Jpz5nX9TChV/ggjsortP5sExqCNl9LkXjKa0Eej0fR8=	2026-10-04 15:19:47.457565+00	2026-09-27 15:19:55.801595+00	\N	2026-09-27 15:19:47.457662+00	2026-09-27 15:19:55.801616+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-8c41a7ce-52aa-4893-9033-d3535170488a	47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	XEBKFBDJoOHOMJW3sAumo0CUpm0VSnthQ/G0UIExbtw=	2026-10-04 15:19:56.080756+00	2026-09-27 15:21:37.064835+00	\N	2026-09-27 15:19:56.080886+00	2026-09-27 15:21:37.064886+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-260d463b-9d36-4589-b150-e0411b7ed2a6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	mWuJORM24CLt3rlk5cTWFNr31j2g0BN384TYUv1IknU=	2026-10-04 15:21:37.329005+00	2026-09-27 15:33:00.055332+00	\N	2026-09-27 15:21:37.329194+00	2026-09-27 15:33:00.055458+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-2fb4ce70-f3ca-4450-bf6e-4ae8407ec679	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	dPgGSxOkOhWpH7ZKYifrAr+27TnU+HXL+fhYBc/8/m0=	2026-10-04 15:33:00.274459+00	2026-09-27 15:40:48.58227+00	\N	2026-09-27 15:33:00.274716+00	2026-09-27 15:40:48.582956+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-59aa88a9-5cc8-487c-a0f6-eb8f14796011	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	6W6gqTmDSiVRmpMAiVIR0/JQA0hPQJgpOHosj5R+m+U=	2026-10-04 15:40:48.582718+00	2026-09-27 15:43:55.629624+00	\N	2026-09-27 15:40:48.582956+00	2026-09-27 15:43:55.630368+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-e4e590a3-0fee-4df3-8523-d27ad402f1ad	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	TL7PvDwMqlf03cPoCSWN0aTnFS4EMkrbB2gEx4sBOHg=	2026-10-04 15:43:55.630059+00	2026-09-27 15:48:27.892114+00	\N	2026-09-27 15:43:55.630368+00	2026-09-27 15:48:27.892748+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-0113e8b5-9047-481d-828b-3a4534760c25	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Ioah3RIQnKUfORbtU7bbS/tPq9lz9noEC6fOqdO1dbI=	2026-10-04 15:48:27.892508+00	2026-09-27 15:49:06.180453+00	\N	2026-09-27 15:48:27.892748+00	2026-09-27 15:49:06.180468+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-63eedd05-4cd8-4113-bb6d-77b2503d4985	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	wMM2tI8G2x/fOSa+2GggNI4SgpaeyM8qwMR7cyWNKTs=	2026-10-04 15:49:06.407503+00	2026-09-27 15:51:39.174936+00	\N	2026-09-27 15:49:06.407736+00	2026-09-27 15:51:39.174958+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-12eec8eb-cf34-4a9e-8ab7-bbcce909cbed	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	kZ5p76xPsGZFzNsNV86C1QByHX7cQwTcExwJXyo7fc8=	2026-10-04 15:51:39.404909+00	2026-09-27 15:52:07.713879+00	\N	2026-09-27 15:51:39.405137+00	2026-09-27 15:52:07.714603+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-ebdf095b-6a56-49da-966a-2819e49aba3a	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	x1nRfnMsjwZL5vgbS4Fe1tiZaK9uBaGa6A3HdwlTD78=	2026-10-04 15:52:07.714397+00	2026-09-27 15:52:08.612611+00	\N	2026-09-27 15:52:07.714603+00	2026-09-27 15:52:08.612621+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-3116f492-dee9-496a-9101-d1c52251c146	e7554ba2-e546-93ce-1e88-a073badd78a2	sEEiPceLtnkFMdOPxDFgkdYEzX1jHgypaF7qObxB1Wg=	2026-10-04 14:59:41.642947+00	2026-09-27 16:05:40.902474+00	\N	2026-09-27 14:59:41.64301+00	2026-09-27 16:05:40.903144+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-6328c09d-f3b9-4265-b340-ce1a4084cadf	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YdZxIW4KhOtGi9egBxj77rGyl+iPRjmoKZj6HLC1tMU=	2026-10-04 15:52:08.861452+00	2026-09-27 16:05:40.673635+00	\N	2026-09-27 15:52:08.861639+00	2026-09-27 16:05:40.673687+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-8cd94b3c-3282-4a2c-92af-39d3603f4dc0	e7554ba2-e546-93ce-1e88-a073badd78a2	vOZbJE8hT8QQ8nhsaYFB8/MWdFBPz9gEGym2imPT+O8=	2026-10-04 16:05:40.902907+00	2026-09-27 16:06:33.873802+00	\N	2026-09-27 16:05:40.903144+00	2026-09-27 16:06:33.873817+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-de91ea30-c256-4a5f-9bfa-3554535cee9e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	EuTMGLkew5RAg7bvEUUB53kPEnXzZqj1FkJvVxHUWUs=	2026-10-04 15:55:18.190421+00	2026-09-27 16:06:34.168974+00	\N	2026-09-27 15:55:18.19061+00	2026-09-27 16:06:34.169332+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-dd594c02-93c3-4610-9c57-4685bd66254f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	QRHSaarRkoZ0GTS+jrkpkNKH1Ok5wc1NWcCdxbzeE30=	2026-10-04 16:06:34.169223+00	2026-09-27 16:07:32.986611+00	\N	2026-09-27 16:06:34.169332+00	2026-09-27 16:07:32.986622+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-a5793795-734b-45c5-a250-62099ef048d5	00000000-0000-4000-9000-000000000014	7unaSNj1fwXcEUkEjUSVSfyLIl4aNLJdEOzkeaSbaUo=	2026-10-04 16:07:33.219133+00	2026-09-27 16:07:43.400129+00	\N	2026-09-27 16:07:33.219368+00	2026-09-27 16:07:43.400139+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c612ffe9-9611-4f57-a324-b37a277d22f0	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	oZReQK3hdtHyr/OcW365lJ9ShxSEt3Tgf+T02CF6hM4=	2026-10-04 16:07:43.709653+00	2026-09-27 16:14:37.378448+00	\N	2026-09-27 16:07:43.709918+00	2026-09-27 16:14:37.378491+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-31748d90-2549-4ca2-8faa-a9562014d3b2	730809c0-fc01-a664-03ca-28e0e32d0393	Wj5q0Bw+57aO8eZkreHhCGm/Pdf3nhxB+P2DXf5tIhY=	2026-10-04 16:14:37.656204+00	2026-09-27 16:14:50.568592+00	\N	2026-09-27 16:14:37.656365+00	2026-09-27 16:14:50.568601+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-9cdf622e-e030-4333-9038-1fe5b8b3734e	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3vy69CiwpqKv4jnx0Eec8nRRjC0TKcjAS6nBFZQRZ/I=	2026-10-04 16:14:50.881058+00	2026-09-27 16:27:02.344234+00	\N	2026-09-27 16:14:50.881182+00	2026-09-27 16:27:02.344245+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f42ad204-5920-4e13-9000-a5bdad10d670	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3ZGG84fjkqIYk6/A/KKUtb2tUazXCwyOmiHGG73OK2I=	2026-10-04 16:27:02.575861+00	2026-09-27 16:30:03.885+00	\N	2026-09-27 16:27:02.576098+00	2026-09-27 16:30:03.885057+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-b9ec5f9c-7742-4fc7-812b-46cc4a2c46fd	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3WVczp2xis7MWv4uunHupEJSdy0MKxccTZ9PN78KvFU=	2026-10-04 16:30:04.131803+00	2026-09-27 16:36:27.515949+00	\N	2026-09-27 16:30:04.132103+00	2026-09-27 16:36:27.515978+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-2c46a46a-2060-48ea-9ec6-6b5edbfe3556	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	tEizmPpzgXzHFZuflHXS2Xk0aLPHjTiEIstVLAx8VEk=	2026-10-04 16:36:27.739248+00	2026-09-27 16:36:42.78575+00	\N	2026-09-27 16:36:27.73959+00	2026-09-27 16:36:42.78679+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f1ca8be6-87f1-4d3e-9901-b0f688b76824	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	nfSybeuqquRD6lceQtARKCzQkY0sMMMmtdtYrq5j2d8=	2026-10-04 16:36:42.786435+00	2026-09-27 16:45:15.635411+00	\N	2026-09-27 16:36:42.78679+00	2026-09-27 16:45:15.635444+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-eb9b0394-e77a-4d56-a8cb-f8953935e0e6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	yXH5N1lzEP8DQTGYS67fOYzTOstKcXpN2NXXOzgKpp4=	2026-10-04 16:45:15.885167+00	2026-09-27 16:53:20.711807+00	\N	2026-09-27 16:45:15.885467+00	2026-09-27 16:53:20.71272+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-b59be01d-7a23-4b06-bedc-09638988cc1d	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	EN5R/5aW0bA/npogyjUD2eUx9zrVgYRsRq92kEIV1cw=	2026-10-04 16:53:20.712342+00	2026-09-27 17:02:50.681336+00	\N	2026-09-27 16:53:20.71272+00	2026-09-27 17:02:50.691435+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-db7dfe03-2687-49cf-9f69-82d2a7a663e1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	/zYzdNDxxstzB1EzSbaNtOyWjyVKdPYRUN8AKrl3pdU=	2026-10-04 17:02:50.685782+00	2026-09-27 17:06:03.496748+00	\N	2026-09-27 17:02:50.691435+00	2026-09-27 17:06:03.496782+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c5ccb8b1-e12f-4372-95ba-80cfbc8ccc87	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	bRt7id+7pcmIH/HGBfzKLsBnemdaurfipW4U4Z3GarQ=	2026-10-04 17:06:03.747506+00	2026-09-27 17:09:03.057508+00	\N	2026-09-27 17:06:03.747981+00	2026-09-27 17:09:03.05872+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f47dc2c3-9478-4210-b4dc-f0bb9688c4aa	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	DTZtepaVhtwRzU5S1qLuFiEnvCVa9Xq9UXqSgXu/TJQ=	2026-10-04 17:09:03.058163+00	2026-09-27 17:09:04.130989+00	\N	2026-09-27 17:09:03.05872+00	2026-09-27 17:09:04.131006+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-fa61674c-9482-4f00-8ee9-040c3e57403b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	Wj/37k0WmCYgpis60YLKDvrGAQpTdyAdM7cYUSswMpA=	2026-10-04 17:09:04.373991+00	2026-09-27 17:20:45.870557+00	\N	2026-09-27 17:09:04.374153+00	2026-09-27 17:20:45.871265+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-038db9cd-fba3-4f9c-9ac2-c29f46f13264	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	mHB8FK2hC233TrL8e4ds0lfqJvU5HLk6WeuzARVUnYs=	2026-10-04 17:20:45.870967+00	2026-09-27 17:38:01.916506+00	\N	2026-09-27 17:20:45.871265+00	2026-09-27 17:38:01.917895+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-cce14cf5-6430-4011-af62-82dc1ba9e840	00000000-0000-4000-9000-000000000008	dnfP9D5lUnpF0AiEoxhYoCmlFoC904RBnI/VVbw6XlY=	2026-10-04 17:48:45.843506+00	2026-09-27 17:50:12.242114+00	\N	2026-09-27 17:48:45.843724+00	2026-09-27 17:50:12.242156+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-4ac4cbcd-33b6-414e-a046-2c7f047c16ce	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	YHYQdQ1RefWws3/3Ct0J/7sDGUdHK1xL2PJJndwyaLM=	2026-10-04 17:38:01.917376+00	2026-09-27 17:44:26.162251+00	\N	2026-09-27 17:38:01.917895+00	2026-09-27 17:44:26.17531+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-253b5580-68d1-4e8e-aaa5-c722602643ff	a3a20ac4-43a2-de64-52d3-bfafce7c7053	zOfK/Ep9IT0iytUzhcxG1bmZhAium+vXgpFPiEvhprI=	2026-10-04 17:49:29.715361+00	2026-09-27 17:50:12.466914+00	\N	2026-09-27 17:49:29.72363+00	2026-09-27 17:50:12.467386+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-43cc4384-bf45-48a8-9b37-8f00e6c9ba75	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	NantD7XGQavRTQCTtSU02t6KGHENaNoC2puDoM2Bm6E=	2026-10-04 17:44:26.170705+00	2026-09-27 17:48:45.606851+00	\N	2026-09-27 17:44:26.17531+00	2026-09-27 17:48:45.60697+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-3e80cc9d-548c-4ef3-98da-82dd358d4254	a3a20ac4-43a2-de64-52d3-bfafce7c7053	qQ2WnKo6l13w+Br2UUDUG3ZjHT1YQIYyYW41NNCgNFg=	2026-10-04 17:50:12.467215+00	2026-09-27 17:50:53.306217+00	\N	2026-09-27 17:50:12.467386+00	2026-09-27 17:50:53.306248+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-acb4ea4f-1597-49a7-863b-16db13481036	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	T8pccRA31b4gx3bWXdMfab2nFP8VBw846qEZGwH0bVM=	2026-10-04 17:44:26.471118+00	2026-09-27 17:50:53.579723+00	\N	2026-09-27 17:44:26.472155+00	2026-09-27 17:50:53.580204+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-2accc43d-cfbc-422e-a041-67b01bcd73da	1a077a8c-4029-8ded-d563-19e9b4bdf301	jXCd7G9VcJGsgdKJrtqE+Xi0It3nAM1mNlY686Trz+c=	2026-10-04 17:54:08.594745+00	2026-09-27 17:54:19.269781+00	\N	2026-09-27 17:54:08.594852+00	2026-09-27 17:54:19.269802+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-533f7089-e091-4640-8832-0450804e2a01	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	APgHnjzBAJMawbomYJhw0Y0bjFP4+nxXslvWAxWEG8E=	2026-10-04 17:50:53.580079+00	2026-09-27 17:52:51.042599+00	\N	2026-09-27 17:50:53.580204+00	2026-09-27 17:52:51.042667+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-74e852b2-c80c-48e4-9954-e9f8e2a2503c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	8hqKDX41q3Q+/gpZPxX5sHf2Il1/TPeCTMjXFTA/3Xc=	2026-10-04 17:52:35.565756+00	2026-09-27 17:52:56.99549+00	\N	2026-09-27 17:52:35.565921+00	2026-09-27 17:52:56.995512+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-c9a277f5-480e-4d82-80f6-a6780a52478b	00000000-0000-4000-9000-000000000009	rGn1Zs4tIqAvnxcrASjFfZA4OuQKXIj+iNm5PZP2cyM=	2026-10-04 17:52:51.384956+00	2026-09-27 17:53:10.997887+00	\N	2026-09-27 17:52:51.385143+00	2026-09-27 17:53:10.997912+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-48feecaa-4faf-43a7-ab13-ff305f1b213d	a3a20ac4-43a2-de64-52d3-bfafce7c7053	na2gyR/+671G1V0wSbtNxXVjaKvXHvbHxfHKG0kmY/U=	2026-10-04 17:53:11.275089+00	2026-09-27 17:53:41.97323+00	\N	2026-09-27 17:53:11.275179+00	2026-09-27 17:53:41.973252+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-a6c72b01-2911-4162-8b85-9f01075c637d	1a077a8c-4029-8ded-d563-19e9b4bdf301	w0cah325fOrj2rvNpKEniEyVfzMHLBd14KArPiMb1rg=	2026-10-04 17:49:30.108497+00	2026-09-27 17:53:42.205701+00	\N	2026-09-27 17:49:30.108581+00	2026-09-27 17:53:42.206099+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-3f4fc23c-b1dc-46c1-a3e3-51d903ceecf9	1a077a8c-4029-8ded-d563-19e9b4bdf301	3RgqgeTlWhOnQ+YPgcHKMK4yrOFjXp25p/9TiBtK15s=	2026-10-04 17:53:42.205952+00	2026-09-27 17:54:08.594398+00	\N	2026-09-27 17:53:42.206099+00	2026-09-27 17:54:08.594852+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-315aabea-f58b-4552-837c-05e9834b3139	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	4cAE+zilp+/gVs/ITcHwxGIFhc3wBey0wmeZVzzPl60=	2026-10-04 17:54:19.566518+00	2026-09-27 17:55:24.756348+00	\N	2026-09-27 17:54:19.566625+00	2026-09-27 17:55:24.756373+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-fe95005b-0102-4674-b1e9-4cefd473b58a	00000000-0000-4000-9000-000000000045	AU6sKBgGB00ecOF0+RyCm3nvp8WXTMpNWbgKhjeo16A=	2026-10-04 17:52:57.273226+00	2026-09-27 17:55:24.996503+00	\N	2026-09-27 17:52:57.27335+00	2026-09-27 17:55:24.996837+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-dbbf1041-17d0-4aee-84b8-2cd657cced72	00000000-0000-4000-9000-000000000045	Uu7Hkj7WK4TTkm0/8TqIMYlpPnvACw46hX5OXGsZLuk=	2026-10-04 17:55:24.996721+00	2026-09-27 17:55:49.780335+00	\N	2026-09-27 17:55:24.996837+00	2026-09-27 17:55:49.780381+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f8c9e40d-921b-4d75-bd0b-2ec041ef19f5	00000000-0000-4000-9000-000000000042	GZ3JZ/GLLS/MZRRIoehxMfjPfVAHzzvFm5loWXkU2Qg=	2026-10-04 17:55:50.034407+00	2026-09-27 17:56:20.724192+00	\N	2026-09-27 17:55:50.034565+00	2026-09-27 17:56:20.724221+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-d59211d9-bffe-4cb8-8991-8a501c2702f9	00000000-0000-4000-9000-000000000045	DpaQm4ke4b2ZNcpLXqWUHbcxscc7PziGALsoDckDv70=	2026-10-04 17:56:20.947807+00	2026-09-27 17:56:43.340638+00	\N	2026-09-27 17:56:20.947898+00	2026-09-27 17:56:43.340681+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-6578a5b9-57ef-4a1a-87e0-8970dadf0d33	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	49aNsJCis+EaZanlSoy66qTz33wdLed3FkmvODWvvhY=	2026-10-04 17:56:43.61737+00	2026-09-27 17:56:57.46251+00	\N	2026-09-27 17:56:43.617497+00	2026-09-27 17:56:57.462526+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-061eb25b-b9ec-4dc4-8539-827cf85fdc88	00000000-0000-4000-9000-000000000042	QjeA+T+rfjCRjy7f/A+1BMTX2bX6gJ29OgCfDSmawYA=	2026-10-04 17:56:57.721515+00	2026-09-27 17:57:25.858589+00	\N	2026-09-27 17:56:57.721609+00	2026-09-27 17:57:25.858623+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-19ea78ee-2a65-4950-a4e0-fe5298e9c99f	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	bi/v/wbsp9eq/GYJ+K2vl1Jd9NVKPxPWIxgFHqVJLs0=	2026-10-04 17:57:26.143209+00	2026-09-27 18:08:01.785387+00	\N	2026-09-27 17:57:26.143319+00	2026-09-27 18:08:01.785449+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-92d88be0-b82d-4269-b010-7cd334f74d36	00000000-0000-4000-9000-000000000045	PqLeOMxrMfsfpIsITHNtGz9BGHhA5XKyu56bKtvW8nY=	2026-10-04 18:02:47.62077+00	2026-09-27 18:08:17.191749+00	\N	2026-09-27 18:02:47.621047+00	2026-09-27 18:08:17.192332+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-e9322f7a-536d-4222-abea-0cec4433ad05	00000000-0000-4000-9000-000000000059	8TpwdEn5sC05mHkf6PBfgavLbibznZzX2jvF7NRcul0=	2026-10-04 18:08:02.039786+00	2026-09-27 18:09:04.297274+00	\N	2026-09-27 18:08:02.043802+00	2026-09-27 18:09:04.297308+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-b0eb2252-ead8-45f6-8925-32b574cee8b4	a0000000-0000-0000-0000-000000000032	Wy3U5/gl0DDFc9I6YdULZnDc6lL6nhBCnSn5KZzEvkM=	2026-10-04 18:09:04.601943+00	2026-09-27 18:09:10.841573+00	\N	2026-09-27 18:09:04.602114+00	2026-09-27 18:09:10.841962+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-e46fe75e-bcc3-4490-a455-04354772aaf7	00000000-0000-4000-9000-000000000045	PUKHQg9VdRZr2LnEZOE8vyOwLQ7XOJFGilTCMFvIdyM=	2026-10-04 18:08:17.191954+00	2026-09-27 18:09:30.281423+00	\N	2026-09-27 18:08:17.192332+00	2026-09-27 18:09:30.281674+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-b880c051-7586-439f-a083-a2dfc520ba4a	a0000000-0000-0000-0000-000000000032	JD2fWXktu4W7fWtmE9w/8UTP2Zht/LEqj+nf+iIafpQ=	2026-10-04 18:09:10.841871+00	2026-09-27 18:09:13.591362+00	\N	2026-09-27 18:09:10.841962+00	2026-09-27 18:09:13.591691+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-a039db17-8c82-4802-a537-b75fee732f9e	a0000000-0000-0000-0000-000000000032	/gYQ5okhxm7kmk006YbpLv9/WJLmQIH8WjgLhjIf834=	2026-10-04 18:09:13.591584+00	2026-09-27 18:09:30.043683+00	\N	2026-09-27 18:09:13.591691+00	2026-09-27 18:09:30.043703+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-6ede0eee-db52-49ad-b0f3-d55558f77ee9	00000000-0000-4000-9000-000000000045	uvNCTa3EDOem7nvQgWEFc8kbK6LlqHX5tAZerDa03jM=	2026-10-04 18:09:30.281577+00	2026-09-27 18:10:16.564947+00	\N	2026-09-27 18:09:30.281674+00	2026-09-27 18:10:16.564974+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-a54f9e39-b85a-47ac-977a-c2766601b804	00000000-0000-4000-9000-000000000042	dRGkQY+ZNZQ7rhENUQYrENVTBagYF0O/sGrsUz0TNR8=	2026-10-04 18:10:16.810837+00	2026-09-27 18:10:55.997054+00	\N	2026-09-27 18:10:16.810915+00	2026-09-27 18:10:55.997084+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-f8f58681-061f-4a0a-be89-61cc0875ad18	00000000-0000-4000-9000-000000000045	/C59j4zlNlxvG/w1BfYMn0HDo6kuPfl6MKp4QugtBZ8=	2026-10-04 18:10:56.261311+00	2026-09-27 18:12:17.190425+00	\N	2026-09-27 18:10:56.261403+00	2026-09-27 18:12:17.190475+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-5f900777-d599-4020-a56f-48d71b8b214f	00000000-0000-4000-9000-000000000045	mpbAWiRquLtk0cirkMf9rbMStOeR3xJRgBN6ekq3fnE=	2026-10-04 18:12:17.428179+00	2026-09-27 18:36:33.756252+00	\N	2026-09-27 18:12:17.428339+00	2026-09-27 18:36:33.756281+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-b5529450-0b41-4aeb-9aac-b8289277fd4b	00000000-0000-4000-9000-000000000045	L23KrZP8IOoczUZT+IiY3jLTW1VbJfu33NBnKlTnIK4=	2026-10-04 18:36:33.986656+00	2026-09-27 18:37:02.02176+00	\N	2026-09-27 18:36:33.986912+00	2026-09-27 18:37:02.02182+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
-d3100116-4b97-4a0f-97be-8735057d3e0c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	OVWkDEAeAyV7h6CVXmrmRCpYde/Fclyddoca5wmtUrc=	2026-10-04 18:37:02.301587+00	\N	\N	2026-09-27 18:37:02.301698+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+d375dc18-99cd-4530-a7b5-043fdda29c16	00000000-0000-4000-9000-000000000017	74HdN7QavRavaxkC7CkU+OIeyqtB4ysZA/xdeEEe91o=	2026-10-02 04:34:17.637322+00	2026-09-25 05:11:50.859689+00	\N	2026-09-25 04:34:17.63762+00	2026-09-25 05:11:50.882421+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+573bc169-b02c-41e6-86a0-97fdfa11719b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	pfuIg+1z+6PKdtxAzg6Sa908gkbcp8NuhbGA41hjYe8=	2026-10-02 04:41:38.568739+00	2026-09-25 05:13:22.169019+00	\N	2026-09-25 04:41:38.568957+00	2026-09-25 05:13:22.169547+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a1c2600a-5029-4ba0-b403-80530ac4163b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	7qhAJn98lfqMA6nJBs2E8rJwOOiHN34DD3vzsOAgO98=	2026-10-02 05:13:22.169354+00	2026-09-25 05:13:35.579022+00	\N	2026-09-25 05:13:22.169547+00	2026-09-25 05:13:35.579426+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ab2fabe0-bf3b-4438-917a-3f422414ead3	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	xx3VCjknTd8one3LvzDIjCkw5TAZdLcZJYfrJBj4L60=	2026-10-02 04:35:18.816456+00	2026-09-28 05:33:42.765932+00	\N	2026-09-25 04:35:18.81658+00	2026-09-28 05:33:42.766259+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6761772f-9d71-4418-88aa-649e14e0874f	00000000-0000-4000-9000-000000000017	UNWLLYOtQrt4LishaM65zfruXMRjxnR3b79ahzmrdnc=	2026-10-02 05:11:50.877956+00	2026-09-25 05:15:03.303858+00	\N	2026-09-25 05:11:50.882421+00	2026-09-25 05:15:03.30388+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d98afed2-e8db-4602-866e-4671238189ae	dc139a9d-b996-7354-6c27-72659ea2fd59	8/jNTxlCM9smy4PC8ePFTuBs5li1p85qLyy0QMd/3zE=	2026-10-02 05:15:03.832903+00	2026-09-25 05:18:25.309866+00	\N	2026-09-25 05:15:03.833096+00	2026-09-25 05:18:25.30991+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bbc8c6ea-cbb5-440f-a4ae-36c0fafce6ea	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	wiFsp2oyOwRz6HbSrpgwKi4orsz9QAxuTBLEpCA6qZc=	2026-10-02 05:13:35.579294+00	2026-09-25 05:18:25.753967+00	\N	2026-09-25 05:13:35.579426+00	2026-09-25 05:18:25.754419+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9fc3f492-4081-4c76-b1ec-619f5400fc3b	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	GG3Oratqh2UqHq1i2qDUAHJATgUy8c0KLqae/OAmgg8=	2026-10-02 05:18:25.754223+00	2026-09-25 05:21:31.427945+00	\N	2026-09-25 05:18:25.754419+00	2026-09-25 05:21:31.428404+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+79868f9f-72f4-4e31-89bd-6c099e0b5c03	a0000000-0000-0000-0000-000000000032	ETT/VTx1FbM7jr+QJ9jSURlN/9etgrLQ2DZ2k3Z0nu8=	2026-10-02 05:13:45.701595+00	2026-09-25 05:21:47.107724+00	\N	2026-09-25 05:13:45.701861+00	2026-09-25 05:21:47.108419+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3f8593e5-e8d8-4c87-9663-c8c74c632141	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	d4AylWzAgE+aZKNUR34Oh1vhyeo09f2Q0KaSi90NalI=	2026-10-02 05:21:31.428247+00	2026-09-25 05:22:08.360087+00	\N	2026-09-25 05:21:31.428404+00	2026-09-25 05:22:08.3601+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+2a45ce17-b282-4a0d-977f-a940307a3ed3	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	ff16xInKHp+Qx2K/5vQPLolTUIe96QziFMKe1ZzloxY=	2026-10-02 05:22:08.761633+00	2026-09-25 05:24:16.926641+00	\N	2026-09-25 05:22:08.761885+00	2026-09-25 05:24:16.927531+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+bd29d872-d306-46bf-8eda-b953f0b631c6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	pVd+fqQDzowp+GnBzEXKuD4fLUagLhyPV+lKAinbkmg=	2026-10-02 05:24:16.927253+00	2026-09-25 05:24:19.215331+00	\N	2026-09-25 05:24:16.927531+00	2026-09-25 05:24:19.215344+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+af94833d-1d09-4b97-b90e-0403674c9718	a0000000-0000-0000-0000-000000000032	E1W6jhFerNgm/6VOEotEgN6ZXHVKnDC4Co2wLbD9cXo=	2026-10-02 05:21:47.108315+00	2026-09-25 05:24:19.65485+00	\N	2026-09-25 05:21:47.108419+00	2026-09-25 05:24:19.655276+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1b1951f3-0d8a-4249-9b6f-7bacce4fca33	a0000000-0000-0000-0000-000000000032	heOOJS/dlw2qWxMbgLXlLTCZlA7r7k5RIpavOWGte6Q=	2026-10-02 05:24:19.655149+00	2026-09-25 05:24:21.576393+00	\N	2026-09-25 05:24:19.655276+00	2026-09-25 05:24:21.576432+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+537bf39f-2c52-4935-85b9-dfa0f19f6ab6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	o2XcR7tb+mlF32Ean6YD5Sc7ruTy369IKn9SnMe1rxY=	2026-10-02 05:24:22.022405+00	2026-09-25 05:27:15.499473+00	\N	2026-09-25 05:24:22.022564+00	2026-09-25 05:27:15.499852+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+484404ab-1f15-4ab3-8813-ccbf3cc60d94	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	9ehGOiqtLS2NRdrwVja6qY5BJi6bC3uO/aaiRZ7ItIA=	2026-10-02 05:27:15.499727+00	2026-09-25 05:28:22.317138+00	\N	2026-09-25 05:27:15.499852+00	2026-09-25 05:28:22.317513+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+832b6b7f-4723-4a2b-96e4-b12bc6fe7511	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3feLShHWvk19aQtfa13oaTXqDNBAdQCMtp+glu0C9Lo=	2026-10-02 05:28:22.317384+00	2026-09-25 05:45:27.4983+00	\N	2026-09-25 05:28:22.317513+00	2026-09-25 05:45:27.500037+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+ba34e1c3-cbcb-40ac-92b8-281c794e54d1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	IxUeDiQUUvqNx0alZOAJHE4Vp+mPQCHNtD+Fg2TXPPY=	2026-10-02 05:45:27.499415+00	2026-09-25 06:05:09.944772+00	\N	2026-09-25 05:45:27.500037+00	2026-09-25 06:05:09.944856+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+b4198ae3-b761-49af-9730-b10a98bbb9b9	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	fzcrxCV+NNxk8e8qeIYZg49LPZ5eCgOHnuYh3ZBJ6So=	2026-10-02 06:05:10.400189+00	2026-09-25 06:10:06.532961+00	\N	2026-09-25 06:05:10.400852+00	2026-09-25 06:10:06.533737+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+de1c4cf0-e3fb-4732-b71e-86109769d2a6	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	L18ZuP8leQ0YChTiy775dJ9cGZX8yZvcegDEJohNU/o=	2026-10-02 06:10:06.533552+00	2026-09-25 07:54:15.726857+00	\N	2026-09-25 06:10:06.533737+00	2026-09-25 07:54:15.727667+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+aa956101-9ffb-4789-9770-c99184efefd1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	HkdPgFJtsWUJDcFjic479D0eaZ2LejDH9SQzUszczDo=	2026-10-02 07:54:15.727302+00	2026-09-25 07:54:53.849229+00	\N	2026-09-25 07:54:15.727667+00	2026-09-25 07:54:53.849675+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+c2e79530-88eb-466e-8d5a-92149ba5778c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	tyuYEQJnH583gFpbmUCGuXlBd+MMsVqhEEiVBGU8TiM=	2026-10-02 07:54:53.849517+00	2026-09-25 08:02:35.644465+00	\N	2026-09-25 07:54:53.849675+00	2026-09-25 08:02:35.645275+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+1f90324c-3ab5-4866-8640-d99b4d349364	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	3Rv1ED1jcbdhj6fch7m20kRfC7H7aikZfLrfKhMI5qU=	2026-10-02 08:02:35.644912+00	2026-09-25 08:15:18.541949+00	\N	2026-09-25 08:02:35.645275+00	2026-09-25 08:15:18.54364+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+6f79383e-3584-4e33-92bb-b46052149e05	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	WM7qBgyQDOUyVUC77NdmkwFGX5ZmI548Db/GFI6+tEM=	2026-10-02 08:15:18.542924+00	2026-09-28 05:33:43.537837+00	\N	2026-09-25 08:15:18.54364+00	2026-09-28 05:33:43.579475+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+fa04e2cf-45fa-43cf-9b3c-3b58a0a552eb	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	vywspvN1CAimjKUZ1UPI1fEZDMl5W+K/GTZZnHB+LjE=	2026-10-05 05:33:43.565289+00	2026-09-28 05:35:16.500547+00	\N	2026-09-28 05:33:43.579475+00	2026-09-28 05:35:16.50329+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+31610058-5dc2-459d-be24-7c91a5d319f2	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	bWnBfxXR9U76/xWMdIbQikNwCN2hq55KkhMBisimZJM=	2026-10-05 05:35:16.501475+00	2026-09-28 05:41:18.359369+00	\N	2026-09-28 05:35:16.50329+00	2026-09-28 05:41:18.394414+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+77bfd0f5-ba06-4c21-9d8c-5274df430496	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	zBI1/U6hAkC95SKRRikS16A1QqN3mCZPdPJUA2xW7Ug=	2026-10-05 05:41:18.379388+00	2026-09-28 05:43:51.867764+00	\N	2026-09-28 05:41:18.394414+00	2026-09-28 05:43:51.867917+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+e4934baa-f412-4fc0-89ff-42fbef7aa29c	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	9zSShyssg7mJsM8fT7OcMXNMJKcoKtLtcBotA3RehYU=	2026-10-05 05:43:52.515677+00	2026-09-28 05:49:22.679586+00	\N	2026-09-28 05:43:52.517373+00	2026-09-28 05:49:22.679648+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+67f30da1-7331-4b93-9aa9-952ea0639560	00000000-0000-4000-9000-000000000039	3uW3H+UNOTw8NUWEhJxSHur8hyqjAn5UZW5ncrWyni4=	2026-10-05 05:49:23.175731+00	2026-09-28 05:50:23.442518+00	\N	2026-09-28 05:49:23.176008+00	2026-09-28 05:50:23.442541+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3ffe2f9c-4541-4fec-8c9b-5bf4efa106af	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	A6Fr7Cq1gR1S3PYvrFAf3+N/tEZ0H65IXTwL8G9E1K8=	2026-10-05 05:55:00.066164+00	2026-09-28 05:55:53.694698+00	\N	2026-09-28 05:55:00.066423+00	2026-09-28 05:55:53.69509+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5d16f24d-8fcf-40df-ac0d-7e5804c2f2c1	2bca17e7-5b71-8ac3-6c86-440cb3b75bab	U/gS7rEiloOy1Eqw45X1QqQcT/Gko+jIVmP7gLOziJk=	2026-10-05 05:55:53.694978+00	\N	\N	2026-09-28 05:55:53.69509+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
+c13b5c13-8bf7-4261-9f95-74325dca7ee2	00000000-0000-4000-9000-000000000042	O5BPm41NN09aRBc6+0d9fV+MU+m76h7H9mzS3i9NPoE=	2026-10-05 06:13:57.927456+00	2026-09-28 06:14:37.149157+00	\N	2026-09-28 06:13:57.92769+00	2026-09-28 06:14:37.149214+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+f8bb85c1-27c4-4956-84f6-cf8235c40f71	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	EBeGN99DWIh4T/pYDG6ydfKaFD6+un0XjyMiuUgY1lc=	2026-10-05 05:56:12.548145+00	2026-09-28 06:06:11.185887+00	\N	2026-09-28 05:56:12.54834+00	2026-09-28 06:06:11.185931+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+3923f63c-8063-47bd-a364-91a9e60fd9e5	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	1qB7syVGSVLMVllztS+6gaYt2xQbM8QYq9FJ9Pu7AJI=	2026-10-05 05:50:24.08177+00	2026-09-28 06:12:06.329722+00	\N	2026-09-28 05:50:24.081993+00	2026-09-28 06:12:06.329733+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+cbb7b3b6-6a91-484d-88d8-22eeda18d065	40517b71-5e62-182e-73b5-d4070e20a3c2	L69EOPoVzesYR1Su6yogW02Pcn5e3nYbEb50e6E5XHw=	2026-10-05 06:12:06.768882+00	2026-09-28 06:12:37.808829+00	\N	2026-09-28 06:12:06.76909+00	2026-09-28 06:12:37.80884+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+17dff275-e7ae-42de-ae67-216e7e429e7e	304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	N3S16AJGC9fw25R5FBkdn2v1zSuXhL12esiH2DVr/xw=	2026-10-05 06:12:38.240555+00	2026-09-28 06:13:07.627959+00	\N	2026-09-28 06:12:38.240717+00	2026-09-28 06:13:07.628002+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+5ba48361-d1d9-4c1b-afe8-2fa60aa16d71	00000000-0000-4000-9000-000000000045	gA3Wm2uWx4hyegBrMdz9ujkP4CDZ//KfbH801hnjimg=	2026-10-05 06:13:08.063941+00	2026-09-28 06:13:57.494997+00	\N	2026-09-28 06:13:08.064089+00	2026-09-28 06:13:57.495009+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9e306c70-8e22-4a5b-b13a-9cfcd26fe376	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	PhtgpDV/2g6nqmM6Ay28vcvGfeMAe/qRShk6+O34XZc=	2026-10-05 06:06:11.664315+00	2026-09-28 07:10:28.289582+00	\N	2026-09-28 06:06:11.664649+00	2026-09-28 07:10:28.294951+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+43ad8163-ab4d-4daa-b3a9-79e490c800c7	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	teq6ny6Iuc7/QAin9n7mLIEtoNXF6GaGU9SChcptiOQ=	2026-10-05 07:10:28.292452+00	2026-09-28 07:15:50.668641+00	\N	2026-09-28 07:10:28.294951+00	2026-09-28 07:15:50.671424+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+9168ff9d-3050-41f6-95f8-b6a77455fa35	00000000-0000-4000-9000-000000000045	4XBk83wJKSjujWgVn20yOrPY4PVl1MlbIUsrIusC6MA=	2026-10-05 06:14:37.498865+00	2026-09-28 07:29:24.282404+00	\N	2026-09-28 06:14:37.499084+00	2026-09-28 07:29:24.284302+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+321ccec5-82a8-4e8d-b73f-b3e72ca88b33	00000000-0000-4000-9000-000000000045	2EXbCFXpSeIXjZ7vuE3h3N5Q/UMGYT+si0uzZggnRaY=	2026-10-05 07:29:24.28353+00	2026-09-28 07:29:31.937799+00	\N	2026-09-28 07:29:24.284302+00	2026-09-28 07:29:31.93781+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+513b0e18-e99f-4e2b-b014-c7bab41087f1	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	bfFdCYPWg9YAT6+cg/0v/aBdL2IgirdHEe1iKbN/G90=	2026-10-05 07:15:50.670658+00	2026-09-28 07:29:32.578009+00	\N	2026-09-28 07:15:50.671424+00	2026-09-28 07:29:32.579365+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+d5ac0388-ea15-45e8-90a7-b7274f221c83	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	0BggGZM4nT9rTSN7tmn3WuEDu8ci4jZFPRz0j7SYWHk=	2026-10-05 07:29:32.578823+00	2026-09-28 07:30:05.118802+00	\N	2026-09-28 07:29:32.579365+00	2026-09-28 07:30:05.119633+00	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N
+a07ddfb7-3d54-4b89-83f5-9af8c2aa45d4	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	9ql0J/R4Tm8Rd6xf6EzJfIGf8C4bPEK8assKS4noEmI=	2026-10-05 07:30:05.119347+00	\N	\N	2026-09-28 07:30:05.119633+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 \.
 
 
 --
--- Data for Name: repository; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: repository; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.repository ("Id", "FileName", "Category", "Size", "LastUpdated", "UploadedBy", "FilePath", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -2116,7 +2470,7 @@ a63ceac9-a10b-4aca-8584-1953a0a550e8	Resume (3) (1).pdf	Tech	112021	2026-09-02 1
 
 
 --
--- Data for Name: repository_activity_logs; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: repository_activity_logs; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.repository_activity_logs ("Id", "Action", "DocumentId", "FileName", "Category", "PerformedBy", "Details", "CreatedAtUtc", "DeletedAtUtc", "CreatedBy", "UpdatedBy", "UpdatedAtUtc") FROM stdin;
@@ -2536,7 +2890,7 @@ b5fee407-f14a-47e0-9684-7d57db7e9493	Viewed	718b816a-0cb3-48dc-9687-468f4814fb65
 
 
 --
--- Data for Name: repository_departments; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: repository_departments; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.repository_departments ("RepositoryItemId", "DepartmentId") FROM stdin;
@@ -2549,7 +2903,7 @@ COPY public.repository_departments ("RepositoryItemId", "DepartmentId") FROM std
 
 
 --
--- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: role_permission_audits; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.role_permission_audits ("Id", "RoleId", "RoleName", "ModuleKey", "ModuleLabel", "SubmoduleKey", "SubmoduleLabel", "PermissionKey", "ActionLabel", "ChangeType", "PreviousValue", "NewValue", "ChangedById", "ChangedByName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -2560,10 +2914,11 @@ bb07b6db-6e82-4d0e-8bfe-fe780955635b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accoun
 
 
 --
--- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.roles ("Id", "DisplayName", "Permissions", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Name", "Description", "IsActive", "IsSystemRole") FROM stdin;
+a0000000-0000-0000-0000-000000000001	Admin	["dashboard.view", "action-center.view", "projects.view", "projects:read", "projects.create", "projects:write", "projects.edit", "projects:write", "projects.delete", "projects:write", "projects.close", "projects:close", "projects.approve", "projects.assign", "projects.export", "projects.import", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "issues:raise", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health.manage", "issues:manage", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.communication.view", "projects.communication.create", "projects.pmo.view", "projects.pmo.manage", "projects.prerequisite.view", "projects.prerequisite.manage", "projects.services-deliverables.view", "projects.services-deliverables.manage", "projects.invoice-schedule.view", "projects.invoice-schedule.manage", "invoices:raise", "invoices:payment", "projects.assigned-projects.view", "reports.view", "reports:read", "reports.export", "reports.finance.view", "resources.view", "resources:read", "resources.manage", "resources:manage", "resources.directory.view", "resources.kpi.view", "customers.view", "clients:read", "customers.create", "clients:write", "customers.edit", "clients:write", "customers.delete", "clients:write", "customers.approve", "clients:approve", "customers.assign", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "timesheets:monitor", "my-team.timesheet-approval.approve", "timesheets:approve", "my-team.timesheet-approval.reject", "timesheets:approve", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "timesheets:submit", "my-team.my-timesheet.edit", "wbs.view", "wbs:read", "wbs.allocate", "wbs:allocate", "approvals.view", "approvals:manage", "approvals.approve", "timesheets:approve", "approvals.reject", "timesheets:approve", "portfolio.view", "settings.view", "settings.roles.view", "settings.roles.manage", "roles:manage", "settings.permissions.view", "settings.permissions.manage", "users:manage", "settings.audit.view", "audit:read"]	2026-09-25 04:41:26.317908+00	2026-09-25 05:11:29.711189+00	\N	\N	\N	Admin	Super-admin — full access to every module, submodule and action.	t	t
 cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	["dashboard.view", "projects.view", "projects.overview.view", "projects.health.view", "projects.invoice-schedule.view", "projects.invoice-schedule.manage", "reports.view", "reports.export", "reports.finance.view", "reports.po-tracker", "reports.invoice-tracker", "resources.view", "resources.directory.view", "resources.kpi.view", "customers.view", "repository.view", "clients:read", "invoices:raise", "invoices:payment", "reports:read"]	2026-08-07 07:49:59.669429+00	2026-09-24 12:13:06.784762+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	Accounts	Invoicing schedule, milestone payments, PO tracking, financial reports.	t	t
 f5c742d1-e0cc-4bf8-b860-a673ac407393	R&D Team Member	["dashboard.view", "projects.view", "projects.assigned-projects.view", "projects.task.view", "projects.task.update-status", "repository.view", "repository.upload", "repository.download", "my-team.dashboard.view", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "issues:raise", "timesheets:submit"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	R&D - Team member	Python/Tool development, sprint tasks, code repository, own timesheets.	t	t
 62a927b7-9fd8-461a-b64e-1aa441eeba4d	Chief Executive Officer	["dashboard.view", "action-center.view", "projects.view", "projects:read", "projects.create", "projects:write", "projects.edit", "projects:write", "projects.delete", "projects:write", "projects.close", "projects:close", "projects.approve", "projects.assign", "projects.export", "projects.import", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "issues:raise", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health.manage", "issues:manage", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.communication.view", "projects.communication.create", "projects.pmo.view", "projects.pmo.manage", "projects.prerequisite.view", "projects.prerequisite.manage", "projects.services-deliverables.view", "projects.services-deliverables.manage", "projects.invoice-schedule.view", "projects.invoice-schedule.manage", "invoices:raise", "invoices:payment", "projects.assigned-projects.view", "reports.view", "reports:read", "reports.export", "reports.finance.view", "resources.view", "resources:read", "resources.manage", "resources:manage", "resources.directory.view", "resources.kpi.view", "customers.view", "clients:read", "customers.create", "clients:write", "customers.edit", "clients:write", "customers.delete", "clients:write", "customers.approve", "clients:approve", "customers.assign", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "timesheets:monitor", "my-team.timesheet-approval.approve", "timesheets:approve", "my-team.timesheet-approval.reject", "timesheets:approve", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "timesheets:submit", "my-team.my-timesheet.edit", "wbs.view", "wbs:read", "wbs.allocate", "wbs:allocate", "approvals.view", "approvals:manage", "approvals.approve", "timesheets:approve", "approvals.reject", "timesheets:approve", "portfolio.view", "settings.view", "settings.roles.view", "settings.roles.manage", "roles:manage", "settings.permissions.view", "settings.permissions.manage", "users:manage", "settings.audit.view", "audit:read"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	CEO	Global executive visibility, business analytics, all approvals.	t	t
@@ -2591,12 +2946,11 @@ b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	SOC Senior Manager	["dashboard.view", "acti
 111cc3cd-6d35-43ce-be91-dde90d3d4015	SOC Manager	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.overview.edit", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "resources.view", "resources.directory.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "projects:read", "projects:write", "issues:raise", "timesheets:submit", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	SOC-Manager	Incident management, shift scheduling, operations timesheets.	t	t
 aba61e5b-422a-4461-b9da-8dba8f6d3f85	SOC Shift / Team Leader	["dashboard.view", "projects.view", "projects.overview.view", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "projects:read", "issues:raise", "timesheets:submit", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	SOC-Team Leader	Shift oversight, alert escalation, task assignments, timesheet review.	t	t
 1a62b1f8-1810-464d-a67b-168d7e419827	SOC Team Member	["dashboard.view", "projects.view", "projects.assigned-projects.view", "projects.task.view", "projects.task.update-status", "projects.health.raise-issue", "repository.view", "my-team.dashboard.view", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "issues:raise", "timesheets:submit"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	SOC-Team Member	SIEM monitoring, alert analysis, shift logs, own timesheets.	t	t
-a0000000-0000-0000-0000-000000000001	Admin	["dashboard.view", "action-center.view", "projects.view", "projects:read", "projects.create", "projects:write", "projects.edit", "projects:write", "projects.delete", "projects:write", "projects.close", "projects:close", "projects.approve", "projects.assign", "projects.export", "projects.import", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "issues:raise", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health.manage", "issues:manage", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.communication.view", "projects.communication.create", "projects.pmo.view", "projects.pmo.manage", "projects.prerequisite.view", "projects.prerequisite.manage", "projects.services-deliverables.view", "projects.services-deliverables.manage", "projects.invoice-schedule.view", "projects.invoice-schedule.manage", "invoices:raise", "invoices:payment", "projects.assigned-projects.view", "reports.view", "reports:read", "reports.export", "reports.finance.view", "resources.view", "resources:read", "resources.manage", "resources:manage", "resources.directory.view", "resources.kpi.view", "customers.view", "clients:read", "customers.create", "clients:write", "customers.edit", "clients:write", "customers.delete", "clients:write", "customers.approve", "clients:approve", "customers.assign", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "timesheets:monitor", "my-team.timesheet-approval.approve", "timesheets:approve", "my-team.timesheet-approval.reject", "timesheets:approve", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "timesheets:submit", "my-team.my-timesheet.edit", "wbs.view", "wbs:read", "wbs.allocate", "wbs:allocate", "approvals.view", "approvals:manage", "approvals.approve", "timesheets:approve", "approvals.reject", "timesheets:approve", "portfolio.view", "settings.view", "settings.roles.view", "settings.roles.manage", "roles:manage", "settings.permissions.view", "settings.permissions.manage", "users:manage", "settings.audit.view", "audit:read"]	2026-09-25 04:41:26.317908+00	2026-09-27 14:11:08.407392+00	\N	\N	\N	Admin	Super-admin — full access to every module, submodule and action.	t	t
 \.
 
 
 --
--- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: sub_ventures; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.sub_ventures ("Id", "ClientId", "Name", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Notes", "KycDocumentName", "KycDocumentPath") FROM stdin;
@@ -2668,7 +3022,7 @@ be9fd5f1-6786-4caa-bf68-e9ee4ab4c5a2	d35873d4-c12c-40c3-a66e-78d9f296ef2b	Testin
 
 
 --
--- Data for Name: team_day_entries; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: team_day_entries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.team_day_entries ("Id", "EmployeeId", "WorkDate", "Attendance", "Shift", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -2676,7 +3030,7 @@ COPY public.team_day_entries ("Id", "EmployeeId", "WorkDate", "Attendance", "Shi
 
 
 --
--- Data for Name: team_member_holidays; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: team_member_holidays; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.team_member_holidays ("Id", "EmployeeId", "HolidayDate", "Name", "Comment", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -2684,7 +3038,7 @@ COPY public.team_member_holidays ("Id", "EmployeeId", "HolidayDate", "Name", "Co
 
 
 --
--- Data for Name: team_member_schedules; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: team_member_schedules; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.team_member_schedules ("Id", "EmployeeId", "WorkingDays", "Notes", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -2692,168 +3046,117 @@ COPY public.team_member_schedules ("Id", "EmployeeId", "WorkingDays", "Notes", "
 
 
 --
--- Data for Name: timesheet_entries; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: timesheet_entries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.timesheet_entries ("Id", "TimesheetWeekId", "ProjectKey", "TaskKey", "ProjectName", "TaskName", "ReviewDecision", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-971c63b8-0add-4dbf-9e88-f23d9867d927	23499bbf-a58c-483c-be61-d01660f30ad0	p1	p1-t1	Core Banking Modernization	External Network Penetration Testing	approved	2026-09-27 17:49:29.816902+00	2026-09-27 17:49:30.151616+00	a3a20ac4-43a2-de64-52d3-bfafce7c7053	1a077a8c-4029-8ded-d563-19e9b4bdf301	\N
-704e0dfb-53fb-44d5-84ff-ce2f54c57269	de15efa3-e7fd-49e3-b0b4-80788a6a03af	p1	p1-t1	Core Banking Modernization	External Network Penetration Testing	approved	2026-09-27 17:55:33.340177+00	2026-09-27 17:56:07.671421+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
-7a2fc3aa-872a-4b37-bccc-e60e0676ae3d	500709c9-0931-4d27-94d8-3afcb6fb5df9	p1	p1-t1	Core Banking Modernization	External Network Penetration Testing	\N	2026-09-27 18:04:50.525179+00	2026-09-27 18:08:17.254395+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:08:17.254395+00
-1697ff07-b56d-4913-9cf8-2e5c6a29b6a6	a159d344-0a1b-437d-b426-7c0cf5cee03f	p1	p1-t1	Core Banking Modernization	External Network Penetration Testing	\N	2026-09-27 18:08:46.990401+00	2026-09-27 18:08:53.538843+00	00000000-0000-4000-9000-000000000059	\N	2026-09-27 18:08:53.538843+00
-7548650b-4f2c-493d-81bd-9298e0a506bd	a159d344-0a1b-437d-b426-7c0cf5cee03f	p1	p1-t1	Core Banking Modernization	External Network Penetration Testing	\N	2026-09-27 18:08:53.545973+00	\N	00000000-0000-4000-9000-000000000059	\N	\N
-316695f1-76d6-4bc9-b645-bee026c7e2c0	9a47999b-b415-4087-a989-ca2121a38d27	p1	p1-t1	Core Banking Modernization	External Network Penetration Testing	\N	2026-09-27 18:10:03.517412+00	2026-09-27 18:10:08.270373+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:10:08.270373+00
-0af384b4-63c6-4fd8-b5a3-f0ef1a27fdda	9a47999b-b415-4087-a989-ca2121a38d27	p1	p1-t1	Core Banking Modernization	External Network Penetration Testing	approved	2026-09-27 18:10:08.277317+00	2026-09-27 18:10:34.633307+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
-210da2b9-a5e0-4901-8108-3b38701d34e4	500709c9-0931-4d27-94d8-3afcb6fb5df9	p1	p1-t1	Core Banking Modernization	External Network Penetration Testing	approved	2026-09-27 18:08:17.275777+00	2026-09-27 18:10:43.135713+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
+fc1bcd4a-3941-4ed3-bd3d-e44fd66e0123	fc69ab55-e40d-497a-80da-fc1ac3280976	p1	p1-t1	Core Banking Modernization	External Network Penetration Testing	approved	2026-09-28 06:13:48.867216+00	2026-09-28 06:14:16.877611+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
+7cf79373-5a35-43fa-a852-f93c7c3d8e1c	821a978e-a7d1-4372-970b-38e6dae00953	p1	p1-t2	Core Banking Modernization	Web Application Penetration Testing	change_requested	2026-09-28 06:13:17.902008+00	2026-09-28 06:14:28.0263+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
 \.
 
 
 --
--- Data for Name: timesheet_entry_days; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: timesheet_entry_days; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.timesheet_entry_days ("Id", "TimesheetEntryId", "DayIndex", "Hours", "Comment", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-0a8e97ac-bce8-468d-b626-a801a8788985	971c63b8-0add-4dbf-9e88-f23d9867d927	6	0.0	\N	2026-09-27 17:49:29.816902+00	\N	a3a20ac4-43a2-de64-52d3-bfafce7c7053	\N	\N
-1a34a3a3-e4a4-441a-a6d6-bf5e97646e35	971c63b8-0add-4dbf-9e88-f23d9867d927	4	4.0	\N	2026-09-27 17:49:29.816902+00	\N	a3a20ac4-43a2-de64-52d3-bfafce7c7053	\N	\N
-317780ce-3929-49cb-92d3-861f59c6fe77	971c63b8-0add-4dbf-9e88-f23d9867d927	2	4.0	\N	2026-09-27 17:49:29.816902+00	\N	a3a20ac4-43a2-de64-52d3-bfafce7c7053	\N	\N
-516a2eed-5131-441f-9179-1d5f59b077fe	971c63b8-0add-4dbf-9e88-f23d9867d927	3	4.0	\N	2026-09-27 17:49:29.816902+00	\N	a3a20ac4-43a2-de64-52d3-bfafce7c7053	\N	\N
-72d1aa41-107d-4661-9f53-117d9eea764a	971c63b8-0add-4dbf-9e88-f23d9867d927	5	0.0	\N	2026-09-27 17:49:29.816902+00	\N	a3a20ac4-43a2-de64-52d3-bfafce7c7053	\N	\N
-a554a17f-3083-4717-b15b-ea119652c825	971c63b8-0add-4dbf-9e88-f23d9867d927	0	4.0	Audit notes	2026-09-27 17:49:29.816902+00	\N	a3a20ac4-43a2-de64-52d3-bfafce7c7053	\N	\N
-c1c7d63b-212f-4627-aaa8-ada90c7c2277	971c63b8-0add-4dbf-9e88-f23d9867d927	1	4.0	\N	2026-09-27 17:49:29.816902+00	\N	a3a20ac4-43a2-de64-52d3-bfafce7c7053	\N	\N
-07df7683-da9d-4e2b-84f3-cf7b932f743d	704e0dfb-53fb-44d5-84ff-ce2f54c57269	1	0.0	\N	2026-09-27 17:55:33.340177+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-2f057b90-cec0-4c7b-84b4-b8105d6dedf0	704e0dfb-53fb-44d5-84ff-ce2f54c57269	2	0.0	\N	2026-09-27 17:55:33.340177+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-562dc615-0e5b-4f85-b791-297536532188	704e0dfb-53fb-44d5-84ff-ce2f54c57269	0	1.0	\N	2026-09-27 17:55:33.340177+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-8882070e-1ff6-4736-9ac8-83e205f1279c	704e0dfb-53fb-44d5-84ff-ce2f54c57269	4	0.0	\N	2026-09-27 17:55:33.340177+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-cdd02b98-d466-4f02-92ba-cef54f3aaf76	704e0dfb-53fb-44d5-84ff-ce2f54c57269	6	0.0	\N	2026-09-27 17:55:33.340177+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-eafd0e7a-25a9-4c62-b1dd-fdccc3557e10	704e0dfb-53fb-44d5-84ff-ce2f54c57269	5	0.0	\N	2026-09-27 17:55:33.340177+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-ee549d04-cd95-49db-aae5-c0de10f6fc9e	704e0dfb-53fb-44d5-84ff-ce2f54c57269	3	0.0	\N	2026-09-27 17:55:33.340177+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-cb5180f0-5039-4287-8fb9-28b98bd9a0db	7a2fc3aa-872a-4b37-bccc-e60e0676ae3d	0	0.0	\N	2026-09-27 18:04:50.525179+00	2026-09-27 18:08:17.254395+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:08:17.254395+00
-1f214b9d-e0d1-42b2-8c73-d2dca32f383e	7a2fc3aa-872a-4b37-bccc-e60e0676ae3d	1	0.0	\N	2026-09-27 18:04:50.525179+00	2026-09-27 18:08:17.254395+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:08:17.254395+00
-7ba72004-5997-4177-9f67-b4dbf4f2a458	7a2fc3aa-872a-4b37-bccc-e60e0676ae3d	2	0.0	\N	2026-09-27 18:04:50.525179+00	2026-09-27 18:08:17.254395+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:08:17.254395+00
-60d1ee4b-ff91-4d74-b284-1db7be43c3d5	7a2fc3aa-872a-4b37-bccc-e60e0676ae3d	3	0.0	\N	2026-09-27 18:04:50.525179+00	2026-09-27 18:08:17.254395+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:08:17.254395+00
-25f1adc3-2c51-4b17-86fa-333589e3899e	7a2fc3aa-872a-4b37-bccc-e60e0676ae3d	4	0.0	\N	2026-09-27 18:04:50.525179+00	2026-09-27 18:08:17.254395+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:08:17.254395+00
-345b6ef9-30b4-4a6e-87ed-ba2324ce2842	7a2fc3aa-872a-4b37-bccc-e60e0676ae3d	5	0.0	\N	2026-09-27 18:04:50.525179+00	2026-09-27 18:08:17.254395+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:08:17.254395+00
-bf82e4b7-cece-4afd-b35c-6f1531cb27d9	7a2fc3aa-872a-4b37-bccc-e60e0676ae3d	6	0.0	\N	2026-09-27 18:04:50.525179+00	2026-09-27 18:08:17.254395+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:08:17.254395+00
-2b0a12f9-c10d-4c16-95eb-9ce9f5ca34dc	210da2b9-a5e0-4901-8108-3b38701d34e4	2	0.0	\N	2026-09-27 18:08:17.275777+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-66f01188-5466-4124-8432-c5b53db45c24	210da2b9-a5e0-4901-8108-3b38701d34e4	5	0.0	\N	2026-09-27 18:08:17.275777+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-6c30dc3d-bd03-4644-8c99-c87b95b440f1	210da2b9-a5e0-4901-8108-3b38701d34e4	6	0.0	\N	2026-09-27 18:08:17.275777+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-8d48186c-d4ed-48fa-b3f4-acac4489aedf	210da2b9-a5e0-4901-8108-3b38701d34e4	1	0.0	\N	2026-09-27 18:08:17.275777+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-a441000b-e8d9-447a-a5b5-2b36e569f4a7	210da2b9-a5e0-4901-8108-3b38701d34e4	4	0.0	\N	2026-09-27 18:08:17.275777+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-f3de0dd3-b8d8-490d-b5c3-78670150f8e8	210da2b9-a5e0-4901-8108-3b38701d34e4	0	4.0	\N	2026-09-27 18:08:17.275777+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-f85372d0-0090-4c90-817c-078090395c5d	210da2b9-a5e0-4901-8108-3b38701d34e4	3	0.0	\N	2026-09-27 18:08:17.275777+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-a800f2d0-91b7-46e9-9adc-1ca7c2f7904f	1697ff07-b56d-4913-9cf8-2e5c6a29b6a6	0	1.0	\N	2026-09-27 18:08:46.990401+00	2026-09-27 18:08:53.538843+00	00000000-0000-4000-9000-000000000059	\N	2026-09-27 18:08:53.538843+00
-ad0ba549-e10d-4125-b94e-4c4437eb2de3	1697ff07-b56d-4913-9cf8-2e5c6a29b6a6	1	0.0	\N	2026-09-27 18:08:46.990401+00	2026-09-27 18:08:53.538843+00	00000000-0000-4000-9000-000000000059	\N	2026-09-27 18:08:53.538843+00
-a3180be4-544a-40da-9a3e-9114f5a932f3	1697ff07-b56d-4913-9cf8-2e5c6a29b6a6	2	0.0	\N	2026-09-27 18:08:46.990401+00	2026-09-27 18:08:53.538843+00	00000000-0000-4000-9000-000000000059	\N	2026-09-27 18:08:53.538843+00
-69439854-7af0-48ba-a971-6a712e71af9b	1697ff07-b56d-4913-9cf8-2e5c6a29b6a6	3	0.0	\N	2026-09-27 18:08:46.990401+00	2026-09-27 18:08:53.538843+00	00000000-0000-4000-9000-000000000059	\N	2026-09-27 18:08:53.538843+00
-7a4cfec0-ea24-4a76-ad60-09da4f792498	1697ff07-b56d-4913-9cf8-2e5c6a29b6a6	4	0.0	\N	2026-09-27 18:08:46.990401+00	2026-09-27 18:08:53.538843+00	00000000-0000-4000-9000-000000000059	\N	2026-09-27 18:08:53.538843+00
-1670b476-6905-44b6-afd6-853889d245e9	1697ff07-b56d-4913-9cf8-2e5c6a29b6a6	5	0.0	\N	2026-09-27 18:08:46.990401+00	2026-09-27 18:08:53.538843+00	00000000-0000-4000-9000-000000000059	\N	2026-09-27 18:08:53.538843+00
-1737ef92-4c6d-4cd0-83c7-5014dbf4eecf	1697ff07-b56d-4913-9cf8-2e5c6a29b6a6	6	0.0	\N	2026-09-27 18:08:46.990401+00	2026-09-27 18:08:53.538843+00	00000000-0000-4000-9000-000000000059	\N	2026-09-27 18:08:53.538843+00
-0bda265a-586e-494e-84f2-c467213614f1	7548650b-4f2c-493d-81bd-9298e0a506bd	3	0.0	\N	2026-09-27 18:08:53.545973+00	\N	00000000-0000-4000-9000-000000000059	\N	\N
-3e1387f8-aa77-4be5-a89d-cacd691a47db	7548650b-4f2c-493d-81bd-9298e0a506bd	6	0.0	\N	2026-09-27 18:08:53.545973+00	\N	00000000-0000-4000-9000-000000000059	\N	\N
-54605ce7-52dc-46a0-9147-1c8a55ecf35a	7548650b-4f2c-493d-81bd-9298e0a506bd	1	0.0	\N	2026-09-27 18:08:53.545973+00	\N	00000000-0000-4000-9000-000000000059	\N	\N
-c13d5d49-0178-40bc-9127-9cbe71aa357c	7548650b-4f2c-493d-81bd-9298e0a506bd	0	1.0	\N	2026-09-27 18:08:53.545973+00	\N	00000000-0000-4000-9000-000000000059	\N	\N
-c73699ec-aac9-42e0-a5f1-45661ecd8f20	7548650b-4f2c-493d-81bd-9298e0a506bd	5	0.0	\N	2026-09-27 18:08:53.545973+00	\N	00000000-0000-4000-9000-000000000059	\N	\N
-ccd68c06-06e5-4572-9d93-03dd29be45de	7548650b-4f2c-493d-81bd-9298e0a506bd	4	0.0	\N	2026-09-27 18:08:53.545973+00	\N	00000000-0000-4000-9000-000000000059	\N	\N
-ce6d59ef-2610-4291-9d89-18e5fe4c7ecf	7548650b-4f2c-493d-81bd-9298e0a506bd	2	0.0	\N	2026-09-27 18:08:53.545973+00	\N	00000000-0000-4000-9000-000000000059	\N	\N
-336d7c85-6a6e-49ed-a090-c3e52ddbf2a3	316695f1-76d6-4bc9-b645-bee026c7e2c0	6	0.0	\N	2026-09-27 18:10:03.517412+00	2026-09-27 18:10:08.270373+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:10:08.270373+00
-6717143c-747f-4a70-990d-8f9895415b4a	316695f1-76d6-4bc9-b645-bee026c7e2c0	5	0.0	\N	2026-09-27 18:10:03.517412+00	2026-09-27 18:10:08.270373+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:10:08.270373+00
-7e095307-4bdf-43d5-b69d-a98af21744ee	316695f1-76d6-4bc9-b645-bee026c7e2c0	3	0.0	\N	2026-09-27 18:10:03.517412+00	2026-09-27 18:10:08.270373+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:10:08.270373+00
-8facb894-792c-4f58-a471-cd8c9535e7f6	316695f1-76d6-4bc9-b645-bee026c7e2c0	0	0.0	\N	2026-09-27 18:10:03.517412+00	2026-09-27 18:10:08.270373+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:10:08.270373+00
-9cdfef82-6226-4ab1-8d21-9b9605695b76	316695f1-76d6-4bc9-b645-bee026c7e2c0	1	0.0	\N	2026-09-27 18:10:03.517412+00	2026-09-27 18:10:08.270373+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:10:08.270373+00
-a2fbdc04-b6ad-4670-aa1d-844569797256	316695f1-76d6-4bc9-b645-bee026c7e2c0	4	0.0	\N	2026-09-27 18:10:03.517412+00	2026-09-27 18:10:08.270373+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:10:08.270373+00
-ecce399c-b484-4b63-89eb-0e176e2a182d	316695f1-76d6-4bc9-b645-bee026c7e2c0	2	0.0	\N	2026-09-27 18:10:03.517412+00	2026-09-27 18:10:08.270373+00	00000000-0000-4000-9000-000000000045	\N	2026-09-27 18:10:08.270373+00
-02d8a253-c672-4841-9b24-83547056c131	0af384b4-63c6-4fd8-b5a3-f0ef1a27fdda	4	0.0	\N	2026-09-27 18:10:08.277317+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-4b517fdd-896c-4dad-8b06-d5ca63404bbd	0af384b4-63c6-4fd8-b5a3-f0ef1a27fdda	6	0.0	\N	2026-09-27 18:10:08.277317+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-6a378ecc-3a54-486d-81f5-1a8d4558fe6c	0af384b4-63c6-4fd8-b5a3-f0ef1a27fdda	1	0.0	\N	2026-09-27 18:10:08.277317+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-8f1dff1d-17d6-4aba-8ddf-2e051b184cc4	0af384b4-63c6-4fd8-b5a3-f0ef1a27fdda	2	0.0	\N	2026-09-27 18:10:08.277317+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-d107c61d-0290-4f5d-8572-774a986cd5cb	0af384b4-63c6-4fd8-b5a3-f0ef1a27fdda	5	1.0	\N	2026-09-27 18:10:08.277317+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-e3752263-3e22-49f3-8534-dbc068022201	0af384b4-63c6-4fd8-b5a3-f0ef1a27fdda	0	0.0	\N	2026-09-27 18:10:08.277317+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
-f0e4a99c-f98b-4194-8511-0bab5c372c9c	0af384b4-63c6-4fd8-b5a3-f0ef1a27fdda	3	0.0	\N	2026-09-27 18:10:08.277317+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+03444e4c-223a-4cb9-9e5b-8be56977b36f	7cf79373-5a35-43fa-a852-f93c7c3d8e1c	2	1.0	\N	2026-09-28 06:13:17.902008+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+223f6926-45a6-438b-b9c1-118d01fc1cd0	7cf79373-5a35-43fa-a852-f93c7c3d8e1c	1	2.0	\N	2026-09-28 06:13:17.902008+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+6a4aeeca-4374-405e-98a9-b1efa1388b30	7cf79373-5a35-43fa-a852-f93c7c3d8e1c	4	0.0	\N	2026-09-28 06:13:17.902008+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+8a0f721b-e436-437a-aa22-55eb6829d54d	7cf79373-5a35-43fa-a852-f93c7c3d8e1c	6	0.0	\N	2026-09-28 06:13:17.902008+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+d78fe189-6403-4a1c-b830-17f89288c20f	7cf79373-5a35-43fa-a852-f93c7c3d8e1c	3	0.0	\N	2026-09-28 06:13:17.902008+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+ece846f6-7e3d-4832-b5b4-2aba65d874e0	7cf79373-5a35-43fa-a852-f93c7c3d8e1c	5	0.0	\N	2026-09-28 06:13:17.902008+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+f1e200eb-2432-442d-b92b-42214adc8f88	7cf79373-5a35-43fa-a852-f93c7c3d8e1c	0	1.0	\N	2026-09-28 06:13:17.902008+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+203757cb-2886-4c14-9791-5c805d2f052f	fc1bcd4a-3941-4ed3-bd3d-e44fd66e0123	2	0.0	\N	2026-09-28 06:13:48.867216+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+41614a74-7820-4452-9e8c-3ff3d04c700f	fc1bcd4a-3941-4ed3-bd3d-e44fd66e0123	4	0.0	\N	2026-09-28 06:13:48.867216+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+6ce2e703-6eda-487b-975f-657bb1fc97c6	fc1bcd4a-3941-4ed3-bd3d-e44fd66e0123	0	0.0	\N	2026-09-28 06:13:48.867216+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+97f67d4d-3352-4179-abbd-43b2f2e7eb82	fc1bcd4a-3941-4ed3-bd3d-e44fd66e0123	3	2.0	done	2026-09-28 06:13:48.867216+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+de50cc45-1502-4e88-9216-ab39748ea6cb	fc1bcd4a-3941-4ed3-bd3d-e44fd66e0123	1	2.0	nice	2026-09-28 06:13:48.867216+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+e069a9d9-bc21-4779-9be8-8e8729bf17ac	fc1bcd4a-3941-4ed3-bd3d-e44fd66e0123	6	0.0	\N	2026-09-28 06:13:48.867216+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
+f56ff140-f991-4cc9-9374-5dd8dd2e3700	fc1bcd4a-3941-4ed3-bd3d-e44fd66e0123	5	0.0	\N	2026-09-28 06:13:48.867216+00	\N	00000000-0000-4000-9000-000000000045	\N	\N
 \.
 
 
 --
--- Data for Name: timesheets; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: timesheets; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.timesheets ("Id", "EmployeeId", "WeekStart", "Status", "TotalHours", "SubmittedAtUtc", "ReviewedByEmployeeId", "ReviewedAtUtc", "ReviewComment", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-23499bbf-a58c-483c-be61-d01660f30ad0	00000000-0000-4000-8000-000000000029	2026-09-21	approved	20.0	2026-09-27 17:49:29.816252+00	00000000-0000-4000-8000-000000000028	2026-09-27 17:49:30.151601+00	Looks good	2026-09-27 17:49:29.816902+00	2026-09-27 17:49:30.151616+00	a3a20ac4-43a2-de64-52d3-bfafce7c7053	1a077a8c-4029-8ded-d563-19e9b4bdf301	\N
-de15efa3-e7fd-49e3-b0b4-80788a6a03af	00000000-0000-4000-8000-000000000045	2026-09-21	approved	1.0	2026-09-27 17:55:33.340099+00	00000000-0000-4000-8000-000000000042	2026-09-27 17:56:07.671411+00	Good	2026-09-27 17:55:33.340177+00	2026-09-27 17:56:07.671421+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
-a159d344-0a1b-437d-b426-7c0cf5cee03f	00000000-0000-4000-8000-000000000059	2026-09-21	submitted	1.0	2026-09-27 18:08:53.538843+00	\N	\N	\N	2026-09-27 18:08:46.990401+00	2026-09-27 18:08:53.545973+00	00000000-0000-4000-9000-000000000059	00000000-0000-4000-9000-000000000059	\N
-9a47999b-b415-4087-a989-ca2121a38d27	00000000-0000-4000-8000-000000000045	2026-09-14	approved	1.0	2026-09-27 18:10:08.270373+00	00000000-0000-4000-8000-000000000042	2026-09-27 18:10:34.633299+00	ok	2026-09-27 18:10:03.517412+00	2026-09-27 18:10:34.633307+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
-500709c9-0931-4d27-94d8-3afcb6fb5df9	00000000-0000-4000-8000-000000000045	2026-09-28	approved	4.0	2026-09-27 18:08:17.254395+00	00000000-0000-4000-8000-000000000042	2026-09-27 18:10:43.135698+00	nice	2026-09-27 18:04:50.525179+00	2026-09-27 18:10:43.135713+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
+fc69ab55-e40d-497a-80da-fc1ac3280976	00000000-0000-4000-8000-000000000045	2026-10-05	approved	4.0	2026-09-28 06:13:48.867009+00	00000000-0000-4000-8000-000000000042	2026-09-28 06:14:16.877604+00	ok	2026-09-28 06:13:48.867216+00	2026-09-28 06:14:16.877611+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
+821a978e-a7d1-4372-970b-38e6dae00953	00000000-0000-4000-8000-000000000045	2026-09-28	change_requested	4.0	2026-09-28 06:13:17.878157+00	00000000-0000-4000-8000-000000000042	2026-09-28 06:14:28.026294+00	not done properly	2026-09-28 06:13:17.902008+00	2026-09-28 06:14:28.0263+00	00000000-0000-4000-9000-000000000045	00000000-0000-4000-9000-000000000042	\N
 \.
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Department", "SubDepartment", "Avatar", "Designation", "IsActive", "MustChangePassword", "RoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "FailedLoginAttempts", "LastLoginAtUtc", "LockedUntilUtc", "PasswordChangedAtUtc", "AuthProvider", "MicrosoftOid") FROM stdin;
+00000000-0000-4000-9000-000000000003	kunal.deshmukh@acme.co	$2a$12$exe4HxFANd4IHEQB/TG6kOuWi1LJf6C3qDao.dTwCz0uDLozBEr1K	Kunal Deshmukh	TK-0003	Core	\N	\N	Director and Chief Technology Officer	t	f	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000025	manish.tiwari@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Manish Tiwari	TK-0025	Services - Operations	\N	\N	SOC Consultant - I	t	f	1a62b1f8-1810-464d-a67b-168d7e419827	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000052	tanvi.deshmukh@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Tanvi Deshmukh	TKI-0003	Services - Testing	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000053	ayush.saxena@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Ayush Saxena	TKI-0004	Services - Operations	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
+a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$VHJZqG.yKOt0ID7Y3wEB3ONt5P74m6MtTwQsnhumP0.bG0wF6almW	Admin User	TK-0004	Functional - IT Administration	\N	AU	IT Admin	t	f	a0000000-0000-0000-0000-000000000001	2026-08-10 12:23:35.786937+00	2026-09-28 07:29:32.579365+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-28 07:29:32.576325+00	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000054	simran.kaur@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Simran Kaur	TKI-0005	Services - Operations	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000055	naveen.choudhary@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Naveen Choudhary	TKI-0006	Services - Consulting	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000056	bhavna.patel@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Bhavna Patel	TKI-0007	Services - Consulting	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000057	harsh.wardhan@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Harsh Wardhan	TKI-0008	R&D (Research & Development)	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000058	akash.jain@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Akash Jain	TKI-0009	Functional - Sales	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
-40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$pOE9ZZ5ABdKqyw4jgs6WTubZwN6diQESkDXdrYzOckGBns7KzIPaK	Dhanshree Pansare	TK-0002	Core	\N	DS	Director and Chief Operating Officer	t	f	a5bfe265-981a-4723-b7bb-6ddc389db7f0	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 15:06:24.093072+00	\N	2026-08-10 07:02:04.244561+00	Local	\N
-47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$sJKEb.//5p6G4q.BgUXNeemgeQPjbsaU1BmYoyObkFIQsexnIrDS6	HR User	TK-0006	Functional - HR	\N	HU	HR Head	t	f	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-08-10 12:23:35.786937+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 15:19:56.079376+00	\N	\N	Local	\N
+2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$hiFFHZkA22q7gI50u73Ime0kiJVdl12.bUaQrGc9wOqZeY0fiiCtS	Vikrant Malhotra	TK-0001	Core	\N	VM	Director and Chief Executive Officer	t	f	62a927b7-9fd8-461a-b64e-1aa441eeba4d	2026-08-07 07:49:59.669429+00	2026-09-28 05:55:53.69509+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-28 05:55:53.69228+00	\N	2026-08-10 06:59:52.170405+00	Local	\N
+00000000-0000-4000-9000-000000000008	nikhil.khanna@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Nikhil Khanna	TK-0008	Functional - Sales	\N	\N	Sales Associate	t	f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000009	pooja.sharma@acme.co	$2a$12$.u2l4NL.DgPXJ65nOMb08uJpOoeGRuRJJOH5JIIJ8NQXfR5hCJXLm	Pooja Sharma	TK-0009	Functional - Sales	\N	\N	Sales Associate	t	f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:56:17.601199+00	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000010	rohit.verma@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Rohit Verma	TK-0010	Functional - Sales	\N	\N	Associate Customer Success Representative - I	t	f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
-49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$7ISOMcQRp/WpRLzHpaHZXO5ooA/rSqDmCrGOBLztjVdbEMhDhtEu2	Nikhil Rao	TK-0020	Services - Operations	\N	NR	SOC Lead - II	t	f	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	\N	\N	\N	Local	\N
-a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$GxvMDcsRFlyiycckVbqGiuPTi5CILqE2yz2w6gxA8AO5jGHxtR18S	Sana Iyer	TK-0029	Services - Consulting	\N	SI	Associate Manager - III	t	f	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 17:53:11.274134+00	\N	\N	Local	\N
-b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$SPT2KtjS6766ZnYbJ7JxOe4gBnXW34MZr5AwzRx05TJlBNGQhSWTy	Kavya Nair	TK-0049	Services - Testing	\N	KN	Senior Pentester - I	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-08-11 11:51:44.284921+00	\N	\N	Local	\N
-b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$IPvsk29dB8XPTkKON60Nru24iuobO.6f9NTk/O8YjpRYDCLw10MdG	Rahul Gupta	TK-0012	Functional - Project Management	\N	RG	Senior PMO - I	t	f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 15:03:01.688208+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000039	alok.kumar@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Alok Kumar	TK-0039	Services - Testing	\N	\N	Associate Manager - III	t	f	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000019	sneha.iyer@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Sneha Iyer	TK-0019	Services - Operations	\N	\N	SOC Lead - I	t	f	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-09-24 11:10:05.618689+00	2026-09-24 11:11:30.66576+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-24 11:11:30.663775+00	\N	\N	Local	\N
+40517b71-5e62-182e-73b5-d4070e20a3c2	dhanshree@acme.co	$2a$12$NVdOF2oZSYANeoMh.3kkm.Vs53q1AClhuvj01zhY5SsfmugF.6zNu	Dhanshree Pansare	TK-0002	Core	\N	DS	Director and Chief Operating Officer	t	f	a5bfe265-981a-4723-b7bb-6ddc389db7f0	2026-08-07 07:49:59.669429+00	2026-09-28 06:12:06.76909+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-28 06:12:06.766446+00	\N	2026-08-10 07:02:04.244561+00	Local	\N
+00000000-0000-4000-9000-000000000041	manoj.bhatt@acme.co	$2a$12$G7PeYhqrVD9lOne9f5fYceNYB8lWJWQMvmtbrj0SB4Y87AjirbMdG	Manoj Bhatt	TK-0041	Services - Testing	\N	\N	DevSecOps Specialist - II	t	f	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	\N	\N	\N	Local	\N
+47dcdad8-eaf3-989d-8f94-a6ba5b2e8aac	hr@acme.co	$2a$12$Dwr2x9Cr0bJKNeBceNq2.uF/qT9ugV37R/AJzR2PSXv9ZF6vns/km	HR User	TK-0006	Functional - HR	\N	HU	HR Head	t	f	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-08-10 12:23:35.786937+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-11 07:42:37.919998+00	\N	\N	Local	\N
+49c4e7da-23ec-aab1-9fdf-61dd23764d10	nikhil@acme.co	$2a$12$sME6TwvQ1FS5b04Bw.T7yukN08K7rTWYd8uit.cHMflByQFtu3R.2	Nikhil Rao	TK-0020	Services - Operations	\N	NR	SOC Lead - II	t	f	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	\N	\N	\N	Local	\N
+730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$7XLePs7kkbk1ncolmZngFumfZomtQaLgCIEJVmsOZWJWNCMx5luEi	Sales User	TK-0007	Functional - Sales	\N	SU	Sales Manager	t	f	914d8500-03b6-4a43-a250-244effca1cf1	2026-08-10 12:23:35.786937+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:53:59.212868+00	\N	\N	Local	\N
+a0000000-0000-0000-0000-000000000032	itadmin@acme.co	$2a$12$Dxjtrvp5Np25swUwHzC1I.jsjz0I.dLEAxkv67Gmo0XB3g2yixt7i	IT Admin User	TK-0004-IT	\N	\N	IT	\N	t	f	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-09-25 04:41:26.328885+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-25 05:24:19.653729+00	\N	\N	Local	\N
+a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$OhOw4XNsMKYdcnbnhTKyFeYjaqlq.nWVw15.bRpqciYMSHTIeLEA.	Vikram Shah	TK-0018	Services - Operations	\N	VS	SOC Manager	t	f	111cc3cd-6d35-43ce-be91-dde90d3d4015	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 11:19:07.946068+00	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000035	swati.mishra@acme.co	$2a$12$M0VvoR02D2LuSuWEbNusROE07ZoSkvdP3I7OaBHl3/3.zm8xqd.fu	Swati Mishra	TK-0035	Services - Consulting	\N	\N	GRC Auditor - IV	t	f	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000037	girish.shenoy@acme.co	$2a$12$XmFZ/OKL7ZSg7zK7t6z4beo7Nri4xNOZQVETGBBGWiyad2AqRwnxm	Girish Shenoy	TK-0037	Services - Testing	\N	\N	Testing HOD	t	f	c787fe3b-4b33-40ee-8794-c1148202f81a	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000038	suresh.pillai@acme.co	$2a$12$e7lsF.6P7Pg/ElwebBHy0eR0QOakiAlZVgcrgGHEmBCGerOLslO0i	Suresh Pillai	TK-0038	Services - Testing	\N	\N	Manager - I	t	f	efc1df20-ca04-44a6-87b2-7cae1ff50a88	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:56:20.998402+00	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000022	karthik.bose@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Karthik Bose	TK-0022	Services - Operations	\N	\N	SOC Analyst - I	t	f	1a62b1f8-1810-464d-a67b-168d7e419827	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000023	ankit.verma@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Ankit Verma	TK-0023	Services - Operations	\N	\N	SOC Analyst - II	t	f	1a62b1f8-1810-464d-a67b-168d7e419827	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000024	aditya.reddy@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Aditya Reddy	TK-0024	Services - Operations	\N	\N	SIEM Admin - II	t	f	1a62b1f8-1810-464d-a67b-168d7e419827	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000008	nikhil.khanna@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Nikhil Khanna	TK-0008	Functional - Sales	\N	\N	Sales Associate	t	f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-09-24 11:10:05.618689+00	2026-09-27 17:48:45.843724+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 17:48:45.842453+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000019	sneha.iyer@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Sneha Iyer	TK-0019	Services - Operations	\N	\N	SOC Lead - I	t	f	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-09-24 11:10:05.618689+00	2026-09-27 14:26:53.422128+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 14:26:53.42108+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000052	tanvi.deshmukh@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Tanvi Deshmukh	TKI-0003	Services - Testing	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	2026-09-27 14:27:06.532116+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 14:27:06.531302+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000057	harsh.wardhan@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Harsh Wardhan	TKI-0008	R&D (Research & Development)	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	2026-09-27 14:36:46.7521+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 14:36:46.751142+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000045	priya.sharma@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Priya Sharma	TK-0045	Services - Testing	\N	\N	PenTester - I	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-09-24 11:10:05.618689+00	2026-09-27 18:36:33.986912+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 18:36:33.985439+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000017	deepak.sawant@acme.co	$2a$12$JaB4B20k4zkr2gWY2eNEw.YQJ7a4/mrMdw8kJrXG2WVw7kJQZ.GJC	Deepak Sawant	TK-0017	Services - Operations	\N	\N	SOC Senior Manager	t	f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 14:26:39.346853+00	\N	\N	Local	\N
+1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$tbBQlFF0/pPt1PQefDhF8e09ArbgZdew.stmBN9x1UgW9cXEumWJG	Aarav Mehta	TK-0028	Services - Consulting	\N	AM	Principal Manager - I	t	f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:56:32.626607+00	\N	\N	Local	\N
+e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$qS633uEw1Xe7u6OUcMVaaeuttNh4NL2Lm/47L7Ge98ZshB6d94U3S	Riya Kapoor	TK-0013	Functional - Project Management	\N	RK	Engagement Manager	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 11:11:24.128899+00	\N	2026-08-07 07:57:03.565302+00	Local	\N
+00000000-0000-4000-9000-000000000039	alok.kumar@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Alok Kumar	TK-0039	Services - Testing	\N	\N	Associate Manager - III	t	f	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-09-24 11:10:05.618689+00	2026-09-28 05:49:23.176008+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-28 05:49:23.173271+00	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000016	rajesh.kadam@acme.co	$2a$12$v1FroLV/fpT8ZXe1KZ2IN.A9YzOu0jScQU078SXsNUAuNCLR/.Y/W	Rajesh Kadam	TK-0016	Services - Operations	\N	\N	SOC HOD	t	f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000017	deepak.sawant@acme.co	$2a$12$k5o0a4d.U3nE8NtLPIhzoOmrKqkL74dUzuQCBuPZ/Bejs2UnhwfTq	Deepak Sawant	TK-0017	Services - Operations	\N	\N	SOC Senior Manager	t	f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:56:44.322377+00	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000021	amit.pandey@acme.co	$2a$12$a.v.FCLNHLvU0jlrmVtIiOIm0dabkxa3OiiRr4i6LC7UBJf2HubbC	Amit Pandey	TK-0021	Services - Operations	\N	\N	SOC Shift Lead - I	t	f	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000036	varun.saxena@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Varun Saxena	TK-0036	Services - Consulting	\N	\N	GRC Auditor - I	t	f	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000026	pooja.nair@acme.co	$2a$12$TPEPtjCI/6kqcY8W4ZoLdeXhlCdqdaSFWU0PsAMpNXv/Z1G9MQdQq	Pooja Nair	TK-0026	Services - Operations	\N	\N	SOC Analyst - III	t	f	1a62b1f8-1810-464d-a67b-168d7e419827	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:52:30.671322+00	\N	\N	Local	\N
+304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$Q4uu3cVEyHI8eIAcepdPjeuJzG9BAF6ed66rOq6w/pMJWxb4yuAyy	Anita Desai	TK-0027	Services - Consulting	\N	AD	Senior Vice President - Principal Consultant	t	f	64c49f37-a38a-46a6-9622-7427f1501658	2026-08-07 07:49:59.669429+00	2026-09-28 06:12:38.240717+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-28 06:12:38.239064+00	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000040	divya.rao@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Divya Rao	TK-0040	Services - Testing	\N	\N	Associate Project Manager	t	f	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000045	priya.sharma@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Priya Sharma	TK-0045	Services - Testing	\N	\N	PenTester - I	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-09-24 11:10:05.618689+00	2026-09-28 06:14:37.499084+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-28 06:14:37.497544+00	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000014	pradeep.singh@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Pradeep Singh	TK-0014	Functional - Project Management	\N	\N	Engagement Manager	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000044	ramesh.nair@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Ramesh Nair	TK-0044	Services - Testing	\N	\N	Associate Manager - II	t	f	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000011	sneha.reddy@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Sneha Reddy	TK-0011	Functional - Sales	\N	\N	Associate Customer Success Representative - II	t	f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-09-24 11:10:05.618689+00	2026-09-27 15:19:47.457662+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 15:19:47.456629+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000014	pradeep.singh@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Pradeep Singh	TK-0014	Functional - Project Management	\N	\N	Engagement Manager	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-09-24 11:10:05.618689+00	2026-09-27 16:07:33.219368+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 16:07:33.217908+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000059	kunal.mehra@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Kunal Mehra	TKI-0010	Functional - IT Administration	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	2026-09-27 18:08:02.043802+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 18:08:02.033696+00	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000051	rohan.joshi@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Rohan Joshi	TKI-0002	Services - Testing	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000043	kiran.mathur@acme.co	$2a$12$O0H0sXXl172w/4Qxrmx2R.aofFf5.owJufrXd5rjgj7LfuFNOa2Z.	Kiran Mathur	TK-0043	Services - Testing	\N	\N	Associate Manager - I	t	f	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000050	ananya.verma@acme.co	$2a$12$AIBLHyF8lCF45mNWQcv3zev94ABnJuKp.JSBjKTnx7x6jvKT2CsHu	Ananya Verma	TKI-0001	Services - Testing	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:56:05.516895+00	\N	\N	Local	\N
+111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$AUFbuTDheZIErLQp5iCJDenIQwC4Wg0tnQ39H37/C2o1eCdSxjLT6	Meera Joshi	TK-0047	Services - Testing	\N	MJ	DevSecOps Practitioner - I	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-08-11 11:25:29.999149+00	\N	\N	Local	\N
+9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$llI5G4FEXaDxVtR6PuhRUuZ4FI1VbqoZJcTAus2lPDIHlDTBwcNc6	Dev Patel	TK-0048	Services - Testing	\N	DP	Red Team Practitioner - II	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-08-11 06:20:37.412783+00	\N	2026-08-10 06:57:47.765224+00	Local	\N
+00000000-0000-4000-9000-000000000042	gaurav.joshi@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Gaurav Joshi	TK-0042	Services - Testing	\N	\N	DevSecOps Associate	t	f	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-09-24 11:10:05.618689+00	2026-09-28 06:13:57.92769+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-28 06:13:57.926104+00	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000011	sneha.reddy@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Sneha Reddy	TK-0011	Functional - Sales	\N	\N	Associate Customer Success Representative - II	t	f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000015	kavya.desai@acme.co	$2a$12$k23.pCppiU/T06F6xU.G.unVUSijcK53o1drfjFiWMpDVJdE/K5ES	Kavya Desai	TK-0015	R&D (Research & Development)	\N	\N	Python Developer - II	t	f	f5c742d1-e0cc-4bf8-b860-a673ac407393	2026-09-24 11:10:05.618689+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:49:26.567157+00	\N	\N	Local	\N
+b2a4f2d1-37d8-8e80-1f1c-6673ea41ffb9	rahul@acme.co	$2a$12$XCc4siLJ1l3Ta9hvZCZN7OtkVS.SVk0.Ru2z1zkxjXN1nFahKtIh2	Rahul Gupta	TK-0012	Functional - Project Management	\N	RG	Senior PMO - I	t	f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:52:05.738192+00	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000031	siddharth.roy@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Siddharth Roy	TK-0031	Services - Consulting	\N	\N	Senior GRC Auditor - II	t	f	701aaa2c-a899-4def-bf5f-e17511874409	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000032	ira.kapoor@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Ira Kapoor	TK-0032	Services - Consulting	\N	\N	GRC Auditor - I	t	f	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000033	meera.nambiar@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Meera Nambiar	TK-0033	Services - Consulting	\N	\N	GRC Auditor - II	t	f	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 00000000-0000-4000-9000-000000000034	rajat.singhal@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Rajat Singhal	TK-0034	Services - Consulting	\N	\N	GRC Auditor - III	t	f	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000042	gaurav.joshi@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Gaurav Joshi	TK-0042	Services - Testing	\N	\N	DevSecOps Associate	t	f	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-09-24 11:10:05.618689+00	2026-09-27 18:10:16.810915+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 18:10:16.809913+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000040	divya.rao@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Divya Rao	TK-0040	Services - Testing	\N	\N	Associate Project Manager	t	f	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-09-24 11:10:05.618689+00	2026-09-27 14:18:49.022527+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 14:18:49.020967+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000003	kunal.deshmukh@acme.co	$2a$12$SmIoTsGFoiropHHqc9XnPONYmGFrQ1MLUKjqLEESFBC/c20xqAgYG	Kunal Deshmukh	TK-0003	Core	\N	\N	Director and Chief Technology Officer	t	f	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	\N	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000009	pooja.sharma@acme.co	$2a$12$DJ82aJDOtIIa.sVJBWbEs.JZtDwARSS2mHs1Lrk5rH4u73EoRQsOO	Pooja Sharma	TK-0009	Functional - Sales	\N	\N	Sales Associate	t	f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 17:52:51.383779+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000015	kavya.desai@acme.co	$2a$12$yVxVmVYv5SrM5DQHT6zep.qfc6kPrswcU8rGeaZqBtQvtyVWgJBsq	Kavya Desai	TK-0015	R&D (Research & Development)	\N	\N	Python Developer - II	t	f	f5c742d1-e0cc-4bf8-b860-a673ac407393	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-24 13:49:26.567157+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000016	rajesh.kadam@acme.co	$2a$12$3QBTDXjlK88ZLmWHSSIMk.hzrgNBSAgUD2kS0e68RyBy4j/GBjwxa	Rajesh Kadam	TK-0016	Services - Operations	\N	\N	SOC HOD	t	f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	\N	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000021	amit.pandey@acme.co	$2a$12$i8tc4XozWjBqSappTkPMzenSZdRc4frK6Cidarb6kBasqm6C8aSLK	Amit Pandey	TK-0021	Services - Operations	\N	\N	SOC Shift Lead - I	t	f	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	\N	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000026	pooja.nair@acme.co	$2a$12$dxAXzuz.5nqaF64JKqIgjeMrN9GLyZuN2.AWvwcfTQEs3qCvVJCRC	Pooja Nair	TK-0026	Services - Operations	\N	\N	SOC Analyst - III	t	f	1a62b1f8-1810-464d-a67b-168d7e419827	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-24 13:52:30.671322+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000035	swati.mishra@acme.co	$2a$12$t1My6a4/.t73GhimkZijbO0MXvdax7pk7r9HjbdMi6At6/b3y6.Fy	Swati Mishra	TK-0035	Services - Consulting	\N	\N	GRC Auditor - IV	t	f	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	\N	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000037	girish.shenoy@acme.co	$2a$12$jp6TgQXSx5buFf7T5QE42uxoPRw4SU4rVy9hRCS9ARtjJCqIk/Mu2	Girish Shenoy	TK-0037	Services - Testing	\N	\N	Testing HOD	t	f	c787fe3b-4b33-40ee-8794-c1148202f81a	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	\N	\N	\N	Local	\N
-dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$9M1o6.O621dh3BFOWsKHo.wH.C0hifLV.uxji4wCswVuz6/aw0IBS	Accounts User	TK-0005	Functional - Accounts	\N	AC	Senior Accountant - I	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 12:23:35.786937+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 15:02:37.951423+00	\N	\N	Local	\N
-e7554ba2-e546-93ce-1e88-a073badd78a2	riya@acme.co	$2a$12$qTNLa4ATewKjY5tAqGkjReRLPpD3EQgEUBbyn48P5XgxkAg5UkOB2	Riya Kapoor	TK-0013	Functional - Project Management	\N	RK	Engagement Manager	t	f	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 16:05:40.901276+00	\N	2026-08-07 07:57:03.565302+00	Local	\N
-f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$PNxlHrpo.K7CfIwexnSshuuQriVoS11PHn475xieyLVlHPm/Kt90S	Arjun Singh	TK-0046	Services - Testing	\N	AS	PenTester - II	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 14:16:49.257843+00	\N	\N	Local	\N
-1a077a8c-4029-8ded-d563-19e9b4bdf301	aarav@acme.co	$2a$12$XsPfje9qqMbiqGHZ/lu1c.rRSH7myFdOlLipLxO7utGszFBsxC8Mm	Aarav Mehta	TK-0028	Services - Operations	\N	AM	Principal Manager - I	t	f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 17:53:42.204946+00	\N	\N	Local	\N
-2bca17e7-5b71-8ac3-6c86-440cb3b75bab	vikrant@acme.co	$2a$12$K5ED9W/Hf06gAOMiXu1OuOxULfIwLXxzlCxogbyWG4LY9arVErmMO	Vikrant Malhotra	TK-0001	Core	\N	VM	Director and Chief Executive Officer	t	f	62a927b7-9fd8-461a-b64e-1aa441eeba4d	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 15:19:10.820468+00	\N	2026-08-10 06:59:52.170405+00	Local	\N
-a0000000-0000-0000-0000-000000000032	itadmin@acme.co	$2a$12$4i5NmTaG/qrV5g3WbsH9rOIf5rOpsuE7RvCTtmCxM1l1Ez7jt5yti	IT Admin User	TK-0004-IT	\N	\N	IT	\N	t	f	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-09-25 04:41:26.328885+00	2026-09-27 18:09:04.602114+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 18:09:04.600798+00	\N	\N	Local	\N
-a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	admin@acme.co	$2a$12$31Q9aRWzouXbazDsuFU1VOLwXwUQ3L1QNa3IEt9TrVNc5v8Jx3lnC	Admin User	TK-0004	Functional - IT Administration	\N	AU	IT Admin	t	f	a0000000-0000-0000-0000-000000000001	2026-08-10 12:23:35.786937+00	2026-09-27 18:37:02.301698+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	0	2026-09-27 18:37:02.300488+00	\N	\N	Local	\N
-304a42eb-2921-d04b-1bb8-e77b9bf6eb5a	anita@acme.co	$2a$12$ITYAlhAeCuWH3fcrU7y5De12beeI9Jr7jGvwUC5ApuCtBPD4dgWQy	Anita Desai	TK-0027	Services - Consulting	\N	AD	Senior Vice President - Principal Consultant	t	f	64c49f37-a38a-46a6-9622-7427f1501658	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-24 11:24:45.493792+00	\N	\N	Local	\N
-65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$SmKQmw6YhgVnN.nhyz3pWOAEInU1T1/cpqYZfc5TKkDd6wb65S4iO	Priya Verma	TK-0030	Services - Consulting	\N	PV	Senior GRC Auditor - I	t	f	701aaa2c-a899-4def-bf5f-e17511874409	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-08-10 12:57:13.729958+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000038	suresh.pillai@acme.co	$2a$12$3.1PfQJ14adtq9yiwBhkf.d7lBgGLUXzaCzVhY8A3fEJ9iUGmwg4W	Suresh Pillai	TK-0038	Services - Testing	\N	\N	Manager - I	t	f	efc1df20-ca04-44a6-87b2-7cae1ff50a88	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-24 13:56:20.998402+00	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000041	manoj.bhatt@acme.co	$2a$12$KdKcHqTRWEqLDc1QVkH0s.s/D/AQxAd9UOY2vIqghQNHUUdiejH0W	Manoj Bhatt	TK-0041	Services - Testing	\N	\N	DevSecOps Specialist - II	t	f	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	\N	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000043	kiran.mathur@acme.co	$2a$12$UdBNcT4vmGYJOXsVcY2R4udQQVT3hk9jemMQO/GREXI2ohRFe8RaG	Kiran Mathur	TK-0043	Services - Testing	\N	\N	Associate Manager - I	t	f	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	\N	\N	\N	Local	\N
-00000000-0000-4000-9000-000000000050	ananya.verma@acme.co	$2a$12$6DcYpVZIs8KIwZ3gzX2dp.mU5MFUOVR7l7Dky46gbjmTx2Gc.aqcq	Ananya Verma	TKI-0001	Services - Testing	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-24 13:56:05.516895+00	\N	\N	Local	\N
-111775f6-5d80-5333-478e-68e2fda584fa	meera@acme.co	$2a$12$Jk7w4cldK5keHRSYVTOcE.3MK8bdV9bQgtf2WNp9UjDzkg.s07wH2	Meera Joshi	TK-0047	Services - Testing	\N	MJ	DevSecOps Practitioner - I	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-08-11 11:25:29.999149+00	\N	\N	Local	\N
-730809c0-fc01-a664-03ca-28e0e32d0393	sales@acme.co	$2a$12$dTicSo8JldicsFpSqJqQ3elczy6UjbuSZf2ayna8.gHcSDPtE4lsi	Sales User	TK-0007	Functional - Sales	\N	SU	Sales Manager	t	f	914d8500-03b6-4a43-a250-244effca1cf1	2026-08-10 12:23:35.786937+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 16:14:37.654978+00	\N	\N	Local	\N
-9f6f34df-dc47-f198-f3f6-e577aab1cbca	dev@acme.co	$2a$12$DQUyrgLk55R6vLC5bP1UmuG89F3skL95VRQwM.jII9c2riGmRUnHW	Dev Patel	TK-0048	Services - Testing	\N	DP	Red Team Practitioner - II	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-08-11 06:20:37.412783+00	\N	2026-08-10 06:57:47.765224+00	Local	\N
-a37e30de-15f3-bf1e-fa9f-4a98da9033ab	vikram@acme.co	$2a$12$FKD.g/0p.DH.X9.N2g51ZOkr/xui5ocX/uqdhF3FqovXxHWB/Fb9W	Vikram Shah	TK-0018	Services - Operations	\N	VS	SOC Manager	t	f	111cc3cd-6d35-43ce-be91-dde90d3d4015	2026-08-07 07:49:59.669429+00	2026-09-27 18:07:45.750263+00	\N	\N	\N	0	2026-09-27 14:59:17.694405+00	\N	\N	Local	\N
+f2f23eb1-efb6-f0a7-c57e-0ead09121a21	arjun@acme.co	$2a$12$UEtMAChe6w0I1FBaTgkGfeF7Lsh3fCKDrEC2870DG3YOOFosmwEcy	Arjun Singh	TK-0046	Services - Testing	\N	AS	PenTester - II	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-24 13:53:51.741493+00	\N	\N	Local	\N
+65e2ffa3-6073-780a-b849-4d9604c7251c	priya@acme.co	$2a$12$GXOGXGAng6RCRUYmPfLN7OF3BO7aG25FnJTZ5nfHEbziV0zLkDzU2	Priya Verma	TK-0030	Services - Consulting	\N	PV	Senior GRC Auditor - I	t	f	701aaa2c-a899-4def-bf5f-e17511874409	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-08-10 12:57:13.729958+00	\N	\N	Local	\N
+a3a20ac4-43a2-de64-52d3-bfafce7c7053	sana@acme.co	$2a$12$Oz78LJLyJW9HVgJ5Zf2N3uJ829gDhD1KeoUYhr4E4o7RMv8Z0NM2y	Sana Iyer	TK-0029	Services - Consulting	\N	SI	Associate Manager - III	t	f	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-08-17 07:09:47.329355+00	\N	\N	Local	\N
+b1d3f51c-b209-d352-4b52-3f4008801ab3	kavya@acme.co	$2a$12$6mnsze9i9dPXNiY1Pd6ym.qYW.eTEjTweXIuLCRBtuXsKiZiAZSQe	Kavya Nair	TK-0049	Services - Testing	\N	KN	Senior Pentester - I	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-08-07 07:49:59.669429+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-08-11 11:51:44.284921+00	\N	\N	Local	\N
+dc139a9d-b996-7354-6c27-72659ea2fd59	accounts@acme.co	$2a$12$9w7hRAe1GQ3Lix6OXg0Eb.5lDrGRfW5ZRHfA5jDo6nr1gvYyDxjZG	Accounts User	TK-0005	Functional - Accounts	\N	AC	Senior Accountant - I	t	f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-08-10 12:23:35.786937+00	2026-09-28 05:40:54.183084+00	\N	\N	\N	0	2026-09-25 05:15:03.83132+00	\N	\N	Local	\N
+00000000-0000-4000-9000-000000000059	kunal.mehra@acme.co	$2a$12$8KZSaRUZmXQe9Eu8RuG.5ekKfMYaUKjDYmNFKp7KaryPJEb.mwe5y	Kunal Mehra	TKI-0010	Functional - IT Administration	\N	\N	Intern	t	f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-09-24 11:10:05.618689+00	\N	\N	\N	\N	0	\N	\N	\N	Local	\N
 \.
 
 
 --
--- Name: employees CK_employees_EmployeeCode_Format; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees CK_employees_EmployeeCode_Format; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE public.employees
@@ -2861,7 +3164,7 @@ ALTER TABLE public.employees
 
 
 --
--- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."__EFMigrationsHistory"
@@ -2869,7 +3172,7 @@ ALTER TABLE ONLY public."__EFMigrationsHistory"
 
 
 --
--- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_assignments PK_client_assignments; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -2877,7 +3180,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_contacts PK_client_contacts; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -2885,7 +3188,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients PK_clients; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -2893,7 +3196,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees PK_employees; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -2901,7 +3204,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: exited_employees PK_exited_employees; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.exited_employees
@@ -2909,7 +3212,7 @@ ALTER TABLE ONLY public.exited_employees
 
 
 --
--- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -2917,7 +3220,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_contact_designations PK_mst_contact_designations; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_contact_designations PK_mst_contact_designations; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_contact_designations
@@ -2925,7 +3228,7 @@ ALTER TABLE ONLY public.mst_contact_designations
 
 
 --
--- Name: mst_contact_types PK_mst_contact_types; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_contact_types PK_mst_contact_types; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_contact_types
@@ -2933,7 +3236,7 @@ ALTER TABLE ONLY public.mst_contact_types
 
 
 --
--- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_countries
@@ -2941,7 +3244,7 @@ ALTER TABLE ONLY public.mst_countries
 
 
 --
--- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_departments
@@ -2949,7 +3252,7 @@ ALTER TABLE ONLY public.mst_departments
 
 
 --
--- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -2957,7 +3260,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_entra_roles PK_mst_entra_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_entra_roles PK_mst_entra_roles; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_entra_roles
@@ -2965,7 +3268,7 @@ ALTER TABLE ONLY public.mst_entra_roles
 
 
 --
--- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_industries
@@ -2973,7 +3276,7 @@ ALTER TABLE ONLY public.mst_industries
 
 
 --
--- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_nationalities
@@ -2981,7 +3284,7 @@ ALTER TABLE ONLY public.mst_nationalities
 
 
 --
--- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -2989,7 +3292,7 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_salary_bands
@@ -2997,7 +3300,111 @@ ALTER TABLE ONLY public.mst_salary_bands
 
 
 --
--- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_service_catalog PK_mst_service_catalog; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_service_catalog
+    ADD CONSTRAINT "PK_mst_service_catalog" PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_service_departments PK_mst_service_departments; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_service_departments
+    ADD CONSTRAINT "PK_mst_service_departments" PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_service_groups PK_mst_service_groups; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_service_groups
+    ADD CONSTRAINT "PK_mst_service_groups" PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_service_sub_departments PK_mst_service_sub_departments; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_service_sub_departments
+    ADD CONSTRAINT "PK_mst_service_sub_departments" PRIMARY KEY ("Id");
+
+
+--
+-- Name: project_documents PK_project_documents; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_documents
+    ADD CONSTRAINT "PK_project_documents" PRIMARY KEY ("Id");
+
+
+--
+-- Name: project_drafts PK_project_drafts; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_drafts
+    ADD CONSTRAINT "PK_project_drafts" PRIMARY KEY ("Id");
+
+
+--
+-- Name: project_invoices PK_project_invoices; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_invoices
+    ADD CONSTRAINT "PK_project_invoices" PRIMARY KEY ("Id");
+
+
+--
+-- Name: project_services PK_project_services; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_services
+    ADD CONSTRAINT "PK_project_services" PRIMARY KEY ("Id");
+
+
+--
+-- Name: project_task_assignment_history PK_project_task_assignment_history; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_task_assignment_history
+    ADD CONSTRAINT "PK_project_task_assignment_history" PRIMARY KEY ("Id");
+
+
+--
+-- Name: project_task_assignments PK_project_task_assignments; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_task_assignments
+    ADD CONSTRAINT "PK_project_task_assignments" PRIMARY KEY ("Id");
+
+
+--
+-- Name: project_tasks PK_project_tasks; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_tasks
+    ADD CONSTRAINT "PK_project_tasks" PRIMARY KEY ("Id");
+
+
+--
+-- Name: project_team_members PK_project_team_members; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_team_members
+    ADD CONSTRAINT "PK_project_team_members" PRIMARY KEY ("Id");
+
+
+--
+-- Name: projects PK_projects; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT "PK_projects" PRIMARY KEY ("Id");
+
+
+--
+-- Name: refresh_tokens PK_refresh_tokens; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -3005,7 +3412,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: repository_departments PK_repository_departments; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: repository_departments PK_repository_departments; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.repository_departments
@@ -3013,7 +3420,7 @@ ALTER TABLE ONLY public.repository_departments
 
 
 --
--- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: role_permission_audits PK_role_permission_audits; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -3021,7 +3428,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: roles PK_roles; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.roles
@@ -3029,7 +3436,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: sub_ventures PK_sub_ventures; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -3037,7 +3444,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: team_day_entries PK_team_day_entries; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: team_day_entries PK_team_day_entries; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.team_day_entries
@@ -3045,7 +3452,7 @@ ALTER TABLE ONLY public.team_day_entries
 
 
 --
--- Name: team_member_holidays PK_team_member_holidays; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: team_member_holidays PK_team_member_holidays; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.team_member_holidays
@@ -3053,7 +3460,7 @@ ALTER TABLE ONLY public.team_member_holidays
 
 
 --
--- Name: team_member_schedules PK_team_member_schedules; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: team_member_schedules PK_team_member_schedules; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.team_member_schedules
@@ -3061,7 +3468,7 @@ ALTER TABLE ONLY public.team_member_schedules
 
 
 --
--- Name: timesheet_entries PK_timesheet_entries; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: timesheet_entries PK_timesheet_entries; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.timesheet_entries
@@ -3069,7 +3476,7 @@ ALTER TABLE ONLY public.timesheet_entries
 
 
 --
--- Name: timesheet_entry_days PK_timesheet_entry_days; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: timesheet_entry_days PK_timesheet_entry_days; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.timesheet_entry_days
@@ -3077,7 +3484,7 @@ ALTER TABLE ONLY public.timesheet_entry_days
 
 
 --
--- Name: timesheets PK_timesheets; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: timesheets PK_timesheets; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.timesheets
@@ -3085,7 +3492,7 @@ ALTER TABLE ONLY public.timesheets
 
 
 --
--- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users PK_users; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -3093,7 +3500,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: employee_activity_logs employee_activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employee_activity_logs employee_activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employee_activity_logs
@@ -3101,7 +3508,7 @@ ALTER TABLE ONLY public.employee_activity_logs
 
 
 --
--- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -3109,7 +3516,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_business_units
@@ -3117,7 +3524,7 @@ ALTER TABLE ONLY public.mst_business_units
 
 
 --
--- Name: mst_certifications mst_certifications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_certifications mst_certifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_certifications
@@ -3125,7 +3532,7 @@ ALTER TABLE ONLY public.mst_certifications
 
 
 --
--- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_email_domains
@@ -3133,7 +3540,7 @@ ALTER TABLE ONLY public.mst_email_domains
 
 
 --
--- Name: mst_employee_statuses mst_employee_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_employee_statuses mst_employee_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_employee_statuses
@@ -3141,7 +3548,7 @@ ALTER TABLE ONLY public.mst_employee_statuses
 
 
 --
--- Name: mst_graduation_degrees mst_graduation_degrees_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_graduation_degrees mst_graduation_degrees_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_graduation_degrees
@@ -3149,7 +3556,7 @@ ALTER TABLE ONLY public.mst_graduation_degrees
 
 
 --
--- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -3157,7 +3564,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -3165,7 +3572,7 @@ ALTER TABLE ONLY public.mst_offices
 
 
 --
--- Name: mst_post_graduation_degrees mst_post_graduation_degrees_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_post_graduation_degrees mst_post_graduation_degrees_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_post_graduation_degrees
@@ -3173,7 +3580,7 @@ ALTER TABLE ONLY public.mst_post_graduation_degrees
 
 
 --
--- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -3181,7 +3588,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -3189,7 +3596,7 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_work_locations
@@ -3197,7 +3604,7 @@ ALTER TABLE ONLY public.mst_work_locations
 
 
 --
--- Name: repository_activity_logs repository_activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: repository_activity_logs repository_activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.repository_activity_logs
@@ -3205,7 +3612,7 @@ ALTER TABLE ONLY public.repository_activity_logs
 
 
 --
--- Name: repository repository_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: repository repository_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.repository
@@ -3213,539 +3620,854 @@ ALTER TABLE ONLY public.repository
 
 
 --
--- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_client_assignments_UserId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_client_assignments_UserId" ON public.client_assignments USING btree ("UserId");
 
 
 --
--- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_client_contacts_ClientId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_client_contacts_ClientId" ON public.client_contacts USING btree ("ClientId");
 
 
 --
--- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_client_contacts_SubVentureId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_client_contacts_SubVentureId" ON public.client_contacts USING btree ("SubVentureId");
 
 
 --
--- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_CityId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_CityId" ON public.clients USING btree ("CityId");
 
 
 --
--- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_CountryId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_CountryId" ON public.clients USING btree ("CountryId");
 
 
 --
--- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_EngagementManagerId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_EngagementManagerId" ON public.clients USING btree ("EngagementManagerId");
 
 
 --
--- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_IndustryId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_IndustryId" ON public.clients USING btree ("IndustryId");
 
 
 --
--- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_Name" ON public.clients USING btree ("Name");
 
 
 --
--- Name: IX_clients_SalesManagerId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_clients_SalesManagerId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_clients_SalesManagerId" ON public.clients USING btree ("SalesManagerId");
 
 
 --
--- Name: IX_employee_activity_logs_CreatedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employee_activity_logs_CreatedAtUtc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employee_activity_logs_CreatedAtUtc" ON public.employee_activity_logs USING btree ("CreatedAtUtc" DESC);
 
 
 --
--- Name: IX_employee_activity_logs_EmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employee_activity_logs_EmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employee_activity_logs_EmployeeId" ON public.employee_activity_logs USING btree ("EmployeeId");
 
 
 --
--- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_DepartmentId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_DepartmentId" ON public.employees USING btree ("DepartmentId");
 
 
 --
--- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_DesignationId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_DesignationId" ON public.employees USING btree ("DesignationId");
 
 
 --
--- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_employees_EmployeeCode" ON public.employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_employees_EngagementManagerEmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_EngagementManagerEmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_EngagementManagerEmployeeId" ON public.employees USING btree ("EngagementManagerEmployeeId");
 
 
 --
--- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_JobRoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_JobRoleId" ON public.employees USING btree ("JobRoleId");
 
 
 --
--- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_NationalityId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_NationalityId" ON public.employees USING btree ("NationalityId");
 
 
 --
--- Name: IX_employees_ProjectManagerId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_ProjectManagerId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_ProjectManagerId" ON public.employees USING btree ("ProjectManagerId");
 
 
 --
--- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_ReportingManagerId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_ReportingManagerId" ON public.employees USING btree ("ReportingManagerId");
 
 
 --
--- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_SalaryBandId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_SalaryBandId" ON public.employees USING btree ("SalaryBandId");
 
 
 --
--- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_UserId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_employees_UserId" ON public.employees USING btree ("UserId");
 
 
 --
--- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_employees_WorkEmail; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_employees_WorkEmail" ON public.employees USING btree ("WorkEmail");
 
 
 --
--- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_exited_employees_EmployeeCode; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_exited_employees_EmployeeCode" ON public.exited_employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_exited_employees_OriginalEmployeeId" ON public.exited_employees USING btree ("OriginalEmployeeId");
 
 
 --
--- Name: IX_mst_business_units_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_business_units_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_business_units_Code" ON public.mst_business_units USING btree ("Code");
 
 
 --
--- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_cities_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_Code" ON public.mst_cities USING btree ("Code");
 
 
 --
--- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_CountryId_Name" ON public.mst_cities USING btree ("CountryId", "Name");
 
 
 --
--- Name: IX_mst_contact_designations_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_contact_designations_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_contact_designations_Code" ON public.mst_contact_designations USING btree ("Code");
 
 
 --
--- Name: IX_mst_contact_designations_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_contact_designations_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_contact_designations_Name" ON public.mst_contact_designations USING btree ("Name");
 
 
 --
--- Name: IX_mst_contact_types_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_contact_types_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_contact_types_Code" ON public.mst_contact_types USING btree ("Code");
 
 
 --
--- Name: IX_mst_contact_types_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_contact_types_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_contact_types_Name" ON public.mst_contact_types USING btree ("Name");
 
 
 --
--- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_countries_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Code" ON public.mst_countries USING btree ("Code");
 
 
 --
--- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_countries_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Name" ON public.mst_countries USING btree ("Name");
 
 
 --
--- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_departments_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Code" ON public.mst_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_departments_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Name" ON public.mst_departments USING btree ("Name");
 
 
 --
--- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_designations_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_Code" ON public.mst_designations USING btree ("Code");
 
 
 --
--- Name: IX_mst_designations_DefaultRoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_designations_DefaultRoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_mst_designations_DefaultRoleId" ON public.mst_designations USING btree ("DefaultRoleId");
 
 
 --
--- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_DepartmentId_Name" ON public.mst_designations USING btree ("DepartmentId", "Name");
 
 
 --
--- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_email_domains_DomainName" ON public.mst_email_domains USING btree ("DomainName");
 
 
 --
--- Name: IX_mst_employee_statuses_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_employee_statuses_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_employee_statuses_Code" ON public.mst_employee_statuses USING btree ("Code") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_mst_entra_roles_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_entra_roles_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_entra_roles_Code" ON public.mst_entra_roles USING btree ("Code");
 
 
 --
--- Name: IX_mst_entra_roles_EntraRoleValue; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_entra_roles_EntraRoleValue; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_entra_roles_EntraRoleValue" ON public.mst_entra_roles USING btree ("EntraRoleValue");
 
 
 --
--- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_industries_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Code" ON public.mst_industries USING btree ("Code");
 
 
 --
--- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_industries_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Name" ON public.mst_industries USING btree ("Name");
 
 
 --
--- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Code" ON public.mst_nationalities USING btree ("Code");
 
 
 --
--- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Name" ON public.mst_nationalities USING btree ("Name");
 
 
 --
--- Name: IX_mst_offices_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_offices_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_offices_Code" ON public.mst_offices USING btree ("Code");
 
 
 --
--- Name: IX_mst_offices_WorkLocationId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_offices_WorkLocationId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_mst_offices_WorkLocationId" ON public.mst_offices USING btree ("WorkLocationId");
 
 
 --
--- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_reporting_managers_Code" ON public.mst_reporting_managers USING btree ("Code");
 
 
 --
--- Name: IX_mst_reporting_managers_EmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_reporting_managers_EmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_mst_reporting_managers_EmployeeId" ON public.mst_reporting_managers USING btree ("EmployeeId");
 
 
 --
--- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_roles_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_Code" ON public.mst_roles USING btree ("Code");
 
 
 --
--- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_roles_DesignationId_Name" ON public.mst_roles USING btree ("DesignationId", "Name");
 
 
 --
--- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Code" ON public.mst_salary_bands USING btree ("Code");
 
 
 --
--- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Name" ON public.mst_salary_bands USING btree ("Name");
 
 
 --
--- Name: IX_mst_work_locations_Code; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_mst_service_catalog_Code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_service_catalog_Code" ON public.mst_service_catalog USING btree ("Code");
+
+
+--
+-- Name: IX_mst_service_catalog_SubDepartmentId_Name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_service_catalog_SubDepartmentId_Name" ON public.mst_service_catalog USING btree ("SubDepartmentId", "Name");
+
+
+--
+-- Name: IX_mst_service_departments_Code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_service_departments_Code" ON public.mst_service_departments USING btree ("Code");
+
+
+--
+-- Name: IX_mst_service_departments_GroupId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_mst_service_departments_GroupId" ON public.mst_service_departments USING btree ("GroupId");
+
+
+--
+-- Name: IX_mst_service_departments_Name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_service_departments_Name" ON public.mst_service_departments USING btree ("Name");
+
+
+--
+-- Name: IX_mst_service_groups_Code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_service_groups_Code" ON public.mst_service_groups USING btree ("Code");
+
+
+--
+-- Name: IX_mst_service_groups_Name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_service_groups_Name" ON public.mst_service_groups USING btree ("Name");
+
+
+--
+-- Name: IX_mst_service_sub_departments_Code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_service_sub_departments_Code" ON public.mst_service_sub_departments USING btree ("Code");
+
+
+--
+-- Name: IX_mst_service_sub_departments_DepartmentId_Name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_service_sub_departments_DepartmentId_Name" ON public.mst_service_sub_departments USING btree ("DepartmentId", "Name");
+
+
+--
+-- Name: IX_mst_work_locations_Code; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_mst_work_locations_Code" ON public.mst_work_locations USING btree ("Code");
 
 
 --
--- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_project_documents_DocumentType; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_documents_DocumentType" ON public.project_documents USING btree ("DocumentType");
+
+
+--
+-- Name: IX_project_documents_ProjectId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_documents_ProjectId" ON public.project_documents USING btree ("ProjectId");
+
+
+--
+-- Name: IX_project_drafts_ClientId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_drafts_ClientId" ON public.project_drafts USING btree ("ClientId");
+
+
+--
+-- Name: IX_project_drafts_Status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_drafts_Status" ON public.project_drafts USING btree ("Status");
+
+
+--
+-- Name: IX_project_drafts_UpdatedAtUtc; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_drafts_UpdatedAtUtc" ON public.project_drafts USING btree ("UpdatedAtUtc");
+
+
+--
+-- Name: IX_project_invoices_InvoiceNumber; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_invoices_InvoiceNumber" ON public.project_invoices USING btree ("InvoiceNumber");
+
+
+--
+-- Name: IX_project_invoices_ProjectId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_invoices_ProjectId" ON public.project_invoices USING btree ("ProjectId");
+
+
+--
+-- Name: IX_project_invoices_Status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_invoices_Status" ON public.project_invoices USING btree ("Status");
+
+
+--
+-- Name: IX_project_services_ProjectId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_services_ProjectId" ON public.project_services USING btree ("ProjectId");
+
+
+--
+-- Name: IX_project_services_ServiceCatalogId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_services_ServiceCatalogId" ON public.project_services USING btree ("ServiceCatalogId");
+
+
+--
+-- Name: IX_project_task_assignment_history_EmployeeId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_task_assignment_history_EmployeeId" ON public.project_task_assignment_history USING btree ("EmployeeId");
+
+
+--
+-- Name: IX_project_task_assignment_history_TaskId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_task_assignment_history_TaskId" ON public.project_task_assignment_history USING btree ("TaskId");
+
+
+--
+-- Name: IX_project_task_assignment_history_TaskId_OccurredAtUtc; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_task_assignment_history_TaskId_OccurredAtUtc" ON public.project_task_assignment_history USING btree ("TaskId", "OccurredAtUtc");
+
+
+--
+-- Name: IX_project_task_assignments_EmployeeId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_task_assignments_EmployeeId" ON public.project_task_assignments USING btree ("EmployeeId");
+
+
+--
+-- Name: IX_project_task_assignments_TaskId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_task_assignments_TaskId" ON public.project_task_assignments USING btree ("TaskId");
+
+
+--
+-- Name: IX_project_task_assignments_TaskId_EmployeeId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_task_assignments_TaskId_EmployeeId" ON public.project_task_assignments USING btree ("TaskId", "EmployeeId");
+
+
+--
+-- Name: IX_project_tasks_LeafIdentity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_project_tasks_LeafIdentity" ON public.project_tasks USING btree ("ProjectId", "ProjectServiceId", "Period", "Phase", "Title") WHERE ("DeletedAtUtc" IS NULL);
+
+
+--
+-- Name: IX_project_tasks_Priority; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_tasks_Priority" ON public.project_tasks USING btree ("Priority");
+
+
+--
+-- Name: IX_project_tasks_ProjectId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_tasks_ProjectId" ON public.project_tasks USING btree ("ProjectId");
+
+
+--
+-- Name: IX_project_tasks_ProjectServiceId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_tasks_ProjectServiceId" ON public.project_tasks USING btree ("ProjectServiceId");
+
+
+--
+-- Name: IX_project_tasks_Stage; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_tasks_Stage" ON public.project_tasks USING btree ("Stage");
+
+
+--
+-- Name: IX_project_team_members_DepartmentId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_team_members_DepartmentId" ON public.project_team_members USING btree ("DepartmentId");
+
+
+--
+-- Name: IX_project_team_members_EmployeeId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_team_members_EmployeeId" ON public.project_team_members USING btree ("EmployeeId");
+
+
+--
+-- Name: IX_project_team_members_ProjectId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_project_team_members_ProjectId" ON public.project_team_members USING btree ("ProjectId");
+
+
+--
+-- Name: IX_project_team_members_ProjectId_EmployeeId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_project_team_members_ProjectId_EmployeeId" ON public.project_team_members USING btree ("ProjectId", "EmployeeId") WHERE ("DeletedAtUtc" IS NULL);
+
+
+--
+-- Name: IX_projects_ClientId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_projects_ClientId" ON public.projects USING btree ("ClientId");
+
+
+--
+-- Name: IX_projects_EngagementManagerId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_projects_EngagementManagerId" ON public.projects USING btree ("EngagementManagerId");
+
+
+--
+-- Name: IX_projects_ProjectCode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_projects_ProjectCode" ON public.projects USING btree ("ProjectCode");
+
+
+--
+-- Name: IX_projects_ProjectManagerId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_projects_ProjectManagerId" ON public.projects USING btree ("ProjectManagerId");
+
+
+--
+-- Name: IX_projects_RenewedFromProjectId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_projects_RenewedFromProjectId" ON public.projects USING btree ("RenewedFromProjectId");
+
+
+--
+-- Name: IX_projects_SalesPersonId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_projects_SalesPersonId" ON public.projects USING btree ("SalesPersonId");
+
+
+--
+-- Name: IX_projects_Status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_projects_Status" ON public.projects USING btree ("Status");
+
+
+--
+-- Name: IX_projects_SubVentureId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_projects_SubVentureId" ON public.projects USING btree ("SubVentureId");
+
+
+--
+-- Name: IX_projects_TeamLeadId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_projects_TeamLeadId" ON public.projects USING btree ("TeamLeadId");
+
+
+--
+-- Name: IX_projects_WbsId; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_projects_WbsId" ON public.projects USING btree ("WbsId");
+
+
+--
+-- Name: IX_projects_WbsStatus; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IX_projects_WbsStatus" ON public.projects USING btree ("WbsStatus");
+
+
+--
+-- Name: IX_refresh_tokens_TokenHash; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_refresh_tokens_TokenHash" ON public.refresh_tokens USING btree ("TokenHash");
 
 
 --
--- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_refresh_tokens_UserId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_refresh_tokens_UserId" ON public.refresh_tokens USING btree ("UserId");
 
 
 --
--- Name: IX_repository_Category; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_repository_Category; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_repository_Category" ON public.repository USING btree ("Category");
 
 
 --
--- Name: IX_repository_DeletedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_repository_DeletedAtUtc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_repository_DeletedAtUtc" ON public.repository USING btree ("DeletedAtUtc");
 
 
 --
--- Name: IX_repository_activity_logs_CreatedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_repository_activity_logs_CreatedAtUtc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_repository_activity_logs_CreatedAtUtc" ON public.repository_activity_logs USING btree ("CreatedAtUtc");
 
 
 --
--- Name: IX_repository_activity_logs_DeletedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_repository_activity_logs_DeletedAtUtc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_repository_activity_logs_DeletedAtUtc" ON public.repository_activity_logs USING btree ("DeletedAtUtc");
 
 
 --
--- Name: IX_repository_departments_DepartmentId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_repository_departments_DepartmentId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_repository_departments_DepartmentId" ON public.repository_departments USING btree ("DepartmentId");
 
 
 --
--- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_role_permission_audits_CreatedAtUtc" ON public.role_permission_audits USING btree ("CreatedAtUtc");
 
 
 --
--- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_role_permission_audits_RoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_role_permission_audits_RoleId" ON public.role_permission_audits USING btree ("RoleId");
 
 
 --
--- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_roles_Name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_roles_Name" ON public.roles USING btree ("Name");
 
 
 --
--- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_sub_ventures_ClientId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_sub_ventures_ClientId" ON public.sub_ventures USING btree ("ClientId");
 
 
 --
--- Name: IX_team_day_entries_EmployeeId_WorkDate; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_team_day_entries_EmployeeId_WorkDate; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_team_day_entries_EmployeeId_WorkDate" ON public.team_day_entries USING btree ("EmployeeId", "WorkDate") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_team_member_holidays_EmployeeId_HolidayDate; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_team_member_holidays_EmployeeId_HolidayDate; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_team_member_holidays_EmployeeId_HolidayDate" ON public.team_member_holidays USING btree ("EmployeeId", "HolidayDate") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_team_member_schedules_EmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_team_member_schedules_EmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_team_member_schedules_EmployeeId" ON public.team_member_schedules USING btree ("EmployeeId") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_timesheet_entries_TimesheetWeekId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_timesheet_entries_TimesheetWeekId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_timesheet_entries_TimesheetWeekId" ON public.timesheet_entries USING btree ("TimesheetWeekId");
 
 
 --
--- Name: IX_timesheet_entry_days_TimesheetEntryId_DayIndex; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_timesheet_entry_days_TimesheetEntryId_DayIndex; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_timesheet_entry_days_TimesheetEntryId_DayIndex" ON public.timesheet_entry_days USING btree ("TimesheetEntryId", "DayIndex") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_timesheets_EmployeeId_WeekStart; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_timesheets_EmployeeId_WeekStart; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_timesheets_EmployeeId_WeekStart" ON public.timesheets USING btree ("EmployeeId", "WeekStart") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_Email; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_users_Email" ON public.users USING btree ("Email");
 
 
 --
--- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_EmployeeId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_users_EmployeeId" ON public.users USING btree ("EmployeeId");
 
 
 --
--- Name: IX_users_MicrosoftOid; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_MicrosoftOid; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IX_users_MicrosoftOid" ON public.users USING btree ("MicrosoftOid") WHERE ("MicrosoftOid" IS NOT NULL);
 
 
 --
--- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: postgres
+-- Name: IX_users_RoleId; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IX_users_RoleId" ON public.users USING btree ("RoleId");
 
 
 --
--- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_assignments FK_client_assignments_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -3753,7 +4475,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_assignments FK_client_assignments_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_assignments
@@ -3761,7 +4483,7 @@ ALTER TABLE ONLY public.client_assignments
 
 
 --
--- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_contacts FK_client_contacts_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -3769,7 +4491,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: client_contacts FK_client_contacts_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client_contacts
@@ -3777,7 +4499,7 @@ ALTER TABLE ONLY public.client_contacts
 
 
 --
--- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -3785,7 +4507,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_employees_SalesManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_employees_SalesManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -3793,7 +4515,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -3801,7 +4523,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -3809,7 +4531,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: clients FK_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
@@ -3817,7 +4539,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: employees FK_employees_employees_EngagementManagerEmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_employees_EngagementManagerEmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3825,7 +4547,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_employees_ProjectManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_employees_ProjectManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3833,7 +4555,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3841,7 +4563,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3849,7 +4571,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3857,7 +4579,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_employee_statuses_EmployeeStatusId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_employee_statuses_EmployeeStatusId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3865,7 +4587,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3873,7 +4595,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3881,7 +4603,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3889,7 +4611,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employees FK_employees_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -3897,7 +4619,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_cities
@@ -3905,7 +4627,7 @@ ALTER TABLE ONLY public.mst_cities
 
 
 --
--- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -3913,7 +4635,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_reporting_managers FK_mst_reporting_managers_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_reporting_managers
@@ -3921,7 +4643,7 @@ ALTER TABLE ONLY public.mst_reporting_managers
 
 
 --
--- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_roles
@@ -3929,7 +4651,191 @@ ALTER TABLE ONLY public.mst_roles
 
 
 --
--- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_service_catalog FK_mst_service_catalog_mst_service_sub_departments_SubDepartmen; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_service_catalog
+    ADD CONSTRAINT "FK_mst_service_catalog_mst_service_sub_departments_SubDepartmen" FOREIGN KEY ("SubDepartmentId") REFERENCES public.mst_service_sub_departments("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: mst_service_departments FK_mst_service_departments_mst_service_groups_GroupId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_service_departments
+    ADD CONSTRAINT "FK_mst_service_departments_mst_service_groups_GroupId" FOREIGN KEY ("GroupId") REFERENCES public.mst_service_groups("Id") ON DELETE RESTRICT;
+
+
+--
+-- Name: mst_service_sub_departments FK_mst_service_sub_departments_mst_service_departments_Departme; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mst_service_sub_departments
+    ADD CONSTRAINT "FK_mst_service_sub_departments_mst_service_departments_Departme" FOREIGN KEY ("DepartmentId") REFERENCES public.mst_service_departments("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: project_documents FK_project_documents_projects_ProjectId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_documents
+    ADD CONSTRAINT "FK_project_documents_projects_ProjectId" FOREIGN KEY ("ProjectId") REFERENCES public.projects("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: project_invoices FK_project_invoices_projects_ProjectId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_invoices
+    ADD CONSTRAINT "FK_project_invoices_projects_ProjectId" FOREIGN KEY ("ProjectId") REFERENCES public.projects("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: project_services FK_project_services_mst_service_catalog_ServiceCatalogId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_services
+    ADD CONSTRAINT "FK_project_services_mst_service_catalog_ServiceCatalogId" FOREIGN KEY ("ServiceCatalogId") REFERENCES public.mst_service_catalog("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: project_services FK_project_services_projects_ProjectId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_services
+    ADD CONSTRAINT "FK_project_services_projects_ProjectId" FOREIGN KEY ("ProjectId") REFERENCES public.projects("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: project_task_assignment_history FK_project_task_assignment_history_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_task_assignment_history
+    ADD CONSTRAINT "FK_project_task_assignment_history_employees_EmployeeId" FOREIGN KEY ("EmployeeId") REFERENCES public.employees("Id") ON DELETE RESTRICT;
+
+
+--
+-- Name: project_task_assignment_history FK_project_task_assignment_history_project_tasks_TaskId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_task_assignment_history
+    ADD CONSTRAINT "FK_project_task_assignment_history_project_tasks_TaskId" FOREIGN KEY ("TaskId") REFERENCES public.project_tasks("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: project_task_assignments FK_project_task_assignments_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_task_assignments
+    ADD CONSTRAINT "FK_project_task_assignments_employees_EmployeeId" FOREIGN KEY ("EmployeeId") REFERENCES public.employees("Id") ON DELETE RESTRICT;
+
+
+--
+-- Name: project_task_assignments FK_project_task_assignments_project_tasks_TaskId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_task_assignments
+    ADD CONSTRAINT "FK_project_task_assignments_project_tasks_TaskId" FOREIGN KEY ("TaskId") REFERENCES public.project_tasks("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: project_tasks FK_project_tasks_project_services_ProjectServiceId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_tasks
+    ADD CONSTRAINT "FK_project_tasks_project_services_ProjectServiceId" FOREIGN KEY ("ProjectServiceId") REFERENCES public.project_services("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: project_tasks FK_project_tasks_projects_ProjectId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_tasks
+    ADD CONSTRAINT "FK_project_tasks_projects_ProjectId" FOREIGN KEY ("ProjectId") REFERENCES public.projects("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: project_team_members FK_project_team_members_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_team_members
+    ADD CONSTRAINT "FK_project_team_members_employees_EmployeeId" FOREIGN KEY ("EmployeeId") REFERENCES public.employees("Id") ON DELETE RESTRICT;
+
+
+--
+-- Name: project_team_members FK_project_team_members_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_team_members
+    ADD CONSTRAINT "FK_project_team_members_mst_departments_DepartmentId" FOREIGN KEY ("DepartmentId") REFERENCES public.mst_departments("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: project_team_members FK_project_team_members_projects_ProjectId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.project_team_members
+    ADD CONSTRAINT "FK_project_team_members_projects_ProjectId" FOREIGN KEY ("ProjectId") REFERENCES public.projects("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: projects FK_projects_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT "FK_projects_clients_ClientId" FOREIGN KEY ("ClientId") REFERENCES public.clients("Id") ON DELETE RESTRICT;
+
+
+--
+-- Name: projects FK_projects_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT "FK_projects_employees_EngagementManagerId" FOREIGN KEY ("EngagementManagerId") REFERENCES public.employees("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: projects FK_projects_employees_ProjectManagerId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT "FK_projects_employees_ProjectManagerId" FOREIGN KEY ("ProjectManagerId") REFERENCES public.employees("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: projects FK_projects_employees_SalesPersonId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT "FK_projects_employees_SalesPersonId" FOREIGN KEY ("SalesPersonId") REFERENCES public.employees("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: projects FK_projects_employees_TeamLeadId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT "FK_projects_employees_TeamLeadId" FOREIGN KEY ("TeamLeadId") REFERENCES public.employees("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: projects FK_projects_projects_RenewedFromProjectId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT "FK_projects_projects_RenewedFromProjectId" FOREIGN KEY ("RenewedFromProjectId") REFERENCES public.projects("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: projects FK_projects_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT "FK_projects_sub_ventures_SubVentureId" FOREIGN KEY ("SubVentureId") REFERENCES public.sub_ventures("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: refresh_tokens FK_refresh_tokens_users_UserId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.refresh_tokens
@@ -3937,7 +4843,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- Name: repository_departments FK_repository_departments_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: repository_departments FK_repository_departments_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.repository_departments
@@ -3945,7 +4851,7 @@ ALTER TABLE ONLY public.repository_departments
 
 
 --
--- Name: repository_departments FK_repository_departments_repository_RepositoryItemId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: repository_departments FK_repository_departments_repository_RepositoryItemId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.repository_departments
@@ -3953,7 +4859,7 @@ ALTER TABLE ONLY public.repository_departments
 
 
 --
--- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: role_permission_audits FK_role_permission_audits_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_permission_audits
@@ -3961,7 +4867,7 @@ ALTER TABLE ONLY public.role_permission_audits
 
 
 --
--- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: sub_ventures FK_sub_ventures_clients_ClientId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sub_ventures
@@ -3969,7 +4875,7 @@ ALTER TABLE ONLY public.sub_ventures
 
 
 --
--- Name: team_day_entries FK_team_day_entries_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: team_day_entries FK_team_day_entries_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.team_day_entries
@@ -3977,7 +4883,7 @@ ALTER TABLE ONLY public.team_day_entries
 
 
 --
--- Name: team_member_holidays FK_team_member_holidays_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: team_member_holidays FK_team_member_holidays_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.team_member_holidays
@@ -3985,7 +4891,7 @@ ALTER TABLE ONLY public.team_member_holidays
 
 
 --
--- Name: team_member_schedules FK_team_member_schedules_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: team_member_schedules FK_team_member_schedules_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.team_member_schedules
@@ -3993,7 +4899,7 @@ ALTER TABLE ONLY public.team_member_schedules
 
 
 --
--- Name: timesheet_entries FK_timesheet_entries_timesheets_TimesheetWeekId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: timesheet_entries FK_timesheet_entries_timesheets_TimesheetWeekId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.timesheet_entries
@@ -4001,7 +4907,7 @@ ALTER TABLE ONLY public.timesheet_entries
 
 
 --
--- Name: timesheet_entry_days FK_timesheet_entry_days_timesheet_entries_TimesheetEntryId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: timesheet_entry_days FK_timesheet_entry_days_timesheet_entries_TimesheetEntryId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.timesheet_entry_days
@@ -4009,7 +4915,7 @@ ALTER TABLE ONLY public.timesheet_entry_days
 
 
 --
--- Name: timesheets FK_timesheets_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: timesheets FK_timesheets_employees_EmployeeId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.timesheets
@@ -4017,7 +4923,7 @@ ALTER TABLE ONLY public.timesheets
 
 
 --
--- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users FK_users_roles_RoleId; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -4025,7 +4931,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: mst_designations mst_designations_DefaultRoleId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_designations mst_designations_DefaultRoleId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_designations
@@ -4033,7 +4939,7 @@ ALTER TABLE ONLY public.mst_designations
 
 
 --
--- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mst_offices
@@ -4044,5 +4950,5 @@ ALTER TABLE ONLY public.mst_offices
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NoZn7skxFr1YrvfYczmZp5XCq7VCxXATO0r3lgGXUYf24WSMzmsgodRpK0HgK1a
+\unrestrict ghnNnMfKQIyKjbvMMUKzdd2c8jXVdA5UsEUa3jQlKeJeTXBWT1I3iwFgUJdqp2W
 
