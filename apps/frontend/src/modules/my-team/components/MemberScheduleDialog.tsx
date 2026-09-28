@@ -183,11 +183,6 @@ export function MemberScheduleDialog({
               </span>
             </div>
 
-            <p className="text-[11.5px] text-muted-foreground mb-3">
-              Configure which days {member.name} works. Days unselected will be treated as{" "}
-              <strong className="text-[#3d3d5c] dark:text-slate-200">Weekly Off</strong>.
-            </p>
-
             {/* Quick Presets */}
             <div className="flex flex-wrap gap-1.5 mb-3">
               <span className="text-[10px] font-semibold text-slate-400 self-center mr-1">
@@ -256,10 +251,6 @@ export function MemberScheduleDialog({
                 </h3>
               </div>
             </div>
-
-            <p className="text-[11.5px] text-muted-foreground mb-3">
-              Add custom holidays specific to {member.name}&apos;s location, onsite client schedule, or regional calendar.
-            </p>
 
             {/* Add Holiday Form */}
             <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-800/40">
@@ -379,9 +370,6 @@ export function MemberScheduleDialog({
                 Schedule Notes & Comments
               </h3>
             </div>
-            <p className="text-[11.5px] text-muted-foreground mb-2">
-              Add any general context or remarks regarding this employee&apos;s schedule, client timezone, or onsite deployment.
-            </p>
             <textarea
               rows={2}
               value={notes}

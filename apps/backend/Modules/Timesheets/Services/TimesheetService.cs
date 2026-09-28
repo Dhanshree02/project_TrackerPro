@@ -149,6 +149,10 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
             db.TimesheetWeeks.Add(week);
         }
 
+        var preserved = week.Entries
+            .SelectMany(entry => entry.Days.Select(day => (entry.ProjectKey, entry.TaskKey, day.DayIndex, day.Hours, day.Comment)))
+            .ToDictionary(item => (item.ProjectKey, item.TaskKey, item.DayIndex), item => (item.Hours, item.Comment));
+        var today = TodayInIst();
         var now = DateTime.UtcNow;
         var oldIds = week.Entries.Select(e => e.Id).ToList();
         foreach (var existing in week.Entries.ToList())
@@ -192,15 +196,20 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
             db.TimesheetEntries.Add(entry);
             foreach (var day in line.Days.OrderBy(d => d.DayIndex))
             {
-                total += day.Hours;
-                var cell = new TimesheetEntryDay
+                var open = IsDayOpen(request.WeekStart, day.DayIndex, today);
+                preserved.TryGetValue((entry.ProjectKey, entry.TaskKey, day.DayIndex), out var previous);
+                var hours = open ? day.Hours : previous.Hours;
+                var comment = open
+                    ? (string.IsNullOrWhiteSpace(day.Comment) ? null : day.Comment.Trim())
+                    : previous.Comment;
+                total += hours;
+                entry.Days.Add(new TimesheetEntryDay
                 {
                     TimesheetEntryId = entry.Id,
                     DayIndex = day.DayIndex,
-                    Hours = day.Hours,
-                    Comment = string.IsNullOrWhiteSpace(day.Comment) ? null : day.Comment.Trim(),
-                };
-                entry.Days.Add(cell);
+                    Hours = hours,
+                    Comment = comment,
+                });
             }
 
             week.Entries.Add(entry);
@@ -240,6 +249,27 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
             ?? throw new ForbiddenException("Your user is not linked to an employee.");
         return await db.Employees.FirstOrDefaultAsync(e => e.UserId == userId, ct)
             ?? throw new ForbiddenException("Your user is not linked to an employee.");
+    }
+
+    private static bool IsDayOpen(DateOnly weekStart, short dayIndex, DateOnly today)
+    {
+        var date = weekStart.AddDays(dayIndex);
+        return date >= today.AddDays(-7) && date <= today.AddDays(2);
+    }
+
+    private static DateOnly TodayInIst()
+    {
+        TimeZoneInfo tz;
+        try
+        {
+            tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            tz = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+        }
+
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz));
     }
 
     private static void EnsureMonday(DateOnly weekStart)

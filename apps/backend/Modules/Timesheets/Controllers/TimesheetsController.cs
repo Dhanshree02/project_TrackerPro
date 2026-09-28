@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using PMS.API.Infrastructure.Authentication;
-using PMS.API.Infrastructure.Authorization;
 using PMS.API.Modules.Timesheets.DTOs;
 using PMS.API.Modules.Timesheets.Services;
 using PMS.API.Shared.Common.Wrappers;
-using PMS.API.Shared.Constants;
 
 namespace PMS.API.Modules.Timesheets.Controllers;
 
@@ -13,7 +10,6 @@ namespace PMS.API.Modules.Timesheets.Controllers;
 public class TimesheetsController(ITimesheetService timesheets) : ControllerBase
 {
     [HttpGet("mine")]
-    [RequirePermission(Permissions.TimesheetsSubmit)]
     public async Task<ActionResult<ApiResponse<TimesheetWeekDto?>>> Mine(
         [FromQuery] DateOnly weekStart,
         CancellationToken ct)
@@ -22,7 +18,6 @@ public class TimesheetsController(ITimesheetService timesheets) : ControllerBase
     }
 
     [HttpGet("mine/previous")]
-    [RequirePermission(Permissions.TimesheetsSubmit)]
     public async Task<ActionResult<ApiResponse<TimesheetWeekDto?>>> Previous(
         [FromQuery] DateOnly weekStart,
         CancellationToken ct)
@@ -31,7 +26,6 @@ public class TimesheetsController(ITimesheetService timesheets) : ControllerBase
     }
 
     [HttpPut("mine")]
-    [RequirePermission(Permissions.TimesheetsSubmit)]
     public async Task<ActionResult<ApiResponse<TimesheetWeekDto>>> SaveDraft(
         [FromBody] SaveTimesheetRequest request,
         CancellationToken ct)
@@ -40,7 +34,6 @@ public class TimesheetsController(ITimesheetService timesheets) : ControllerBase
     }
 
     [HttpPost("mine/submit")]
-    [RequirePermission(Permissions.TimesheetsSubmit)]
     public async Task<ActionResult<ApiResponse<TimesheetWeekDto>>> Submit(
         [FromBody] SaveTimesheetRequest request,
         CancellationToken ct)
@@ -51,14 +44,10 @@ public class TimesheetsController(ITimesheetService timesheets) : ControllerBase
     [HttpGet("approvals")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<TimesheetWeekDto>>>> Approvals(CancellationToken ct)
     {
-        var canReadOwn = User.HasClaim(AuthClaimTypes.Permission, Permissions.TimesheetsSubmit);
-        var canReview = User.HasClaim(AuthClaimTypes.Permission, Permissions.TimesheetsApprove);
-        if (!canReadOwn && !canReview) return Forbid();
         return Ok(ApiResponse<IReadOnlyList<TimesheetWeekDto>>.Ok(await timesheets.ListForApprovalAsync(ct)));
     }
 
     [HttpPost("{id:guid}/decisions")]
-    [RequirePermission(Permissions.TimesheetsApprove)]
     public async Task<ActionResult<ApiResponse<TimesheetWeekDto>>> Decide(
         Guid id,
         [FromBody] DecideTimesheetRequest request,

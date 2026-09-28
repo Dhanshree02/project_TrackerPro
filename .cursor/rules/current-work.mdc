@@ -18,6 +18,8 @@ alwaysApply: true
 
 ## Latest
 
+- **Schedule dialog no longer shows the working-day, holiday, and notes explanations.** Older days and anything further ahead are locked, and the week arrows stop at that window. The week request no longer depends on the timesheet-submit permission, which was returning 403 and the red “Could not load this week's timesheet” toast.
+
 - **`database/trackerpro-final.sql` was regenerated from the local `trackerpro` database.** It is a full schema and data dump (46 public tables), including projects, services, tasks, assignments, team members, and assignment history. `project_service_resource_levels` is not in the dump. Table ownership is left unset so the script does not depend on the local database role.
 
 - **AP estimated hours show one Project Team member’s share after Assign.** The service row stays on the full service estimate and does not move when people are assigned. On the AP row, a task with Project Team members contributes one person’s share (520 with 2 people shows 0.0 / 260.0). The share is stored on `project_task_assignments.AllocatedHours`. Shadow Team stays assigned at 0. Utilized hours are not filled in by Assign; completion comes later.

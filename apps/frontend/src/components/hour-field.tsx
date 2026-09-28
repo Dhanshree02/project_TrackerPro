@@ -6,10 +6,12 @@ export function HourField({
   value,
   onChange,
   label,
+  disabled = false,
 }: {
   value: number;
   onChange: (hours: number) => void;
   label: string;
+  disabled?: boolean;
 }) {
   const [text, setText] = useState(value === 0 ? "" : String(value));
 
@@ -25,7 +27,10 @@ export function HourField({
       aria-label={label}
       value={text}
       placeholder="0"
+      disabled={disabled}
+      readOnly={disabled}
       onChange={(event) => {
+        if (disabled) return;
         const raw = event.target.value;
         if (raw !== "" && !/^\d{0,2}(\.\d?)?$/.test(raw)) return;
         setText(raw);
@@ -37,6 +42,7 @@ export function HourField({
         "h-8 w-11 rounded-md bg-muted/40 text-center text-sm tabular-nums text-foreground outline-none",
         "placeholder:text-muted-foreground/35",
         "focus:bg-background focus:ring-2 focus:ring-primary/25",
+        disabled && "cursor-not-allowed opacity-40 focus:ring-0",
       )}
     />
   );
