@@ -7,9 +7,13 @@ public static class TaskValidationRules
 {
     public static readonly string[] ValidStages =
     [
-        "Ready to Start",
+        "Not Started",
+        "Assigned",
         "Ongoing",
         "Completed",
+        "On Hold",
+        "Cancelled",
+        "Ready to Start",
         "On Hold (Internal)",
         "On Hold (Client End)",
         "After Release"

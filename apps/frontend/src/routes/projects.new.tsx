@@ -782,8 +782,8 @@ function WbsNewProjectPage() {
       status: (p.status as any) || "ongoing",
       health: (p.health as any) || "green",
       progress: p.progress ?? 0,
-      pmId: p.projectManagerId ?? "u3",
-      tlId: p.teamLeadId ?? "u5",
+      pmId: p.projectManagerId ?? "",
+      tlId: p.teamLeadId ?? "",
       teamIds: [],
       startDate: p.startDate ?? "2026-04-01",
       endDate: p.endDate ?? "2026-10-31",
@@ -1016,6 +1016,7 @@ function WbsNewProjectPage() {
       if (snap.projectType) setProjectType(snap.projectType);
       if (snap.billingModel) setBillingModel(snap.billingModel);
       if (snap.paymentTerms) setPaymentTerms(snap.paymentTerms);
+      if (snap.customPayments?.length) setCustomPayments(snap.customPayments);
       setCurrency("INR");
       if (snap.taxPercent != null) setTaxPercent(snap.taxPercent);
       if (snap.poStatus) setPoStatus(snap.poStatus);
@@ -1156,7 +1157,6 @@ function WbsNewProjectPage() {
     setPickerOpen(false);
     // Rebuild service rows
     const rows: ServiceRow[] = [];
-    let rowNum = 1;
     Object.entries(newSelected).forEach(([dept, svcs]) => {
       Object.keys(svcs as Record<string, boolean>).forEach((svcId) => {
         const svc =
@@ -1184,9 +1184,12 @@ function WbsNewProjectPage() {
           rows.push(updatedExisting);
         } else {
           const isResource = DEPT_GROUPS[dept] === "Resource";
+          let nextNum = 1;
+          const taken = new Set(rows.map((row) => row.taskId));
+          while (taken.has(`WBS-${String(nextNum).padStart(2, "0")}`)) nextNum++;
           const newRow = {
             rowId: svcId,
-            taskId: `WBS-${String(rowNum + 1).padStart(2, "0")}`,
+            taskId: `WBS-${String(nextNum).padStart(2, "0")}`,
             dept,
             subDept: svc.subDept,
             name: svc.name,
@@ -1214,7 +1217,6 @@ function WbsNewProjectPage() {
           newRow.endDate = computeEndDate(newRow);
           rows.push(newRow);
         }
-        rowNum++;
       });
     });
     // Remove deselected rows
@@ -1344,10 +1346,13 @@ function WbsNewProjectPage() {
 
   function onBillingModelChange(model: string) {
     setBillingModel(model);
-    // Payment Terms is only editable when Custom — always clear it on any change
-    setPaymentTerms("");
-    // Reset custom payments back to default when switching billing model
-    setCustomPayments([{ label: "First Payment", pct: 100 }]);
+    if (model === "Custom") {
+      setPaymentTerms("");
+      setCustomPayments([{ label: "First Payment", pct: 100 }]);
+    } else {
+      setPaymentTerms(PAYMENT_TERMS_MAP[model] ? PAYMENT_TERMS_MAP[model].join(", ") : "");
+      setCustomPayments([{ label: "First Payment", pct: 100 }]);
+    }
   }
 
   // Helper to update specific fields on an invoice row
@@ -1566,6 +1571,7 @@ function WbsNewProjectPage() {
       taxPercent,
       services: serviceRows.map((r) => ({
         id: r.rowId,
+        taskId: r.taskId,
         department: r.dept,
         subDepartment: r.subDept || "",
         serviceName: r.name,
@@ -1595,7 +1601,10 @@ function WbsNewProjectPage() {
         poNumber,
         poDate,
         billingModel,
-        paymentTerms,
+        paymentTerms:
+          billingModel === "Custom"
+            ? customPayments.map((p, i) => `${p.pct}% ${p.label || `Payment ${i + 1}`}`).join(" + ")
+            : paymentTerms,
         targetDate,
         contactName,
         contactNumber,
@@ -1651,6 +1660,7 @@ function WbsNewProjectPage() {
       projectIssuedDate,
       billingModel,
       paymentTerms,
+      customPayments,
       currency,
       taxPercent,
       poStatus,
@@ -1846,10 +1856,6 @@ function WbsNewProjectPage() {
       if (total !== 100) {
         return `Custom payment terms must total 100% (currently ${total}%)`;
       }
-    } else {
-      if (!paymentTerms.trim()) {
-        return "Payment Terms is required";
-      }
     }
 
     if (!currency.trim()) {
@@ -2016,8 +2022,11 @@ function WbsNewProjectPage() {
             engagementManager,
             salesPerson,
             billingModel,
-            paymentTerms,
-            poStatus: poFile ? "Uploaded" : (poStatus || null),
+            paymentTerms:
+              billingModel === "Custom"
+                ? customPayments.map((p, i) => `${p.pct}% ${p.label || `Payment ${i + 1}`}`).join(" + ")
+                : (paymentTerms || null),
+            poStatus: poStatus || null,
             poNumber: poNumber || null,
             poDate: poDate || null,
             targetDate: targetDate || null,
@@ -2037,6 +2046,7 @@ function WbsNewProjectPage() {
               const r = serviceRows[i];
               try {
                 await addProjectService(backendProj.id, {
+                  taskId: r.taskId,
                   department: r.dept,
                   subDepartment: r.subDept || null,
                   serviceName: r.name,
@@ -3803,9 +3813,9 @@ function WbsNewProjectPage() {
                 <input
                   type="text"
                   value={paymentTerms}
-                  readOnly
-                  placeholder={billingModel ? "Auto-set by billing model" : "—"}
-                  style={inputStyle(true, !!paymentTerms)}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                  placeholder={billingModel ? (PAYMENT_TERMS_MAP[billingModel]?.join(", ") || "Optional payment terms") : "—"}
+                  style={inputStyle(false, !!paymentTerms)}
                 />
               )}
             </FormGroup>

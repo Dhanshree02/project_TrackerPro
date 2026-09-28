@@ -24,6 +24,12 @@ public sealed class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectT
         builder.HasIndex(x => x.Stage);
         builder.HasIndex(x => x.Priority);
 
+        // One active leaf task per service + quarter + AP + title.
+        builder.HasIndex(x => new { x.ProjectId, x.ProjectServiceId, x.Period, x.Phase, x.Title })
+            .IsUnique()
+            .HasFilter("\"DeletedAtUtc\" IS NULL")
+            .HasDatabaseName("IX_project_tasks_LeafIdentity");
+
         builder.HasOne(x => x.Project)
             .WithMany()
             .HasForeignKey(x => x.ProjectId)

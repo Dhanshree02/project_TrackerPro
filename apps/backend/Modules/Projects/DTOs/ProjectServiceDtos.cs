@@ -1,14 +1,5 @@
 namespace PMS.API.Modules.Projects.DTOs;
 
-public sealed record ProjectServiceResourceLevelDto(
-    Guid Id,
-    string Level,
-    int Count);
-
-public sealed record ResourceLevelInput(
-    string Level,
-    int Count);
-
 public sealed record ProjectServiceDto(
     Guid Id,
     Guid ProjectId,
@@ -37,7 +28,6 @@ public sealed record ProjectServiceDto(
     decimal? UnitPrice,
     decimal? Total,
     int SortOrder,
-    IReadOnlyList<ProjectServiceResourceLevelDto> ResourceLevels,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc);
 
@@ -62,8 +52,7 @@ public sealed record CreateProjectServiceRequest(
     DateOnly? EndDate = null,
     int? DurationDays = null,
     decimal? UnitPrice = null,
-    int SortOrder = 0,
-    List<ResourceLevelInput>? ResourceLevels = null);
+    int SortOrder = 0);
 
 public sealed record UpdateProjectServiceRequest(
     string? Department = null,
@@ -84,8 +73,4 @@ public sealed record UpdateProjectServiceRequest(
     DateOnly? EndDate = null,
     int? DurationDays = null,
     decimal? UnitPrice = null,
-    int? SortOrder = null,
-    List<ResourceLevelInput>? ResourceLevels = null);
-
-public sealed record SetResourceLevelsRequest(
-    List<ResourceLevelInput> Levels);
+    int? SortOrder = null);

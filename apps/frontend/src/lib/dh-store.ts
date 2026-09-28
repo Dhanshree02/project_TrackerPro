@@ -2393,7 +2393,7 @@ export const dhStore = {
           id: `${id}-svc-${svc.id}`,
           title: svc.serviceName || svc.department,
           status: "todo" as const,
-          assigneeId: "u3",
+          assigneeId: "",
           dueDate: svc.endDate || input.endDate,
           progress: 0,
           serviceId: svc.id,
@@ -2412,8 +2412,8 @@ export const dhStore = {
       status: "ongoing",
       health: "green",
       progress: 0,
-      pmId: "u3",
-      tlId: "u5",
+      pmId: "",
+      tlId: "",
       teamIds: [],
       startDate: input.startDate,
       endDate: input.endDate,
@@ -2600,7 +2600,8 @@ export const dhStore = {
       if (!proj.wbsDetails.accounts) return;
       proj.wbsDetails.accounts.poFileName = fileName;
       proj.wbsDetails.accounts.poFileDataUrl = dataUrl;
-      if (!proj.wbsDetails.accounts.poStatus || proj.wbsDetails.accounts.poStatus === "PO Pending") {
+      const current = proj.wbsDetails.accounts.poStatus;
+      if (current !== "PO Not Required") {
         proj.wbsDetails.accounts.poStatus = "PO Received";
       }
     };

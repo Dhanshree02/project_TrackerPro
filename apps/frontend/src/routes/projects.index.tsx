@@ -539,17 +539,22 @@ function ProjectsPage() {
                 return (
                   <tr
                     key={p.id}
-                    onClick={() =>
-                      navigate({ to: "/projects/$projectId", params: { projectId: p.id } })
-                    }
-                    className="hover:bg-accent/50 cursor-pointer transition-colors group"
+                    className="hover:bg-accent/50 transition-colors"
                   >
-                    <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground group-hover:text-primary font-medium transition-colors">
+                    <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground font-medium">
                       {p.projectSeqId || p.id.toUpperCase()}
                     </td>
-                    <td className="px-3 py-2.5 font-medium group-hover:text-primary transition-colors">
+                    <td className="px-3 py-2.5 font-medium">
                       <div className="flex flex-col items-start gap-1">
-                        <span>{p.name}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate({ to: "/projects/$projectId", params: { projectId: p.id } })
+                          }
+                          className="text-left font-medium text-foreground hover:text-primary hover:underline transition-colors cursor-pointer"
+                        >
+                          {p.name}
+                        </button>
                         {isRenewedProject(p) && <RenewedProjectTag />}
                       </div>
                     </td>

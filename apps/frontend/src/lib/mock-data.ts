@@ -68,11 +68,14 @@ export interface WBSNode {
 
 export interface WbsService {
   id: string;
+  /** Onboarding Service ID, e.g. WBS-01. */
+  taskId?: string;
   department: string;
   subDepartment?: string;
   serviceName: string;
   qty: number;
   description: string;
+  resourceLevel?: string;
   frequency: string;
   location: string;
   locationText?: string;

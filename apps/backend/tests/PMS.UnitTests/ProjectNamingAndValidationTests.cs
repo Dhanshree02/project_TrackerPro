@@ -1,5 +1,6 @@
 using FluentValidation.TestHelper;
 using PMS.API.Modules.Projects.DTOs;
+using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Projects.Services;
 using PMS.API.Modules.Projects.Validators;
 
@@ -76,39 +77,6 @@ public class ProjectNamingAndValidationTests
 
         var result = validator.TestValidate(request);
         result.ShouldHaveValidationErrorFor(x => x.Qty);
-    }
-
-    [Fact]
-    public void CreateProjectServiceValidator_ValidatesResourceLevelSum()
-    {
-        var validator = new CreateProjectServiceValidator();
-        var request = new CreateProjectServiceRequest(
-            Qty: 4,
-            ResourceLevels:
-            [
-                new ResourceLevelInput("L1", 2),
-                new ResourceLevelInput("L2", 1) // sum = 3, but Qty = 4
-            ]);
-
-        var result = validator.TestValidate(request);
-        result.ShouldHaveValidationErrorFor(x => x);
-    }
-
-    [Fact]
-    public void CreateProjectServiceValidator_PassesWhenResourceLevelSumMatchesQty()
-    {
-        var validator = new CreateProjectServiceValidator();
-        var request = new CreateProjectServiceRequest(
-            Qty: 3,
-            ResourceLevels:
-            [
-                new ResourceLevelInput("L1", 1),
-                new ResourceLevelInput("L2", 1),
-                new ResourceLevelInput("Senior", 1) // sum = 3 == Qty
-            ]);
-
-        var result = validator.TestValidate(request);
-        result.ShouldNotHaveValidationErrorFor(x => x);
     }
 
     [Fact]
@@ -260,6 +228,40 @@ public class ProjectNamingAndValidationTests
 
         var result = validator.TestValidate(request);
         result.ShouldNotHaveValidationErrorFor(x => x.DocumentType);
+    }
+
+    [Fact]
+    public void SplitHoursEvenly_RemainderKeepsTheOriginalTotal()
+    {
+        var shares = ProjectTaskService.SplitHoursEvenly(500m, 3);
+
+        Assert.Equal([166.67m, 166.67m, 166.66m], shares);
+        Assert.Equal(500m, shares.Sum());
+    }
+
+    [Fact]
+    public void ApplyProjectTeamHourSplit_DividesTaskHoursAndSkipsShadowTeam()
+    {
+        var projectTeamA = Guid.Parse("00000000-0000-4000-8000-000000000010");
+        var projectTeamB = Guid.Parse("00000000-0000-4000-8000-000000000019");
+        var shadow = Guid.Parse("00000000-0000-4000-8000-000000000102");
+        var task = new ProjectTask { Title = "Task 01", EstimatedHours = 520m, Stage = "Not Started", UtilizedHours = 0m };
+        var assignments = new List<ProjectTaskAssignment>
+        {
+            new() { EmployeeId = projectTeamB, IsActive = true },
+            new() { EmployeeId = projectTeamA, IsActive = true },
+            new() { EmployeeId = shadow, IsActive = true, UtilizedHours = 9m },
+        };
+
+        ProjectTaskService.ApplyProjectTeamHourSplit(task, assignments, new HashSet<Guid> { projectTeamA, projectTeamB });
+
+        Assert.Equal(260m, assignments.Single(a => a.EmployeeId == projectTeamA).AllocatedHours);
+        Assert.Equal(260m, assignments.Single(a => a.EmployeeId == projectTeamB).AllocatedHours);
+        Assert.Equal(0m, assignments.Single(a => a.EmployeeId == projectTeamA).UtilizedHours);
+        Assert.Equal(0m, assignments.Single(a => a.EmployeeId == projectTeamB).UtilizedHours);
+        Assert.Equal(0m, assignments.Single(a => a.EmployeeId == shadow).AllocatedHours);
+        Assert.Equal(0m, assignments.Single(a => a.EmployeeId == shadow).UtilizedHours);
+        Assert.Equal(0m, task.UtilizedHours);
     }
 }
 

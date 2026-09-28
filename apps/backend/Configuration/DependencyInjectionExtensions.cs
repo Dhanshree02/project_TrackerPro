@@ -57,6 +57,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectAppService, ProjectAppService>();
         services.AddScoped<IProjectDraftService, ProjectDraftService>();
         services.AddScoped<IProjectTeamMemberService, ProjectTeamMemberService>();
+        services.AddScoped<IProjectTaskService, ProjectTaskService>();
 
         // ---- FluentValidation validators (scanned from this assembly) ----
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);

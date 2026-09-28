@@ -90,11 +90,11 @@ public class AppDbContext(
 
     public DbSet<ProjectServiceEntity> ProjectServices => Set<ProjectServiceEntity>();
 
-    public DbSet<ProjectServiceResourceLevel> ProjectServiceResourceLevels => Set<ProjectServiceResourceLevel>();
-
     public DbSet<ProjectTask> ProjectTasks => Set<ProjectTask>();
 
     public DbSet<ProjectTaskAssignment> ProjectTaskAssignments => Set<ProjectTaskAssignment>();
+
+    public DbSet<ProjectTaskAssignmentHistory> ProjectTaskAssignmentHistories => Set<ProjectTaskAssignmentHistory>();
 
     public DbSet<ProjectInvoice> ProjectInvoices => Set<ProjectInvoice>();
 

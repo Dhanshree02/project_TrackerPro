@@ -273,7 +273,6 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
         var services = await db.ProjectServices
-            .Include(s => s.ResourceLevels)
             .Where(s => s.ProjectId == projectId)
             .OrderBy(s => s.SortOrder)
             .ThenBy(s => s.CreatedAtUtc)
@@ -285,7 +284,6 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
     public async Task<ProjectServiceDto?> GetProjectServiceByIdAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
     {
         var service = await db.ProjectServices
-            .Include(s => s.ResourceLevels)
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct);
 
         return service == null ? null : MapToServiceDto(service);
@@ -333,12 +331,6 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var totalHours = qty * durationHours;
         var total = qty * unitPrice;
 
-        var resourceLevelStr = request.ResourceLevel;
-        if (string.IsNullOrWhiteSpace(resourceLevelStr) && request.ResourceLevels != null && request.ResourceLevels.Count > 0)
-        {
-            resourceLevelStr = string.Join(", ", request.ResourceLevels.Where(l => l.Count > 0).Select(l => $"{l.Level}={l.Count}"));
-        }
-
         var service = new ProjectServiceEntity
         {
             ProjectId = projectId,
@@ -349,7 +341,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             ServiceName = serviceName,
             Qty = qty,
             Description = request.Description,
-            ResourceLevel = resourceLevelStr,
+            ResourceLevel = request.ResourceLevel,
             Frequency = request.Frequency ?? "Once",
             Location = request.Location ?? "Offsite",
             LocationText = request.LocationText,
@@ -369,18 +361,6 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             SortOrder = request.SortOrder
         };
 
-        if (request.ResourceLevels != null && request.ResourceLevels.Count > 0)
-        {
-            foreach (var r in request.ResourceLevels)
-            {
-                service.ResourceLevels.Add(new ProjectServiceResourceLevel
-                {
-                    Level = r.Level,
-                    Count = r.Count
-                });
-            }
-        }
-
         db.ProjectServices.Add(service);
         await db.SaveChangesAsync(ct);
 
@@ -393,7 +373,6 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
     public async Task<ProjectServiceDto> UpdateProjectServiceAsync(Guid projectId, Guid serviceId, UpdateProjectServiceRequest request, CancellationToken ct = default)
     {
         var service = await db.ProjectServices
-            .Include(s => s.ResourceLevels)
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
             ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
 
@@ -423,27 +402,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         service.TotalHours = service.Qty * (service.DurationHours ?? 40);
         service.Total = service.Qty * (service.UnitPrice ?? 0m);
 
-        if (request.ResourceLevels != null)
-        {
-            db.ProjectServiceResourceLevels.RemoveRange(service.ResourceLevels);
-            service.ResourceLevels.Clear();
-
-            foreach (var r in request.ResourceLevels)
-            {
-                service.ResourceLevels.Add(new ProjectServiceResourceLevel
-                {
-                    ProjectServiceId = service.Id,
-                    Level = r.Level,
-                    Count = r.Count
-                });
-            }
-
-            service.ResourceLevel = string.Join(", ", request.ResourceLevels.Where(l => l.Count > 0).Select(l => $"{l.Level}={l.Count}"));
-        }
-        else if (request.ResourceLevel != null)
-        {
-            service.ResourceLevel = request.ResourceLevel;
-        }
+        if (request.ResourceLevel != null) service.ResourceLevel = request.ResourceLevel;
 
         await db.SaveChangesAsync(ct);
 
@@ -465,38 +424,6 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         await RecalculateProjectRollupsAsync(projectId, ct);
 
         return true;
-    }
-
-    public async Task<ProjectServiceDto> SetResourceLevelsAsync(Guid projectId, Guid serviceId, SetResourceLevelsRequest request, CancellationToken ct = default)
-    {
-        var service = await db.ProjectServices
-            .Include(s => s.ResourceLevels)
-            .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
-            ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
-
-        var totalAllocated = request.Levels.Sum(l => l.Count);
-        if (totalAllocated != service.Qty)
-        {
-            throw new ConflictException($"Sum of resource distribution counts ({totalAllocated}) must equal service Quantity ({service.Qty}).");
-        }
-
-        db.ProjectServiceResourceLevels.RemoveRange(service.ResourceLevels);
-        service.ResourceLevels.Clear();
-
-        foreach (var r in request.Levels)
-        {
-            service.ResourceLevels.Add(new ProjectServiceResourceLevel
-            {
-                ProjectServiceId = service.Id,
-                Level = r.Level,
-                Count = r.Count
-            });
-        }
-
-        service.ResourceLevel = string.Join(", ", request.Levels.Where(l => l.Count > 0).Select(l => $"{l.Level}={l.Count}"));
-
-        await db.SaveChangesAsync(ct);
-        return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
     }
 
     private async Task RecalculateProjectRollupsAsync(Guid projectId, CancellationToken ct)
@@ -600,12 +527,34 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
         var tasks = await db.ProjectTasks
             .Include(t => t.ProjectService)
+            .Include(t => t.Project)
             .Where(t => t.ProjectId == projectId)
             .OrderBy(t => t.SortOrder)
             .ThenBy(t => t.CreatedAtUtc)
             .ToListAsync(ct);
 
-        return tasks.Select(MapToTaskDto).ToList();
+        var taskIds = tasks.Select(t => t.Id).ToList();
+        var assignments = await db.ProjectTaskAssignments
+            .Include(a => a.Employee)
+            .Where(a => taskIds.Contains(a.TaskId) && a.IsActive)
+            .ToListAsync(ct);
+        var projectTeamIds = await LoadProjectTeamIdsAsync(projectId, ct);
+        var hoursChanged = false;
+        foreach (var task in tasks)
+        {
+            var taskAssignments = assignments.Where(a => a.TaskId == task.Id).ToList();
+            var beforeTask = task.UtilizedHours;
+            var beforeAllocations = taskAssignments.Select(a => (a.AllocatedHours, a.UtilizedHours)).ToList();
+            ProjectTaskService.ApplyProjectTeamHourSplit(task, taskAssignments, projectTeamIds);
+            if (task.UtilizedHours != beforeTask
+                || taskAssignments.Where((a, i) => a.AllocatedHours != beforeAllocations[i].AllocatedHours || a.UtilizedHours != beforeAllocations[i].UtilizedHours).Any())
+                hoursChanged = true;
+        }
+        if (hoursChanged) await db.SaveChangesAsync(ct);
+
+        var byTask = assignments.GroupBy(a => a.TaskId).ToDictionary(g => g.Key, g => g.ToList());
+
+        return tasks.Select(t => MapToTaskDto(t, byTask.GetValueOrDefault(t.Id))).ToList();
     }
 
     public async Task<ProjectTaskDto?> GetProjectTaskByIdAsync(Guid projectId, Guid taskId, CancellationToken ct = default)
@@ -613,8 +562,14 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var task = await db.ProjectTasks
             .Include(t => t.ProjectService)
             .FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct);
+        if (task == null) return null;
 
-        return task == null ? null : MapToTaskDto(task);
+        var assignments = await db.ProjectTaskAssignments
+            .Include(a => a.Employee)
+            .Where(a => a.TaskId == taskId && a.IsActive)
+            .ToListAsync(ct);
+
+        return MapToTaskDto(task, assignments);
     }
 
     public async Task<ProjectTaskDto> CreateProjectTaskAsync(Guid projectId, CreateProjectTaskRequest request, CancellationToken ct = default)
@@ -678,8 +633,15 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         if (request.ActualEndDate.HasValue) task.ActualEndDate = request.ActualEndDate;
         if (request.EstimatedHours.HasValue) task.EstimatedHours = request.EstimatedHours;
         if (request.UtilizedHours.HasValue) task.UtilizedHours = request.UtilizedHours.Value;
+        if (request.Stage != null || request.EstimatedHours.HasValue)
+            await ReapplyProjectTeamHourSplitAsync(projectId, task, ct);
         if (request.Progress.HasValue) task.Progress = request.Progress.Value;
         if (request.SortOrder.HasValue) task.SortOrder = request.SortOrder.Value;
+
+        if (task.ActualStartDate.HasValue && task.ActualEndDate.HasValue && task.ActualEndDate < task.ActualStartDate)
+        {
+            throw new ConflictException("Actual end date must not be before actual start date.");
+        }
 
         await db.SaveChangesAsync(ct);
 
@@ -704,6 +666,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             ?? throw new NotFoundException($"Project Task with ID '{taskId}' was not found.");
 
         task.Stage = stage;
+        await ReapplyProjectTeamHourSplitAsync(projectId, task, ct);
 
         if (stage.Equals("Ongoing", StringComparison.OrdinalIgnoreCase) && !task.ActualStartDate.HasValue)
         {
@@ -720,73 +683,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         return (await GetProjectTaskByIdAsync(projectId, taskId, ct))!;
     }
 
-    public async Task<AutoGeneratedTasksSummaryDto> AutoGenerateTasksFromServicesAsync(Guid projectId, CancellationToken ct = default)
-    {
-        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
-            ?? throw new NotFoundException($"Project with ID '{projectId}' was not found.");
-
-        var services = await db.ProjectServices
-            .Where(s => s.ProjectId == projectId)
-            .OrderBy(s => s.SortOrder)
-            .ThenBy(s => s.CreatedAtUtc)
-            .ToListAsync(ct);
-
-        var newTasks = new List<ProjectTask>();
-        int order = 1;
-
-        foreach (var service in services)
-        {
-            if (service.Qty <= 1)
-            {
-                newTasks.Add(new ProjectTask
-                {
-                    ProjectId = projectId,
-                    ProjectServiceId = service.Id,
-                    Title = service.ServiceName,
-                    Description = service.Description,
-                    Period = "Q1",
-                    Phase = "Execution",
-                    Stage = "Ready to Start",
-                    Priority = "medium",
-                    PlannedStartDate = service.StartDate ?? project.StartDate,
-                    PlannedEndDate = service.EndDate ?? project.EndDate,
-                    EstimatedHours = service.TotalHours ?? ((service.DurationDays ?? 5) * 8),
-                    SortOrder = order++ * 10
-                });
-            }
-            else
-            {
-                var hoursPerUnit = service.DurationHours ?? ((service.DurationDays ?? 5) * 8);
-                for (int i = 1; i <= service.Qty; i++)
-                {
-                    newTasks.Add(new ProjectTask
-                    {
-                        ProjectId = projectId,
-                        ProjectServiceId = service.Id,
-                        Title = $"{service.ServiceName} (Part {i})",
-                        Description = service.Description,
-                        Period = "Q1",
-                        Phase = "Execution",
-                        Stage = "Ready to Start",
-                        Priority = "medium",
-                        PlannedStartDate = service.StartDate ?? project.StartDate,
-                        PlannedEndDate = service.EndDate ?? project.EndDate,
-                        EstimatedHours = hoursPerUnit,
-                        SortOrder = order++ * 10
-                    });
-                }
-            }
-        }
-
-        if (newTasks.Count > 0)
-        {
-            db.ProjectTasks.AddRange(newTasks);
-            await db.SaveChangesAsync(ct);
-        }
-
-        var createdTaskDtos = newTasks.Select(MapToTaskDto).ToList();
-        return new AutoGeneratedTasksSummaryDto(projectId, newTasks.Count, createdTaskDtos);
-    }
+    public Task<AutoGeneratedTasksSummaryDto> AutoGenerateTasksFromServicesAsync(Guid projectId, CancellationToken ct = default)
+        => new ProjectTaskService(db).GenerateMissingTasksAsync(projectId, ct);
 
     // ── Task Assignments & Timer Methods ──
 
@@ -814,6 +712,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         if (!employeeExists)
             throw new NotFoundException($"Employee with ID '{request.EmployeeId}' was not found.");
 
+        await ProjectTaskService.EnsureOnProjectTeamAsync(db, projectId, request.EmployeeId, ct);
+
         var existing = await db.ProjectTaskAssignments
             .Include(a => a.Employee)
             .FirstOrDefaultAsync(a => a.TaskId == taskId && a.EmployeeId == request.EmployeeId, ct);
@@ -827,6 +727,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             existing.Role = request.Role ?? existing.Role;
             if (request.AllocatedHours.HasValue) existing.AllocatedHours = request.AllocatedHours;
             await db.SaveChangesAsync(ct);
+            await new ProjectTaskService(db).DistributeProjectTeamHoursAsync(projectId, taskId, ct);
             return MapToAssignmentDto(existing);
         }
 
@@ -843,6 +744,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
         db.ProjectTaskAssignments.Add(assignment);
         await db.SaveChangesAsync(ct);
+        await new ProjectTaskService(db).DistributeProjectTeamHoursAsync(projectId, taskId, ct);
 
         var created = await db.ProjectTaskAssignments
             .Include(a => a.Employee)
@@ -884,6 +786,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
         db.ProjectTaskAssignments.Remove(assignment);
         await db.SaveChangesAsync(ct);
+        await new ProjectTaskService(db).DistributeProjectTeamHoursAsync(projectId, taskId, ct);
         return true;
     }
 
@@ -1253,7 +1156,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
         if (docType.Equals("PO", StringComparison.OrdinalIgnoreCase))
         {
-            project.PoStatus = "Uploaded";
+            project.PoStatus = "PO Received";
         }
 
         db.ProjectDocuments.Add(doc);
@@ -1381,7 +1284,6 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         if (request.CloneServices)
         {
             var origServices = await db.ProjectServices
-                .Include(s => s.ResourceLevels)
                 .Where(s => s.ProjectId == id)
                 .OrderBy(s => s.SortOrder)
                 .ToListAsync(ct);
@@ -1417,15 +1319,6 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
                     Total = os.Total,
                     SortOrder = os.SortOrder
                 };
-
-                foreach (var rl in os.ResourceLevels)
-                {
-                    newService.ResourceLevels.Add(new ProjectServiceResourceLevel
-                    {
-                        Level = rl.Level,
-                        Count = rl.Count
-                    });
-                }
 
                 db.ProjectServices.Add(newService);
                 await db.SaveChangesAsync(ct);
@@ -1489,7 +1382,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
         if (request.Services != null)
         {
-            var existingServices = await db.ProjectServices.Include(s => s.ResourceLevels).Where(s => s.ProjectId == id).ToListAsync(ct);
+            var existingServices = await db.ProjectServices.Where(s => s.ProjectId == id).ToListAsync(ct);
             db.ProjectServices.RemoveRange(existingServices);
             await db.SaveChangesAsync(ct);
 
@@ -1522,7 +1415,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var project = await db.Projects.Include(p => p.Client).FirstOrDefaultAsync(p => p.Id == id, ct)
             ?? throw new NotFoundException($"Project with ID '{id}' was not found.");
 
-        var services = await db.ProjectServices.Include(s => s.ResourceLevels).Where(s => s.ProjectId == id).ToListAsync(ct);
+        var services = await db.ProjectServices.Where(s => s.ProjectId == id).ToListAsync(ct);
         if (services.Count == 0)
         {
             throw new ConflictException("Cannot publish WBS: At least one Project Service must be configured in Section A.");
@@ -1639,13 +1532,39 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             s.UnitPrice,
             s.Total,
             s.SortOrder,
-            s.ResourceLevels.Select(r => new ProjectServiceResourceLevelDto(r.Id, r.Level, r.Count)).ToList(),
             s.CreatedAtUtc,
             s.UpdatedAtUtc);
     }
 
-    private static ProjectTaskDto MapToTaskDto(ProjectTask t)
+    private async Task<HashSet<Guid>> LoadProjectTeamIdsAsync(Guid projectId, CancellationToken ct)
     {
+        var ids = await db.ProjectTeamMembers
+            .Where(m => m.ProjectId == projectId && !m.IsShadowTeam)
+            .Select(m => m.EmployeeId)
+            .ToListAsync(ct);
+        return ids.ToHashSet();
+    }
+
+    /// <summary>
+    /// Keeps a leaf task's utilized hours on the Project Team split when people are assigned.
+    /// Otherwise the existing completed-stage rule still applies.
+    /// </summary>
+    private async Task ReapplyProjectTeamHourSplitAsync(Guid projectId, ProjectTask task, CancellationToken ct)
+    {
+        var assignments = await db.ProjectTaskAssignments
+            .Where(a => a.TaskId == task.Id && a.IsActive)
+            .ToListAsync(ct);
+        var projectTeamIds = await LoadProjectTeamIdsAsync(projectId, ct);
+        ProjectTaskService.ApplyProjectTeamHourSplit(task, assignments, projectTeamIds);
+    }
+
+    private static ProjectTaskDto MapToTaskDto(ProjectTask t, IReadOnlyList<ProjectTaskAssignment>? assignments = null)
+    {
+        var mapped = (assignments ?? [])
+            .Where(a => a.IsActive)
+            .Select(MapToAssignmentDto)
+            .ToList();
+
         return new ProjectTaskDto(
             t.Id,
             t.ProjectId,
@@ -1666,7 +1585,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             t.Progress,
             t.SortOrder,
             t.CreatedAtUtc,
-            t.UpdatedAtUtc);
+            t.UpdatedAtUtc,
+            mapped);
     }
 
     private static ProjectTaskAssignmentDto MapToAssignmentDto(ProjectTaskAssignment a)

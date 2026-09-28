@@ -31,8 +31,6 @@ public interface IProjectAppService
 
     Task<bool> DeleteProjectServiceAsync(Guid projectId, Guid serviceId, CancellationToken ct = default);
 
-    Task<ProjectServiceDto> SetResourceLevelsAsync(Guid projectId, Guid serviceId, SetResourceLevelsRequest request, CancellationToken ct = default);
-
     Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, CancellationToken ct = default);
 
     Task<ProjectTaskDto?> GetProjectTaskByIdAsync(Guid projectId, Guid taskId, CancellationToken ct = default);

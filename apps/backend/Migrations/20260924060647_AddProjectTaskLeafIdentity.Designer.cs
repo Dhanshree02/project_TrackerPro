@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PMS.API.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using PMS.API.Infrastructure.Persistence;
 namespace PMS.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260924060647_AddProjectTaskLeafIdentity")]
+    partial class AddProjectTaskLeafIdentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1111,6 +1114,46 @@ namespace PMS.API.Migrations
                     b.ToTable("project_services", (string)null);
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectServiceResourceLevel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("ProjectServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectServiceId", "Level")
+                        .IsUnique();
+
+                    b.ToTable("project_service_resource_levels", (string)null);
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectTask", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1266,62 +1309,6 @@ namespace PMS.API.Migrations
                     b.HasIndex("TaskId", "EmployeeId");
 
                     b.ToTable("project_task_assignments", (string)null);
-                });
-
-            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectTaskAssignmentHistory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("OccurredAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ResourceName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid>("TaskId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("TeamType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("TaskId");
-
-                    b.HasIndex("TaskId", "OccurredAtUtc");
-
-                    b.ToTable("project_task_assignment_history", (string)null);
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectTeamMember", b =>
@@ -3305,6 +3292,17 @@ namespace PMS.API.Migrations
                     b.Navigation("ServiceCatalog");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectServiceResourceLevel", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Projects.Models.ProjectServiceEntity", "ProjectService")
+                        .WithMany("ResourceLevels")
+                        .HasForeignKey("ProjectServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProjectService");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectTask", b =>
                 {
                     b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
@@ -3324,25 +3322,6 @@ namespace PMS.API.Migrations
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectTaskAssignment", b =>
-                {
-                    b.HasOne("PMS.API.Modules.Resources.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PMS.API.Modules.Projects.Models.ProjectTask", "Task")
-                        .WithMany()
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("Task");
-                });
-
-            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectTaskAssignmentHistory", b =>
                 {
                     b.HasOne("PMS.API.Modules.Resources.Models.Employee", "Employee")
                         .WithMany()
@@ -3565,6 +3544,11 @@ namespace PMS.API.Migrations
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.MstServiceSubDepartment", b =>
                 {
                     b.Navigation("Services");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectServiceEntity", b =>
+                {
+                    b.Navigation("ResourceLevels");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Repository.Models.RepositoryItem", b =>

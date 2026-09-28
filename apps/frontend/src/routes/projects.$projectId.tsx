@@ -22,13 +22,20 @@ import {
   uploadProjectDocument,
   getProjectDocumentDownloadUrl,
   updateTaskStage,
+  updateProjectTask,
   addTaskAssignment,
+  generateProjectTasks,
+  fetchAssignableTaskResources,
+  fetchTaskAssignmentHistory,
+  syncTaskAssignments,
   fetchProjectTasks,
   fetchProjectServices,
   fetchProjectInvoices,
   createProjectInvoice,
   updateProjectInvoice,
   type ApiProject,
+  type ApiProjectTask,
+  type ApiTaskAssignmentHistoryEntry,
 } from "@/lib/api/projects";
 import {
   fetchProjectTeamMembers,
@@ -612,7 +619,7 @@ function ProjectDetail() {
   const poFileUrl = poDoc?.dataUrl || project.wbsDetails?.accounts?.poFileDataUrl || "";
   const poStatus = project.wbsDetails?.accounts?.poStatus || "";
   const showPoDocumentPanel = Boolean(project.wbsDetails?.accounts) && poStatus !== "PO Not Required";
-  const canAttachPo = (isDhanshree || isAccounts || isPmoFamily) && !isViewOnly;
+  const canAttachPo = (isDhanshree || isAccounts || isPmoFamily || isSales) && !isViewOnly;
   const [poPreviewOpen, setPoPreviewOpen] = useState(false);
 
   const handleDownloadPO = () => {
@@ -1444,10 +1451,53 @@ function WbsTab({
   const hideAmounts = isPmFamily || hideBudget;
   const hidePrereq = isPmFamily || isAccounts;
   const canRaise = isDhanshree || isAccounts;
+  const [apiWbsServices, setApiWbsServices] = useState<WbsService[] | null>(null);
+  const [confirmPaidId, setConfirmPaidId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isApiGuid(project.id)) return;
+    let active = true;
+    fetchProjectServices(project.id)
+      .then((rows) => {
+        if (!active) return;
+        setApiWbsServices(rows.map((s) => ({
+          id: s.id,
+          taskId: s.taskId || "",
+          department: s.department || "",
+          subDepartment: s.subDepartment || "",
+          serviceName: s.serviceName,
+          qty: s.qty || 1,
+          description: s.description || "",
+          resourceLevel: s.resourceLevel || "",
+          frequency: s.frequency || "Once",
+          location: s.location || "",
+          locationText: s.locationText || "",
+          serviceModel: s.serviceModel || "",
+          deliveryModel: s.deliveryModel || "",
+          finalDeliveryFormat: s.finalDeliveryFormat || "",
+          billingModel: s.billingModel || "",
+          tools: s.tools || "",
+          startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
+          endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
+          duration: s.durationDays || 0,
+          totalDays: s.totalDays || s.durationDays || 0,
+          totalHrs: s.totalHours || ((s.totalDays || s.durationDays || 0) * 8),
+          unitPrice: s.unitPrice || 0,
+          total: s.total || 0,
+        })));
+      })
+      .catch(() => {
+        if (active) setApiWbsServices(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
 
   if (project.wbsDetails) {
     const wbsDetails = project.wbsDetails;
-    const totalServices = wbsDetails.services.reduce((acc: number, curr: any) => acc + curr.total, 0);
+    const deliverableServices = apiWbsServices && apiWbsServices.length > 0 ? apiWbsServices : wbsDetails.services;
+    const totalServices = deliverableServices.reduce((acc: number, curr: any) => acc + (curr.total || 0), 0);
     const tax = totalServices * 0.18;
     const grandTotal = totalServices + tax;
     const currency = wbsDetails.currency || project.currency || "INR";
@@ -1513,10 +1563,10 @@ function WbsTab({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {wbsDetails.services.map((svc: any) => (
+                {deliverableServices.map((svc: any, serviceIndex: number) => (
                   <tr key={svc.id} className="hover:bg-accent/25 transition-colors">
                     <td className="px-4 py-2.5 font-medium whitespace-nowrap">{svc.department}</td>
-                    <td className="px-4 py-2.5 font-mono text-muted-foreground whitespace-nowrap">{svc.id}</td>
+                    <td className="px-4 py-2.5 font-mono text-muted-foreground whitespace-nowrap">{displayServiceId(svc, serviceIndex)}</td>
                     <td className="px-4 py-2.5 font-semibold text-foreground whitespace-nowrap">{svc.serviceName}</td>
                     <td className="px-4 py-2.5 max-w-[320px] truncate cursor-default text-muted-foreground" title={svc.description}>{svc.description || "—"}</td>
                     <td className="px-4 py-2.5 text-center font-medium whitespace-nowrap">{svc.resourceLevel || "—"}</td>
@@ -1536,7 +1586,7 @@ function WbsTab({
                     <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : "—")}</td>
                   </tr>
                 ))}
-                {wbsDetails.services.length === 0 && (
+                {deliverableServices.length === 0 && (
                   <tr><td colSpan={19} className="px-4 py-8 text-center text-sm text-muted-foreground">No services defined.</td></tr>
                 )}
               </tbody>
@@ -1578,7 +1628,7 @@ function WbsTab({
                 <tbody className="divide-y divide-border">
                   {wbsDetails.accounts.invoices.map((inv: any) => {
                     const liveInv = snapshotInvoices.find(
-                      (li) => li.projectId === project.id && (li.id === inv.id || li.milestone === inv.milestone)
+                      (li) => li.projectId === project.id && li.id === inv.id
                     );
                     const isPaid = liveInv?.paymentStatus === "Received";
                     const isRaised = liveInv?.invoiceStatus === "Raised";
@@ -1621,11 +1671,7 @@ function WbsTab({
                               </span>
                               {canRaise && (
                                 <button
-                                  onClick={() => {
-                                    const invId = liveInv?.id || inv.id;
-                                    dhStore.updatePaymentStatus(project.id, invId, "Received", user.id, user.name);
-                                    toast.success("Payment marked as Received");
-                                  }}
+                                  onClick={() => setConfirmPaidId(liveInv?.id || inv.id)}
                                   className="inline-flex items-center gap-1 rounded bg-success px-2 py-0.5 text-[10px] font-semibold text-success-foreground hover:bg-success/90 cursor-pointer"
                                 >
                                   Mark Paid
@@ -1660,6 +1706,34 @@ function WbsTab({
         )}
 
         {poDocumentPanel}
+
+        {confirmPaidId && (
+          <Modal title="Mark as Paid" onClose={() => setConfirmPaidId(null)}>
+            <div className="space-y-4">
+              <p className="text-sm text-foreground">Do you really want to mark this invoice as paid?</p>
+              <div className="flex justify-end gap-2 border-t border-border pt-4">
+                <button
+                  type="button"
+                  onClick={() => setConfirmPaidId(null)}
+                  className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium hover:bg-accent cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    dhStore.updatePaymentStatus(project.id, confirmPaidId, "Received", user.id, user.name);
+                    toast.success("Payment marked as Received");
+                    setConfirmPaidId(null);
+                  }}
+                  className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
 
       </div>
     );
@@ -1840,6 +1914,12 @@ function InfoRow({ label, value, muted }: { label: string; value: string; muted?
   );
 }
 
+function overviewPoStatus(status: string | undefined, hasDocument: boolean): string | undefined {
+  if (status === "PO Not Required") return status;
+  if (hasDocument || status === "Uploaded" || status === "PO Received") return "PO Received";
+  return status;
+}
+
 function DetailField({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="min-w-0 rounded-md bg-muted/30 px-3 py-2">
@@ -2013,14 +2093,9 @@ function OverviewTab({
     if (prereq?.assignedPmIds?.length) {
       return prereq.assignedPmIds.map(getPerson).filter(Boolean);
     }
-    if ((project as any).projectManagerId) {
-      return [getPerson((project as any).projectManagerId)].filter(Boolean);
-    }
-    if (project.pmId) {
-      return [getPerson(project.pmId)].filter(Boolean);
-    }
-    if ((project as any).projectManagerName) {
-      return [getPerson((project as any).projectManagerName)].filter(Boolean);
+    const savedPmId = (project as any).projectManagerId || project.pmId;
+    if (savedPmId && isApiGuid(savedPmId)) {
+      return [getPerson(savedPmId)].filter(Boolean);
     }
     return [];
   }, [leadershipAssignment, prereq, project, knownPeople]);
@@ -2034,12 +2109,9 @@ function OverviewTab({
       const list = prereq.assignedTlIds.map(getPerson).filter(Boolean) as Person[];
       if (list.length > 0) return list;
     }
-    if (project.teamLeadId) {
-      const p = getPerson(project.teamLeadId);
-      if (p) return [p];
-    }
-    if (project.tlId) {
-      const p = getPerson(project.tlId);
+    const savedTlId = project.teamLeadId || project.tlId;
+    if (savedTlId && isApiGuid(savedTlId)) {
+      const p = getPerson(savedTlId);
       if (p) return [p];
     }
     if (project.teamLeadName?.trim()) {
@@ -2062,6 +2134,7 @@ function OverviewTab({
 
   const wbs = project.wbsDetails;
   const hasWbsData = !!(project.wbsId || wbs);
+  const poDocName = useDhStore((s) => s.poDocuments[project.id]?.fileName) || wbs?.accounts?.poFileName || "";
 
   // Derive project start date as the earliest service start date and end date as the latest service end date
   const services = (wbs?.services ?? []) as any[];
@@ -2145,7 +2218,7 @@ function OverviewTab({
                 { label: "Currency", value: currency },
                 { label: "Billing Model", value: wbs?.accounts?.billingModel },
                 { label: "Payment Terms", value: wbs?.accounts?.paymentTerms },
-                { label: "PO Status", value: wbs?.accounts?.poStatus },
+                { label: "PO Status", value: overviewPoStatus(wbs?.accounts?.poStatus, Boolean(poDocName)) },
               ]
                 .filter((f) => Boolean(f.value?.trim()))
                 .map((f) => (
@@ -3208,6 +3281,10 @@ interface TreeTask {
   stage: TreeTaskStage;
   assigneeIds: string[];
   estHoursPerTask: number;
+  /** One Project Team member's share of this task. The AP row shows this instead of the full task estimate. */
+  assignedEstHours?: number;
+  utilizedHours?: number;
+  dbId?: string;
 }
 
 interface APFolder {
@@ -3222,9 +3299,17 @@ interface QuarterFolder {
   aps: APFolder[];
 }
 
+function displayServiceId(svc: { taskId?: string | null; id?: string | null }, index: number): string {
+  const code = (svc.taskId || "").trim();
+  if (code && !isApiGuid(code)) return code;
+  return `WBS-${String(index + 1).padStart(2, "0")}`;
+}
+
 interface ServiceFolder {
   serviceId: string;
+  serviceCode: string;
   serviceName: string;
+  resourceLevel: string;
   wbsStartDate: string;
   wbsEndDate: string;
   estimatedHours: number;
@@ -3277,7 +3362,7 @@ function buildServiceTree(project: Project, store: any): ServiceFolder[] {
     : dummyWbsServices(project);
   const usingDummy = !project.wbsDetails?.services?.length;
 
-  return services.map((svc) => {
+  return services.map((svc, serviceIndex) => {
     const qty = svc.qty || 1;
     const freq = (svc.frequency || "Once").toLowerCase();
     const serviceModel = svc.serviceModel || "Initial Test";
@@ -3350,7 +3435,9 @@ function buildServiceTree(project: Project, store: any): ServiceFolder[] {
       }
       return {
         serviceId: svc.id,
+        serviceCode: displayServiceId(svc, serviceIndex),
         serviceName: svc.serviceName || svc.department,
+        resourceLevel: svc.resourceLevel || "",
         wbsStartDate: svc.startDate,
         wbsEndDate: svc.endDate,
         estimatedHours: estHours,
@@ -3368,7 +3455,9 @@ function buildServiceTree(project: Project, store: any): ServiceFolder[] {
       });
       return {
         serviceId: svc.id,
+        serviceCode: displayServiceId(svc, serviceIndex),
         serviceName: svc.serviceName || svc.department,
+        resourceLevel: svc.resourceLevel || "",
         wbsStartDate: svc.startDate,
         wbsEndDate: svc.endDate,
         estimatedHours: estHours,
@@ -3381,19 +3470,133 @@ function buildServiceTree(project: Project, store: any): ServiceFolder[] {
 
 const expandedNodesMap = new Map<string, Set<string>>();
 
+function applyPersistedTasks(folders: ServiceFolder[], tasks: ApiProjectTask[]): ServiceFolder[] {
+  const map = new Map<string, ApiProjectTask>();
+  for (const t of tasks) {
+    map.set(`${t.projectServiceId}|${t.period || ""}|${t.phase || ""}|${t.title}`, t);
+  }
+  const mapTask = (task: TreeTask, serviceId: string, period: string, phase: string): TreeTask => {
+    const hit = map.get(`${serviceId}|${period}|${phase}|${task.taskId}`);
+    if (!hit) return task;
+    const shares = (hit.assignments ?? [])
+      .filter((a) => a.isActive !== false && Number(a.allocatedHours) > 0)
+      .map((a) => Number(a.allocatedHours));
+    return {
+      ...task,
+      dbId: hit.id,
+      actualStartDate: (hit.actualStartDate || "").slice(0, 10),
+      actualEndDate: (hit.actualEndDate || "").slice(0, 10),
+      stage: (hit.stage as TreeTaskStage) || task.stage,
+      assigneeIds: (hit.assignments ?? []).filter((a) => a.isActive !== false).map((a) => a.employeeId),
+      estHoursPerTask: hit.estimatedHours ?? task.estHoursPerTask,
+      assignedEstHours: shares.length > 0 ? Math.max(...shares) : undefined,
+      utilizedHours: hit.utilizedHours ?? 0,
+    };
+  };
+  return folders.map((svc) => ({
+    ...svc,
+    quarters: svc.quarters
+      ? svc.quarters.map((q) => ({
+          ...q,
+          aps: q.aps.map((ap) => ({
+            ...ap,
+            tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, q.label, ap.label)),
+          })),
+        }))
+      : null,
+    aps: svc.aps
+      ? svc.aps.map((ap) => ({
+          ...ap,
+          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, "", ap.label)),
+        }))
+      : null,
+  }));
+}
+
 function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?: boolean }) {
   const snapshot = useDhStore((s) => s);
   const prereq = snapshot.prereqs[project.id];
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
+  const useApiTasks = isApiGuid(project.id);
+  const [dbTasks, setDbTasks] = useState<ApiProjectTask[]>([]);
+  const [apiServices, setApiServices] = useState<WbsService[] | null>(null);
+  const [apiPool, setApiPool] = useState<{ person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[] | null>(null);
+
+  useEffect(() => {
+    if (!useApiTasks) return;
+    let active = true;
+    (async () => {
+      try {
+        const services = await fetchProjectServices(project.id);
+        if (!active) return;
+        setApiServices(services.map((s) => ({
+          id: s.id,
+          taskId: s.taskId || "",
+          department: s.department || "",
+          subDepartment: s.subDepartment || "",
+          serviceName: s.serviceName,
+          resourceLevel: s.resourceLevel || "",
+          qty: s.qty || 1,
+          description: s.description || "",
+          frequency: s.frequency || "Once",
+          location: s.location || "",
+          serviceModel: s.serviceModel || "Initial Test",
+          deliveryModel: s.deliveryModel || "",
+          finalDeliveryFormat: s.finalDeliveryFormat || "",
+          billingModel: s.billingModel || "",
+          tools: s.tools || "",
+          startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
+          endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
+          duration: s.durationDays || 0,
+          totalDays: s.totalDays || s.durationDays || 0,
+          totalHrs: s.totalHours || ((s.totalDays || s.durationDays || 0) * 8),
+          unitPrice: s.unitPrice || 0,
+          total: s.total || 0,
+        })));
+        await generateProjectTasks(project.id);
+        const tasks = await fetchProjectTasks(project.id);
+        if (!active) return;
+        setDbTasks(tasks);
+        const peopleToRegister = tasks.flatMap((t) =>
+          (t.assignments ?? []).map((a) => ({
+            id: a.employeeId,
+            name: a.employeeName,
+            role: a.role || "Team Member",
+            email: a.workEmail || "",
+          })),
+        );
+        if (peopleToRegister.length) dhStore.registerPeople(peopleToRegister);
+      } catch (err) {
+        console.warn("Failed to load project tasks", err);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [project.id, useApiTasks]);
+
+  const treeProject = useMemo(() => {
+    if (!useApiTasks || !apiServices) return project;
+    return {
+      ...project,
+      wbsDetails: {
+        ...(project.wbsDetails ?? { services: [], accounts: { invoices: [] } }),
+        services: apiServices,
+      },
+    } as Project;
+  }, [project, useApiTasks, apiServices]);
 
   const tree = useMemo(() => {
-    return buildServiceTree(project, dhStore);
-  }, [project, snapshot.treeTaskStates]);
+    if (useApiTasks && !apiServices) return [];
+    const built = buildServiceTree(treeProject, dhStore);
+    if (!useApiTasks || dbTasks.length === 0) return built;
+    return applyPersistedTasks(built, dbTasks);
+  }, [treeProject, snapshot.treeTaskStates, useApiTasks, apiServices, dbTasks]);
 
-  const usingDummy = !project.wbsDetails?.services?.length;
+  const usingDummy = useApiTasks ? false : !project.wbsDetails?.services?.length;
 
   const visibleTree = useMemo(() => {
-    if (usingDummy) return tree;
+    if (useApiTasks || usingDummy) return tree;
     if (!prereq) return [];
     return tree.filter((svcFolder) => {
       const pSvc = prereq.services?.find(
@@ -3502,9 +3705,13 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   }, [filteredTree, expandedNodes]);
 
   const [assignFor, setAssignFor] = useState<TreeTask | null>(null);
+  const [assignHistory, setAssignHistory] = useState<ApiTaskAssignmentHistoryEntry[]>([]);
+  const utilizedOf = (t: TreeTask) =>
+    useApiTasks ? Number(t.utilizedHours ?? 0) : (t.stage === "Completed" ? (t.estHoursPerTask || 0) : 0);
   const liveAssignments = useDhStore((s) => s.taskAssignments);
 
   const teamPool = useMemo(() => {
+    if (useApiTasks && apiPool) return apiPool;
     const projectTeamAdditionIds = snapshot.projectTeamAdditions[project.id] ?? [];
     const removedIds = snapshot.projectTeamRemovals[project.id] ?? [];
     const ids = Array.from(new Set([project.pmId, project.tlId, ...project.teamIds, ...projectTeamAdditionIds, ...shadowTeamIds]))
@@ -3513,7 +3720,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
       const person = getPerson(id);
       return { person, isProjectTeam: project.pmId === id || project.tlId === id || project.teamIds.includes(id) || projectTeamAdditionIds.includes(id), isShadowTeam: shadowTeamIds.includes(id) };
     });
-  }, [project, shadowTeamIds, snapshot.projectTeamAdditions, snapshot.projectTeamRemovals]);
+  }, [useApiTasks, apiPool, project, shadowTeamIds, snapshot.projectTeamAdditions, snapshot.projectTeamRemovals]);
 
   const getDescendantTasks = (row: TreeRow): TreeTask[] => {
     if (row.type === "ap") return row.ap.tasks;
@@ -3561,6 +3768,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
           <thead className="sticky top-0 z-10 border-b border-border bg-muted/90 text-center text-xs uppercase tracking-wide text-muted-foreground backdrop-blur-sm">
             <tr>
               <th className="min-w-[280px] whitespace-nowrap px-4 py-3 text-left font-medium">Name &amp; Hierarchy</th>
+              <th className="whitespace-nowrap px-3 py-3 font-medium">Resource Level</th>
               <th className="whitespace-nowrap px-3 py-3 font-medium">Service ID</th>
               <th className="whitespace-nowrap px-3 py-3 font-medium">Start Date</th>
               <th className="whitespace-nowrap px-3 py-3 font-medium">End Date</th>
@@ -3571,7 +3779,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
           <tbody className="divide-y divide-border/40">
             {filteredTree.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   {taskQuery.trim()
                     ? "No services or tasks match your search."
                     : "No active services. Start services from the Prerequisites tab to populate tasks."}
@@ -3582,9 +3790,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                 const descendantTasks = getDescendantTasks(row);
 
                 const totalEstimatedHours = row.type === "service" ? row.service.estimatedHours : 0;
-                const totalUtilizedHours = descendantTasks.reduce((sum, t) => {
-                  return sum + (t.stage === "Completed" ? t.estHoursPerTask : 0);
-                }, 0);
+                const totalUtilizedHours = descendantTasks.reduce((sum, t) => sum + utilizedOf(t), 0);
 
                 const isExpanded = expandedNodes.has(row.id);
                 const depthPadding = row.depth * 28;
@@ -3622,8 +3828,11 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                           <span className="text-foreground">{svc.serviceName}</span>
                         </div>
                       </td>
+                      <td className="px-3 py-3 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
+                        {svc.resourceLevel || "—"}
+                      </td>
                       <td className="px-3 py-3 text-center align-middle font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                        {svc.serviceId}
+                        {svc.serviceCode}
                       </td>
                       <td className="px-3 py-3 text-center align-middle text-xs text-muted-foreground whitespace-nowrap">
                         {formatDateString(svc.wbsStartDate)}
@@ -3671,6 +3880,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                       <td></td>
                       <td></td>
                       <td></td>
+                      <td></td>
                     </tr>
                   );
                 }
@@ -3678,10 +3888,8 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                 if (row.type === "ap") {
                   const ap = row.ap;
                   const svc = row.service;
-                  const apEstimatedHours = descendantTasks.reduce((sum, t) => sum + (t.estHoursPerTask || 0), 0);
-                  const apUtilizedHours = descendantTasks.reduce((sum, t) => {
-                    return sum + (t.stage === "Completed" ? (t.estHoursPerTask || 0) : 0);
-                  }, 0);
+                  const apEstimatedHours = descendantTasks.reduce((sum, t) => sum + (t.assignedEstHours ?? (t.estHoursPerTask || 0)), 0);
+                  const apUtilizedHours = descendantTasks.reduce((sum, t) => sum + utilizedOf(t), 0);
 
                   const nonCancelledTasks = descendantTasks.filter(t => t.stage !== "Cancelled");
                   const totalTasksCount = nonCancelledTasks.length;
@@ -3709,7 +3917,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                   return (
                     <React.Fragment key={row.id}>
                       <tr className="hover:bg-accent/5 text-foreground/80 font-medium border-b border-border/20 py-1 bg-muted/5">
-                        <td colSpan={4} className="px-4 py-2 align-middle text-left whitespace-nowrap" style={{ paddingLeft: `${depthPadding + 16}px` }}>
+                        <td colSpan={5} className="px-4 py-2 align-middle text-left whitespace-nowrap" style={{ paddingLeft: `${depthPadding + 16}px` }}>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => toggleNode(row.id)}
@@ -3733,7 +3941,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
 
                       {isExpanded && (
                         <tr key={`${row.id}-tasks-container`}>
-                          <td colSpan={6} className="bg-transparent pb-4 pt-1.5 pr-4" style={{ paddingLeft: `${depthPadding + 44}px` }}>
+                          <td colSpan={7} className="bg-transparent pb-4 pt-1.5 pr-4" style={{ paddingLeft: `${depthPadding + 44}px` }}>
                             <div className="w-full overflow-hidden">
                               <table className="w-full text-sm text-left border-none bg-transparent">
                                 <thead className="bg-transparent text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/40 z-10">
@@ -3749,7 +3957,9 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                 </thead>
                                 <tbody className="divide-y divide-border/20">
                                   {ap.tasks.map((t) => {
-                                    const liveIds = (liveAssignments[t.id]?.assigneeIds ?? dhStore.getTreeTaskAssignees(project.id, t.id))
+                                    const liveIds = (useApiTasks
+                                      ? t.assigneeIds
+                                      : (liveAssignments[t.id]?.assigneeIds ?? dhStore.getTreeTaskAssignees(project.id, t.id)))
                                       .filter(Boolean);
                                     const assignees = liveIds.map((id) => {
                                       const p = getPerson(id);
@@ -3787,6 +3997,34 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                 const newStart = e.target.value;
                                                 const estHrs = t.estHoursPerTask || 0;
                                                 const autoEndDate = newStart && estHrs > 0 ? addWorkingDaysFromDate(newStart, Math.ceil(estHrs / 8)) : "";
+                                                const nextStage = t.stage === "Not Started" && newStart ? "Ongoing" : t.stage;
+                                                if (useApiTasks && t.dbId) {
+                                                  setDbTasks((prev) => prev.map((row) => row.id === t.dbId
+                                                    ? {
+                                                        ...row,
+                                                        actualStartDate: newStart,
+                                                        actualEndDate: autoEndDate || row.actualEndDate,
+                                                        stage: nextStage,
+                                                        utilizedHours: nextStage === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0,
+                                                      }
+                                                    : row));
+                                                  updateProjectTask(project.id, t.dbId, {
+                                                    actualStartDate: newStart || null,
+                                                    actualEndDate: autoEndDate || null,
+                                                    stage: nextStage,
+                                                  }).then((saved) => {
+                                                    setDbTasks((prev) => prev.map((row) => row.id === t.dbId
+                                                      ? {
+                                                          ...row,
+                                                          actualStartDate: (saved.actualStartDate || "").slice(0, 10),
+                                                          actualEndDate: (saved.actualEndDate || "").slice(0, 10),
+                                                          stage: saved.stage,
+                                                          utilizedHours: saved.utilizedHours,
+                                                        }
+                                                      : row));
+                                                  }).catch((err) => toast.error(err instanceof Error ? err.message : "Could not save start date"));
+                                                  return;
+                                                }
                                                 dhStore.updateTreeTaskState(project.id, t.id, {
                                                   actualStartDate: newStart,
                                                   actualEndDate: autoEndDate,
@@ -3804,8 +4042,15 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                               value={t.actualEndDate}
                                               disabled={readOnly}
                                               onChange={(e) => {
+                                                const newEnd = e.target.value;
+                                                if (useApiTasks && t.dbId) {
+                                                  setDbTasks((prev) => prev.map((row) => row.id === t.dbId ? { ...row, actualEndDate: newEnd } : row));
+                                                  updateProjectTask(project.id, t.dbId, { actualEndDate: newEnd || null }).catch((err) =>
+                                                    toast.error(err instanceof Error ? err.message : "Could not save end date"));
+                                                  return;
+                                                }
                                                 dhStore.updateTreeTaskState(project.id, t.id, {
-                                                  actualEndDate: e.target.value,
+                                                  actualEndDate: newEnd,
                                                 });
                                               }}
                                               className="h-7 w-28 rounded-md border border-input bg-card px-2 text-[11px] text-center outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -3821,7 +4066,65 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                           <div className="flex items-center justify-center h-8">
                                             {!readOnly && (
                                             <button
-                                              onClick={() => setAssignFor(t)}
+                                              onClick={async () => {
+                                                if (useApiTasks && t.dbId) {
+                                                  try {
+                                                    const [resources, history] = await Promise.all([
+                                                      fetchAssignableTaskResources(project.id, t.dbId),
+                                                      fetchTaskAssignmentHistory(project.id, t.dbId),
+                                                    ]);
+                                                    setAssignHistory(history);
+                                                    dhStore.registerPeople(resources.map((r) => ({
+                                                      id: r.employeeId,
+                                                      name: r.employeeName,
+                                                      role: r.employeeRole || "Team Member",
+                                                      email: "",
+                                                    })));
+                                                    setApiPool(resources.map((r) => ({
+                                                      person: {
+                                                        id: r.employeeId,
+                                                        name: r.employeeName,
+                                                        role: r.employeeRole || "Team Member",
+                                                        avatar: r.employeeName.slice(0, 2).toUpperCase(),
+                                                        email: "",
+                                                      },
+                                                      isProjectTeam: r.teamType !== "Shadow Team",
+                                                      isShadowTeam: r.teamType === "Shadow Team",
+                                                    })));
+                                                    const selectedIds = resources.filter((r) => r.isAssigned).map((r) => r.employeeId);
+                                                    setDbTasks((prev) => prev.map((row) => {
+                                                      if (row.id !== t.dbId) return row;
+                                                      const previous = new Map((row.assignments ?? []).map((a) => [a.employeeId, a]));
+                                                      return {
+                                                        ...row,
+                                                        assignments: resources.filter((r) => r.isAssigned).map((r) => {
+                                                          const kept = previous.get(r.employeeId);
+                                                          return {
+                                                            id: kept?.id || r.employeeId,
+                                                            taskId: t.dbId!,
+                                                            employeeId: r.employeeId,
+                                                            employeeName: r.employeeName,
+                                                            employeeCode: r.employeeCode,
+                                                            workEmail: kept?.workEmail || "",
+                                                            role: r.employeeRole || kept?.role || "Contributor",
+                                                            allocatedHours: kept?.allocatedHours,
+                                                            utilizedHours: kept?.utilizedHours ?? 0,
+                                                            timerAccumulatedSeconds: kept?.timerAccumulatedSeconds ?? 0,
+                                                            isTimerRunning: kept?.isTimerRunning ?? false,
+                                                            currentElapsedSeconds: kept?.currentElapsedSeconds ?? 0,
+                                                            isActive: true,
+                                                          };
+                                                        }),
+                                                      };
+                                                    }));
+                                                    setAssignFor({ ...t, assigneeIds: selectedIds });
+                                                  } catch (err) {
+                                                    toast.error(err instanceof Error ? err.message : "Could not load team members");
+                                                  }
+                                                  return;
+                                                }
+                                                setAssignFor(t);
+                                              }}
                                               className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
                                             >
                                               <UserPlus className="h-3.5 w-3.5" /> Assign
@@ -3840,10 +4143,27 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                 value={t.stage}
                                                 onChange={(e) => {
                                                   const v = e.target.value as TreeTaskStage;
+                                                  if (useApiTasks && t.dbId) {
+                                                    setDbTasks((prev) => prev.map((row) => row.id === t.dbId
+                                                      ? { ...row, stage: v, utilizedHours: v === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0 }
+                                                      : row));
+                                                    updateTaskStage(project.id, t.dbId, v).then((saved) => {
+                                                      setDbTasks((prev) => prev.map((row) => row.id === t.dbId
+                                                        ? {
+                                                            ...row,
+                                                            stage: saved.stage,
+                                                            utilizedHours: saved.utilizedHours,
+                                                            actualStartDate: (saved.actualStartDate || row.actualStartDate || "").slice(0, 10),
+                                                            actualEndDate: (saved.actualEndDate || row.actualEndDate || "").slice(0, 10),
+                                                          }
+                                                        : row));
+                                                    }).catch((err) => {
+                                                      toast.error(err instanceof Error ? err.message : "Could not update stage");
+                                                    });
+                                                    toast.success("Stage updated", { description: `${t.taskId} → ${v}` });
+                                                    return;
+                                                  }
                                                   dhStore.updateTreeTaskState(project.id, t.id, { stage: v });
-                                                  updateTaskStage(project.id, t.id, v).catch((err) => {
-                                                    console.warn("Failed to update task stage on backend:", err);
-                                                  });
                                                   toast.success("Stage updated", { description: `${t.taskId} → ${v}` });
                                                 }}
                                                 className={cn("h-7 rounded-full border px-2 text-[10px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring text-center", treeStageCls(t.stage))}
@@ -3880,9 +4200,24 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
           task={{ id: assignFor.id, title: `${assignFor.taskId} - ${assignFor.serviceModel}` }}
           pool={teamPool}
           project={project}
-          selected={liveAssignments[assignFor.id]?.assigneeIds ?? dhStore.getTreeTaskAssignees(project.id, assignFor.id)}
-          onClose={() => setAssignFor(null)}
+          selected={useApiTasks ? assignFor.assigneeIds : (liveAssignments[assignFor.id]?.assigneeIds ?? dhStore.getTreeTaskAssignees(project.id, assignFor.id))}
+          historyEntries={useApiTasks ? assignHistory : undefined}
+          onClose={() => { setAssignFor(null); setAssignHistory([]); }}
           onSave={(ids) => {
+            if (useApiTasks && assignFor.dbId) {
+              syncTaskAssignments(project.id, assignFor.dbId, ids)
+                .then((saved) => {
+                  setDbTasks((prev) => prev.map((row) => {
+                    if (row.id !== assignFor.dbId) return row;
+                    const utilizedHours = row.stage === "Completed" ? Number(row.estimatedHours || 0) : 0;
+                    return { ...row, assignments: saved, utilizedHours };
+                  }));
+                  toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
+                  setAssignFor(null);
+                })
+                .catch((err) => toast.error(err instanceof Error ? err.message : "Could not save assignments"));
+              return;
+            }
             const parentSvc = visibleTree.find(s => {
               if (s.quarters) {
                 return s.quarters.some(q => q.aps.some(a => a.tasks.some(task => task.id === assignFor.id)));
@@ -3908,16 +4243,18 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   );
 }
 
-function AssignTaskModal({ project, task, pool, selected, onClose, onSave }: { project: Project; task: Task | { id: string; title: string }; pool: { person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[]; selected: string[]; onClose: () => void; onSave: (ids: string[]) => void }) {
+function AssignTaskModal({ project, task, pool, selected, historyEntries, onClose, onSave }: { project: Project; task: Task | { id: string; title: string }; pool: { person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[]; selected: string[]; historyEntries?: ApiTaskAssignmentHistoryEntry[]; onClose: () => void; onSave: (ids: string[]) => void }) {
   const [sel, setSel] = useState<string[]>(selected);
   const [q, setQ] = useState("");
 
   const isTreeTask = !project.tasks.some((t) => t.id === task.id);
   // Load assignment history persistently
-  const assignment = isTreeTask
-    ? dhStore.getTreeTaskAssignment(project.id, task.id)
-    : dhStore.getTaskAssignment(project.id, task.id);
-  const history = assignment.history;
+  const assignment = historyEntries
+    ? null
+    : isTreeTask
+      ? dhStore.getTreeTaskAssignment(project.id, task.id)
+      : dhStore.getTaskAssignment(project.id, task.id);
+  const history = historyEntries ?? assignment?.history ?? [];
 
   const toggle = (id: string) => setSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
   const visible = pool.filter(({ person: p }) => !q.trim() || p.name.toLowerCase().includes(q.toLowerCase()));
@@ -6676,7 +7013,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
   const defaultPmIds = useMemo(() => {
     if (prereqData?.assignedPmIds?.length) return prereqData.assignedPmIds;
     const pmId = (project as any).projectManagerId || project.pmId;
-    if (pmId) return [pmId];
+    if (pmId && isApiGuid(pmId)) return [pmId];
     if ((project as any).projectManagerName) {
       const p = getPerson((project as any).projectManagerName);
       if (p?.id) return [p.id];

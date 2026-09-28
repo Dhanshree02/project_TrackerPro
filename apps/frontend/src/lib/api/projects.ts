@@ -165,11 +165,6 @@ export interface UpdateProjectPayload {
 
 // ── Project Services ──
 
-export interface ProjectServiceResourceLevelDto {
-  level: string;
-  count: number;
-}
-
 export interface ApiProjectService {
   id: string;
   projectId: string;
@@ -198,7 +193,6 @@ export interface ApiProjectService {
   unitPrice?: number | null;
   total?: number | null;
   sortOrder: number;
-  resourceLevels: ProjectServiceResourceLevelDto[];
 }
 
 export interface CreateProjectServicePayload {
@@ -223,7 +217,6 @@ export interface CreateProjectServicePayload {
   durationDays?: number | null;
   unitPrice?: number | null;
   sortOrder?: number;
-  resourceLevels?: ProjectServiceResourceLevelDto[] | null;
 }
 
 // ── Project Tasks & Assignments ──
@@ -416,6 +409,7 @@ export function mapApiProjectToProject(
   const rawServices: any[] = (apiServices ?? (ap as any).services ?? (ap as any).projectServices ?? []);
   const services = rawServices.map((s: any, idx: number) => ({
     id: s.id ?? s.taskId ?? `s-${idx}`,
+    taskId: s.taskId || "",
     department: s.department || "Engineering",
     subDepartment: s.subDepartment || "",
     serviceName: s.serviceName || `Service ${idx + 1}`,
@@ -502,7 +496,7 @@ export function mapApiProjectToProject(
     status: (ap.status?.toLowerCase() as any) || "ongoing",
     health: (ap.health?.toLowerCase() as any) || "green",
     progress: ap.progress ?? 0,
-    pmId: ap.projectManagerId ?? "u2",
+    pmId: ap.projectManagerId ?? "",
     tlId: ap.teamLeadId ?? "",
     teamIds: [],
     startDate: projectStartDate,
@@ -642,6 +636,51 @@ export async function updateProjectTask(projectId: string, taskId: string, paylo
     method: "PUT",
     body: JSON.stringify(payload),
   });
+}
+
+export interface AssignableTaskResource {
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  employeeRole?: string | null;
+  teamType: string;
+  isAssigned: boolean;
+}
+
+export async function generateProjectTasks(projectId: string) {
+  return apiFetch<{ projectId: string; tasksCreated: number }>(
+    `/api/v1/projects/${projectId}/tasks/auto-generate`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchAssignableTaskResources(projectId: string, taskId: string) {
+  return (await apiFetch<AssignableTaskResource[]>(
+    `/api/v1/projects/${projectId}/tasks/${taskId}/assignable-resources`,
+  )) ?? [];
+}
+
+export async function syncTaskAssignments(projectId: string, taskId: string, employeeIds: string[]) {
+  return (await apiFetch<ApiProjectTaskAssignment[]>(
+    `/api/v1/projects/${projectId}/tasks/${taskId}/assignments`,
+    { method: "PUT", body: JSON.stringify({ employeeIds }) },
+  )) ?? [];
+}
+
+export interface ApiTaskAssignmentHistoryEntry {
+  id: string;
+  taskId: string;
+  employeeId: string;
+  resourceName: string;
+  action: string;
+  teamType: string;
+  timestamp: string;
+}
+
+export async function fetchTaskAssignmentHistory(projectId: string, taskId: string) {
+  return (await apiFetch<ApiTaskAssignmentHistoryEntry[]>(
+    `/api/v1/projects/${projectId}/tasks/${taskId}/assignment-history`,
+  )) ?? [];
 }
 
 /** PATCH /api/v1/projects/{projectId}/tasks/{taskId}/stage */

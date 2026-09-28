@@ -28,6 +28,27 @@ public sealed record UpdateTaskAssignmentRequest(
     decimal? UtilizedHours = null,
     bool? IsActive = null);
 
+public sealed record SyncTaskAssignmentsRequest(IReadOnlyList<Guid>? EmployeeIds);
+
+/// <summary>One line in the Task tab Assignment History Log.</summary>
+public sealed record ProjectTaskAssignmentHistoryDto(
+    Guid Id,
+    Guid TaskId,
+    Guid EmployeeId,
+    string ResourceName,
+    string Action,
+    string TeamType,
+    DateTime Timestamp);
+
+/// <summary>Project Team + Shadow Team member available for task assignment.</summary>
+public sealed record AssignableTaskResourceDto(
+    Guid EmployeeId,
+    string EmployeeName,
+    string EmployeeCode,
+    string? EmployeeRole,
+    string TeamType,
+    bool IsAssigned);
+
 public sealed record TimerStatusDto(
     Guid AssignmentId,
     Guid TaskId,

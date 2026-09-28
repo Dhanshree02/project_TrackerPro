@@ -1575,14 +1575,6 @@ public static class DbSeeder
                 TotalHours = 120,
                 CreatedAtUtc = project.CreatedAtUtc
             };
-            s1.ResourceLevels.Add(new ProjectServiceResourceLevel
-            {
-                Id = Guid.NewGuid(),
-                ProjectServiceId = s1.Id,
-                Level = "Senior",
-                Count = 1,
-                CreatedAtUtc = s1.CreatedAtUtc
-            });
             db.ProjectServices.Add(s1);
 
             var s2 = new ProjectServiceEntity
@@ -1608,14 +1600,6 @@ public static class DbSeeder
                 TotalHours = 120,
                 CreatedAtUtc = project.CreatedAtUtc
             };
-            s2.ResourceLevels.Add(new ProjectServiceResourceLevel
-            {
-                Id = Guid.NewGuid(),
-                ProjectServiceId = s2.Id,
-                Level = "Mid",
-                Count = 1,
-                CreatedAtUtc = s2.CreatedAtUtc
-            });
             db.ProjectServices.Add(s2);
 
             // Seed tasks for this project

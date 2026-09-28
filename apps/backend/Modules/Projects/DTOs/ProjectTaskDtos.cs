@@ -20,7 +20,8 @@ public sealed record ProjectTaskDto(
     int Progress,
     int SortOrder,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc);
+    DateTime? UpdatedAtUtc,
+    IReadOnlyList<ProjectTaskAssignmentDto>? Assignments = null);
 
 public sealed record CreateProjectTaskRequest(
     string Title,

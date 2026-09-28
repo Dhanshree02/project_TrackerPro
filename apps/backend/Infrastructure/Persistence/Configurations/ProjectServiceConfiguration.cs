@@ -39,28 +39,5 @@ public sealed class ProjectServiceConfiguration : IEntityTypeConfiguration<Proje
             .WithMany()
             .HasForeignKey(x => x.ServiceCatalogId)
             .OnDelete(DeleteBehavior.SetNull);
-
-        builder.HasMany(x => x.ResourceLevels)
-            .WithOne(r => r.ProjectService)
-            .HasForeignKey(r => r.ProjectServiceId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
-}
-
-public sealed class ProjectServiceResourceLevelConfiguration : IEntityTypeConfiguration<ProjectServiceResourceLevel>
-{
-    public void Configure(EntityTypeBuilder<ProjectServiceResourceLevel> builder)
-    {
-        builder.ToTable("project_service_resource_levels");
-        builder.HasKey(x => x.Id);
-
-        builder.Property(x => x.Level).HasMaxLength(20).IsRequired();
-
-        builder.HasIndex(x => new { x.ProjectServiceId, x.Level }).IsUnique();
-
-        builder.HasOne(x => x.ProjectService)
-            .WithMany(s => s.ResourceLevels)
-            .HasForeignKey(x => x.ProjectServiceId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }

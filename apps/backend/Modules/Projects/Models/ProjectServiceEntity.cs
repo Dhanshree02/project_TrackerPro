@@ -79,7 +79,4 @@ public class ProjectServiceEntity : BaseEntity
     public decimal? Total { get; set; }
 
     public int SortOrder { get; set; }
-
-    /// <summary>Normalized resource level distribution breakdown.</summary>
-    public ICollection<ProjectServiceResourceLevel> ResourceLevels { get; set; } = [];
 }

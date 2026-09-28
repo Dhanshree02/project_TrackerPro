@@ -5,9 +5,29 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-28
 
 ## Latest
+
+- **`database/trackerpro-final.sql` was regenerated from the local `trackerpro` database.** It is a full schema and data dump (46 public tables), including projects, services, tasks, assignments, team members, and assignment history. `project_service_resource_levels` is not in the dump. Table ownership is left unset so the script does not depend on the local database role.
+
+- **AP estimated hours show one Project Team member’s share after Assign.** The service row stays on the full service estimate and does not move when people are assigned. On the AP row, a task with Project Team members contributes one person’s share (520 with 2 people shows 0.0 / 260.0). The share is stored on `project_task_assignments.AllocatedHours`. Shadow Team stays assigned at 0. Utilized hours are not filled in by Assign; completion comes later.
+
+- **Projects list view opens a project only from the project name.** The row highlight stays. Project ID, customer, status, dates, and manager cells do not navigate. The card view is unchanged.
+
+- **Resource level stays on the service and shows on the Task tab.** `project_services.ResourceLevel` holds the text from onboarding (`L1` or `L1=2, Senior=1`). The unused `project_service_resource_levels` table is dropped. The Task tab table shows that service value in a Resource Level column immediately before Service ID. Quarter and AP rows leave that cell empty.
+
+- **Task tab assignment history and utilized hours are stored.** Assign and unassign write a row in `project_task_assignment_history` (who, Project Team or Shadow Team, when). The Assign window reads that log. Hours (Utilized / Est.) on a leaf task is `project_tasks.UtilizedHours`: the estimated hours when Stage is Completed, otherwise 0. Service and AP totals add those stored task hours. Service, Quarter, and AP folder rows are still drawn on screen from the service quantity, frequency, and service model — they are not separate database rows.
+
+- **Invoice Schedule raise and paid are per row.** Two services can both have Quarter 1. Raise Invoice and Mark Paid match that row’s id, not the milestone name, so the other Quarter 1 stays Not Raised. Mark Paid asks for confirmation before the row is marked Received and shows as paid on the Invoices tab.
+
+- **Create WBS no longer assigns a mock Project Manager or Team Lead.** New projects store empty `pmId` / `tlId` instead of `u3` / `u5`. Overview and WBS Project Allocation only show a PM or Team Lead when the id is a real employee. Placeholder mock ids are ignored.
+
+- **PO attached from the WBS tab sets Overview PO Status to PO Received.** If the document was not attached during onboarding, Dhanshree, PMO, Accounts, or Sales can add it on the WBS tab. That save marks `projects.PoStatus` as `PO Received`, and Project Details shows **PO Received**. A previously stored `Uploaded` status displays as PO Received as well. PO Not Required is left unchanged.
+
+- **Service ID is the onboarding WBS id.** Adding a service assigns `WBS-01`, `WBS-02`, … and that value is stored on `project_services.TaskId`. After Create WBS, Services & Deliverables shows that id, and the Tasks tab shows the same id on that service row. Existing services with a blank TaskId were backfilled in that order.
+
+- **Task tab is database-driven.** Leaf tasks generate into existing `project_tasks` (Period = quarter or empty, Phase = AP, Title = Task NN, Description = service-model label). Generation is idempotent (`IX_project_tasks_LeafIdentity`, migration `20260924060647_AddProjectTaskLeafIdentity`). Assign list is this project's Project Team + Shadow Team. Multiple assignees are rows in `project_task_assignments`. Stage and actual dates save on the task. UI folders unchanged.
 
 - **Shadow Team Resource list = DB interns.** Candidates endpoint accepts `?internsOnly=true` (EmploymentType=Intern / `TKI-*` / intern role text). Status filter accepts `Active%` (covers Active - Probation). Project Team still excludes interns; Shadow Add Member uses SearchableSelect against that query. Shadow add still persists in `dh-store` (registers the intern so the row name resolves). No new migration.
 
