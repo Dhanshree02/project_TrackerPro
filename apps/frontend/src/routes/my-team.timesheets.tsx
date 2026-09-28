@@ -69,11 +69,11 @@ interface TsRow {
   notes: string[];
 }
 
-function emptyRow(projects: ReturnType<typeof allProjects>): TsRow {
+function emptyRow(): TsRow {
   return {
     id: `r${Date.now()}`,
-    projectId: projects[0]?.id || "",
-    taskId: projects[0]?.tasks[0]?.id || "",
+    projectId: "",
+    taskId: "",
     hours: [0, 0, 0, 0, 0, 0, 0],
     notes: ["", "", "", "", "", "", ""],
   };
@@ -140,7 +140,7 @@ function MyTimesheetView() {
   const [saving, setSaving] = useState(false);
   const projectsList = allProjects();
 
-  const [rows, setRows] = useState<TsRow[]>(() => [emptyRow(projectsList)]);
+  const [rows, setRows] = useState<TsRow[]>(() => [emptyRow()]);
 
   const [commentOpen, setCommentOpen] = useState<{ row: string; day: number } | null>(null);
 
@@ -162,7 +162,7 @@ function MyTimesheetView() {
         if (cancelled) return;
         setWeekStatus(week?.status ?? "draft");
         setShowDraft(week?.status === "draft");
-        setRows(week && week.entries.length > 0 ? rowsFromWeek(week) : [emptyRow(allProjects())]);
+        setRows(week && week.entries.length > 0 ? rowsFromWeek(week) : [emptyRow()]);
       })
       .catch(() => {
         if (!cancelled) toast.error("Could not load this week's timesheet.");
@@ -173,7 +173,7 @@ function MyTimesheetView() {
   }, [weekStart]);
 
   function toSaveLines() {
-    return rows.map((row) => {
+    return rows.filter((row) => row.projectId && row.taskId).map((row) => {
       const project = projectsList.find((item) => item.id === row.projectId);
       const task = project?.tasks.find((item) => item.id === row.taskId);
       return {
@@ -209,18 +209,7 @@ function MyTimesheetView() {
     );
   }
   function addRow() {
-    const p = projectsList[0];
-    if (!p) return;
-    setRows((r) => [
-      ...r,
-      {
-        id: `r${Date.now()}`,
-        projectId: p.id,
-        taskId: p.tasks[0]?.id || "",
-        hours: [0, 0, 0, 0, 0, 0, 0],
-        notes: ["", "", "", "", "", "", ""],
-      },
-    ]);
+    setRows((r) => [...r, emptyRow()]);
   }
   function remove(id: string) {
     setRows((r) => r.filter((x) => x.id !== id));
@@ -349,7 +338,7 @@ function MyTimesheetView() {
                       onChange={(projectId) =>
                         update(r.id, {
                           projectId,
-                          taskId: tasksByProject[projectId]?.[0]?.id ?? "",
+                          taskId: "",
                         })
                       }
                       placeholder="Select project"

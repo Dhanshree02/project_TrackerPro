@@ -48,8 +48,8 @@ function TimesheetPage() {
   const [rows, setRows] = useState<Row[]>([
     {
       id: "r1",
-      projectId: projects[0].id,
-      taskId: projects[0].tasks[0].id,
+      projectId: "",
+      taskId: "",
       hours: [0, 0, 0, 0, 0, 0, 0],
     },
   ]);
@@ -93,13 +93,12 @@ function TimesheetPage() {
     );
   }
   function addRow() {
-    const p = projects[0];
     setRows((r) => [
       ...r,
       {
         id: `r${Date.now()}`,
-        projectId: p.id,
-        taskId: p.tasks[0].id,
+        projectId: "",
+        taskId: "",
         hours: [0, 0, 0, 0, 0, 0, 0],
       },
     ]);
@@ -241,7 +240,7 @@ function TimesheetPage() {
                             onChange={(projectId) =>
                               update(r.id, {
                                 projectId,
-                                taskId: tasksByProject[projectId]?.[0]?.id ?? "",
+                                taskId: "",
                               })
                             }
                             placeholder="Select project"
