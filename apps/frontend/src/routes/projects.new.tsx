@@ -46,8 +46,6 @@ import {
 } from "@/lib/onboarding-project-name";
 import {
   useProjectCatalogStore,
-  DEFAULT_DEPT_SERVICES,
-  DEFAULT_DEPT_GROUPS,
 } from "@/lib/masters/project-catalog-store";
 
 export const Route = createFileRoute("/projects/new")({
@@ -873,11 +871,9 @@ function WbsNewProjectPage() {
   const projectId = nextCodeData?.projectSeqId ?? buildProjectDisplayId();
   const wbsId = selectedClient ? buildWbsId(selectedClient.id, projectId) : "—";
 
-  // ── Project Catalog Store (Contract Types, Departments, Services) ──
+  // ── Project Catalog Store (Contract Types) ──
   const {
     contractTypes: catalogContractTypes,
-    deptServices: DEPT_SERVICES,
-    deptGroups: DEPT_GROUPS,
   } = useProjectCatalogStore();
 
   // ── Service picker ──
