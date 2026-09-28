@@ -282,6 +282,7 @@ export interface Client {
   kycDocumentPath?: string;
   /** ISO date (yyyy-mm-dd) when the customer relationship started. */
   customerSince?: string;
+  clientCode?: string; // Sequential code e.g. "C001", "C018"
   contacts?: ClientContact[]; // full list of SPOC persons
 }
 

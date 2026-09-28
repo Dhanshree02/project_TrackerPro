@@ -68,7 +68,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             .Take(perPage)
             .ToListAsync(ct);
 
-        var items = entities.Select(MapToDto).ToList();
+        var clientCodes = await GetAllClientCodesAsync(ct);
+        var items = entities.Select(e => MapToDto(e, clientCodes.GetValueOrDefault(e.Id))).ToList();
         return new PagedResult<ClientDto>(items, page, perPage, total);
     }
 
@@ -76,7 +77,9 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
     {
         var entity = await ApplyClientGraphIncludes(BuildScopedQuery())
             .FirstOrDefaultAsync(c => c.Id == id, ct);
-        return entity is null ? null : MapToDto(entity);
+        if (entity is null) return null;
+        var clientCodes = await GetAllClientCodesAsync(ct);
+        return MapToDto(entity, clientCodes.GetValueOrDefault(entity.Id));
     }
 
     public async Task<ClientDto> CreateClientAsync(CreateClientRequest request, CancellationToken ct = default)
@@ -128,7 +131,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         await PersistContactsAsync(client, request.Contacts, subVentureInputs, ct);
 
         var created = await LoadClientGraphAsync(client.Id, ct);
-        return MapToDto(created);
+        var clientCodes = await GetAllClientCodesAsync(ct);
+        return MapToDto(created, clientCodes.GetValueOrDefault(created.Id));
     }
 
     public async Task<ClientDto?> UpdateClientAsync(Guid id, UpdateClientRequest request, CancellationToken ct = default)
@@ -244,7 +248,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         }
 
         var updated = await LoadClientGraphAsync(client.Id, ct);
-        return MapToDto(updated);
+        var clientCodes = await GetAllClientCodesAsync(ct);
+        return MapToDto(updated, clientCodes.GetValueOrDefault(updated.Id));
     }
 
     public async Task<bool> SoftDeleteClientAsync(Guid id, CancellationToken ct = default)
@@ -255,6 +260,28 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         db.Clients.Remove(client); // SaveChanges converts to soft delete (DeletedAtUtc)
         await db.SaveChangesAsync(ct);
         return true;
+    }
+
+    public async Task<string> GetNextClientCodeAsync(CancellationToken ct = default)
+    {
+        var count = await db.Clients.IgnoreQueryFilters().CountAsync(ct);
+        return "C" + (count + 1).ToString("D3");
+    }
+
+    private async Task<Dictionary<Guid, string>> GetAllClientCodesAsync(CancellationToken ct)
+    {
+        var clientIds = await db.Clients
+            .IgnoreQueryFilters()
+            .OrderBy(c => c.CreatedAtUtc)
+            .Select(c => c.Id)
+            .ToListAsync(ct);
+
+        var dict = new Dictionary<Guid, string>(clientIds.Count);
+        for (var i = 0; i < clientIds.Count; i++)
+        {
+            dict[clientIds[i]] = "C" + (i + 1).ToString("D3");
+        }
+        return dict;
     }
 
     public async Task<IReadOnlyList<string>> GetIndustriesAsync(CancellationToken ct = default)
@@ -526,7 +553,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         await db.SaveChangesAsync(ct);
 
         var reloaded = await LoadClientGraphAsync(client.Id, ct);
-        return MapToDto(reloaded);
+        var clientCodes = await GetAllClientCodesAsync(ct);
+        return MapToDto(reloaded, clientCodes.GetValueOrDefault(reloaded.Id));
     }
 
     public async Task<(string ClientName, string? KycName, string? KycPath)?> GetClientKycRefAsync(Guid id, CancellationToken ct = default)
@@ -553,7 +581,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         await db.SaveChangesAsync(ct);
 
         var reloaded = await LoadClientGraphAsync(clientId, ct);
-        return MapToDto(reloaded);
+        var clientCodes = await GetAllClientCodesAsync(ct);
+        return MapToDto(reloaded, clientCodes.GetValueOrDefault(reloaded.Id));
     }
 
     public async Task<(string ClientName, string SubVentureName, string? KycName, string? KycPath)?> GetSubVentureKycRefAsync(Guid clientId, Guid subVentureId, CancellationToken ct = default)
@@ -587,7 +616,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         return string.IsNullOrWhiteSpace(formatted) ? null : formatted;
     }
 
-    private static ClientDto MapToDto(Client c) => new(
+    private static ClientDto MapToDto(Client c, string? clientCode = null) => new(
         c.Id,
         c.Name,
         c.IndustryRef?.Name ?? c.Industry,
@@ -619,7 +648,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             s.KycDocumentPath)).ToList(),
         c.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType, x.Country, x.PhoneCode)).ToList(),
         c.CustomerSince,
-        c.CreatedAtUtc);
+        c.CreatedAtUtc,
+        clientCode);
 
     private static DateOnly TodayIst()
     {

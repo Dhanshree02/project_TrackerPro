@@ -2136,10 +2136,79 @@ function getFYStartDate(fyStartYear: number): string {
   return `${fyStartYear}-04-01`;
 }
 
-// Next client sequential number → padded to 3 digits with "C" prefix e.g. "C011"
+// Known client sequential codes mapped by client ID (e.g. GUID -> "C018")
+const knownClientCodes: Record<string, string> = {};
+const knownClientOrder: string[] = [];
+
+/** Registers a client ID with its sequential customer code (e.g. "C018"). */
+export function registerClientCode(id: string, code: string): void {
+  if (!id || !code) return;
+  const trimmedId = id.trim();
+  const trimmedCode = code.trim();
+  const cMatch = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(trimmedCode);
+  const formatted = cMatch && cMatch[1] ? `C${cMatch[1].padStart(3, "0")}` : trimmedCode;
+  knownClientCodes[trimmedId] = formatted;
+  if (!knownClientOrder.includes(trimmedId)) {
+    knownClientOrder.push(trimmedId);
+  }
+}
+
+/** Registers a batch of clients (from API or store) to ensure deterministic C0xx customer codes. */
+export function registerClients(
+  clientsList: Array<{ id: string; clientCode?: string | null; createdAtUtc?: string; name?: string }>,
+): void {
+  if (!Array.isArray(clientsList) || clientsList.length === 0) return;
+
+  // Sort by createdAtUtc if available, preserving creation order
+  const sorted = [...clientsList].sort((a, b) => {
+    if (a.createdAtUtc && b.createdAtUtc) {
+      return new Date(a.createdAtUtc).getTime() - new Date(b.createdAtUtc).getTime();
+    }
+    return 0;
+  });
+
+  for (let i = 0; i < sorted.length; i++) {
+    const c = sorted[i];
+    if (!c?.id) continue;
+    if (c.clientCode) {
+      registerClientCode(c.id, c.clientCode);
+    } else if (!knownClientCodes[c.id.trim()]) {
+      const code = `C${String(i + 1).padStart(3, "0")}`;
+      registerClientCode(c.id, code);
+    }
+  }
+}
+
+/** Returns the next sequential customer ID e.g. "C018" */
+export function getNextClientCode(): string {
+  let maxSeq = 0;
+  // Check knownClientCodes
+  for (const code of Object.values(knownClientCodes)) {
+    const m = /^C(\d+)$/i.exec(code);
+    if (m && m[1]) {
+      const n = parseInt(m[1], 10);
+      if (n > maxSeq) maxSeq = n;
+    }
+  }
+  // Check allClients()
+  try {
+    const list = allClients();
+    if (list.length > maxSeq) maxSeq = list.length;
+    for (const c of list) {
+      const raw = c.clientCode || c.id;
+      const m = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(raw);
+      if (m && m[1]) {
+        const n = parseInt(m[1], 10);
+        if (n > maxSeq) maxSeq = n;
+      }
+    }
+  } catch {}
+  return `C${String(maxSeq + 1).padStart(3, "0")}`;
+}
+
+// Next client sequential number → padded to 3 digits with "C" prefix e.g. "C018"
 function getNextClientSeqId(): string {
-  const n = allClients().length + 1;
-  return "C" + String(n).padStart(3, "0");
+  return getNextClientCode();
 }
 
 function patchProjectWbsInvoice(
@@ -2165,45 +2234,62 @@ function getFYStartForDate(dateIso: string): number {
   return month >= 3 ? d.getFullYear() : d.getFullYear() - 1;
 }
 
-// Formats a deterministic, consistent Customer ID e.g. C042, matching Customer 360 & WBS ID format
+// Formats a deterministic, consistent Customer ID e.g. C018, matching Customer 360 & WBS ID format
 export function formatCustomerId(id?: string | null): string {
   if (!id) return "—";
   const trimmed = id.trim();
 
-  // 1. If it already starts with CUST-, CL-, C-, or C followed by digits (e.g. C042, C42, CUST-042)
+  // 1. Direct registry lookup
+  if (knownClientCodes[trimmed]) {
+    return knownClientCodes[trimmed];
+  }
+
+  // 2. If it already starts with CUST-, CL-, C-, or C followed by digits (e.g. C042, C42, CUST-042)
   const cMatch = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(trimmed);
   if (cMatch && cMatch[1]) {
-    return `C${cMatch[1].padStart(3, "0")}`;
+    const formatted = `C${cMatch[1].padStart(3, "0")}`;
+    knownClientCodes[trimmed] = formatted;
+    return formatted;
   }
 
   if (/^c(\d+)$/i.test(trimmed)) {
     const num = trimmed.slice(1);
-    return `C${num.padStart(3, "0")}`;
+    const formatted = `C${num.padStart(3, "0")}`;
+    knownClientCodes[trimmed] = formatted;
+    return formatted;
   }
 
-  // 2. Look up position in allClients()
+  // 3. Look up client in allClients()
   try {
     const clientsList = allClients();
+    const found = clientsList.find((c) => c.id === trimmed);
+    if (found?.clientCode) {
+      const formatted = formatCustomerId(found.clientCode);
+      knownClientCodes[trimmed] = formatted;
+      return formatted;
+    }
     const idx = clientsList.findIndex((c) => c.id === trimmed);
     if (idx >= 0) {
-      return `C${String(idx + 1).padStart(3, "0")}`;
+      const formatted = `C${String(idx + 1).padStart(3, "0")}`;
+      knownClientCodes[trimmed] = formatted;
+      return formatted;
     }
   } catch {
     // fallback if store not yet initialized
   }
 
-  // 3. If numeric string e.g. "42"
+  // 4. If numeric string e.g. "42"
   if (/^\d+$/.test(trimmed)) {
-    return `C${trimmed.padStart(3, "0")}`;
+    const formatted = `C${trimmed.padStart(3, "0")}`;
+    knownClientCodes[trimmed] = formatted;
+    return formatted;
   }
 
-  // 4. Fallback for raw GUIDs: deterministic 3-digit sequence
-  let hash = 0;
-  for (let i = 0; i < trimmed.length; i++) {
-    hash = ((hash << 5) - hash + trimmed.charCodeAt(i)) | 0;
-  }
-  const seq = (Math.abs(hash) % 900) + 1;
-  return `C${String(seq).padStart(3, "0")}`;
+  // 5. Sequential fallback for raw GUIDs (strictly sequential, NEVER random hash):
+  // Assign the next sequential code and register it permanently so it never changes
+  const nextSeq = getNextClientCode();
+  knownClientCodes[trimmed] = nextSeq;
+  return nextSeq;
 }
 
 // Next project sequential number → padded to 3 digits with "P" prefix e.g. "P044", "P045"
@@ -2954,10 +3040,19 @@ export const dhStore = {
       };
     }
     const p = state.prereqs[projectId];
-    p.assignedPmIds = [...pmIds];
-    p.assignedSpmIds = [...spmIds];
-    p.acknowledgedByPmIds = [];
-    p.acknowledgedBySpmIds = [];
+    // New object so the WBS Project Allocation list redraws immediately.
+    // Mutating the existing entry keeps the same prereqs reference, and the
+    // screen keeps showing "No PM assigned yet" until something else refreshes it.
+    state.prereqs = {
+      ...state.prereqs,
+      [projectId]: {
+        ...p,
+        assignedPmIds: [...pmIds],
+        assignedSpmIds: [...spmIds],
+        acknowledgedByPmIds: [],
+        acknowledgedBySpmIds: [],
+      },
+    };
     const existing = state.leadershipAssignments[projectId] ?? {
       emIds: [],
       spmIds: [],

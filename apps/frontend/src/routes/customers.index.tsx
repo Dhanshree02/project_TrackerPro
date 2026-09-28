@@ -37,6 +37,8 @@ import {
   updateClient,
   uploadSubVentureKyc,
   formatCustomerId,
+  fetchNextClientCode,
+  registerClientCode,
   type CreateClientInput,
 } from "@/lib/api/clients";
 import { fetchCities, fetchContactDesignations, fetchContactTypes, fetchCountries, fetchIndustries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
@@ -501,8 +503,10 @@ function CustomersPage() {
                           <h3 className="truncate text-[15px] font-bold leading-snug tracking-tight text-foreground group-hover:text-primary transition-colors">
                             {c.name}
                           </h3>
-                          <p className="truncate text-xs text-muted-foreground font-normal mt-0.5">
-                            {c.industry || "—"}
+                          <p className="truncate text-xs text-muted-foreground font-normal mt-0.5 flex items-center gap-1.5">
+                            <span className="font-mono text-[11px] font-semibold text-primary">{formatCustomerId(c.id)}</span>
+                            <span>·</span>
+                            <span>{c.industry || "—"}</span>
                           </p>
                         </div>
                         <ChevronRight
@@ -1076,10 +1080,26 @@ function NewClientModal({
     (c) => tkSearch.trim() === "" || c.name.toLowerCase().includes(tkSearch.toLowerCase()),
   );
 
+  const computeNextCode = useCallback(() => {
+    if (apiClients && apiClients.length > 0) {
+      let maxSeq = apiClients.length;
+      for (const c of apiClients) {
+        const raw = c.clientCode || c.id;
+        const m = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(raw);
+        if (m && m[1]) {
+          const n = parseInt(m[1], 10);
+          if (n > maxSeq) maxSeq = n;
+        }
+      }
+      return "C" + String(maxSeq + 1).padStart(3, "0");
+    }
+    return "C001";
+  }, [apiClients]);
+
   const [s, setS] = useState<NewClientState>(() => ({
     clientName: "",
     subVentureName: "",
-    customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
+    customerId: computeNextCode(),
     engagementManager: "",
     salesManager: "",
     phoneNumber: "",
@@ -1095,6 +1115,18 @@ function NewClientModal({
     contacts: [blankContact()],
     notes: "",
   }));
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchNextClientCode().then((code) => {
+      if (!cancelled && code && !selectedExisting) {
+        setS((p) => ({ ...p, customerId: code }));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedExisting]);
   const [previewKyc, setPreviewKyc] = useState(false);
   const { pool: emPool, loading: emLoading } = useEngagementManagers();
   const emOptions = useMemo(
@@ -1265,7 +1297,7 @@ function NewClientModal({
     setS((p) => ({
       ...p,
       clientName: c.name,
-      customerId: c.id,
+      customerId: formatCustomerId(c.id),
       engagementManager: p.engagementManager.trim() || c.engagementManager || "",
       salesManager: p.salesManager.trim() || c.salesManager || "",
       phoneNumber: c.groupSpocContact || c.contactPhone || p.phoneNumber,
@@ -1296,7 +1328,7 @@ function NewClientModal({
       country: "",
       industry: "",
       businessType: "",
-      customerId: "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0"),
+      customerId: computeNextCode(),
     }));
   };
   const matchingExistingClient =
@@ -1559,6 +1591,9 @@ function NewClientModal({
       // ── Brand new TK customer → create it in the database ──
       try {
         const created = await createClient(api);
+        if (created?.id) {
+          registerClientCode(created.id, created.clientCode || s.customerId);
+        }
         // KYC is per sub-venture — attach it to the sub-venture created in this onboarding.
         if (s.kycFile && created?.id) {
           const svName = s.subVentureName.trim().toLowerCase();
@@ -1588,6 +1623,7 @@ function NewClientModal({
           return;
         }
         dhStore.addClient(store);
+        registerClientCode(store.name, s.customerId);
         toast.warning("Backend unreachable — client saved locally", {
           description: `${store.name} added to your local directory.`,
         });
@@ -1699,7 +1735,7 @@ function NewClientModal({
                           <div className="min-w-0 flex-1">
                             <div className="truncate font-medium">{c.name}</div>
                             <div className="truncate text-[11px] text-muted-foreground">
-                              {c.industry} · {c.id}
+                              {c.industry} · {formatCustomerId(c.id)}
                             </div>
                           </div>
                           <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
@@ -1977,6 +2013,14 @@ function NewClientModal({
                   />
                 </div>
               </Field>
+              <Field label="Customer ID">
+                <input
+                  className={cn(readOnlyCls, "font-mono font-semibold text-primary")}
+                  value={s.customerId}
+                  readOnly
+                  title="Auto-assigned sequential Customer ID"
+                />
+              </Field>
               <SearchableSelect
                 label="Industry"
                 required
@@ -2013,7 +2057,7 @@ function NewClientModal({
           {selectedExisting && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Customer ID">
-                <input className={cn(readOnlyCls, "font-mono")} value={formatCustomerId(selectedExisting.id)} readOnly />
+                <input className={cn(readOnlyCls, "font-mono font-semibold text-primary")} value={formatCustomerId(selectedExisting.id)} readOnly />
               </Field>
               <Field label="Billing Medium" required>
                 {selectedExisting.billingMedium ? (
@@ -2289,7 +2333,7 @@ function NewClientModal({
               v={
                 selectedExisting
                   ? formatCustomerId(selectedExisting.id)
-                  : (s.customerId || ("C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0")))
+                  : s.customerId
               }
             />
             {!selectedExisting && (

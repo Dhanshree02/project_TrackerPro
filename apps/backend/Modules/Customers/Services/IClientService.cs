@@ -21,6 +21,9 @@ public interface IClientService
 
     Task<ClientDto?> UpdateClientAsync(Guid id, UpdateClientRequest request, CancellationToken ct = default);
 
+    /// <summary>Returns the next sequential client code e.g. "C018" based on existing client count.</summary>
+    Task<string> GetNextClientCodeAsync(CancellationToken ct = default);
+
     /// <summary>Soft-deletes the client (sets DeletedAtUtc). Returns false when not found.</summary>
     Task<bool> SoftDeleteClientAsync(Guid id, CancellationToken ct = default);
 

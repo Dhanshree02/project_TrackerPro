@@ -7,6 +7,11 @@ alwaysApply: true
 
 **Last updated:** 2026-09-28
 
+- **Task assignments are saved on `project_task_assignments`.** The Tasks tab links each onboarding task to its database row, so the assigned people are still there after refresh.
+- **Task Assign lists only people added on the Team tab.** If no team exists, the window says to create the team first instead of showing Unknown User.
+- **Team tab stays visible.** Until both the Project Manager and Senior Project Manager are assigned, opening Team shows Access Blocked. Service wise Prerequisite Tracking lists the onboarding services. Starting a service (Ready) adds that service to the Tasks tab. No backend change.
+- **WBS Project Allocation shows a PM or SPM name as soon as Assign is saved.** The assignment list was waiting on a later refresh because the stored prerequisite row was updated in place.
+- **Renewal WBS id opens the original project.** Overview “This project is a renewal of” links with `projects."RenewedFromProjectId"`. Assign PM / Assign SPM and the Saved Drafts drawer are portaled over the sidebar so the dim backdrop covers it.
 - **Projects Module merged from `sahil-project-backend`.** Includes Projects onboarding, overview, services, WBS tasks, team members, shadow team, task assignments, draft management, invoices, and documents.
 - **Timesheet rows start with no project or task.** My Timesheet (`/timesheet` and `/my-team/timesheets`) no longer pre-selects the first project and its first task. Choosing a project leaves the task blank until the user picks one. Draft save skips a row that still has neither.
 - **Employee DB table cleared and re-seeded with 59 employees.** Matches exact requested breakdown across RBAC roles & departments. Linked with 59 matching user accounts (dev password `Password@123`), reporting managers catalog, and hierarchical team relationships. Dump updated in `database/trackerpro-final.sql`.

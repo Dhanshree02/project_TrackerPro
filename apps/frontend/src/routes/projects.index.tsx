@@ -25,7 +25,8 @@ import { allClients, dhStore, useDhStore, type WbsDraft } from "@/lib/dh-store";
 import { fetchProjectDrafts, deleteProjectDraft, type ProjectDraftListDto } from "@/lib/api/project-drafts";
 import { fetchProjects, type ApiProject } from "@/lib/api/projects";
 import { fetchClients, mapApiClient, type ApiClient } from "@/lib/api/clients";
-import { type Project, type Client, people, type Person } from "@/lib/mock-data";
+import { fetchEmployees } from "@/lib/api/employees";
+import { type Project, type Client, people, type Person, getPerson } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { isRenewedProject } from "@/lib/project-renewal";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/dh-helpers";
@@ -145,8 +146,9 @@ function ProjectsPage() {
     Promise.all([
       fetchProjects({ perPage: 500 }),
       fetchClients(1, 200),
+      fetchEmployees({ perPage: 200 }),
     ])
-      .then(([projRes, clientRes]) => {
+      .then(([projRes, clientRes, empRes]) => {
         if (!active) return;
         if (projRes?.items) {
           setDbProjects(projRes.items);
@@ -155,6 +157,28 @@ function ProjectsPage() {
         }
         if (clientRes) {
           setDbClients(clientRes);
+        }
+        if (empRes?.items) {
+          const mapped = empRes.items.map((e) => ({
+            id: e.id,
+            name: e.fullName,
+            role: e.designation || e.role || "Employee",
+            avatar: e.avatarUrl || e.fullName.slice(0, 2).toUpperCase(),
+            email: e.workEmail || "",
+          }));
+          dhStore.registerPeople(mapped);
+          const codeMapped = empRes.items
+            .filter((e) => e.employeeCode)
+            .map((e) => ({
+              id: e.employeeCode!,
+              name: e.fullName,
+              role: e.designation || e.role || "Employee",
+              avatar: e.avatarUrl || e.fullName.slice(0, 2).toUpperCase(),
+              email: e.workEmail || "",
+            }));
+          if (codeMapped.length > 0) {
+            dhStore.registerPeople(codeMapped);
+          }
         }
       })
       .catch((err) => {
@@ -536,8 +560,8 @@ function ProjectsPage() {
                   totalRevenue: 0,
                   accountManagerId: "u1",
                 };
-                const ems = getProjectEMs(p);
-                const pms = getProjectPMs(p);
+                const ems = getCardEMs(p, leadershipAssignments);
+                const pms = getCardPMs(p, leadershipAssignments, prereqs);
                 return (
                   <tr
                     key={p.id}
@@ -602,9 +626,9 @@ function ProjectsPage() {
       {/* New Project navigates to /projects/new (full WBS form) */}
 
       {/* ── Drafts panel ── */}
-      {draftsOpen && (
+      {draftsOpen && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-[2px] transition-all duration-200"
+          className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-[2px] transition-all duration-200"
           onClick={() => setDraftsOpen(false)}
         >
           <aside
@@ -722,7 +746,8 @@ function ProjectsPage() {
               )}
             </div>
           </aside>
-        </div>
+        </div>,
+        document.body,
       )}
     </AppShell>
   );
@@ -732,10 +757,32 @@ function resolvePerson(idOrName?: string | null): Person | null {
   if (!idOrName) return null;
   const trimmed = idOrName.trim();
   if (!trimmed || trimmed === "—" || trimmed.toLowerCase() === "not assigned") return null;
+
+  // 1. Try resolving via getPerson (which checks knownPeople, registered DB employees, and static people)
+  const resolved = getPerson(trimmed);
+  if (resolved && resolved.id !== "unknown" && resolved.name && resolved.name !== trimmed) {
+    return resolved;
+  }
+
+  // 2. Direct match in static mock people by ID, name, or email
   const found = people.find(
-    (p) => p.id === trimmed || p.name.toLowerCase() === trimmed.toLowerCase()
+    (p) =>
+      p.id === trimmed ||
+      p.name.toLowerCase() === trimmed.toLowerCase() ||
+      (p.email && p.email.toLowerCase() === trimmed.toLowerCase()),
   );
   if (found) return found;
+
+  // 3. If trimmed is a pure numeric ID (e.g. "1", "2"), GUID, or code that failed resolution,
+  // do NOT display the raw number/code as a person's name!
+  const isPureNumber = /^\d+$/.test(trimmed);
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed);
+  const isIdCode = /^(TK|TKI|EMP|u)[-_]?\d+$/i.test(trimmed);
+  if (isPureNumber || isGuid || isIdCode) {
+    return null;
+  }
+
+  // 4. Otherwise, trimmed is an actual readable name (e.g. "Dhanshree Pansare", "Arjun Mehta")
   return {
     id: trimmed,
     name: trimmed,
@@ -749,13 +796,16 @@ function getCardEMs(
   p: Project,
   leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
 ): Person[] {
+  if (p.engagementManager?.trim()) {
+    const em = resolvePerson(p.engagementManager);
+    if (em) return [em];
+  }
   const la = leadershipAssignments[p.id];
   if (la?.emIds && Array.isArray(la.emIds) && la.emIds.length > 0) {
     const list = la.emIds.map(resolvePerson).filter(Boolean) as Person[];
     if (list.length > 0) return list;
   }
-  const em = resolvePerson(p.engagementManager);
-  return em ? [em] : [];
+  return [];
 }
 
 function getCardSPMs(
@@ -763,6 +813,10 @@ function getCardSPMs(
   leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
   prereqs: Record<string, any>,
 ): Person[] {
+  if (p.seniorProjectManager?.trim()) {
+    const spm = resolvePerson(p.seniorProjectManager);
+    if (spm) return [spm];
+  }
   const la = leadershipAssignments[p.id];
   if (la?.spmIds && Array.isArray(la.spmIds) && la.spmIds.length > 0) {
     const list = la.spmIds.map(resolvePerson).filter(Boolean) as Person[];
@@ -773,8 +827,7 @@ function getCardSPMs(
     const list = pr.assignedSpmIds.map(resolvePerson).filter(Boolean) as Person[];
     if (list.length > 0) return list;
   }
-  const spm = resolvePerson(p.seniorProjectManager);
-  return spm ? [spm] : [];
+  return [];
 }
 
 function getCardPMs(
@@ -782,17 +835,25 @@ function getCardPMs(
   leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
   prereqs: Record<string, any>,
 ): Person[] {
+  // 1. If backend provided a real projectManagerName directly, use it
+  if (p.projectManagerName?.trim()) {
+    const fromName = resolvePerson(p.projectManagerName);
+    if (fromName) return [fromName];
+  }
+  // 2. Active leadership assignment from store
   const la = leadershipAssignments[p.id];
   if (la?.pmIds && Array.isArray(la.pmIds) && la.pmIds.length > 0) {
     const list = la.pmIds.map(resolvePerson).filter(Boolean) as Person[];
     if (list.length > 0) return list;
   }
+  // 3. Prereq assigned PMs
   const pr = prereqs[p.id];
   if (pr?.assignedPmIds && Array.isArray(pr.assignedPmIds) && pr.assignedPmIds.length > 0) {
     const list = pr.assignedPmIds.map(resolvePerson).filter(Boolean) as Person[];
     if (list.length > 0) return list;
   }
-  const pm = resolvePerson(p.projectManagerName || p.projectManagerId || p.pmId);
+  // 4. Fallback to projectManagerId or pmId
+  const pm = resolvePerson(p.projectManagerId || p.pmId);
   return pm ? [pm] : [];
 }
 
@@ -801,17 +862,25 @@ function getCardTLs(
   leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
   prereqs: Record<string, any>,
 ): Person[] {
+  // 1. If backend provided a real teamLeadName directly, use it
+  if (p.teamLeadName?.trim()) {
+    const fromName = resolvePerson(p.teamLeadName);
+    if (fromName) return [fromName];
+  }
+  // 2. Active leadership assignment from store
   const la = leadershipAssignments[p.id];
   if (la?.tlIds && Array.isArray(la.tlIds) && la.tlIds.length > 0) {
     const list = la.tlIds.map(resolvePerson).filter(Boolean) as Person[];
     if (list.length > 0) return list;
   }
+  // 3. Prereq assigned TLs
   const pr = prereqs[p.id];
   if (pr?.assignedTlIds && Array.isArray(pr.assignedTlIds) && pr.assignedTlIds.length > 0) {
     const list = pr.assignedTlIds.map(resolvePerson).filter(Boolean) as Person[];
     if (list.length > 0) return list;
   }
-  const tl = resolvePerson(p.teamLeadName || p.teamLeadId || p.tlId);
+  // 4. Fallback to teamLeadId or tlId
+  const tl = resolvePerson(p.teamLeadId || p.tlId);
   return tl ? [tl] : [];
 }
 

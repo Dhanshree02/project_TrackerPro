@@ -869,7 +869,7 @@ function WbsNewProjectPage() {
   // Sequential Project ID and WBS ID (e.g. Project ID: P045, WBS ID: IN-2026-27-C042-P045)
   // Ensures the selected customer ID (e.g. C042) is always directly reflected in the WBS ID
   const projectId = nextCodeData?.projectSeqId ?? buildProjectDisplayId();
-  const wbsId = selectedClient ? buildWbsId(selectedClient.id, projectId) : "—";
+  const wbsId = nextCodeData?.wbsId ?? (selectedClient ? buildWbsId(selectedClient.id, projectId) : "—");
 
   // ── Project Catalog Store (Contract Types) ──
   const {
@@ -1127,6 +1127,17 @@ function WbsNewProjectPage() {
 
   const renewalFieldsLocked = isRenewal && !!renewalProject;
 
+  const clientProjectCountVal = useMemo(() => {
+    if (nextCodeData?.formattedClientProjectCount) {
+      return nextCodeData.formattedClientProjectCount;
+    }
+    if (nextCodeData?.clientProjectCount != null) {
+      return String(nextCodeData.clientProjectCount).padStart(2, "0");
+    }
+    const count = countProjectsForClient(allProjectsList, selectedClientId);
+    return String(count + 1).padStart(2, "0");
+  }, [nextCodeData, allProjectsList, selectedClientId]);
+
   const projectName = useMemo(
     () =>
       resolveOnboardingProjectName({
@@ -1135,7 +1146,10 @@ function WbsNewProjectPage() {
         clientName: selectedClient?.name ?? "",
         subVentureName: selectedSubVenture,
         subDepartmentNames: serviceRows.map((r) => r.subDept || ""),
-        existingClientProjectCount: countProjectsForClient(allProjects(), selectedClientId),
+        existingClientProjectCount: nextCodeData?.clientProjectCount != null
+          ? Math.max(0, nextCodeData.clientProjectCount - 1)
+          : countProjectsForClient(allProjectsList, selectedClientId),
+        nextProjectCount: clientProjectCountVal,
       }),
     [
       renewalFieldsLocked,
@@ -1144,6 +1158,9 @@ function WbsNewProjectPage() {
       selectedSubVenture,
       serviceRows,
       selectedClientId,
+      allProjectsList,
+      nextCodeData,
+      clientProjectCountVal,
       extraCount,
     ],
   );

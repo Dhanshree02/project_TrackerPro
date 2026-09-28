@@ -6,9 +6,15 @@ import {
   type ClientSubVenture,
 } from "@/lib/mock-data";
 
-import { allClients, formatCustomerId } from "@/lib/dh-store";
+import {
+  allClients,
+  formatCustomerId,
+  registerClientCode,
+  registerClients,
+  getNextClientCode,
+} from "@/lib/dh-store";
 
-export { formatCustomerId };
+export { formatCustomerId, registerClientCode, registerClients, getNextClientCode };
 
 /** Wire shape returned by GET /api/v1/clients (camelCase JSON). */
 export interface ApiClientContact {
@@ -58,6 +64,7 @@ export interface ApiClient {
   contacts: ApiClientContact[];
   customerSince?: string | null;
   createdAtUtc: string;
+  clientCode?: string | null;
 }
 
 interface PagedEnvelope<T> {
@@ -94,6 +101,7 @@ export function mapApiClient(c: ApiClient): Client {
     kycDocumentName: c.kycDocumentName ?? undefined,
     kycDocumentPath: c.kycDocumentPath ?? undefined,
     customerSince: c.customerSince ? c.customerSince.slice(0, 10) : c.createdAtUtc?.slice(0, 10),
+    clientCode: c.clientCode ?? undefined,
     subVentures: (c.subVentures ?? []).map((sv) => ({
       id: sv.id,
       name: sv.name,
@@ -135,12 +143,25 @@ export async function fetchClients(page = 1, perPage = 100): Promise<ApiClient[]
   const data = await apiFetch<PagedEnvelope<ApiClient>>(
     `/api/v1/clients?page=${page}&perPage=${perPage}`,
   );
-  return data?.items ?? [];
+  const items = data?.items ?? [];
+  registerClients(items);
+  return items;
 }
 
 /** GET /api/v1/clients/{id} */
 export async function fetchClient(id: string): Promise<ApiClient | null> {
-  return apiFetch<ApiClient>(`/api/v1/clients/${id}`);
+  const client = await apiFetch<ApiClient>(`/api/v1/clients/${id}`);
+  if (client) registerClients([client]);
+  return client;
+}
+
+/** GET /api/v1/clients/next-code — returns the next sequential customer ID e.g. "C018". */
+export async function fetchNextClientCode(): Promise<string> {
+  try {
+    const res = await apiFetch<string>("/api/v1/clients/next-code");
+    if (res && typeof res === "string") return res;
+  } catch {}
+  return getNextClientCode();
 }
 
 /** Payload for creating / updating a client (mirrors backend CreateClientRequest). */
@@ -180,10 +201,12 @@ export interface CreateClientInput {
 
 /** POST /api/v1/clients — creates a client in the database. */
 export async function createClient(input: CreateClientInput): Promise<ApiClient> {
-  return apiFetch<ApiClient>("/api/v1/clients", {
+  const created = await apiFetch<ApiClient>("/api/v1/clients", {
     method: "POST",
     body: JSON.stringify(input),
   });
+  if (created) registerClients([created]);
+  return created;
 }
 
 /** PUT /api/v1/clients/{id} — updates a client (e.g. adds a sub-venture). */
@@ -191,10 +214,12 @@ export async function updateClient(
   id: string,
   input: Partial<CreateClientInput>,
 ): Promise<ApiClient> {
-  return apiFetch<ApiClient>(`/api/v1/clients/${id}`, {
+  const updated = await apiFetch<ApiClient>(`/api/v1/clients/${id}`, {
     method: "PUT",
     body: JSON.stringify(input),
   });
+  if (updated) registerClients([updated]);
+  return updated;
 }
 
 /** POST /api/v1/clients/{id}/kyc — uploads the KYC document into Documents/KYC. */

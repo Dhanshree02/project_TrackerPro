@@ -94,7 +94,7 @@ export function AppShell({
   return (
     <div className="flex min-h-screen w-full isolate bg-background text-foreground">
       <AppSidebar />
-      <div className="relative z-0 flex min-w-0 flex-1 flex-col bg-background">
+      <div className="relative flex min-w-0 flex-1 flex-col bg-background">
         <AppTopbar title={title} subtitle={subtitle} />
         <main className="flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
         <MobileTabs />

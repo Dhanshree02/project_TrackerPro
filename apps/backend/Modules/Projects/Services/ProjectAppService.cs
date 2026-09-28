@@ -63,12 +63,34 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var page = Math.Max(1, queryParams.Page);
         var pageSize = Math.Clamp(queryParams.PageSize, 1, 500);
 
-        var items = await query
+        var projects = await query
             .OrderByDescending(p => p.CreatedAtUtc)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p => MapToDto(p))
             .ToListAsync(ct);
+
+        var projectIds = projects.Select(p => p.Id).ToList();
+        var teamLeadsByProject = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Include(m => m.Employee)
+            .Where(m => projectIds.Contains(m.ProjectId) && m.IsTeamLead && m.Employee != null)
+            .GroupBy(m => m.ProjectId)
+            .ToDictionaryAsync(g => g.Key, g => g.First(), ct);
+
+        var items = projects.Select(p =>
+        {
+            var dto = MapToDto(p);
+            if (string.IsNullOrWhiteSpace(dto.TeamLeadName) && teamLeadsByProject.TryGetValue(p.Id, out var tlMember) && tlMember.Employee != null)
+            {
+                var tlName = $"{tlMember.Employee.FirstName} {tlMember.Employee.LastName}".Trim();
+                dto = dto with
+                {
+                    TeamLeadId = tlMember.EmployeeId,
+                    TeamLeadName = tlName
+                };
+            }
+            return dto;
+        }).ToList();
 
         return new PagedResult<ProjectDto>(items, page, pageSize, totalCount);
     }
@@ -125,6 +147,16 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             if (orig != null)
             {
                 renewedFromProjectId = orig.Id;
+            }
+        }
+
+        // For new (non-renewal) projects, ensure any project sequence suffix matches the authoritative count
+        if (!renewedFromProjectId.HasValue && string.IsNullOrWhiteSpace(request.RenewedFromWbsId) && !string.IsNullOrWhiteSpace(resolvedName))
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(resolvedName, @"^(.*)_(\d+)$");
+            if (match.Success)
+            {
+                resolvedName = $"{match.Groups[1].Value}_{nextCodeDto.FormattedClientProjectCount}";
             }
         }
 
@@ -459,6 +491,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
         // Client position among all clients (ordered by CreatedAtUtc)
         var clientIndex = await db.Clients
+            .IgnoreQueryFilters()
             .OrderBy(c => c.CreatedAtUtc)
             .Select(c => c.Id)
             .ToListAsync(ct);

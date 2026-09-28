@@ -432,7 +432,14 @@ function ProjectDetail() {
         p.wbsId === rawId ||
         p.projectSeqId?.toLowerCase() === rawId.toLowerCase(),
     );
-    if (fromStore) return fromStore;
+    if (fromStore) {
+      if (!dbProject) return fromStore;
+      return {
+        ...fromStore,
+        renewedFromProjectId: fromStore.renewedFromProjectId || dbProject.renewedFromProjectId || undefined,
+        renewedFromWbsId: fromStore.renewedFromWbsId || dbProject.renewedFromWbsId || undefined,
+      };
+    }
     if (dbProject) return mapApiProjectToProject(dbProject);
     return loaderData?.project;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2131,6 +2138,7 @@ function OverviewTab({
     () => findProjectByWbsId(allProjects(), project.renewedFromWbsId),
     [project.renewedFromWbsId, extraCount],
   );
+  const originalProjectId = (project.renewedFromProjectId || originalProject?.id || "").trim();
 
   const wbs = project.wbsDetails;
   const hasWbsData = !!(project.wbsId || wbs);
@@ -2168,10 +2176,10 @@ function OverviewTab({
         {project.renewedFromWbsId ? (
           <p className="text-sm text-foreground">
             This project is a renewal of:{" "}
-            {originalProject ? (
+            {originalProjectId ? (
               <Link
                 to="/projects/$projectId"
-                params={{ projectId: originalProject.id }}
+                params={{ projectId: originalProjectId }}
                 className="font-medium text-primary hover:underline"
               >
                 {project.renewedFromWbsId}
@@ -3317,50 +3325,10 @@ interface ServiceFolder {
   aps: APFolder[] | null;
 }
 
-function dummyWbsServices(project: Project): WbsService[] {
-  const start = project.startDate;
-  const end = project.endDate;
-  const mk = (
-    id: string,
-    department: string,
-    serviceName: string,
-    qty: number,
-    frequency: string,
-    serviceModel: string,
-    totalHrs: number,
-  ): WbsService => ({
-    id,
-    department,
-    serviceName,
-    qty,
-    description: `${serviceName} workstream for ${project.name}`,
-    frequency,
-    location: "Offshore",
-    serviceModel,
-    deliveryModel: "Offshore",
-    finalDeliveryFormat: "Report",
-    billingModel: "Fixed Price",
-    tools: "Jira",
-    startDate: start,
-    endDate: end,
-    duration: 30,
-    totalDays: 30,
-    totalHrs,
-    unitPrice: 0,
-    total: 0,
-  });
-  return [
-    mk("s1", "QA", "Application Testing", 2, "Once", "Initial + 1", 240),
-    mk("s2", "Security", "SOC", 1, "Half Yearly", "Initial Test", 160),
-    mk("s3", "Infra", "Infrastructure", 1, "Once", "Initial + 2", 200),
-  ];
-}
-
 function buildServiceTree(project: Project, store: any): ServiceFolder[] {
-  const services = project.wbsDetails?.services?.length
-    ? project.wbsDetails.services
-    : dummyWbsServices(project);
-  const usingDummy = !project.wbsDetails?.services?.length;
+  const services = project.wbsDetails?.services ?? [];
+  if (services.length === 0) return [];
+  const usingDummy = false;
 
   return services.map((svc, serviceIndex) => {
     const qty = svc.qty || 1;
@@ -3470,13 +3438,31 @@ function buildServiceTree(project: Project, store: any): ServiceFolder[] {
 
 const expandedNodesMap = new Map<string, Set<string>>();
 
-function applyPersistedTasks(folders: ServiceFolder[], tasks: ApiProjectTask[]): ServiceFolder[] {
+function taskLeafKey(service: string, period: string, phase: string, title: string): string {
+  return `${service}|${period}|${phase}|${title}`.trim().toLowerCase();
+}
+
+function applyPersistedTasks(
+  folders: ServiceFolder[],
+  tasks: ApiProjectTask[],
+  serviceIdsByKey: Map<string, string> = new Map(),
+): ServiceFolder[] {
   const map = new Map<string, ApiProjectTask>();
   for (const t of tasks) {
-    map.set(`${t.projectServiceId}|${t.period || ""}|${t.phase || ""}|${t.title}`, t);
+    const period = t.period || "";
+    const phase = t.phase || "";
+    const title = t.title || "";
+    if (t.projectServiceId) map.set(taskLeafKey(t.projectServiceId, period, phase, title), t);
+    if (t.serviceName) map.set(taskLeafKey(t.serviceName, period, phase, title), t);
   }
-  const mapTask = (task: TreeTask, serviceId: string, period: string, phase: string): TreeTask => {
-    const hit = map.get(`${serviceId}|${period}|${phase}|${task.taskId}`);
+  const mapTask = (task: TreeTask, serviceId: string, serviceName: string, serviceCode: string, period: string, phase: string): TreeTask => {
+    const dbServiceId =
+      serviceIdsByKey.get(`code:${serviceCode.trim().toLowerCase()}`) ||
+      serviceIdsByKey.get(`name:${serviceName.trim().toLowerCase()}`) ||
+      serviceId;
+    const hit =
+      map.get(taskLeafKey(dbServiceId, period, phase, task.taskId)) ||
+      map.get(taskLeafKey(serviceName, period, phase, task.taskId));
     if (!hit) return task;
     const shares = (hit.assignments ?? [])
       .filter((a) => a.isActive !== false && Number(a.allocatedHours) > 0)
@@ -3500,14 +3486,14 @@ function applyPersistedTasks(folders: ServiceFolder[], tasks: ApiProjectTask[]):
           ...q,
           aps: q.aps.map((ap) => ({
             ...ap,
-            tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, q.label, ap.label)),
+            tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, ap.label)),
           })),
         }))
       : null,
     aps: svc.aps
       ? svc.aps.map((ap) => ({
           ...ap,
-          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, "", ap.label)),
+          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, "", ap.label)),
         }))
       : null,
   }));
@@ -3519,7 +3505,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
   const useApiTasks = isApiGuid(project.id);
   const [dbTasks, setDbTasks] = useState<ApiProjectTask[]>([]);
-  const [apiServices, setApiServices] = useState<WbsService[] | null>(null);
+  const [serviceIdsByKey, setServiceIdsByKey] = useState<Map<string, string>>(new Map());
   const [apiPool, setApiPool] = useState<{ person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[] | null>(null);
 
   useEffect(() => {
@@ -3527,34 +3513,18 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
     let active = true;
     (async () => {
       try {
-        const services = await fetchProjectServices(project.id);
-        if (!active) return;
-        setApiServices(services.map((s) => ({
-          id: s.id,
-          taskId: s.taskId || "",
-          department: s.department || "",
-          subDepartment: s.subDepartment || "",
-          serviceName: s.serviceName,
-          resourceLevel: s.resourceLevel || "",
-          qty: s.qty || 1,
-          description: s.description || "",
-          frequency: s.frequency || "Once",
-          location: s.location || "",
-          serviceModel: s.serviceModel || "Initial Test",
-          deliveryModel: s.deliveryModel || "",
-          finalDeliveryFormat: s.finalDeliveryFormat || "",
-          billingModel: s.billingModel || "",
-          tools: s.tools || "",
-          startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
-          endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
-          duration: s.durationDays || 0,
-          totalDays: s.totalDays || s.durationDays || 0,
-          totalHrs: s.totalHours || ((s.totalDays || s.durationDays || 0) * 8),
-          unitPrice: s.unitPrice || 0,
-          total: s.total || 0,
-        })));
         await generateProjectTasks(project.id);
-        const tasks = await fetchProjectTasks(project.id);
+        const [services, tasks] = await Promise.all([
+          fetchProjectServices(project.id),
+          fetchProjectTasks(project.id),
+        ]);
+        if (!active) return;
+        const keys = new Map<string, string>();
+        for (const service of services) {
+          if (service.taskId?.trim()) keys.set(`code:${service.taskId.trim().toLowerCase()}`, service.id);
+          if (service.serviceName?.trim()) keys.set(`name:${service.serviceName.trim().toLowerCase()}`, service.id);
+        }
+        setServiceIdsByKey(keys);
         if (!active) return;
         setDbTasks(tasks);
         const peopleToRegister = tasks.flatMap((t) =>
@@ -3575,36 +3545,21 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
     };
   }, [project.id, useApiTasks]);
 
-  const treeProject = useMemo(() => {
-    if (!useApiTasks || !apiServices) return project;
-    return {
-      ...project,
-      wbsDetails: {
-        ...(project.wbsDetails ?? { services: [], accounts: { invoices: [] } }),
-        services: apiServices,
-      },
-    } as Project;
-  }, [project, useApiTasks, apiServices]);
-
   const tree = useMemo(() => {
-    if (useApiTasks && !apiServices) return [];
-    const built = buildServiceTree(treeProject, dhStore);
+    const built = buildServiceTree(project, dhStore);
     if (!useApiTasks || dbTasks.length === 0) return built;
-    return applyPersistedTasks(built, dbTasks);
-  }, [treeProject, snapshot.treeTaskStates, useApiTasks, apiServices, dbTasks]);
-
-  const usingDummy = useApiTasks ? false : !project.wbsDetails?.services?.length;
+    return applyPersistedTasks(built, dbTasks, serviceIdsByKey);
+  }, [project, snapshot.treeTaskStates, useApiTasks, dbTasks, serviceIdsByKey]);
 
   const visibleTree = useMemo(() => {
-    if (useApiTasks || usingDummy) return tree;
-    if (!prereq) return [];
+    if (!prereq?.services?.length) return [];
     return tree.filter((svcFolder) => {
       const pSvc = prereq.services?.find(
         (s) => s.serviceId === svcFolder.serviceId || s.serviceName === svcFolder.serviceName
       );
-      return pSvc ? pSvc.isReady : false;
+      return Boolean(pSvc?.isReady);
     });
-  }, [tree, prereq, usingDummy]);
+  }, [tree, prereq]);
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
     const existing = expandedNodesMap.get(project.id);
@@ -3711,15 +3666,17 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   const liveAssignments = useDhStore((s) => s.taskAssignments);
 
   const teamPool = useMemo(() => {
-    if (useApiTasks && apiPool) return apiPool;
+    const isRealMember = (person: Person) =>
+      Boolean(person?.id && person.id !== "unknown" && person.name?.trim() && person.name !== "Unknown User");
+    if (useApiTasks && apiPool) return apiPool.filter((row) => isRealMember(row.person));
     const projectTeamAdditionIds = snapshot.projectTeamAdditions[project.id] ?? [];
     const removedIds = snapshot.projectTeamRemovals[project.id] ?? [];
-    const ids = Array.from(new Set([project.pmId, project.tlId, ...project.teamIds, ...projectTeamAdditionIds, ...shadowTeamIds]))
-      .filter(id => !removedIds.includes(id));
+    const ids = Array.from(new Set([...project.teamIds, ...projectTeamAdditionIds, ...shadowTeamIds]))
+      .filter((id) => id?.trim() && !removedIds.includes(id));
     return ids.map((id) => {
       const person = getPerson(id);
-      return { person, isProjectTeam: project.pmId === id || project.tlId === id || project.teamIds.includes(id) || projectTeamAdditionIds.includes(id), isShadowTeam: shadowTeamIds.includes(id) };
-    });
+      return { person, isProjectTeam: project.teamIds.includes(id) || projectTeamAdditionIds.includes(id), isShadowTeam: shadowTeamIds.includes(id) };
+    }).filter((row) => isRealMember(row.person));
   }, [useApiTasks, apiPool, project, shadowTeamIds, snapshot.projectTeamAdditions, snapshot.projectTeamRemovals]);
 
   const getDescendantTasks = (row: TreeRow): TreeTask[] => {
@@ -4067,6 +4024,36 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                             {!readOnly && (
                                             <button
                                               onClick={async () => {
+                                                if (useApiTasks) {
+                                                  try {
+                                                    const [projectMembers, shadowMembers] = await Promise.all([
+                                                      fetchProjectTeamMembers(project.id),
+                                                      fetchProjectTeamMembers(project.id, { shadow: true }),
+                                                    ]);
+                                                    const named = [...projectMembers, ...shadowMembers].filter(
+                                                      (m) => m.employeeId && m.employeeName?.trim() && m.employeeName !== "Unknown User",
+                                                    );
+                                                    dhStore.registerPeople(named.map((m) => ({
+                                                      id: m.employeeId,
+                                                      name: m.employeeName,
+                                                      role: m.employeeRole || "Team Member",
+                                                      email: m.employeeEmail || "",
+                                                    })));
+                                                    setApiPool(named.map((m) => ({
+                                                      person: {
+                                                        id: m.employeeId,
+                                                        name: m.employeeName,
+                                                        role: m.employeeRole || "Team Member",
+                                                        avatar: m.employeeName.slice(0, 2).toUpperCase(),
+                                                        email: m.employeeEmail || "",
+                                                      },
+                                                      isProjectTeam: !m.isShadowTeam,
+                                                      isShadowTeam: m.isShadowTeam,
+                                                    })));
+                                                  } catch (err) {
+                                                    toast.error(err instanceof Error ? err.message : "Could not load team members");
+                                                  }
+                                                }
                                                 if (useApiTasks && t.dbId) {
                                                   try {
                                                     const [resources, history] = await Promise.all([
@@ -4074,13 +4061,16 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                       fetchTaskAssignmentHistory(project.id, t.dbId),
                                                     ]);
                                                     setAssignHistory(history);
-                                                    dhStore.registerPeople(resources.map((r) => ({
+                                                    const namedResources = resources.filter(
+                                                      (r) => r.employeeId && r.employeeName?.trim() && r.employeeName !== "Unknown User",
+                                                    );
+                                                    dhStore.registerPeople(namedResources.map((r) => ({
                                                       id: r.employeeId,
                                                       name: r.employeeName,
                                                       role: r.employeeRole || "Team Member",
                                                       email: "",
                                                     })));
-                                                    setApiPool(resources.map((r) => ({
+                                                    setApiPool(namedResources.map((r) => ({
                                                       person: {
                                                         id: r.employeeId,
                                                         name: r.employeeName,
@@ -4204,7 +4194,13 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
           historyEntries={useApiTasks ? assignHistory : undefined}
           onClose={() => { setAssignFor(null); setAssignHistory([]); }}
           onSave={(ids) => {
-            if (useApiTasks && assignFor.dbId) {
+            if (useApiTasks) {
+              if (!assignFor.dbId) {
+                toast.error("Could not save assignments", {
+                  description: "This task is not linked to the database yet. Refresh the page and try again.",
+                });
+                return;
+              }
               syncTaskAssignments(project.id, assignFor.dbId, ids)
                 .then((saved) => {
                   setDbTasks((prev) => prev.map((row) => {
@@ -4212,6 +4208,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                     const utilizedHours = row.stage === "Completed" ? Number(row.estimatedHours || 0) : 0;
                     return { ...row, assignments: saved, utilizedHours };
                   }));
+                  dhStore.registerPeople(saved.map((a) => ({
+                    id: a.employeeId,
+                    name: a.employeeName,
+                    role: a.role || "Team Member",
+                    email: a.workEmail || "",
+                  })));
                   toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
                   setAssignFor(null);
                 })
@@ -4263,6 +4265,15 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
     <Modal title={`Assign — ${task.title}`} onClose={onClose} draggable>
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">Resources from Project Team and Shadow Team can be assigned. Select one or more.</p>
+        {pool.length === 0 ? (
+          <div className="rounded-lg border border-warning/30 bg-warning/10 p-6 text-center">
+            <p className="text-sm font-semibold text-warning-foreground">No team members are added to assign</p>
+            <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
+              First create a team on the Team tab. Add Project Team or Shadow Team members, then come back here to assign them.
+            </p>
+          </div>
+        ) : (
+        <>
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search team member…"
@@ -4311,6 +4322,8 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
           })}
           {visible.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted-foreground">No match</li>}
         </ul>
+        </>
+        )}
 
         {/* Assignment History Log */}
         <div className="border-t border-border pt-3">
@@ -4336,7 +4349,7 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
 
         <div className="flex justify-end gap-2 border-t border-border pt-3">
           <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-          <button onClick={() => onSave(sel)} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Save Assignments</button>
+          <button onClick={() => onSave(sel)} disabled={pool.length === 0} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">Save Assignments</button>
         </div>
       </div>
     </Modal>
@@ -4680,13 +4693,13 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
   const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
   const isAssigned = hasPM && hasSPM;
 
-  if (prereq && !isAssigned) {
+  if (!isAssigned) {
     return (
       <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
         <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
         <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — PM/SPM Not Assigned</h4>
         <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
-          Team building, resource assignment, shadow team allocation, task assignment, and activity assignment are disabled until both PM and SPM are assigned.
+          First assign the Project Manager and the Senior Project Manager on the WBS tab. Team building stays blocked until both are assigned.
         </p>
       </div>
     );
@@ -7049,9 +7062,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
   }, [prereqData, defaultPmIds, defaultSpmIds, project.id]);
 
   const servicesList: DhServicePrereq[] = useMemo(() => {
-    const rawServices: any[] = project.wbsDetails?.services?.length
-      ? project.wbsDetails.services
-      : dummyWbsServices(project);
+    const rawServices: any[] = project.wbsDetails?.services ?? [];
 
     const storeServices = prereq.services || [];
 
@@ -7883,7 +7894,7 @@ function WbsAssignmentModal({
   const title = mode === "pm" ? "Assign Project Manager" : "Assign Senior Project Manager";
 
   return (
-    <Modal title={title} onClose={onClose} draggable>
+    <Modal title={title} onClose={onClose} draggable portal>
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">
           {mode === "pm"

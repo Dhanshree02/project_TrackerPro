@@ -35,6 +35,14 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
         }));
     }
 
+    [HttpGet("next-code")]
+    [RequirePermission(Permissions.ClientsRead)]
+    public async Task<ActionResult<ApiResponse<string>>> GetNextCode(CancellationToken ct)
+    {
+        var code = await clients.GetNextClientCodeAsync(ct);
+        return Ok(ApiResponse<string>.Ok(code));
+    }
+
     [HttpGet("{id:guid}")]
     [RequirePermission(Permissions.ClientsRead)]
     public async Task<ActionResult<ApiResponse<ClientDto>>> Get(Guid id, CancellationToken ct)
