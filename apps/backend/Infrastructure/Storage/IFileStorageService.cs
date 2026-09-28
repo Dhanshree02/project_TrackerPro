@@ -65,6 +65,10 @@ public interface IFileStorageService
 
     (Stream Stream, string ContentType, string DownloadFileName)? GetKycFileStream(string relativePathOrFileName);
 
+    (Stream Stream, string ContentType, string DownloadFileName)? GetProjectFileStream(string relativePathOrFileName);
+
+    bool DeleteProjectFile(string relativePathOrFileName);
+
     (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string category, string fileName);
 
     (Stream Stream, string ContentType, string DownloadFileName)? GetRepositoryFileStream(string filePath);
@@ -77,3 +81,4 @@ public interface IFileStorageService
 
     string GetDocumentsRootPath();
 }
+

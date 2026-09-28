@@ -279,6 +279,59 @@
     padding-bottom: 0.5rem;
   }
 
+  /*
+   * Project Onboarding (projects.new) uses inline field styles. The global
+   * `select { height: 2.25rem }` plus padding clips glyphs. Keep values dark
+   * even when disabled/read-only; placeholders stay muted.
+   */
+  .wbs-onboarding-form input,
+  .wbs-onboarding-form select,
+  .wbs-onboarding-form textarea {
+    vertical-align: middle;
+  }
+
+  .wbs-onboarding-form select:not([multiple]) {
+    height: auto;
+    line-height: 1.4;
+    overflow: visible;
+    opacity: 1;
+  }
+
+  .wbs-onboarding-form select:not([multiple]):disabled {
+    opacity: 1;
+    color: inherit;
+    -webkit-text-fill-color: inherit;
+    background-color: #f3f4f6;
+  }
+
+  .wbs-onboarding-form input:disabled,
+  .wbs-onboarding-form input:read-only,
+  .wbs-onboarding-form textarea:disabled,
+  .wbs-onboarding-form textarea:read-only {
+    opacity: 1;
+    color: inherit;
+    -webkit-text-fill-color: inherit;
+  }
+
+  .wbs-onboarding-form input::placeholder,
+  .wbs-onboarding-form textarea::placeholder {
+    color: #9ca3af;
+    -webkit-text-fill-color: #9ca3af;
+    opacity: 1;
+  }
+
+  .wbs-onboarding-form select option,
+  .wbs-onboarding-form select option:checked {
+    color: #1f2937;
+    background-color: #fff;
+    font-weight: 400;
+  }
+
+  .wbs-onboarding-form select option[value=""] {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
   /* Hide number input spinners for custom payment % fields */
   input.no-spinner::-webkit-inner-spin-button,
   input.no-spinner::-webkit-outer-spin-button {

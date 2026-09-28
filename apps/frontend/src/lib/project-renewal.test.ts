@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import { findProjectByWbsId, isRenewedProject } from "./project-renewal";
 
 describe("isRenewedProject", () => {
-  it("is true only when a previous WBS ID is stored", () => {
+  it("is true when a previous WBS ID or project ID is stored or renewal flag is set", () => {
     expect(isRenewedProject({ renewedFromWbsId: "IN-2026-27-C002-P004" })).toBe(true);
+    expect(isRenewedProject({ renewedFromProjectId: "proj-123" })).toBe(true);
+    expect(isRenewedProject({ isRenewal: true })).toBe(true);
+    expect(isRenewedProject({ renewed: true })).toBe(true);
     expect(isRenewedProject({ renewedFromWbsId: "  " })).toBe(false);
     expect(isRenewedProject({})).toBe(false);
     expect(isRenewedProject(null)).toBe(false);

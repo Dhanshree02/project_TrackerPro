@@ -4,9 +4,11 @@ This document is the north-star schema map for module-by-module backend delivery
 
 ## Current implementation status
 
-- Implemented: `users`, `roles`, `refresh_tokens`, `role_permission_audits`, `clients`, `sub_ventures`, `client_assignments`
-- Added in Phase I: `mst_departments`, `mst_designations`, `mst_industries`, `mst_countries`, `mst_cities`, `mst_nationalities`, `mst_roles` (job-role catalog under designation; not RBAC `roles`), `mst_salary_bands` (L1–L5), `employees`, `exited_employees`, `client_contacts`
-- Deferred modules: projects, timesheets, approvals/action centre, repository, analytics
+- Implemented (Core & Auth): `users`, `roles`, `refresh_tokens`, `role_permission_audits`, `clients`, `sub_ventures`, `client_assignments`, `client_contacts`
+- Implemented (Resources & Catalogs Phase I): `mst_departments`, `mst_designations`, `mst_industries`, `mst_countries`, `mst_cities`, `mst_nationalities`, `mst_roles`, `mst_salary_bands`, `employees`, `exited_employees`
+- Implemented (Projects & Services Module): `mst_service_groups`, `mst_service_departments`, `mst_service_sub_departments`, `mst_service_catalog`, `projects`, `project_services`, `project_service_resource_levels`, `project_tasks`, `project_task_assignments`, `project_invoices`, `project_documents`
+- Deferred modules: timesheets, approvals/action centre, analytics
+
 
 ## Identity and auth
 

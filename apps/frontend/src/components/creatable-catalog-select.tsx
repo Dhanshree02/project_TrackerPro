@@ -35,6 +35,7 @@ export function SearchableSelect({
   clearable,
   onCreate,
   showSearch: showSearchProp,
+  onSearchChange,
 }: {
   label?: string;
   options: Array<string | SearchableSelectOption>;
@@ -51,6 +52,8 @@ export function SearchableSelect({
   clearable?: boolean;
   onCreate?: (name: string) => Promise<{ id: string; name: string } | void>;
   showSearch?: boolean;
+  /** Fires when the dropdown search text changes (for live API filtering). */
+  onSearchChange?: (query: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -91,6 +94,7 @@ export function SearchableSelect({
   useEffect(() => {
     if (!isOpen) {
       setSearch("");
+      onSearchChange?.("");
       return;
     }
     const handlePointerDown = (e: MouseEvent) => {
@@ -100,7 +104,7 @@ export function SearchableSelect({
     };
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [isOpen]);
+  }, [isOpen, onSearchChange]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -139,6 +143,7 @@ export function SearchableSelect({
     onChange?.(val);
     setIsOpen(false);
     setSearch("");
+    onSearchChange?.("");
   };
 
   const handleCreate = async () => {
@@ -253,7 +258,11 @@ export function SearchableSelect({
                     maxLength={200}
                     placeholder={searchPlaceholder ?? `Search ${label ? label.toLowerCase() : "options"}…`}
                     value={search}
-                    onChange={(e) => setSearch(e.target.value.slice(0, 200))}
+                    onChange={(e) => {
+                      const next = e.target.value.slice(0, 200);
+                      setSearch(next);
+                      onSearchChange?.(next);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Escape") {
                         setIsOpen(false);

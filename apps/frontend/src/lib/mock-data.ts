@@ -96,10 +96,14 @@ export interface WBSNode {
 
 export interface WbsService {
   id: string;
+  /** Onboarding Service ID, e.g. WBS-01. */
+  taskId?: string;
   department: string;
+  subDepartment?: string;
   serviceName: string;
   qty: number;
   description: string;
+  resourceLevel?: string;
   frequency: string;
   location: string;
   locationText?: string;
@@ -146,6 +150,8 @@ export interface WBSDetails {
     contactNumber?: string;
     contactEmail?: string;
     poFileName?: string;
+    /** data URL of the attached PO file (in-memory; used for View after upload). */
+    poFileDataUrl?: string;
     invoices: WbsInvoice[];
   };
 }
@@ -198,6 +204,13 @@ export interface Project {
   subVenture?: string; // Sub-venture name this project is under
   /** Original project's WBS ID when this record is a renewal. Original project is unchanged. */
   renewedFromWbsId?: string;
+  renewedFromProjectId?: string;
+  isRenewal?: boolean;
+  projectManagerId?: string;
+  projectManagerName?: string;
+  teamLeadId?: string;
+  teamLeadName?: string;
+  seniorProjectManager?: string;
 }
 
 export interface ClientContact {
@@ -344,7 +357,7 @@ export interface Timesheet {
 
 // ---------- People ----------
 export const people: Person[] = [
-  { id: "u1", name: "Aarav Mehta", role: "Senior PM", avatar: "AM", email: "aarav@acme.co" },
+  { id: "u1", name: "Aarav Mehta", role: "Engineer", avatar: "AM", email: "aarav@acme.co" },
   {
     id: "u2",
     name: "Riya Kapoor",
@@ -352,8 +365,8 @@ export const people: Person[] = [
     avatar: "RK",
     email: "riya@acme.co",
   },
-  { id: "u3", name: "Vikram Shah", role: "PM", avatar: "VS", email: "vikram@acme.co" },
-  { id: "u4", name: "Sana Iyer", role: "PM", avatar: "SI", email: "sana@acme.co" },
+  { id: "u3", name: "Vikram Shah", role: "Engineer", avatar: "VS", email: "vikram@acme.co" },
+  { id: "u4", name: "Sana Iyer", role: "Engineer", avatar: "SI", email: "sana@acme.co" },
   { id: "u5", name: "Nikhil Rao", role: "TL", avatar: "NR", email: "nikhil@acme.co" },
   { id: "u6", name: "Priya Verma", role: "TL", avatar: "PV", email: "priya@acme.co" },
   { id: "u7", name: "Arjun Singh", role: "Engineer", avatar: "AS", email: "arjun@acme.co" },
@@ -416,16 +429,107 @@ export const people: Person[] = [
   { id: "TKI-0008", name: "Harsh Wardhan", role: "Intern", avatar: "HW", email: "harsh.wardhan@acme.co" },
   { id: "TKI-0009", name: "Akash Jain", role: "Intern", avatar: "AJ", email: "akash.jain@acme.co" },
   { id: "TKI-0010", name: "Kunal Mehra", role: "Intern", avatar: "KM", email: "kunal.mehra@acme.co" },
+  // Database PMs and Senior PMs
+  { id: "00000000-0000-4000-8000-000000000006", name: "Divya Rao", role: "PM", avatar: "DR", email: "divya.rao@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000011", name: "Harsh Nair", role: "PM", avatar: "HN", email: "harsh.nair@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000003", name: "Rohan Mehta", role: "PM", avatar: "RM", email: "rohan.mehta@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000017", name: "Vikram Gupta", role: "Senior PM", avatar: "VG", email: "vikram.gupta@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000004", name: "Sneha Iyer", role: "Senior PM", avatar: "SI", email: "sneha.iyer@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000025", name: "Arjun Mehta", role: "Engagement Manager", avatar: "AM", email: "arjun.mehta@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000023", name: "Rahul Sharma", role: "Engagement Manager", avatar: "RS", email: "rahul.sharma@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000022", name: "Riya Kapoor", role: "Engagement Manager", avatar: "RK", email: "riya.kapoor@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000024", name: "Pradeep Singh", role: "Engagement Manager", avatar: "PS", email: "pradeep.singh@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000010", name: "Aanya Joshi", role: "Manager", avatar: "AJ", email: "aanya.joshi@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000019", name: "Aditya Reddy", role: "Engineer", avatar: "AR", email: "aditya.reddy@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000007", name: "Ankit Verma", role: "Engineer", avatar: "AV", email: "ankit.verma@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000015", name: "Arjun Shah", role: "Engineer", avatar: "AS", email: "arjun.shah@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000001", name: "Dhanshree Pansare", role: "Director", avatar: "DP", email: "dhanshree.pansare@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000012", name: "Ira Kapoor", role: "Engineer", avatar: "IK", email: "ira.kapoor@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000018", name: "Ishita Bansal", role: "Engineer", avatar: "IB", email: "ishita.bansal@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000005", name: "Karthik Bose", role: "Engineer", avatar: "KB", email: "karthik.bose@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000014", name: "Kavya Desai", role: "Engineer", avatar: "KD", email: "kavya.desai@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000016", name: "Meera Nambiar", role: "Engineer", avatar: "MN", email: "meera.nambiar@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000008", name: "Neha Kulkarni", role: "Manager", avatar: "NK", email: "neha.kulkarni@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000021", name: "Nikhil Khanna", role: "Engineer", avatar: "NK", email: "nikhil.khanna@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000020", name: "Pooja Menon", role: "HR", avatar: "PM", email: "pooja.menon@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000002", name: "Priya Sharma", role: "Engineer", avatar: "PS", email: "priya.sharma@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000009", name: "Samar Patel", role: "HR", avatar: "SP", email: "samar.patel@talakunchi.com" },
+  { id: "00000000-0000-4000-8000-000000000013", name: "Yash Malik", role: "Engineer", avatar: "YM", email: "yash.malik@talakunchi.com" },
 ];
 
-export const getPerson = (id: string) =>
-  people.find((p) => p.id === id || p.email.toLowerCase() === (id || "").toLowerCase()) || {
-    id: id || "unknown",
-    name: id || "Unknown User",
-    role: "User",
-    avatar: "?",
-    email: "",
-  };
+/**
+ * Runtime person directory for real employee GUIDs (API assigns).
+ * Mock `people` alone cannot resolve those IDs, which made PM/SPM chips
+ * show the raw GUID (or lag until something else refreshed).
+ */
+const knownPeople: Record<string, Person> = {};
+
+function initialsFromName(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?"
+  );
+}
+
+/** Cache people so getPerson resolves API employee IDs to display names. */
+export function registerPeople(
+  entries: Array<{ id: string; name: string; role?: string; avatar?: string; email?: string }>,
+): void {
+  for (const e of entries) {
+    if (!e?.id || !e?.name?.trim()) continue;
+    const name = e.name.trim();
+    const prev = knownPeople[e.id];
+    knownPeople[e.id] = {
+      id: e.id,
+      name,
+      role: e.role || prev?.role || "User",
+      avatar: e.avatar || prev?.avatar || initialsFromName(name),
+      email: e.email || prev?.email || "",
+    };
+  }
+}
+
+export function getKnownPeopleSnapshot(): Record<string, Person> {
+  return { ...knownPeople };
+}
+
+export function hydrateKnownPeople(map: Record<string, Person> | null | undefined): void {
+  if (!map || typeof map !== "object") return;
+  for (const [id, p] of Object.entries(map)) {
+    if (p?.id && p?.name) knownPeople[id] = p;
+  }
+}
+
+export const getPerson = (id: string) => {
+  const key = (id || "").trim();
+  if (!key) {
+    return { id: "unknown", name: "Unknown User", role: "User", avatar: "?", email: "" };
+  }
+  if (knownPeople[key]) return knownPeople[key];
+  const knownByName = Object.values(knownPeople).find(
+    (p) => p.name.toLowerCase() === key.toLowerCase(),
+  );
+  if (knownByName) return knownByName;
+  return (
+    people.find(
+      (p) =>
+        p.id === key ||
+        p.name.toLowerCase() === key.toLowerCase() ||
+        (p.email && p.email.toLowerCase() === key.toLowerCase()),
+    ) || {
+      id: key,
+      name: key,
+      role: "User",
+      avatar: key.slice(0, 2).toUpperCase(),
+      email: "",
+    }
+  );
+};
 
 // ---------- Clients ----------
 export const clients: Client[] = [
@@ -1242,6 +1346,7 @@ export const projects: Project[] = [
     name: "Pharma Sales Dashboard",
     clientId: "c2",
     wbsId: "IN-2025-26-C002-P008",
+    renewedFromWbsId: "IN-2025-26-C002-P003",
     status: "on_hold",
     health: "amber",
     progress: 45,

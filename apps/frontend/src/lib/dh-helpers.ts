@@ -4,10 +4,10 @@ import { people, projects, getPerson, type Person, type Project, type Task } fro
 // We derive supplementary EM / PM / TL lists from existing people; the
 // original pmId/tlId on Project remain authoritative for other roles.
 
-const EM_POOL = ["u2"]; // Engagement Managers
-const SPM_POOL = ["u1"]; // Senior PMs
-const PM_POOL = ["u3", "u4"]; // PMs
-const TL_POOL = ["u5", "u6"]; // TLs
+const EM_POOL = ["00000000-0000-4000-8000-000000000025", "00000000-0000-4000-8000-000000000023"]; // Arjun Mehta, Rahul Sharma
+const SPM_POOL = ["00000000-0000-4000-8000-000000000017", "00000000-0000-4000-8000-000000000004"]; // Vikram Gupta, Sneha Iyer
+const PM_POOL = ["00000000-0000-4000-8000-000000000006", "00000000-0000-4000-8000-000000000011", "00000000-0000-4000-8000-000000000003"]; // Divya Rao, Harsh Nair, Rohan Mehta
+const TL_POOL = ["00000000-0000-4000-8000-000000000004"]; // Sneha Iyer
 
 const seeded = (seed: string, max: number) =>
   Math.abs(seed.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % max;

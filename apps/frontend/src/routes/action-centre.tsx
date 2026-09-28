@@ -30,6 +30,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
+import { startTaskTimer, stopTaskTimer } from "@/lib/api/projects";
 import {
   getPerson,
   type TaskStatus,
@@ -160,21 +161,33 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
 
   const handleStart = () => {
     dhStore.startBucketTask(r.id);
+    if (r.projectId && r.taskId) {
+      startTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+    }
     toast.success("Timer started", { description: r.taskTitle });
   };
 
   const handlePause = () => {
     dhStore.pauseBucketTask(r.id);
+    if (r.projectId && r.taskId) {
+      stopTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+    }
     toast.info("Timer paused", { description: r.taskTitle });
   };
 
   const handleResume = () => {
     dhStore.resumeBucketTask(r.id);
+    if (r.projectId && r.taskId) {
+      startTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+    }
     toast.success("Timer resumed", { description: r.taskTitle });
   };
 
   const handleStop = () => {
     dhStore.stopBucketTask(r.id);
+    if (r.projectId && r.taskId) {
+      stopTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+    }
     toast.warning("Timer stopped", { description: r.taskTitle });
   };
 

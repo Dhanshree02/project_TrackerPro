@@ -979,22 +979,17 @@ function CustomerDetailPage() {
               ))}
 
               {/* KYC Document Row — scoped to the selected sub-venture */}
-              <div className="px-4 py-2.5 text-xs">
-                <div className="flex items-center justify-between gap-1 mb-1.5">
-                  <dt className="font-medium text-muted-foreground flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 text-primary" /> KYC Document
-                    {activeSubVenture && (
-                      <span className="truncate text-[10px] font-normal normal-case text-muted-foreground/80">
-                        — {activeSubVenture.name}
-                      </span>
-                    )}
-                  </dt>
-                  {activeKycHasFile && (
-                    <div className="flex items-center gap-1.5">
+              <div className="grid grid-cols-2 items-center gap-2 px-4 py-2.5 text-xs">
+                <dt className="font-medium text-muted-foreground flex items-center gap-1.5 min-w-0">
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-primary" /> KYC Document
+                </dt>
+                <dd className="flex min-w-0 items-center justify-end gap-1.5">
+                  {activeKycHasFile ? (
+                    <>
                       <button
                         type="button"
                         onClick={() => setKycPreviewOpen(true)}
-                        className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer shadow-2xs"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
                         title="Preview KYC Document"
                       >
                         <Eye className="h-3 w-3" /> View
@@ -1002,33 +997,21 @@ function CustomerDetailPage() {
                       <button
                         type="button"
                         onClick={() => handleDirectDownloadKyc(activeSubVenture)}
-                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer shadow-2xs"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer"
                         title="Download KYC Document"
                         aria-label="Download KYC Document"
                       >
                         <Download className="h-3 w-3 text-primary" /> Download
                       </button>
-                    </div>
+                    </>
+                  ) : (
+                    <span className="text-right text-[11px] text-muted-foreground">
+                      {!activeSubVenture
+                        ? "Select a sub-venture"
+                        : "No document uploaded"}
+                    </span>
                   )}
-                </div>
-                {!activeSubVenture ? (
-                  <dd className="text-[11px] text-muted-foreground">
-                    Select a sub-venture to view its KYC document.
-                  </dd>
-                ) : activeKycHasFile ? (
-                  <dd className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span className="truncate font-mono font-medium text-foreground">
-                      {activeKycName}
-                    </span>
-                    <span className="shrink-0 ml-2 rounded-full border border-success/30 bg-success/10 px-1.5 py-0.2 text-[9px] font-semibold text-success uppercase">
-                      Verified
-                    </span>
-                  </dd>
-                ) : (
-                  <dd className="text-[11px] text-muted-foreground">
-                    No KYC document uploaded for this sub-venture.
-                  </dd>
-                )}
+                </dd>
               </div>
             </dl>
           </div>
