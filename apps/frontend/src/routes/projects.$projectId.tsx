@@ -2141,11 +2141,44 @@ function OverviewTab({
   const originalProjectId = (project.renewedFromProjectId || originalProject?.id || "").trim();
 
   const wbs = project.wbsDetails;
-  const hasWbsData = !!(project.wbsId || wbs);
   const poDocName = useDhStore((s) => s.poDocuments[project.id]?.fileName) || wbs?.accounts?.poFileName || "";
 
+  // Service lines live on the project services API. The project payload alone does not
+  // carry line totals, so Overview reads them here (same source as the WBS tab).
+  const [liveServices, setLiveServices] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (!isApiGuid(project.id)) {
+      setLiveServices(null);
+      return;
+    }
+    let active = true;
+    fetchProjectServices(project.id)
+      .then((rows) => {
+        if (!active) return;
+        setLiveServices(
+          rows.map((s) => ({
+            id: s.id,
+            qty: s.qty || 1,
+            unitPrice: s.unitPrice || 0,
+            total: s.total || ((s.unitPrice || 0) * (s.qty || 1)),
+            totalDays: s.totalDays || s.durationDays || 0,
+            totalHrs: s.totalHours || s.durationHours || ((s.totalDays || s.durationDays || 0) * 8),
+            startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
+            endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
+          })),
+        );
+      })
+      .catch(() => {
+        if (active) setLiveServices(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
+
   // Derive project start date as the earliest service start date and end date as the latest service end date
-  const services = (wbs?.services ?? []) as any[];
+  const services = ((liveServices && liveServices.length > 0) ? liveServices : (wbs?.services ?? [])) as any[];
+  const hasWbsData = !!(project.wbsId || wbs || services.length > 0);
   const validStarts = services
     .map((s) => (typeof s.startDate === "string" ? s.startDate.trim() : ""))
     .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
@@ -2159,9 +2192,17 @@ function OverviewTab({
   const effectiveStartDate = validStarts.length > 0 ? validStarts[0] : project.startDate;
   const effectiveEndDate = validEnds.length > 0 ? validEnds[validEnds.length - 1] : project.endDate;
 
-  const totalServices = wbs ? wbs.services.reduce((a, b) => a + b.total, 0) : 0;
+  const totalServices = services.reduce((sum, s) => {
+    const line = Number(s.total);
+    if (Number.isFinite(line) && line > 0) return sum + line;
+    return sum + (Number(s.unitPrice) || 0) * (Number(s.qty) || 1);
+  }, 0);
+  const serviceDays = services.reduce((sum, s) => sum + (Number(s.totalDays) || 0), 0);
+  const serviceHours = services.reduce((sum, s) => sum + (Number(s.totalHrs ?? s.totalHours) || 0), 0);
+  const displayDays = Number(project.totalDays) || serviceDays;
+  const displayHours = Number(project.totalHours) || serviceHours;
   const currency = wbs?.currency ?? project.currency ?? "INR";
-  const taxPct = wbs ? (project.taxPercent ?? 18) : 18;
+  const taxPct = project.taxPercent ?? 18;
   const grandTotal = totalServices + totalServices * (taxPct / 100);
 
   return (
@@ -2233,7 +2274,7 @@ function OverviewTab({
                   <DetailField key={f.label} label={f.label} value={f.value} />
                 ))}
             </div>
-            {!hideAmounts && totalServices > 0 && (
+            {totalServices > 0 && (
               <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
                 <div>
                   <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Services Subtotal</div>
@@ -2249,18 +2290,18 @@ function OverviewTab({
                 </div>
               </div>
             )}
-            {(project.totalDays || project.totalHours) ? (
+            {(displayDays || displayHours) ? (
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
-                {project.totalDays ? (
+                {displayDays ? (
                   <div>
                     <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Days</div>
-                    <div className="text-sm font-semibold">{project.totalDays} days</div>
+                    <div className="text-sm font-semibold">{displayDays} days</div>
                   </div>
                 ) : null}
-                {project.totalHours ? (
+                {displayHours ? (
                   <div>
                     <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Hours</div>
-                    <div className="text-sm font-semibold">{project.totalHours} hrs</div>
+                    <div className="text-sm font-semibold">{displayHours} hrs</div>
                   </div>
                 ) : null}
               </div>

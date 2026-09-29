@@ -1,0 +1,52 @@
+# Docker Compose for local development using the shared office database at 10.50.30.189:5432
+#
+# Usage:
+#   docker compose -f docker-compose.remote-db.yml up -d --build
+#   docker compose -f docker-compose.remote-db.yml logs -f
+#   docker compose -f docker-compose.remote-db.yml down
+#
+# URLs:
+#   Frontend:  http://localhost:3000
+#   API:       http://localhost:5194/swagger
+#   pgAdmin:   http://10.50.30.189:5050 (hosted on main PC)
+#   Database:  10.50.30.189:5432 (hosted on main PC)
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: pms_backend
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=10.50.30.189;Port=5432;Database=trackerpro;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
+      - Database__AutoMigrate=false
+      - Database__Seed=false
+      - Storage__RootPath=/app/storage
+    ports:
+      - "${BACKEND_PORT:-5194}:8080"
+    volumes:
+      - backend_storage:/app/storage
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: pms_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - VITE_BACKEND_URL=http://backend:8080
+      - VITE_API_URL=
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+
+volumes:
+  backend_storage:
+    driver: local

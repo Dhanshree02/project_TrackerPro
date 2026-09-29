@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-28
+**Last updated:** 2026-09-29
+
+- **Overview shows the WBS totals strip again.** Project Details on the Overview tab lists Services Subtotal, Tax (18%), Grand Total, Total Days, and Total Hours from the project’s service lines (`cust test(sub cust 1)_Mixed_01`: INR 120,000 / INR 21,600 / INR 141,600 / 11 days / 88 hrs). Days and hours are copied from the project API. The money row is shown on Overview even for CEO/COO, who otherwise have budget figures hidden.
 
 - **Task assignments are saved on `project_task_assignments`.** The Tasks tab links each onboarding task to its database row, so the assigned people are still there after refresh.
 - **Task Assign lists only people added on the Team tab.** If no team exists, the window says to create the team first instead of showing Unknown User.
