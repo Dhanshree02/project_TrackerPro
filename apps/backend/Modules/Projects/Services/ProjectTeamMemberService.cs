@@ -20,13 +20,17 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
             .AsNoTracking()
             .Include(m => m.Employee)
             .Include(m => m.Department)
-            .Where(m => m.ProjectId == projectId && m.IsShadowTeam == shadowTeam)
-            .OrderByDescending(m => m.IsTeamLead)
-            .ThenBy(m => m.Employee!.FirstName)
-            .ThenBy(m => m.Employee!.LastName)
+            .Where(m => m.ProjectId == projectId && (shadowTeam
+                ? m.MemberRole == ProjectMemberRoles.ShadowTeam
+                : m.MemberRole != ProjectMemberRoles.ShadowTeam))
             .ToListAsync(ct);
 
-        return rows.Select(MapToDto).ToList();
+        return rows
+            .OrderBy(TeamDisplayRank)
+            .ThenBy(m => m.Employee?.FirstName)
+            .ThenBy(m => m.Employee?.LastName)
+            .Select(MapToDto)
+            .ToList();
     }
 
     public async Task<ProjectTeamMemberDto?> GetByIdAsync(Guid projectId, Guid memberId, CancellationToken ct = default)
@@ -49,9 +53,9 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
     {
         await EnsureProjectExistsAsync(projectId, ct);
 
-        // Exclude people already on the same list (project vs shadow).
+        // One person has one membership on a project, including manager rows.
         var assignedEmployeeIds = await db.ProjectTeamMembers
-            .Where(m => m.ProjectId == projectId && m.IsShadowTeam == internsOnly)
+            .Where(m => m.ProjectId == projectId)
             .Select(m => m.EmployeeId)
             .ToListAsync(ct);
 
@@ -172,6 +176,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
             IsTeamLead = isTeamLead,
             ResourceType = resourceType,
             IsShadowTeam = isShadow,
+            MemberRole = isShadow ? ProjectMemberRoles.ShadowTeam : ProjectMemberRoles.ProjectTeam,
         };
 
         db.ProjectTeamMembers.Add(entity);
@@ -203,6 +208,11 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
             .Include(m => m.Department)
             .FirstOrDefaultAsync(m => m.ProjectId == projectId && m.Id == memberId, ct)
             ?? throw new NotFoundException("Project team member was not found.");
+
+        if (ProjectMemberRoles.IsManager(entity.MemberRole))
+        {
+            throw new ConflictException("Project Manager and Senior Project Manager are changed from WBS Project Allocation.");
+        }
 
         var start = request.AllocationStartDate ?? entity.AllocationStartDate;
         var end = request.AllocationEndDate ?? entity.AllocationEndDate;
@@ -243,7 +253,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
                 else if (project.TeamLeadId == entity.EmployeeId)
                 {
                     var otherLead = await db.ProjectTeamMembers
-                        .Where(m => m.ProjectId == projectId && m.Id != memberId && m.IsTeamLead && !m.IsShadowTeam)
+                        .Where(m => m.ProjectId == projectId && m.Id != memberId && m.IsTeamLead && m.MemberRole == ProjectMemberRoles.ProjectTeam)
                         .Select(m => (Guid?)m.EmployeeId)
                         .FirstOrDefaultAsync(ct);
                     project.TeamLeadId = otherLead;
@@ -267,10 +277,15 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
             .FirstOrDefaultAsync(m => m.ProjectId == projectId && m.Id == memberId, ct);
         if (entity is null) return false;
 
-        if (!entity.IsShadowTeam && project.TeamLeadId == entity.EmployeeId)
+        if (ProjectMemberRoles.IsManager(entity.MemberRole))
+        {
+            throw new ConflictException("Project Manager and Senior Project Manager are changed from WBS Project Allocation.");
+        }
+
+        if (entity.MemberRole == ProjectMemberRoles.ProjectTeam && project.TeamLeadId == entity.EmployeeId)
         {
             var otherLead = await db.ProjectTeamMembers
-                .Where(m => m.ProjectId == projectId && m.Id != memberId && m.IsTeamLead && !m.IsShadowTeam)
+                .Where(m => m.ProjectId == projectId && m.Id != memberId && m.IsTeamLead && m.MemberRole == ProjectMemberRoles.ProjectTeam)
                 .Select(m => (Guid?)m.EmployeeId)
                 .FirstOrDefaultAsync(ct);
             project.TeamLeadId = otherLead;
@@ -281,6 +296,162 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
         await db.SaveChangesAsync(ct);
         return true;
     }
+
+    public async Task<IReadOnlyList<ProjectTeamMemberDto>> SetLeadershipAsync(
+        Guid projectId,
+        SetProjectLeadershipRequest request,
+        CancellationToken ct = default)
+    {
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
+            ?? throw new NotFoundException($"Project '{projectId}' was not found.");
+
+        if (request.ProjectManagerIds is not null)
+        {
+            var pmIds = DistinctIds(request.ProjectManagerIds);
+            await ReplaceManagersAsync(project, ProjectMemberRoles.ProjectManager, pmIds, ct);
+            project.ProjectManagerId = pmIds.Count == 0 ? null : pmIds[0];
+            project.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
+        if (request.SeniorProjectManagerIds is not null)
+        {
+            await ReplaceManagersAsync(project, ProjectMemberRoles.SeniorProjectManager, request.SeniorProjectManagerIds, ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        var managers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Include(m => m.Employee)
+            .Include(m => m.Department)
+            .Where(m => m.ProjectId == projectId &&
+                        (m.MemberRole == ProjectMemberRoles.ProjectManager ||
+                         m.MemberRole == ProjectMemberRoles.SeniorProjectManager))
+            .ToListAsync(ct);
+
+        return managers
+            .OrderBy(TeamDisplayRank)
+            .ThenBy(m => m.Employee?.FirstName)
+            .ThenBy(m => m.Employee?.LastName)
+            .Select(MapToDto)
+            .ToList();
+    }
+
+    private async Task ReplaceManagersAsync(
+        Project project,
+        string role,
+        IReadOnlyList<Guid> employeeIds,
+        CancellationToken ct)
+    {
+        var ids = DistinctIds(employeeIds);
+        if (ids.Count == 0)
+        {
+            var clearing = await db.ProjectTeamMembers
+                .Where(m => m.ProjectId == project.Id && m.MemberRole == role)
+                .ToListAsync(ct);
+            foreach (var row in clearing)
+            {
+                db.ProjectTeamMembers.Remove(row);
+            }
+
+            return;
+        }
+
+        var employees = await db.Employees
+            .Include(e => e.Department)
+            .Where(e => ids.Contains(e.Id))
+            .ToListAsync(ct);
+        if (employees.Count != ids.Count)
+        {
+            throw new NotFoundException("One or more selected employees were not found.");
+        }
+
+        var blocked = await db.ProjectTeamMembers
+            .Where(m => m.ProjectId == project.Id && ids.Contains(m.EmployeeId) && m.MemberRole != role)
+            .Select(m => m.MemberRole)
+            .FirstOrDefaultAsync(ct);
+        if (blocked is not null)
+        {
+            var label = blocked switch
+            {
+                ProjectMemberRoles.SeniorProjectManager => "a Senior Project Manager",
+                ProjectMemberRoles.ProjectManager => "a Project Manager",
+                ProjectMemberRoles.ShadowTeam => "on the Shadow Team",
+                _ => "on the Project Team",
+            };
+            throw new ConflictException($"That person is already {label} on this project.");
+        }
+
+        var existing = await db.ProjectTeamMembers
+            .Where(m => m.ProjectId == project.Id && m.MemberRole == role)
+            .ToListAsync(ct);
+
+        foreach (var row in existing.Where(r => !ids.Contains(r.EmployeeId)))
+        {
+            db.ProjectTeamMembers.Remove(row);
+        }
+
+        var (start, end) = ProjectAllocationDates(project);
+        foreach (var id in ids)
+        {
+            var employee = employees.First(e => e.Id == id);
+            var row = existing.FirstOrDefault(r => r.EmployeeId == id);
+            if (row is null)
+            {
+                db.ProjectTeamMembers.Add(new ProjectTeamMember
+                {
+                    ProjectId = project.Id,
+                    EmployeeId = employee.Id,
+                    DepartmentId = employee.DepartmentId,
+                    SubDepartment = string.IsNullOrWhiteSpace(employee.SubDepartment) ? null : employee.SubDepartment.Trim(),
+                    AllocationStartDate = start,
+                    AllocationEndDate = end,
+                    Billability = "Billable",
+                    IsTeamLead = false,
+                    ResourceType = "Dedicated",
+                    IsShadowTeam = false,
+                    MemberRole = role,
+                });
+                continue;
+            }
+
+            row.DepartmentId = employee.DepartmentId;
+            row.SubDepartment = string.IsNullOrWhiteSpace(employee.SubDepartment) ? null : employee.SubDepartment.Trim();
+            row.AllocationStartDate = start;
+            row.AllocationEndDate = end;
+            row.IsTeamLead = false;
+            row.IsShadowTeam = false;
+            row.MemberRole = role;
+        }
+    }
+
+    private static List<Guid> DistinctIds(IReadOnlyList<Guid> employeeIds)
+    {
+        var ids = new List<Guid>();
+        foreach (var id in employeeIds)
+        {
+            if (id == Guid.Empty || ids.Contains(id)) continue;
+            ids.Add(id);
+        }
+
+        return ids;
+    }
+
+    private static (DateOnly Start, DateOnly End) ProjectAllocationDates(Project project)
+    {
+        var start = project.StartDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var end = project.EndDate ?? start;
+        if (end < start) end = start;
+        return (start, end);
+    }
+
+    private static int TeamDisplayRank(ProjectTeamMember member) => member.MemberRole switch
+    {
+        ProjectMemberRoles.SeniorProjectManager => 0,
+        ProjectMemberRoles.ProjectManager => 1,
+        _ when member.IsTeamLead => 2,
+        _ => 3,
+    };
 
     private async Task EnsureProjectExistsAsync(Guid projectId, CancellationToken ct)
     {
@@ -352,6 +523,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
             m.IsTeamLead,
             m.ResourceType,
             m.IsShadowTeam,
+            string.IsNullOrWhiteSpace(m.MemberRole) ? ProjectMemberRoles.ProjectTeam : m.MemberRole,
             m.CreatedAtUtc,
             m.UpdatedAtUtc);
     }

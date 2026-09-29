@@ -36,8 +36,8 @@ import {
   type ApiEmployeeListItem,
 } from "@/lib/api/employees";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
-import { allClients, allProjects, useDhStore } from "@/lib/dh-store";
-import { type Client, getPerson } from "@/lib/mock-data";
+import { fetchProjects, mapApiProjectToProject } from "@/lib/api/projects";
+import { type Client, type Project } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -120,9 +120,6 @@ function CustomerDetailPage() {
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
 
-  // Live subscription to store — any client/project addition triggers re-render
-  const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
-
   const [filter, setFilter] = useState<FilterTab>(searchParams.status || "all");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
   const [selectedSpoc, setSelectedSpoc] = useState<number | null>(null);
@@ -185,15 +182,26 @@ function CustomerDetailPage() {
     };
   }, [routeClient, clientId]);
 
-  // The client record is Postgres-only (GUID id). Mock projects are keyed by
-  // the mock client id ("c1"…), so to keep showing the project table/counts
-  // from mock data we map the API client's name back to its mock id. This is
-  // an internal join key only — no mock client record is ever displayed.
-  const mockClientId = useMemo(() => {
-    if (!client?.name) return undefined;
-    const byName = new Map(allClients().map((c) => [c.name.toLowerCase(), c.id]));
-    return byName.get(client.name.toLowerCase()) ?? client.id;
-  }, [client?.name, client?.id, extraCount]);
+  // Projects for this customer come from the projects API (client id + sub-venture name).
+  const [clientProjects, setClientProjects] = useState<Project[]>([]);
+  useEffect(() => {
+    if (!client?.id) {
+      setClientProjects([]);
+      return;
+    }
+    let cancelled = false;
+    fetchProjects({ clientId: client.id, perPage: 500 })
+      .then((page) => {
+        if (cancelled) return;
+        setClientProjects((page.items ?? []).map((item) => mapApiProjectToProject(item) as Project));
+      })
+      .catch(() => {
+        if (!cancelled) setClientProjects([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [client?.id]);
 
   // EM — current value from clients.EngagementManager (DB); candidates from
   // employees whose designation is "Engagement Manager" (mst_designations).
@@ -285,11 +293,7 @@ function CustomerDetailPage() {
     }
   };
 
-  // Re-compute whenever extraCount changes (reactive to new clients/projects)
-  const allProj = useMemo(
-    () => allProjects().filter((p) => p.clientId === mockClientId),
-    [mockClientId, extraCount],
-  );
+  const allProj = clientProjects;
 
   if (!isAdmin && !isDhanshree && !hasPermission("customers.view")) return <Navigate to="/customers" />;
 
@@ -824,7 +828,11 @@ function CustomerDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-border/70">
                     {pool.map((p) => {
-                      const pm = getPerson(p.pmId);
+                      const assignedPmNames = (p.projectManagers ?? [])
+                        .map((manager) => manager.name?.trim())
+                        .filter((name): name is string => Boolean(name));
+                      const pmName =
+                        assignedPmNames.join(", ") || p.projectManagerName?.trim() || "";
                       const category =
                         p.status === "archived"
                           ? "Archived"
@@ -918,10 +926,10 @@ function CustomerDetailPage() {
                             </div>
                           </td>
                           <td className="px-3 py-3.5 align-middle">
-                            {pm ? (
+                            {pmName ? (
                               <div className="flex min-w-0 items-center gap-2">
-                                <AvatarBubble name={pm.name} size={22} />
-                                <span className="truncate text-[12px] font-medium">{pm.name}</span>
+                                <AvatarBubble name={pmName} size={22} />
+                                <span className="truncate text-[12px] font-medium">{pmName}</span>
                               </div>
                             ) : (
                               <span className="text-[12px] text-muted-foreground">Unassigned</span>

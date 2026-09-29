@@ -208,6 +208,10 @@ export interface Project {
   isRenewal?: boolean;
   projectManagerId?: string;
   projectManagerName?: string;
+  /** Assigned from project_team_members. Present on API projects, including when nobody is assigned. */
+  projectManagers?: { employeeId: string; name: string }[];
+  seniorProjectManagers?: { employeeId: string; name: string }[];
+  teamLeads?: { employeeId: string; name: string }[];
   teamLeadId?: string;
   teamLeadName?: string;
   seniorProjectManager?: string;

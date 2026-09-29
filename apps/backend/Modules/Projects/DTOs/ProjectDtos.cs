@@ -50,7 +50,12 @@ public sealed record ProjectDto(
     string? AccountContactPhone,
     string? AccountContactEmail,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc);
+    DateTime? UpdatedAtUtc,
+    IReadOnlyList<ProjectAssigneeDto>? ProjectManagers = null,
+    IReadOnlyList<ProjectAssigneeDto>? SeniorProjectManagers = null,
+    IReadOnlyList<ProjectAssigneeDto>? TeamLeads = null);
+
+public sealed record ProjectAssigneeDto(Guid EmployeeId, string Name);
 
 public sealed record CreateProjectRequest(
     Guid ClientId,

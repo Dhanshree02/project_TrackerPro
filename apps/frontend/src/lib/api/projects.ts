@@ -1,4 +1,5 @@
 import { apiFetch, API_BASE } from "@/lib/api-client";
+import { deriveProjectDates } from "@/lib/project-dates";
 
 export interface ApiProject {
   id: string;
@@ -51,6 +52,9 @@ export interface ApiProject {
   accountContactEmail?: string | null;
   createdAtUtc: string;
   updatedAtUtc?: string | null;
+  projectManagers?: { employeeId: string; name: string }[] | null;
+  seniorProjectManagers?: { employeeId: string; name: string }[] | null;
+  teamLeads?: { employeeId: string; name: string }[] | null;
 }
 
 export interface NextProjectCodeResult {
@@ -407,6 +411,14 @@ export function mapApiProjectToProject(
   apiInvoices?: ApiProjectInvoice[]
 ): any {
   const rawServices: any[] = (apiServices ?? (ap as any).services ?? (ap as any).projectServices ?? []);
+  const projectDates = deriveProjectDates(
+    rawServices.map((s: any) => ({
+      startDate: s.startDate ? String(s.startDate) : "",
+      endDate: s.endDate ? String(s.endDate) : "",
+    })),
+    ap.startDate ? String(ap.startDate) : "",
+    ap.endDate ? String(ap.endDate) : "",
+  );
   const services = rawServices.map((s: any, idx: number) => ({
     id: s.id ?? s.taskId ?? `s-${idx}`,
     taskId: s.taskId || "",
@@ -424,8 +436,8 @@ export function mapApiProjectToProject(
     finalDeliveryFormat: s.finalDeliveryFormat || "Report",
     tools: s.tools || "Jira",
     billingModel: s.billingModel || ap.billingModel || "Fixed Price",
-    startDate: s.startDate ? String(s.startDate) : (ap.startDate ? String(ap.startDate) : ""),
-    endDate: s.endDate ? String(s.endDate) : (ap.endDate ? String(ap.endDate) : ""),
+    startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
+    endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
     duration: s.durationDays || 30,
     durationDays: s.durationDays || 30,
     durationHours: s.durationHours || ((s.durationDays || 30) * 8),
@@ -471,23 +483,8 @@ export function mapApiProjectToProject(
     },
   };
 
-  const validStarts = services
-    .map((s: any) => (typeof s.startDate === "string" ? s.startDate.trim() : ""))
-    .filter((d: string) => Boolean(d && !isNaN(new Date(d).getTime())))
-    .sort((a: string, b: string) => new Date(a).getTime() - new Date(b).getTime());
-
-  const validEnds = services
-    .map((s: any) => (typeof s.endDate === "string" ? s.endDate.trim() : ""))
-    .filter((d: string) => Boolean(d && !isNaN(new Date(d).getTime())))
-    .sort((a: string, b: string) => new Date(a).getTime() - new Date(b).getTime());
-
-  const projectStartDate = validStarts.length > 0
-    ? validStarts[0]
-    : (ap.startDate ? String(ap.startDate) : new Date().toISOString().slice(0, 10));
-
-  const projectEndDate = validEnds.length > 0
-    ? validEnds[validEnds.length - 1]
-    : (ap.endDate ? String(ap.endDate) : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+  const projectStartDate = projectDates.startDate;
+  const projectEndDate = projectDates.endDate;
 
   return {
     id: ap.id,
@@ -525,6 +522,9 @@ export function mapApiProjectToProject(
     renewedFromWbsId: ap.renewedFromWbsId ?? undefined,
     projectManagerId: ap.projectManagerId ?? undefined,
     projectManagerName: ap.projectManagerName ?? undefined,
+    projectManagers: ap.projectManagers ?? [],
+    seniorProjectManagers: ap.seniorProjectManagers ?? [],
+    teamLeads: ap.teamLeads ?? [],
     teamLeadId: ap.teamLeadId ?? undefined,
     teamLeadName: ap.teamLeadName ?? undefined,
   };

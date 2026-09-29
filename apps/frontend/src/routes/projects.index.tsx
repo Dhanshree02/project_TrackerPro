@@ -75,11 +75,11 @@ function ProjectsPage() {
   const [q, setQ] = useState("");
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [backendDrafts, setBackendDrafts] = useState<ProjectDraftListDto[]>([]);
+  const [draftsLoaded, setDraftsLoaded] = useState(false);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [draftSearch, setDraftSearch] = useState("");
 
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
-  const localDrafts = useDhStore((s) => s.wbsDrafts);
   const leadershipAssignments = useDhStore((s) => s.leadershipAssignments);
   const prereqs = useDhStore((s) => s.prereqs);
 
@@ -90,11 +90,11 @@ function ProjectsPage() {
         perPage: 100,
         search: searchQuery !== undefined ? searchQuery : draftSearch,
       });
-      if (res?.items) {
-        setBackendDrafts(res.items);
-      }
+      setBackendDrafts(res?.items ?? []);
+      setDraftsLoaded(true);
     } catch (e) {
-      console.warn("Failed to load drafts from backend, using local store:", e);
+      console.warn("Failed to load drafts from the database:", e);
+      setDraftsLoaded(false);
     } finally {
       setLoadingDrafts(false);
     }
@@ -104,32 +104,16 @@ function ProjectsPage() {
     loadDrafts();
   }, [draftsOpen]);
 
-  const drafts = useMemo(() => {
-    if (backendDrafts.length > 0) return backendDrafts;
-    return localDrafts.map((ld) => ({
-      id: ld.id,
-      projectName: ld.projectName,
-      clientId: ld.clientId,
-      clientName: ld.clientName,
-      salesPerson: ld.salesPerson,
-      createdByName: ld.savedBy || "Local User",
-      updatedByName: ld.savedBy || null,
-      status: "active",
-      rowVersion: 0,
-      createdAtUtc: ld.savedAt,
-      updatedAtUtc: ld.savedAt,
-    }));
-  }, [backendDrafts, localDrafts]);
+  const drafts = draftsLoaded ? backendDrafts : [];
 
   async function handleDeleteDraft(draftId: string) {
     try {
       await deleteProjectDraft(draftId);
       toast.success("Draft deleted");
+      loadDrafts();
     } catch {
-      dhStore.deleteDraft(draftId);
-      toast.success("Draft deleted from local storage");
+      toast.error("Could not delete the draft from the database");
     }
-    loadDrafts();
   }
 
   // Live database records only — no mock data
@@ -250,6 +234,9 @@ function ProjectsPage() {
         isRenewal: isRenewalVal,
         projectManagerId: p.projectManagerId ?? undefined,
         projectManagerName: p.projectManagerName ?? undefined,
+        projectManagers: p.projectManagers ?? [],
+        seniorProjectManagers: p.seniorProjectManagers ?? [],
+        teamLeads: p.teamLeads ?? [],
         teamLeadId: p.teamLeadId ?? undefined,
         teamLeadName: p.teamLeadName ?? undefined,
         seniorProjectManager: undefined,
@@ -440,10 +427,10 @@ function ProjectsPage() {
               accountManagerId: "u1",
             };
             const clientLogo = client.logo || (client.name || "P").slice(0, 2).toUpperCase();
-            const ems = getCardEMs(p, leadershipAssignments);
+            const ems = getCardEMs(p);
             const spms = getCardSPMs(p, leadershipAssignments, prereqs);
             const pms = getCardPMs(p, leadershipAssignments, prereqs);
-            const tls = getCardTLs(p, leadershipAssignments, prereqs);
+            const tls = getCardTLs(p);
             return (
               <article
                 key={p.id}
@@ -545,6 +532,7 @@ function ProjectsPage() {
                 <th className="px-3 py-2 font-medium">End</th>
                 <th className="px-3 py-2 font-medium">Engagement Mgr</th>
                 <th className="px-3 py-2 font-medium">Project Mgr</th>
+                <th className="px-3 py-2 font-medium">Team Lead</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -560,8 +548,9 @@ function ProjectsPage() {
                   totalRevenue: 0,
                   accountManagerId: "u1",
                 };
-                const ems = getCardEMs(p, leadershipAssignments);
+                const ems = getCardEMs(p);
                 const pms = getCardPMs(p, leadershipAssignments, prereqs);
+                const tls = getCardTLs(p);
                 return (
                   <tr
                     key={p.id}
@@ -608,12 +597,15 @@ function ProjectsPage() {
                     <td className="px-3 py-2.5">
                       <PeopleSummary list={pms} />
                     </td>
+                    <td className="px-3 py-2.5">
+                      <PeopleSummary list={tls} emptyText="Not Assigned" />
+                    </td>
                   </tr>
                 );
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={10} className="px-3 py-10 text-center text-sm text-muted-foreground">
                     No projects in this view
                   </td>
                 </tr>
@@ -792,20 +784,27 @@ function resolvePerson(idOrName?: string | null): Person | null {
   };
 }
 
-function getCardEMs(
-  p: Project,
-  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
-): Person[] {
-  if (p.engagementManager?.trim()) {
-    const em = resolvePerson(p.engagementManager);
-    if (em) return [em];
-  }
-  const la = leadershipAssignments[p.id];
-  if (la?.emIds && Array.isArray(la.emIds) && la.emIds.length > 0) {
-    const list = la.emIds.map(resolvePerson).filter(Boolean) as Person[];
-    if (list.length > 0) return list;
-  }
-  return [];
+function getCardEMs(p: Project): Person[] {
+  const name = p.engagementManager?.trim();
+  if (!name) return [];
+  const em = resolvePerson(name);
+  return em ? [em] : [];
+}
+
+function assigneesToPeople(
+  list: { employeeId: string; name: string }[] | undefined,
+  role: string,
+): Person[] | null {
+  if (!Array.isArray(list)) return null;
+  return list
+    .filter((person) => person.employeeId && person.name?.trim())
+    .map((person) => ({
+      id: person.employeeId,
+      name: person.name.trim(),
+      role,
+      avatar: person.name.trim().slice(0, 2).toUpperCase(),
+      email: "",
+    }));
 }
 
 function getCardSPMs(
@@ -813,6 +812,8 @@ function getCardSPMs(
   leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
   prereqs: Record<string, any>,
 ): Person[] {
+  const fromProject = assigneesToPeople(p.seniorProjectManagers, "Senior Project Manager");
+  if (fromProject) return fromProject;
   if (p.seniorProjectManager?.trim()) {
     const spm = resolvePerson(p.seniorProjectManager);
     if (spm) return [spm];
@@ -835,6 +836,8 @@ function getCardPMs(
   leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
   prereqs: Record<string, any>,
 ): Person[] {
+  const fromProject = assigneesToPeople(p.projectManagers, "Project Manager");
+  if (fromProject) return fromProject;
   // 1. If backend provided a real projectManagerName directly, use it
   if (p.projectManagerName?.trim()) {
     const fromName = resolvePerson(p.projectManagerName);
@@ -857,31 +860,14 @@ function getCardPMs(
   return pm ? [pm] : [];
 }
 
-function getCardTLs(
-  p: Project,
-  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
-  prereqs: Record<string, any>,
-): Person[] {
-  // 1. If backend provided a real teamLeadName directly, use it
+function getCardTLs(p: Project): Person[] {
+  const fromProject = assigneesToPeople(p.teamLeads, "Team Lead");
+  if (fromProject) return fromProject;
   if (p.teamLeadName?.trim()) {
     const fromName = resolvePerson(p.teamLeadName);
     if (fromName) return [fromName];
   }
-  // 2. Active leadership assignment from store
-  const la = leadershipAssignments[p.id];
-  if (la?.tlIds && Array.isArray(la.tlIds) && la.tlIds.length > 0) {
-    const list = la.tlIds.map(resolvePerson).filter(Boolean) as Person[];
-    if (list.length > 0) return list;
-  }
-  // 3. Prereq assigned TLs
-  const pr = prereqs[p.id];
-  if (pr?.assignedTlIds && Array.isArray(pr.assignedTlIds) && pr.assignedTlIds.length > 0) {
-    const list = pr.assignedTlIds.map(resolvePerson).filter(Boolean) as Person[];
-    if (list.length > 0) return list;
-  }
-  // 4. Fallback to teamLeadId or tlId
-  const tl = resolvePerson(p.teamLeadId || p.tlId);
-  return tl ? [tl] : [];
+  return [];
 }
 
 function PeopleSummary({

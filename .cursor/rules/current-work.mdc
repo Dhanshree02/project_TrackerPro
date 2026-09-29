@@ -5,8 +5,16 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-28
+**Last updated:** 2026-09-29
 
+- **Customer detail projects come from the database.** The client page loads `GET /api/v1/projects?clientId=`. Filter by Sub-venture still matches `subVentureName`. The PM column shows the Project Manager names from `project_team_members` (`projectManagers`). No backend change.
+- **testing project / test2 KYC preview loads.** The sub-venture row pointed at `Documents/KYC/20260929_080451_559_testing_project_test2_IN-2026-27-C183-P052.xlsx`, which was not on this disk, so View returned 404. That spreadsheet is back in that path. View on the customer page shows the workbook. test1’s offer-letter PDF path is still missing from `Documents/KYC`.
+- **Unfinished Project Onboarding stays in the browser.** Leaving the page or refreshing keeps the form the user was filling. It is stored under `trackerpro_onboarding_form_v1` and restored when New Project opens with no draft. Save Draft and Create WBS clear that copy after they succeed. Saved drafts still come from `project_drafts`.
+- **Project start and end follow the selected services.** The earliest service start date is the project start date, and the latest service end date is the project end date. Create WBS saves that range. Adding, editing, or removing a service writes the same range back onto `projects.StartDate` / `EndDate`, and Project Manager / Senior Project Manager allocation dates follow it. Blank service dates are left out of the range. Overview, the project list, and manager allocation duration read that range.
+- **Project grid and Overview show the managers stored on the project.** Project Manager and Senior Project Manager names come from `project_team_members` (`MemberRole` `ProjectManager` or `SeniorProjectManager`) for that project. The project list and project detail APIs return those people. The grid cards and Overview chips use that list. Browser storage is not used for those names on a database project.
+- **Card and list Team Lead and Engagement Manager come from the database.** Team Lead names are every `project_team_members` row on that project with `IsTeamLead` and `MemberRole` `ProjectTeam`. Engagement Manager is `projects.EngagementManager` (or the linked employee when `EngagementManagerId` is set). Saved Drafts lists only active rows in `project_drafts`. Save Draft writes that table.
+- **Overview Project Manager and Senior Project Manager come from `project_team_members`.** The page loads those rows with the project. Assign PM / Assign SPM on the WBS tab writes them, and the save response updates Overview immediately.
+- **Save Draft on project onboarding returns to the project grid.** The success message is “Draft saved successfully.”
 - **Task assignments are saved on `project_task_assignments`.** The Tasks tab links each onboarding task to its database row, so the assigned people are still there after refresh.
 - **Task Assign lists only people added on the Team tab.** If no team exists, the window says to create the team first instead of showing Unknown User.
 - **Team tab stays visible.** Until both the Project Manager and Senior Project Manager are assigned, opening Team shows Access Blocked. Service wise Prerequisite Tracking lists the onboarding services. Starting a service (Ready) adds that service to the Tasks tab. No backend change.
@@ -17,6 +25,12 @@ alwaysApply: true
 - **Employee DB table cleared and re-seeded with 59 employees.** Matches exact requested breakdown across RBAC roles & departments. Linked with 59 matching user accounts (dev password `Password@123`), reporting managers catalog, and hierarchical team relationships. Dump updated in `database/trackerpro-final.sql`.
 
 ## Latest
+
+- **Project Managers and Senior Project Managers are stored on `project_team_members`.** `MemberRole` is `ProjectManager`, `SeniorProjectManager`, `ProjectTeam`, or `ShadowTeam` (migration `20260929053844_AddProjectTeamMemberRole`). WBS Assign PM / Assign SPM writes those rows. The Project Team table lists Senior Project Managers, then Project Managers, then Team Leads. Each manager name has that role tag, department and sub-department come from the employee, and the allocation dates are the project start and end. View, Edit, Remove, and the more menu are disabled on manager rows. Task assignment still uses Project Team and Shadow Team only. Existing `projects."ProjectManagerId"` values were copied into a Project Manager row. The first selected Project Manager is still written to `projects."ProjectManagerId"`.
+
+- **Working branch is `sahil-project-backend2`.** Created locally from `origin/deployment-phase1` at `5875c76` (`feat: enforce timesheet submission window and clean up team schedule dialog`) and set to track that remote branch. Uncommitted RBAC work from `rbac-testing` is in git stash `WIP rbac-testing before sahil-project-backend2`.
+
+- **API uses the LAN PostgreSQL at `10.50.30.189:5432` (database `trackerpro`).** pgAdmin is `http://10.50.30.189:5050`. Root `.env` `ConnectionStrings__DefaultConnection` points at that host; the local `localhost` string is commented out directly below it. Backend is up at `http://localhost:5194` (`/health` returns Healthy, clients API returns data). Frontend is up at `http://localhost:6002` and proxies `/api` to the backend.
 
 - **Schedule dialog no longer shows the working-day, holiday, and notes explanations.** Older days and anything further ahead are locked, and the week arrows stop at that window. The week request no longer depends on the timesheet-submit permission, which was returning 403 and the red “Could not load this week's timesheet” toast.
 

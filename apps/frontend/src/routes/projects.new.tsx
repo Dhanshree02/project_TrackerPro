@@ -3,7 +3,7 @@
  * Exact layout from wbs-form 2.html, wired to dh-store.
  */
 import { createFileRoute, Navigate, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +38,13 @@ import {
 } from "@/lib/api/project-drafts";
 import { type Project } from "@/lib/mock-data";
 import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
+import { deriveProjectDates } from "@/lib/project-dates";
+import {
+  clearOnboardingFormState,
+  readOnboardingFormState,
+  writeOnboardingFormState,
+  type OnboardingFormSnapshot,
+} from "@/lib/onboarding-form-state";
 import { exportWbsWorkbook, type WbsExportInput } from "@/lib/wbs-excel-export";
 import { WbsExcelPreviewModal } from "@/components/wbs-excel-preview";
 import {
@@ -760,12 +767,19 @@ function WbsNewProjectPage() {
     return Object.keys(map).length > 0 ? map : DEPT_SERVICES;
   }, [dbServiceHierarchy]);
 
+  // Unfinished form kept in the browser. A saved draft (?draftId=) still loads from the API.
+  const { draftId } = useSearch({ from: "/projects/new" });
+  const allowPersistRef = useRef(false);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestSnapRef = useRef<OnboardingFormSnapshot | null>(null);
+  const [onboardingReady, setOnboardingReady] = useState(false);
+
   // ── Header fields ──
   const [contractType, setContractType] = useState("");
   const [engagementManager, setEngagementManager] = useState("");
   const [salesPerson, setSalesPerson] = useState("");
   const [projectType, setProjectType] = useState("");
-  const [projectIssuedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [projectIssuedDate, setProjectIssuedDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   // ── Renewal mode ──
   const [isRenewal, setIsRenewal] = useState(false);
@@ -934,7 +948,6 @@ function WbsNewProjectPage() {
   }, []);
 
   // ── Draft restoration & tracking ──
-  const { draftId } = useSearch({ from: "/projects/new" });
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(draftId ?? null);
   const [currentRowVersion, setCurrentRowVersion] = useState<number>(0);
   const drafts = useDhStore((s) => s.wbsDrafts);
@@ -975,7 +988,10 @@ function WbsNewProjectPage() {
         }
       }
 
-      if (!snap || !active) return;
+      if (!snap || !active) {
+        if (active) allowPersistRef.current = true;
+        return;
+      }
 
       // ── Renewal state restoration ──
       if (snap.isRenewal) {
@@ -1081,6 +1097,7 @@ function WbsNewProjectPage() {
           })),
         );
       }
+      allowPersistRef.current = true;
       toast.success("Draft loaded", { description: `"${draftTitle || "Draft"}" restored from database.` });
     }
 
@@ -1088,6 +1105,162 @@ function WbsNewProjectPage() {
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftId]);
+
+  function discardTemporaryOnboarding() {
+    allowPersistRef.current = false;
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = null;
+    }
+    clearOnboardingFormState();
+  }
+
+  function applyTemporaryOnboarding(snap: OnboardingFormSnapshot) {
+    setIsRenewal(!!snap.isRenewal);
+    setWbsSearch(snap.wbsSearch || "");
+    setRenewalProject(snap.renewalProject ?? null);
+    setSelectedClientId(snap.selectedClientId || "");
+    setClientSearch(snap.clientSearch || "");
+    setSelectedSubVenture(snap.selectedSubVenture || "");
+    setSvSearch(snap.svSearch || "");
+    setContractType(snap.contractType || "");
+    setEngagementManager(snap.engagementManager || "");
+    setSalesPerson(snap.salesPerson || "");
+    setProjectType(snap.projectType || "");
+    if (snap.projectIssuedDate) setProjectIssuedDate(snap.projectIssuedDate);
+    setBillingModel(snap.billingModel || "");
+    setPaymentTerms(snap.paymentTerms || "");
+    setCustomPayments(
+      snap.customPayments?.length ? snap.customPayments : [{ label: "First Payment", pct: 100 }],
+    );
+    setCurrency(snap.currency || "INR");
+    setTaxPercent(snap.taxPercent ?? 18);
+    setPoStatus(snap.poStatus || "");
+    setPoNumber(snap.poNumber || "");
+    setPoDate(snap.poDate || "");
+    setTargetDate(snap.targetDate || "");
+    setContactName(snap.contactName || "");
+    setContactNumber(snap.contactNumber || "");
+    setContactEmail(snap.contactEmail || "");
+    setSectionAComments(snap.sectionAComments || "");
+    setSectionBComments(snap.sectionBComments || "");
+    setServiceRows(Array.isArray(snap.serviceRows) ? (snap.serviceRows as ServiceRow[]) : []);
+    setSelectedServices(
+      snap.selectedServices && typeof snap.selectedServices === "object" ? snap.selectedServices : {},
+    );
+    setInvoiceRows(Array.isArray(snap.invoiceRows) ? (snap.invoiceRows as InvoiceRow[]) : []);
+    if (!draftId) {
+      setCurrentDraftId(snap.currentDraftId ?? null);
+      setCurrentRowVersion(snap.currentRowVersion ?? 0);
+    }
+  }
+
+  useLayoutEffect(() => {
+    if (!draftId) {
+      const saved = readOnboardingFormState();
+      if (saved) applyTemporaryOnboarding(saved);
+      allowPersistRef.current = true;
+    }
+    setOnboardingReady(true);
+    // Restore once. Later edits are written by the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!onboardingReady || !allowPersistRef.current) return;
+    const snap: OnboardingFormSnapshot = {
+      isRenewal,
+      wbsSearch,
+      renewalProject,
+      selectedClientId,
+      clientSearch,
+      selectedSubVenture,
+      svSearch,
+      contractType,
+      engagementManager,
+      salesPerson,
+      projectType,
+      projectIssuedDate,
+      billingModel,
+      paymentTerms,
+      customPayments,
+      currency,
+      taxPercent,
+      poStatus,
+      poNumber,
+      poDate,
+      targetDate,
+      contactName,
+      contactNumber,
+      contactEmail,
+      sectionAComments,
+      sectionBComments,
+      selectedServices,
+      serviceRows,
+      invoiceRows,
+      currentDraftId,
+      currentRowVersion,
+    };
+    latestSnapRef.current = snap;
+
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      persistTimerRef.current = null;
+      if (!allowPersistRef.current) return;
+      writeOnboardingFormState(snap);
+    }, 300);
+
+    return () => {
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = null;
+      }
+    };
+  }, [
+    isRenewal,
+    wbsSearch,
+    renewalProject,
+    selectedClientId,
+    clientSearch,
+    selectedSubVenture,
+    svSearch,
+    contractType,
+    engagementManager,
+    salesPerson,
+    projectType,
+    projectIssuedDate,
+    billingModel,
+    paymentTerms,
+    customPayments,
+    currency,
+    taxPercent,
+    poStatus,
+    poNumber,
+    poDate,
+    targetDate,
+    contactName,
+    contactNumber,
+    contactEmail,
+    sectionAComments,
+    sectionBComments,
+    selectedServices,
+    serviceRows,
+    invoiceRows,
+    currentDraftId,
+    currentRowVersion,
+    onboardingReady,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (!allowPersistRef.current || !latestSnapRef.current) return;
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = null;
+      }
+      writeOnboardingFormState(latestSnapRef.current);
+    };
+  }, []);
 
   // Auto-sync client display name when clients catalog finishes loading
   useEffect(() => {
@@ -1415,6 +1588,7 @@ function WbsNewProjectPage() {
   );
 
   useEffect(() => {
+    if (!onboardingReady) return;
     if (!billingModel) {
       setInvoiceRows([]);
       return;
@@ -1524,7 +1698,7 @@ function WbsNewProjectPage() {
     }
 
     setInvoiceRows(nextRows);
-  }, [billingModel, currency, servicesDependency, JSON.stringify(customPayments)]);
+  }, [onboardingReady, billingModel, currency, servicesDependency, JSON.stringify(customPayments)]);
 
   // Filter departments based on Contract Type
   const allowedDepts = Object.keys(dynamicDeptServices).filter((dept) => {
@@ -1718,14 +1892,19 @@ function WbsNewProjectPage() {
           rowVersion: currentRowVersion,
         });
         setCurrentRowVersion(updated.rowVersion);
-        toast.success("Draft updated", { description: `"${draftTitle}" saved to database.` });
+        discardTemporaryOnboarding();
+        toast.success("Draft saved successfully");
+        if (typeof window !== "undefined") localStorage.setItem("projects-view-mode", "card");
+        navigate({ to: "/projects" });
         return;
       } catch (err: any) {
         if (err?.status === 409 || err?.message?.includes("updated by another user")) {
           toast.error("This draft was updated by another user. Please reload the latest version before saving.");
           return;
         }
-        console.warn("Backend updateDraft failed, falling back to local store:", err);
+        console.warn("Backend updateDraft failed:", err);
+        toast.error("Could not update the draft in the database");
+        return;
       }
     } else {
       try {
@@ -1739,27 +1918,17 @@ function WbsNewProjectPage() {
         });
         setCurrentDraftId(created.id);
         setCurrentRowVersion(created.rowVersion);
-        toast.success("Draft saved", { description: `"${draftTitle}" saved to database.` });
+        discardTemporaryOnboarding();
+        toast.success("Draft saved successfully");
+        if (typeof window !== "undefined") localStorage.setItem("projects-view-mode", "card");
+        navigate({ to: "/projects" });
         return;
       } catch (err: any) {
-        console.warn("Backend createDraft failed, falling back to local store:", err);
+        console.warn("Backend createDraft failed:", err);
+        toast.error("Could not save the draft to the database");
+        return;
       }
     }
-
-    // Fallback cache in local store if backend call failed
-    const entry = dhStore.saveDraft({
-      projectName: draftTitle,
-      clientId: selectedClientId,
-      clientName: finalClientName || "Unknown Client",
-      salesPerson,
-      savedBy: "Dhanshree",
-      savedAt: new Date().toISOString(),
-      formSnapshot,
-    });
-    if (!currentDraftId) {
-      setCurrentDraftId(entry.id);
-    }
-    toast.success("Draft saved locally", { description: `"${draftTitle}" cached in local storage.` });
   }
 
   function clearForm() {
@@ -1961,21 +2130,7 @@ function WbsNewProjectPage() {
 
     try {
 
-      // Derive project start/end from the service rows (earliest start → latest end)
-      const validStarts = serviceRows
-        .map((r) => (typeof r.startDate === "string" ? r.startDate.trim() : ""))
-        .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
-        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-      const validEnds = serviceRows
-        .map((r) => (typeof r.endDate === "string" ? r.endDate.trim() : ""))
-        .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
-        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-      const projStart = validStarts[0] ?? new Date().toISOString().slice(0, 10);
-      const projEnd =
-        validEnds[validEnds.length - 1] ??
-        new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
+      const { startDate: projStart, endDate: projEnd } = deriveProjectDates(serviceRows);
 
       const wbsDetails = buildWbsDetails();
       if (poFile) {
@@ -2174,6 +2329,7 @@ function WbsNewProjectPage() {
       }
 
       setShowCreateWbsConfirm(false);
+      discardTemporaryOnboarding();
       toast.success("WBS created successfully");
       navigate({ to: "/projects/$projectId", params: { projectId: createdBackendProjectId ?? proj.id } });
     } catch (err: any) {

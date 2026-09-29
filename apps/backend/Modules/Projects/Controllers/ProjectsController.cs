@@ -550,6 +550,17 @@ public class ProjectsController(
 
     // ── Project Team Members ──
 
+    [HttpPut("{projectId:guid}/leadership")]
+    [RequirePermission(Permissions.ProjectsWrite)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTeamMemberDto>>>> SetLeadership(
+        Guid projectId,
+        [FromBody] SetProjectLeadershipRequest request,
+        CancellationToken ct)
+    {
+        var items = await teamMemberService.SetLeadershipAsync(projectId, request, ct);
+        return Ok(ApiResponse<IReadOnlyList<ProjectTeamMemberDto>>.Ok(items));
+    }
+
     [HttpGet("{projectId:guid}/team-members")]
     [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTeamMemberDto>>>> GetTeamMembers(
