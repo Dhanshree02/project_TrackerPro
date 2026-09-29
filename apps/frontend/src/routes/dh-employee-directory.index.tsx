@@ -1210,7 +1210,7 @@ function EmployeeDirectoryPage() {
                         <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5">
                           <div className="flex items-center gap-2">
                             <ProgressBar value={e.kpiScore} className="w-14" />
-                            <span className="text-xs font-medium tabular-nums">{e.kpiScore}</span>
+                            <span className="text-xs font-medium tabular-nums">{e.kpiScore}%</span>
                           </div>
                         </td>
                       </>
