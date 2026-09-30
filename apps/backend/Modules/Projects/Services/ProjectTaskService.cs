@@ -335,7 +335,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
     private async Task<HashSet<Guid>> ProjectTeamIdsAsync(Guid projectId, CancellationToken ct)
     {
         var ids = await db.ProjectTeamMembers
-            .Where(m => m.ProjectId == projectId && !m.IsShadowTeam)
+            .Where(m => m.ProjectId == projectId && m.MemberRole == ProjectMemberRoles.ProjectTeam)
             .Select(m => m.EmployeeId)
             .ToListAsync(ct);
         return ids.ToHashSet();
@@ -413,7 +413,8 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
     internal static async Task EnsureOnProjectTeamAsync(AppDbContext db, Guid projectId, Guid employeeId, CancellationToken ct)
     {
         var onTeam = await db.ProjectTeamMembers
-            .AnyAsync(m => m.ProjectId == projectId && m.EmployeeId == employeeId, ct);
+            .AnyAsync(m => m.ProjectId == projectId && m.EmployeeId == employeeId &&
+                           (m.MemberRole == ProjectMemberRoles.ProjectTeam || m.MemberRole == ProjectMemberRoles.ShadowTeam), ct);
         if (!onTeam)
         {
             throw new ConflictException("Only Project Team and Shadow Team members of this project can be assigned to a task.");
@@ -432,7 +433,8 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
         var rows = await db.ProjectTeamMembers
             .AsNoTracking()
             .Include(m => m.Employee)!.ThenInclude(e => e.JobRole)
-            .Where(m => m.ProjectId == projectId && m.Employee != null)
+            .Where(m => m.ProjectId == projectId && m.Employee != null &&
+                        (m.MemberRole == ProjectMemberRoles.ProjectTeam || m.MemberRole == ProjectMemberRoles.ShadowTeam))
             .ToListAsync(ct);
 
         return rows

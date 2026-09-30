@@ -79,4 +79,16 @@ public class ProjectServiceEntity : BaseEntity
     public decimal? Total { get; set; }
 
     public int SortOrder { get; set; }
+
+    /// <summary>Prerequisite collection status. Resource services are shown as NA in the WBS table.</summary>
+    public string CollectionStatus { get; set; } = "Pending To Collect";
+
+    /// <summary>Prerequisite validation status. Resource services are shown as NA in the WBS table.</summary>
+    public string ValidationStatus { get; set; } = "Pending To Validate";
+
+    /// <summary>Prerequisite billing status.</summary>
+    public string BillingStatus { get; set; } = "Advance Pending";
+
+    /// <summary>True after the service is marked Ready and its task folder is shown.</summary>
+    public bool IsReady { get; set; }
 }

@@ -42,7 +42,27 @@ public class ProjectTeamMember : BaseEntity
 
     /// <summary>
     /// When true this row belongs to Shadow Team (interns).
-    /// When false it belongs to Project Team (non-interns).
+    /// When false it belongs to Project Team, a Project Manager, or a Senior Project Manager.
     /// </summary>
     public bool IsShadowTeam { get; set; }
+
+    /// <summary>
+    /// ProjectTeam, ShadowTeam, ProjectManager, or SeniorProjectManager.
+    /// Managers are allocated for the project start and end dates and are not task resources.
+    /// </summary>
+    public string MemberRole { get; set; } = ProjectMemberRoles.ProjectTeam;
+}
+
+public static class ProjectMemberRoles
+{
+    public const string ProjectTeam = "ProjectTeam";
+    public const string ShadowTeam = "ShadowTeam";
+    public const string ProjectManager = "ProjectManager";
+    public const string SeniorProjectManager = "SeniorProjectManager";
+
+    public static bool IsManager(string? role) =>
+        role is ProjectManager or SeniorProjectManager;
+
+    public static bool IsResource(string? role) =>
+        role is ProjectTeam or ShadowTeam;
 }

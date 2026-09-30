@@ -155,6 +155,18 @@ public class ProjectsController(
         return Ok(ApiResponse<ProjectServiceDto>.Ok(service));
     }
 
+    [HttpPatch("{projectId:guid}/services/{serviceId:guid}/prerequisite")]
+    [RequirePermission(Permissions.ProjectsWrite)]
+    public async Task<ActionResult<ApiResponse<ProjectServiceDto>>> UpdateServicePrerequisite(
+        Guid projectId,
+        Guid serviceId,
+        [FromBody] UpdateServicePrerequisiteRequest request,
+        CancellationToken ct)
+    {
+        var service = await projectService.UpdateServicePrerequisiteAsync(projectId, serviceId, request, ct);
+        return Ok(ApiResponse<ProjectServiceDto>.Ok(service));
+    }
+
     [HttpDelete("{projectId:guid}/services/{serviceId:guid}")]
     [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProjectService(
@@ -549,6 +561,17 @@ public class ProjectsController(
     }
 
     // ── Project Team Members ──
+
+    [HttpPut("{projectId:guid}/leadership")]
+    [RequirePermission(Permissions.ProjectsWrite)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTeamMemberDto>>>> SetLeadership(
+        Guid projectId,
+        [FromBody] SetProjectLeadershipRequest request,
+        CancellationToken ct)
+    {
+        var items = await teamMemberService.SetLeadershipAsync(projectId, request, ct);
+        return Ok(ApiResponse<IReadOnlyList<ProjectTeamMemberDto>>.Ok(items));
+    }
 
     [HttpGet("{projectId:guid}/team-members")]
     [RequirePermission(Permissions.ProjectsRead)]

@@ -131,7 +131,6 @@ export function SearchableSelect({
     if (!isOpen) return;
     const placeMenu = () => {
       const el = buttonRef.current;
-      if (!el) return;
       setMenuStyle(computeMenuStyle(el));
     };
     placeMenu();

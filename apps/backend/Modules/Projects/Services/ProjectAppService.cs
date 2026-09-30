@@ -18,6 +18,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             .Include(p => p.SubVenture)
             .Include(p => p.ProjectManager)
             .Include(p => p.TeamLead)
+            .Include(p => p.EngagementManagerRef)
             .Include(p => p.RenewedFromProject)
             .AsNoTracking();
 
@@ -70,27 +71,10 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             .ToListAsync(ct);
 
         var projectIds = projects.Select(p => p.Id).ToList();
-        var teamLeadsByProject = await db.ProjectTeamMembers
-            .AsNoTracking()
-            .Include(m => m.Employee)
-            .Where(m => projectIds.Contains(m.ProjectId) && m.IsTeamLead && m.Employee != null)
-            .GroupBy(m => m.ProjectId)
-            .ToDictionaryAsync(g => g.Key, g => g.First(), ct);
+        var managersByProject = await LoadProjectManagersAsync(projectIds, ct);
+        var teamLeadsByProject = await LoadTeamLeadsAsync(projectIds, ct);
 
-        var items = projects.Select(p =>
-        {
-            var dto = MapToDto(p);
-            if (string.IsNullOrWhiteSpace(dto.TeamLeadName) && teamLeadsByProject.TryGetValue(p.Id, out var tlMember) && tlMember.Employee != null)
-            {
-                var tlName = $"{tlMember.Employee.FirstName} {tlMember.Employee.LastName}".Trim();
-                dto = dto with
-                {
-                    TeamLeadId = tlMember.EmployeeId,
-                    TeamLeadName = tlName
-                };
-            }
-            return dto;
-        }).ToList();
+        var items = projects.Select(p => WithTeamLeads(WithProjectManagers(MapToDto(p), managersByProject), teamLeadsByProject)).ToList();
 
         return new PagedResult<ProjectDto>(items, page, pageSize, totalCount);
     }
@@ -102,11 +86,15 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             .Include(p => p.SubVenture)
             .Include(p => p.ProjectManager)
             .Include(p => p.TeamLead)
+            .Include(p => p.EngagementManagerRef)
             .Include(p => p.RenewedFromProject)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
-        return project == null ? null : MapToDto(project);
+        if (project == null) return null;
+        var managers = await LoadProjectManagersAsync([project.Id], ct);
+        var teamLeads = await LoadTeamLeadsAsync([project.Id], ct);
+        return WithTeamLeads(WithProjectManagers(MapToDto(project), managers), teamLeads);
     }
 
     public async Task<ProjectDto> CreateProjectAsync(CreateProjectRequest request, CancellationToken ct = default)
@@ -444,6 +432,25 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
     }
 
+    public async Task<ProjectServiceDto> UpdateServicePrerequisiteAsync(
+        Guid projectId,
+        Guid serviceId,
+        UpdateServicePrerequisiteRequest request,
+        CancellationToken ct = default)
+    {
+        var service = await db.ProjectServices
+            .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
+            ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
+
+        if (request.CollectionStatus != null) service.CollectionStatus = request.CollectionStatus;
+        if (request.ValidationStatus != null) service.ValidationStatus = request.ValidationStatus;
+        if (request.BillingStatus != null) service.BillingStatus = request.BillingStatus;
+        if (request.IsReady.HasValue) service.IsReady = request.IsReady.Value;
+
+        await db.SaveChangesAsync(ct);
+        return MapToServiceDto(service);
+    }
+
     public async Task<bool> DeleteProjectServiceAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
     {
         var service = await db.ProjectServices.FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct);
@@ -469,6 +476,26 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             project.Budget = services.Sum(s => s.Total ?? 0m);
             project.TotalHours = services.Sum(s => s.TotalHours ?? 0);
             project.TotalDays = services.Sum(s => s.TotalDays ?? 0);
+
+            var starts = services.Where(s => s.StartDate.HasValue).Select(s => s.StartDate!.Value).ToList();
+            var ends = services.Where(s => s.EndDate.HasValue).Select(s => s.EndDate!.Value).ToList();
+            if (starts.Count > 0) project.StartDate = starts.Min();
+            if (ends.Count > 0) project.EndDate = ends.Max();
+
+            if (project.StartDate.HasValue && project.EndDate.HasValue && project.EndDate >= project.StartDate)
+            {
+                var managers = await db.ProjectTeamMembers
+                    .Where(m => m.ProjectId == projectId
+                        && (m.MemberRole == ProjectMemberRoles.ProjectManager
+                            || m.MemberRole == ProjectMemberRoles.SeniorProjectManager))
+                    .ToListAsync(ct);
+                foreach (var manager in managers)
+                {
+                    manager.AllocationStartDate = project.StartDate.Value;
+                    manager.AllocationEndDate = project.EndDate.Value;
+                }
+            }
+
             await db.SaveChangesAsync(ct);
         }
     }
@@ -1480,6 +1507,118 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             DateTime.UtcNow);
     }
 
+    private async Task<Dictionary<Guid, List<ProjectAssigneeDto>>> LoadTeamLeadsAsync(
+        IReadOnlyList<Guid> projectIds,
+        CancellationToken ct)
+    {
+        var result = projectIds.ToDictionary(id => id, _ => new List<ProjectAssigneeDto>());
+        if (projectIds.Count == 0) return result;
+
+        var rows = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Include(m => m.Employee)
+            .Where(m => projectIds.Contains(m.ProjectId)
+                && m.IsTeamLead
+                && m.MemberRole == ProjectMemberRoles.ProjectTeam
+                && m.Employee != null)
+            .ToListAsync(ct);
+
+        foreach (var row in rows.OrderBy(m => m.Employee!.FirstName).ThenBy(m => m.Employee!.LastName))
+        {
+            if (!result.TryGetValue(row.ProjectId, out var leads)) continue;
+            leads.Add(new ProjectAssigneeDto(
+                row.EmployeeId,
+                $"{row.Employee!.FirstName} {row.Employee.LastName}".Trim()));
+        }
+
+        return result;
+    }
+
+    private static ProjectDto WithTeamLeads(
+        ProjectDto dto,
+        Dictionary<Guid, List<ProjectAssigneeDto>> teamLeadsByProject)
+    {
+        var leads = teamLeadsByProject.TryGetValue(dto.Id, out var found)
+            ? found
+            : new List<ProjectAssigneeDto>();
+
+        if (dto.TeamLeadId.HasValue
+            && !string.IsNullOrWhiteSpace(dto.TeamLeadName)
+            && leads.All(lead => lead.EmployeeId != dto.TeamLeadId.Value))
+        {
+            leads.Insert(0, new ProjectAssigneeDto(dto.TeamLeadId.Value, dto.TeamLeadName.Trim()));
+        }
+
+        var first = leads.FirstOrDefault();
+        return dto with
+        {
+            TeamLeads = leads,
+            TeamLeadId = first?.EmployeeId ?? dto.TeamLeadId,
+            TeamLeadName = first?.Name ?? dto.TeamLeadName,
+        };
+    }
+
+    private async Task<Dictionary<Guid, (List<ProjectAssigneeDto> ProjectManagers, List<ProjectAssigneeDto> SeniorProjectManagers)>> LoadProjectManagersAsync(
+        IReadOnlyList<Guid> projectIds,
+        CancellationToken ct)
+    {
+        var result = projectIds.ToDictionary(
+            id => id,
+            _ => (ProjectManagers: new List<ProjectAssigneeDto>(), SeniorProjectManagers: new List<ProjectAssigneeDto>()));
+        if (projectIds.Count == 0) return result;
+
+        var rows = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Include(m => m.Employee)
+            .Where(m => projectIds.Contains(m.ProjectId)
+                && m.Employee != null
+                && (m.MemberRole == ProjectMemberRoles.ProjectManager
+                    || m.MemberRole == ProjectMemberRoles.SeniorProjectManager))
+            .ToListAsync(ct);
+
+        foreach (var row in rows.OrderBy(m => m.Employee!.FirstName).ThenBy(m => m.Employee!.LastName))
+        {
+            if (!result.TryGetValue(row.ProjectId, out var pair)) continue;
+            var assignee = new ProjectAssigneeDto(
+                row.EmployeeId,
+                $"{row.Employee!.FirstName} {row.Employee.LastName}".Trim());
+            if (row.MemberRole == ProjectMemberRoles.SeniorProjectManager)
+                pair.SeniorProjectManagers.Add(assignee);
+            else
+                pair.ProjectManagers.Add(assignee);
+        }
+
+        return result;
+    }
+
+    private static ProjectDto WithProjectManagers(
+        ProjectDto dto,
+        Dictionary<Guid, (List<ProjectAssigneeDto> ProjectManagers, List<ProjectAssigneeDto> SeniorProjectManagers)> managersByProject)
+    {
+        if (!managersByProject.TryGetValue(dto.Id, out var pair))
+        {
+            return dto with
+            {
+                ProjectManagers = [],
+                SeniorProjectManagers = [],
+            };
+        }
+
+        var projectManagers = pair.ProjectManagers;
+        if (dto.ProjectManagerId.HasValue
+            && !string.IsNullOrWhiteSpace(dto.ProjectManagerName)
+            && projectManagers.All(m => m.EmployeeId != dto.ProjectManagerId.Value))
+        {
+            projectManagers.Insert(0, new ProjectAssigneeDto(dto.ProjectManagerId.Value, dto.ProjectManagerName.Trim()));
+        }
+
+        return dto with
+        {
+            ProjectManagers = projectManagers,
+            SeniorProjectManagers = pair.SeniorProjectManagers,
+        };
+    }
+
     private static ProjectDto MapToDto(Project p)
     {
         return new ProjectDto(
@@ -1511,7 +1650,9 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             p.ProjectManager != null ? $"{p.ProjectManager.FirstName} {p.ProjectManager.LastName}".Trim() : null,
             p.TeamLeadId,
             p.TeamLead != null ? $"{p.TeamLead.FirstName} {p.TeamLead.LastName}".Trim() : null,
-            p.EngagementManager,
+            p.EngagementManagerRef != null
+                ? $"{p.EngagementManagerRef.FirstName} {p.EngagementManagerRef.LastName}".Trim()
+                : p.EngagementManager,
             p.EngagementManagerId,
             p.SalesPerson,
             p.SalesPersonId,
@@ -1566,13 +1707,17 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             s.Total,
             s.SortOrder,
             s.CreatedAtUtc,
-            s.UpdatedAtUtc);
+            s.UpdatedAtUtc,
+            s.CollectionStatus,
+            s.ValidationStatus,
+            s.BillingStatus,
+            s.IsReady);
     }
 
     private async Task<HashSet<Guid>> LoadProjectTeamIdsAsync(Guid projectId, CancellationToken ct)
     {
         var ids = await db.ProjectTeamMembers
-            .Where(m => m.ProjectId == projectId && !m.IsShadowTeam)
+            .Where(m => m.ProjectId == projectId && m.MemberRole == ProjectMemberRoles.ProjectTeam)
             .Select(m => m.EmployeeId)
             .ToListAsync(ct);
         return ids.ToHashSet();

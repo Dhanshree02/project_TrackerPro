@@ -13,6 +13,7 @@ import { Modal } from "@/routes/projects.index";
 import { Field } from "@/components/form-row";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { cn } from "@/lib/utils";
+import { deriveProjectDates } from "@/lib/project-dates";
 import { fetchClients, mapApiClient, formatCustomerId } from "@/lib/api/clients";
 import {
   fetchProject,
@@ -30,10 +31,13 @@ import {
   syncTaskAssignments,
   fetchProjectTasks,
   fetchProjectServices,
+  updateServicePrerequisite,
+  copyStoredServicePrereqsOnce,
   fetchProjectInvoices,
   createProjectInvoice,
   updateProjectInvoice,
   type ApiProject,
+  type ApiProjectService,
   type ApiProjectTask,
   type ApiTaskAssignmentHistoryEntry,
 } from "@/lib/api/projects";
@@ -43,6 +47,8 @@ import {
   addProjectTeamMember as apiAddProjectTeamMember,
   updateProjectTeamMember as apiUpdateProjectTeamMember,
   removeProjectTeamMember as apiRemoveProjectTeamMember,
+  syncProjectLeadership,
+  isManagerRole,
   parseAllocationDuration,
   formatAllocationDuration,
   type ApiProjectTeamMember,
@@ -123,12 +129,24 @@ const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
 };
 
 // ---------- Date Range Picker — two small inline calendars ----------
+function startOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function isBeforeDay(day: Date, boundary: Date): boolean {
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate()) < boundary;
+}
+
 function DateRangePicker({
   value,
   onChange,
+  disablePastStart = false,
 }: {
   value: string;
   onChange: (val: string) => void;
+  /** Add Team Member: start date is today or later. End date rules are unchanged. */
+  disablePastStart?: boolean;
 }) {
   // Parse "DD/MM/YYYY → DD/MM/YYYY" (formatDate output). Do NOT use
   // `new Date("24/09/2026")` — browsers treat slash dates as invalid/US-only.
@@ -197,6 +215,7 @@ function DateRangePicker({
 
   // Click on start calendar
   const handleFromDay = (day: Date) => {
+    if (disablePastStart && isBeforeDay(day, startOfToday())) return;
     setFromInput(toInputFmt(day));
     // If picked start > current end, clear end
     const newTo = parsedRange.to && day > parsedRange.to ? undefined : parsedRange.to;
@@ -206,6 +225,7 @@ function DateRangePicker({
 
   // Click on end calendar
   const handleToDay = (day: Date) => {
+    if (disablePastStart && isBeforeDay(day, startOfToday())) return;
     const from = parsedRange.from ?? parseInputFmt(fromInput);
     // end must not be before start
     if (from && day < from) {
@@ -217,14 +237,24 @@ function DateRangePicker({
   };
 
   const handleFromInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFromInput(e.target.value);
-    const d = parseInputFmt(e.target.value);
+    const next = e.target.value;
+    const d = parseInputFmt(next);
+    if (d && disablePastStart && isBeforeDay(d, startOfToday())) {
+      toast.error("Start date cannot be in the past");
+      return;
+    }
+    setFromInput(next);
     if (d) { setCurrentMonth(d); commit(d, parsedRange.to); }
   };
 
   const handleToInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setToInput(e.target.value);
-    const d = parseInputFmt(e.target.value);
+    const next = e.target.value;
+    const d = parseInputFmt(next);
+    if (d && disablePastStart && isBeforeDay(d, startOfToday())) {
+      toast.error("End date cannot be in the past");
+      return;
+    }
+    setToInput(next);
     if (d) { setCurrentMonth(d); commit(parsedRange.from, d); }
   };
 
@@ -248,6 +278,7 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
+            disabled={disablePastStart ? { before: startOfToday() } : undefined}
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -262,7 +293,18 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
-            disabled={parsedRange.from ? { before: parsedRange.from } : undefined}
+            disabled={
+              disablePastStart
+                ? {
+                    before:
+                      parsedRange.from && parsedRange.from > startOfToday()
+                        ? parsedRange.from
+                        : startOfToday(),
+                  }
+                : parsedRange.from
+                  ? { before: parsedRange.from }
+                  : undefined
+            }
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -389,6 +431,23 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
   );
 }
 
+function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
+  const toAssignee = (member: ApiProjectTeamMember) => ({
+    employeeId: member.employeeId,
+    name: (member.employeeName || "").trim(),
+  });
+  return {
+    projectManagers: items
+      .filter((member) => member.memberRole === "ProjectManager")
+      .map(toAssignee)
+      .filter((person) => person.employeeId && person.name),
+    seniorProjectManagers: items
+      .filter((member) => member.memberRole === "SeniorProjectManager")
+      .map(toAssignee)
+      .filter((person) => person.employeeId && person.name),
+  };
+}
+
 function ProjectDetail() {
   const params = Route.useParams();
   const loaderData = Route.useLoaderData() as { project?: Project; client?: Client } | undefined;
@@ -413,11 +472,56 @@ function ProjectDetail() {
   const poDocuments = useDhStore((s) => s.poDocuments);
 
   const [dbProject, setDbProject] = useState<ApiProject | null>(null);
+  const [dbLeaders, setDbLeaders] = useState<ReturnType<typeof managersFromTeamMembers> | null>(null);
+  const [liveServiceDates, setLiveServiceDates] = useState<Array<{ startDate?: string | null; endDate?: string | null }> | null>(null);
+  const [dbServices, setDbServices] = useState<ApiProjectService[] | null>(null);
   useEffect(() => {
     let cancelled = false;
-    if (rawId && (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId) || rawId.length > 20)) {
-      fetchProject(rawId).then((p) => {
-        if (!cancelled && p) setDbProject(p);
+    setLiveServiceDates(null);
+    setDbServices(null);
+    setDbLeaders(null);
+    const rawIsGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
+    if (rawId && (rawIsGuid || rawId.length > 20)) {
+      if (rawIsGuid) {
+        fetchProjectTeamMembers(rawId).then((items) => {
+          if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
+        }).catch(() => {});
+      }
+      fetchProject(rawId).then(async (p) => {
+        if (cancelled || !p) return;
+        setDbProject(p);
+        if (!rawIsGuid) {
+          fetchProjectTeamMembers(p.id).then((items) => {
+            if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
+          }).catch(() => {});
+        }
+        try {
+          const rows = await fetchProjectServices(p.id);
+          if (cancelled) return;
+          const stored = getPrereq(p.id).services ?? [];
+          const copied = await copyStoredServicePrereqsOnce(p.id, rows, stored);
+          if (cancelled) return;
+          if (copied.applied) {
+            dhStore.replaceServicePrereqRows(
+              p.id,
+              copied.services.map((s) => ({
+                serviceId: s.id,
+                serviceName: s.serviceName,
+                collectionStatus: (s.collectionStatus || "Pending To Collect") as "Pending To Collect" | "Collected",
+                validationStatus: (s.validationStatus || "Pending To Validate") as "Pending To Validate" | "Validated",
+                billingStatus: (s.billingStatus || "Advance Pending") as "Advance Received" | "Advance Pending" | "Advance Not Required",
+                isReady: Boolean(s.isReady),
+              })),
+            );
+          }
+          setDbServices(copied.services);
+          setLiveServiceDates(copied.services.map((s) => ({
+            startDate: s.startDate ? String(s.startDate) : "",
+            endDate: s.endDate ? String(s.endDate) : "",
+          })));
+        } catch {
+          if (!cancelled) setLiveServiceDates(null);
+        }
       }).catch(console.error);
     }
     return () => { cancelled = true; };
@@ -432,18 +536,53 @@ function ProjectDetail() {
         p.wbsId === rawId ||
         p.projectSeqId?.toLowerCase() === rawId.toLowerCase(),
     );
-    if (fromStore) {
-      if (!dbProject) return fromStore;
-      return {
-        ...fromStore,
-        renewedFromProjectId: fromStore.renewedFromProjectId || dbProject.renewedFromProjectId || undefined,
-        renewedFromWbsId: fromStore.renewedFromWbsId || dbProject.renewedFromWbsId || undefined,
-      };
-    }
-    if (dbProject) return mapApiProjectToProject(dbProject);
-    return loaderData?.project;
+    const base = fromStore
+      ? (!dbProject
+        ? fromStore
+        : {
+            ...fromStore,
+            renewedFromProjectId: fromStore.renewedFromProjectId || dbProject.renewedFromProjectId || undefined,
+            renewedFromWbsId: fromStore.renewedFromWbsId || dbProject.renewedFromWbsId || undefined,
+          })
+      : dbProject
+        ? mapApiProjectToProject(dbProject)
+        : loaderData?.project;
+    if (!base) return base;
+    const withManagers = dbProject
+      ? {
+          ...base,
+          projectManagers: dbProject.projectManagers ?? base.projectManagers ?? [],
+          seniorProjectManagers: dbProject.seniorProjectManagers ?? base.seniorProjectManagers ?? [],
+          projectManagerId: dbProject.projectManagerId ?? base.projectManagerId,
+          projectManagerName: dbProject.projectManagerName ?? base.projectManagerName,
+        }
+      : base;
+    const withLeaders = dbLeaders
+      ? {
+          ...withManagers,
+          projectManagers: dbLeaders.projectManagers,
+          seniorProjectManagers: dbLeaders.seniorProjectManagers,
+        }
+      : withManagers;
+    const dateSource = liveServiceDates?.length ? liveServiceDates : withLeaders.wbsDetails?.services;
+    const dated = !dateSource?.length
+      ? withLeaders
+      : (() => {
+          const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
+          return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
+        })();
+    if (!dbProject || !dbServices?.length) return dated;
+    const mapped = mapApiProjectToProject(dbProject, dbServices);
+    return {
+      ...dated,
+      wbsDetails: {
+        ...(mapped.wbsDetails ?? {}),
+        ...(dated.wbsDetails ?? {}),
+        services: mapped.wbsDetails?.services ?? dated.wbsDetails?.services ?? [],
+      },
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawId, extraCount, poDocuments, dbProject, loaderData?.project]);
+  }, [rawId, extraCount, poDocuments, dbProject, dbLeaders, liveServiceDates, dbServices, loaderData?.project]);
 
   const client: Client = useMemo(() => {
     if (!project) return loaderData?.client ?? {
@@ -553,6 +692,32 @@ function ProjectDetail() {
     }
     return isEmployee ? "Team" : "Overview";
   });
+
+  useEffect(() => {
+    if (!isApiGuid(project.id)) return;
+    let active = true;
+    fetchProjectTeamMembers(project.id)
+      .then((items) => {
+        if (!active) return;
+        if (items.length > 0 && items.every((m) => !m.memberRole)) return;
+        const managers = items.filter((m) => isManagerRole(m.memberRole));
+        dhStore.assignPMsWithPeople(
+          project.id,
+          managers.filter((m) => m.memberRole === "ProjectManager").map((m) => m.employeeId),
+          managers.filter((m) => m.memberRole === "SeniorProjectManager").map((m) => m.employeeId),
+          managers.map((m) => ({
+            id: m.employeeId,
+            name: m.employeeName,
+            role: m.memberRole === "SeniorProjectManager" ? "Senior Project Manager" : "Project Manager",
+            email: m.employeeEmail || "",
+          })),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
 
   const [closureErrorModalOpen, setClosureErrorModalOpen] = useState(false);
   const [closureErrors, setClosureErrors] = useState<{
@@ -1011,6 +1176,7 @@ function ProjectDetail() {
               tl={tl}
               team={team}
               customerRouteId={customerRouteId}
+              onLeadershipSaved={(items) => setDbLeaders(managersFromTeamMembers(items))}
             />
           )}
 
@@ -1018,6 +1184,7 @@ function ProjectDetail() {
             <WbsTab
               project={project}
               client={client}
+              onLeadershipSaved={(items) => setDbLeaders(managersFromTeamMembers(items))}
               onRaiseInvoice={(invoiceId) => {
                 setRaiseInvoiceId(invoiceId);
                 const existing = snapshotInvoices.find((i) => i.id === invoiceId);
@@ -1446,12 +1613,14 @@ function WbsTab({
   onRaiseInvoice,
   onNavigateToHealthAlerts,
   poDocumentPanel,
+  onLeadershipSaved,
 }: {
   project: Project;
   client?: Client;
   onRaiseInvoice: (invoiceId: string) => void;
   onNavigateToHealthAlerts?: () => void;
   poDocumentPanel?: React.ReactNode;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const snapshotInvoices = useDhStore((s) => s.invoices);
   const { user, isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
@@ -1539,7 +1708,7 @@ function WbsTab({
         </div>
 
         {!hidePrereq && (
-          <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+          <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} onLeadershipSaved={onLeadershipSaved} />
         )}
 
         <div>
@@ -1604,7 +1773,7 @@ function WbsTab({
         {!hideAmounts && (
           <div className="grid gap-4 md:grid-cols-3 rounded-lg border border-border bg-muted/20 p-4">
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1">Total Services</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">Services Subtotal</div>
               <div className="text-lg font-semibold">{wbsDetails.currency} {totalServices.toLocaleString()}</div>
             </div>
             <div>
@@ -1779,7 +1948,7 @@ function WbsTab({
 
       {/* PMO Intake & Prerequisite Workflow — hidden for PM family and Accounts */}
       {!hidePrereq && (
-        <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+        <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} onLeadershipSaved={onLeadershipSaved} />
       )}
 
       {/* Services Table */}
@@ -2032,6 +2201,7 @@ function OverviewTab({
   tl,
   team,
   customerRouteId,
+  onLeadershipSaved,
 }: {
   project: Project;
   client?: Client;
@@ -2039,6 +2209,7 @@ function OverviewTab({
   tl: Person;
   team: Person[];
   customerRouteId: string | null;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const { isDhanshree, isProjectManager, isSeniorPm, isPmFamily, isPmoFamily, isAccounts, isSales, hideBudget } =
     useRoleContext();
@@ -2081,6 +2252,17 @@ function OverviewTab({
   }, [leadershipAssignment, project, knownPeople]);
 
   const spms: Person[] = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.seniorProjectManagers ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({
+          id: person.employeeId,
+          name: person.name.trim(),
+          role: "Senior Project Manager",
+          avatar: person.name.trim().slice(0, 2).toUpperCase(),
+          email: "",
+        }));
+    }
     if (leadershipAssignment?.spmIds?.length) {
       return leadershipAssignment.spmIds.map(getPerson).filter(Boolean);
     }
@@ -2094,6 +2276,17 @@ function OverviewTab({
   }, [leadershipAssignment, prereq, project, knownPeople]);
 
   const pms: Person[] = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.projectManagers ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({
+          id: person.employeeId,
+          name: person.name.trim(),
+          role: "Project Manager",
+          avatar: person.name.trim().slice(0, 2).toUpperCase(),
+          email: "",
+        }));
+    }
     if (leadershipAssignment?.pmIds?.length) {
       return leadershipAssignment.pmIds.map(getPerson).filter(Boolean);
     }
@@ -2318,6 +2511,7 @@ function OverviewTab({
               unassigned={spms.length === 0}
               project={project}
               viewOnly={!isDhanshree}
+              onLeadershipSaved={onLeadershipSaved}
             />
             <LeadershipBlock
               title="Project Managers"
@@ -2326,6 +2520,7 @@ function OverviewTab({
               unassigned={pms.length === 0}
               project={project}
               viewOnly={!isDhanshree && !isSeniorPm}
+              onLeadershipSaved={onLeadershipSaved}
             />
             <LeadershipBlock
               title="Team Leads"
@@ -2561,7 +2756,7 @@ function PeopleBlock({ title, people, unassigned }: { title: string; people: Per
 
 // ---------- Leadership Block (Dhanshree only) — chips + Change Leader button ----------
 function LeadershipBlock({
-  title, role, people, unassigned, project, viewOnly = false, hideChange = false,
+  title, role, people, unassigned, project, viewOnly = false, hideChange = false, onLeadershipSaved,
 }: {
   title: string;
   role: LeadershipRole;
@@ -2570,6 +2765,7 @@ function LeadershipBlock({
   project: Project;
   viewOnly?: boolean;
   hideChange?: boolean;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const [showPanel, setShowPanel] = useState(false);
   return (
@@ -2604,6 +2800,7 @@ function LeadershipBlock({
           project={project}
           role={role}
           assignedPeople={people}
+          onLeadershipSaved={onLeadershipSaved}
           onClose={() => setShowPanel(false)}
         />
       )}
@@ -2714,12 +2911,13 @@ const EMPTY_ID_LIST: string[] = [];
 
 // ---------- Change Leader Panel — direct assign / deassign ----------
 function ChangeLeaderPanel({
-  project, role, assignedPeople, onClose,
+  project, role, assignedPeople, onClose, onLeadershipSaved,
 }: {
   project: Project;
   role: LeadershipRole;
   assignedPeople: Person[];
   onClose: () => void;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const [search, setSearch] = useState("");
   // Working copy of assigned IDs — saved on "Done" (multi-select supported)
@@ -2774,7 +2972,7 @@ function ChangeLeaderPanel({
       fetchProjectTeamMembers(project.id)
         .then((items) => {
           if (!active) return;
-          setProjectTeamMembers(items);
+          setProjectTeamMembers(items.filter((m) => m.memberRole === "ProjectTeam" || (!m.memberRole && !m.isShadowTeam)));
           dhStore.registerPeople(
             items.map((m) => ({
               id: m.employeeId,
@@ -2883,9 +3081,10 @@ function ChangeLeaderPanel({
     try {
       // Persist Team Lead flags on Project Team members (multi-select)
       if (role === "Team Lead" && isApiGuid(project.id)) {
-        const members = projectTeamMembers.length
+        const loaded = projectTeamMembers.length
           ? projectTeamMembers
           : await fetchProjectTeamMembers(project.id);
+        const members = loaded.filter((m) => m.memberRole === "ProjectTeam" || (!m.memberRole && !m.isShadowTeam));
         await Promise.all(
           members.map(async (m) => {
             const shouldBeLead = assignedIds.includes(m.employeeId);
@@ -2895,26 +3094,21 @@ function ChangeLeaderPanel({
         );
       }
 
-      dhStore.updateLeadershipAssignment(project.id, role, assignedIds, peopleForRole);
-      if (role === "Project Manager" && project.id && project.id.length > 20) {
-        const pmIdToSave = assignedIds[0] || null;
-        try {
-          await fetch(`http://localhost:5194/api/v1/projects/${project.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: project.name,
-              description: project.description,
-              status: project.status,
-              health: project.health,
-              progress: project.progress,
-              projectManagerId: pmIdToSave && pmIdToSave.includes("-") ? pmIdToSave : undefined,
-            }),
-          });
-        } catch (err) {
-          console.warn("Failed to persist PM assignment to backend:", err);
+      if ((role === "Project Manager" || role === "Senior Project Manager") && isApiGuid(project.id)) {
+        const ids = assignedIds.filter((id) => isApiGuid(id));
+        if (ids.length !== assignedIds.length) {
+          toast.error("Select a Project Manager or Senior Project Manager from the employee list");
+          return;
         }
+        const saved = await syncProjectLeadership(
+          project.id,
+          role === "Project Manager"
+            ? { projectManagerIds: ids }
+            : { seniorProjectManagerIds: ids },
+        );
+        onLeadershipSaved?.(saved);
       }
+      dhStore.updateLeadershipAssignment(project.id, role, assignedIds, peopleForRole);
       const names = peopleForRole.map((p) => p.name).join(", ") || "None";
       toast.success(`${role} updated`, { description: names });
       onClose();
@@ -3546,6 +3740,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
   const useApiTasks = isApiGuid(project.id);
   const [dbTasks, setDbTasks] = useState<ApiProjectTask[]>([]);
+  const [apiServices, setApiServices] = useState<ApiProjectService[] | null>(useApiTasks ? null : []);
   const [serviceIdsByKey, setServiceIdsByKey] = useState<Map<string, string>>(new Map());
   const [apiPool, setApiPool] = useState<{ person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[] | null>(null);
 
@@ -3560,6 +3755,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
           fetchProjectTasks(project.id),
         ]);
         if (!active) return;
+        setApiServices(services);
         const keys = new Map<string, string>();
         for (const service of services) {
           if (service.taskId?.trim()) keys.set(`code:${service.taskId.trim().toLowerCase()}`, service.id);
@@ -3579,6 +3775,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
         if (peopleToRegister.length) dhStore.registerPeople(peopleToRegister);
       } catch (err) {
         console.warn("Failed to load project tasks", err);
+        if (active) setApiServices([]);
       }
     })();
     return () => {
@@ -3593,6 +3790,22 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   }, [project, snapshot.treeTaskStates, useApiTasks, dbTasks, serviceIdsByKey]);
 
   const visibleTree = useMemo(() => {
+    if (useApiTasks) {
+      return tree.filter((svcFolder) => {
+        const fromApi = apiServices?.find(
+          (s) => s.id === svcFolder.serviceId || s.serviceName === svcFolder.serviceName,
+        );
+        if (fromApi) return Boolean(fromApi.isReady);
+        const stored = prereq?.services?.find(
+          (s) => s.serviceId === svcFolder.serviceId || s.serviceName === svcFolder.serviceName,
+        );
+        if (stored) return Boolean(stored.isReady);
+        const live = project.wbsDetails?.services?.find(
+          (s) => s.id === svcFolder.serviceId || s.serviceName === svcFolder.serviceName,
+        );
+        return Boolean(live?.isReady);
+      });
+    }
     if (!prereq?.services?.length) return [];
     return tree.filter((svcFolder) => {
       const pSvc = prereq.services?.find(
@@ -3600,7 +3813,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
       );
       return Boolean(pSvc?.isReady);
     });
-  }, [tree, prereq]);
+  }, [tree, prereq, useApiTasks, apiServices, project.wbsDetails?.services]);
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
     const existing = expandedNodesMap.get(project.id);
@@ -3728,6 +3941,37 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
       ? svc.quarters.flatMap(q => q.aps.flatMap(ap => ap.tasks))
       : (svc.aps ? svc.aps.flatMap(ap => ap.tasks) : []);
   };
+
+  const apiHasReady = (apiServices ?? []).some((service) => Boolean(service.isReady));
+  const hasStartedService = visibleTree.length > 0 || apiHasReady;
+
+  if (useApiTasks && apiServices === null && visibleTree.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading tasks…
+      </div>
+    );
+  }
+
+  if (!hasStartedService) {
+    return (
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
+        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
+        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — No Service Started</h4>
+        <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
+          First mark a service as Ready to Start on the WBS tab. Tasks stay blocked until a service is started.
+        </p>
+      </div>
+    );
+  }
+
+  if (apiHasReady && visibleTree.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading tasks…
+      </div>
+    );
+  }
 
   return (
     <>
@@ -4072,7 +4316,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                       fetchProjectTeamMembers(project.id, { shadow: true }),
                                                     ]);
                                                     const named = [...projectMembers, ...shadowMembers].filter(
-                                                      (m) => m.employeeId && m.employeeName?.trim() && m.employeeName !== "Unknown User",
+                                                      (m) => m.employeeId && m.employeeName?.trim() && m.employeeName !== "Unknown User" && !isManagerRole(m.memberRole),
                                                     );
                                                     dhStore.registerPeople(named.map((m) => ({
                                                       id: m.employeeId,
@@ -4088,8 +4332,8 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                         avatar: m.employeeName.slice(0, 2).toUpperCase(),
                                                         email: m.employeeEmail || "",
                                                       },
-                                                      isProjectTeam: !m.isShadowTeam,
-                                                      isShadowTeam: m.isShadowTeam,
+                                                      isProjectTeam: m.memberRole ? m.memberRole === "ProjectTeam" : !m.isShadowTeam,
+                                                      isShadowTeam: m.memberRole ? m.memberRole === "ShadowTeam" : m.isShadowTeam,
                                                     })));
                                                   } catch (err) {
                                                     toast.error(err instanceof Error ? err.message : "Could not load team members");
@@ -4447,7 +4691,21 @@ type ProjectTeamRow = {
   subDepartment?: string;
   isTeamLead?: boolean;
   isShadowTeam?: boolean;
+  memberRole?: string;
 };
+
+function teamDisplayRank(row: ProjectTeamRow): number {
+  if (row.memberRole === "SeniorProjectManager") return 0;
+  if (row.memberRole === "ProjectManager") return 1;
+  if (row.isTeamLead) return 2;
+  return 3;
+}
+
+function managerRoleLabel(role?: string): string | null {
+  if (role === "SeniorProjectManager") return "Senior Project Manager";
+  if (role === "ProjectManager") return "Project Manager";
+  return null;
+}
 
 function mapApiTeamMemberToRow(m: ApiProjectTeamMember): ProjectTeamRow {
   return {
@@ -4466,6 +4724,7 @@ function mapApiTeamMemberToRow(m: ApiProjectTeamMember): ProjectTeamRow {
     subDepartment: m.subDepartment || "—",
     isTeamLead: m.isTeamLead,
     isShadowTeam: m.isShadowTeam,
+    memberRole: m.memberRole || (m.isShadowTeam ? "ShadowTeam" : "ProjectTeam"),
   };
 }
 
@@ -4496,8 +4755,8 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
   const [showAddModal, setShowAddModal] = useState(false);
   const [apiTeamRows, setApiTeamRows] = useState<ProjectTeamRow[] | null>(null);
   const [apiShadowRows, setApiShadowRows] = useState<ProjectTeamRow[] | null>(null);
-  const [teamLoading, setTeamLoading] = useState(false);
   const useApiTeam = isApiGuid(project.id);
+  const [teamLoading, setTeamLoading] = useState(useApiTeam);
   const removedIds = useMemo(() => new Set(snapshot.projectTeamRemovals[project.id] ?? []), [snapshot.projectTeamRemovals, project.id]);
 
   // Reactive access to DhStore shadow team records (fallback for non-API projects)
@@ -4560,7 +4819,11 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
 
   const rows = useMemo((): ProjectTeamRow[] => {
     if (useApiTeam && apiTeamRows) {
-      return apiTeamRows;
+      return [...apiTeamRows].sort((a, b) => {
+        const rank = teamDisplayRank(a) - teamDisplayRank(b);
+        if (rank !== 0) return rank;
+        return a.person.name.localeCompare(b.person.name);
+      });
     }
 
     // WBS-created projects start with no team. Members are only those added
@@ -4729,10 +4992,22 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
     toast.success("Shadow team member removed");
   };
 
-  // Access-blocked guard AFTER all hooks
-  const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
-  const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
+  // Access-blocked guard AFTER all hooks. API projects use the database rows.
+  const hasSPM = useApiTeam
+    ? (apiTeamRows ?? []).some((r) => r.memberRole === "SeniorProjectManager")
+    : (prereq?.assignedSpmIds?.length ?? 0) > 0;
+  const hasPM = useApiTeam
+    ? (apiTeamRows ?? []).some((r) => r.memberRole === "ProjectManager")
+    : (prereq?.assignedPmIds?.length ?? 0) > 0;
   const isAssigned = hasPM && hasSPM;
+
+  if (useApiTeam && teamLoading && apiTeamRows === null) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading team…
+      </div>
+    );
+  }
 
   if (!isAssigned) {
     return (
@@ -4786,7 +5061,13 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
             {teamLoading && (
               <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">Loading team…</td></tr>
             )}
-            {!teamLoading && (teamTab === "project" ? rows : shadowRows).map((r) => (
+            {!teamLoading && (teamTab === "project" ? rows : shadowRows).map((r) => {
+              const managerLabel = teamTab === "project" ? managerRoleLabel(r.memberRole) : null;
+              const actionsLocked = Boolean(managerLabel);
+              const allocationLabel = managerLabel && project.startDate && project.endDate
+                ? formatAllocationDuration(String(project.startDate).slice(0, 10), String(project.endDate).slice(0, 10))
+                : (r.duration || "—");
+              return (
               <tr key={r.person.id} className="hover:bg-accent/30">
                 {/* Resource — left aligned with avatar */}
                 <td className="px-4 py-3">
@@ -4795,7 +5076,12 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                     <div>
                       <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
                         {r.person.name}
-                        {teamTab === "project" && teamLeadIds.has(r.person.id) && (
+                        {managerLabel && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
+                            <Crown className="h-2.5 w-2.5" /> {managerLabel}
+                          </span>
+                        )}
+                        {teamTab === "project" && !managerLabel && teamLeadIds.has(r.person.id) && (
                           <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
                             <Crown className="h-2.5 w-2.5" /> Team Lead
                           </span>
@@ -4818,7 +5104,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                     : getSubDept(r.person)}
                 </td>
                 {/* Allocation Duration — center, monospaced */}
-                <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{r.duration || "—"}</td>
+                <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{allocationLabel}</td>
                 {/* Billability — center pill */}
                 <td className="px-3 py-3 text-center align-middle">
                   <span className={cn(
@@ -4844,16 +5130,17 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                 {/* Actions — center */}
                 <td className="px-3 py-3 text-center align-middle">
                   <div className="inline-flex items-center gap-1">
-                    <button title="View" onClick={() => setAction({ type: "view", person: r.person })}
-                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Eye className="h-3.5 w-3.5" /></button>
+                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "View"} disabled={actionsLocked} onClick={() => setAction({ type: "view", person: r.person })}
+                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Eye className="h-3.5 w-3.5" /></button>
                     {!readOnly && (
                     <>
-                    <button title="Edit" onClick={() => setAction({ type: "edit", person: r.person })}
-                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button title="Remove" onClick={() => setAction({ type: "remove", person: r.person })}
-                      className="rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Edit"} disabled={actionsLocked} onClick={() => setAction({ type: "edit", person: r.person })}
+                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Pencil className="h-3.5 w-3.5" /></button>
+                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Remove"} disabled={actionsLocked} onClick={() => setAction({ type: "remove", person: r.person })}
+                      className={cn("rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Trash2 className="h-3.5 w-3.5" /></button>
                     <button
-                      title="More"
+                      title={actionsLocked ? "Assigned from WBS Project Allocation" : "More"}
+                      disabled={actionsLocked}
                       onClick={(e) => {
                         if (menuOpen === r.person.id) {
                           setMenuOpen(null);
@@ -4869,13 +5156,13 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                         setMenuPos({ top, left });
                         setMenuOpen(r.person.id);
                       }}
-                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"
+                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}
                     >
                       <MoreHorizontal className="h-3.5 w-3.5" />
                     </button>
                     </>
                     )}
-                    {menuOpen === r.person.id && menuPos && (
+                    {menuOpen === r.person.id && menuPos && !actionsLocked && (
                       <div
                         className="fixed z-[9999] w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg"
                         style={{ top: menuPos.top, left: menuPos.left }}
@@ -4946,7 +5233,8 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {!teamLoading && (teamTab === "project" ? rows : shadowRows).length === 0 && (
               <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">No {teamTab} team members allocated</td></tr>
             )}
@@ -5514,6 +5802,7 @@ function AddTeamMemberModal({
           <DateRangePicker
             value={duration}
             onChange={setDuration}
+            disablePastStart
           />
         </Field>
 
@@ -7029,7 +7318,7 @@ function getClientInfo(clientId: string, clientProp?: Client | null, subVentureN
   };
 }
 
-function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: { project: Project; client?: Client; onNavigateToHealthAlerts?: () => void }) {
+function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onLeadershipSaved }: { project: Project; client?: Client; onNavigateToHealthAlerts?: () => void; onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void }) {
   const allPrereqs = useDhStore((s) => s.prereqs);
   const prereqData = allPrereqs[project.id];
   const knownPeople = useDhStore((s) => s.knownPeople);
@@ -7245,6 +7534,15 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
     if (isViewOnly) return;
     dhStore.setServicePrereqStatus(project.id, serviceId, field, value, user.id, user.name);
     toast.success("Service status updated successfully");
+    if (isApiGuid(project.id) && isApiGuid(serviceId)) {
+      const payload: { collectionStatus?: string; validationStatus?: string; billingStatus?: string } = { [field]: value };
+      if (field === "collectionStatus" && value === "Pending To Collect") {
+        payload.validationStatus = "Pending To Validate";
+      }
+      void updateServicePrerequisite(project.id, serviceId, payload).catch(() => {
+        toast.error("Could not save the service status");
+      });
+    }
   };
 
   return (
@@ -7523,6 +7821,11 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
                                 onClick={() => {
                                   dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
                                   toast.success("Service marked as Ready to Start", { description: svc.serviceName });
+                                  if (isApiGuid(project.id) && isApiGuid(svc.serviceId)) {
+                                    void updateServicePrerequisite(project.id, svc.serviceId, { isReady: true }).catch(() => {
+                                      toast.error("Could not save Ready for this service");
+                                    });
+                                  }
                                 }}
                                 className={cn(
                                   "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
@@ -7781,6 +8084,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
           prereq={prereq}
           clientInfo={clientInfo}
           mode={assignModalMode}
+          onLeadershipSaved={onLeadershipSaved}
           onClose={() => setAssignModalMode(null)}
         />
       )}
@@ -7796,12 +8100,14 @@ function WbsAssignmentModal({
   clientInfo,
   mode,
   onClose,
+  onLeadershipSaved,
 }: {
   project: Project;
   prereq: DhProjectPrereq;
   clientInfo: { name: string; type: "NEW" | "OLD"; previousPmIds: string[] } | null;
   mode: "pm" | "spm";
   onClose: () => void;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const [selectedPMs, setSelectedPMs] = useState<string[]>(prereq.assignedPmIds);
   const [selectedSPMs, setSelectedSPMs] = useState<string[]>(prereq.assignedSpmIds);
@@ -7883,7 +8189,7 @@ function WbsAssignmentModal({
     setSelectedSPMs(s => (s.includes(id) ? s.filter(x => x !== id) : [...s, id]));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (mode === "pm" && selectedPMs.length === 0) {
       toast.error("Please select at least one Project Manager");
       return;
@@ -7896,30 +8202,35 @@ function WbsAssignmentModal({
     // Merge with existing assignments — keep the other role's assignments intact
     const finalPMs = mode === "pm" ? selectedPMs : prereq.assignedPmIds;
     const finalSPMs = mode === "spm" ? selectedSPMs : prereq.assignedSpmIds;
+    const idsToSave = (mode === "pm" ? finalPMs : finalSPMs).filter((id) => isApiGuid(id));
+    if (isApiGuid(project.id) && idsToSave.length !== (mode === "pm" ? finalPMs : finalSPMs).length) {
+      toast.error("Select a Project Manager or Senior Project Manager from the employee list");
+      return;
+    }
 
     const peopleForAssign = [
       ...pmPool.filter((p) => finalPMs.includes(p.id)),
       ...spmPool.filter((p) => finalSPMs.includes(p.id)),
     ].map((p) => ({ id: p.id, name: p.name, role: p.role }));
 
-    dhStore.assignPMsWithPeople(project.id, finalPMs, finalSPMs, peopleForAssign);
-
-    // Sync to backend if project ID is a valid GUID
-    if (project.id && project.id.length > 20) {
-      const pmIdToSave = finalPMs[0] || null;
-      fetch(`http://localhost:5194/api/v1/projects/${project.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: project.name,
-          description: project.description,
-          status: project.status,
-          health: project.health,
-          progress: project.progress,
-          projectManagerId: pmIdToSave && pmIdToSave.includes("-") ? pmIdToSave : undefined,
-        }),
-      }).catch((err) => console.warn("Failed to persist PM assignment to backend:", err));
+    if (isApiGuid(project.id)) {
+      try {
+        const saved = await syncProjectLeadership(
+          project.id,
+          mode === "pm"
+            ? { projectManagerIds: idsToSave }
+            : { seniorProjectManagerIds: idsToSave },
+        );
+        onLeadershipSaved?.(saved);
+      } catch (err) {
+        toast.error(mode === "pm" ? "Could not assign Project Manager" : "Could not assign Senior Project Manager", {
+          description: err instanceof Error ? err.message : "API error",
+        });
+        return;
+      }
     }
+
+    dhStore.assignPMsWithPeople(project.id, finalPMs, finalSPMs, peopleForAssign);
 
     toast.success(
       mode === "pm" ? "PM Assigned" : "Senior PM Assigned",

@@ -2,6 +2,19 @@
  * Derives the project Start Date (earliest service start date)
  * and End Date (latest service end date) from the selected services.
  */
+/** Calendar day from a date string. Blank and invalid values are ignored. */
+function calendarDay(value?: string | null): string {
+  if (typeof value !== "string") return "";
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return "";
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  if (utc.getUTCFullYear() !== year || utc.getUTCMonth() !== month - 1 || utc.getUTCDate() !== day) return "";
+  return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
 export function deriveProjectDates(
   services: Array<{ startDate?: string | null; endDate?: string | null }> | undefined | null,
   fallbackStartDate?: string | null,
@@ -10,24 +23,24 @@ export function deriveProjectDates(
   const safeServices = services ?? [];
 
   const validStarts = safeServices
-    .map((s) => (typeof s.startDate === "string" ? s.startDate.trim() : ""))
-    .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
-    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    .map((s) => calendarDay(s.startDate))
+    .filter(Boolean)
+    .sort();
 
   const validEnds = safeServices
-    .map((s) => (typeof s.endDate === "string" ? s.endDate.trim() : ""))
-    .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
-    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    .map((s) => calendarDay(s.endDate))
+    .filter(Boolean)
+    .sort();
 
   const startDate =
     validStarts.length > 0
       ? validStarts[0]
-      : fallbackStartDate?.trim() || new Date().toISOString().slice(0, 10);
+      : calendarDay(fallbackStartDate) || new Date().toISOString().slice(0, 10);
 
   const endDate =
     validEnds.length > 0
       ? validEnds[validEnds.length - 1]
-      : fallbackEndDate?.trim() || new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
+      : calendarDay(fallbackEndDate) || new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
 
   return { startDate, endDate };
 }

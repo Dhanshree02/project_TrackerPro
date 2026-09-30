@@ -27,4 +27,9 @@ public interface IProjectTeamMemberService
         CancellationToken ct = default);
 
     Task<bool> RemoveAsync(Guid projectId, Guid memberId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<ProjectTeamMemberDto>> SetLeadershipAsync(
+        Guid projectId,
+        SetProjectLeadershipRequest request,
+        CancellationToken ct = default);
 }

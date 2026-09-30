@@ -1,4 +1,5 @@
 import { apiFetch, API_BASE } from "@/lib/api-client";
+import { deriveProjectDates } from "@/lib/project-dates";
 
 export interface ApiProject {
   id: string;
@@ -51,6 +52,9 @@ export interface ApiProject {
   accountContactEmail?: string | null;
   createdAtUtc: string;
   updatedAtUtc?: string | null;
+  projectManagers?: { employeeId: string; name: string }[] | null;
+  seniorProjectManagers?: { employeeId: string; name: string }[] | null;
+  teamLeads?: { employeeId: string; name: string }[] | null;
 }
 
 export interface NextProjectCodeResult {
@@ -193,6 +197,17 @@ export interface ApiProjectService {
   unitPrice?: number | null;
   total?: number | null;
   sortOrder: number;
+  collectionStatus?: string | null;
+  validationStatus?: string | null;
+  billingStatus?: string | null;
+  isReady?: boolean | null;
+}
+
+export interface UpdateServicePrerequisitePayload {
+  collectionStatus?: string | null;
+  validationStatus?: string | null;
+  billingStatus?: string | null;
+  isReady?: boolean | null;
 }
 
 export interface CreateProjectServicePayload {
@@ -407,6 +422,14 @@ export function mapApiProjectToProject(
   apiInvoices?: ApiProjectInvoice[]
 ): any {
   const rawServices: any[] = (apiServices ?? (ap as any).services ?? (ap as any).projectServices ?? []);
+  const projectDates = deriveProjectDates(
+    rawServices.map((s: any) => ({
+      startDate: s.startDate ? String(s.startDate) : "",
+      endDate: s.endDate ? String(s.endDate) : "",
+    })),
+    ap.startDate ? String(ap.startDate) : "",
+    ap.endDate ? String(ap.endDate) : "",
+  );
   const services = rawServices.map((s: any, idx: number) => ({
     id: s.id ?? s.taskId ?? `s-${idx}`,
     taskId: s.taskId || "",
@@ -424,8 +447,8 @@ export function mapApiProjectToProject(
     finalDeliveryFormat: s.finalDeliveryFormat || "Report",
     tools: s.tools || "Jira",
     billingModel: s.billingModel || ap.billingModel || "Fixed Price",
-    startDate: s.startDate ? String(s.startDate) : (ap.startDate ? String(ap.startDate) : ""),
-    endDate: s.endDate ? String(s.endDate) : (ap.endDate ? String(ap.endDate) : ""),
+    startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
+    endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
     duration: s.durationDays || 30,
     durationDays: s.durationDays || 30,
     durationHours: s.durationHours || ((s.durationDays || 30) * 8),
@@ -433,6 +456,10 @@ export function mapApiProjectToProject(
     totalHrs: s.totalHours || s.durationHours || ((s.totalDays || s.durationDays || 30) * 8),
     unitPrice: s.unitPrice || 0,
     total: s.total || ((s.unitPrice || 0) * (s.qty || 1)),
+    collectionStatus: s.collectionStatus || "Pending To Collect",
+    validationStatus: s.validationStatus || "Pending To Validate",
+    billingStatus: s.billingStatus || "Advance Pending",
+    isReady: Boolean(s.isReady),
   }));
 
   const rawInvoices: any[] = (apiInvoices ?? (ap as any).invoices ?? (ap as any).projectInvoices ?? []);
@@ -471,23 +498,8 @@ export function mapApiProjectToProject(
     },
   };
 
-  const validStarts = services
-    .map((s: any) => (typeof s.startDate === "string" ? s.startDate.trim() : ""))
-    .filter((d: string) => Boolean(d && !isNaN(new Date(d).getTime())))
-    .sort((a: string, b: string) => new Date(a).getTime() - new Date(b).getTime());
-
-  const validEnds = services
-    .map((s: any) => (typeof s.endDate === "string" ? s.endDate.trim() : ""))
-    .filter((d: string) => Boolean(d && !isNaN(new Date(d).getTime())))
-    .sort((a: string, b: string) => new Date(a).getTime() - new Date(b).getTime());
-
-  const projectStartDate = validStarts.length > 0
-    ? validStarts[0]
-    : (ap.startDate ? String(ap.startDate) : new Date().toISOString().slice(0, 10));
-
-  const projectEndDate = validEnds.length > 0
-    ? validEnds[validEnds.length - 1]
-    : (ap.endDate ? String(ap.endDate) : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+  const projectStartDate = projectDates.startDate;
+  const projectEndDate = projectDates.endDate;
 
   return {
     id: ap.id,
@@ -528,6 +540,9 @@ export function mapApiProjectToProject(
     renewedFromWbsId: ap.renewedFromWbsId ?? undefined,
     projectManagerId: ap.projectManagerId ?? undefined,
     projectManagerName: ap.projectManagerName ?? undefined,
+    projectManagers: ap.projectManagers ?? [],
+    seniorProjectManagers: ap.seniorProjectManagers ?? [],
+    teamLeads: ap.teamLeads ?? [],
     teamLeadId: ap.teamLeadId ?? undefined,
     teamLeadName: ap.teamLeadName ?? undefined,
   };
@@ -605,6 +620,97 @@ export async function updateProjectService(
     method: "PUT",
     body: JSON.stringify(payload),
   });
+}
+
+/** PATCH /api/v1/projects/{projectId}/services/{serviceId}/prerequisite */
+export async function updateServicePrerequisite(
+  projectId: string,
+  serviceId: string,
+  payload: UpdateServicePrerequisitePayload,
+): Promise<ApiProjectService> {
+  return apiFetch<ApiProjectService>(`/api/v1/projects/${projectId}/services/${serviceId}/prerequisite`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+const PREREQ_IMPORT_KEY = "trackerpro_prereq_db_import_v1";
+
+function readImportedPrereqProjects(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(PREREQ_IMPORT_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function markPrereqImported(projectId: string) {
+  const ids = new Set(readImportedPrereqProjects());
+  ids.add(projectId);
+  window.localStorage.setItem(PREREQ_IMPORT_KEY, JSON.stringify([...ids]));
+}
+
+/** Copy older browser prerequisite rows onto the service once, then the database is the source. */
+export async function copyStoredServicePrereqsOnce(
+  projectId: string,
+  services: ApiProjectService[],
+  stored: Array<{
+    serviceId: string;
+    serviceName?: string;
+    collectionStatus?: string;
+    validationStatus?: string;
+    billingStatus?: string;
+    isReady?: boolean;
+  }>,
+): Promise<{ services: ApiProjectService[]; applied: boolean }> {
+  if (typeof window === "undefined") return { services, applied: false };
+  if (readImportedPrereqProjects().includes(projectId)) return { services, applied: true };
+
+  const next = services.map((row) => ({ ...row }));
+  let failed = false;
+  for (let i = 0; i < next.length; i++) {
+    const api = next[i];
+    const storedRow = stored.find(
+      (row) =>
+        row.serviceId === api.id ||
+        (api.taskId && row.serviceId === api.taskId) ||
+        (row.serviceName && api.serviceName && row.serviceName === api.serviceName),
+    );
+    if (!storedRow) continue;
+    const payload: UpdateServicePrerequisitePayload = {};
+    if (
+      storedRow.collectionStatus &&
+      storedRow.collectionStatus !== "NA" &&
+      storedRow.collectionStatus !== (api.collectionStatus || "Pending To Collect")
+    ) {
+      payload.collectionStatus = storedRow.collectionStatus;
+    }
+    if (
+      storedRow.validationStatus &&
+      storedRow.validationStatus !== "NA" &&
+      storedRow.validationStatus !== (api.validationStatus || "Pending To Validate")
+    ) {
+      payload.validationStatus = storedRow.validationStatus;
+    }
+    if (
+      storedRow.billingStatus &&
+      storedRow.billingStatus !== (api.billingStatus || "Advance Pending")
+    ) {
+      payload.billingStatus = storedRow.billingStatus;
+    }
+    if (storedRow.isReady && !api.isReady) payload.isReady = true;
+    if (Object.keys(payload).length === 0) continue;
+    try {
+      next[i] = await updateServicePrerequisite(projectId, api.id, payload);
+    } catch {
+      failed = true;
+    }
+  }
+  if (!failed) markPrereqImported(projectId);
+  return { services: next, applied: !failed };
 }
 
 /** DELETE /api/v1/projects/{projectId}/services/{serviceId} */

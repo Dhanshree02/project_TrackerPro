@@ -17,6 +17,7 @@ public sealed record ProjectTeamMemberDto(
     bool IsTeamLead,
     string ResourceType,
     bool IsShadowTeam,
+    string MemberRole,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc);
 
@@ -47,3 +48,11 @@ public sealed record UpdateProjectTeamMemberRequest(
     string? Billability = null,
     bool? IsTeamLead = null,
     string? ResourceType = null);
+
+/// <summary>
+/// Replaces the Project Manager list, the Senior Project Manager list, or both.
+/// A null list leaves that role unchanged. An empty list clears it.
+/// </summary>
+public sealed record SetProjectLeadershipRequest(
+    IReadOnlyList<Guid>? ProjectManagerIds = null,
+    IReadOnlyList<Guid>? SeniorProjectManagerIds = null);
