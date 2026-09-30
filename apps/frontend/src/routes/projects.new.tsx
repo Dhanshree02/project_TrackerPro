@@ -47,6 +47,8 @@ import {
 } from "@/lib/onboarding-form-state";
 import { exportWbsWorkbook, type WbsExportInput } from "@/lib/wbs-excel-export";
 import { WbsExcelPreviewModal } from "@/components/wbs-excel-preview";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
+import { useSalesManagers } from "@/lib/sales-managers";
 import {
   countProjectsForClient,
   resolveOnboardingProjectName,
@@ -778,6 +780,19 @@ function WbsNewProjectPage() {
   const [contractType, setContractType] = useState("");
   const [engagementManager, setEngagementManager] = useState("");
   const [salesPerson, setSalesPerson] = useState("");
+  const { pool: salesPool, loading: salesLoading } = useSalesManagers();
+  const salesPersonOptions = useMemo(() => {
+    const opts = salesPool.map((person) => ({
+      value: person.fullName,
+      label: person.fullName,
+      subLabel: [person.employeeCode, person.designation, person.workEmail].filter(Boolean).join(" · "),
+    }));
+    const stored = salesPerson.trim();
+    if (stored && !opts.some((option) => option.value === stored)) {
+      opts.unshift({ value: stored, label: stored, subLabel: "On record" });
+    }
+    return opts;
+  }, [salesPool, salesPerson]);
   const [projectType, setProjectType] = useState("");
   const [projectIssuedDate, setProjectIssuedDate] = useState(() => new Date().toISOString().slice(0, 10));
 
@@ -3265,16 +3280,17 @@ function WbsNewProjectPage() {
               </select>
             </FormGroup>
             <FormGroup label="Sales Person" required>
-              <select
+              <SearchableSelect
+                placeholder={salesLoading ? "Loading sales employees…" : "Select Sales Person"}
+                searchPlaceholder="Search by name, email, or code…"
+                showSearch
+                disabled={salesLoading}
+                disabledHint="Loading sales employees…"
+                options={salesPersonOptions}
                 value={salesPerson}
-                onChange={(e) => setSalesPerson(e.target.value)}
-                style={selectStyle(false, !!salesPerson)}
-              >
-                <option value="">Select Sales Person</option>
-                <option value="Abhishek Sharma">Abhishek Sharma</option>
-                <option value="Pradeep Singh">Pradeep Singh</option>
-                <option value="Dhanshree">Dhanshree</option>
-              </select>
+                onChange={setSalesPerson}
+                buttonClassName="h-10 min-h-10 rounded-md border-[#d1d5db] bg-white px-3 text-[13px] font-normal shadow-none"
+              />
             </FormGroup>
           </div>
           {/* Row 3: Project Type + Onboarding Date */}

@@ -1126,6 +1126,20 @@ namespace PMS.API.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<string>("BillingStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Advance Pending");
+
+                    b.Property<string>("CollectionStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Pending To Collect");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -1163,6 +1177,11 @@ namespace PMS.API.Migrations
                     b.Property<string>("Frequency")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
+
+                    b.Property<bool>("IsReady")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Location")
                         .HasMaxLength(40)
@@ -1231,6 +1250,13 @@ namespace PMS.API.Migrations
 
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("ValidationStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Pending To Validate");
 
                     b.HasKey("Id");
 

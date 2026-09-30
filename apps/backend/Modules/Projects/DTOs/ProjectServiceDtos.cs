@@ -29,7 +29,17 @@ public sealed record ProjectServiceDto(
     decimal? Total,
     int SortOrder,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc);
+    DateTime? UpdatedAtUtc,
+    string CollectionStatus,
+    string ValidationStatus,
+    string BillingStatus,
+    bool IsReady);
+
+public sealed record UpdateServicePrerequisiteRequest(
+    string? CollectionStatus = null,
+    string? ValidationStatus = null,
+    string? BillingStatus = null,
+    bool? IsReady = null);
 
 public sealed record CreateProjectServiceRequest(
     Guid? ServiceCatalogId = null,

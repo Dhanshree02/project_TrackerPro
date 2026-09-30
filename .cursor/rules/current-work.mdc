@@ -5,8 +5,16 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-29
+**Last updated:** 2026-09-30
 
+- **Tasks tab stays blocked until a service is started.** With no Ready service, the tab shows the same style of notice as the Team tab: Access Blocked — No Service Started, and asks to mark a service Ready on the WBS tab. After any service is Ready, that service appears with the existing task folders.
+- **Services & Deliverables summary says Services Subtotal.** The label under that WBS table was renamed. The amount is still the sum of each service total, tax is still 18% of that sum, and Grand Total is still the two added together.
+- **Project onboarding Sales Person is a searchable list of sales employees.** The names come from active employees in department Functional - Sales. Search matches name, email, designation, and employee code. A name already saved on the form stays available if that person is no longer in the list.
+- **Service wise Prerequisite Tracking is saved on each service.** Collection Status, Validation Status, Billing Status, and Ready live on `project_services` (migration `20260929183000_AddProjectServicePrerequisite`). The WBS table loads those services from the project-services API, and each change saves immediately. The Tasks tab shows a service folder when that service is Ready. The first time a project opens, older browser rows are copied onto the matching service once. Raise Escalation still stays in the browser.
+- **Add Team Member dates are today or later.** On the Team tab allocation calendar, past days are disabled on both Start Date and End Date. End Date still cannot be earlier than the chosen start date.
+- **Onboard New Employee dropdowns open above the panel.** The option list was drawn behind the form (`z-index` 80 under the panel at 100), so a click never reached an option. The list now sits above the panel.
+- **Assign PM and Assign SPM no longer slide the sidebar upward.** Opening those windows locks page scroll without pinning the document, so the sticky sidebar stays in place.
+- **Working branch is `sahil-project-backend3`.** Created locally from `origin/sahil-project-backend2` at `b0c96ef` (`feat: persist project managers, service dates, and customer project lists`) and set to track that remote branch. `sahil-project-backend2` is unchanged.
 - **Customer detail projects come from the database.** The client page loads `GET /api/v1/projects?clientId=`. Filter by Sub-venture still matches `subVentureName`. The PM column shows the Project Manager names from `project_team_members` (`projectManagers`). No backend change.
 - **testing project / test2 KYC preview loads.** The sub-venture row pointed at `Documents/KYC/20260929_080451_559_testing_project_test2_IN-2026-27-C183-P052.xlsx`, which was not on this disk, so View returned 404. That spreadsheet is back in that path. View on the customer page shows the workbook. test1’s offer-letter PDF path is still missing from `Documents/KYC`.
 - **Unfinished Project Onboarding stays in the browser.** Leaving the page or refreshing keeps the form the user was filling. It is stored under `trackerpro_onboarding_form_v1` and restored when New Project opens with no draft. Save Draft and Create WBS clear that copy after they succeed. Saved drafts still come from `project_drafts`.

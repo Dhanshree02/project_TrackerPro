@@ -31,10 +31,13 @@ import {
   syncTaskAssignments,
   fetchProjectTasks,
   fetchProjectServices,
+  updateServicePrerequisite,
+  copyStoredServicePrereqsOnce,
   fetchProjectInvoices,
   createProjectInvoice,
   updateProjectInvoice,
   type ApiProject,
+  type ApiProjectService,
   type ApiProjectTask,
   type ApiTaskAssignmentHistoryEntry,
 } from "@/lib/api/projects";
@@ -126,12 +129,24 @@ const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
 };
 
 // ---------- Date Range Picker — two small inline calendars ----------
+function startOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function isBeforeDay(day: Date, boundary: Date): boolean {
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate()) < boundary;
+}
+
 function DateRangePicker({
   value,
   onChange,
+  disablePastStart = false,
 }: {
   value: string;
   onChange: (val: string) => void;
+  /** Add Team Member: start date is today or later. End date rules are unchanged. */
+  disablePastStart?: boolean;
 }) {
   // Parse "DD/MM/YYYY → DD/MM/YYYY" (formatDate output). Do NOT use
   // `new Date("24/09/2026")` — browsers treat slash dates as invalid/US-only.
@@ -200,6 +215,7 @@ function DateRangePicker({
 
   // Click on start calendar
   const handleFromDay = (day: Date) => {
+    if (disablePastStart && isBeforeDay(day, startOfToday())) return;
     setFromInput(toInputFmt(day));
     // If picked start > current end, clear end
     const newTo = parsedRange.to && day > parsedRange.to ? undefined : parsedRange.to;
@@ -209,6 +225,7 @@ function DateRangePicker({
 
   // Click on end calendar
   const handleToDay = (day: Date) => {
+    if (disablePastStart && isBeforeDay(day, startOfToday())) return;
     const from = parsedRange.from ?? parseInputFmt(fromInput);
     // end must not be before start
     if (from && day < from) {
@@ -220,14 +237,24 @@ function DateRangePicker({
   };
 
   const handleFromInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFromInput(e.target.value);
-    const d = parseInputFmt(e.target.value);
+    const next = e.target.value;
+    const d = parseInputFmt(next);
+    if (d && disablePastStart && isBeforeDay(d, startOfToday())) {
+      toast.error("Start date cannot be in the past");
+      return;
+    }
+    setFromInput(next);
     if (d) { setCurrentMonth(d); commit(d, parsedRange.to); }
   };
 
   const handleToInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setToInput(e.target.value);
-    const d = parseInputFmt(e.target.value);
+    const next = e.target.value;
+    const d = parseInputFmt(next);
+    if (d && disablePastStart && isBeforeDay(d, startOfToday())) {
+      toast.error("End date cannot be in the past");
+      return;
+    }
+    setToInput(next);
     if (d) { setCurrentMonth(d); commit(parsedRange.from, d); }
   };
 
@@ -251,6 +278,7 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
+            disabled={disablePastStart ? { before: startOfToday() } : undefined}
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -265,7 +293,18 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
-            disabled={parsedRange.from ? { before: parsedRange.from } : undefined}
+            disabled={
+              disablePastStart
+                ? {
+                    before:
+                      parsedRange.from && parsedRange.from > startOfToday()
+                        ? parsedRange.from
+                        : startOfToday(),
+                  }
+                : parsedRange.from
+                  ? { before: parsedRange.from }
+                  : undefined
+            }
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -435,9 +474,11 @@ function ProjectDetail() {
   const [dbProject, setDbProject] = useState<ApiProject | null>(null);
   const [dbLeaders, setDbLeaders] = useState<ReturnType<typeof managersFromTeamMembers> | null>(null);
   const [liveServiceDates, setLiveServiceDates] = useState<Array<{ startDate?: string | null; endDate?: string | null }> | null>(null);
+  const [dbServices, setDbServices] = useState<ApiProjectService[] | null>(null);
   useEffect(() => {
     let cancelled = false;
     setLiveServiceDates(null);
+    setDbServices(null);
     setDbLeaders(null);
     const rawIsGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
     if (rawId && (rawIsGuid || rawId.length > 20)) {
@@ -456,12 +497,28 @@ function ProjectDetail() {
         }
         try {
           const rows = await fetchProjectServices(p.id);
-          if (!cancelled) {
-            setLiveServiceDates(rows.map((s) => ({
-              startDate: s.startDate ? String(s.startDate) : "",
-              endDate: s.endDate ? String(s.endDate) : "",
-            })));
+          if (cancelled) return;
+          const stored = getPrereq(p.id).services ?? [];
+          const copied = await copyStoredServicePrereqsOnce(p.id, rows, stored);
+          if (cancelled) return;
+          if (copied.applied) {
+            dhStore.replaceServicePrereqRows(
+              p.id,
+              copied.services.map((s) => ({
+                serviceId: s.id,
+                serviceName: s.serviceName,
+                collectionStatus: (s.collectionStatus || "Pending To Collect") as "Pending To Collect" | "Collected",
+                validationStatus: (s.validationStatus || "Pending To Validate") as "Pending To Validate" | "Validated",
+                billingStatus: (s.billingStatus || "Advance Pending") as "Advance Received" | "Advance Pending" | "Advance Not Required",
+                isReady: Boolean(s.isReady),
+              })),
+            );
           }
+          setDbServices(copied.services);
+          setLiveServiceDates(copied.services.map((s) => ({
+            startDate: s.startDate ? String(s.startDate) : "",
+            endDate: s.endDate ? String(s.endDate) : "",
+          })));
         } catch {
           if (!cancelled) setLiveServiceDates(null);
         }
@@ -508,11 +565,24 @@ function ProjectDetail() {
         }
       : withManagers;
     const dateSource = liveServiceDates?.length ? liveServiceDates : withLeaders.wbsDetails?.services;
-    if (!dateSource?.length) return withLeaders;
-    const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
-    return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
+    const dated = !dateSource?.length
+      ? withLeaders
+      : (() => {
+          const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
+          return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
+        })();
+    if (!dbProject || !dbServices?.length) return dated;
+    const mapped = mapApiProjectToProject(dbProject, dbServices);
+    return {
+      ...dated,
+      wbsDetails: {
+        ...(mapped.wbsDetails ?? {}),
+        ...(dated.wbsDetails ?? {}),
+        services: mapped.wbsDetails?.services ?? dated.wbsDetails?.services ?? [],
+      },
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawId, extraCount, poDocuments, dbProject, dbLeaders, liveServiceDates, loaderData?.project]);
+  }, [rawId, extraCount, poDocuments, dbProject, dbLeaders, liveServiceDates, dbServices, loaderData?.project]);
 
   const client: Client = useMemo(() => {
     if (!project) return loaderData?.client ?? {
@@ -1703,7 +1773,7 @@ function WbsTab({
         {!hideAmounts && (
           <div className="grid gap-4 md:grid-cols-3 rounded-lg border border-border bg-muted/20 p-4">
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1">Total Services</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">Services Subtotal</div>
               <div className="text-lg font-semibold">{wbsDetails.currency} {totalServices.toLocaleString()}</div>
             </div>
             <div>
@@ -3617,6 +3687,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
   const useApiTasks = isApiGuid(project.id);
   const [dbTasks, setDbTasks] = useState<ApiProjectTask[]>([]);
+  const [apiServices, setApiServices] = useState<ApiProjectService[] | null>(useApiTasks ? null : []);
   const [serviceIdsByKey, setServiceIdsByKey] = useState<Map<string, string>>(new Map());
   const [apiPool, setApiPool] = useState<{ person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[] | null>(null);
 
@@ -3631,6 +3702,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
           fetchProjectTasks(project.id),
         ]);
         if (!active) return;
+        setApiServices(services);
         const keys = new Map<string, string>();
         for (const service of services) {
           if (service.taskId?.trim()) keys.set(`code:${service.taskId.trim().toLowerCase()}`, service.id);
@@ -3650,6 +3722,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
         if (peopleToRegister.length) dhStore.registerPeople(peopleToRegister);
       } catch (err) {
         console.warn("Failed to load project tasks", err);
+        if (active) setApiServices([]);
       }
     })();
     return () => {
@@ -3664,6 +3737,22 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   }, [project, snapshot.treeTaskStates, useApiTasks, dbTasks, serviceIdsByKey]);
 
   const visibleTree = useMemo(() => {
+    if (useApiTasks) {
+      return tree.filter((svcFolder) => {
+        const fromApi = apiServices?.find(
+          (s) => s.id === svcFolder.serviceId || s.serviceName === svcFolder.serviceName,
+        );
+        if (fromApi) return Boolean(fromApi.isReady);
+        const stored = prereq?.services?.find(
+          (s) => s.serviceId === svcFolder.serviceId || s.serviceName === svcFolder.serviceName,
+        );
+        if (stored) return Boolean(stored.isReady);
+        const live = project.wbsDetails?.services?.find(
+          (s) => s.id === svcFolder.serviceId || s.serviceName === svcFolder.serviceName,
+        );
+        return Boolean(live?.isReady);
+      });
+    }
     if (!prereq?.services?.length) return [];
     return tree.filter((svcFolder) => {
       const pSvc = prereq.services?.find(
@@ -3671,7 +3760,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
       );
       return Boolean(pSvc?.isReady);
     });
-  }, [tree, prereq]);
+  }, [tree, prereq, useApiTasks, apiServices, project.wbsDetails?.services]);
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
     const existing = expandedNodesMap.get(project.id);
@@ -3799,6 +3888,37 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
       ? svc.quarters.flatMap(q => q.aps.flatMap(ap => ap.tasks))
       : (svc.aps ? svc.aps.flatMap(ap => ap.tasks) : []);
   };
+
+  const apiHasReady = (apiServices ?? []).some((service) => Boolean(service.isReady));
+  const hasStartedService = visibleTree.length > 0 || apiHasReady;
+
+  if (useApiTasks && apiServices === null && visibleTree.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading tasks…
+      </div>
+    );
+  }
+
+  if (!hasStartedService) {
+    return (
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
+        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
+        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — No Service Started</h4>
+        <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
+          First mark a service as Ready to Start on the WBS tab. Tasks stay blocked until a service is started.
+        </p>
+      </div>
+    );
+  }
+
+  if (apiHasReady && visibleTree.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading tasks…
+      </div>
+    );
+  }
 
   return (
     <>
@@ -5629,6 +5749,7 @@ function AddTeamMemberModal({
           <DateRangePicker
             value={duration}
             onChange={setDuration}
+            disablePastStart
           />
         </Field>
 
@@ -7360,6 +7481,15 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
     if (isViewOnly) return;
     dhStore.setServicePrereqStatus(project.id, serviceId, field, value, user.id, user.name);
     toast.success("Service status updated successfully");
+    if (isApiGuid(project.id) && isApiGuid(serviceId)) {
+      const payload: { collectionStatus?: string; validationStatus?: string; billingStatus?: string } = { [field]: value };
+      if (field === "collectionStatus" && value === "Pending To Collect") {
+        payload.validationStatus = "Pending To Validate";
+      }
+      void updateServicePrerequisite(project.id, serviceId, payload).catch(() => {
+        toast.error("Could not save the service status");
+      });
+    }
   };
 
   return (
@@ -7638,6 +7768,11 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                                 onClick={() => {
                                   dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
                                   toast.success("Service marked as Ready to Start", { description: svc.serviceName });
+                                  if (isApiGuid(project.id) && isApiGuid(svc.serviceId)) {
+                                    void updateServicePrerequisite(project.id, svc.serviceId, { isReady: true }).catch(() => {
+                                      toast.error("Could not save Ready for this service");
+                                    });
+                                  }
                                 }}
                                 className={cn(
                                   "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",

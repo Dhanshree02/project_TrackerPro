@@ -1718,47 +1718,32 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 }
 
 let modalScrollLocks = 0;
-let previousHtmlOverflow = "";
-let previousBodyOverflow = "";
-let previousBodyPaddingRight = "";
-let previousBodyPosition = "";
-let previousBodyTop = "";
-let previousBodyLeft = "";
-let previousBodyRight = "";
-let previousScrollY = 0;
+let lockedScrollX = 0;
+let lockedScrollY = 0;
+let scrollLockHandler: (() => void) | null = null;
 
 function lockPageScroll() {
   modalScrollLocks += 1;
   if (modalScrollLocks !== 1) return;
-  previousHtmlOverflow = document.documentElement.style.overflow;
-  previousBodyOverflow = document.body.style.overflow;
-  previousBodyPaddingRight = document.body.style.paddingRight;
-  previousBodyPosition = document.body.style.position;
-  previousBodyTop = document.body.style.top;
-  previousBodyLeft = document.body.style.left;
-  previousBodyRight = document.body.style.right;
-  previousScrollY = window.scrollY;
-  const scrollbar = window.innerWidth - document.documentElement.clientWidth;
-  document.documentElement.style.overflow = "hidden";
-  document.body.style.overflow = "hidden";
-  document.body.style.position = "fixed";
-  document.body.style.top = `-${previousScrollY}px`;
-  document.body.style.left = "0";
-  document.body.style.right = "0";
-  if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
+  // Keep the document in normal flow. Pinning the page or hiding overflow on
+  // <html> unsticks the sidebar and shifts it up by the current scroll.
+  lockedScrollX = window.scrollX;
+  lockedScrollY = window.scrollY;
+  scrollLockHandler = () => {
+    if (window.scrollX !== lockedScrollX || window.scrollY !== lockedScrollY) {
+      window.scrollTo(lockedScrollX, lockedScrollY);
+    }
+  };
+  window.addEventListener("scroll", scrollLockHandler);
 }
 
 function unlockPageScroll() {
   modalScrollLocks = Math.max(0, modalScrollLocks - 1);
   if (modalScrollLocks !== 0) return;
-  document.documentElement.style.overflow = previousHtmlOverflow;
-  document.body.style.overflow = previousBodyOverflow;
-  document.body.style.paddingRight = previousBodyPaddingRight;
-  document.body.style.position = previousBodyPosition;
-  document.body.style.top = previousBodyTop;
-  document.body.style.left = previousBodyLeft;
-  document.body.style.right = previousBodyRight;
-  window.scrollTo(0, previousScrollY);
+  if (scrollLockHandler) {
+    window.removeEventListener("scroll", scrollLockHandler);
+    scrollLockHandler = null;
+  }
 }
 
 export function Modal({

@@ -432,6 +432,25 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
     }
 
+    public async Task<ProjectServiceDto> UpdateServicePrerequisiteAsync(
+        Guid projectId,
+        Guid serviceId,
+        UpdateServicePrerequisiteRequest request,
+        CancellationToken ct = default)
+    {
+        var service = await db.ProjectServices
+            .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
+            ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
+
+        if (request.CollectionStatus != null) service.CollectionStatus = request.CollectionStatus;
+        if (request.ValidationStatus != null) service.ValidationStatus = request.ValidationStatus;
+        if (request.BillingStatus != null) service.BillingStatus = request.BillingStatus;
+        if (request.IsReady.HasValue) service.IsReady = request.IsReady.Value;
+
+        await db.SaveChangesAsync(ct);
+        return MapToServiceDto(service);
+    }
+
     public async Task<bool> DeleteProjectServiceAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
     {
         var service = await db.ProjectServices.FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct);
@@ -1688,7 +1707,11 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             s.Total,
             s.SortOrder,
             s.CreatedAtUtc,
-            s.UpdatedAtUtc);
+            s.UpdatedAtUtc,
+            s.CollectionStatus,
+            s.ValidationStatus,
+            s.BillingStatus,
+            s.IsReady);
     }
 
     private async Task<HashSet<Guid>> LoadProjectTeamIdsAsync(Guid projectId, CancellationToken ct)

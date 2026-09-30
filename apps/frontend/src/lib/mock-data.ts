@@ -119,6 +119,10 @@ export interface WbsService {
   totalHrs: number;
   unitPrice: number;
   total: number;
+  collectionStatus?: string;
+  validationStatus?: string;
+  billingStatus?: string;
+  isReady?: boolean;
 }
 
 export interface WbsInvoice {

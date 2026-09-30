@@ -4129,6 +4129,26 @@ export const dhStore = {
     emit();
   },
 
+  replaceServicePrereqRows(projectId: string, services: DhServicePrereq[]) {
+    const currentPrereq = state.prereqs[projectId] || {
+      projectId,
+      validation: "Validation Pending" as const,
+      collection: "Initiated" as const,
+      assignedPmIds: [],
+      assignedSpmIds: [],
+      services: [],
+      auditTrail: [],
+    };
+    state.prereqs = {
+      ...state.prereqs,
+      [projectId]: {
+        ...currentPrereq,
+        services,
+      },
+    };
+    emit();
+  },
+
   setServicePrereqReady(projectId: string, serviceId: string, isReady: boolean) {
     const currentPrereq = state.prereqs[projectId] || {
       projectId,

@@ -117,7 +117,7 @@ export function SearchableSelect({
         position: "fixed",
         left: rect.left,
         width: Math.max(rect.width, 220),
-        zIndex: 80,
+        zIndex: 200,
         ...(upward
           ? { bottom: window.innerHeight - rect.top + 4 }
           : { top: rect.bottom + 4 }),
@@ -188,7 +188,7 @@ export function SearchableSelect({
                 position: "fixed",
                 left: rect.left,
                 width: Math.max(rect.width, 220),
-                zIndex: 80,
+                zIndex: 200,
                 ...(upward
                   ? { bottom: window.innerHeight - rect.top + 4 }
                   : { top: rect.bottom + 4 }),
