@@ -320,7 +320,7 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
                 "VALIDATION_ERROR", "The Excel file must be 5 MB or smaller."));
 
         await using var stream = file.OpenReadStream();
-        var result = await employees.BulkUploadAsync(stream, ct);
+        var result = await employees.BulkUploadAsync(stream, file.FileName, ct);
         return Ok(ApiResponse<EmployeeBulkUploadResult>.Ok(result));
     }
 

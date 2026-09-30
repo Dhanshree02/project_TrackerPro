@@ -26,6 +26,8 @@ public interface IEmployeeService
 
     Task<EmployeeBulkUploadResult> BulkUploadAsync(Stream stream, CancellationToken ct = default);
 
+    Task<EmployeeBulkUploadResult> BulkUploadAsync(Stream stream, string? originalFileName, CancellationToken ct = default);
+
     Task<ExitedEmployeeDto?> OffboardEmployeeAsync(string idOrCode, OffboardEmployeeRequest request, CancellationToken ct = default);
 
     Task<PagedResult<ExitedEmployeeDto>> GetExitedEmployeesAsync(int page, int perPage, string? search, CancellationToken ct = default);

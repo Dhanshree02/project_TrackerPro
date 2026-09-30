@@ -139,7 +139,10 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         EmployeeBulkWorkbook.BuildSampleAsync(db, ct);
 
     public Task<EmployeeBulkUploadResult> BulkUploadAsync(Stream stream, CancellationToken ct = default) =>
-        new EmployeeBulkImporter(db, this).ImportAsync(stream, ct);
+        BulkUploadAsync(stream, null, ct);
+
+    public Task<EmployeeBulkUploadResult> BulkUploadAsync(Stream stream, string? originalFileName, CancellationToken ct = default) =>
+        new EmployeeBulkImporter(db, this).ImportAsync(stream, originalFileName, ct);
 
     public Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, CancellationToken ct = default) =>
         CreateEmployeeAsync(request, checkIdentity: true, ct);
