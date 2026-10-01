@@ -233,13 +233,33 @@ internal static class EmployeeBulkWorkbook
         if (departments.Count == 0)
             departments = ["Services - Testing", "Services - Consulting", "R&D", "PMO", "Core"];
 
-        var designations = await db.Designations
-            .Where(d => d.DeletedAtUtc == null && d.IsActive)
-            .OrderBy(d => d.Name)
-            .Select(d => d.Name)
-            .ToListAsync(ct);
-        if (designations.Count == 0)
-            designations = ["PenTester - I", "Senior PenTester", "Consultant", "Lead"];
+        var designationPairs = await (
+            from designation in db.Designations
+            where designation.DeletedAtUtc == null && designation.IsActive && designation.DepartmentId != null
+            join department in db.Departments.Where(d => d.DeletedAtUtc == null)
+                on designation.DepartmentId equals department.Id
+            select new
+            {
+                Department = department.Name,
+                Name = designation.Name,
+            }).ToListAsync(ct);
+        var orderedDesignations = designationPairs
+            .OrderBy(row => row.Department, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(row => (row.Department, row.Name))
+            .ToList();
+        if (orderedDesignations.Count == 0)
+        {
+            orderedDesignations =
+            [
+                ("Services - Testing", "PenTester - I"),
+                ("Services - Testing", "Senior PenTester"),
+                ("Services - Consulting", "Consultant"),
+                ("PMO", "Lead"),
+            ];
+        }
+
+        var designations = orderedDesignations.Select(row => row.Name).ToList();
 
         var roles = await db.JobRoles
             .Where(r => r.DeletedAtUtc == null && r.IsActive)
@@ -362,20 +382,20 @@ internal static class EmployeeBulkWorkbook
             "Sanjay Employee",                                        // 8. Emergency Contact Name
             "9811099999",                                             // 9. Emergency Contact Number
             "Father",                                                 // 10. Relation with Emergency Contact
-            departments.FirstOrDefault() ?? "Services - Testing",     // 11. Department
-            designations.FirstOrDefault() ?? "PenTester - I",         // 12. Designation
+            orderedDesignations[0].Department,                        // 11. Department
+            orderedDesignations[0].Name,                               // 12. Designation
             roles.FirstOrDefault() ?? "Employee",                     // 13. On Floor Role
             businessUnits.FirstOrDefault() ?? "Talakunchi Networks Private Limited", // 14. Business Unit
             managerCodes.FirstOrDefault() ?? "TK-0001 - Default Manager", // 15. Reporting Manager Code
             workLocations.FirstOrDefault() ?? "Suvidha Square, Andheri",             // 16. Work Location
             "",                                                       // 17. Location (Onsite)
-            DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),    // 18. Date of Joining
+            DateTime.UtcNow.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture),    // 18. Date of Joining
             "AST-1001",                                               // 19. Asset ID
             employeeStatuses.FirstOrDefault() ?? "Active",            // 20. Employee Status
             "Permanent",                                              // 21. Worker Type
             "Yes",                                                    // 22. Bond Delivered
             "24",                                                     // 23. Bond Duration (Months)
-            DateTime.UtcNow.AddYears(2).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), // 24. Bond Expiry Date
+            DateTime.UtcNow.AddYears(2).ToString("dd-MM-yyyy", CultureInfo.InvariantCulture), // 24. Bond Expiry Date
             "Active",                                                 // 25. Bond Status
             gradDegrees.FirstOrDefault() ?? "BE",                     // 26. Graduation Degree Name
             "2022",                                                   // 27. Graduation - Passing Year
@@ -391,11 +411,21 @@ internal static class EmployeeBulkWorkbook
 
         sheet.Row(2).Height = 22;
         sheet.Row(2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        sheet.Range(2, 18, MaxRows, 18).Style.DateFormat.Format = "dd-MM-yyyy";
+        sheet.Range(2, 24, MaxRows, 24).Style.DateFormat.Format = "dd-MM-yyyy";
         for (var i = 0; i < example.Length; i++)
         {
             var cell = sheet.Cell(2, i + 1);
-            cell.Value = example[i];
             cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            if ((i == 17 || i == 23)
+                && DateOnly.TryParseExact(example[i], "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var sampleDate))
+            {
+                cell.Value = sampleDate.ToDateTime(TimeOnly.MinValue);
+                cell.Style.DateFormat.Format = "dd-MM-yyyy";
+                continue;
+            }
+
+            cell.Value = example[i];
         }
 
         // ── Sheet 2: Lookups ──
@@ -413,8 +443,21 @@ internal static class EmployeeBulkWorkbook
         var lCol = 1;
         var countStations = WriteLookupColumn(lCol++, "CurrentAddressCity", MumbaiStations);
         var countRelations = WriteLookupColumn(lCol++, "EmergencyRelation", emergencyRelations);
-        var countDepartments = WriteLookupColumn(lCol++, "Department", departments);
-        var countDesignations = WriteLookupColumn(lCol++, "Designation", designations);
+
+        // Each designation has its own department in the cell immediately to the left.
+        var departmentCol = lCol++;
+        var designationCol = lCol++;
+        lookups.Cell(1, departmentCol).Value = "Department";
+        lookups.Cell(1, departmentCol).Style.Font.Bold = true;
+        lookups.Cell(1, designationCol).Value = "Designation";
+        lookups.Cell(1, designationCol).Style.Font.Bold = true;
+        for (var r = 0; r < orderedDesignations.Count; r++)
+        {
+            lookups.Cell(r + 2, departmentCol).Value = orderedDesignations[r].Department;
+            lookups.Cell(r + 2, designationCol).Value = orderedDesignations[r].Name;
+        }
+
+        var countDesignations = orderedDesignations.Count;
         var countRoles = WriteLookupColumn(lCol++, "OnFloorRole", roles);
         var countBusinessUnits = WriteLookupColumn(lCol++, "BusinessUnit", businessUnits);
         var countManagers = WriteLookupColumn(lCol++, "ReportingManagerCode", managerCodes);
@@ -430,6 +473,12 @@ internal static class EmployeeBulkWorkbook
         var countPostGradYears = WriteLookupColumn(lCol++, "PostGraduationPassingYear", postGradYears);
         var countExpTypes = WriteLookupColumn(lCol++, "ExpFresher", expTypes);
         var countExpMonths = WriteLookupColumn(lCol++, "ExpMonths", expMonthOptions);
+
+        // Unique department names for the Employees dropdown. The visible Department
+        // column repeats a name once per designation, so this list stays separate.
+        var departmentListCol = lCol;
+        var countDepartments = WriteLookupColumn(departmentListCol, "DepartmentList", departments);
+        lookups.Column(departmentListCol).Hide();
 
         lookups.Columns().AdjustToContents();
 
@@ -455,8 +504,8 @@ internal static class EmployeeBulkWorkbook
         SetListValidation(10, 2, countRelations, "Relation with Emergency Contact");
 
         // 2. Organization Assignment dropdowns
-        SetListValidation(11, 3, countDepartments, "Department");
-        SetListValidation(12, 4, countDesignations, "Designation");
+        SetListValidation(11, departmentListCol, countDepartments, "Department");
+        SetListValidation(12, designationCol, countDesignations, "Designation");
         SetListValidation(13, 5, countRoles, "On Floor Role");
         SetListValidation(14, 6, countBusinessUnits, "Business Unit");
         SetListValidation(15, 7, countManagers, "Reporting Manager Code");
@@ -508,8 +557,8 @@ internal static class EmployeeBulkWorkbook
             "4. Required Fields (18): TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher.",
             "5. Reporting Manager: Select from the dropdown ('TK-XXXX - Manager Name'). You can also provide just the Employee Code (e.g. TK-0001). Employee code is used as the primary identifier to prevent confusion between employees with identical or similar names.",
             "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel.",
-            "7. Dynamic Masters: The Lookups sheet reflects live masters from the system (Departments, Designations, Roles, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Downloading a fresh template always includes current values.",
-            "8. Date Format: Dates must be formatted as YYYY-MM-DD (e.g. 2026-09-18).",
+            "7. Dynamic Masters: The Lookups sheet reflects live masters from the system (Departments, Designations, Roles, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Downloading a fresh template always includes current values. On Lookups, the cell to the left of each designation is that designation's department.",
+            "8. Date Format: Dates must be formatted as dd-mm-yyyy (e.g. 18-09-2026), the same way dates appear in the web app.",
             "9. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
             "10. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
             "11. Maximum Rows: Up to 500 rows can be imported in a single upload file.",
@@ -589,7 +638,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 .Select(e => new { e.Id, e.EmployeeCode, Name = e.FirstName + " " + e.LastName })
                 .ToListAsync(ct);
 
-            var snapshot = await EmployeeIdentityGuard.LoadSnapshotAsync(db, null, ct);
+            var snapshot = await EmployeeIdentityGuard.LoadBulkSnapshotAsync(db, ct);
             var errors = new List<EmployeeBulkRowError>();
             var created = 0;
             var dataRows = 0;
@@ -650,7 +699,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     null,
                     null);
 
-                rowErrors.AddRange(snapshot.Conflicts(identity));
+                rowErrors.AddRange(snapshot.BulkConflicts(identity));
 
                 Guid? departmentId = null;
                 var departmentName = GetValue(values, "department");
@@ -888,7 +937,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 try
                 {
                     var createdEmp = await employees.CreateEmployeeAsync(request, checkIdentity: false, ct);
-                    snapshot.Add(identity);
+                    snapshot.AddBulkKeys(identity.EmployeeCode, identity.WorkEmail, identity.Phone);
                     created++;
                     createdEntries.Add(new BulkCreatedEmployeeEntry(
                         excelRow,
@@ -1202,10 +1251,12 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
     private static DateOnly? ParseDate(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return null;
-        if (DateOnly.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        var text = raw.Trim();
+        // Day-first matches the sample and the web app. Year-first is what Excel date
+        // cells are normalized to in ReadCell, so older files still upload.
+        string[] formats = ["dd-MM-yyyy", "d-M-yyyy", "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd"];
+        if (DateOnly.TryParseExact(text, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             return date;
-        if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateTime))
-            return DateOnly.FromDateTime(dateTime);
         return null;
     }
 

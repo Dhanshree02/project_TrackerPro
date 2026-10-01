@@ -14,7 +14,6 @@ import {
   Search,
   StickyNote,
   Eye,
-  Download,
   Info,
   FileText,
   Briefcase,
@@ -26,7 +25,8 @@ import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
-import { fetchClient, mapApiClient, updateClient, formatCustomerId, getSubVentureKycUrl, getSubVentureKycDownloadUrl } from "@/lib/api/clients";
+import { fetchClient, mapApiClient, updateClient, formatCustomerId, getSubVentureKycUrl } from "@/lib/api/clients";
+import { fetchSalesManagers, filterSalesManagers } from "@/lib/sales-managers";
 import { fetchClientForRoute } from "@/lib/client-route-id";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import {
@@ -145,21 +145,7 @@ function CustomerDetailPage() {
   // so hard loads show a spinner instead of a flash of "not found".
   const [clientLoading, setClientLoading] = useState(!routeClient);
 
-  // KYC is per sub-venture — download the stored file for the selected sub-venture.
-  const handleDirectDownloadKyc = (sv?: { id?: string; kycDocumentName?: string; kycDocumentPath?: string }) => {
-    if (!sv?.id || !sv.kycDocumentPath || !client?.id) {
-      toast.error("No KYC document", { description: "This sub-venture has no KYC document on file." });
-      return;
-    }
-    const docName = sv.kycDocumentName || `${client.name.replace(/\s+/g, "_")}_KYC.pdf`;
-    const link = document.createElement("a");
-    link.href = getSubVentureKycDownloadUrl(client.id, sv.id);
-    link.download = docName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("KYC Document downloaded", { description: docName });
-  };
+
   useEffect(() => {
     if (routeClient) {
       setClient(routeClient);
@@ -290,6 +276,98 @@ function CustomerDetailPage() {
       toast.error(error instanceof Error ? error.message : "Could not update Engagement Manager");
     } finally {
       setEmSaving(false);
+    }
+  };
+
+  // Sales Manager — current value from clients.SalesManager (DB); candidates from
+  // employees whose department is Functional - Sales.
+  const [smName, setSmName] = useState<string>(client?.salesManager?.trim() || "—");
+  useEffect(() => {
+    setSmName(client?.salesManager?.trim() || "—");
+  }, [client?.id, client?.salesManager]);
+  const [showSMPicker, setShowSMPicker] = useState(false);
+  const [smSearch, setSmSearch] = useState("");
+  const [smPool, setSmPool] = useState<ApiEmployeeListItem[]>([]);
+  const [smLoading, setSmLoading] = useState(false);
+  const [smSaving, setSmSaving] = useState(false);
+
+  useEffect(() => {
+    if (!showEMPicker && !showSMPicker) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+
+    const pinPage = () => {
+      if (window.scrollX !== scrollX || window.scrollY !== scrollY) {
+        window.scrollTo(scrollX, scrollY);
+      }
+    };
+    const blockBackgroundScroll = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-manager-scroll]")) return;
+      event.preventDefault();
+    };
+    window.addEventListener("scroll", pinPage);
+    window.addEventListener("wheel", blockBackgroundScroll, { passive: false });
+    window.addEventListener("touchmove", blockBackgroundScroll, { passive: false });
+
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      window.removeEventListener("scroll", pinPage);
+      window.removeEventListener("wheel", blockBackgroundScroll);
+      window.removeEventListener("touchmove", blockBackgroundScroll);
+    };
+  }, [showEMPicker, showSMPicker]);
+
+  const loadSalesManagers = async () => {
+    setSmLoading(true);
+    try {
+      const items = await fetchSalesManagers();
+      setSmPool(items);
+    } catch {
+      setSmPool([]);
+      toast.error("Could not load Sales Managers");
+    } finally {
+      setSmLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadSalesManagers();
+  }, []);
+
+  const filteredSmPool = useMemo(() => {
+    return filterSalesManagers(smPool, smSearch);
+  }, [smPool, smSearch]);
+
+  const openSmPicker = () => {
+    setSmSearch("");
+    setShowSMPicker(true);
+    void loadSalesManagers();
+  };
+
+  const changeSalesManager = async (employee: ApiEmployeeListItem) => {
+    if (!client || smSaving) return;
+    setSmSaving(true);
+    try {
+      const updated = await updateClient(client.id, {
+        salesManager: employee.fullName,
+      });
+      setClient(mapApiClient(updated));
+      setSmName(updated.salesManager?.trim() || employee.fullName);
+      setShowSMPicker(false);
+      setSmSearch("");
+      toast.success(`Sales Manager set to ${employee.fullName}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update Sales Manager");
+    } finally {
+      setSmSaving(false);
     }
   };
 
@@ -541,17 +619,27 @@ function CustomerDetailPage() {
                 <Briefcase className="h-5 w-5" />
               </div>
               <div className="space-y-0.5 min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  SALES MANAGER
+                <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <span>SALES MANAGER</span>
+                  {(isAdmin || isDhanshree || hasPermission("customers.edit") || hasPermission("customers.change_sm")) && (
+                    <button
+                      type="button"
+                      onClick={openSmPicker}
+                      className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer transition-colors"
+                      title="Change Sales Manager"
+                    >
+                      Change
+                    </button>
+                  )}
                 </div>
                 <div
                   className={cn(
                     "text-sm font-bold truncate max-w-[150px]",
-                    client.salesManager?.trim() ? "text-foreground" : "text-muted-foreground/60 italic font-normal text-xs",
+                    smName !== "—" ? "text-foreground" : "text-muted-foreground/60 italic font-normal text-xs",
                   )}
-                  title={client.salesManager || "Unassigned"}
+                  title={smName !== "—" ? smName : "Unassigned"}
                 >
-                  {client.salesManager?.trim() || "Unassigned"}
+                  {smName !== "—" ? smName : "Unassigned"}
                 </div>
               </div>
             </div>
@@ -965,8 +1053,8 @@ function CustomerDetailPage() {
                   value: client.clientType === "NEW" ? "New Customer" : "Existing Customer",
                 },
                 { label: "Customer Since", value: clientSinceDate },
-                { label: "Engagement Manager", value: client.engagementManager || "—" },
-                { label: "Sales Manager", value: client.salesManager || "—" },
+                { label: "Engagement Manager", value: emName !== "—" ? emName : "—" },
+                { label: "Sales Manager", value: smName !== "—" ? smName : "—" },
                 { label: "First Project", value: firstProjectName },
                 { label: "First Project ID", value: firstProjectId, mono: true },
                 { label: "City", value: client.city || "—" },
@@ -993,25 +1081,14 @@ function CustomerDetailPage() {
                 </dt>
                 <dd className="flex min-w-0 items-center justify-end gap-1.5">
                   {activeKycHasFile ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setKycPreviewOpen(true)}
-                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                        title="Preview KYC Document"
-                      >
-                        <Eye className="h-3 w-3" /> View
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDirectDownloadKyc(activeSubVenture)}
-                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-accent hover:text-primary transition-colors cursor-pointer"
-                        title="Download KYC Document"
-                        aria-label="Download KYC Document"
-                      >
-                        <Download className="h-3 w-3 text-primary" /> Download
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => setKycPreviewOpen(true)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                      title="Preview KYC Document"
+                    >
+                      <Eye className="h-3 w-3" /> View
+                    </button>
                   ) : (
                     <span className="text-right text-[11px] text-muted-foreground">
                       {!activeSubVenture
@@ -1045,7 +1122,7 @@ function CustomerDetailPage() {
       </div>
 
       {showEMPicker && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center overscroll-none p-4">
           <button
             type="button"
             aria-label="Close"
@@ -1102,7 +1179,7 @@ function CustomerDetailPage() {
               </div>
             </div>
 
-            <ul className="max-h-[min(360px,50vh)] overflow-y-auto px-2 py-2">
+            <ul data-manager-scroll className="max-h-[min(360px,50vh)] overflow-y-auto overscroll-contain px-2 py-2">
               {emLoading ? (
                 <li className="px-3 py-8 text-center text-sm text-muted-foreground">Loading…</li>
               ) : filteredEmPool.length === 0 ? (
@@ -1134,6 +1211,107 @@ function CustomerDetailPage() {
                           </div>
                         </div>
                         {selected ? <Check className="h-4 w-4 shrink-0 text-primary" /> : null}
+                      </button>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Change Sales Manager Modal */}
+      {showSMPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overscroll-none p-4">
+          <button
+            type="button"
+            aria-label="Close"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => {
+              if (!smSaving) {
+                setShowSMPicker(false);
+                setSmSearch("");
+              }
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="change-sm-title"
+            className="relative z-[81] flex w-full max-w-md flex-col rounded-xl border border-border bg-card shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div>
+                <h2 id="change-sm-title" className="text-sm font-semibold text-foreground">
+                  Change Sales Manager
+                </h2>
+                <p className="text-[11px] text-muted-foreground">
+                  {smLoading
+                    ? "Loading from directory…"
+                    : `${filteredSmPool.length} of ${smPool.length} Sales Manager${smPool.length === 1 ? "" : "s"}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={smSaving}
+                onClick={() => {
+                  setShowSMPicker(false);
+                  setSmSearch("");
+                }}
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-accent disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="border-b border-border px-4 py-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={smSearch}
+                  onChange={(e) => setSmSearch(e.target.value)}
+                  placeholder="Search by name, email, or code…"
+                  autoFocus
+                  autoComplete="off"
+                  className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+            </div>
+
+            <ul data-manager-scroll className="max-h-[min(360px,50vh)] overflow-y-auto overscroll-contain px-2 py-2">
+              {smLoading ? (
+                <li className="px-3 py-8 text-center text-sm text-muted-foreground">Loading…</li>
+              ) : filteredSmPool.length === 0 ? (
+                <li className="px-3 py-8 text-center text-sm text-muted-foreground">
+                  {smPool.length === 0
+                    ? "No Sales Managers found in the database."
+                    : "No match for your search."}
+                </li>
+              ) : (
+                filteredSmPool.map((p) => {
+                  const selected = smName === p.fullName;
+                  return (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        disabled={smSaving}
+                        onClick={() => void changeSalesManager(p)}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/50 disabled:opacity-50",
+                          selected && "bg-emerald-500/10",
+                        )}
+                      >
+                        <AvatarBubble name={p.fullName} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-foreground truncate">{p.fullName}</div>
+                          <div className="text-[11px] text-muted-foreground truncate">
+                            {p.designation ?? "Sales Manager"}
+                            {p.workEmail ? ` · ${p.workEmail}` : ""}
+                          </div>
+                        </div>
+                        {selected ? <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" /> : null}
                       </button>
                     </li>
                   );

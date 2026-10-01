@@ -453,6 +453,10 @@ function CustomersPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <p className="text-sm text-muted-foreground">Loading customers from the database…</p>
         </div>
+      ) : clients.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card px-6 py-16 text-center">
+          <p className="text-sm font-medium text-foreground">No Customer onboarded</p>
+        </div>
       ) : view === "card" ? (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map(({ client: c, total, newCount, ongoing, completed, onHold, archived }) => {

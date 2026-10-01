@@ -24,7 +24,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: clockit
-      POSTGRES_DB: trackerpro
+      POSTGRES_DB: trackerpro_uat
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     command: >
@@ -38,7 +38,7 @@ services:
       # Runs only when the data volume is empty (first boot / after `down -v`). Must stay UTF-8.
       - ./database/trackerpro-final.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d trackerpro"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d trackerpro_uat"]
       interval: 3s
       timeout: 5s
       retries: 20
@@ -83,7 +83,7 @@ services:
       # Development => Database:AutoMigrate + Seed run on boot (idempotent against the SQL dump).
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=trackerpro;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
+      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=trackerpro_uat;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
       - Database__AutoMigrate=false
       - Database__Seed=false
       - Database__SyncSystemRoleBaselines=false

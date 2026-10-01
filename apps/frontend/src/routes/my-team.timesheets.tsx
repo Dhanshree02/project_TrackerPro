@@ -841,17 +841,17 @@ function TimesheetApprovalView() {
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
       <div className="overflow-auto max-h-[calc(100vh-220px)] min-h-[420px]">
-        <table className="w-full min-w-[1100px] table-fixed text-sm">
+        <table className="w-full min-w-[1300px] table-fixed text-sm">
           <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
             <tr>
               <ApprovalSortTh label="Employee Name" column="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-56" />
               <ApprovalSortTh label="TK ID" column="tk" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-28" />
-              <ApprovalSortTh label="Project Name" column="project" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <ApprovalSortTh label="Project Name" column="project" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-64" />
               <ApprovalSortTh label="Week Range" column="week" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-36" />
               <ApprovalSortTh label="Submitted Date" column="submitted" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-40" />
               <ApprovalSortTh label="Total Hours" column="hours" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-32" />
               <ApprovalSortTh label="Current Status" column="status" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-36" />
-              <th className="relative w-40 whitespace-nowrap px-4 py-3 text-right text-xs font-semibold text-blue-950/85 dark:text-blue-100/85">
+              <th className="relative w-32 whitespace-nowrap px-4 py-3 text-right text-xs font-semibold text-blue-950/85 dark:text-blue-100/85">
                 Actions
               </th>
             </tr>

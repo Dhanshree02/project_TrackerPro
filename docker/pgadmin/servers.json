@@ -1,11 +1,11 @@
 {
   "Servers": {
     "1": {
-      "Name": "TrackerPro (postgres_db)",
+      "Name": "TrackerPro UAT (postgres_db)",
       "Group": "Servers",
       "Host": "postgres_db",
       "Port": 5432,
-      "MaintenanceDB": "trackerpro",
+      "MaintenanceDB": "trackerpro_uat",
       "Username": "postgres",
       "Password": "clockit",
       "SSLMode": "prefer"

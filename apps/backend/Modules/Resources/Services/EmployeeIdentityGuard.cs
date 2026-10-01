@@ -22,6 +22,8 @@ internal sealed class EmployeeIdentitySnapshot
     private readonly HashSet<string> _codes = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _emails = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _phones = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _bulkWorkEmails = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _bulkPhones = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _pans = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _aadhaars = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _uans = new(StringComparer.OrdinalIgnoreCase);
@@ -77,6 +79,32 @@ internal sealed class EmployeeIdentitySnapshot
         if (!string.IsNullOrWhiteSpace(identity.PfUan) && _uans.Contains(identity.PfUan))
             conflicts.Add("This UAN number already exists in the database.");
 
+        return conflicts;
+    }
+
+    /// <summary>
+    /// Bulk upload only compares TK ID, work email, and the main phone.
+    /// A main number is not compared with anyone's alternate number.
+    /// </summary>
+    public void AddBulkKeys(string? employeeCode, string? workEmail, string? phone)
+    {
+        if (!string.IsNullOrWhiteSpace(employeeCode))
+            _codes.Add(employeeCode.Trim());
+        if (!string.IsNullOrWhiteSpace(workEmail))
+            _bulkWorkEmails.Add(workEmail);
+        if (!string.IsNullOrWhiteSpace(phone))
+            _bulkPhones.Add(phone);
+    }
+
+    public IReadOnlyList<string> BulkConflicts(EmployeeIdentity identity)
+    {
+        var conflicts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(identity.EmployeeCode) && _codes.Contains(identity.EmployeeCode.Trim()))
+            conflicts.Add("This employee ID already exists.");
+        if (!string.IsNullOrWhiteSpace(identity.WorkEmail) && _bulkWorkEmails.Contains(identity.WorkEmail))
+            conflicts.Add("This work email already exists in the database.");
+        if (!string.IsNullOrWhiteSpace(identity.Phone) && _bulkPhones.Contains(identity.Phone))
+            conflicts.Add("This phone number already exists in the database.");
         return conflicts;
     }
 
@@ -171,6 +199,26 @@ internal static class EmployeeIdentityGuard
                 NormalizePan(row.Pan),
                 NormalizeAadhaar(row.Aadhaar),
                 NormalizeUan(row.PfUan)));
+        }
+
+        return snapshot;
+    }
+
+    public static async Task<EmployeeIdentitySnapshot> LoadBulkSnapshotAsync(
+        AppDbContext db,
+        CancellationToken ct)
+    {
+        var rows = await db.Employees
+            .Select(e => new { e.EmployeeCode, e.WorkEmail, e.Phone })
+            .ToListAsync(ct);
+
+        var snapshot = new EmployeeIdentitySnapshot();
+        foreach (var row in rows)
+        {
+            snapshot.AddBulkKeys(
+                row.EmployeeCode,
+                NormalizeEmail(row.WorkEmail),
+                PhoneRules.NullIfEmpty(row.Phone));
         }
 
         return snapshot;

@@ -9,16 +9,16 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: clockit
-      POSTGRES_DB: trackerpro
+      POSTGRES_DB: trackerpro_uat
     ports:
       - "5432:5432"
     volumes:
-      - postgres_tester_data:/var/lib/postgresql/data
-      - ./database/trackerpro-final.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - postgres_uat_data:/var/lib/postgresql/data
+      - ./database/trackerpro-uat.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     networks:
       - pms_tester_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d trackerpro"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d trackerpro_uat"]
       interval: 3s
       timeout: 5s
       retries: 10
@@ -35,6 +35,8 @@ services:
       PGADMIN_DEFAULT_PASSWORD: clockit
     ports:
       - "5050:80"
+    volumes:
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
     networks:
       - pms_tester_network
     depends_on:
@@ -56,7 +58,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=trackerpro;Username=postgres;Password=clockit
+      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=trackerpro_uat;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
+      - Database__AutoMigrate=false
+      - Database__Seed=false
+      - Storage__RootPath=/app/storage
     ports:
       - "5194:8080"
     networks:
@@ -85,5 +90,5 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_tester_data:
+  postgres_uat_data:
     driver: local
