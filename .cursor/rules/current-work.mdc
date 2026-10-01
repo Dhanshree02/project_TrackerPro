@@ -5,8 +5,9 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-30
+**Last updated:** 2026-10-01
 
+- **`database/trackerpro-final.sql` matches `trackerpro_development`.** The dump was regenerated from that database: 58 tables, including `clients."ClientCode"` and the widget catalog (`mst_modules`, `mst_submodules`, `mst_widgets`, `role_widget_permissions`). `trackerpro` is UAT. `trackerpro_development` and `trackerpro_deployment` are full copies of it. This branch is `development` at `4577284` plus this dump. The app still connects to `trackerpro`.
 - **Bulk upload logs database entries and errors to files.** Bulk uploads write timestamped logs and `latest_upload_errors.log` to `apps/backend/Log/BulkUpload` and `logs/bulk_upload`, detailing processed rows, created employee IDs/codes, and exact failure/rejection reasons for any failed rows. Script `scripts/export-bulk-upload-logs.mjs` exports database employee and activity log snapshots to files.
 - **Assign PM / Assign SPM lists employees from the database only.** The window no longer flashes the old hardcoded names (Divya Rao, Harsh Nair, Rohan Mehta, Vikram Gupta, Sneha Iyer) before the real list. A Project Manager is an employee whose designation contains “Project Manager” and not “Senior”. A Senior Project Manager designation contains “Senior Project Manager” or “Senior PMO”.
 - **Service wise Prerequisite Tracking is stored on `project_services`.** Collection Status, Validation Status, Billing Status, and Ready save with `PATCH /api/v1/projects/{id}/services/{serviceId}/prerequisite` and the table reads those columns back. The browser copy is no longer the source for this table.
