@@ -93,3 +93,11 @@ Desktop.ini
 # Scratch & Local Diagnostics
 # =========================
 scratch/
+
+# =========================
+# Deployment Packages & Tarballs
+# =========================
+PMS_TrackerPro_UAT/
+PMS_TrackerPro_UAT.zip
+*.tar
+*.zip
