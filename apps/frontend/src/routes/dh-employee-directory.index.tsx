@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
+import { useWidgetPermissions } from "@/lib/rbac/widget-permissions";
+import { usePermissions } from "@/lib/permissions";
 import { Avatar, ProgressBar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
@@ -781,9 +783,19 @@ function EmployeeDirectoryPage() {
   const { status: authStatus } = useAuth();
   const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
     useRoleContext();
+  const { canView, canManage, canManageModule } = useWidgetPermissions();
+  const { hasPermission } = usePermissions();
   const { tab: searchTab } = Route.useSearch();
-  const basicDirectoryView =
-    isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
+  const canViewPool = isDhanshree || canView("resources.resource_pool");
+  const canAddEmployee =
+    isDhanshree || isHr || canManage("resources.directory.personal_info") || canManageModule("resources");
+  const hasFullColumns =
+    isDhanshree ||
+    isHr ||
+    canManageModule("resources") ||
+    canView("resources.columns.full") ||
+    hasPermission("resources.columns.full");
+  const basicDirectoryView = !hasFullColumns;
   const [tab, setTabState] = useState<"directory" | "pool">("directory");
   const navigate = useNavigate({ from: Route.fullPath });
 
@@ -817,7 +829,7 @@ function EmployeeDirectoryPage() {
 
   const setTab = (newTab: "directory" | "pool") => {
     if (!ENABLE_RESOURCE_POOL && newTab === "pool") return;
-    if (basicDirectoryView) return;
+    if (!canViewPool && newTab === "pool") return;
     setTabState(newTab);
   };
 
@@ -974,10 +986,11 @@ function EmployeeDirectoryPage() {
   }, [q, dept, desig, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
 
   // Admin and HR both manage the full employee directory (HR uses it for
-  // onboarding); every other role is redirected.
-  if (!isDhanshree && !basicDirectoryView) return <Navigate to="/" />;
+  // Resources access guard
+  const hasResourceAccess = isDhanshree || canViewPool || canView("resources.directory.personal_info") || canView("resources.view");
+  if (!hasResourceAccess) return <Navigate to="/" />;
 
-  const title = basicDirectoryView ? "Directory" : "Directory & Resource Pool";
+  const title = canViewPool ? "Directory & Resource Pool" : "Directory";
   const subtitle =
     tab === "directory"
       ? `${activeRows.length} of ${dbEmployees.length} employees`
@@ -997,7 +1010,7 @@ function EmployeeDirectoryPage() {
       <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Left: [Directory] / [Resource Pool] view switcher */}
         <div>
-          {!basicDirectoryView && ENABLE_RESOURCE_POOL && (
+          {canViewPool && ENABLE_RESOURCE_POOL && (
             <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
               <button
                 onClick={() => setTab("directory")}
@@ -1029,8 +1042,8 @@ function EmployeeDirectoryPage() {
           )}
         </div>
 
-        {/* Right: Bulk upload menu (ðŸ“¥) and [+ Add Employee] button */}
-        {(isDhanshree || isHr) && (
+        {/* Right: Bulk upload menu and [+ Add Employee] button */}
+        {canAddEmployee && (
           <div className="flex items-center gap-2.5 shrink-0">
             <EmployeeBulkUploadMenu
               onImported={() => {

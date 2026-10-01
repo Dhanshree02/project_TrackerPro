@@ -33,6 +33,9 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options)
             new(ClaimTypes.Role, user.Role?.Name ?? string.Empty),
         };
 
+        if (user.RoleId.HasValue)
+            claims.Add(new Claim(AuthClaimTypes.RoleId, user.RoleId.Value.ToString()));
+
         // Permissions as individual claims for policy checks.
         foreach (var permission in permissions)
             claims.Add(new Claim(AuthClaimTypes.Permission, permission));

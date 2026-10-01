@@ -18,6 +18,7 @@ export function AppSidebar() {
     isHOD,
     isBO,
     isDhanshree,
+    isExecutive,
     isEmployee,
     isHr,
     isPmFamily,
@@ -49,7 +50,7 @@ export function AppSidebar() {
     isAdmin || isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
     hasPermission,
     hasAny,
-    { isAdmin, isItAdmin, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
+    { isAdmin, isItAdmin, isExecutive, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
   );
 
   const isActive = (to?: string, exact?: boolean, subSearch?: Record<string, any>) => {

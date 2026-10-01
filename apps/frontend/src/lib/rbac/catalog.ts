@@ -28,18 +28,8 @@ export const APP_ROLES = [
   "SOC-Manager",
   "SOC-Team Leader",
   "SOC-Team Member",
-  "R&D - Team member",
-  "employee",
-  "pm",
-  "senior_pm",
-  "engagement_manager",
-  "pmo",
-  "business_owner",
-  "hod",
-  "hr",
-  "accounts_finance",
-  "sales_bd",
-  "dhanshree",
+  "R&D - Team member"
+
 ] as const satisfies readonly Role[];
 
 export type AppRole = (typeof APP_ROLES)[number];

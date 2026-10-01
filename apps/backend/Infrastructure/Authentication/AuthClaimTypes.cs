@@ -7,4 +7,5 @@ namespace PMS.API.Infrastructure.Authentication;
 public static class AuthClaimTypes
 {
     public const string Permission = "permission";
+    public const string RoleId = "role_id";
 }

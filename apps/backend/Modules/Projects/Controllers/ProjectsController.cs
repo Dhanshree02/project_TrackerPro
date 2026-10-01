@@ -476,7 +476,7 @@ public class ProjectsController(
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<ProjectDocumentDto>>> UploadProjectDocument(
         Guid projectId,
-        [FromForm] IFormFile file,
+        IFormFile file,
         [FromForm] string? documentType,
         [FromForm] string? description,
         CancellationToken ct)

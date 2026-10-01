@@ -1,10 +1,11 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, AlertTriangle, Clock, History, Mail, RefreshCw, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
+import { useWidgetPermissions } from "@/lib/rbac/widget-permissions";
 import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
@@ -369,8 +370,9 @@ function EmployeeProfilePage() {
   const { status: authStatus } = useAuth();
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
+  const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales, isExecutive } =
     useRoleContext();
+    const { canView, canManage } = useWidgetPermissions();
 
   const [emp, setEmp] = useState<Employee | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -423,7 +425,14 @@ function EmployeeProfilePage() {
 
 
   const basicDirectory = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  if (!isDhanshree && !isHr && !basicDirectory) return <Navigate to="/" />;
+  const hasAccess =
+    isDhanshree ||
+    isExecutive ||
+    isHr ||
+    basicDirectory ||
+    canView("resources.directory.personal_info") ||
+    canView("resources.view");
+  if (!hasAccess) return <Navigate to="/" />;
 
   if (loadError) {
     return (
@@ -481,8 +490,28 @@ function EmployeeProfilePage() {
     }
   };
 
-  const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "personal") : tabs;
+
+
+  const visibleTabs = useMemo(() => {
+    if (isDhanshree || isExecutive || isHr) return tabs;
+    const permitted = tabs.filter((t) => {
+      if (t.id === "personal") return true;
+      if (t.id === "org") return canView("resources.directory.org_details");
+      if (t.id === "employment") return canView("resources.directory.employment_bond");
+      if (t.id === "education") return canView("resources.directory.education_exp");
+      if (t.id === "pmo") return canView("resources.directory.pmo_info");
+      if (t.id === "logs") return canView("resources.directory.activity_logs");
+      return false;
+    });
+    return permitted.length > 0 ? permitted : [tabs[0]];
+  }, [isDhanshree, isExecutive, isHr, canView]);
+
+  const canEditOrOffboard =
+    isDhanshree ||
+    isExecutive ||
+    isHr ||
+    canManage("resources.directory.personal_info") ||
+    canManage("resources.directory.employment_bond");
 
   return (
     <AppShell
@@ -517,7 +546,7 @@ function EmployeeProfilePage() {
               </div>
             </div>
           </div>
-          {!basicOnly && (
+          {canEditOrOffboard && (
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
@@ -850,7 +879,7 @@ function EmployeeProfilePage() {
             try {
               const detail = await fetchEmployee(emp.id);
               setEmp(toUiEmployee(detail));
-            } catch {}
+            } catch { }
           }
           await loadLogs(targetId);
         }}

@@ -361,25 +361,25 @@ function CustomerDetailPage() {
       : undefined;
   const displaySpocs = activeSubVenture
     ? (activeSubVenture.contacts ?? []).map((c) => ({
-        name: c.name,
-        email: c.email?.trim() || "",
-        phone: c.phone ?? "—",
-        phoneCode: c.phoneCode,
-        designation: c.designation ?? "—",
-        type: c.contactType ?? "Primary",
-      }))
+      name: c.name,
+      email: c.email?.trim() || "",
+      phone: c.phone ?? "—",
+      phoneCode: c.phoneCode,
+      designation: c.designation ?? "—",
+      type: c.contactType ?? "Primary",
+    }))
     : (client.groupSpocName || client.contactName)
       ? [
-          {
-            name: client.groupSpocName || client.contactName || "",
-            // Group SPOC has no email — Company step only stores name + phone.
-            email: "",
-            phone: client.groupSpocContact || client.contactPhone || "—",
-            phoneCode: undefined as string | undefined,
-            designation: "Group SPOC",
-            type: "Group SPOC",
-          },
-        ]
+        {
+          name: client.groupSpocName || client.contactName || "",
+          // Group SPOC has no email — Company step only stores name + phone.
+          email: "",
+          phone: client.groupSpocContact || client.contactPhone || "—",
+          phoneCode: undefined as string | undefined,
+          designation: "Group SPOC",
+          type: "Group SPOC",
+        },
+      ]
       : [];
 
   // Notes are per sub-venture (captured at onboarding). Legacy client.notes is a fallback.
@@ -442,7 +442,7 @@ function CustomerDetailPage() {
                 <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
                   {client.name}
                 </h1>
-                
+
                 {/* Clearly Labeled Customer ID */}
                 <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-border text-foreground shadow-2xs">
                   <Tag className="h-3 w-3 text-muted-foreground" />
@@ -777,12 +777,11 @@ function CustomerDetailPage() {
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   {pool.length} project{pool.length !== 1 ? "s" : ""}
                   {healthFilter !== "all" &&
-                    ` · ${
-                      healthFilter === "healthy"
-                        ? "Healthy"
-                        : healthFilter === "at_risk"
-                          ? "At Risk"
-                          : "Critical"
+                    ` · ${healthFilter === "healthy"
+                      ? "Healthy"
+                      : healthFilter === "at_risk"
+                        ? "At Risk"
+                        : "Critical"
                     }`}
                 </p>
               </div>
@@ -837,17 +836,17 @@ function CustomerDetailPage() {
                                 : "Ongoing";
                       const startLabel = p.startDate
                         ? new Date(p.startDate).toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
                         : null;
                       const endLabel = p.endDate
                         ? new Date(p.endDate).toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
                         : null;
 
                       return (
@@ -884,14 +883,14 @@ function CustomerDetailPage() {
                               className={cn(
                                 "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
                                 category === "New" &&
-                                  "border-primary/30 bg-primary/10 text-primary",
+                                "border-primary/30 bg-primary/10 text-primary",
                                 category === "Ongoing" && "border-info/30 bg-info/10 text-info",
                                 category === "Completed" &&
-                                  "border-success/30 bg-success/10 text-success",
+                                "border-success/30 bg-success/10 text-success",
                                 category === "On Hold" &&
-                                  "border-warning/30 bg-warning/10 text-warning-foreground",
+                                "border-warning/30 bg-warning/10 text-warning-foreground",
                                 category === "Archived" &&
-                                  "border-border bg-muted text-muted-foreground",
+                                "border-border bg-muted text-muted-foreground",
                               )}
                             >
                               {category}
