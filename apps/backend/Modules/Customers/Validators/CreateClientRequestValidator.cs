@@ -22,7 +22,7 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
             .MaximumLength(EmailRules.MaxLength);
 
         RuleFor(x => x.ContactPhone)
-            .MustBeValidIndianPhone()
+            .MustBeValidNationalPhone()
             .When(x => !string.IsNullOrWhiteSpace(x.ContactPhone));
 
         RuleFor(x => x.EngagementManager).MaximumLength(120);
@@ -30,7 +30,7 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
         RuleFor(x => x.ContactName).MaximumLength(150);
         RuleFor(x => x.GroupSpocName).MaximumLength(150);
         RuleFor(x => x.GroupSpocContact)
-            .MustBeValidIndianPhone()
+            .MustBeValidNationalPhone()
             .When(x => !string.IsNullOrWhiteSpace(x.GroupSpocContact));
         RuleFor(x => x.BillingMedium)
             .MaximumLength(40)
@@ -54,7 +54,7 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
                     .When(c => !string.IsNullOrWhiteSpace(c.Email))
                     .MaximumLength(EmailRules.MaxLength);
                 contact.RuleFor(c => c.Phone)
-                    .MustBeValidIndianPhone()
+                    .MustBeValidNationalPhone()
                     .When(c => !string.IsNullOrWhiteSpace(c.Phone));
                 contact.RuleFor(c => c.Name).MaximumLength(150);
             });
@@ -67,7 +67,7 @@ public sealed class CreateClientRequestValidator : AbstractValidator<CreateClien
                 .When(c => !string.IsNullOrWhiteSpace(c.Email))
                 .MaximumLength(EmailRules.MaxLength);
             contact.RuleFor(c => c.Phone)
-                .MustBeValidIndianPhone()
+                .MustBeValidNationalPhone()
                 .When(c => !string.IsNullOrWhiteSpace(c.Phone));
             contact.RuleFor(c => c.Name).MaximumLength(150);
         });
@@ -92,7 +92,7 @@ public sealed class UpdateClientRequestValidator : AbstractValidator<UpdateClien
         RuleFor(x => x.ContactName).MaximumLength(150);
         RuleFor(x => x.GroupSpocName).MaximumLength(150);
         RuleFor(x => x.GroupSpocContact)
-            .MustBeValidIndianPhone()
+            .MustBeValidNationalPhone()
             .When(x => !string.IsNullOrWhiteSpace(x.GroupSpocContact));
         RuleFor(x => x.BillingMedium)
             .MaximumLength(40)

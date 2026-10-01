@@ -14,6 +14,8 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.HasIndex(c => c.Name);
 
         builder.Property(c => c.Name).HasMaxLength(255).IsRequired();
+        builder.Property(c => c.ClientCode).HasMaxLength(20);
+        builder.HasIndex(c => c.ClientCode).IsUnique();
         builder.Property(c => c.Industry).HasMaxLength(100).IsRequired();
         builder.Property(c => c.Logo).HasMaxLength(10);
         builder.Property(c => c.ContactEmail).HasMaxLength(255);

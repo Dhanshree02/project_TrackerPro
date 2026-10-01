@@ -1,5 +1,7 @@
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
+using PMS.API.Shared.Exceptions;
 using PMS.API.Modules.Customers.Services;
 using PMS.API.Modules.Customers.DTOs;
 using PMS.API.Shared.Common.Wrappers;
@@ -110,6 +112,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             BillingMedium = NormalizeBillingMedium(request.BillingMedium),
             GroupSpocName = NormalizeManagerName(request.GroupSpocName),
             GroupSpocContact = NormalizeManagerName(request.GroupSpocContact),
+            ClientCode = await ReserveClientCodeAsync(request.ClientCode, ct),
             Notes = request.Notes,
             KycDocumentName = request.KycDocumentName,
             CustomerSince = TodayIst(),
@@ -268,20 +271,59 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         return "C" + (count + 1).ToString("D3");
     }
 
+    private async Task EnsureClientCodeColumnAsync(CancellationToken ct)
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            ALTER TABLE clients ADD COLUMN IF NOT EXISTS "ClientCode" character varying(20);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_clients_ClientCode" ON clients ("ClientCode");
+            """,
+            ct);
+    }
+
     private async Task<Dictionary<Guid, string>> GetAllClientCodesAsync(CancellationToken ct)
     {
-        var clientIds = await db.Clients
+        await EnsureClientCodeColumnAsync(ct);
+        var rows = await db.Clients
             .IgnoreQueryFilters()
             .OrderBy(c => c.CreatedAtUtc)
-            .Select(c => c.Id)
+            .Select(c => new { c.Id, c.ClientCode })
             .ToListAsync(ct);
 
-        var dict = new Dictionary<Guid, string>(clientIds.Count);
-        for (var i = 0; i < clientIds.Count; i++)
+        var dict = new Dictionary<Guid, string>(rows.Count);
+        for (var i = 0; i < rows.Count; i++)
         {
-            dict[clientIds[i]] = "C" + (i + 1).ToString("D3");
+            var stored = rows[i].ClientCode?.Trim();
+            dict[rows[i].Id] = string.IsNullOrEmpty(stored) ? "C" + (i + 1).ToString("D3") : stored;
         }
         return dict;
+    }
+
+    /// <summary>
+    /// Keeps a typed Customer ID. Customers created before this field keep the order-based code.
+    /// </summary>
+    private async Task<string?> ReserveClientCodeAsync(string? raw, CancellationToken ct)
+    {
+        var code = NormalizeClientCode(raw);
+        if (code is null) return null;
+
+        var existing = await GetAllClientCodesAsync(ct);
+        if (existing.Values.Any(value => string.Equals(value, code, StringComparison.OrdinalIgnoreCase)))
+            throw new ConflictException($"Customer ID '{code}' is already in use.");
+
+        return code;
+    }
+
+    private static string? NormalizeClientCode(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var trimmed = raw.Trim().ToUpperInvariant();
+        var numbered = Regex.Match(trimmed, @"^(?:CUST-|CL-|C-?)0*(\d+)$", RegexOptions.IgnoreCase);
+        if (numbered.Success)
+            return "C" + int.Parse(numbered.Groups[1].Value).ToString("D3");
+        if (!Regex.IsMatch(trimmed, @"^[A-Z0-9][A-Z0-9-]{0,19}$"))
+            throw new ConflictException("Customer ID can use letters, numbers, and hyphens only.");
+        return trimmed;
     }
 
     public async Task<IReadOnlyList<string>> GetIndustriesAsync(CancellationToken ct = default)

@@ -13,6 +13,9 @@ public class Client : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Customer ID typed at onboarding, for example C042. Used in the project WBS ID. Empty for customers created before this field.</summary>
+    public string? ClientCode { get; set; }
+
     public string Industry { get; set; } = string.Empty;
 
     public Guid? IndustryId { get; set; }

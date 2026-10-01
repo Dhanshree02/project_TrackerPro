@@ -525,7 +525,17 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
         var clientPos = clientIndex.IndexOf(clientId);
         var clientSeq = clientPos >= 0 ? clientPos + 1 : 1;
-        var paddedClientId = "C" + clientSeq.ToString("D3");
+        await db.Database.ExecuteSqlRawAsync(
+            """ALTER TABLE clients ADD COLUMN IF NOT EXISTS "ClientCode" character varying(20);""",
+            ct);
+        var storedClientCode = await db.Clients
+            .IgnoreQueryFilters()
+            .Where(c => c.Id == clientId)
+            .Select(c => c.ClientCode)
+            .FirstOrDefaultAsync(ct);
+        var paddedClientId = string.IsNullOrWhiteSpace(storedClientCode)
+            ? "C" + clientSeq.ToString("D3")
+            : storedClientCode.Trim();
 
         var wbsId = $"IN-{fyStartYear}-{fyEndYear:D2}-{paddedClientId}-{projectSeqId}";
 

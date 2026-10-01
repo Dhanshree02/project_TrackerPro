@@ -15,7 +15,7 @@ export default defineConfig({
       watch: {
         usePolling: true,
       },
-      port: 6002,
+      port: 3000,
       allowedHosts: true,
       proxy: {
         "/api": {

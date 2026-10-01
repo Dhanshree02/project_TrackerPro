@@ -37,7 +37,6 @@ import {
   updateClient,
   uploadSubVentureKyc,
   formatCustomerId,
-  fetchNextClientCode,
   registerClientCode,
   type CreateClientInput,
 } from "@/lib/api/clients";
@@ -1041,6 +1040,13 @@ const Row = ({ label, v }: { label: string; v: string }) => (
   </>
 );
 
+function normalizeCustomerId(raw: string): string {
+  const trimmed = raw.trim().toUpperCase();
+  const numbered = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(trimmed);
+  if (numbered?.[1]) return `C${numbered[1].padStart(3, "0")}`;
+  return trimmed;
+}
+
 function NewClientModal({
   apiClients,
   onClose,
@@ -1080,26 +1086,10 @@ function NewClientModal({
     (c) => tkSearch.trim() === "" || c.name.toLowerCase().includes(tkSearch.toLowerCase()),
   );
 
-  const computeNextCode = useCallback(() => {
-    if (apiClients && apiClients.length > 0) {
-      let maxSeq = apiClients.length;
-      for (const c of apiClients) {
-        const raw = c.clientCode || c.id;
-        const m = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(raw);
-        if (m && m[1]) {
-          const n = parseInt(m[1], 10);
-          if (n > maxSeq) maxSeq = n;
-        }
-      }
-      return "C" + String(maxSeq + 1).padStart(3, "0");
-    }
-    return "C001";
-  }, [apiClients]);
-
   const [s, setS] = useState<NewClientState>(() => ({
     clientName: "",
     subVentureName: "",
-    customerId: computeNextCode(),
+    customerId: "",
     engagementManager: "",
     salesManager: "",
     phoneNumber: "",
@@ -1116,17 +1106,6 @@ function NewClientModal({
     notes: "",
   }));
 
-  useEffect(() => {
-    let cancelled = false;
-    void fetchNextClientCode().then((code) => {
-      if (!cancelled && code && !selectedExisting) {
-        setS((p) => ({ ...p, customerId: code }));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedExisting]);
   const [previewKyc, setPreviewKyc] = useState(false);
   const { pool: emPool, loading: emLoading } = useEngagementManagers();
   const emOptions = useMemo(
@@ -1328,7 +1307,7 @@ function NewClientModal({
       country: "",
       industry: "",
       businessType: "",
-      customerId: computeNextCode(),
+      customerId: "",
     }));
   };
   const matchingExistingClient =
@@ -1365,6 +1344,19 @@ function NewClientModal({
       if (!storedSm || storedSm !== s.salesManager.trim()) {
         return "Select a Sales Manager from the list";
       }
+    }
+    if (!selectedExisting) {
+      const customerId = s.customerId.trim();
+      if (!customerId) return "Customer ID is required";
+      if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,19}$/.test(customerId)) {
+        return "Customer ID can use letters, numbers, and hyphens only";
+      }
+      const normalized = normalizeCustomerId(customerId);
+      const taken = existingClients.some((c) => {
+        const code = (c.clientCode || formatCustomerId(c.id) || "").trim();
+        return code.toLowerCase() === normalized.toLowerCase();
+      });
+      if (taken) return `Customer ID ${normalized} is already in use`;
     }
     if (!s.billingMedium.trim() && !selectedExisting?.billingMedium?.trim()) {
       return "Billing Medium is required";
@@ -1477,6 +1469,7 @@ function NewClientModal({
         billingMedium: s.billingMedium.trim() || null,
         groupSpocName: s.groupSpocName.trim() || null,
         groupSpocContact: s.phoneNumber.trim() || null,
+        clientCode: selectedExisting ? null : normalizeCustomerId(s.customerId),
         notes: null,
         kycDocumentName: s.kycFile?.name || null,
         engagementManager,
@@ -1927,11 +1920,16 @@ function NewClientModal({
           {/* ── New TK customer fields — only shown when not selecting existing ── */}
           {!selectedExisting && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Customer ID">
+              <Field label="Customer ID" required>
                 <input
-                  className={cn(readOnlyCls, "font-mono")}
-                  value={s.customerId || "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0")}
-                  readOnly
+                  className={cn(inputCls, "font-mono font-semibold text-primary")}
+                  value={s.customerId}
+                  maxLength={20}
+                  placeholder="Enter customer ID, e.g. C042"
+                  onChange={(e) => {
+                    const next = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20);
+                    u("customerId", next);
+                  }}
                 />
               </Field>
               <Field label="Billing Medium" required>
@@ -2012,14 +2010,6 @@ function NewClientModal({
                     }}
                   />
                 </div>
-              </Field>
-              <Field label="Customer ID">
-                <input
-                  className={cn(readOnlyCls, "font-mono font-semibold text-primary")}
-                  value={s.customerId}
-                  readOnly
-                  title="Auto-assigned sequential Customer ID"
-                />
               </Field>
               <SearchableSelect
                 label="Industry"

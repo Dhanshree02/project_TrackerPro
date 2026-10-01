@@ -91,6 +91,10 @@ namespace PMS.API.Migrations
                     b.Property<Guid?>("CityId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ClientCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("ClientType")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -200,6 +204,9 @@ namespace PMS.API.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CityId");
+
+                    b.HasIndex("ClientCode")
+                        .IsUnique();
 
                     b.HasIndex("CountryId");
 

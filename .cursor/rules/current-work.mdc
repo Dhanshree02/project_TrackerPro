@@ -5,8 +5,13 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-09-30
+**Last updated:** 2026-10-01
 
+- **Three local branches and three databases.** `development` and `deployment` both point at `4577284` (`feat(resources): log bulk upload database operations and errors to files`). `uat` holds the typed Customer ID and country-phone work. Nothing was pushed. `deployment-phase1` is unchanged.
+- **Databases on local Docker Postgres (`pms_postgres`).** `trackerpro` is UAT and was left as it is, including `clients."ClientCode"`. `trackerpro_development` started as a copy of `trackerpro`, then objects that are not in `database/trackerpro-final.sql` at `4577284` were removed: `ClientCode`, service prerequisite columns, team `MemberRole`, and the widget catalog tables (`mst_modules`, `mst_submodules`, `mst_widgets`, `role_widget_permissions`, `vw_role_widget_matrix`). `trackerpro_deployment` is a copy of that development database. The running app still connects to `trackerpro`.
+- **Typed Customer ID can be saved.** `clients."ClientCode"` was missing, so submit failed with PostgreSQL 42703. The column and its unique index are on the database now. Automatic migrations stay off, and customer create adds the column if it is missing.
+- **Customer onboarding phones follow the selected country.** Group SPOC and contact numbers are no longer checked as 10-digit Indian mobiles. Bangladesh (`+880`, 10 digits) and the other country lists are accepted. Employee phones are unchanged.
+- **Customer onboarding has one Customer ID, and it is typed in.** The extra Customer ID that sat before Industry is gone. The remaining field is required and is saved on `clients."ClientCode"`. New project WBS IDs use that code (`IN-year-CustomerId-P###`). Customers created earlier keep their existing order-based code. Project screens were not changed.
 - **Bulk upload logs database entries and errors to files.** Bulk uploads write timestamped logs and `latest_upload_errors.log` to `apps/backend/Log/BulkUpload` and `logs/bulk_upload`, detailing processed rows, created employee IDs/codes, and exact failure/rejection reasons for any failed rows. Script `scripts/export-bulk-upload-logs.mjs` exports database employee and activity log snapshots to files.
 - **Assign PM / Assign SPM lists employees from the database only.** The window no longer flashes the old hardcoded names (Divya Rao, Harsh Nair, Rohan Mehta, Vikram Gupta, Sneha Iyer) before the real list. A Project Manager is an employee whose designation contains “Project Manager” and not “Senior”. A Senior Project Manager designation contains “Senior Project Manager” or “Senior PMO”.
 - **Service wise Prerequisite Tracking is stored on `project_services`.** Collection Status, Validation Status, Billing Status, and Ready save with `PATCH /api/v1/projects/{id}/services/{serviceId}/prerequisite` and the table reads those columns back. The browser copy is no longer the source for this table.

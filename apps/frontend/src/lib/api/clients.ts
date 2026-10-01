@@ -195,6 +195,7 @@ export interface CreateClientInput {
   groupSpocContact?: string | null;
   notes?: string | null;
   kycDocumentName?: string | null;
+  clientCode?: string | null;
   subVentures?: ClientSubVenture[];
   contacts?: ClientContactInput[];
 }

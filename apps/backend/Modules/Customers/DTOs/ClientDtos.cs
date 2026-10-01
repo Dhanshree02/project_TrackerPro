@@ -75,7 +75,8 @@ public sealed record CreateClientRequest(
     List<ClientContactDto>? Contacts = null,
     string? BillingMedium = null,
     string? GroupSpocName = null,
-    string? GroupSpocContact = null);
+    string? GroupSpocContact = null,
+    string? ClientCode = null);
 
 public sealed record UpdateClientRequest(
     string? Name = null,
