@@ -55,7 +55,6 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IEmployeeService, EmployeeService>();
         services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IRbacWidgetService, RbacWidgetService>();
         services.AddScoped<IRepositoryService, RepositoryService>();
         services.AddScoped<IMyTeamService, MyTeamService>();
         services.AddScoped<ITimesheetService, TimesheetService>();

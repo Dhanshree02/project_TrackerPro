@@ -27,16 +27,6 @@ public sealed class CurrentUserService(IHttpContextAccessor accessor) : ICurrent
 
     public string? Role => Principal?.FindFirstValue(ClaimTypes.Role);
 
-    public Guid? RoleId
-    {
-        get
-        {
-            var roleIdClaim = Principal?.FindFirstValue(AuthClaimTypes.RoleId)
-                              ?? Principal?.FindFirstValue("role_id");
-            return Guid.TryParse(roleIdClaim, out var id) ? id : null;
-        }
-    }
-
     public IReadOnlyList<string> Permissions =>
         Principal?.FindAll(AuthClaimTypes.Permission).Select(c => c.Value).Distinct().ToList() ?? [];
 

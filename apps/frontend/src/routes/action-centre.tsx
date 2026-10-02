@@ -30,7 +30,6 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
-import { useWidgetPermissions } from "@/lib/rbac/widget-permissions";
 import { startTaskTimer, stopTaskTimer } from "@/lib/api/projects";
 import {
   getPerson,
@@ -76,46 +75,23 @@ const tabs = ["Bucket List", "Approvals", "Alerts", "Notifications"] as const;
 type Tab = (typeof tabs)[number];
 
 function ActionCentrePage() {
-  const { isDhanshree, user, isEmployee, isPmoFamily, isSales, isExecutive } = useRoleContext();
+  const { isDhanshree, user, isEmployee, isPmoFamily, isSales } = useRoleContext();
   const { hasPermission } = usePermissions();
-  const { canView, canViewSubmodule, canViewModule } = useWidgetPermissions();
   const store = useDhStore((s) => s);
   const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
 
-  const visibleTabs: Tab[] = useMemo(() => {
-    if (isDhanshree || isExecutive) return ["Bucket List", "Approvals", "Alerts", "Notifications"];
-    const permitted: Tab[] = [];
-    if (
-      canViewSubmodule("action_center.bucket_list") ||
-      canView("action_center.bucket_list.raise_issues") ||
-      canView("action_center.bucket_list.start_timer")
-    ) {
-      permitted.push("Bucket List");
-    }
-    if (canView("action_center.approvals")) permitted.push("Approvals");
-    if (canView("action_center.alerts")) permitted.push("Alerts");
-    if (canView("action_center.notifications")) permitted.push("Notifications");
-    if (permitted.length > 0) return permitted;
-    return isEmployee
-      ? ["Bucket List", "Notifications"]
-      : isSales
-        ? ["Alerts", "Notifications"]
-        : isPmoFamily
-          ? ["Approvals", "Alerts", "Notifications"]
-          : ["Bucket List", "Approvals", "Alerts", "Notifications"];
-  }, [isDhanshree, isExecutive, isEmployee, isSales, isPmoFamily, canView, canViewSubmodule]);
+  const visibleTabs: Tab[] = isEmployee
+    ? ["Bucket List", "Notifications"]
+    : isSales
+      ? ["Alerts", "Notifications"]
+      : isPmoFamily
+        ? ["Approvals", "Alerts", "Notifications"]
+        : ["Bucket List", "Approvals", "Alerts", "Notifications"];
 
   const [tab, setTab] = useState<Tab>(visibleTabs[0]);
-  const activeTab = visibleTabs.includes(tab) ? tab : (visibleTabs[0] || "Bucket List");
+  const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
 
-  const allowed =
-    isDhanshree ||
-    isExecutive ||
-    hasPermission("action-center.view") ||
-    canViewModule("action_center") ||
-    visibleTabs.length > 0;
-
-  if (!allowed) return <Navigate to="/" />;
+  if (!isDhanshree && !hasPermission("action-center.view")) return <Navigate to="/" />;
 
   return (
     <AppShell

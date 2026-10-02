@@ -1238,10 +1238,10 @@ function MyOrgPage() {
       const res = isAllPageSize(pageSize)
         ? await fetchAllRepositoryDocuments(query)
         : await fetchRepositoryDocuments({
-          page,
-          perPage: pageSize,
-          ...query,
-        });
+            page,
+            perPage: pageSize,
+            ...query,
+          });
 
       setDocuments(res.items || []);
       setTotalCount(res.total || 0);

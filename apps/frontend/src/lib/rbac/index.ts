@@ -11,31 +11,6 @@ export {
 
 export { DEFAULT_ROLE_PERMISSIONS, RBAC_STORAGE_KEY } from "./matrix";
 
-export {
-  EXCEL_PAGE_DEFINITIONS,
-  EXCEL_ROLE_BASELINES,
-  BASELINE_STORAGE_KEY,
-  mapRoleToExcelRole,
-  getBaselineAccessForRole,
-  getRoleCurrentAccess,
-  saveRoleAccess,
-  resetRoleToBaseline,
-  resetRoleToBaseline as resetRoleToExcelBaseline,
-  hasCustomOverrides,
-  isPageVisibleForRole,
-  type AccessLevel,
-  type ExcelPageDefinition,
-} from "./excel-baseline";
-
-export {
-  WidgetPermissionsProvider,
-  useWidgetPermissions,
-  useWidgetAccess,
-  WidgetGuard,
-  CANONICAL_ROLE_ALIASES,
-  type WidgetAccessState,
-} from "./widget-permissions";
-
 import type { Role } from "@/lib/mock-data";
 import type { PermissionKey } from "./catalog";
 import { DEFAULT_ROLE_PERMISSIONS } from "./matrix";

@@ -11,15 +11,10 @@ Masters and Settings serve as the operational backbone for all modules in Tracke
 ```mermaid
 erDiagram
     %% ==========================================
-    %% 1. RBAC & MODULE / WIDGET ACCESS CONTROL
+    %% 1. RBAC & USER MODULE DEPENDENCIES
     %% ==========================================
     roles ||--o{ users : "assigns (RESTRICT)"
-    roles ||--o{ role_widget_permissions : "grants access (CASCADE)"
     roles ||--o{ role_permission_audits : "audits (CASCADE)"
-    mst_modules ||--o{ mst_submodules : "contains (CASCADE)"
-    mst_submodules ||--o{ mst_submodules : "nests sub-submodules (CASCADE)"
-    mst_submodules ||--o{ mst_widgets : "contains (CASCADE)"
-    mst_widgets ||--o{ role_widget_permissions : "governed by (CASCADE)"
     users ||--o{ refresh_tokens : "owns (CASCADE)"
     users ||--o{ client_assignments : "assigned (CASCADE)"
     users ||--o| employees : "links profile (SET NULL)"
@@ -80,32 +75,22 @@ Every table in the database includes standard audit and soft-delete columns via 
 
 ---
 
-### Module 1: Security & RBAC Settings (Module → Submodule → Widget Hierarchy)
-
-This module implements the 4-tier access control structure (**Role → Module → Submodule → Widget/Tab**) with binary **View (`1`/`0`)** and **Manage (`1`/`0`)** access levels derived from `modules RBAC.xlsx`.
-
-#### 1.1 Architecture & Invariant Rules
-- **Binary Flags**: In the database, access is controlled via `CanView` (0/1) and `CanManage` (0/1).
-- **Core Invariant**: If a role has `CanManage = 1`, it **must** have `CanView = 1`. A user cannot manage an element they cannot see. This is enforced by database constraint `chk_manage_requires_view`.
-- **Three UI States**:
-  - `CanView = 0, CanManage = 0` $\rightarrow$ **Hidden** (element completely omitted from DOM; API returns `403 Forbidden`).
-  - `CanView = 1, CanManage = 0` $\rightarrow$ **Read-Only** (element displayed; create/edit/delete/upload actions hidden or disabled).
-  - `CanView = 1, CanManage = 1` $\rightarrow$ **Full Manage** (interactive buttons and write mutations permitted).
-
----
+### Module 1: Security & RBAC Settings
 
 #### Table: `roles`
-Stores application roles (system default roles + admin-created custom roles).
-- **Outbound Dependencies**: Referenced by `users.RoleId` (`ON DELETE RESTRICT`), `role_widget_permissions.RoleId` (`ON DELETE CASCADE`), and `role_permission_audits.RoleId` (`ON DELETE CASCADE`).
+Stores application roles and their permission matrix as a JSONB array of keys.
+- **Inbound Dependencies**: None
+- **Outbound Dependencies**: Referenced by `users.RoleId` (`ON DELETE RESTRICT`) and `role_permission_audits.RoleId` (`ON DELETE CASCADE`).
 
 ```sql
 CREATE TABLE IF NOT EXISTS roles (
     "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "Name" VARCHAR(100) NOT NULL UNIQUE,          -- Machine key: 'CEO', 'PMO', 'Testing-Manager'
-    "DisplayName" VARCHAR(150) NOT NULL,        -- User-friendly: 'Testing Project Manager'
+    "Name" VARCHAR(100) NOT NULL UNIQUE,
+    "DisplayName" VARCHAR(150) NOT NULL,
     "Description" VARCHAR(500),
-    "IsSystemRole" BOOLEAN NOT NULL DEFAULT false, -- System roles cannot be deleted
+    "IsSystemRole" BOOLEAN NOT NULL DEFAULT false,
     "IsActive" BOOLEAN NOT NULL DEFAULT true,
+    "Permissions" JSONB NOT NULL DEFAULT '[]'::jsonb,
     "CreatedAtUtc" TIMESTAMPTZ NOT NULL DEFAULT now(),
     "UpdatedAtUtc" TIMESTAMPTZ,
     "CreatedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
@@ -114,180 +99,20 @@ CREATE TABLE IF NOT EXISTS roles (
 );
 
 CREATE INDEX IF NOT EXISTS "IX_roles_IsActive" ON roles ("IsActive");
+CREATE INDEX IF NOT EXISTS "IX_roles_Permissions" ON roles USING gin ("Permissions");
 ```
-
----
-
-#### Table: `mst_modules`
-Top-level application domains (e.g., Dashboard, Action Center, Projects, Reports, Resource, Customers, Repository, My Team, Settings).
-- **Outbound Dependencies**: Referenced by `mst_submodules.ModuleId` (`ON DELETE CASCADE`).
-
-```sql
-CREATE TABLE IF NOT EXISTS mst_modules (
-    "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "Code" VARCHAR(80) NOT NULL UNIQUE,          -- 'dashboard', 'projects', 'reports', 'resources'
-    "Name" VARCHAR(150) NOT NULL,                -- 'Dashboard', 'Projects', 'Reports & Analytics'
-    "Icon" VARCHAR(80),                          -- Lucide icon name: 'LayoutDashboard', 'FolderKanban'
-    "SortOrder" INT NOT NULL DEFAULT 0,
-    "IsActive" BOOLEAN NOT NULL DEFAULT true,
-    "CreatedAtUtc" TIMESTAMPTZ NOT NULL DEFAULT now(),
-    "UpdatedAtUtc" TIMESTAMPTZ,
-    "CreatedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
-    "UpdatedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
-    "DeletedAtUtc" TIMESTAMPTZ
-);
-
-CREATE INDEX IF NOT EXISTS "IX_mst_modules_Code" ON mst_modules ("Code");
-```
-
----
-
-#### Table: `mst_submodules`
-Submodules and Sub-submodules under a module. Supports multi-level nesting via `ParentSubmoduleId` (e.g. `Projects` $\rightarrow$ `projects Cards` $\rightarrow$ `Health`).
-- **Dependencies**:
-  - `ModuleId` $\rightarrow$ `mst_modules.Id` (`ON DELETE CASCADE`)
-  - `ParentSubmoduleId` $\rightarrow$ `mst_submodules.Id` (`ON DELETE CASCADE`)
-- **Outbound Dependencies**: Referenced by `mst_widgets.SubmoduleId` (`ON DELETE CASCADE`).
-
-```sql
-CREATE TABLE IF NOT EXISTS mst_submodules (
-    "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "ModuleId" UUID NOT NULL REFERENCES mst_modules("Id") ON DELETE CASCADE,
-    "ParentSubmoduleId" UUID REFERENCES mst_submodules("Id") ON DELETE CASCADE,
-    "Code" VARCHAR(80) NOT NULL,                 -- 'health', 'overview', 'wbs', 'directory'
-    "Name" VARCHAR(150) NOT NULL,                -- 'Health & Governance', 'Overview', 'WBS'
-    "RoutePrefix" VARCHAR(150),                  -- '/projects/:id/health', '/resources/directory'
-    "SortOrder" INT NOT NULL DEFAULT 0,
-    "IsActive" BOOLEAN NOT NULL DEFAULT true,
-    "CreatedAtUtc" TIMESTAMPTZ NOT NULL DEFAULT now(),
-    "UpdatedAtUtc" TIMESTAMPTZ,
-    "CreatedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
-    "UpdatedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
-    "DeletedAtUtc" TIMESTAMPTZ,
-    CONSTRAINT "UQ_submodule_module_parent_code" UNIQUE ("ModuleId", "ParentSubmoduleId", "Code")
-);
-
-CREATE INDEX IF NOT EXISTS "IX_mst_submodules_ModuleId" ON mst_submodules ("ModuleId");
-CREATE INDEX IF NOT EXISTS "IX_mst_submodules_ParentSubmoduleId" ON mst_submodules ("ParentSubmoduleId");
-CREATE INDEX IF NOT EXISTS "IX_mst_submodules_Code" ON mst_submodules ("Code");
-```
-
----
-
-#### Table: `mst_widgets`
-Granular functional units, cards, tables, action panels, or tabs governed by access control.
-- **Dependencies**: `SubmoduleId` $\rightarrow$ `mst_submodules.Id` (`ON DELETE CASCADE`).
-- **Outbound Dependencies**: Referenced by `role_widget_permissions.WidgetId` (`ON DELETE CASCADE`).
-
-```sql
-CREATE TABLE IF NOT EXISTS mst_widgets (
-    "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "SubmoduleId" UUID NOT NULL REFERENCES mst_submodules("Id") ON DELETE CASCADE,
-    "Code" VARCHAR(100) NOT NULL,                -- 'issue_tracker', 'kpis', 'budget'
-    "Name" VARCHAR(150) NOT NULL,                -- 'Issue Tracker', 'KPI Summary Card'
-    "WidgetKey" VARCHAR(200) NOT NULL UNIQUE,    -- Canonical key: 'projects.health.issue_tracker'
-    "WidgetType" VARCHAR(40) NOT NULL DEFAULT 'widget', -- 'widget', 'tab', 'action_group', 'kpi_card', 'table'
-    "HasManageAction" BOOLEAN NOT NULL DEFAULT true,    -- False for read-only items (e.g. Dashboard KPIs)
-    "Description" VARCHAR(500),
-    "SortOrder" INT NOT NULL DEFAULT 0,
-    "IsActive" BOOLEAN NOT NULL DEFAULT true,
-    "CreatedAtUtc" TIMESTAMPTZ NOT NULL DEFAULT now(),
-    "UpdatedAtUtc" TIMESTAMPTZ,
-    "CreatedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
-    "UpdatedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
-    "DeletedAtUtc" TIMESTAMPTZ,
-    CONSTRAINT "UQ_widget_submodule_code" UNIQUE ("SubmoduleId", "Code")
-);
-
-CREATE INDEX IF NOT EXISTS "IX_mst_widgets_WidgetKey" ON mst_widgets ("WidgetKey");
-CREATE INDEX IF NOT EXISTS "IX_mst_widgets_SubmoduleId" ON mst_widgets ("SubmoduleId");
-```
-
----
-
-#### Table: `role_widget_permissions` (The Core 1 / 0 Matrix)
-Maps each role to every widget with explicit binary `CanView` and `CanManage` flags.
-- **Dependencies**:
-  - `RoleId` $\rightarrow$ `roles.Id` (`ON DELETE CASCADE`)
-  - `WidgetId` $\rightarrow$ `mst_widgets.Id` (`ON DELETE CASCADE`)
-
-```sql
-CREATE TABLE IF NOT EXISTS role_widget_permissions (
-    "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "RoleId" UUID NOT NULL REFERENCES roles("Id") ON DELETE CASCADE,
-    "WidgetId" UUID NOT NULL REFERENCES mst_widgets("Id") ON DELETE CASCADE,
-    "CanView" SMALLINT NOT NULL DEFAULT 0,       -- 1 = Can View, 0 = Hidden
-    "CanManage" SMALLINT NOT NULL DEFAULT 0,     -- 1 = Can Manage/Edit, 0 = Read Only
-    "CreatedAtUtc" TIMESTAMPTZ NOT NULL DEFAULT now(),
-    "UpdatedAtUtc" TIMESTAMPTZ,
-    "CreatedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
-    "UpdatedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
-    "DeletedAtUtc" TIMESTAMPTZ,
-
-    -- Uniqueness: Exactly one permission entry per role per widget
-    CONSTRAINT "UQ_role_widget_permissions" UNIQUE ("RoleId", "WidgetId"),
-
-    -- Domain Constraints: Value must be 0 or 1
-    CONSTRAINT "CHK_role_widget_can_view_binary" CHECK ("CanView" IN (0, 1)),
-    CONSTRAINT "CHK_role_widget_can_manage_binary" CHECK ("CanManage" IN (0, 1)),
-
-    -- Core Invariant: Manage implies View
-    CONSTRAINT "CHK_role_widget_manage_requires_view" CHECK ("CanManage" = 0 OR "CanView" = 1)
-);
-
-CREATE INDEX IF NOT EXISTS "IX_role_widget_permissions_RoleId" ON role_widget_permissions ("RoleId");
-CREATE INDEX IF NOT EXISTS "IX_role_widget_permissions_WidgetId" ON role_widget_permissions ("WidgetId");
-CREATE INDEX IF NOT EXISTS "IX_role_widget_lookup" ON role_widget_permissions ("RoleId", "CanView", "CanManage");
-```
-
----
-
-#### Fast-Query View: `vw_role_widget_matrix`
-Pre-joined materialized view for quick token generation and settings matrix rendering without deep JOIN overhead:
-
-```sql
-CREATE OR REPLACE VIEW vw_role_widget_matrix AS
-SELECT 
-    r."Id" AS "RoleId",
-    r."Name" AS "RoleName",
-    m."Code" AS "ModuleCode",
-    m."Name" AS "ModuleName",
-    sm."Code" AS "SubmoduleCode",
-    sm."Name" AS "SubmoduleName",
-    w."Id" AS "WidgetId",
-    w."WidgetKey",
-    w."Name" AS "WidgetName",
-    w."WidgetType",
-    w."HasManageAction",
-    COALESCE(rwp."CanView", 0) AS "CanView",
-    COALESCE(rwp."CanManage", 0) AS "CanManage"
-FROM roles r
-CROSS JOIN mst_widgets w
-JOIN mst_submodules sm ON w."SubmoduleId" = sm."Id"
-JOIN mst_modules m ON sm."ModuleId" = m."Id"
-LEFT JOIN role_widget_permissions rwp 
-       ON rwp."RoleId" = r."Id" AND rwp."WidgetId" = w."Id"
-WHERE w."DeletedAtUtc" IS NULL 
-  AND sm."DeletedAtUtc" IS NULL 
-  AND m."DeletedAtUtc" IS NULL;
-```
-
----
 
 #### Table: `role_permission_audits`
-Audit trail of granular permission changes for compliance, SOC2, and security review.
+Audit trail of granular permission changes for compliance and security review.
 - **Dependencies**: `RoleId` $\rightarrow$ `roles.Id` (`ON DELETE CASCADE`), `ModifiedBy` $\rightarrow$ `users.Id` (`ON DELETE SET NULL`).
 
 ```sql
 CREATE TABLE IF NOT EXISTS role_permission_audits (
     "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "RoleId" UUID NOT NULL REFERENCES roles("Id") ON DELETE CASCADE,
-    "Action" VARCHAR(50) NOT NULL,               -- 'UPDATED', 'RESET_BASELINE', 'CLONED'
-    "WidgetKey" VARCHAR(200),                    -- 'projects.health.issue_tracker' or 'ALL'
-    "OldCanView" SMALLINT,
-    "OldCanManage" SMALLINT,
-    "NewCanView" SMALLINT,
-    "NewCanManage" SMALLINT,
+    "Action" VARCHAR(50) NOT NULL,
+    "PermissionsBefore" JSONB NOT NULL DEFAULT '[]'::jsonb,
+    "PermissionsAfter" JSONB NOT NULL DEFAULT '[]'::jsonb,
     "ModifiedBy" UUID REFERENCES users("Id") ON DELETE SET NULL,
     "ModifiedAtUtc" TIMESTAMPTZ NOT NULL DEFAULT now(),
     "Reason" VARCHAR(500),
@@ -299,66 +124,7 @@ CREATE TABLE IF NOT EXISTS role_permission_audits (
 );
 
 CREATE INDEX IF NOT EXISTS "IX_role_permission_audits_RoleId" ON role_permission_audits ("RoleId");
-CREATE INDEX IF NOT EXISTS "IX_role_permission_audits_ModifiedAtUtc" ON role_permission_audits ("ModifiedAtUtc");
 ```
-
----
-
-#### 1.2 Master Catalog Mapping (Exhaustive 49 Leaves from `modules RBAC.xlsx`)
-
-The following reference table defines all 49 granular feature leaves identified in `modules RBAC.xlsx`:
-
-| # | Module | Submodule | Sub-submodule | Widget / Tab | Canonical Key (`WidgetKey`) | Has Manage? |
-| :- | :--- | :--- | :--- | :--- | :--- | :---: |
-| 1 | **Dashboard** | — | — | KPI'S | `dashboard.kpis` | ❌ (View only) |
-| 2 | **Dashboard** | — | — | Assigned Projects | `dashboard.assigned_projects` | ❌ (View only) |
-| 3 | **Dashboard** | — | — | Pending Issues | `dashboard.pending_issues` | ❌ (View only) |
-| 4 | **Dashboard** | — | — | Project Status | `dashboard.project_status` | ❌ (View only) |
-| 5 | **Dashboard** | — | — | Pending Approvals | `dashboard.pending_approvals` | ❌ (View only) |
-| 6 | **Action Center**| Bucket List | — | Raise Issues | `action_center.bucket_list.raise_issues` | ✅ |
-| 7 | **Action Center**| Bucket List | — | Start Timer | `action_center.bucket_list.start_timer` | ✅ |
-| 8 | **Action Center**| Approvals | — | Approvals Queue | `action_center.approvals` | ✅ |
-| 9 | **Action Center**| Alerts | — | Alerts Feed | `action_center.alerts` | ✅ |
-| 10 | **Action Center**| Notifications | — | Notification Feed | `action_center.notifications` | ✅ |
-| 11 | **Projects** | projects Cards | Overview | Budget | `projects.overview.budget` | ✅ |
-| 12 | **Projects** | projects Cards | Overview | Extension Request | `projects.overview.extension_request` | ✅ |
-| 13 | **Projects** | projects Cards | Overview | Sr. Project Manager | `projects.overview.assign_spm` | ✅ |
-| 14 | **Projects** | projects Cards | Overview | Project Manager | `projects.overview.assign_pm` | ✅ |
-| 15 | **Projects** | projects Cards | Overview | Team Leads | `projects.overview.assign_tl` | ✅ |
-| 16 | **Projects** | projects Cards | WBS | Billing Information | `projects.wbs.billing_info` | ✅ |
-| 17 | **Projects** | projects Cards | WBS | PMO Intake & Prerequisite | `projects.wbs.pmo_intake` | ✅ |
-| 18 | **Projects** | projects Cards | WBS | Invoice Schedule | `projects.wbs.invoice_schedule` | ✅ |
-| 19 | **Projects** | projects Cards | Team | Team Allocation | `projects.team.allocation` | ✅ |
-| 20 | **Projects** | projects Cards | Task | Task Breakdown | `projects.task.management` | ✅ |
-| 21 | **Projects** | projects Cards | Health | Issues | `projects.health.issues` | ✅ |
-| 22 | **Projects** | projects Cards | Health | Alerts | `projects.health.alerts` | ✅ |
-| 23 | **Projects** | projects Cards | Health | Escalation | `projects.health.escalation` | ✅ |
-| 24 | **Projects** | projects Cards | Health | Appreciation | `projects.health.appreciation` | ✅ |
-| 25 | **Projects** | projects Cards | Health | Customer Engagement > Interview | `projects.health.engagement.interview` | ✅ |
-| 26 | **Projects** | projects Cards | Health | Customer Engagement > Requirements | `projects.health.engagement.requirements` | ✅ |
-| 27 | **Projects** | projects Cards | Invoice | Invoicing Grid | `projects.invoice.management` | ✅ |
-| 28 | **Reports** | Sales Report | — | Sales Reports | `reports.sales` | ✅ |
-| 29 | **Reports** | WBS Tracker | — | WBS Tracker | `reports.wbs_tracker` | ✅ |
-| 30 | **Reports** | PO Tracker | — | PO Tracker | `reports.po_tracker` | ✅ |
-| 31 | **Reports** | Invoice Tracker| — | Invoice Tracker | `reports.invoice_tracker` | ✅ |
-| 32 | **Resource** | Directory | Resource Details | Personal Information | `resources.directory.personal_info` | ✅ |
-| 33 | **Resource** | Directory | Resource Details | Organization Details | `resources.directory.org_details` | ✅ |
-| 34 | **Resource** | Directory | Resource Details | Employment & Bond | `resources.directory.employment_bond` | ✅ |
-| 35 | **Resource** | Directory | Resource Details | Education & Experience | `resources.directory.education_exp` | ✅ |
-| 36 | **Resource** | Directory | Resource Details | PMO Information | `resources.directory.pmo_info` | ✅ |
-| 37 | **Resource** | Directory | Resource Details | Activity Logs | `resources.directory.activity_logs` | ❌ (View only) |
-| 38 | **Resource** | Resource Pool | — | Resource Pool Pool Grid | `resources.resource_pool` | ✅ |
-| 39 | **Resource** | Exit Summary | — | Exit Summary Logs | `resources.exit_summary` | ✅ |
-| 40 | **Customers** | Customers Card| Customer Profile | Customer Profiles | `customers.customer_profile` | ✅ |
-| 41 | **Repository** | — | — | Document Repository | `repository.documents` | ✅ |
-| 42 | **My Team** | Team Dashboard| — | Team Roster & KPIs | `my_team.dashboard` | ✅ |
-| 43 | **My Team** | Timesheets | My Timesheet | Personal Timesheet Grid | `my_team.my_timesheet` | ✅ |
-| 44 | **My Team** | Timesheets | Timesheet Approval | Timesheet Approvals Grid | `my_team.timesheet_approval` | ✅ |
-| 45 | **Settings** | Roles & Perm | Moduleswise Access | Module Access Matrix | `settings.roles.modules_access` | ✅ |
-| 46 | **Settings** | Roles & Perm | User Role Access | User Role Assignments | `settings.roles.user_access` | ✅ |
-| 47 | **Settings** | Masters | Project Masters | Project Masters Grid | `settings.masters.project` | ✅ |
-| 48 | **Settings** | Masters | Customer Masters | Customer Masters Grid | `settings.masters.customer` | ✅ |
-| 49 | **Settings** | Masters | Resource Master | Resource Masters Grid | `settings.masters.resource` | ✅ |
 
 ---
 
@@ -716,12 +482,7 @@ CREATE INDEX IF NOT EXISTS "IX_app_settings_Category" ON app_settings ("Category
 | Source Table (Master) | Dependent Table | Foreign Key Column | On Delete Action | Purpose / Effect |
 | :--- | :--- | :--- | :--- | :--- |
 | **`roles`** | `users` | `RoleId` | `RESTRICT` | Prevents deleting a role assigned to active users |
-| **`roles`** | `role_widget_permissions` | `RoleId` | `CASCADE` | Clears permissions when a role is removed |
 | **`roles`** | `role_permission_audits` | `RoleId` | `CASCADE` | Purges audit trail if a custom role is removed |
-| **`mst_modules`** | `mst_submodules` | `ModuleId` | `CASCADE` | Removing a module cascades to its submodules |
-| **`mst_submodules`** | `mst_submodules` | `ParentSubmoduleId`| `CASCADE` | Removing a submodule cascades to child sub-submodules |
-| **`mst_submodules`** | `mst_widgets` | `SubmoduleId` | `CASCADE` | Removing a submodule cascades to its widgets |
-| **`mst_widgets`** | `role_widget_permissions` | `WidgetId` | `CASCADE` | Removing a widget clears its role access rules |
 | **`mst_departments`** | `mst_designations` | `DepartmentId` | `SET NULL` | Preserves designation title if department is deleted |
 | **`mst_departments`** | `employees` | `DepartmentId` | `SET NULL` | Employee record remains intact if dept is removed |
 | **`mst_departments`** | `mst_project_services`| `DepartmentId` | `RESTRICT` | Protects department active deliverable mappings |

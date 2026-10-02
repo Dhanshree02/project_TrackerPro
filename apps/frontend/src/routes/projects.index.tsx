@@ -53,7 +53,7 @@ const tabs = ["Active Projects", "Archived Projects", "All Projects"] as const;
 type Tab = (typeof tabs)[number];
 
 function ProjectsPage() {
-  const { isDhanshree, isExecutive, isEmployee, assignedProjects } = useRoleContext();
+  const { isDhanshree, isEmployee, assignedProjects } = useRoleContext();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("Active Projects");
@@ -708,14 +708,12 @@ function ProjectsPage() {
                           >
                             <ArrowRight className="h-3 w-3" /> Open
                           </button>
-                          {!isExecutive && (
-                            <button
-                              onClick={() => handleDeleteDraft(d.id)}
-                              className="inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-3 w-3" /> Delete
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleDeleteDraft(d.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3 w-3" /> Delete
+                          </button>
                         </div>
                       </div>
                     </li>

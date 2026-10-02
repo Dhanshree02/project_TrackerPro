@@ -142,86 +142,8 @@ public sealed class AuthService(
 
     private async Task<AuthResult> IssueTokensAsync(User user, CancellationToken ct)
     {
-        var permissions = new HashSet<string>(user.Role?.Permissions ?? [], StringComparer.OrdinalIgnoreCase);
-
-        // Load dynamic widget permissions from database
-        if (user.RoleId.HasValue)
-        {
-            var widgetPerms = await db.RoleWidgetPermissions
-                .AsNoTracking()
-                .Include(p => p.Widget)
-                .Where(p => p.RoleId == user.RoleId.Value && (p.CanView == 1 || p.CanManage == 1))
-                .ToListAsync(ct);
-
-            foreach (var wp in widgetPerms)
-            {
-                if (wp.Widget != null && !string.IsNullOrEmpty(wp.Widget.WidgetKey))
-                {
-                    if (wp.CanView == 1)
-                    {
-                        permissions.Add(wp.Widget.WidgetKey);
-                        permissions.Add($"{wp.Widget.WidgetKey}.view");
-                        if (wp.Widget.WidgetKey.StartsWith("projects.", StringComparison.OrdinalIgnoreCase))
-                        {
-                            permissions.Add(PMS.API.Shared.Constants.Permissions.ProjectsRead);
-                            permissions.Add("projects.view");
-                        }
-                        if (wp.Widget.WidgetKey.StartsWith("reports.", StringComparison.OrdinalIgnoreCase))
-                        {
-                            permissions.Add(PMS.API.Shared.Constants.Permissions.ReportsRead);
-                            permissions.Add("reports.view");
-                        }
-                        if (wp.Widget.WidgetKey.StartsWith("resources.", StringComparison.OrdinalIgnoreCase))
-                        {
-                            permissions.Add(PMS.API.Shared.Constants.Permissions.ResourcesRead);
-                            permissions.Add("resources.view");
-                        }
-                        if (wp.Widget.WidgetKey.StartsWith("customers.", StringComparison.OrdinalIgnoreCase))
-                        {
-                            permissions.Add(PMS.API.Shared.Constants.Permissions.ClientsRead);
-                            permissions.Add("customers.view");
-                        }
-                    }
-                    if (wp.CanManage == 1)
-                    {
-                        permissions.Add($"{wp.Widget.WidgetKey}.manage");
-                        if (wp.Widget.WidgetKey.StartsWith("projects.", StringComparison.OrdinalIgnoreCase))
-                        {
-                            permissions.Add(PMS.API.Shared.Constants.Permissions.ProjectsWrite);
-                        }
-                        if (wp.Widget.WidgetKey.StartsWith("resources.", StringComparison.OrdinalIgnoreCase))
-                        {
-                            permissions.Add(PMS.API.Shared.Constants.Permissions.ResourcesManage);
-                        }
-                        if (wp.Widget.WidgetKey.StartsWith("customers.", StringComparison.OrdinalIgnoreCase))
-                        {
-                            permissions.Add(PMS.API.Shared.Constants.Permissions.ClientsWrite);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Canonical alias expansion
-        if (permissions.Contains("projects.view") || permissions.Any(p => p.StartsWith("projects.", StringComparison.OrdinalIgnoreCase)))
-        {
-            permissions.Add(PMS.API.Shared.Constants.Permissions.ProjectsRead);
-        }
-        if (permissions.Contains("customers.view") || permissions.Any(p => p.StartsWith("customers.", StringComparison.OrdinalIgnoreCase)))
-        {
-            permissions.Add(PMS.API.Shared.Constants.Permissions.ClientsRead);
-        }
-        if (permissions.Contains("resources.view") || permissions.Any(p => p.StartsWith("resources.", StringComparison.OrdinalIgnoreCase)))
-        {
-            permissions.Add(PMS.API.Shared.Constants.Permissions.ResourcesRead);
-        }
-        if (permissions.Contains("reports.view") || permissions.Any(p => p.StartsWith("reports.", StringComparison.OrdinalIgnoreCase)))
-        {
-            permissions.Add(PMS.API.Shared.Constants.Permissions.ReportsRead);
-        }
-
-        var permList = permissions.ToList();
-        var (accessToken, expiresAt) = jwt.GenerateAccessToken(user, permList);
+        var permissions = user.Role?.Permissions ?? [];
+        var (accessToken, expiresAt) = jwt.GenerateAccessToken(user, permissions);
 
         var rawRefresh = JwtTokenService.GenerateRefreshToken();
         var refreshExpiresAt = DateTime.UtcNow.AddDays(_options.RefreshTokenExpiryDays);
@@ -240,7 +162,7 @@ public sealed class AuthService(
         if (response is not null)
             refreshCookie.Append(response, rawRefresh, refreshExpiresAt);
 
-        return new AuthResult(accessToken, expiresAt, MapProfile(user, permList));
+        return new AuthResult(accessToken, expiresAt, MapProfile(user));
     }
 
     private async Task RevokeFamilyAsync(Guid userId, CancellationToken ct)
@@ -266,7 +188,7 @@ public sealed class AuthService(
         return await query.FirstOrDefaultAsync(ct);
     }
 
-    private static UserProfileDto MapProfile(User user, IReadOnlyList<string>? permissions = null) => new(
+    private static UserProfileDto MapProfile(User user) => new(
         user.Id,
         user.Email,
         user.Name,
@@ -274,7 +196,7 @@ public sealed class AuthService(
         user.Role?.Name,
         user.RoleId,
         user.MustChangePassword,
-        permissions ?? user.Role?.Permissions ?? []);
+        user.Role?.Permissions ?? []);
 }
 
 /// <summary>Thrown for authentication/authorization failures (maps to 401 in the API).</summary>

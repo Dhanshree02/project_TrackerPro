@@ -50,7 +50,6 @@ public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<App
         public string? Email => null;
         public string? Name => null;
         public string? Role => null;
-        public Guid? RoleId => null;
         public IReadOnlyList<string> Permissions => [];
         public bool HasPermission(string _) => false;
         public System.Security.Claims.ClaimsPrincipal? Principal => null;

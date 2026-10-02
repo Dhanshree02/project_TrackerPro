@@ -8,9 +8,6 @@ import { ProgressBar } from "@/components/pills";
 import { Kpi } from "@/components/kpi-card";
 import { cn } from "@/lib/utils";
 
-import { usePermissions } from "@/lib/permissions";
-import { useWidgetPermissions } from "@/lib/rbac/widget-permissions";
-
 export const Route = createFileRoute("/dh-reports")({
   head: () => ({
     meta: [
@@ -31,38 +28,16 @@ const tabIcons: Record<Tab, typeof BarChart3> = {
 };
 
 function DhReportsPage() {
-  const { isDhanshree, isAccounts, isSales, isExecutive } = useRoleContext();
-  const { hasPermission } = usePermissions();
-  const { canView, canViewModule } = useWidgetPermissions();
-
-  const visibleTabs: Tab[] = useMemo(() => {
-    if (isDhanshree || isExecutive) return [...tabs];
-    const permitted: Tab[] = [];
-    if (canView("reports.sales") || isSales) permitted.push("Sales Reports");
-    if (canView("reports.wbs_tracker") || isSales) permitted.push("WBS Tracker");
-    if (canView("reports.po_tracker") || isAccounts) permitted.push("PO Tracker");
-    if (canView("reports.invoice_tracker") || isAccounts) permitted.push("Invoice Tracker");
-    if (permitted.length > 0) return permitted;
-    return isAccounts
-      ? ["PO Tracker", "Invoice Tracker"]
-      : isSales
-        ? ["Sales Reports", "WBS Tracker"]
-        : [...tabs];
-  }, [isDhanshree, isExecutive, isAccounts, isSales, canView]);
-
+  const { isDhanshree, isAccounts, isSales } = useRoleContext();
+  const visibleTabs: Tab[] = isAccounts
+    ? ["PO Tracker", "Invoice Tracker"]
+    : isSales
+      ? ["Sales Reports", "WBS Tracker"]
+      : [...tabs];
   const [tab, setTab] = useState<Tab>(visibleTabs[0]);
-  const activeTab = visibleTabs.includes(tab) ? tab : (visibleTabs[0] || "Sales Reports");
+  const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
 
-  const allowed =
-    isDhanshree ||
-    isExecutive ||
-    isAccounts ||
-    isSales ||
-    hasPermission("reports.view") ||
-    canViewModule("reports") ||
-    visibleTabs.length > 0;
-
-  if (!allowed) return <Navigate to="/" />;
+  if (!isDhanshree && !isAccounts && !isSales) return <Navigate to="/" />;
 
   return (
     <AppShell title="Reports" subtitle="Sales, delivery, finance and PO tracking">

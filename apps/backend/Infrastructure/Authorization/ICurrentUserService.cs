@@ -17,8 +17,6 @@ public interface ICurrentUserService
 
     string? Role { get; }
 
-    Guid? RoleId { get; }
-
     IReadOnlyList<string> Permissions { get; }
 
     bool HasPermission(string permission);

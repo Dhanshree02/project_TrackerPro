@@ -55,7 +55,6 @@ import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 import { fetchEmployees, type ApiEmployeeListItem } from "@/lib/api/employees";
-import { useWidgetPermissions } from "@/lib/rbac/widget-permissions";
 
 // Helper function for consistent date formatting in DD/MM/YYYY (date/month/year)
 function formatDate(dateInput: Date | string | undefined | null): string {
@@ -398,7 +397,6 @@ function ProjectDetail() {
   const {
     user,
     isDhanshree,
-    isExecutive,
     isEmployee,
     isPmFamily,
     isPmoFamily,
@@ -521,28 +519,16 @@ function ProjectDetail() {
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
   const [invoiceNumberInput, setInvoiceNumberInput] = useState("");
-
-  const { canViewSubmodule, canView } = useWidgetPermissions();
-  // Dynamically resolve visible tabs against live RBAC permissions
-  const visibleTabs: Tab[] = useMemo(() => {
-    if (isDhanshree || isExecutive) return [...tabs];
-    const permitted: Tab[] = [];
-    if (canViewSubmodule("projects.overview") || canView("projects.overview.budget")) permitted.push("Overview");
-    if (canViewSubmodule("projects.wbs") || canView("projects.wbs.billing_info")) permitted.push("WBS");
-    if (canViewSubmodule("projects.health") || canView("projects.health.issues")) permitted.push("Health");
-    if (canViewSubmodule("projects.task") || canView("projects.task.management")) permitted.push("Tasks");
-    if (canViewSubmodule("projects.team") || canView("projects.team.allocation")) permitted.push("Team");
-    if (canViewSubmodule("projects.invoice") || canView("projects.invoice.management")) permitted.push("Invoices");
-    if (permitted.length > 0) return permitted;
-    return isEmployee
-      ? ["Team", "Tasks", "Health"]
-      : isPmFamily
-        ? tabs.filter((t) => t !== "Invoices")
-        : isAccounts
-          ? ["Overview", "WBS", "Invoices"]
-          : [...tabs];
-  }, [isDhanshree, isExecutive, isEmployee, isPmFamily, isAccounts, canViewSubmodule, canView]);
-
+  // Employees only get Team / Tasks / Health — every other submodule is hidden.
+  // PM family get everything except Invoices.
+  // Accounts: Overview, WBS, Invoices only.
+  const visibleTabs: Tab[] = isEmployee
+    ? ["Team", "Tasks", "Health"]
+    : isPmFamily
+      ? tabs.filter((t) => t !== "Invoices")
+      : isAccounts
+        ? ["Overview", "WBS", "Invoices"]
+        : [...tabs];
   const useDhWorkspace = isDhanshree || isPmFamily || isPmoFamily || isSales;
   const invoiceEditable = isDhanshree || isAccounts;
   const invoicePmoColumns = isPmoFamily;
@@ -560,8 +546,6 @@ function ProjectDetail() {
     }
     return isEmployee ? "Team" : "Overview";
   });
-
-  const activeTab = visibleTabs.includes(tab) ? tab : (visibleTabs[0] || "Overview");
 
   const [closureErrorModalOpen, setClosureErrorModalOpen] = useState(false);
   const [closureErrors, setClosureErrors] = useState<{
@@ -998,13 +982,13 @@ function ProjectDetail() {
               onClick={() => setTab(t)}
               className={cn(
                 "relative px-3.5 py-3 text-[13px] font-medium transition-colors",
-                activeTab === t
+                tab === t
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
               {t}
-              {activeTab === t && (
+              {tab === t && (
                 <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
               )}
             </button>
@@ -1012,7 +996,7 @@ function ProjectDetail() {
         </div>
 
         <div className="p-5">
-          {activeTab === "Overview" && (
+          {tab === "Overview" && (
             <OverviewTab
               project={project}
               client={client}
@@ -1023,7 +1007,7 @@ function ProjectDetail() {
             />
           )}
 
-          {activeTab === "WBS" && (
+          {tab === "WBS" && (
             <WbsTab
               project={project}
               client={client}
@@ -1049,23 +1033,23 @@ function ProjectDetail() {
             />
           )}
 
-          {activeTab === "Health" && <HealthTab project={project} />}
+          {tab === "Health" && <HealthTab project={project} />}
 
-          {activeTab === "Tasks" &&
+          {tab === "Tasks" &&
             (useDhWorkspace ? (
               <DhTasksTab project={project} readOnly={isViewOnly || isSales} />
             ) : (
               <DefaultTasksTab project={project} />
             ))}
 
-          {activeTab === "Team" &&
+          {tab === "Team" &&
             (useDhWorkspace ? (
               <DhTeamTab project={project} readOnly={isViewOnly || isSales} />
             ) : (
               <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />
             ))}
 
-          {activeTab === "Invoices" && (
+          {tab === "Invoices" && (
             <div className="space-y-4">
               {showPoDocumentPanel && poFileName && (
                 <PoDocumentPanel
@@ -1265,27 +1249,27 @@ function ProjectDetail() {
 
               {/* Project Closure Section */}
               {(isDhanshree || isAccounts) && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm mt-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Project closure requires all 4 project stages to be completed and all invoice payments to be received.</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleProjectClosure}
-                    disabled={project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold shadow-sm transition-all",
-                      project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"
-                        ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                        : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer"
-                    )}
-                  >
-                    <Archive className="h-4 w-4" />
-                    {project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived" ? "Project Archived" : "Project Closure"}
-                  </button>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm mt-4">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Project closure requires all 4 project stages to be completed and all invoice payments to be received.</span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleProjectClosure}
+                  disabled={project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold shadow-sm transition-all",
+                    project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"
+                      ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer"
+                  )}
+                >
+                  <Archive className="h-4 w-4" />
+                  {project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived" ? "Project Archived" : "Project Closure"}
+                </button>
+              </div>
               )}
             </div>
           )}
@@ -2074,7 +2058,7 @@ function OverviewTab({
           })),
         );
       })
-      .catch(() => { });
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -3513,18 +3497,18 @@ function applyPersistedTasks(folders: ServiceFolder[], tasks: ApiProjectTask[]):
     ...svc,
     quarters: svc.quarters
       ? svc.quarters.map((q) => ({
-        ...q,
-        aps: q.aps.map((ap) => ({
-          ...ap,
-          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, q.label, ap.label)),
-        })),
-      }))
+          ...q,
+          aps: q.aps.map((ap) => ({
+            ...ap,
+            tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, q.label, ap.label)),
+          })),
+        }))
       : null,
     aps: svc.aps
       ? svc.aps.map((ap) => ({
-        ...ap,
-        tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, "", ap.label)),
-      }))
+          ...ap,
+          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, "", ap.label)),
+        }))
       : null,
   }));
 }
@@ -4017,12 +4001,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                 if (useApiTasks && t.dbId) {
                                                   setDbTasks((prev) => prev.map((row) => row.id === t.dbId
                                                     ? {
-                                                      ...row,
-                                                      actualStartDate: newStart,
-                                                      actualEndDate: autoEndDate || row.actualEndDate,
-                                                      stage: nextStage,
-                                                      utilizedHours: nextStage === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0,
-                                                    }
+                                                        ...row,
+                                                        actualStartDate: newStart,
+                                                        actualEndDate: autoEndDate || row.actualEndDate,
+                                                        stage: nextStage,
+                                                        utilizedHours: nextStage === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0,
+                                                      }
                                                     : row));
                                                   updateProjectTask(project.id, t.dbId, {
                                                     actualStartDate: newStart || null,
@@ -4031,12 +4015,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                   }).then((saved) => {
                                                     setDbTasks((prev) => prev.map((row) => row.id === t.dbId
                                                       ? {
-                                                        ...row,
-                                                        actualStartDate: (saved.actualStartDate || "").slice(0, 10),
-                                                        actualEndDate: (saved.actualEndDate || "").slice(0, 10),
-                                                        stage: saved.stage,
-                                                        utilizedHours: saved.utilizedHours,
-                                                      }
+                                                          ...row,
+                                                          actualStartDate: (saved.actualStartDate || "").slice(0, 10),
+                                                          actualEndDate: (saved.actualEndDate || "").slice(0, 10),
+                                                          stage: saved.stage,
+                                                          utilizedHours: saved.utilizedHours,
+                                                        }
                                                       : row));
                                                   }).catch((err) => toast.error(err instanceof Error ? err.message : "Could not save start date"));
                                                   return;
@@ -4081,70 +4065,70 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                         <td className="px-3 py-2 align-middle text-center">
                                           <div className="flex items-center justify-center h-8">
                                             {!readOnly && (
-                                              <button
-                                                onClick={async () => {
-                                                  if (useApiTasks && t.dbId) {
-                                                    try {
-                                                      const [resources, history] = await Promise.all([
-                                                        fetchAssignableTaskResources(project.id, t.dbId),
-                                                        fetchTaskAssignmentHistory(project.id, t.dbId),
-                                                      ]);
-                                                      setAssignHistory(history);
-                                                      dhStore.registerPeople(resources.map((r) => ({
+                                            <button
+                                              onClick={async () => {
+                                                if (useApiTasks && t.dbId) {
+                                                  try {
+                                                    const [resources, history] = await Promise.all([
+                                                      fetchAssignableTaskResources(project.id, t.dbId),
+                                                      fetchTaskAssignmentHistory(project.id, t.dbId),
+                                                    ]);
+                                                    setAssignHistory(history);
+                                                    dhStore.registerPeople(resources.map((r) => ({
+                                                      id: r.employeeId,
+                                                      name: r.employeeName,
+                                                      role: r.employeeRole || "Team Member",
+                                                      email: "",
+                                                    })));
+                                                    setApiPool(resources.map((r) => ({
+                                                      person: {
                                                         id: r.employeeId,
                                                         name: r.employeeName,
                                                         role: r.employeeRole || "Team Member",
+                                                        avatar: r.employeeName.slice(0, 2).toUpperCase(),
                                                         email: "",
-                                                      })));
-                                                      setApiPool(resources.map((r) => ({
-                                                        person: {
-                                                          id: r.employeeId,
-                                                          name: r.employeeName,
-                                                          role: r.employeeRole || "Team Member",
-                                                          avatar: r.employeeName.slice(0, 2).toUpperCase(),
-                                                          email: "",
-                                                        },
-                                                        isProjectTeam: r.teamType !== "Shadow Team",
-                                                        isShadowTeam: r.teamType === "Shadow Team",
-                                                      })));
-                                                      const selectedIds = resources.filter((r) => r.isAssigned).map((r) => r.employeeId);
-                                                      setDbTasks((prev) => prev.map((row) => {
-                                                        if (row.id !== t.dbId) return row;
-                                                        const previous = new Map((row.assignments ?? []).map((a) => [a.employeeId, a]));
-                                                        return {
-                                                          ...row,
-                                                          assignments: resources.filter((r) => r.isAssigned).map((r) => {
-                                                            const kept = previous.get(r.employeeId);
-                                                            return {
-                                                              id: kept?.id || r.employeeId,
-                                                              taskId: t.dbId!,
-                                                              employeeId: r.employeeId,
-                                                              employeeName: r.employeeName,
-                                                              employeeCode: r.employeeCode,
-                                                              workEmail: kept?.workEmail || "",
-                                                              role: r.employeeRole || kept?.role || "Contributor",
-                                                              allocatedHours: kept?.allocatedHours,
-                                                              utilizedHours: kept?.utilizedHours ?? 0,
-                                                              timerAccumulatedSeconds: kept?.timerAccumulatedSeconds ?? 0,
-                                                              isTimerRunning: kept?.isTimerRunning ?? false,
-                                                              currentElapsedSeconds: kept?.currentElapsedSeconds ?? 0,
-                                                              isActive: true,
-                                                            };
-                                                          }),
-                                                        };
-                                                      }));
-                                                      setAssignFor({ ...t, assigneeIds: selectedIds });
-                                                    } catch (err) {
-                                                      toast.error(err instanceof Error ? err.message : "Could not load team members");
-                                                    }
-                                                    return;
+                                                      },
+                                                      isProjectTeam: r.teamType !== "Shadow Team",
+                                                      isShadowTeam: r.teamType === "Shadow Team",
+                                                    })));
+                                                    const selectedIds = resources.filter((r) => r.isAssigned).map((r) => r.employeeId);
+                                                    setDbTasks((prev) => prev.map((row) => {
+                                                      if (row.id !== t.dbId) return row;
+                                                      const previous = new Map((row.assignments ?? []).map((a) => [a.employeeId, a]));
+                                                      return {
+                                                        ...row,
+                                                        assignments: resources.filter((r) => r.isAssigned).map((r) => {
+                                                          const kept = previous.get(r.employeeId);
+                                                          return {
+                                                            id: kept?.id || r.employeeId,
+                                                            taskId: t.dbId!,
+                                                            employeeId: r.employeeId,
+                                                            employeeName: r.employeeName,
+                                                            employeeCode: r.employeeCode,
+                                                            workEmail: kept?.workEmail || "",
+                                                            role: r.employeeRole || kept?.role || "Contributor",
+                                                            allocatedHours: kept?.allocatedHours,
+                                                            utilizedHours: kept?.utilizedHours ?? 0,
+                                                            timerAccumulatedSeconds: kept?.timerAccumulatedSeconds ?? 0,
+                                                            isTimerRunning: kept?.isTimerRunning ?? false,
+                                                            currentElapsedSeconds: kept?.currentElapsedSeconds ?? 0,
+                                                            isActive: true,
+                                                          };
+                                                        }),
+                                                      };
+                                                    }));
+                                                    setAssignFor({ ...t, assigneeIds: selectedIds });
+                                                  } catch (err) {
+                                                    toast.error(err instanceof Error ? err.message : "Could not load team members");
                                                   }
-                                                  setAssignFor(t);
-                                                }}
-                                                className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
-                                              >
-                                                <UserPlus className="h-3.5 w-3.5" /> Assign
-                                              </button>
+                                                  return;
+                                                }
+                                                setAssignFor(t);
+                                              }}
+                                              className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
+                                            >
+                                              <UserPlus className="h-3.5 w-3.5" /> Assign
+                                            </button>
                                             )}
                                           </div>
                                         </td>
@@ -4166,12 +4150,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                     updateTaskStage(project.id, t.dbId, v).then((saved) => {
                                                       setDbTasks((prev) => prev.map((row) => row.id === t.dbId
                                                         ? {
-                                                          ...row,
-                                                          stage: saved.stage,
-                                                          utilizedHours: saved.utilizedHours,
-                                                          actualStartDate: (saved.actualStartDate || row.actualStartDate || "").slice(0, 10),
-                                                          actualEndDate: (saved.actualEndDate || row.actualEndDate || "").slice(0, 10),
-                                                        }
+                                                            ...row,
+                                                            stage: saved.stage,
+                                                            utilizedHours: saved.utilizedHours,
+                                                            actualStartDate: (saved.actualStartDate || row.actualStartDate || "").slice(0, 10),
+                                                            actualEndDate: (saved.actualEndDate || row.actualEndDate || "").slice(0, 10),
+                                                          }
                                                         : row));
                                                     }).catch((err) => {
                                                       toast.error(err instanceof Error ? err.message : "Could not update stage");
@@ -4248,7 +4232,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
 
             dhStore.assignResourcesToTreeTask(project.id, assignFor.id, ids, taskTitle, dueDate, "medium");
             ids.forEach((resId) => {
-              addTaskAssignment(project.id, assignFor.id, { resourceId: resId, role: "Member" }).catch(() => { });
+              addTaskAssignment(project.id, assignFor.id, { resourceId: resId, role: "Member" }).catch(() => {});
             });
             toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
             setAssignFor(null);
@@ -4723,12 +4707,12 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
           ))}
         </div>
         {!readOnly && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-3.5 w-3.5" /> Add Team Member
-          </button>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-3.5 w-3.5" /> Add Team Member
+        </button>
         )}
       </div>
       <div className="rounded-lg border border-border overflow-x-auto">
@@ -4809,33 +4793,33 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                     <button title="View" onClick={() => setAction({ type: "view", person: r.person })}
                       className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Eye className="h-3.5 w-3.5" /></button>
                     {!readOnly && (
-                      <>
-                        <button title="Edit" onClick={() => setAction({ type: "edit", person: r.person })}
-                          className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
-                        <button title="Remove" onClick={() => setAction({ type: "remove", person: r.person })}
-                          className="rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
-                        <button
-                          title="More"
-                          onClick={(e) => {
-                            if (menuOpen === r.person.id) {
-                              setMenuOpen(null);
-                              setMenuPos(null);
-                              return;
-                            }
-                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                            const menuWidth = 192;
-                            const menuHeight = teamTab === "project" && isWbsCreated ? 168 : 132;
-                            const openUp = rect.bottom + menuHeight > window.innerHeight - 8;
-                            const top = openUp ? Math.max(8, rect.top - menuHeight - 4) : rect.bottom + 4;
-                            const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
-                            setMenuPos({ top, left });
-                            setMenuOpen(r.person.id);
-                          }}
-                          className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"
-                        >
-                          <MoreHorizontal className="h-3.5 w-3.5" />
-                        </button>
-                      </>
+                    <>
+                    <button title="Edit" onClick={() => setAction({ type: "edit", person: r.person })}
+                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button title="Remove" onClick={() => setAction({ type: "remove", person: r.person })}
+                      className="rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button
+                      title="More"
+                      onClick={(e) => {
+                        if (menuOpen === r.person.id) {
+                          setMenuOpen(null);
+                          setMenuPos(null);
+                          return;
+                        }
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        const menuWidth = 192;
+                        const menuHeight = teamTab === "project" && isWbsCreated ? 168 : 132;
+                        const openUp = rect.bottom + menuHeight > window.innerHeight - 8;
+                        const top = openUp ? Math.max(8, rect.top - menuHeight - 4) : rect.bottom + 4;
+                        const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+                        setMenuPos({ top, left });
+                        setMenuOpen(r.person.id);
+                      }}
+                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </button>
+                    </>
                     )}
                     {menuOpen === r.person.id && menuPos && (
                       <div
@@ -5200,11 +5184,11 @@ function TeamActionModal({
               onClick={() => onSaveEdit(teamType === "shadow"
                 ? { duration: editState.duration, billability: "Non-Billable", resourceType: "Shared Resource" }
                 : {
-                  billability: editState.billability,
-                  resourceType: editState.resourceType,
-                  duration: editState.duration,
-                  ...(canSetTeamLead ? { isTeamLead: editState.asTeamLead } : {}),
-                }
+                    billability: editState.billability,
+                    resourceType: editState.resourceType,
+                    duration: editState.duration,
+                    ...(canSetTeamLead ? { isTeamLead: editState.asTeamLead } : {}),
+                  }
               )}
               className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
@@ -5387,12 +5371,12 @@ function AddTeamMemberModal({
 
     const selectedPerson = useApiResources && selectedCandidate
       ? {
-        id: selectedCandidate.id,
-        name: selectedCandidate.fullName,
-        role: selectedCandidate.role || selectedCandidate.designation || "Team Member",
-        avatar: selectedCandidate.fullName.slice(0, 2).toUpperCase(),
-        email: selectedCandidate.workEmail,
-      }
+          id: selectedCandidate.id,
+          name: selectedCandidate.fullName,
+          role: selectedCandidate.role || selectedCandidate.designation || "Team Member",
+          avatar: selectedCandidate.fullName.slice(0, 2).toUpperCase(),
+          email: selectedCandidate.workEmail,
+        }
       : getPerson(selectedPersonId);
 
     const newRow: ReturnType<typeof getProjectTeam>[number] = {
@@ -6963,8 +6947,8 @@ function getClientInfo(clientId: string, clientProp?: Client | null, subVentureN
   const svName = (subVentureName ?? "").trim();
   const matchedSv = svName
     ? client.subVentures?.find(
-      (sv: any) => sv.name.trim().toLowerCase() === svName.toLowerCase() || sv.id === svName
-    )
+        (sv: any) => sv.name.trim().toLowerCase() === svName.toLowerCase() || sv.id === svName
+      )
     : client.subVentures?.[0];
 
   let contacts: any[] = [];
@@ -7268,8 +7252,8 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
                 </div>
                 <div className={cn("grid gap-2",
                   subVentureContacts.slice(0, 3).length === 1 ? "grid-cols-1 max-w-sm" :
-                    subVentureContacts.slice(0, 3).length === 2 ? "grid-cols-1 sm:grid-cols-2" :
-                      "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  subVentureContacts.slice(0, 3).length === 2 ? "grid-cols-1 sm:grid-cols-2" :
+                  "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                 )}>
                   {subVentureContacts.slice(0, 3).map((spoc: any, idx: number) => (
                     <div key={idx} className="rounded-md border border-border bg-muted/20 p-2 text-xs space-y-1">
@@ -7296,249 +7280,249 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
 
           {/* PM/SPM ASSIGNMENT FLOW */}
           {!isSales && (
-            <div className="lg:col-span-5 xl:col-span-4 rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 border-b border-border pb-2">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-purple-500/20 text-xs font-semibold text-purple-600">2</span>
-                  <h4 className="text-xs font-bold text-gray-800">Project Allocation</h4>
-                </div>
-
-                <div className="space-y-2.5 text-xs leading-relaxed">
-                  <div>
-                    <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Project Managers</p>
-                    <div className="flex flex-wrap gap-1.5" key={`pm-${Object.keys(knownPeople).length}`}>
-                      {prereq.assignedPmIds.map((id) => {
-                        const p = getPerson(id);
-                        return (
-                          <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
-                            <Avatar name={p.name} size={14} /> {p.name}
-                          </span>
-                        );
-                      })}
-                      {prereq.assignedPmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Senior PMs</p>
-                    <div className="flex flex-wrap gap-1.5" key={`spm-${Object.keys(knownPeople).length}`}>
-                      {prereq.assignedSpmIds.map((id) => {
-                        const p = getPerson(id);
-                        return (
-                          <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
-                            <Avatar name={p.name} size={14} /> {p.name}
-                          </span>
-                        );
-                      })}
-                      {prereq.assignedSpmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
-                    </div>
-                  </div>
-                </div>
+          <div className="lg:col-span-5 xl:col-span-4 rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 border-b border-border pb-2">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-purple-500/20 text-xs font-semibold text-purple-600">2</span>
+                <h4 className="text-xs font-bold text-gray-800">Project Allocation</h4>
               </div>
 
-              <div className="space-y-2 pt-2 border-t border-border/50">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setAssignModalMode("pm")}
-                    disabled={!canShowAssignment || isViewOnly}
-                    className={cn(
-                      "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-                      canShowAssignment
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                    )}
-                  >
-                    <UserPlus className="h-3.5 w-3.5" /> Assign PM
-                  </button>
-                  <button
-                    onClick={() => setAssignModalMode("spm")}
-                    disabled={!canShowAssignment || isViewOnly}
-                    className={cn(
-                      "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-                      canShowAssignment
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                    )}
-                  >
-                    <UserPlus className="h-3.5 w-3.5" /> Assign SPM
-                  </button>
+              <div className="space-y-2.5 text-xs leading-relaxed">
+                <div>
+                  <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Project Managers</p>
+                  <div className="flex flex-wrap gap-1.5" key={`pm-${Object.keys(knownPeople).length}`}>
+                    {prereq.assignedPmIds.map((id) => {
+                      const p = getPerson(id);
+                      return (
+                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
+                          <Avatar name={p.name} size={14} /> {p.name}
+                        </span>
+                      );
+                    })}
+                    {prereq.assignedPmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
+                  </div>
                 </div>
-                {!canShowAssignment && (
-                  <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
-                )}
+
+                <div>
+                  <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Senior PMs</p>
+                  <div className="flex flex-wrap gap-1.5" key={`spm-${Object.keys(knownPeople).length}`}>
+                    {prereq.assignedSpmIds.map((id) => {
+                      const p = getPerson(id);
+                      return (
+                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
+                          <Avatar name={p.name} size={14} /> {p.name}
+                        </span>
+                      );
+                    })}
+                    {prereq.assignedSpmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
+                  </div>
+                </div>
               </div>
             </div>
+
+            <div className="space-y-2 pt-2 border-t border-border/50">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setAssignModalMode("pm")}
+                  disabled={!canShowAssignment || isViewOnly}
+                  className={cn(
+                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                    canShowAssignment
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                  )}
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Assign PM
+                </button>
+                <button
+                  onClick={() => setAssignModalMode("spm")}
+                  disabled={!canShowAssignment || isViewOnly}
+                  className={cn(
+                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                    canShowAssignment
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                  )}
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Assign SPM
+                </button>
+              </div>
+              {!canShowAssignment && (
+                <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
+              )}
+            </div>
+          </div>
           )}
         </div>
 
         {/* STEP 3 & 4: SERVICE WISE TRACKING TABLE */}
         {!isSales && (
-          <div className="grid gap-4 md:grid-cols-3 mb-4">
-            <div className="md:col-span-4 rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
-              <div className="flex items-center gap-2 border-b border-border pb-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-xs font-semibold text-orange-600">3</span>
-                <h4 className="text-sm font-bold text-gray-800">Service wise Prerequisite Tracking</h4>
-              </div>
-
-              <div className="overflow-x-auto rounded-md border border-border bg-card">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/40 uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-bold text-center">Service Name</th>
-                      <th className="px-3 py-2 font-bold text-center">Collection Status</th>
-                      <th className="px-3 py-2 font-bold text-center">Validation Status</th>
-                      <th className="px-3 py-2 font-bold text-center">Billing Status</th>
-                      <th className="px-3 py-2 font-bold text-center">Ready to Start</th>
-                      <th className="px-3 py-2 font-bold text-center">Escalation</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {servicesList.map((svc) => {
-                      const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === svc.serviceId);
-                      const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
-
-                      const isCollected = isResourceDept ? true : svc.collectionStatus === "Collected";
-                      const isValidated = isResourceDept ? true : svc.validationStatus === "Validated";
-                      const isBillingOk = svc.billingStatus === "Advance Received" || svc.billingStatus === "Advance Not Required";
-                      const canStart = isCollected && isValidated && isBillingOk;
-                      const isReady = svc.isReady ?? false;
-
-                      const svcEscalations = alerts.filter((a) => a.projectId === project.id && a.kind === "Escalation" && a.serviceName === svc.serviceName);
-                      const activeEsc = svcEscalations.find((e) => e.status !== "Resolved" && e.status !== "Closed");
-
-                      return (
-                        <tr key={svc.serviceId} className="hover:bg-accent/20">
-                          <td className="px-3 py-2.5 text-center align-middle font-semibold text-gray-800">{svc.serviceName}</td>
-                          <td className="px-3 py-2.5 text-center align-middle">
-                            <select
-                              value={isResourceDept ? "NA" : svc.collectionStatus}
-                              disabled={isResourceDept}
-                              onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
-                              className={cn(
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                                isResourceDept
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                                  : svc.collectionStatus === "Collected"
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                              )}
-                            >
-                              {isResourceDept ? (
-                                <option value="NA">NA</option>
-                              ) : (
-                                <>
-                                  <option value="Pending To Collect">Pending To Collect</option>
-                                  <option value="Collected">Collected</option>
-                                </>
-                              )}
-                            </select>
-                          </td>
-                          <td className="px-3 py-2.5 text-center align-middle">
-                            <select
-                              value={isResourceDept ? "NA" : svc.validationStatus}
-                              disabled={isResourceDept || !isCollected}
-                              onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
-                              className={cn(
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                                (isResourceDept || !isCollected)
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                                  : svc.validationStatus === "Validated"
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                              )}
-                            >
-                              {isResourceDept ? (
-                                <option value="NA">NA</option>
-                              ) : (
-                                <>
-                                  <option value="Pending To Validate">Pending To Validate</option>
-                                  <option value="Validated">Validated</option>
-                                </>
-                              )}
-                            </select>
-                          </td>
-                          <td className="px-3 py-2.5 text-center align-middle">
-                            <select
-                              value={svc.billingStatus ?? "Advance Pending"}
-                              onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
-                              className={cn(
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                                svc.billingStatus === "Advance Received"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                  : svc.billingStatus === "Advance Not Required"
-                                    ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                                    : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
-                              )}
-                            >
-                              <option value="Advance Pending">Advance Pending</option>
-                              <option value="Advance Received">Advance Received</option>
-                              <option value="Advance Not Required">Advance Not Required</option>
-                            </select>
-                          </td>
-                          <td className="px-3 py-2.5 text-center align-middle">
-                            <div className="flex items-center justify-center">
-                              {isReady ? (
-                                <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
-                                  ✓ Started
-                                </span>
-                              ) : (
-                                <button
-                                  disabled={!canStart}
-                                  onClick={() => {
-                                    dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
-                                    toast.success("Service marked as Ready to Start", { description: svc.serviceName });
-                                  }}
-                                  className={cn(
-                                    "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
-                                    canStart
-                                      ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
-                                      : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
-                                  )}
-                                  title={!canStart ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Mark this service as Ready to Start"}
-                                >
-                                  Ready
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5 text-center align-middle">
-                            {activeEsc ? (
-                              <button
-                                onClick={() => {
-                                  onNavigateToHealthAlerts?.();
-                                  window.location.hash = "#health-alerts";
-                                  toast.info("Active escalation details are available in Health → Alerts");
-                                }}
-                                className={cn(
-                                  "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold text-white hover:opacity-90 transition-opacity",
-                                  activeEsc.priority === "Critical" ? "bg-red-600 border-red-700" :
-                                    activeEsc.priority === "High" ? "bg-amber-600 border-amber-700" : "bg-blue-600 border-blue-700"
-                                )}
-                                title="Click to view details in Health tab"
-                              >
-                                ⚠️ {activeEsc.status} ({activeEsc.priority})
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setEscalationModalSvc(svc);
-                                  setEscalationModalOpen(true);
-                                }}
-                                className="inline-flex items-center gap-1 rounded-md bg-destructive text-white hover:bg-destructive/90 px-2 py-0.5 text-[9px] font-bold transition-colors cursor-pointer"
-                              >
-                                Raise Escalation
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+        <div className="grid gap-4 md:grid-cols-3 mb-4">
+          <div className="md:col-span-4 rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 border-b border-border pb-2">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-xs font-semibold text-orange-600">3</span>
+              <h4 className="text-sm font-bold text-gray-800">Service wise Prerequisite Tracking</h4>
             </div>
 
+            <div className="overflow-x-auto rounded-md border border-border bg-card">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40 uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 font-bold text-center">Service Name</th>
+                    <th className="px-3 py-2 font-bold text-center">Collection Status</th>
+                    <th className="px-3 py-2 font-bold text-center">Validation Status</th>
+                    <th className="px-3 py-2 font-bold text-center">Billing Status</th>
+                    <th className="px-3 py-2 font-bold text-center">Ready to Start</th>
+                    <th className="px-3 py-2 font-bold text-center">Escalation</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {servicesList.map((svc) => {
+                    const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === svc.serviceId);
+                    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+
+                    const isCollected = isResourceDept ? true : svc.collectionStatus === "Collected";
+                    const isValidated = isResourceDept ? true : svc.validationStatus === "Validated";
+                    const isBillingOk = svc.billingStatus === "Advance Received" || svc.billingStatus === "Advance Not Required";
+                    const canStart = isCollected && isValidated && isBillingOk;
+                    const isReady = svc.isReady ?? false;
+
+                    const svcEscalations = alerts.filter((a) => a.projectId === project.id && a.kind === "Escalation" && a.serviceName === svc.serviceName);
+                    const activeEsc = svcEscalations.find((e) => e.status !== "Resolved" && e.status !== "Closed");
+
+                    return (
+                      <tr key={svc.serviceId} className="hover:bg-accent/20">
+                        <td className="px-3 py-2.5 text-center align-middle font-semibold text-gray-800">{svc.serviceName}</td>
+                        <td className="px-3 py-2.5 text-center align-middle">
+                          <select
+                            value={isResourceDept ? "NA" : svc.collectionStatus}
+                            disabled={isResourceDept}
+                            onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
+                            className={cn(
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                              isResourceDept
+                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                : svc.collectionStatus === "Collected"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                            )}
+                          >
+                            {isResourceDept ? (
+                              <option value="NA">NA</option>
+                            ) : (
+                              <>
+                                <option value="Pending To Collect">Pending To Collect</option>
+                                <option value="Collected">Collected</option>
+                              </>
+                            )}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2.5 text-center align-middle">
+                          <select
+                            value={isResourceDept ? "NA" : svc.validationStatus}
+                            disabled={isResourceDept || !isCollected}
+                            onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
+                            className={cn(
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                              (isResourceDept || !isCollected)
+                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                : svc.validationStatus === "Validated"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                            )}
+                          >
+                            {isResourceDept ? (
+                              <option value="NA">NA</option>
+                            ) : (
+                              <>
+                                <option value="Pending To Validate">Pending To Validate</option>
+                                <option value="Validated">Validated</option>
+                              </>
+                            )}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2.5 text-center align-middle">
+                          <select
+                            value={svc.billingStatus ?? "Advance Pending"}
+                            onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
+                            className={cn(
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                              svc.billingStatus === "Advance Received"
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                : svc.billingStatus === "Advance Not Required"
+                                  ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                  : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                            )}
+                          >
+                            <option value="Advance Pending">Advance Pending</option>
+                            <option value="Advance Received">Advance Received</option>
+                            <option value="Advance Not Required">Advance Not Required</option>
+                          </select>
+                        </td>
+                        <td className="px-3 py-2.5 text-center align-middle">
+                          <div className="flex items-center justify-center">
+                            {isReady ? (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
+                                ✓ Started
+                              </span>
+                            ) : (
+                              <button
+                                disabled={!canStart}
+                                onClick={() => {
+                                  dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
+                                  toast.success("Service marked as Ready to Start", { description: svc.serviceName });
+                                }}
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
+                                  canStart
+                                    ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
+                                    : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
+                                )}
+                                title={!canStart ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Mark this service as Ready to Start"}
+                              >
+                                Ready
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-center align-middle">
+                          {activeEsc ? (
+                            <button
+                              onClick={() => {
+                                onNavigateToHealthAlerts?.();
+                                window.location.hash = "#health-alerts";
+                                toast.info("Active escalation details are available in Health → Alerts");
+                              }}
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold text-white hover:opacity-90 transition-opacity",
+                                activeEsc.priority === "Critical" ? "bg-red-600 border-red-700" :
+                                  activeEsc.priority === "High" ? "bg-amber-600 border-amber-700" : "bg-blue-600 border-blue-700"
+                              )}
+                              title="Click to view details in Health tab"
+                            >
+                              ⚠️ {activeEsc.status} ({activeEsc.priority})
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setEscalationModalSvc(svc);
+                                setEscalationModalOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-md bg-destructive text-white hover:bg-destructive/90 px-2 py-0.5 text-[9px] font-bold transition-colors cursor-pointer"
+                            >
+                              Raise Escalation
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+        </div>
         )}
       </div>
 

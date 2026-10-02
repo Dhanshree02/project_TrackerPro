@@ -28,7 +28,6 @@ interface RoleContextValue {
   isHOD: boolean;
   isBO: boolean;
   isDhanshree: boolean;
-  isExecutive: boolean;
   isEmployee: boolean;
   isHr: boolean;
   isProjectManager: boolean;
@@ -207,21 +206,21 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const user =
     authUser && status === "authed"
       ? {
-        id: authUser.id,
-        name: authUser.name,
-        role: backendRole,
-        avatar: authUser.name ? initialsOf(authUser.name) : "?",
-        email: authUser.email,
-      }
+          id: authUser.id,
+          name: authUser.name,
+          role: backendRole,
+          avatar: authUser.name ? initialsOf(authUser.name) : "?",
+          email: authUser.email,
+        }
       : getPerson(userByRole[role]);
 
   const isDhanshree =
     !!authUser &&
     status === "authed" &&
-    (backendRole === "Admin" ||
-      backendRole === "Dhanshree" ||
-      role === "Admin" ||
-      role === "dhanshree");
+    (backendRole === "CEO" ||
+      backendRole === "COO" ||
+      backendRole === "Admin" ||
+      backendRole === "Dhanshree");
 
   const isAdmin =
     role === "Admin" ||
@@ -231,18 +230,10 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     backendRole?.toLowerCase() === "admin" ||
     backendRole?.toLowerCase() === "dhanshree";
 
-  const isExecutive =
-    role === "CEO" ||
-    role === "COO" ||
-    role === "CTO" ||
-    (!!authUser &&
-      status === "authed" &&
-      (backendRole === "CEO" || backendRole === "COO" || backendRole === "CTO"));
-
   const isBO =
     !!authUser &&
     status === "authed" &&
-    backendRole === "BusinessOwner";
+    (backendRole === "CEO" || backendRole === "COO" || backendRole === "BusinessOwner");
 
   const isHOD =
     !!authUser &&
@@ -433,14 +424,14 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const pendingTimesheets = isEmployee
     ? timesheets.filter((t) => t.userId === employeePersonId && t.status === "submitted")
     : timesheets.filter((t) => {
-      if (t.status !== "submitted") return isPMO ? true : false;
-      if (isPMO || isExecutive) return true;
-      if (isHOD) return t.userRole === "Senior PM" || t.userRole === "EM";
-      if (isBO) return false;
-      if (isDhanshree)
-        return t.userRole === "PM" || t.userRole === "TL" || t.userRole === "Employee";
-      return t.userRole === "PM";
-    });
+        if (t.status !== "submitted") return isPMO ? true : false;
+        if (isPMO) return true;
+        if (isHOD) return t.userRole === "Senior PM" || t.userRole === "EM";
+        if (isBO) return false;
+        if (isDhanshree)
+          return t.userRole === "PM" || t.userRole === "TL" || t.userRole === "Employee";
+        return t.userRole === "PM";
+      });
 
   const { hasPermission } = usePermissions();
   const [roleOverrides, setRoleOverrides] = useState<Partial<Record<Role, PermissionKey[]>>>(() => {
@@ -517,7 +508,6 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         isHOD,
         isBO,
         isDhanshree,
-        isExecutive,
         isEmployee,
         isHr,
         isProjectManager,

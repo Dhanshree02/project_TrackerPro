@@ -20,14 +20,6 @@ public class AppDbContext(
 
     public DbSet<Role> Roles => Set<Role>();
 
-    public DbSet<MstModule> Modules => Set<MstModule>();
-
-    public DbSet<MstSubmodule> Submodules => Set<MstSubmodule>();
-
-    public DbSet<MstWidget> Widgets => Set<MstWidget>();
-
-    public DbSet<RoleWidgetPermission> RoleWidgetPermissions => Set<RoleWidgetPermission>();
-
     public DbSet<RolePermissionAudit> RolePermissionAudits => Set<RolePermissionAudit>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
