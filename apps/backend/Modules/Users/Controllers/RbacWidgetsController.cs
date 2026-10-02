@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Modules.Users.DTOs;
 using PMS.API.Modules.Users.Services;
+using PMS.API.Shared.Common.Wrappers;
 
 namespace PMS.API.Modules.Users.Controllers;
 
@@ -16,14 +17,14 @@ public class RbacWidgetsController(
     public async Task<IActionResult> GetCatalogTree([FromQuery] Guid? roleId, CancellationToken ct)
     {
         var tree = await rbacService.GetCatalogTreeAsync(roleId, ct);
-        return Ok(tree);
+        return Ok(ApiResponse<List<ModuleCatalogDto>>.Ok(tree));
     }
 
     [HttpGet("roles/{roleId:guid}/permissions")]
     public async Task<IActionResult> GetRolePermissions(Guid roleId, CancellationToken ct)
     {
         var permissions = await rbacService.GetRolePermissionsAsync(roleId, ct);
-        return Ok(permissions);
+        return Ok(ApiResponse<List<RoleWidgetPermissionDto>>.Ok(permissions));
     }
 
     [HttpPut("roles/{roleId:guid}/permissions")]
@@ -34,7 +35,7 @@ public class RbacWidgetsController(
         CancellationToken ct)
     {
         await rbacService.UpdateRolePermissionsAsync(roleId, dto, currentUser.UserId, ct);
-        return Ok(new { message = "Role permissions updated successfully." });
+        return Ok(ApiResponse<string>.Ok("Role permissions updated successfully."));
     }
 
     [HttpPost("roles/{roleId:guid}/reset-baseline")]
@@ -42,7 +43,7 @@ public class RbacWidgetsController(
     public async Task<IActionResult> ResetRoleBaseline(Guid roleId, CancellationToken ct)
     {
         await rbacService.ResetRoleBaselineAsync(roleId, currentUser.UserId, ct);
-        return Ok(new { message = "Role permissions reset to baseline successfully." });
+        return Ok(ApiResponse<string>.Ok("Role permissions reset to baseline successfully."));
     }
 
     [HttpGet("permissions/my")]
@@ -58,6 +59,8 @@ public class RbacWidgetsController(
             kv => new { canView = kv.Value.CanView, canManage = kv.Value.CanManage }
         );
 
-        return Ok(response);
+        return Ok(ApiResponse<Dictionary<string, object>>.Ok(
+            response.ToDictionary(kv => kv.Key, kv => (object)kv.Value)
+        ));
     }
 }

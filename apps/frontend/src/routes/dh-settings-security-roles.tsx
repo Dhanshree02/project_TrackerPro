@@ -338,11 +338,13 @@ function ModuleAccessTab() {
     fetchRbacCatalogTree(selectedRoleId)
       .then((tree) => {
         if (cancelled) return;
-        setCatalogTree(tree);
+        const safeTree = Array.isArray(tree) ? tree : [];
+        setCatalogTree(safeTree);
 
         // Build flat permission map
         const map: Record<string, EditablePermission> = {};
-        const collectWidgets = (widgets: WidgetCatalogItemDto[]) => {
+        const collectWidgets = (widgets?: WidgetCatalogItemDto[]) => {
+          if (!widgets) return;
           for (const w of widgets) {
             map[w.widgetKey] = {
               widgetId: w.id,
@@ -354,11 +356,11 @@ function ModuleAccessTab() {
           }
         };
 
-        for (const mod of tree) {
+        for (const mod of safeTree) {
           collectWidgets(mod.directWidgets);
-          for (const sub of mod.submodules) {
+          for (const sub of mod.submodules || []) {
             collectWidgets(sub.widgets);
-            for (const child of sub.childSubmodules) {
+            for (const child of sub.childSubmodules || []) {
               collectWidgets(child.widgets);
             }
           }
@@ -447,11 +449,12 @@ function ModuleAccessTab() {
 
     try {
       await resetRoleWidgetBaseline(selectedRoleId);
-      // Reload catalog tree
       const tree = await fetchRbacCatalogTree(selectedRoleId);
-      setCatalogTree(tree);
+      const safeTree = Array.isArray(tree) ? tree : [];
+      setCatalogTree(safeTree);
       const map: Record<string, EditablePermission> = {};
-      const collectWidgets = (widgets: WidgetCatalogItemDto[]) => {
+      const collectWidgets = (widgets?: WidgetCatalogItemDto[]) => {
+        if (!widgets) return;
         for (const w of widgets) {
           map[w.widgetKey] = {
             widgetId: w.id,
@@ -462,11 +465,11 @@ function ModuleAccessTab() {
           };
         }
       };
-      for (const mod of tree) {
+      for (const mod of safeTree) {
         collectWidgets(mod.directWidgets);
-        for (const sub of mod.submodules) {
+        for (const sub of mod.submodules || []) {
           collectWidgets(sub.widgets);
-          for (const child of sub.childSubmodules) {
+          for (const child of sub.childSubmodules || []) {
             collectWidgets(child.widgets);
           }
         }
@@ -505,7 +508,7 @@ function ModuleAccessTab() {
 
   // Grouped fallback catalog if catalogTree is empty
   const displayModules = useMemo(() => {
-    if (catalogTree.length > 0) return catalogTree;
+    if (Array.isArray(catalogTree) && catalogTree.length > 0) return catalogTree;
 
     // Convert RBAC_WIDGET_CATALOG to ModuleCatalogItemDto structure
     const modMap = new Map<string, ModuleCatalogItemDto>();
@@ -643,10 +646,10 @@ function ModuleAccessTab() {
 
             // Collect all widgets in this module for count
             const allModWidgets: WidgetCatalogItemDto[] = [
-              ...mod.directWidgets,
-              ...mod.submodules.flatMap((s) => [
-                ...s.widgets,
-                ...s.childSubmodules.flatMap((cs) => cs.widgets),
+              ...(mod.directWidgets || []),
+              ...(mod.submodules || []).flatMap((s) => [
+                ...(s.widgets || []),
+                ...(s.childSubmodules || []).flatMap((cs) => cs.widgets || []),
               ]),
             ];
 
@@ -717,7 +720,7 @@ function ModuleAccessTab() {
                     </div>
 
                     {/* Direct widgets */}
-                    {mod.directWidgets.map((w) => (
+                    {(mod.directWidgets || []).map((w) => (
                       <WidgetPermissionRow
                         key={w.widgetKey}
                         widget={w}
@@ -728,7 +731,7 @@ function ModuleAccessTab() {
                     ))}
 
                     {/* Submodules */}
-                    {mod.submodules.map((sub) => (
+                    {(mod.submodules || []).map((sub) => (
                       <div key={sub.code} className="bg-background/50">
                         <div className="px-4 py-1.5 bg-muted/15 text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
                           <span>📂 {sub.name}</span>
@@ -737,7 +740,7 @@ function ModuleAccessTab() {
                           </span>
                         </div>
 
-                        {sub.widgets.map((w) => (
+                        {(sub.widgets || []).map((w) => (
                           <WidgetPermissionRow
                             key={w.widgetKey}
                             widget={w}
@@ -749,7 +752,7 @@ function ModuleAccessTab() {
                         ))}
 
                         {/* Child submodules */}
-                        {sub.childSubmodules.map((child) => (
+                        {(sub.childSubmodules || []).map((child) => (
                           <div key={child.code}>
                             <div className="pl-8 pr-4 py-1 bg-muted/10 text-[10px] font-semibold text-muted-foreground flex items-center justify-between">
                               <span>↳ {child.name}</span>
@@ -757,7 +760,7 @@ function ModuleAccessTab() {
                                 {child.code}
                               </span>
                             </div>
-                            {child.widgets.map((w) => (
+                            {(child.widgets || []).map((w) => (
                               <WidgetPermissionRow
                                 key={w.widgetKey}
                                 widget={w}

@@ -59,8 +59,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   // Bodyless success responses (e.g. 204 No Content) carry no envelope.
-  if (result.envelope === null) return undefined as T;
-  return result.envelope.data as T;
+  if (result.envelope === null || result.envelope === undefined) return undefined as T;
+  if (typeof result.envelope === "object" && "data" in (result.envelope as Record<string, unknown>)) {
+    return (result.envelope as ApiEnvelope<T>).data as T;
+  }
+  return result.envelope as unknown as T;
 }
 
 /** Authenticated file download (Excel sample, etc.). */
