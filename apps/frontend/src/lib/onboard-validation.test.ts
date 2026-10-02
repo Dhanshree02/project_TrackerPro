@@ -77,6 +77,9 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       expect(
         validateOnboardField("address", { ...EMPTY_ONBOARD, address: "Andheri (Western Line)" }),
       ).toBeUndefined();
+      expect(
+        validateOnboardField("address", { ...EMPTY_ONBOARD, address: "101, Suvidha Square, Andheri" }),
+      ).toBe("Select a city from the list");
     });
 
     it("should require emergency contact name and phone", () => {

@@ -8,7 +8,7 @@ public sealed class ClientContactConfiguration : IEntityTypeConfiguration<Client
 {
     public void Configure(EntityTypeBuilder<ClientContactEntity> builder)
     {
-        builder.ToTable("client_contacts");
+        builder.ToTable("tbl_client_contacts", DbSchemas.Customer);
 
         builder.HasKey(c => c.Id);
         builder.HasIndex(c => c.ClientId);

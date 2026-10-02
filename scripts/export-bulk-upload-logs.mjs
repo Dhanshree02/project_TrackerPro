@@ -26,10 +26,10 @@ SELECT
     e."Id"::text AS employee_id,
     e."CreatedAtUtc"::text AS created_at_utc,
     COALESCE(u."Email", e."CreatedBy"::text, 'System Seed') AS created_by
-FROM employees e
-LEFT JOIN mst_departments d ON e."DepartmentId" = d."Id"
-LEFT JOIN mst_designations des ON e."DesignationId" = des."Id"
-LEFT JOIN users u ON e."CreatedBy" = u."Id"
+FROM resource.tbl_employees e
+LEFT JOIN master.mst_departments d ON e."DepartmentId" = d."Id"
+LEFT JOIN master.mst_designations des ON e."DesignationId" = des."Id"
+LEFT JOIN auth.tbl_users u ON e."CreatedBy" = u."Id"
 ORDER BY e."CreatedAtUtc" DESC, e."EmployeeCode" ASC;
 `;
 
@@ -44,8 +44,8 @@ SELECT
     COALESCE(l."PerformedByName", 'N/A'),
     l."Details",
     l."CreatedAtUtc"::text
-FROM employee_activity_logs l
-LEFT JOIN employees e ON l."EmployeeId" = e."Id"
+FROM resource.log_employee_activity l
+LEFT JOIN resource.tbl_employees e ON l."EmployeeId" = e."Id"
 ORDER BY l."CreatedAtUtc" DESC;
 `;
 

@@ -64,9 +64,15 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
             throw new ValidationException([new ValidationFailure("action", "Choose approve, reject, or request changes.")]);
         }
 
-        if (string.IsNullOrWhiteSpace(request.Comment))
+        var comment = request.Comment?.Trim() ?? "";
+        if (comment.Length == 0)
         {
             throw new ValidationException([new ValidationFailure("comment", "A comment is required.")]);
+        }
+
+        if (comment.Length > 200)
+        {
+            throw new ValidationException([new ValidationFailure("comment", "Comment must be 200 characters or fewer.")]);
         }
 
         var ids = request.EntryIds.Distinct().ToList();
@@ -103,7 +109,7 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
             entry.ReviewDecision = action;
         }
 
-        week.ReviewComment = request.Comment.Trim();
+        week.ReviewComment = comment;
         var open = week.Entries.Where(e => e.DeletedAtUtc == null).ToList();
         if (open.All(e => e.ReviewDecision != null))
         {
@@ -245,10 +251,27 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
 
     private async Task<Employee> RequireCallerAsync(CancellationToken ct)
     {
-        var userId = currentUser.UserId
-            ?? throw new ForbiddenException("Your user is not linked to an employee.");
-        return await db.Employees.FirstOrDefaultAsync(e => e.UserId == userId, ct)
-            ?? throw new ForbiddenException("Your user is not linked to an employee.");
+        var userId = currentUser.UserId;
+        if (userId is not null)
+        {
+            // The user switch sends the employee id. A signed-in account matches UserId.
+            var byId = await db.Employees.FirstOrDefaultAsync(e => e.Id == userId, ct);
+            if (byId is not null) return byId;
+
+            var byUser = await db.Employees.FirstOrDefaultAsync(e => e.UserId == userId, ct);
+            if (byUser is not null) return byUser;
+        }
+
+        var email = currentUser.Email;
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var normalized = email.Trim().ToLowerInvariant();
+            var byEmail = await db.Employees.FirstOrDefaultAsync(
+                e => e.WorkEmail.ToLower() == normalized, ct);
+            if (byEmail is not null) return byEmail;
+        }
+
+        throw new ForbiddenException("Your user is not linked to an employee.");
     }
 
     private static bool IsDayOpen(DateOnly weekStart, short dayIndex, DateOnly today)

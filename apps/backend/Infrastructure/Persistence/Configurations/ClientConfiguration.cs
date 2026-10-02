@@ -8,7 +8,7 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
 {
     public void Configure(EntityTypeBuilder<Client> builder)
     {
-        builder.ToTable("clients");
+        builder.ToTable("tbl_clients", DbSchemas.Customer);
 
         builder.HasKey(c => c.Id);
         builder.HasIndex(c => c.Name);
@@ -72,7 +72,7 @@ public sealed class ClientAssignmentConfiguration : IEntityTypeConfiguration<Cli
 {
     public void Configure(EntityTypeBuilder<ClientAssignment> builder)
     {
-        builder.ToTable("client_assignments");
+        builder.ToTable("tbl_client_assignments", DbSchemas.Customer);
 
         builder.HasKey(a => new { a.ClientId, a.UserId });
 

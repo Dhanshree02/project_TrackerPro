@@ -233,13 +233,31 @@ internal static class EmployeeBulkWorkbook
         if (departments.Count == 0)
             departments = ["Services - Testing", "Services - Consulting", "R&D", "PMO", "Core"];
 
-        var designations = await db.Designations
-            .Where(d => d.DeletedAtUtc == null && d.IsActive)
-            .OrderBy(d => d.Name)
-            .Select(d => d.Name)
-            .ToListAsync(ct);
-        if (designations.Count == 0)
-            designations = ["PenTester - I", "Senior PenTester", "Consultant", "Lead"];
+        var designationPairs = await (
+            from designation in db.Designations
+            where designation.DeletedAtUtc == null && designation.IsActive && designation.DepartmentId != null
+            join department in db.Departments.Where(d => d.DeletedAtUtc == null)
+                on designation.DepartmentId equals department.Id
+            select new
+            {
+                Department = department.Name,
+                Name = designation.Name,
+            }).ToListAsync(ct);
+        var orderedDesignations = designationPairs
+            .OrderBy(row => row.Department, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(row => (row.Department, row.Name))
+            .ToList();
+        if (orderedDesignations.Count == 0)
+        {
+            orderedDesignations =
+            [
+                ("Services - Testing", "PenTester - I"),
+                ("Services - Testing", "Senior PenTester"),
+                ("Services - Consulting", "Consultant"),
+                ("PMO", "Lead"),
+            ];
+        }
 
         var roles = await db.JobRoles
             .Where(r => r.DeletedAtUtc == null && r.IsActive)
@@ -362,20 +380,20 @@ internal static class EmployeeBulkWorkbook
             "Sanjay Employee",                                        // 8. Emergency Contact Name
             "9811099999",                                             // 9. Emergency Contact Number
             "Father",                                                 // 10. Relation with Emergency Contact
-            departments.FirstOrDefault() ?? "Services - Testing",     // 11. Department
-            designations.FirstOrDefault() ?? "PenTester - I",         // 12. Designation
+            orderedDesignations[0].Department,                        // 11. Department
+            orderedDesignations[0].Name,                               // 12. Designation
             roles.FirstOrDefault() ?? "Employee",                     // 13. On Floor Role
             businessUnits.FirstOrDefault() ?? "Talakunchi Networks Private Limited", // 14. Business Unit
             managerCodes.FirstOrDefault() ?? "TK-0001 - Default Manager", // 15. Reporting Manager Code
             workLocations.FirstOrDefault() ?? "Suvidha Square, Andheri",             // 16. Work Location
             "",                                                       // 17. Location (Onsite)
-            DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),    // 18. Date of Joining
+            DateTime.UtcNow.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture),    // 18. Date of Joining
             "AST-1001",                                               // 19. Asset ID
             employeeStatuses.FirstOrDefault() ?? "Active",            // 20. Employee Status
             "Permanent",                                              // 21. Worker Type
             "Yes",                                                    // 22. Bond Delivered
             "24",                                                     // 23. Bond Duration (Months)
-            DateTime.UtcNow.AddYears(2).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), // 24. Bond Expiry Date
+            DateTime.UtcNow.AddYears(2).ToString("dd-MM-yyyy", CultureInfo.InvariantCulture), // 24. Bond Expiry Date
             "Active",                                                 // 25. Bond Status
             gradDegrees.FirstOrDefault() ?? "BE",                     // 26. Graduation Degree Name
             "2022",                                                   // 27. Graduation - Passing Year
@@ -391,11 +409,21 @@ internal static class EmployeeBulkWorkbook
 
         sheet.Row(2).Height = 22;
         sheet.Row(2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        sheet.Range(2, 18, MaxRows, 18).Style.DateFormat.Format = "dd-MM-yyyy";
+        sheet.Range(2, 24, MaxRows, 24).Style.DateFormat.Format = "dd-MM-yyyy";
         for (var i = 0; i < example.Length; i++)
         {
             var cell = sheet.Cell(2, i + 1);
-            cell.Value = example[i];
             cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            if ((i == 17 || i == 23)
+                && DateOnly.TryParseExact(example[i], "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var sampleDate))
+            {
+                cell.Value = sampleDate.ToDateTime(TimeOnly.MinValue);
+                cell.Style.DateFormat.Format = "dd-MM-yyyy";
+                continue;
+            }
+
+            cell.Value = example[i];
         }
 
         // ── Sheet 2: Lookups ──
@@ -413,8 +441,20 @@ internal static class EmployeeBulkWorkbook
         var lCol = 1;
         var countStations = WriteLookupColumn(lCol++, "CurrentAddressCity", MumbaiStations);
         var countRelations = WriteLookupColumn(lCol++, "EmergencyRelation", emergencyRelations);
-        var countDepartments = WriteLookupColumn(lCol++, "Department", departments);
-        var countDesignations = WriteLookupColumn(lCol++, "Designation", designations);
+
+        // Each designation has its own department in the cell immediately to the left.
+        var departmentCol = lCol++;
+        var designationCol = lCol++;
+        lookups.Cell(1, departmentCol).Value = "Department";
+        lookups.Cell(1, departmentCol).Style.Font.Bold = true;
+        lookups.Cell(1, designationCol).Value = "Designation";
+        lookups.Cell(1, designationCol).Style.Font.Bold = true;
+        for (var r = 0; r < orderedDesignations.Count; r++)
+        {
+            lookups.Cell(r + 2, departmentCol).Value = orderedDesignations[r].Department;
+            lookups.Cell(r + 2, designationCol).Value = orderedDesignations[r].Name;
+        }
+
         var countRoles = WriteLookupColumn(lCol++, "OnFloorRole", roles);
         var countBusinessUnits = WriteLookupColumn(lCol++, "BusinessUnit", businessUnits);
         var countManagers = WriteLookupColumn(lCol++, "ReportingManagerCode", managerCodes);
@@ -430,6 +470,52 @@ internal static class EmployeeBulkWorkbook
         var countPostGradYears = WriteLookupColumn(lCol++, "PostGraduationPassingYear", postGradYears);
         var countExpTypes = WriteLookupColumn(lCol++, "ExpFresher", expTypes);
         var countExpMonths = WriteLookupColumn(lCol++, "ExpMonths", expMonthOptions);
+
+        // Unique department names for the Employees dropdown. The visible Department
+        // column repeats a name once per designation, so this list stays separate.
+        var departmentListCol = lCol;
+        var countDepartments = WriteLookupColumn(departmentListCol, "DepartmentList", departments);
+        lookups.Column(departmentListCol).Hide();
+
+        // One hidden list of designations per department, plus a name map so the
+        // Employees sheet can show only that department's designations.
+        var usedRangeNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var departmentRanges = orderedDesignations
+            .GroupBy(row => row.Department, StringComparer.OrdinalIgnoreCase)
+            .Select(group => (
+                Department: group.First().Department,
+                Names: group.Select(row => row.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList()))
+            .Where(group => group.Names.Count > 0)
+            .ToList();
+
+        var hiddenCol = departmentListCol + 1;
+        var rangeByDepartment = new List<(string Department, string RangeName)>();
+        foreach (var group in departmentRanges)
+        {
+            var rangeName = DesignationRangeName(group.Department, usedRangeNames);
+            for (var r = 0; r < group.Names.Count; r++)
+                lookups.Cell(r + 2, hiddenCol).Value = group.Names[r];
+            workbook.DefinedNames.Add(
+                rangeName,
+                lookups.Range(2, hiddenCol, group.Names.Count + 1, hiddenCol));
+            lookups.Column(hiddenCol).Hide();
+            rangeByDepartment.Add((group.Department, rangeName));
+            hiddenCol++;
+        }
+
+        var mapNameCol = hiddenCol;
+        var mapRangeCol = hiddenCol + 1;
+        lookups.Cell(1, mapNameCol).Value = "DepartmentName";
+        lookups.Cell(1, mapRangeCol).Value = "DesignationRange";
+        lookups.Cell(1, mapNameCol).Style.Font.Bold = true;
+        lookups.Cell(1, mapRangeCol).Style.Font.Bold = true;
+        for (var i = 0; i < rangeByDepartment.Count; i++)
+        {
+            lookups.Cell(i + 2, mapNameCol).Value = rangeByDepartment[i].Department;
+            lookups.Cell(i + 2, mapRangeCol).Value = rangeByDepartment[i].RangeName;
+        }
+        lookups.Column(mapNameCol).Hide();
+        lookups.Column(mapRangeCol).Hide();
 
         lookups.Columns().AdjustToContents();
 
@@ -455,8 +541,32 @@ internal static class EmployeeBulkWorkbook
         SetListValidation(10, 2, countRelations, "Relation with Emergency Contact");
 
         // 2. Organization Assignment dropdowns
-        SetListValidation(11, 3, countDepartments, "Department");
-        SetListValidation(12, 4, countDesignations, "Designation");
+        SetListValidation(11, departmentListCol, countDepartments, "Department");
+        if (rangeByDepartment.Count > 0)
+        {
+            const int designationHelperCol = 36;
+            var mapNameLetter = lookups.Column(mapNameCol).ColumnLetter();
+            var mapRangeLetter = lookups.Column(mapRangeCol).ColumnLetter();
+            var mapLastRow = rangeByDepartment.Count + 1;
+            for (var row = 2; row <= MaxRows; row++)
+            {
+                sheet.Cell(row, designationHelperCol).FormulaA1 =
+                    $"IF(K{row}=\"\",\"\",IFERROR(VLOOKUP(K{row},Lookups!${mapNameLetter}$2:${mapRangeLetter}${mapLastRow},2,FALSE),\"\"))";
+            }
+
+            sheet.Column(designationHelperCol).Hide();
+            var helperLetter = sheet.Column(designationHelperCol).ColumnLetter();
+            var designationCells = sheet.Range(2, 12, MaxRows, 12);
+            var designationValidation = designationCells.CreateDataValidation();
+            designationValidation.List($"=INDIRECT({helperLetter}2)", true);
+            designationValidation.ErrorStyle = XLErrorStyle.Stop;
+            designationValidation.ErrorTitle = "Invalid Designation";
+            designationValidation.ErrorMessage = "Select a department first. Designation only lists titles under that department.";
+            designationValidation.ShowErrorMessage = true;
+            designationValidation.ShowInputMessage = true;
+            designationValidation.InputTitle = "Designation";
+            designationValidation.InputMessage = "Choose the department in this row first. The list then shows only that department's designations.";
+        }
         SetListValidation(13, 5, countRoles, "On Floor Role");
         SetListValidation(14, 6, countBusinessUnits, "Business Unit");
         SetListValidation(15, 7, countManagers, "Reporting Manager Code");
@@ -507,9 +617,9 @@ internal static class EmployeeBulkWorkbook
             "3. Form Sections: The template strictly reflects the 4 canonical sections of the Onboarding Form (Personal Info, Organization Assignment, Employment Info, Education & Experience).",
             "4. Required Fields (18): TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher.",
             "5. Reporting Manager: Select from the dropdown ('TK-XXXX - Manager Name'). You can also provide just the Employee Code (e.g. TK-0001). Employee code is used as the primary identifier to prevent confusion between employees with identical or similar names.",
-            "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel.",
-            "7. Dynamic Masters: The Lookups sheet reflects live masters from the system (Departments, Designations, Roles, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Downloading a fresh template always includes current values.",
-            "8. Date Format: Dates must be formatted as YYYY-MM-DD (e.g. 2026-09-18).",
+            "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel. Designation only lists titles under the Department selected on that same row.",
+            "7. Dynamic Masters: The Lookups sheet reflects live masters from the system (Departments, Designations, Roles, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Downloading a fresh template always includes current values. On Lookups, the cell to the left of each designation is that designation's department.",
+            "8. Date Format: Dates must be formatted as dd-mm-yyyy (e.g. 18-09-2026), the same way dates appear in the web app.",
             "9. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
             "10. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
             "11. Maximum Rows: Up to 500 rows can be imported in a single upload file.",
@@ -527,6 +637,25 @@ internal static class EmployeeBulkWorkbook
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
         return stream.ToArray();
+    }
+
+    /// <summary>Excel named range for one department's designation list. Names cannot contain spaces.</summary>
+    private static string DesignationRangeName(string department, HashSet<string> used)
+    {
+        var builder = new StringBuilder("Desig_");
+        foreach (var ch in department.Trim())
+            builder.Append(char.IsLetterOrDigit(ch) ? ch : '_');
+        var name = builder.ToString();
+        while (name.Contains("__", StringComparison.Ordinal))
+            name = name.Replace("__", "_", StringComparison.Ordinal);
+        name = name.Trim('_');
+        if (name.Length < 6) name = "Desig_Department";
+        if (name.Length > 200) name = name[..200];
+        var candidate = name;
+        var suffix = 2;
+        while (!used.Add(candidate))
+            candidate = $"{name}_{suffix++}";
+        return candidate;
     }
 }
 
@@ -589,9 +718,9 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 .Select(e => new { e.Id, e.EmployeeCode, Name = e.FirstName + " " + e.LastName })
                 .ToListAsync(ct);
 
-            var snapshot = await EmployeeIdentityGuard.LoadSnapshotAsync(db, null, ct);
+            var snapshot = await EmployeeIdentityGuard.LoadBulkSnapshotAsync(db, ct);
             var errors = new List<EmployeeBulkRowError>();
-            var created = 0;
+            var pending = new List<(int ExcelRow, string Code, CreateEmployeeRequest Request)>();
             var dataRows = 0;
 
             for (var excelRow = 2; excelRow <= lastRow; excelRow++)
@@ -650,7 +779,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     null,
                     null);
 
-                rowErrors.AddRange(snapshot.Conflicts(identity));
+                rowErrors.AddRange(snapshot.BulkConflicts(identity));
 
                 Guid? departmentId = null;
                 var departmentName = GetValue(values, "department");
@@ -669,9 +798,12 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     var matches = designations.Where(d =>
                         d.Name.Equals(designationName, StringComparison.OrdinalIgnoreCase));
                     var desig = departmentId is Guid deptId
-                        ? matches.FirstOrDefault(d => d.DepartmentId == deptId) ?? matches.FirstOrDefault()
+                        ? matches.FirstOrDefault(d => d.DepartmentId == deptId)
                         : matches.FirstOrDefault();
-                    if (desig is null) rowErrors.Add($"Designation '{designationName}' was not found.");
+                    if (desig is null && departmentId is not null && matches.Any())
+                        rowErrors.Add($"Designation '{designationName}' is not under department '{departmentName}'.");
+                    else if (desig is null)
+                        rowErrors.Add($"Designation '{designationName}' was not found.");
                     else designationId = desig.Id;
                 }
 
@@ -720,8 +852,11 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 if (rowErrors.Count > 0)
                 {
                     errors.Add(new EmployeeBulkRowError(excelRow, NullIfEmpty(code), string.Join(" ", rowErrors)));
+                    snapshot.AddBulkKeys(identity.EmployeeCode, identity.WorkEmail, identity.Phone);
                     continue;
                 }
+
+                snapshot.AddBulkKeys(identity.EmployeeCode, identity.WorkEmail, identity.Phone);
 
                 // Experience mapping
                 var totalYearsStr = GetValue(values, "priortotalexpyears");
@@ -885,13 +1020,27 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     PriorTotalExp: priorTotalExp,
                     PriorRelevantExp: priorRelevantExp);
 
-                try
+                pending.Add((excelRow, code.Trim(), request));
+            }
+
+            // One invalid row rejects the file. Valid rows are not saved.
+            if (errors.Count > 0)
+            {
+                stopwatch.Stop();
+                WriteAuditLog(originalFileName, dataRows, 0, errors, createdEntries, stopwatch.Elapsed);
+                return new EmployeeBulkUploadResult(0, errors.Count, errors);
+            }
+
+            var created = 0;
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            try
+            {
+                foreach (var item in pending)
                 {
-                    var createdEmp = await employees.CreateEmployeeAsync(request, checkIdentity: false, ct);
-                    snapshot.Add(identity);
+                    var createdEmp = await employees.CreateEmployeeAsync(item.Request, checkIdentity: false, ct);
                     created++;
                     createdEntries.Add(new BulkCreatedEmployeeEntry(
-                        excelRow,
+                        item.ExcelRow,
                         createdEmp.Id,
                         createdEmp.EmployeeCode,
                         $"{createdEmp.FirstName} {createdEmp.LastName}".Trim(),
@@ -900,22 +1049,26 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                         createdEmp.Designation ?? "N/A",
                         createdEmp.Role ?? "N/A",
                         createdEmp.Status ?? "Active"));
-                    managers.Add(new
-                    {
-                        createdEmp.Id,
-                        createdEmp.EmployeeCode,
-                        Name = createdEmp.FirstName + " " + createdEmp.LastName,
-                    });
                 }
-                catch (ConflictException ex)
-                {
-                    errors.Add(new EmployeeBulkRowError(excelRow, NullIfEmpty(code), ex.Message));
-                }
-                catch (Exception ex)
-                {
-                    errors.Add(new EmployeeBulkRowError(
-                        excelRow, NullIfEmpty(code), ex.InnerException?.Message ?? ex.Message));
-                }
+
+                await tx.CommitAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync(ct);
+                var failedIndex = created;
+                created = 0;
+                createdEntries.Clear();
+                var failed = failedIndex >= 0 && failedIndex < pending.Count
+                    ? pending[failedIndex]
+                    : pending.FirstOrDefault();
+                var message = ex is ConflictException conflict
+                    ? conflict.Message
+                    : ex.InnerException?.Message ?? ex.Message;
+                errors.Add(new EmployeeBulkRowError(
+                    failed.ExcelRow == 0 ? 0 : failed.ExcelRow,
+                    failed.Code,
+                    "Nothing was saved. " + message));
             }
 
             stopwatch.Stop();
@@ -1202,10 +1355,12 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
     private static DateOnly? ParseDate(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return null;
-        if (DateOnly.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        var text = raw.Trim();
+        // Day-first matches the sample and the web app. Year-first is what Excel date
+        // cells are normalized to in ReadCell, so older files still upload.
+        string[] formats = ["dd-MM-yyyy", "d-M-yyyy", "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd"];
+        if (DateOnly.TryParseExact(text, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             return date;
-        if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateTime))
-            return DateOnly.FromDateTime(dateTime);
         return null;
     }
 

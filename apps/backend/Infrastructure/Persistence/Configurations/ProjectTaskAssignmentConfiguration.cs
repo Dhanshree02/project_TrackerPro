@@ -8,7 +8,7 @@ public sealed class ProjectTaskAssignmentConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<ProjectTaskAssignment> builder)
     {
-        builder.ToTable("project_task_assignments");
+        builder.ToTable("tbl_project_task_assignments", DbSchemas.Project);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Role).HasMaxLength(50).IsRequired();

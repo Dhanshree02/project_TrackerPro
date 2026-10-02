@@ -8,7 +8,7 @@ public sealed class ProjectTeamMemberConfiguration : IEntityTypeConfiguration<Pr
 {
     public void Configure(EntityTypeBuilder<ProjectTeamMember> builder)
     {
-        builder.ToTable("project_team_members");
+        builder.ToTable("tbl_project_team_members", DbSchemas.Project);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.SubDepartment).HasMaxLength(200);

@@ -8,7 +8,7 @@ public sealed class SubVentureConfiguration : IEntityTypeConfiguration<SubVentur
 {
     public void Configure(EntityTypeBuilder<SubVenture> builder)
     {
-        builder.ToTable("sub_ventures");
+        builder.ToTable("tbl_sub_ventures", DbSchemas.Customer);
 
         builder.HasKey(s => s.Id);
         builder.HasIndex(s => s.ClientId);

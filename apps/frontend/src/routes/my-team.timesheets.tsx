@@ -755,8 +755,13 @@ function TimesheetApprovalView() {
   }, [selectedTs]);
 
   const askAction = (action: ReviewAction) => {
-    if (!actionComment.trim()) {
+    const comment = actionComment.trim();
+    if (!comment) {
       toast.error("A comment is mandatory for all timesheet approval actions!");
+      return;
+    }
+    if (comment.length > 200) {
+      toast.error("Comment must be 200 characters or fewer.");
       return;
     }
     if (selectedEntries.length === 0) {
@@ -841,17 +846,17 @@ function TimesheetApprovalView() {
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
       <div className="overflow-auto max-h-[calc(100vh-220px)] min-h-[420px]">
-        <table className="w-full min-w-[1100px] table-fixed text-sm">
+        <table className="w-full min-w-[1300px] table-fixed text-sm">
           <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
             <tr>
               <ApprovalSortTh label="Employee Name" column="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-56" />
               <ApprovalSortTh label="TK ID" column="tk" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-28" />
-              <ApprovalSortTh label="Project Name" column="project" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <ApprovalSortTh label="Project Name" column="project" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-64" />
               <ApprovalSortTh label="Week Range" column="week" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-36" />
               <ApprovalSortTh label="Submitted Date" column="submitted" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-40" />
               <ApprovalSortTh label="Total Hours" column="hours" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-32" />
               <ApprovalSortTh label="Current Status" column="status" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-36" />
-              <th className="relative w-40 whitespace-nowrap px-4 py-3 text-right text-xs font-semibold text-blue-950/85 dark:text-blue-100/85">
+              <th className="relative w-32 whitespace-nowrap px-4 py-3 text-right text-xs font-semibold text-blue-950/85 dark:text-blue-100/85">
                 Actions
               </th>
             </tr>
@@ -1151,11 +1156,15 @@ function TimesheetApprovalView() {
               </label>
               <textarea
                 value={actionComment}
-                onChange={(e) => setActionComment(e.target.value)}
+                maxLength={200}
+                onChange={(e) => setActionComment(e.target.value.slice(0, 200))}
                 placeholder="Provide approval, rejection, or change request reason comments..."
                 rows={3}
                 className="w-full rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
               />
+              <p className={cn("text-right text-[11px]", actionComment.length >= 200 ? "text-destructive" : "text-muted-foreground")}>
+                {actionComment.length}/200
+              </p>
             </div>
             <div className="flex justify-end gap-2 border-t border-border pt-3">
               <button

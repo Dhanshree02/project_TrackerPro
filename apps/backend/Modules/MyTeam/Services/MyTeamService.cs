@@ -198,14 +198,11 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
     }
 
     /// <summary>
-    /// Direct reports of the signed-in employee. Engagement manager and project
-    /// manager links do not grant team-dashboard access.
+    /// Direct reports of the signed-in employee. The user switch identifies that
+    /// person, and the list is every employee whose reporting manager is them.
     /// </summary>
     private IQueryable<Employee> TeamQuery(Guid callerId) =>
-        db.Employees.Where(e =>
-            e.Status != null
-            && e.Status.ToLower() == "active"
-            && e.ReportingManagerId == callerId);
+        db.Employees.Where(e => e.ReportingManagerId == callerId);
 
     private async Task<Employee> RequireTeamMemberAsync(Guid employeeId, CancellationToken ct)
     {
@@ -227,8 +224,21 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
     private async Task<Employee?> CallerEmployeeAsync(CancellationToken ct)
     {
         var userId = currentUser.UserId;
-        if (userId is null) return null;
-        return await db.Employees.FirstOrDefaultAsync(e => e.UserId == userId, ct);
+        if (userId is not null)
+        {
+            // The user switch sends the employee id. A signed-in account matches UserId.
+            var byId = await db.Employees.FirstOrDefaultAsync(e => e.Id == userId, ct);
+            if (byId is not null) return byId;
+
+            var byUser = await db.Employees.FirstOrDefaultAsync(e => e.UserId == userId, ct);
+            if (byUser is not null) return byUser;
+        }
+
+        var email = currentUser.Email;
+        if (string.IsNullOrWhiteSpace(email)) return null;
+        var normalized = email.Trim().ToLowerInvariant();
+        return await db.Employees.FirstOrDefaultAsync(
+            e => e.WorkEmail.ToLower() == normalized, ct);
     }
 
     private static void EnsureRange(DateOnly from, DateOnly to)

@@ -8,7 +8,7 @@ public sealed class MstServiceGroupConfiguration : IEntityTypeConfiguration<MstS
 {
     public void Configure(EntityTypeBuilder<MstServiceGroup> builder)
     {
-        builder.ToTable("mst_service_groups");
+        builder.ToTable("mst_service_groups", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name).IsUnique();
@@ -21,7 +21,7 @@ public sealed class MstServiceDepartmentConfiguration : IEntityTypeConfiguration
 {
     public void Configure(EntityTypeBuilder<MstServiceDepartment> builder)
     {
-        builder.ToTable("mst_service_departments");
+        builder.ToTable("mst_service_departments", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name).IsUnique();
@@ -40,7 +40,7 @@ public sealed class MstServiceSubDepartmentConfiguration : IEntityTypeConfigurat
 {
     public void Configure(EntityTypeBuilder<MstServiceSubDepartment> builder)
     {
-        builder.ToTable("mst_service_sub_departments");
+        builder.ToTable("mst_service_sub_departments", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => new { x.DepartmentId, x.Name }).IsUnique();
@@ -58,7 +58,7 @@ public sealed class MstServiceCatalogConfiguration : IEntityTypeConfiguration<Ms
 {
     public void Configure(EntityTypeBuilder<MstServiceCatalog> builder)
     {
-        builder.ToTable("mst_service_catalog");
+        builder.ToTable("mst_service_catalog", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => new { x.SubDepartmentId, x.Name }).IsUnique();

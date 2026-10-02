@@ -1,28 +1,16 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, ChevronDown, Save, RotateCcw, Loader2 } from "lucide-react";
+import { Search, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Save, RotateCcw, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { Avatar } from "@/components/pills";
+import { RowsPerPageSelect } from "@/components/rows-per-page-select";
+import { apiFetch } from "@/lib/api-client";
 import { useRoleContext } from "@/lib/role-context";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-import type { Role } from "@/lib/mock-data";
-import {
-  APP_ROLES,
-  DEFAULT_ROLE_PERMISSIONS,
-  MODULE_ORDER,
-  PERMISSION_CATALOG,
-  ROLE_LABELS,
-  ROLE_PROJECT_SCOPE,
-  type PermissionKey,
-} from "@/lib/rbac";
-import {
-  fetchUsers,
-  fetchRoles,
-  updateUser,
-  updateRolePermissions,
-  resetRoleToBaseline,
-  type ApiRole,
-} from "@/lib/api/users";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
+import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 
 export const Route = createFileRoute("/dh-settings-security-roles")({
   head: () => ({
@@ -34,46 +22,38 @@ export const Route = createFileRoute("/dh-settings-security-roles")({
   component: SecurityRolesPage,
 });
 
-interface UserRow {
+interface UserAccessApiRow {
   id: string;
+  employeeCode: string;
   name: string;
   email: string;
-  currentRole: Role;
-  initialRole: Role;
+  department: string;
+  designation: string;
+  profileRole: string;
+  accessRole: string;
 }
 
-const initialUsers: UserRow[] = [
-  { id: "r1", name: "Aarav Mehta", email: "aarav.mehta@talakunchi.com", currentRole: "senior_pm", initialRole: "senior_pm" },
-  { id: "r2", name: "Riya Kapoor", email: "riya.kapoor@talakunchi.com", currentRole: "engagement_manager", initialRole: "engagement_manager" },
-  { id: "r3", name: "Vikram Shah", email: "vikram.shah@talakunchi.com", currentRole: "pm", initialRole: "pm" },
-  { id: "r4", name: "Sana Iyer", email: "sana.iyer@talakunchi.com", currentRole: "pm", initialRole: "pm" },
-  { id: "r7", name: "Arjun Singh", email: "arjun.singh@talakunchi.com", currentRole: "employee", initialRole: "employee" },
-  { id: "r8", name: "Meera Joshi", email: "meera.joshi@talakunchi.com", currentRole: "employee", initialRole: "employee" },
-  { id: "r9", name: "Dev Patel", email: "dev.patel@talakunchi.com", currentRole: "employee", initialRole: "employee" },
-  { id: "r10", name: "Kavya Nair", email: "kavya.nair@talakunchi.com", currentRole: "hr", initialRole: "hr" },
-  { id: "r11", name: "Rahul Gupta", email: "rahul.gupta@talakunchi.com", currentRole: "pmo", initialRole: "pmo" },
-  { id: "r12", name: "Neha Sharma", email: "neha.sharma@talakunchi.com", currentRole: "sales", initialRole: "sales" },
-  { id: "r13", name: "Ananya Desai", email: "ananya.desai@talakunchi.com", currentRole: "accounts", initialRole: "accounts" },
-  { id: "r14", name: "Karan Verma", email: "karan.verma@talakunchi.com", currentRole: "employee", initialRole: "employee" },
-  { id: "r15", name: "Pooja Hegde", email: "pooja.hegde@talakunchi.com", currentRole: "employee", initialRole: "employee" },
-  { id: "r16", name: "Aditya Roy", email: "aditya.roy@talakunchi.com", currentRole: "management", initialRole: "management" },
-  { id: "r17", name: "Dhanshree", email: "dhanshree@talakunchi.com", currentRole: "dhanshree", initialRole: "dhanshree" },
-];
-
-const SCOPE_LABEL: Record<string, string> = {
-  involved: "Only projects the person is on",
-  pm: "Only projects they manage",
-  assigned: "Assigned customers / projects",
-  department: "Own department only",
-  all: "All company projects",
-};
+interface UserRow {
+  id: string;
+  employeeCode: string;
+  name: string;
+  email: string;
+  department: string;
+  designation: string;
+  profileRole: string;
+  accessRole: string;
+  initialAccessRole: string;
+}
 
 import { usePermissions } from "@/lib/permissions";
 
 function SecurityRolesPage() {
   const { can, isDhanshree } = useRoleContext();
   const { hasAny } = usePermissions();
+  const { permissionsReady } = useAuth();
   const [activeTab, setActiveTab] = useState<"users" | "modules">("modules");
+
+  if (!permissionsReady) return null;
 
   const allowed = isDhanshree || (can ? can("settings.manage_roles") : false) || hasAny("settings.manage_roles", "roles:manage", "settings.view");
   if (!allowed) return <Navigate to="/" />;
@@ -112,37 +92,50 @@ function SecurityRolesPage() {
   );
 }
 
+type AccessSortKey = "code" | "name" | "email" | "designation" | "profile";
+type SortDir = "asc" | "desc";
+
 function UserRoleAccessTab() {
   const [q, setQ] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [users, setUsers] = useState<UserRow[]>(() => [...initialUsers]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [roleFilter, setRoleFilter] = useState("");
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [roles, setRoles] = useState<RbacRoleOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [sortKey, setSortKey] = useState<AccessSortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    fetchUsers({ perPage: 100 })
-      .then((res) => {
+    setLoadError("");
+    Promise.all([
+      apiFetch<UserAccessApiRow[]>("/api/v1/rbac/user-access"),
+      apiFetch<RbacRoleOption[]>("/api/v1/rbac/roles"),
+    ])
+      .then(([accounts, roleList]) => {
         if (cancelled) return;
-        if (res?.items && res.items.length > 0) {
-          const rows: UserRow[] = res.items.map((u) => {
-            const rawRole = u.role || "";
-            const matchedRole = (APP_ROLES.find(
-              (r) => r.toLowerCase() === rawRole.toLowerCase() || r === rawRole,
-            ) || "employee") as Role;
-            return {
-              id: u.id,
-              name: u.name,
-              email: u.email,
-              currentRole: matchedRole,
-              initialRole: matchedRole,
-            };
-          });
-          setUsers(rows);
-        }
+        setRoles(roleList ?? []);
+        setUsers(
+          (accounts ?? []).map((account) => ({
+            id: account.id ?? "",
+            employeeCode: account.employeeCode,
+            name: account.name,
+            email: account.email,
+            department: account.department,
+            designation: account.designation,
+            profileRole: account.profileRole,
+            accessRole: account.accessRole,
+            initialAccessRole: account.accessRole,
+          })),
+        );
       })
-      .catch(() => {})
+      .catch((error: Error) => {
+        if (!cancelled) setLoadError(error.message || "Could not load users.");
+      })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
       });
@@ -151,296 +144,641 @@ function UserRoleAccessTab() {
     };
   }, []);
 
-  const filtered = useMemo(() => {
-    let list = users;
-    if (roleFilter !== "all") list = list.filter((u) => u.currentRole === roleFilter);
-    if (q.trim()) {
-      const term = q.toLowerCase();
-      list = list.filter((u) => u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term));
-    }
-    return list;
-  }, [users, q, roleFilter]);
+  const roleOptions = useMemo(() => {
+    const options = roles.map((role) => ({
+      value: role.name,
+      label: role.displayName || role.name,
+    }));
+    return options.sort((a, b) => a.label.localeCompare(b.label));
+  }, [roles]);
 
-  const changeRole = (id: string, newRole: Role) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, currentRole: newRole } : u)));
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const list = users.filter((user) => {
+      const matchesRole = !roleFilter || user.accessRole === roleFilter;
+      const matchesQuery =
+        !term ||
+        user.name.toLowerCase().includes(term) ||
+        user.email.toLowerCase().includes(term) ||
+        user.employeeCode.toLowerCase().includes(term) ||
+        user.designation.toLowerCase().includes(term) ||
+        user.profileRole.toLowerCase().includes(term);
+      return matchesRole && matchesQuery;
+    });
+    const valueOf = (user: UserRow) => {
+      if (sortKey === "code") return user.employeeCode;
+      if (sortKey === "email") return user.email;
+      if (sortKey === "designation") return user.designation;
+      if (sortKey === "profile") return user.profileRole;
+      return user.name;
+    };
+    return [...list].sort((a, b) => {
+      const cmp = valueOf(a).localeCompare(valueOf(b), undefined, { sensitivity: "base" });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [users, q, roleFilter, sortKey, sortDir]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, roleFilter, pageSize, sortKey, sortDir]);
+
+  const totalPages = totalPageCount(filtered.length, pageSize);
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = paginateSlice(filtered, currentPage, pageSize);
+  const pageRange = paginationRange(currentPage, pageSize, filtered.length);
+  const pending = users.filter((user) => user.id && user.accessRole !== user.initialAccessRole).length;
+
+  const changeRole = (id: string, accessRole: string) => {
+    setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, accessRole } : user)));
   };
 
   const handleSave = async () => {
-    const changed = users.filter((u) => u.currentRole !== u.initialRole);
+    const changed = users.filter((user) => user.id && user.accessRole !== user.initialAccessRole);
     if (changed.length === 0) {
-      toast.info("No changes to save.");
+      toast.info("No access changes to save.");
       return;
     }
     setIsSaving(true);
     try {
       await Promise.all(
-        changed.map((u) => updateUser(u.id, { role: u.currentRole })),
+        changed.map((user) =>
+          apiFetch("/api/v1/rbac/user-access", {
+            method: "PUT",
+            body: JSON.stringify({ userId: user.id, roleName: user.accessRole }),
+          }),
+        ),
       );
-      setUsers((prev) => prev.map((u) => ({ ...u, initialRole: u.currentRole })));
-      toast.success("Roles updated", { description: `${changed.length} user role assignment(s) saved to database.` });
-    } catch {
-      toast.error("Failed to update user roles.");
+      setUsers((prev) => prev.map((user) => ({ ...user, initialAccessRole: user.accessRole })));
+      toast.success("Access updated", {
+        description: `${changed.length} ${changed.length === 1 ? "person can" : "people can"} open that role. Resource profiles were not changed.`,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update access.");
     } finally {
       setIsSaving(false);
     }
   };
 
+  const sortBy = (column: AccessSortKey) => {
+    if (sortKey === column) setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(column);
+      setSortDir("asc");
+    }
+  };
+
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative max-w-xs flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search user name or email…"
-            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
+      <div className="mb-4 rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <p className="mb-2.5 text-xs text-muted-foreground">
+          Access role decides what this person can open. Designation and On Floor Role stay on the resource profile.
+        </p>
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name, work email, or ID..."
+              className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-8 text-xs font-normal text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary transition-all"
+            />
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="w-full md:w-56 shrink-0">
+            <SearchableSelect
+              placeholder="All Roles"
+              searchPlaceholder="Search roles..."
+              options={roleOptions}
+              value={roleFilter}
+              onChange={setRoleFilter}
+              className="w-full text-xs"
+              buttonClassName={cn(
+                "h-9 text-xs transition-all",
+                roleFilter
+                  ? "border-blue-500/50 font-medium text-foreground bg-blue-500/5"
+                  : "border-input text-muted-foreground",
+              )}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving || pending === 0}
+            className="md:ml-auto inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Access{pending > 0 ? ` (${pending})` : ""}
+          </button>
         </div>
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="all">All Roles</option>
-          {APP_ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
-          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save Changes
-        </button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Current Role</th>
-              <th className="px-4 py-3 font-medium">Change Role</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {isLoading ? (
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+        <div className="overflow-auto max-h-[calc(100vh-280px)] min-h-[420px]">
+          <table className="w-full min-w-[1100px] table-fixed text-sm">
+            <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
               <tr>
-                <td colSpan={4} className="py-8 text-center text-muted-foreground text-xs">
-                  Loading users...
-                </td>
+                <AccessSortHeader label="Employee ID" column="code" sortKey={sortKey} sortDir={sortDir} onSort={sortBy} className="w-32" />
+                <AccessSortHeader label="Name" column="name" sortKey={sortKey} sortDir={sortDir} onSort={sortBy} className="w-56" />
+                <AccessSortHeader label="Work Email" column="email" sortKey={sortKey} sortDir={sortDir} onSort={sortBy} className="w-64" />
+                <AccessSortHeader label="Designation" column="designation" sortKey={sortKey} sortDir={sortDir} onSort={sortBy} className="w-52" />
+                <AccessSortHeader label="On Floor Role" column="profile" sortKey={sortKey} sortDir={sortDir} onSort={sortBy} className="w-52" />
+                <th className="relative w-64 whitespace-nowrap px-4 py-3 font-semibold text-xs text-blue-950/85 dark:text-blue-100/85">
+                  Access role
+                </th>
               </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="py-8 text-center text-muted-foreground text-xs">
-                  No users found.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((u) => (
-                <tr key={u.id} className="hover:bg-accent/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                        {u.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
-                      </span>
-                      <span className="font-medium">{u.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                      {ROLE_LABELS[u.currentRole] || u.currentRole}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={u.currentRole}
-                      onChange={(e) => changeRole(u.id, e.target.value as Role)}
-                      className="h-8 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {APP_ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {ROLE_LABELS[r]}
-                        </option>
-                      ))}
-                    </select>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-16 text-center text-sm text-muted-foreground">
+                    <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
+                    Loading users...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : pageRows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    {loadError ? `Could not load users: ${loadError}` : "No users match your filters"}
+                  </td>
+                </tr>
+              ) : (
+                pageRows.map((user) => {
+                  const changed = user.accessRole !== user.initialAccessRole;
+                  const options =
+                    user.accessRole && !roleOptions.some((option) => option.value === user.accessRole)
+                      ? [{ value: user.accessRole, label: user.accessRole }, ...roleOptions]
+                      : roleOptions;
+                  return (
+                    <tr key={user.employeeCode || user.id} className="transition-colors hover:bg-accent/30">
+                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-muted-foreground truncate" title={user.employeeCode}>
+                        {user.employeeCode || "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Avatar name={user.name} size={28} />
+                          <span className="font-semibold truncate" title={user.name}>{user.name}</span>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={user.email}>
+                        {user.email}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={user.designation}>
+                        {user.designation || "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={user.profileRole}>
+                        {user.profileRole || "—"}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <SearchableSelect
+                          placeholder={user.id ? "Select access role" : "No login account"}
+                          searchPlaceholder="Search roles..."
+                          options={options}
+                          value={user.accessRole}
+                          onChange={(value) => changeRole(user.id, value)}
+                          disabled={!user.id}
+                          clearable={false}
+                          className="w-full text-xs"
+                          buttonClassName={cn(
+                            "h-8 text-xs transition-all",
+                            changed
+                              ? "border-blue-500 font-medium text-foreground bg-blue-500/5"
+                              : "border-input text-foreground",
+                          )}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
+          <div className="flex items-center gap-3">
+            <span>
+              Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong> - <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.to}</strong>{" "}
+              of <strong className="font-semibold text-blue-950 dark:text-blue-100">{filtered.length}</strong> users
+            </span>
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <div className="flex items-center gap-1.5">
+              <span>Per page:</span>
+              <RowsPerPageSelect
+                value={pageSize}
+                onChange={setPageSize}
+                className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={currentPage <= 1}
+              className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" /> Previous
+            </button>
+            <span className="px-2 tabular-nums font-semibold text-blue-950 dark:text-blue-100">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={currentPage >= totalPages}
+              className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+            >
+              Next <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
     </>
   );
 }
 
+function AccessSortHeader({
+  label,
+  column,
+  sortKey,
+  sortDir,
+  onSort,
+  className,
+}: {
+  label: string;
+  column: AccessSortKey;
+  sortKey: AccessSortKey;
+  sortDir: SortDir;
+  onSort: (column: AccessSortKey) => void;
+  className?: string;
+}) {
+  const active = sortKey === column;
+  return (
+    <th className={cn("relative whitespace-nowrap px-4 py-3 font-semibold", className)}>
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={cn(
+          "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
+          active
+            ? "text-blue-600 dark:text-blue-400 font-bold"
+            : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
+        )}
+      >
+        <span>{label}</span>
+        <span
+          className={cn(
+            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
+            active
+              ? "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-400"
+              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
+          )}
+        >
+          {active && sortDir === "desc" ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+        </span>
+      </button>
+      <span className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none" aria-hidden="true" />
+    </th>
+  );
+}
+
+interface RbacNode {
+  level: string;
+  name: string;
+  permissionId?: string | null;
+  canView?: number | null;
+  canManage?: number | null;
+  children: RbacNode[];
+}
+
+interface RbacMatrix {
+  roleId: string;
+  roleName: string;
+  nodes: RbacNode[];
+}
+
+function cloneNodes(nodes: RbacNode[]): RbacNode[] {
+  return nodes.map((node) => ({ ...node, children: cloneNodes(node.children ?? []) }));
+}
+
+function updateNode(nodes: RbacNode[], permissionId: string, patch: Partial<RbacNode>): RbacNode[] {
+  return nodes.map((node) => {
+    if (node.permissionId === permissionId) return { ...node, ...patch, children: node.children };
+    return { ...node, children: updateNode(node.children ?? [], permissionId, patch) };
+  });
+}
+
+function collectGrants(nodes: RbacNode[], into: { id: string; canView: number; canManage: number }[]) {
+  for (const node of nodes) {
+    if (node.permissionId) {
+      into.push({
+        id: node.permissionId,
+        canView: node.canView === 1 ? 1 : 0,
+        canManage: node.canView === 1 && node.canManage === 1 ? 1 : 0,
+      });
+    }
+    collectGrants(node.children ?? [], into);
+  }
+}
+
+interface RbacRoleOption {
+  id: string;
+  name: string;
+  displayName: string;
+}
+
 function ModuleAccessTab() {
-  const ctx = useRoleContext();
-  const getPermissionsFor = ctx.getPermissionsFor ?? ((r: Role) => DEFAULT_ROLE_PERMISSIONS[r] ?? []);
-  const setRolePermissions = ctx.setRolePermissions ?? (() => {});
-  const resetRolePermissions = ctx.resetRolePermissions ?? (() => {});
-  const [selectedRole, setSelectedRole] = useState<Role>("Testing-Team Member");
-  const [openModules, setOpenModules] = useState<Record<string, boolean>>({ Projects: true });
-  const [draft, setDraft] = useState<PermissionKey[]>(() => getPermissionsFor("Testing-Team Member"));
-  const [backendRoles, setBackendRoles] = useState<ApiRole[]>([]);
+  const [roles, setRoles] = useState<RbacRoleOption[]>([]);
+  const [selectedRole, setSelectedRole] = useState("");
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
+  const [nodes, setNodes] = useState<RbacNode[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const load = (roleName: string) => {
+    if (!roleName) return;
+    setIsLoading(true);
+    apiFetch<RbacMatrix>(`/api/v1/rbac/matrix?roleName=${encodeURIComponent(roleName)}`)
+      .then((matrix) => setNodes(cloneNodes(matrix.nodes ?? [])))
+      .catch((error: Error) => toast.error(error.message || "Could not load the access matrix."))
+      .finally(() => setIsLoading(false));
+  };
 
   useEffect(() => {
-    fetchRoles()
-      .then((roles) => setBackendRoles(roles ?? []))
-      .catch(() => {});
+    apiFetch<RbacRoleOption[]>("/api/v1/rbac/roles")
+      .then((list) => {
+        const next = list ?? [];
+        setRoles(next);
+        setSelectedRole((current) => current || next[0]?.name || "");
+      })
+      .catch((error: Error) => toast.error(error.message || "Could not load roles."));
   }, []);
 
-  const switchRole = (role: Role) => {
-    setSelectedRole(role);
-    setDraft(getPermissionsFor(role));
+  useEffect(() => {
+    if (selectedRole) load(selectedRole);
+  }, [selectedRole]);
+
+  const setFlag = (permissionId: string, field: "canView" | "canManage", on: boolean) => {
+    setNodes((current) => {
+      const node = findNode(current, permissionId);
+      if (!node) return current;
+      const canView = field === "canView" ? (on ? 1 : 0) : node.canView === 1 || on ? 1 : 0;
+      const canManage = field === "canManage" ? (on ? 1 : 0) : on ? node.canManage ?? 0 : 0;
+      return updateNode(current, permissionId, {
+        canView: field === "canView" && !on ? 0 : canView,
+        canManage: field === "canView" && !on ? 0 : canManage,
+      });
+    });
   };
 
-  const granted = useMemo(() => new Set(draft), [draft]);
-
-  const toggle = (key: PermissionKey) => {
-    setDraft((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
-  };
-
-  const grouped = useMemo(() => {
-    return MODULE_ORDER.map((module) => {
-      const items = PERMISSION_CATALOG.filter((p) => p.module === module);
-      const groups = [...new Set(items.map((i) => i.group))];
-      return { module, groups, items };
-    }).filter((g) => g.items.length > 0);
-  }, []);
-
-  const enabledCount = draft.length;
+  const selectedLabel = roles.find((role) => role.name === selectedRole)?.displayName || selectedRole;
+  const rows = visibleAccessRows(nodes, openModules);
 
   return (
     <>
-      <p className="mb-4 text-xs text-muted-foreground">
-        Defaults match the master catalog permissions for each role. Saving updates both local state and the database role permissions.
-      </p>
-
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <select
-          value={selectedRole}
-          onChange={(e) => switchRole(e.target.value as Role)}
-          className="h-9 rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {APP_ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
-        <span className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground">
-          Data scope: {SCOPE_LABEL[ROLE_PROJECT_SCOPE[selectedRole]] || "Department"}
-        </span>
-        <span className="text-[11px] text-muted-foreground">{enabledCount} permissions on</span>
-        <button
-          onClick={async () => {
-            const matchedBackendRole = backendRoles.find(
-              (r) => r.name.toLowerCase() === selectedRole.toLowerCase(),
-            );
-            if (matchedBackendRole) {
+      <div className="mb-4 rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
+          <div className="w-full md:w-72 shrink-0">
+            <SearchableSelect
+              placeholder="Select role"
+              searchPlaceholder="Search roles..."
+              options={roles.map((role) => ({
+                value: role.name,
+                label: role.displayName || role.name,
+              }))}
+              value={selectedRole}
+              onChange={setSelectedRole}
+              clearable={false}
+              className="w-full text-xs"
+              buttonClassName={cn(
+                "h-9 text-xs transition-all",
+                selectedRole
+                  ? "border-blue-500/50 font-medium text-foreground bg-blue-500/5"
+                  : "border-input text-muted-foreground",
+              )}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!selectedRole) return;
+              setIsResetting(true);
               try {
-                await resetRoleToBaseline(matchedBackendRole.id);
-              } catch {}
-            }
-            resetRolePermissions(selectedRole);
-            setDraft(DEFAULT_ROLE_PERMISSIONS[selectedRole] ?? []);
-            toast.message("Reset to defaults", { description: ROLE_LABELS[selectedRole] });
-          }}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-accent"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          Reset
-        </button>
-        <button
-          onClick={async () => {
-            setIsSaving(true);
-            const matchedBackendRole = backendRoles.find(
-              (r) => r.name.toLowerCase() === selectedRole.toLowerCase(),
-            );
-            if (matchedBackendRole) {
-              try {
-                await updateRolePermissions(matchedBackendRole.id, draft);
-              } catch (e: any) {
-                toast.error("Failed to save to database", { description: e?.message });
+                await apiFetch("/api/v1/rbac/matrix/reset", {
+                  method: "POST",
+                  body: JSON.stringify({ roleName: selectedRole }),
+                });
+                load(selectedRole);
+                toast.success("Reset to default", { description: selectedLabel });
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Could not reset this role.");
+              } finally {
+                setIsResetting(false);
               }
-            }
-            setRolePermissions(selectedRole, draft);
-            setIsSaving(false);
-            toast.success("Permissions saved", {
-              description: `Access for ${ROLE_LABELS[selectedRole]} updated.`,
-            });
-          }}
-          disabled={isSaving}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save Permissions
-        </button>
+            }}
+            disabled={!selectedRole || isResetting || isLoading}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            {isResetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+            Reset to default
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              setIsSaving(true);
+              const items: { id: string; canView: number; canManage: number }[] = [];
+              collectGrants(nodes, items);
+              try {
+                await apiFetch("/api/v1/rbac/matrix", {
+                  method: "PUT",
+                  body: JSON.stringify({ roleName: selectedRole, items }),
+                });
+                toast.success("Permissions saved", { description: selectedLabel });
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Could not save permissions.");
+              } finally {
+                setIsSaving(false);
+              }
+            }}
+            disabled={isSaving || isLoading || !selectedRole}
+            className="md:ml-auto inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Permissions
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {grouped.map(({ module, groups, items }) => {
-          const open = openModules[module] ?? false;
-          const onCount = items.filter((i) => granted.has(i.key)).length;
-          return (
-            <div key={module} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <button
-                onClick={() => setOpenModules((p) => ({ ...p, [module]: !open }))}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent/30"
-              >
-                <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
-                <span className="text-sm font-semibold">{module}</span>
-                <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
-                  {onCount}/{items.length} enabled
-                </span>
-              </button>
-              {open && (
-                <div className="border-t border-border px-4 py-3 space-y-4">
-                  {groups.map((group) => (
-                    <div key={group}>
-                      <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        {group}
-                      </div>
-                      <div className="grid gap-1.5 sm:grid-cols-2">
-                        {items
-                          .filter((i) => i.group === group)
-                          .map((item) => (
-                            <label
-                              key={item.key}
-                              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent/40 cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={granted.has(item.key)}
-                                onChange={() => toggle(item.key)}
-                                disabled={selectedRole === "dhanshree"}
-                                className="h-4 w-4 rounded border-2 border-input accent-primary cursor-pointer"
-                              />
-                              <span>{item.label}</span>
-                            </label>
-                          ))}
-                      </div>
-                    </div>
-                  ))}
-                  {selectedRole === "dhanshree" && (
-                    <p className="text-[11px] text-muted-foreground">Admin always has full access.</p>
-                  )}
-                </div>
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="max-h-[calc(100vh-250px)] min-h-[420px] overflow-auto">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead className="sticky top-0 z-10 border-b border-slate-300 bg-blue-50/80 text-left text-xs text-blue-950/85 shadow-2xs backdrop-blur-md dark:border-slate-700 dark:bg-blue-950/45 dark:text-blue-100/85">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Access</th>
+                <th className="w-36 px-4 py-3 font-semibold">Level</th>
+                <th className="w-28 px-4 py-3 text-center font-semibold">View</th>
+                <th className="w-28 px-4 py-3 text-center font-semibold">Manage</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-16 text-center text-sm text-muted-foreground">
+                    <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
+                    Loading access…
+                  </td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-16 text-center text-sm text-muted-foreground">
+                    No access rows for this role.
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row) => {
+                  const expanded = openModules[row.key] === true;
+                  return (
+                    <AccessRow
+                      key={row.key}
+                      row={row}
+                      open={Boolean(row.node.children?.length) && expanded}
+                      onToggle={() =>
+                        setOpenModules((current) => ({
+                          ...current,
+                          [row.key]: !current[row.key],
+                        }))
+                      }
+                      onFlag={setFlag}
+                    />
+                  );
+                })
               )}
-            </div>
-          );
-        })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
+  );
+}
+
+function visibleAccessRows(nodes: RbacNode[], open: Record<string, boolean>, depth = 0, parentKey = ""): AccessRowModel[] {
+  const rows: AccessRowModel[] = [];
+  for (const node of nodes) {
+    const key = `${parentKey}/${node.level}:${node.name}`;
+    rows.push({ node, depth, key });
+    const expanded = open[key] === true;
+    if (expanded && node.children?.length) rows.push(...visibleAccessRows(node.children, open, depth + 1, key));
+  }
+  return rows;
+}
+
+interface AccessRowModel {
+  node: RbacNode;
+  depth: number;
+  key: string;
+}
+
+const LEVEL_LABEL: Record<string, string> = {
+  module: "Module",
+  submodule: "Submodule",
+  "sub-submodule": "Sub-submodule",
+  widget: "Widget",
+  tab: "Tab",
+};
+
+function findNode(nodes: RbacNode[], permissionId: string): RbacNode | null {
+  for (const node of nodes) {
+    if (node.permissionId === permissionId) return node;
+    const child = findNode(node.children ?? [], permissionId);
+    if (child) return child;
+  }
+  return null;
+}
+
+function AccessRow({
+  row,
+  open,
+  onToggle,
+  onFlag,
+}: {
+  row: AccessRowModel;
+  open: boolean;
+  onToggle: () => void;
+  onFlag: (permissionId: string, field: "canView" | "canManage", on: boolean) => void;
+}) {
+  const { node, depth } = row;
+  const hasChildren = (node.children?.length ?? 0) > 0;
+  const viewOn = node.canView === 1;
+  const manageOn = viewOn && node.canManage === 1;
+  return (
+    <tr className={cn("transition-colors hover:bg-accent/30", depth === 0 && "bg-muted/30")}>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2" style={{ paddingLeft: depth * 20 }}>
+          {hasChildren ? (
+            <button type="button" onClick={onToggle} className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label={open ? "Collapse" : "Expand"}>
+              <ChevronDown className={cn("h-4 w-4 transition-transform", !open && "-rotate-90")} />
+            </button>
+          ) : (
+            <span className="inline-block w-5" />
+          )}
+          <span className={cn("truncate", depth === 0 ? "font-semibold" : "font-medium")}>{node.name}</span>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+          {LEVEL_LABEL[node.level] ?? node.level}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-center">
+        <AccessCheck
+          checked={viewOn}
+          disabled={!node.permissionId}
+          onChange={(on) => node.permissionId && onFlag(node.permissionId, "canView", on)}
+          label={`View ${node.name}`}
+        />
+      </td>
+      <td className="px-4 py-3 text-center">
+        <AccessCheck
+          checked={manageOn}
+          disabled={!node.permissionId}
+          onChange={(on) => node.permissionId && onFlag(node.permissionId, "canManage", on)}
+          label={`Manage ${node.name}`}
+        />
+      </td>
+    </tr>
+  );
+}
+
+function AccessCheck({
+  checked,
+  disabled,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (on: boolean) => void;
+  label: string;
+}) {
+  return (
+    <input
+      type="checkbox"
+      aria-label={label}
+      checked={checked}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.checked)}
+      className="h-4 w-4 cursor-pointer rounded border-2 border-input accent-primary disabled:cursor-not-allowed"
+    />
   );
 }

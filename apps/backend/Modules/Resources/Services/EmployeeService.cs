@@ -15,7 +15,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 {
     private (string Email, string Name) GetCurrentPerformer()
     {
-        var email = !string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email.Trim() : "admin@acme.co";
+        var email = !string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email.Trim() : "admin@talakunchi.com";
         var name = !string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name.Trim() : "Admin User";
         return (email, name);
     }
@@ -804,7 +804,20 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var statusAtExit = employee.Status;
-        employee.Status = "Notice Period";
+        string? selectedStatusName = null;
+        if (request.EmployeeStatusId is Guid statusId)
+        {
+            var selectedStatus = await db.EmployeeStatuses
+                .FirstOrDefaultAsync(s => s.Id == statusId && s.IsActive, ct);
+            if (selectedStatus is not null)
+            {
+                employee.EmployeeStatusId = selectedStatus.Id;
+                employee.Status = selectedStatus.Name;
+                selectedStatusName = selectedStatus.Name;
+            }
+        }
+        if (selectedStatusName is null)
+            employee.Status = "Notice Period";
         employee.ExitType = request.ExitType ?? employee.ExitType;
         employee.ExitReason = request.ExitReason ?? employee.ExitReason;
         if (!string.IsNullOrWhiteSpace(request.NoticePeriodServed))
@@ -868,7 +881,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             Action = "Offboarded",
             PerformedByEmail = offboardPerformerEmail,
             PerformedByName = offboardPerformerName,
-            Details = $"Offboarded employee (Reason: {request.ReasonForLeaving ?? "N/A"}, Last Working Day: {request.LastWorkingDay?.ToString("yyyy-MM-dd") ?? "N/A"})",
+            Details = $"Offboarded employee (Status: {employee.Status}, Reason: {request.ReasonForLeaving ?? "N/A"}, Last Working Day: {request.LastWorkingDay?.ToString("yyyy-MM-dd") ?? "N/A"})",
             CreatedAtUtc = DateTime.UtcNow
         });
 
@@ -1483,10 +1496,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             user.Designation = desigName;
             updated = true;
         }
-        if (!string.IsNullOrWhiteSpace(entity.Role))
+        // Access role is assigned in User Role Access. A profile save must not replace it.
+        // A login account with no role yet still takes the on-floor role the first time.
+        if (user.RoleId is null && !string.IsNullOrWhiteSpace(entity.Role))
         {
             var rbacRole = await db.Roles.FirstOrDefaultAsync(r => r.Name == entity.Role, ct);
-            if (rbacRole is not null && user.RoleId != rbacRole.Id)
+            if (rbacRole is not null)
             {
                 user.RoleId = rbacRole.Id;
                 updated = true;
@@ -1747,7 +1762,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         if (!logs.Any(l => string.Equals(l.Action, "Created", StringComparison.OrdinalIgnoreCase)))
         {
-            string creatorEmail = "admin@acme.co";
+            string creatorEmail = "admin@talakunchi.com";
             string creatorName = "Admin User";
 
             if (employee.CreatedBy.HasValue)

@@ -31,15 +31,15 @@ public sealed class DbInitializerHostedService(
             await db.Database.MigrateAsync(cancellationToken);
             // Dump-initialized DBs can lag the model (PhoneCode was added in code before a migration ran).
             await db.Database.ExecuteSqlRawAsync(
-                """ALTER TABLE mst_countries ADD COLUMN IF NOT EXISTS "PhoneCode" character varying(8) NOT NULL DEFAULT '+91';""",
+                """ALTER TABLE master.mst_countries ADD COLUMN IF NOT EXISTS "PhoneCode" character varying(8) NOT NULL DEFAULT '+91';""",
                 cancellationToken);
             await db.Database.ExecuteSqlRawAsync(
-                """ALTER TABLE mst_countries ADD COLUMN IF NOT EXISTS "PhoneDigits" integer NOT NULL DEFAULT 10;""",
+                """ALTER TABLE master.mst_countries ADD COLUMN IF NOT EXISTS "PhoneDigits" integer NOT NULL DEFAULT 10;""",
                 cancellationToken);
             // Dump-initialized DBs can lag the model (employee status catalog added after dump).
             await db.Database.ExecuteSqlRawAsync(
                 """
-                CREATE TABLE IF NOT EXISTS mst_employee_statuses (
+                CREATE TABLE IF NOT EXISTS master.mst_employee_statuses (
                     "Id" uuid NOT NULL,
                     "Code" character varying(80) NOT NULL,
                     "Name" character varying(150) NOT NULL,
@@ -53,8 +53,8 @@ public sealed class DbInitializerHostedService(
                     "DeletedAtUtc" timestamp with time zone
                 );
 
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_mst_employee_statuses_Code"
-                    ON mst_employee_statuses ("Code")
+                CREATE UNIQUE INDEX IF NOT EXISTS master."IX_mst_employee_statuses_Code"
+                    ON master.mst_employee_statuses ("Code")
                     WHERE "DeletedAtUtc" IS NULL;
 
                 DO $$
@@ -64,11 +64,11 @@ public sealed class DbInitializerHostedService(
                         JOIN pg_class t ON c.conrelid = t.oid
                         WHERE t.relname = 'mst_employee_statuses' AND c.contype = 'p'
                     ) THEN
-                        ALTER TABLE mst_employee_statuses ADD PRIMARY KEY ("Id");
+                        ALTER TABLE master.mst_employee_statuses ADD PRIMARY KEY ("Id");
                     END IF;
                 END $$;
 
-                ALTER TABLE employees
+                ALTER TABLE resource.tbl_employees
                     ADD COLUMN IF NOT EXISTS "EmployeeStatusId" uuid,
                     ADD COLUMN IF NOT EXISTS "BondDelivered" character varying(10),
                     ADD COLUMN IF NOT EXISTS "BondDurationMonths" integer,
@@ -79,14 +79,14 @@ public sealed class DbInitializerHostedService(
                     IF NOT EXISTS (
                         SELECT 1 FROM pg_constraint WHERE conname = 'FK_employees_mst_employee_statuses_EmployeeStatusId'
                     ) THEN
-                        ALTER TABLE employees
+                        ALTER TABLE resource.tbl_employees
                             ADD CONSTRAINT "FK_employees_mst_employee_statuses_EmployeeStatusId"
-                            FOREIGN KEY ("EmployeeStatusId") REFERENCES mst_employee_statuses ("Id")
+                            FOREIGN KEY ("EmployeeStatusId") REFERENCES master.mst_employee_statuses ("Id")
                             ON DELETE SET NULL;
                     END IF;
                 END $$;
 
-                CREATE TABLE IF NOT EXISTS mst_certifications (
+                CREATE TABLE IF NOT EXISTS master.mst_certifications (
                     "Id" uuid NOT NULL,
                     "Code" character varying(100) NOT NULL,
                     "Name" character varying(200) NOT NULL,
@@ -105,11 +105,11 @@ public sealed class DbInitializerHostedService(
                         JOIN pg_class t ON c.conrelid = t.oid
                         WHERE t.relname = 'mst_certifications' AND c.contype = 'p'
                     ) THEN
-                        ALTER TABLE mst_certifications ADD PRIMARY KEY ("Id");
+                        ALTER TABLE master.mst_certifications ADD PRIMARY KEY ("Id");
                     END IF;
                 END $$;
 
-                CREATE TABLE IF NOT EXISTS mst_graduation_degrees (
+                CREATE TABLE IF NOT EXISTS master.mst_graduation_degrees (
                     "Id" uuid NOT NULL,
                     "Code" character varying(100) NOT NULL,
                     "Name" character varying(200) NOT NULL,
@@ -128,11 +128,11 @@ public sealed class DbInitializerHostedService(
                         JOIN pg_class t ON c.conrelid = t.oid
                         WHERE t.relname = 'mst_graduation_degrees' AND c.contype = 'p'
                     ) THEN
-                        ALTER TABLE mst_graduation_degrees ADD PRIMARY KEY ("Id");
+                        ALTER TABLE master.mst_graduation_degrees ADD PRIMARY KEY ("Id");
                     END IF;
                 END $$;
 
-                CREATE TABLE IF NOT EXISTS mst_post_graduation_degrees (
+                CREATE TABLE IF NOT EXISTS master.mst_post_graduation_degrees (
                     "Id" uuid NOT NULL,
                     "Code" character varying(100) NOT NULL,
                     "Name" character varying(200) NOT NULL,
@@ -151,23 +151,23 @@ public sealed class DbInitializerHostedService(
                         JOIN pg_class t ON c.conrelid = t.oid
                         WHERE t.relname = 'mst_post_graduation_degrees' AND c.contype = 'p'
                     ) THEN
-                        ALTER TABLE mst_post_graduation_degrees ADD PRIMARY KEY ("Id");
+                        ALTER TABLE master.mst_post_graduation_degrees ADD PRIMARY KEY ("Id");
                     END IF;
                 END $$;
 
-                ALTER TABLE mst_designations
+                ALTER TABLE master.mst_designations
                     ADD COLUMN IF NOT EXISTS "SubDepartment" text;
 
                 DO $$
                 BEGIN
-                    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'projectsite') THEN
-                        ALTER TABLE employees RENAME COLUMN projectsite TO "ProjectSite";
-                    ELSIF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'ProjectSite') THEN
-                        ALTER TABLE employees ADD COLUMN "ProjectSite" character varying(80);
+                    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'resource' AND table_name = 'tbl_employees' AND column_name = 'projectsite') THEN
+                        ALTER TABLE resource.tbl_employees RENAME COLUMN projectsite TO "ProjectSite";
+                    ELSIF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'resource' AND table_name = 'tbl_employees' AND column_name = 'ProjectSite') THEN
+                        ALTER TABLE resource.tbl_employees ADD COLUMN "ProjectSite" character varying(80);
                     END IF;
                 END $$;
 
-                ALTER TABLE employees
+                ALTER TABLE resource.tbl_employees
                     ADD COLUMN IF NOT EXISTS "GradDegree" text,
                     ADD COLUMN IF NOT EXISTS "GradYear" text,
                     ADD COLUMN IF NOT EXISTS "PostGradDegree" text,
@@ -184,7 +184,7 @@ public sealed class DbInitializerHostedService(
                     ADD COLUMN IF NOT EXISTS "ProjectAllocated" text,
                     ADD COLUMN IF NOT EXISTS "ClientEngManagerMapping" text;
 
-                CREATE TABLE IF NOT EXISTS employee_activity_logs (
+                CREATE TABLE IF NOT EXISTS resource.log_employee_activity (
                     "Id" uuid NOT NULL PRIMARY KEY,
                     "EmployeeId" uuid NOT NULL,
                     "Action" character varying(50) NOT NULL,
@@ -198,28 +198,28 @@ public sealed class DbInitializerHostedService(
                     "DeletedAtUtc" timestamp with time zone
                 );
 
-                CREATE INDEX IF NOT EXISTS "IX_employee_activity_logs_EmployeeId"
-                    ON employee_activity_logs ("EmployeeId");
+                CREATE INDEX IF NOT EXISTS resource."IX_employee_activity_logs_EmployeeId"
+                    ON resource.log_employee_activity ("EmployeeId");
 
-                CREATE INDEX IF NOT EXISTS "IX_employee_activity_logs_CreatedAtUtc"
-                    ON employee_activity_logs ("CreatedAtUtc" DESC);
+                CREATE INDEX IF NOT EXISTS resource."IX_employee_activity_logs_CreatedAtUtc"
+                    ON resource.log_employee_activity ("CreatedAtUtc" DESC);
                 """,
                 cancellationToken);
             await db.Database.ExecuteSqlRawAsync(
                 """
-                ALTER TABLE exited_employees
+                ALTER TABLE resource.tbl_exited_employees
                     ADD COLUMN IF NOT EXISTS "ClearanceCompleted" boolean NOT NULL DEFAULT false,
                     ADD COLUMN IF NOT EXISTS "ExitRating" numeric(3, 1);
 
-                UPDATE exited_employees
+                UPDATE resource.tbl_exited_employees
                 SET "ClearanceCompleted" = true
                 WHERE "ClearanceCompleted" = false
                   AND "LastWorkingDay" IS NOT NULL
                   AND "LastWorkingDay" < CURRENT_DATE;
 
-                UPDATE exited_employees e
+                UPDATE resource.tbl_exited_employees e
                 SET "ExitRating" = emp."AnnualRating"
-                FROM employees emp
+                FROM resource.tbl_employees emp
                 WHERE e."OriginalEmployeeId" = emp."Id"
                   AND e."ExitRating" IS NULL
                   AND emp."AnnualRating" IS NOT NULL

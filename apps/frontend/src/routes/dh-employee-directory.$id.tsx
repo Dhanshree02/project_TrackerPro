@@ -8,11 +8,14 @@ import { useRoleContext } from "@/lib/role-context";
 import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import {
   fetchEmployee,
   fetchEmployeeLogs,
+  fetchEmployeeStatusOptions,
   offboardEmployee,
   toUiEmployee,
+  type ApiMetaOption,
   type EmployeeActivityLog,
 } from "@/lib/api/employees";
 import type { Employee } from "@/lib/employee-data";
@@ -174,13 +177,30 @@ function OffboardConfirmDialog({
     lastWorkingDay: string;
     reasonForLeaving: string;
     noticePeriodServed: string;
+    employeeStatusId: string;
   }) => void;
   onCancel: () => void;
 }) {
   const [noticePeriodDays, setNoticePeriodDays] = useState(parseNoticeDays(employee.noticePeriod));
   const [resignationDate, setResignationDate] = useState(todayIso);
   const [reasonForLeaving, setReasonForLeaving] = useState("");
+  const [employeeStatusId, setEmployeeStatusId] = useState("");
+  const [statusOptions, setStatusOptions] = useState<ApiMetaOption[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchEmployeeStatusOptions(false)
+      .then((rows) => {
+        if (!cancelled) setStatusOptions(rows ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setStatusOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const inputCls =
     "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring text-foreground";
@@ -202,6 +222,7 @@ function OffboardConfirmDialog({
     if (!lastWorkingDay) next.lastWorkingDay = "Last working day could not be calculated";
     if (!reasonForLeaving.trim()) next.reasonForLeaving = "Reason for leaving is required";
     if (reasonForLeaving.trim().length > 500) next.reasonForLeaving = "Reason must be 500 characters or less";
+    if (!employeeStatusId) next.employeeStatusId = "Employee status is required";
     setErrors(next);
     if (Object.keys(next).length > 0) return;
     onConfirm({
@@ -209,6 +230,7 @@ function OffboardConfirmDialog({
       lastWorkingDay,
       reasonForLeaving: reasonForLeaving.trim(),
       noticePeriodServed: `${noticeDays} days`,
+      employeeStatusId,
     });
   };
 
@@ -258,6 +280,20 @@ function OffboardConfirmDialog({
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <SearchableSelect
+              label="Employee Status"
+              required
+              placeholder="Select employee status"
+              searchPlaceholder="Search statuses..."
+              options={statusOptions.map((status) => ({ value: status.id, label: status.name }))}
+              value={employeeStatusId}
+              onChange={setEmployeeStatusId}
+              error={errors.employeeStatusId}
+              disabled={isSubmitting}
+              clearable={false}
+            />
+          </div>
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-muted-foreground">
               Notice Period (days) <span className="text-destructive">*</span>
@@ -457,6 +493,7 @@ function EmployeeProfilePage() {
     lastWorkingDay: string;
     reasonForLeaving: string;
     noticePeriodServed: string;
+    employeeStatusId: string;
   }) => {
     if (!emp || isOffboarding) return;
     setIsOffboarding(true);
@@ -468,6 +505,7 @@ function EmployeeProfilePage() {
         noticePeriodServed: details.noticePeriodServed,
         exitType: "Resign",
         exitReason: details.reasonForLeaving,
+        employeeStatusId: details.employeeStatusId,
       });
       setOffboardConfirmOpen(false);
       toast.success(

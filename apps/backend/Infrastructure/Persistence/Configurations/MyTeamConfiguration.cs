@@ -8,7 +8,7 @@ public sealed class TeamDayEntryConfiguration : IEntityTypeConfiguration<TeamDay
 {
     public void Configure(EntityTypeBuilder<TeamDayEntry> builder)
     {
-        builder.ToTable("team_day_entries");
+        builder.ToTable("tbl_team_day_entries", DbSchemas.Timesheet);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.WorkDate).HasColumnType("date");
         builder.Property(x => x.Attendance).HasMaxLength(20);
@@ -28,7 +28,7 @@ public sealed class TeamMemberScheduleConfiguration : IEntityTypeConfiguration<T
 {
     public void Configure(EntityTypeBuilder<TeamMemberSchedule> builder)
     {
-        builder.ToTable("team_member_schedules");
+        builder.ToTable("tbl_team_member_schedules", DbSchemas.Timesheet);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.WorkingDays).HasColumnType("smallint[]");
         builder.Property(x => x.Notes).HasMaxLength(2000);
@@ -47,7 +47,7 @@ public sealed class TeamMemberHolidayConfiguration : IEntityTypeConfiguration<Te
 {
     public void Configure(EntityTypeBuilder<TeamMemberHoliday> builder)
     {
-        builder.ToTable("team_member_holidays");
+        builder.ToTable("tbl_team_member_holidays", DbSchemas.Timesheet);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.HolidayDate).HasColumnType("date");
         builder.Property(x => x.Name).HasMaxLength(200).IsRequired();

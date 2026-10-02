@@ -151,44 +151,44 @@ public static class DbSeeder
     {
         var seed = new (string Id, string Name, string Email, string Avatar, string Role)[]
         {
-            ("u1", "Aarav Mehta", "aarav@acme.co", "AM", "SOC-Senior Manager"),
-            ("u2", "Riya Kapoor", "riya@acme.co", "RK", "EngagementManager"),
-            ("u3", "Vikram Shah", "vikram@acme.co", "VS", "SOC-Manager"),
-            ("u4", "Sana Iyer", "sana@acme.co", "SI", "Consulting-Manager"),
-            ("u5", "Nikhil Rao", "nikhil@acme.co", "NR", "SOC-Team Leader"),
-            ("u6", "Priya Verma", "priya@acme.co", "PV", "Consulting-Team Leader"),
-            ("u7", "Arjun Singh", "arjun@acme.co", "AS", "Testing-Team Member"),
-            ("u8", "Meera Joshi", "meera@acme.co", "MJ", "Testing-Team Member"),
-            ("u9", "Dev Patel", "dev@acme.co", "DP", "Testing-Team Member"),
-            ("u10", "Kavya Nair", "kavya@acme.co", "KN", "Testing-Team Member"),
-            ("u11", "Rahul Gupta", "rahul@acme.co", "RG", "PMO"),
-            ("u12", "Anita Desai", "anita@acme.co", "AD", "Consulting-HOD"),
-            ("u13", "Vikrant Malhotra", "vikrant@acme.co", "VM", "CEO"),
-            ("u14", "Dhanshree Pansare", "dhanshree@acme.co", "DP", "COO"),
-            ("u15", "Admin User", "admin@acme.co", "AU", "Admin"),
-            ("u16", "HR User", "hr@acme.co", "HU", "HR"),
-            ("u17", "Accounts User", "accounts@acme.co", "AC", "Accounts"),
-            ("u18", "Sales User", "sales@acme.co", "SU", "Sales Manager"),
-            ("u19", "Kunal Deshmukh", "kunal.deshmukh@acme.co", "KD", "CTO"),
-            ("u20", "Pooja Sharma", "pooja.sharma@acme.co", "PS", "Sales team member"),
-            ("u21", "Ananya Verma", "ananya.verma@acme.co", "AV", "Intern"),
-            ("u22", "Girish Shenoy", "girish.shenoy@acme.co", "GS", "Testing HOD"),
-            ("u23", "Suresh Pillai", "suresh.pillai@acme.co", "SP", "Testing Senior Manager"),
-            ("u24", "Manoj Bhatt", "manoj.bhatt@acme.co", "MB", "Testing-Manager"),
-            ("u25", "Kiran Mathur", "kiran.mathur@acme.co", "KM", "Testing-Team Leader"),
-            ("u26", "Swati Mishra", "swati.mishra@acme.co", "SM", "Consulting-Team member"),
-            ("u27", "Rajesh Kadam", "rajesh.kadam@acme.co", "RK", "SOC-HOD"),
-            ("u28", "Deepak Sawant", "deepak.sawant@acme.co", "DS", "SOC-Senior Manager"),
-            ("u29", "Amit Pandey", "amit.pandey@acme.co", "AP", "SOC-Team Leader"),
-            ("u30", "Pooja Nair", "pooja.nair@acme.co", "PN", "SOC-Team Member"),
-            ("u31", "Kavya Desai", "kavya.desai@acme.co", "KD", "R&D - Team member"),
-            ("u32", "IT Admin User", "itadmin@acme.co", "IT", "IT Admin"),
+            ("u1", "Aarav Mehta", "aarav@talakunchi.com", "AM", "SOC-Senior Manager"),
+            ("u2", "Riya Kapoor", "riya@talakunchi.com", "RK", "EngagementManager"),
+            ("u3", "Vikram Shah", "vikram@talakunchi.com", "VS", "SOC-Manager"),
+            ("u4", "Sana Iyer", "sana@talakunchi.com", "SI", "Consulting-Manager"),
+            ("u5", "Nikhil Rao", "nikhil@talakunchi.com", "NR", "SOC-Team Leader"),
+            ("u6", "Priya Verma", "priya@talakunchi.com", "PV", "Consulting-Team Leader"),
+            ("u7", "Arjun Singh", "arjun@talakunchi.com", "AS", "Testing-Team Member"),
+            ("u8", "Meera Joshi", "meera@talakunchi.com", "MJ", "Testing-Team Member"),
+            ("u9", "Dev Patel", "dev@talakunchi.com", "DP", "Testing-Team Member"),
+            ("u10", "Kavya Nair", "kavya@talakunchi.com", "KN", "Testing-Team Member"),
+            ("u11", "Rahul Gupta", "rahul@talakunchi.com", "RG", "PMO"),
+            ("u12", "Anita Desai", "anita@talakunchi.com", "AD", "Consulting-HOD"),
+            ("u13", "Vikrant Malhotra", "vikrant@talakunchi.com", "VM", "CEO"),
+            ("u14", "Dhanshree Pansare", "dhanshree@talakunchi.com", "DP", "COO"),
+            ("u15", "Admin User", "admin@talakunchi.com", "AU", "Admin"),
+            ("u16", "HR User", "hr@talakunchi.com", "HU", "HR"),
+            ("u17", "Accounts User", "accounts@talakunchi.com", "AC", "Accounts"),
+            ("u18", "Sales User", "sales@talakunchi.com", "SU", "Sales Manager"),
+            ("u19", "Kunal Deshmukh", "kunal.deshmukh@talakunchi.com", "KD", "CTO"),
+            ("u20", "Pooja Sharma", "pooja.sharma@talakunchi.com", "PS", "Sales team member"),
+            ("u21", "Ananya Verma", "ananya.verma@talakunchi.com", "AV", "Intern"),
+            ("u22", "Girish Shenoy", "girish.shenoy@talakunchi.com", "GS", "Testing HOD"),
+            ("u23", "Suresh Pillai", "suresh.pillai@talakunchi.com", "SP", "Testing Senior Manager"),
+            ("u24", "Manoj Bhatt", "manoj.bhatt@talakunchi.com", "MB", "Testing-Manager"),
+            ("u25", "Kiran Mathur", "kiran.mathur@talakunchi.com", "KM", "Testing-Team Leader"),
+            ("u26", "Swati Mishra", "swati.mishra@talakunchi.com", "SM", "Consulting-Team member"),
+            ("u27", "Rajesh Kadam", "rajesh.kadam@talakunchi.com", "RK", "SOC-HOD"),
+            ("u28", "Deepak Sawant", "deepak.sawant@talakunchi.com", "DS", "SOC-Senior Manager"),
+            ("u29", "Amit Pandey", "amit.pandey@talakunchi.com", "AP", "SOC-Team Leader"),
+            ("u30", "Pooja Nair", "pooja.nair@talakunchi.com", "PN", "SOC-Team Member"),
+            ("u31", "Kavya Desai", "kavya.desai@talakunchi.com", "KD", "R&D - Team member"),
+            ("u32", "IT Admin User", "itadmin@talakunchi.com", "IT", "IT Admin"),
         };
 
         // Some imported/legacy user rows have NULL PasswordHash. The User entity
         // maps it as non-nullable string, so materializing those rows crashes startup.
         await db.Database.ExecuteSqlRawAsync(
-            """UPDATE users SET "PasswordHash" = '' WHERE "PasswordHash" IS NULL""",
+            """UPDATE auth.tbl_users SET "PasswordHash" = '' WHERE "PasswordHash" IS NULL""",
             ct);
 
         var existingUsers = await db.Users.ToListAsync(ct);
@@ -573,20 +573,20 @@ public static class DbSeeder
         // 2. Default seeded managers if none were added
         var defaults = new (string Name, string Desig, string Email)[]
         {
-            ("Dhanshree Pansare", "Director & Delivery Head", "dhanshree.pansare@acme.co"),
-            ("Sneha Iyer", "Tech Lead", "sneha.iyer@acme.co"),
-            ("Divya Rao", "Product Manager", "divya.rao@acme.co"),
-            ("Neha Kulkarni", "Technical Lead", "neha.kulkarni@acme.co"),
-            ("Samar Patel", "HR Business Partner", "samar.patel@acme.co"),
-            ("Aanya Joshi", "Sales Executive", "aanya.joshi@acme.co"),
-            ("Harsh Nair", "Business Analyst", "harsh.nair@acme.co"),
-            ("Vikram Gupta", "Project Manager", "vikram.gupta@acme.co"),
-            ("Pooja Menon", "HR Business Partner", "pooja.menon@acme.co"),
-            ("Nikhil Khanna", "Sales Executive", "nikhil.khanna@acme.co"),
-            ("Riya Kapoor", "Engagement Manager", "riya.kapoor@acme.co"),
-            ("Rahul Sharma", "Engagement Manager", "rahul.sharma@acme.co"),
-            ("Pradeep Singh", "Engagement Manager", "pradeep.singh@acme.co"),
-            ("Arjun Mehta", "Engagement Manager", "arjun.mehta@acme.co"),
+            ("Dhanshree Pansare", "Director & Delivery Head", "dhanshree.pansare@talakunchi.com"),
+            ("Sneha Iyer", "Tech Lead", "sneha.iyer@talakunchi.com"),
+            ("Divya Rao", "Product Manager", "divya.rao@talakunchi.com"),
+            ("Neha Kulkarni", "Technical Lead", "neha.kulkarni@talakunchi.com"),
+            ("Samar Patel", "HR Business Partner", "samar.patel@talakunchi.com"),
+            ("Aanya Joshi", "Sales Executive", "aanya.joshi@talakunchi.com"),
+            ("Harsh Nair", "Business Analyst", "harsh.nair@talakunchi.com"),
+            ("Vikram Gupta", "Project Manager", "vikram.gupta@talakunchi.com"),
+            ("Pooja Menon", "HR Business Partner", "pooja.menon@talakunchi.com"),
+            ("Nikhil Khanna", "Sales Executive", "nikhil.khanna@talakunchi.com"),
+            ("Riya Kapoor", "Engagement Manager", "riya.kapoor@talakunchi.com"),
+            ("Rahul Sharma", "Engagement Manager", "rahul.sharma@talakunchi.com"),
+            ("Pradeep Singh", "Engagement Manager", "pradeep.singh@talakunchi.com"),
+            ("Arjun Mehta", "Engagement Manager", "arjun.mehta@talakunchi.com"),
         };
 
         foreach (var (name, desig, email) in defaults)
@@ -1017,7 +1017,7 @@ public static class DbSeeder
         for (var i = 0; i < seed.Length; i++)
         {
             var row = seed[i];
-            var workEmail = $"{row.FirstName.ToLowerInvariant()}.{row.LastName.ToLowerInvariant()}@acme.co";
+            var workEmail = $"{row.FirstName.ToLowerInvariant()}.{row.LastName.ToLowerInvariant()}@talakunchi.com";
             if (existingCodes.Contains(row.Code) || existingEmails.Contains(workEmail)) continue;
             departments.TryGetValue(row.Department, out var dept);
             designations.TryGetValue(row.Designation, out var desig);
@@ -1049,7 +1049,7 @@ public static class DbSeeder
                 WorkEmail = workEmail,
                 Phone = (9820000000 + n).ToString(),
                 DateOfBirth = new DateOnly(1990 + (i % 8), 1 + (i % 12), 1 + (i % 27)),
-                Address = $"{120 + n}, {location}",
+                Address = andheri ? "Andheri (Western Line)" : "Dombivli (Central Line)",
                 EmergencyContact = (9811101000 + n).ToString(),
                 EmergencyContactName = $"Contact {row.FirstName}",
                 EmergencyContactRelation = i % 3 == 0 ? "Spouse" : "Father",
@@ -1186,7 +1186,7 @@ public static class DbSeeder
         // Backfill Customer Since for clients created before the column existed.
         await db.Database.ExecuteSqlRawAsync(
             """
-            UPDATE clients
+            UPDATE customer.tbl_clients
             SET "CustomerSince" = (("CreatedAtUtc" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')::date
             WHERE "CustomerSince" IS NULL AND "DeletedAtUtc" IS NULL;
             """,

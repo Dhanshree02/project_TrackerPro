@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Search, Bell, ChevronDown, Check } from "lucide-react";
 import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
-import { DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/demo-roles";
+import { DEFAULT_DEMO_ROLE, DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/demo-roles";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -43,6 +43,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
           p.code === demoRole,
       ) ??
       DEMO_PERSONAS.find((p) => p.roleKey === authUser?.role) ??
+      DEMO_PERSONAS.find((p) => p.key === DEFAULT_DEMO_ROLE) ??
       DEMO_PERSONAS[0]
     );
   }, [demoRole, authUser]);

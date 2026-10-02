@@ -8,7 +8,7 @@ public sealed class ProjectServiceConfiguration : IEntityTypeConfiguration<Proje
 {
     public void Configure(EntityTypeBuilder<ProjectServiceEntity> builder)
     {
-        builder.ToTable("project_services");
+        builder.ToTable("tbl_project_services", DbSchemas.Project);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.TaskId).HasMaxLength(50);

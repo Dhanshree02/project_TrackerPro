@@ -77,21 +77,19 @@ export function EmployeeBulkUploadMenu({
     try {
       const result = await uploadEmployeeBulk(selectedFile);
 
-      if (result.created > 0) {
+      if (result.errors && result.errors.length > 0) {
+        const detail = result.errors
+          .slice(0, 4)
+          .map((entry) => `Row ${entry.row}: ${entry.message}`)
+          .join(" ");
+        toast.error("Nothing was uploaded. Fix every row and try again.", {
+          description: detail || "One or more rows are not valid.",
+        });
+      } else if (result.created > 0) {
         onImported();
         toast.success(
           `${result.created} resource${result.created === 1 ? "" : "s"} successfully imported!`,
         );
-      }
-
-      if (result.errors && result.errors.length > 0) {
-        if (result.created === 0) {
-          toast.error("No resources were imported. Check Excel data and try again.");
-        } else {
-          toast.warning(
-            `${result.created} imported, ${result.failed} row${result.failed === 1 ? "" : "s"} skipped due to duplicate or invalid data.`,
-          );
-        }
       }
 
       if (result.created > 0 || (result.errors && result.errors.length > 0)) {

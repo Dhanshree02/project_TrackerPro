@@ -8,12 +8,12 @@ public sealed class TimesheetWeekConfiguration : IEntityTypeConfiguration<Timesh
 {
     public void Configure(EntityTypeBuilder<TimesheetWeek> builder)
     {
-        builder.ToTable("timesheets");
+        builder.ToTable("tbl_timesheets", DbSchemas.Timesheet);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.WeekStart).HasColumnType("date");
         builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
         builder.Property(x => x.TotalHours).HasColumnType("numeric(6,1)");
-        builder.Property(x => x.ReviewComment).HasMaxLength(2000);
+        builder.Property(x => x.ReviewComment).HasMaxLength(200);
         builder.HasIndex(x => new { x.EmployeeId, x.WeekStart })
             .IsUnique()
             .HasFilter("\"DeletedAtUtc\" IS NULL");
@@ -29,7 +29,7 @@ public sealed class TimesheetEntryConfiguration : IEntityTypeConfiguration<Times
 {
     public void Configure(EntityTypeBuilder<TimesheetEntry> builder)
     {
-        builder.ToTable("timesheet_entries");
+        builder.ToTable("tbl_timesheet_entries", DbSchemas.Timesheet);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.ProjectKey).HasMaxLength(64).IsRequired();
         builder.Property(x => x.TaskKey).HasMaxLength(64).IsRequired();
@@ -48,7 +48,7 @@ public sealed class TimesheetEntryDayConfiguration : IEntityTypeConfiguration<Ti
 {
     public void Configure(EntityTypeBuilder<TimesheetEntryDay> builder)
     {
-        builder.ToTable("timesheet_entry_days");
+        builder.ToTable("tbl_timesheet_entry_days", DbSchemas.Timesheet);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Hours).HasColumnType("numeric(4,1)");
         builder.Property(x => x.Comment).HasMaxLength(1000);

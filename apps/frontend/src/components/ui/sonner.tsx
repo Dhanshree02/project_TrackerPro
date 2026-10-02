@@ -15,7 +15,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         error: <CircleAlert className="h-5 w-5 shrink-0" strokeWidth={2.5} />,
       }}
       toastOptions={{
-        duration: 4000,
+        duration: 10000,
         classNames: {
           toast: "group toast group-[.toaster]:shadow-lg group-[.toaster]:border",
           title: "text-sm font-medium",

@@ -10,7 +10,7 @@ Single project `PMS.API`. Namespaces match folders. One business module at a tim
 
 `Controllers/` `DTOs/` `Models/` `Services/` `Validators/` (`Mappings/` if needed)
 
-Register new services in `Configuration/DependencyInjectionExtensions.cs`. Add `DbSet` + `IEntityTypeConfiguration` (snake_case tables). Entities inherit `BaseEntity`. New schema = EF migration, never hand-edit snapshots unless required.
+Register new services in `Configuration/DependencyInjectionExtensions.cs`. Add `DbSet` + `IEntityTypeConfiguration`. Physical names use a module schema from `DbSchemas` and a prefix: `mst_` catalogs, `tbl_` business tables, `log_` activity or audit rows, `vw_` views, `fnc_` functions. Entities inherit `BaseEntity`. New tables = EF migration, never hand-edit snapshots unless required.
 
 ## API
 

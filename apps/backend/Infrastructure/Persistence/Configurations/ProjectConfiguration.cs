@@ -8,7 +8,7 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
 {
     public void Configure(EntityTypeBuilder<Project> builder)
     {
-        builder.ToTable("projects");
+        builder.ToTable("tbl_projects", DbSchemas.Project);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.ProjectCode).HasMaxLength(50).IsRequired();
