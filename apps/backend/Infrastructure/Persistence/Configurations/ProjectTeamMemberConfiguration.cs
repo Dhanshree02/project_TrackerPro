@@ -14,6 +14,10 @@ public sealed class ProjectTeamMemberConfiguration : IEntityTypeConfiguration<Pr
         builder.Property(x => x.SubDepartment).HasMaxLength(200);
         builder.Property(x => x.Billability).HasMaxLength(40).IsRequired();
         builder.Property(x => x.ResourceType).HasMaxLength(40).IsRequired();
+        builder.Property(x => x.MemberRole)
+            .HasMaxLength(40)
+            .IsRequired()
+            .HasDefaultValue(ProjectMemberRoles.ProjectTeam);
 
         builder.HasIndex(x => x.ProjectId);
         builder.HasIndex(x => x.EmployeeId);

@@ -10,6 +10,7 @@ import { TimesheetStatusPill } from "@/components/pills";
 import { cn } from "@/lib/utils";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { HourField } from "@/components/hour-field";
+import { isTimesheetDayOpen } from "@/lib/timesheet-window";
 
 export const Route = createFileRoute("/timesheet")({
   head: () => ({
@@ -217,8 +218,14 @@ function TimesheetPage() {
               <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium min-w-[280px]">Project · Task</th>
-                  {days.map((d) => (
-                    <th key={d} className="px-2 py-2 text-center font-medium">
+                  {days.map((d, di) => (
+                    <th
+                      key={d}
+                      className={cn(
+                        "px-2 py-2 text-center font-medium",
+                        !isTimesheetDayOpen(weekStart, di) && "text-muted-foreground/40",
+                      )}
+                    >
                       {d}
                     </th>
                   ))}
@@ -262,6 +269,7 @@ function TimesheetPage() {
                           <HourField
                             value={h}
                             label={`${days[di]} hours`}
+                            disabled={!isTimesheetDayOpen(weekStart, di)}
                             onChange={(hours) => setHour(r.id, di, String(hours))}
                           />
                         </td>

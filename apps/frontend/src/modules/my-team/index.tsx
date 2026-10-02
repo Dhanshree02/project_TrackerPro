@@ -494,9 +494,6 @@ export function MyTeamPage() {
           <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
             <div>
               <h2 className="text-sm font-semibold">Team calendar</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Click a future day to set attendance and shift. Shift+Click applies the last shift across a range. Keys: M A N G.
-              </p>
             </div>
 
             {/* Filter badge if active */}

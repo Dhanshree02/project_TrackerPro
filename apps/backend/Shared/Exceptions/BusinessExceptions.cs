@@ -8,3 +8,6 @@ public sealed class ConflictException(string message) : Exception(message);
 
 /// <summary>Maps to 403 Forbidden.</summary>
 public sealed class ForbiddenException(string message) : Exception(message);
+
+/// <summary>Maps to 401 Unauthorized.</summary>
+public sealed class UnauthorizedException(string message) : Exception(message);

@@ -119,6 +119,10 @@ export interface WbsService {
   totalHrs: number;
   unitPrice: number;
   total: number;
+  collectionStatus?: string;
+  validationStatus?: string;
+  billingStatus?: string;
+  isReady?: boolean;
 }
 
 export interface WbsInvoice {
@@ -208,6 +212,10 @@ export interface Project {
   isRenewal?: boolean;
   projectManagerId?: string;
   projectManagerName?: string;
+  /** Assigned from project_team_members. Present on API projects, including when nobody is assigned. */
+  projectManagers?: { employeeId: string; name: string }[];
+  seniorProjectManagers?: { employeeId: string; name: string }[];
+  teamLeads?: { employeeId: string; name: string }[];
   teamLeadId?: string;
   teamLeadName?: string;
   seniorProjectManager?: string;
@@ -282,6 +290,7 @@ export interface Client {
   kycDocumentPath?: string;
   /** ISO date (yyyy-mm-dd) when the customer relationship started. */
   customerSince?: string;
+  clientCode?: string; // Sequential code e.g. "C001", "C018"
   contacts?: ClientContact[]; // full list of SPOC persons
 }
 

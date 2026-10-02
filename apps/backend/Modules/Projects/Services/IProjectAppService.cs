@@ -29,6 +29,8 @@ public interface IProjectAppService
 
     Task<ProjectServiceDto> UpdateProjectServiceAsync(Guid projectId, Guid serviceId, UpdateProjectServiceRequest request, CancellationToken ct = default);
 
+    Task<ProjectServiceDto> UpdateServicePrerequisiteAsync(Guid projectId, Guid serviceId, UpdateServicePrerequisiteRequest request, CancellationToken ct = default);
+
     Task<bool> DeleteProjectServiceAsync(Guid projectId, Guid serviceId, CancellationToken ct = default);
 
     Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, CancellationToken ct = default);

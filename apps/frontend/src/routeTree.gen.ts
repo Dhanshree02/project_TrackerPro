@@ -15,7 +15,6 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as MyTeamRouteImport } from './routes/my-team'
 import { Route as MyOrgRouteImport } from './routes/my-org'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as HealthInterviewSchedulingRouteImport } from './routes/health-interview-scheduling'
 import { Route as HealthAdditionalRequirementsRouteImport } from './routes/health-additional-requirements'
 import { Route as HealthRouteImport } from './routes/health'
@@ -28,7 +27,6 @@ import { Route as DhOrgTreeRouteImport } from './routes/dh-org-tree'
 import { Route as DhExitSummaryRouteImport } from './routes/dh-exit-summary'
 import { Route as DhEmployeeDirectoryRouteImport } from './routes/dh-employee-directory'
 import { Route as CustomersRouteImport } from './routes/customers'
-import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as AllocationRouteImport } from './routes/allocation'
 import { Route as ActionCentreRouteImport } from './routes/action-centre'
@@ -75,11 +73,6 @@ const MyTeamRoute = MyTeamRouteImport.update({
 const MyOrgRoute = MyOrgRouteImport.update({
   id: '/my-org',
   path: '/my-org',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthInterviewSchedulingRoute =
@@ -142,11 +135,6 @@ const DhEmployeeDirectoryRoute = DhEmployeeDirectoryRouteImport.update({
 const CustomersRoute = CustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChangePasswordRoute = ChangePasswordRouteImport.update({
-  id: '/change-password',
-  path: '/change-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApprovalsRoute = ApprovalsRouteImport.update({
@@ -242,7 +230,6 @@ export interface FileRoutesByFullPath {
   '/action-centre': typeof ActionCentreRoute
   '/allocation': typeof AllocationRoute
   '/approvals': typeof ApprovalsRoute
-  '/change-password': typeof ChangePasswordRoute
   '/customers': typeof CustomersRouteWithChildren
   '/dh-employee-directory': typeof DhEmployeeDirectoryRouteWithChildren
   '/dh-exit-summary': typeof DhExitSummaryRoute
@@ -255,7 +242,6 @@ export interface FileRoutesByFullPath {
   '/health': typeof HealthRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
-  '/login': typeof LoginRoute
   '/my-org': typeof MyOrgRoute
   '/my-team': typeof MyTeamRouteWithChildren
   '/portfolio': typeof PortfolioRoute
@@ -281,7 +267,6 @@ export interface FileRoutesByTo {
   '/action-centre': typeof ActionCentreRoute
   '/allocation': typeof AllocationRoute
   '/approvals': typeof ApprovalsRoute
-  '/change-password': typeof ChangePasswordRoute
   '/dh-exit-summary': typeof DhExitSummaryRoute
   '/dh-org-tree': typeof DhOrgTreeRoute
   '/dh-reports': typeof DhReportsRoute
@@ -292,7 +277,6 @@ export interface FileRoutesByTo {
   '/health': typeof HealthRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
-  '/login': typeof LoginRoute
   '/my-org': typeof MyOrgRoute
   '/portfolio': typeof PortfolioRoute
   '/reports': typeof ReportsRoute
@@ -318,7 +302,6 @@ export interface FileRoutesById {
   '/action-centre': typeof ActionCentreRoute
   '/allocation': typeof AllocationRoute
   '/approvals': typeof ApprovalsRoute
-  '/change-password': typeof ChangePasswordRoute
   '/customers': typeof CustomersRouteWithChildren
   '/dh-employee-directory': typeof DhEmployeeDirectoryRouteWithChildren
   '/dh-exit-summary': typeof DhExitSummaryRoute
@@ -331,7 +314,6 @@ export interface FileRoutesById {
   '/health': typeof HealthRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
-  '/login': typeof LoginRoute
   '/my-org': typeof MyOrgRoute
   '/my-team': typeof MyTeamRouteWithChildren
   '/portfolio': typeof PortfolioRoute
@@ -359,7 +341,6 @@ export interface FileRouteTypes {
     | '/action-centre'
     | '/allocation'
     | '/approvals'
-    | '/change-password'
     | '/customers'
     | '/dh-employee-directory'
     | '/dh-exit-summary'
@@ -372,7 +353,6 @@ export interface FileRouteTypes {
     | '/health'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
-    | '/login'
     | '/my-org'
     | '/my-team'
     | '/portfolio'
@@ -398,7 +378,6 @@ export interface FileRouteTypes {
     | '/action-centre'
     | '/allocation'
     | '/approvals'
-    | '/change-password'
     | '/dh-exit-summary'
     | '/dh-org-tree'
     | '/dh-reports'
@@ -409,7 +388,6 @@ export interface FileRouteTypes {
     | '/health'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
-    | '/login'
     | '/my-org'
     | '/portfolio'
     | '/reports'
@@ -434,7 +412,6 @@ export interface FileRouteTypes {
     | '/action-centre'
     | '/allocation'
     | '/approvals'
-    | '/change-password'
     | '/customers'
     | '/dh-employee-directory'
     | '/dh-exit-summary'
@@ -447,7 +424,6 @@ export interface FileRouteTypes {
     | '/health'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
-    | '/login'
     | '/my-org'
     | '/my-team'
     | '/portfolio'
@@ -474,7 +450,6 @@ export interface RootRouteChildren {
   ActionCentreRoute: typeof ActionCentreRoute
   AllocationRoute: typeof AllocationRoute
   ApprovalsRoute: typeof ApprovalsRoute
-  ChangePasswordRoute: typeof ChangePasswordRoute
   CustomersRoute: typeof CustomersRouteWithChildren
   DhEmployeeDirectoryRoute: typeof DhEmployeeDirectoryRouteWithChildren
   DhExitSummaryRoute: typeof DhExitSummaryRoute
@@ -487,7 +462,6 @@ export interface RootRouteChildren {
   HealthRoute: typeof HealthRoute
   HealthAdditionalRequirementsRoute: typeof HealthAdditionalRequirementsRoute
   HealthInterviewSchedulingRoute: typeof HealthInterviewSchedulingRoute
-  LoginRoute: typeof LoginRoute
   MyOrgRoute: typeof MyOrgRoute
   MyTeamRoute: typeof MyTeamRouteWithChildren
   PortfolioRoute: typeof PortfolioRoute
@@ -544,13 +518,6 @@ declare module '@tanstack/react-router' {
       path: '/my-org'
       fullPath: '/my-org'
       preLoaderRoute: typeof MyOrgRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health-interview-scheduling': {
@@ -635,13 +602,6 @@ declare module '@tanstack/react-router' {
       path: '/customers'
       fullPath: '/customers'
       preLoaderRoute: typeof CustomersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/change-password': {
-      id: '/change-password'
-      path: '/change-password'
-      fullPath: '/change-password'
-      preLoaderRoute: typeof ChangePasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/approvals': {
@@ -812,7 +772,6 @@ const rootRouteChildren: RootRouteChildren = {
   ActionCentreRoute: ActionCentreRoute,
   AllocationRoute: AllocationRoute,
   ApprovalsRoute: ApprovalsRoute,
-  ChangePasswordRoute: ChangePasswordRoute,
   CustomersRoute: CustomersRouteWithChildren,
   DhEmployeeDirectoryRoute: DhEmployeeDirectoryRouteWithChildren,
   DhExitSummaryRoute: DhExitSummaryRoute,
@@ -825,7 +784,6 @@ const rootRouteChildren: RootRouteChildren = {
   HealthRoute: HealthRoute,
   HealthAdditionalRequirementsRoute: HealthAdditionalRequirementsRoute,
   HealthInterviewSchedulingRoute: HealthInterviewSchedulingRoute,
-  LoginRoute: LoginRoute,
   MyOrgRoute: MyOrgRoute,
   MyTeamRoute: MyTeamRouteWithChildren,
   PortfolioRoute: PortfolioRoute,

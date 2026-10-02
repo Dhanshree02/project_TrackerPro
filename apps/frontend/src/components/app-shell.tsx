@@ -3,38 +3,9 @@ import { Navigate, useRouterState } from "@tanstack/react-router";
 import { AppSidebar } from "./app-sidebar";
 import { AppTopbar } from "./app-topbar";
 import { MobileTabs } from "./mobile-tabs";
-import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 import { NAV_ITEMS, filterNavItems, resolveRoutePermission } from "@/lib/navigation";
-
-function AuthGate() {
-  const { status } = useAuth();
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <span className="text-xs text-muted-foreground">Signing you in…</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "anon") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <span className="text-xs text-muted-foreground">Signing you in…</span>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-}
 
 export function AppShell({
   title,
@@ -45,7 +16,6 @@ export function AppShell({
   subtitle?: ReactNode;
   children: ReactNode;
 }) {
-  const { status, user } = useAuth();
   const { isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } = useRoleContext();
   const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -57,14 +27,6 @@ export function AppShell({
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { hasPermission, hasAny } = usePermissions();
-
-  // Every AppShell page requires an authenticated session.
-  // NOTE: must stay after all hooks (Rules of Hooks).
-  if (status !== "authed") return <AuthGate />;
-
-  // Enforce the temporary-password flow: no module is usable until the
-  // MustChangePassword flag is cleared.
-  if (user?.mustChangePassword) return <Navigate to="/change-password" />;
 
   // Users without dashboard access (e.g. HR) land on their first permitted
   // module after login instead of hitting the 403 page on the root route.
@@ -94,7 +56,7 @@ export function AppShell({
   return (
     <div className="flex min-h-screen w-full isolate bg-background text-foreground">
       <AppSidebar />
-      <div className="relative z-0 flex min-w-0 flex-1 flex-col bg-background">
+      <div className="relative flex min-w-0 flex-1 flex-col bg-background">
         <AppTopbar title={title} subtitle={subtitle} />
         <main className="flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
         <MobileTabs />

@@ -1,4 +1,3 @@
-using PMS.API.Modules.Auth.Models;
 using PMS.API.Shared.Common.Models;
 
 namespace PMS.API.Modules.Users.Models;

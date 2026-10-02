@@ -1,11 +1,9 @@
-using PMS.API.Modules.Users.Models;
 using PMS.API.Shared.Common.Models;
 
-namespace PMS.API.Modules.Auth.Models;
+namespace PMS.API.Modules.Users.Models;
 
 /// <summary>
-/// Refresh token used to issue new access tokens. Only the SHA-256 hash of the
-/// token is persisted so a leaked database cannot be replayed directly.
+/// Legacy refresh token entity mapped to the refresh_tokens table.
 /// </summary>
 public class RefreshToken : BaseEntity
 {

@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Modal } from "./projects.index";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { HourField } from "@/components/hour-field";
+import { canShiftTimesheetWeek, isTimesheetDayOpen } from "@/lib/timesheet-window";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import {
@@ -97,11 +98,17 @@ function rowsFromWeek(week: TimesheetWeek): TsRow[] {
   });
 }
 
+function localDate(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 function thisMonday() {
-  const d = new Date();
-  const day = d.getDay() || 7;
-  d.setDate(d.getDate() - (day - 1));
-  return d.toISOString().slice(0, 10);
+  const date = new Date();
+  const day = date.getDay() || 7;
+  date.setDate(date.getDate() - (day - 1));
+  return localDate(date);
 }
 
 // ── TimesheetTab ─────────────────────────────────────────────────────────────
@@ -221,16 +228,22 @@ function MyTimesheetView() {
         toast.error("No timesheet found for last week.");
         return;
       }
-      setRows(rowsFromWeek(previous).map((row) => ({ ...row, id: `r${crypto.randomUUID()}` })));
+      setRows(rowsFromWeek(previous).map((row) => ({
+        ...row,
+        id: `r${crypto.randomUUID()}`,
+        hours: row.hours.map((hours, index) => (isTimesheetDayOpen(weekStart, index) ? hours : 0)),
+        notes: row.notes.map((note, index) => (isTimesheetDayOpen(weekStart, index) ? note : "")),
+      })));
       toast.success("Copied hours and comments from last week.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not copy last week.");
     }
   }
   function shiftWeek(d: number) {
-    const dt = new Date(weekStart);
+    const [year, month, day] = weekStart.split("-").map(Number);
+    const dt = new Date(year, (month || 1) - 1, day || 1);
     dt.setDate(dt.getDate() + d);
-    setWeekStart(dt.toISOString().slice(0, 10));
+    setWeekStart(localDate(dt));
   }
   async function handleSave(submit: boolean) {
     setSaving(true);
@@ -276,13 +289,15 @@ function MyTimesheetView() {
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           <button
             onClick={() => shiftWeek(-7)}
-            className="rounded-md border border-input bg-card px-2 py-1 text-xs hover:bg-accent"
+            disabled={!canShiftTimesheetWeek(weekStart, -7)}
+            className="rounded-md border border-input bg-card px-2 py-1 text-xs hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
           >
             ‹
           </button>
           <button
             onClick={() => shiftWeek(7)}
-            className="rounded-md border border-input bg-card px-2 py-1 text-xs hover:bg-accent"
+            disabled={!canShiftTimesheetWeek(weekStart, 7)}
+            className="rounded-md border border-input bg-card px-2 py-1 text-xs hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
           >
             ›
           </button>
@@ -316,8 +331,14 @@ function MyTimesheetView() {
             <tr>
               <th className="px-3 py-2 font-medium min-w-[260px]">Project</th>
               <th className="px-3 py-2 font-medium min-w-[200px]">Task</th>
-              {days.map((d) => (
-                <th key={d} className="px-2 py-2 text-center font-medium">
+              {days.map((d, di) => (
+                <th
+                  key={d}
+                  className={cn(
+                    "px-2 py-2 text-center font-medium",
+                    !isTimesheetDayOpen(weekStart, di) && "text-muted-foreground/40",
+                  )}
+                >
                   {d}
                 </th>
               ))}
@@ -356,18 +377,22 @@ function MyTimesheetView() {
                       clearable={false}
                     />
                   </td>
-                  {r.hours.map((h, di) => (
+                  {r.hours.map((h, di) => {
+                    const open = isTimesheetDayOpen(weekStart, di);
+                    return (
                     <td key={di} className="px-2 py-2 text-center align-top">
                       <div className="flex flex-col items-center gap-1">
                         <HourField
                           value={h}
                           label={`${days[di]} hours`}
+                          disabled={!open || locked}
                           onChange={(hours) => setHour(r.id, di, String(hours))}
                         />
                         <button
-                          onClick={() => setCommentOpen({ row: r.id, day: di })}
+                          onClick={() => open && setCommentOpen({ row: r.id, day: di })}
+                          disabled={!open || locked}
                           className={cn(
-                            "inline-flex h-5 w-5 items-center justify-center rounded-md hover:bg-accent",
+                            "inline-flex h-5 w-5 items-center justify-center rounded-md hover:bg-accent disabled:pointer-events-none disabled:opacity-40",
                             r.notes[di] ? "text-primary" : "text-muted-foreground",
                           )}
                           aria-label="Day comment"
@@ -376,7 +401,8 @@ function MyTimesheetView() {
                         </button>
                       </div>
                     </td>
-                  ))}
+                    );
+                  })}
                   <td className="px-3 py-2 text-center align-middle">
                     <span className="text-lg font-semibold tabular-nums leading-none">{rowTotal}</span>
                   </td>

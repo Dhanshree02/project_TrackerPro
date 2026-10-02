@@ -26,7 +26,8 @@ public sealed record ClientDto(
     IReadOnlyList<SubVentureDto> SubVentures,
     IReadOnlyList<ClientContactDto> Contacts,
     DateOnly? CustomerSince,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    string? ClientCode = null);
 
 public sealed record ClientContactDto(
     string? Name,

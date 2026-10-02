@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
@@ -530,15 +532,19 @@ internal static class EmployeeBulkWorkbook
 
 internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService employees)
 {
-    public async Task<EmployeeBulkUploadResult> ImportAsync(Stream stream, CancellationToken ct)
+    public async Task<EmployeeBulkUploadResult> ImportAsync(Stream stream, string? originalFileName = null, CancellationToken ct = default)
     {
+        var stopwatch = Stopwatch.StartNew();
+        var createdEntries = new List<BulkCreatedEmployeeEntry>();
+
         XLWorkbook workbook;
         try
         {
             workbook = new XLWorkbook(stream);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            WriteFatalErrorLog(originalFileName, "Could not read the file. Upload a valid Excel (.xlsx) workbook. Reason: " + ex.Message);
             throw new ConflictException("Could not read the file. Upload a valid Excel (.xlsx) workbook.");
         }
 
@@ -549,8 +555,13 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 ?? workbook.Worksheets.FirstOrDefault(w =>
                     !w.Name.Equals("Instructions", StringComparison.OrdinalIgnoreCase)
                     && !w.Name.Equals("Lookups", StringComparison.OrdinalIgnoreCase))
-                ?? workbook.Worksheets.FirstOrDefault()
-                ?? throw new ConflictException("The Excel file has no worksheets.");
+                ?? workbook.Worksheets.FirstOrDefault();
+
+            if (sheet is null)
+            {
+                WriteFatalErrorLog(originalFileName, "The Excel file has no worksheets.");
+                throw new ConflictException("The Excel file has no worksheets.");
+            }
 
             var headerMap = ReadHeaders(sheet);
             if (!headerMap.ContainsKey("employeecode")
@@ -558,13 +569,17 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 || !headerMap.ContainsKey("lastname")
                 || !headerMap.ContainsKey("workemail"))
             {
-                throw new ConflictException(
-                    "The Excel file is missing required columns: TK ID, First Name, Last Name, Work Email. Download the sample and try again.");
+                var msg = "The Excel file is missing required columns: TK ID, First Name, Last Name, Work Email. Download the sample and try again.";
+                WriteFatalErrorLog(originalFileName, msg);
+                throw new ConflictException(msg);
             }
 
             var lastRow = sheet.LastRowUsed()?.RowNumber() ?? 1;
             if (lastRow < 2)
+            {
+                WriteAuditLog(originalFileName, 0, 0, [], [], stopwatch.Elapsed);
                 return new EmployeeBulkUploadResult(0, 0, []);
+            }
 
             var departments = await db.Departments.ToListAsync(ct);
             var designations = await db.Designations.ToListAsync(ct);
@@ -875,6 +890,16 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     var createdEmp = await employees.CreateEmployeeAsync(request, checkIdentity: false, ct);
                     snapshot.Add(identity);
                     created++;
+                    createdEntries.Add(new BulkCreatedEmployeeEntry(
+                        excelRow,
+                        createdEmp.Id,
+                        createdEmp.EmployeeCode,
+                        $"{createdEmp.FirstName} {createdEmp.LastName}".Trim(),
+                        createdEmp.WorkEmail,
+                        createdEmp.Department ?? "N/A",
+                        createdEmp.Designation ?? "N/A",
+                        createdEmp.Role ?? "N/A",
+                        createdEmp.Status ?? "Active"));
                     managers.Add(new
                     {
                         createdEmp.Id,
@@ -893,9 +918,176 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
             }
 
+            stopwatch.Stop();
+            WriteAuditLog(originalFileName, dataRows, created, errors, createdEntries, stopwatch.Elapsed);
             return new EmployeeBulkUploadResult(created, errors.Count, errors);
         }
     }
+
+    private static void WriteAuditLog(
+            string? originalFileName,
+            int totalRows,
+            int createdCount,
+            List<EmployeeBulkRowError> errors,
+            List<BulkCreatedEmployeeEntry> createdEntries,
+            TimeSpan elapsed)
+        {
+            try
+            {
+                var nowUtc = DateTime.UtcNow;
+                var timestamp = nowUtc.ToString("yyyyMMdd-HHmmss");
+                var sb = new StringBuilder();
+
+                sb.AppendLine("===========================================================================================");
+                sb.AppendLine("TRACKERPRO BULK UPLOAD DATABASE AUDIT LOG");
+                sb.AppendLine($"Timestamp (UTC)   : {nowUtc:yyyy-MM-dd HH:mm:ss} UTC");
+                sb.AppendLine($"Timestamp (Local) : {nowUtc.ToLocalTime():dd-MM-yyyy HH:mm:ss}");
+                sb.AppendLine($"Source File       : {originalFileName ?? "Unknown"}");
+                sb.AppendLine("===========================================================================================");
+                sb.AppendLine();
+                sb.AppendLine("EXECUTION SUMMARY:");
+                sb.AppendLine($"Total Rows Processed : {totalRows}");
+                sb.AppendLine($"Successfully Inserted: {createdCount}");
+                sb.AppendLine($"Failed / Skipped     : {errors.Count}");
+                sb.AppendLine($"Execution Duration   : {elapsed.TotalMilliseconds:F0} ms");
+                sb.AppendLine();
+
+                sb.AppendLine("-------------------------------------------------------------------------------------------");
+                sb.AppendLine($"1. SUCCESSFUL DATABASE INSERTS ({createdEntries.Count}):");
+                sb.AppendLine("-------------------------------------------------------------------------------------------");
+                if (createdEntries.Count == 0)
+                {
+                    sb.AppendLine("(None)");
+                }
+                else
+                {
+                    foreach (var entry in createdEntries)
+                    {
+                        sb.AppendLine($"[Row {entry.Row,3}] ID: {entry.Id} | Code: {entry.Code,-8} | Name: {entry.Name,-20} | Email: {entry.Email,-28} | Dept: {entry.Department,-20} | Role: {entry.Role,-15} | Status: {entry.Status}");
+                    }
+                }
+                sb.AppendLine();
+
+                sb.AppendLine("-------------------------------------------------------------------------------------------");
+                sb.AppendLine($"2. FAILED / REJECTED ROWS ({errors.Count}):");
+                sb.AppendLine("-------------------------------------------------------------------------------------------");
+                if (errors.Count == 0)
+                {
+                    sb.AppendLine("(None)");
+                }
+                else
+                {
+                    foreach (var err in errors)
+                    {
+                        sb.AppendLine($"[Row {err.Row,3}] Code: {err.EmployeeCode ?? "N/A",-8} | Error: {err.Message}");
+                    }
+                }
+                sb.AppendLine();
+                sb.AppendLine("===========================================================================================");
+                sb.AppendLine("END OF BULK UPLOAD AUDIT LOG");
+                sb.AppendLine("===========================================================================================");
+
+                var logContent = sb.ToString();
+                var logFileName = $"bulk-upload-{timestamp}.log";
+
+                var targetDirs = new List<string>
+                {
+                    Path.Combine(AppContext.BaseDirectory, "Log", "BulkUpload"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "Log", "BulkUpload"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "logs", "bulk_upload"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "logs", "bulk_upload")
+                };
+
+                foreach (var dir in targetDirs.Distinct())
+                {
+                    try
+                    {
+                        var fullDir = Path.GetFullPath(dir);
+                        Directory.CreateDirectory(fullDir);
+                        var filePath = Path.Combine(fullDir, logFileName);
+                        File.WriteAllText(filePath, logContent);
+
+                        if (errors.Count > 0)
+                        {
+                            var errorFilePath = Path.Combine(fullDir, "latest_upload_errors.log");
+                            File.WriteAllText(errorFilePath, logContent);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore directory resolution issues for candidate paths
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] Failed to write bulk upload audit log: {ex.Message}");
+            }
+        }
+
+        private static void WriteFatalErrorLog(string? originalFileName, string errorMessage)
+        {
+            try
+            {
+                var nowUtc = DateTime.UtcNow;
+                var timestamp = nowUtc.ToString("yyyyMMdd-HHmmss");
+                var sb = new StringBuilder();
+
+                sb.AppendLine("===========================================================================================");
+                sb.AppendLine("TRACKERPRO BULK UPLOAD FAILURE / ERROR LOG");
+                sb.AppendLine($"Timestamp (UTC)   : {nowUtc:yyyy-MM-dd HH:mm:ss} UTC");
+                sb.AppendLine($"Timestamp (Local) : {nowUtc.ToLocalTime():dd-MM-yyyy HH:mm:ss}");
+                sb.AppendLine($"Source File       : {originalFileName ?? "Unknown"}");
+                sb.AppendLine("===========================================================================================");
+                sb.AppendLine();
+                sb.AppendLine("FATAL UPLOAD ERROR:");
+                sb.AppendLine(errorMessage);
+                sb.AppendLine();
+                sb.AppendLine("===========================================================================================");
+                sb.AppendLine("END OF BULK UPLOAD ERROR LOG");
+                sb.AppendLine("===========================================================================================");
+
+                var logContent = sb.ToString();
+                var logFileName = $"bulk-upload-error-{timestamp}.log";
+
+                var targetDirs = new List<string>
+                {
+                    Path.Combine(AppContext.BaseDirectory, "Log", "BulkUpload"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "Log", "BulkUpload"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "logs", "bulk_upload"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "logs", "bulk_upload")
+                };
+
+                foreach (var dir in targetDirs.Distinct())
+                {
+                    try
+                    {
+                        var fullDir = Path.GetFullPath(dir);
+                        Directory.CreateDirectory(fullDir);
+                        File.WriteAllText(Path.Combine(fullDir, logFileName), logContent);
+                        File.WriteAllText(Path.Combine(fullDir, "latest_upload_errors.log"), logContent);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] Failed to write fatal upload error log: {ex.Message}");
+            }
+        }
+
+    private sealed record BulkCreatedEmployeeEntry(
+        int Row,
+        Guid Id,
+        string Code,
+        string Name,
+        string Email,
+        string Department,
+        string Designation,
+        string Role,
+        string Status);
 
     private static Dictionary<string, int> ReadHeaders(IXLWorksheet sheet)
     {

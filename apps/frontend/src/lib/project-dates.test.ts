@@ -33,6 +33,19 @@ describe("deriveProjectDates", () => {
     expect(endDate).toBe("2026-09-15");
   });
 
+  it("ignores a blank service and does not use the fallback range", () => {
+    const { startDate, endDate } = deriveProjectDates(
+      [
+        { startDate: "", endDate: "" },
+        { startDate: "2026-06-01T00:00:00", endDate: "2026-07-01" },
+      ],
+      "2026-01-01",
+      "2026-12-31",
+    );
+    expect(startDate).toBe("2026-06-01");
+    expect(endDate).toBe("2026-07-01");
+  });
+
   it("falls back to project dates when services list is empty", () => {
     const { startDate, endDate } = deriveProjectDates([], "2026-04-01", "2026-10-31");
     expect(startDate).toBe("2026-04-01");

@@ -13,6 +13,7 @@ import { Modal } from "@/routes/projects.index";
 import { Field } from "@/components/form-row";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { cn } from "@/lib/utils";
+import { deriveProjectDates } from "@/lib/project-dates";
 import { fetchClients, mapApiClient, formatCustomerId } from "@/lib/api/clients";
 import {
   fetchProject,
@@ -30,10 +31,13 @@ import {
   syncTaskAssignments,
   fetchProjectTasks,
   fetchProjectServices,
+  updateServicePrerequisite,
+  copyStoredServicePrereqsOnce,
   fetchProjectInvoices,
   createProjectInvoice,
   updateProjectInvoice,
   type ApiProject,
+  type ApiProjectService,
   type ApiProjectTask,
   type ApiTaskAssignmentHistoryEntry,
 } from "@/lib/api/projects";
@@ -43,6 +47,8 @@ import {
   addProjectTeamMember as apiAddProjectTeamMember,
   updateProjectTeamMember as apiUpdateProjectTeamMember,
   removeProjectTeamMember as apiRemoveProjectTeamMember,
+  syncProjectLeadership,
+  isManagerRole,
   parseAllocationDuration,
   formatAllocationDuration,
   type ApiProjectTeamMember,
@@ -123,12 +129,24 @@ const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
 };
 
 // ---------- Date Range Picker — two small inline calendars ----------
+function startOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function isBeforeDay(day: Date, boundary: Date): boolean {
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate()) < boundary;
+}
+
 function DateRangePicker({
   value,
   onChange,
+  disablePastStart = false,
 }: {
   value: string;
   onChange: (val: string) => void;
+  /** Add Team Member: start date is today or later. End date rules are unchanged. */
+  disablePastStart?: boolean;
 }) {
   // Parse "DD/MM/YYYY → DD/MM/YYYY" (formatDate output). Do NOT use
   // `new Date("24/09/2026")` — browsers treat slash dates as invalid/US-only.
@@ -197,6 +215,7 @@ function DateRangePicker({
 
   // Click on start calendar
   const handleFromDay = (day: Date) => {
+    if (disablePastStart && isBeforeDay(day, startOfToday())) return;
     setFromInput(toInputFmt(day));
     // If picked start > current end, clear end
     const newTo = parsedRange.to && day > parsedRange.to ? undefined : parsedRange.to;
@@ -206,6 +225,7 @@ function DateRangePicker({
 
   // Click on end calendar
   const handleToDay = (day: Date) => {
+    if (disablePastStart && isBeforeDay(day, startOfToday())) return;
     const from = parsedRange.from ?? parseInputFmt(fromInput);
     // end must not be before start
     if (from && day < from) {
@@ -217,14 +237,24 @@ function DateRangePicker({
   };
 
   const handleFromInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFromInput(e.target.value);
-    const d = parseInputFmt(e.target.value);
+    const next = e.target.value;
+    const d = parseInputFmt(next);
+    if (d && disablePastStart && isBeforeDay(d, startOfToday())) {
+      toast.error("Start date cannot be in the past");
+      return;
+    }
+    setFromInput(next);
     if (d) { setCurrentMonth(d); commit(d, parsedRange.to); }
   };
 
   const handleToInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setToInput(e.target.value);
-    const d = parseInputFmt(e.target.value);
+    const next = e.target.value;
+    const d = parseInputFmt(next);
+    if (d && disablePastStart && isBeforeDay(d, startOfToday())) {
+      toast.error("End date cannot be in the past");
+      return;
+    }
+    setToInput(next);
     if (d) { setCurrentMonth(d); commit(parsedRange.from, d); }
   };
 
@@ -248,6 +278,7 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
+            disabled={disablePastStart ? { before: startOfToday() } : undefined}
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -262,7 +293,18 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
-            disabled={parsedRange.from ? { before: parsedRange.from } : undefined}
+            disabled={
+              disablePastStart
+                ? {
+                    before:
+                      parsedRange.from && parsedRange.from > startOfToday()
+                        ? parsedRange.from
+                        : startOfToday(),
+                  }
+                : parsedRange.from
+                  ? { before: parsedRange.from }
+                  : undefined
+            }
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -389,6 +431,23 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
   );
 }
 
+function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
+  const toAssignee = (member: ApiProjectTeamMember) => ({
+    employeeId: member.employeeId,
+    name: (member.employeeName || "").trim(),
+  });
+  return {
+    projectManagers: items
+      .filter((member) => member.memberRole === "ProjectManager")
+      .map(toAssignee)
+      .filter((person) => person.employeeId && person.name),
+    seniorProjectManagers: items
+      .filter((member) => member.memberRole === "SeniorProjectManager")
+      .map(toAssignee)
+      .filter((person) => person.employeeId && person.name),
+  };
+}
+
 function ProjectDetail() {
   const params = Route.useParams();
   const loaderData = Route.useLoaderData() as { project?: Project; client?: Client } | undefined;
@@ -413,11 +472,56 @@ function ProjectDetail() {
   const poDocuments = useDhStore((s) => s.poDocuments);
 
   const [dbProject, setDbProject] = useState<ApiProject | null>(null);
+  const [dbLeaders, setDbLeaders] = useState<ReturnType<typeof managersFromTeamMembers> | null>(null);
+  const [liveServiceDates, setLiveServiceDates] = useState<Array<{ startDate?: string | null; endDate?: string | null }> | null>(null);
+  const [dbServices, setDbServices] = useState<ApiProjectService[] | null>(null);
   useEffect(() => {
     let cancelled = false;
-    if (rawId && (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId) || rawId.length > 20)) {
-      fetchProject(rawId).then((p) => {
-        if (!cancelled && p) setDbProject(p);
+    setLiveServiceDates(null);
+    setDbServices(null);
+    setDbLeaders(null);
+    const rawIsGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
+    if (rawId && (rawIsGuid || rawId.length > 20)) {
+      if (rawIsGuid) {
+        fetchProjectTeamMembers(rawId).then((items) => {
+          if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
+        }).catch(() => {});
+      }
+      fetchProject(rawId).then(async (p) => {
+        if (cancelled || !p) return;
+        setDbProject(p);
+        if (!rawIsGuid) {
+          fetchProjectTeamMembers(p.id).then((items) => {
+            if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
+          }).catch(() => {});
+        }
+        try {
+          const rows = await fetchProjectServices(p.id);
+          if (cancelled) return;
+          const stored = getPrereq(p.id).services ?? [];
+          const copied = await copyStoredServicePrereqsOnce(p.id, rows, stored);
+          if (cancelled) return;
+          if (copied.applied) {
+            dhStore.replaceServicePrereqRows(
+              p.id,
+              copied.services.map((s) => ({
+                serviceId: s.id,
+                serviceName: s.serviceName,
+                collectionStatus: (s.collectionStatus || "Pending To Collect") as "Pending To Collect" | "Collected",
+                validationStatus: (s.validationStatus || "Pending To Validate") as "Pending To Validate" | "Validated",
+                billingStatus: (s.billingStatus || "Advance Pending") as "Advance Received" | "Advance Pending" | "Advance Not Required",
+                isReady: Boolean(s.isReady),
+              })),
+            );
+          }
+          setDbServices(copied.services);
+          setLiveServiceDates(copied.services.map((s) => ({
+            startDate: s.startDate ? String(s.startDate) : "",
+            endDate: s.endDate ? String(s.endDate) : "",
+          })));
+        } catch {
+          if (!cancelled) setLiveServiceDates(null);
+        }
       }).catch(console.error);
     }
     return () => { cancelled = true; };
@@ -432,11 +536,53 @@ function ProjectDetail() {
         p.wbsId === rawId ||
         p.projectSeqId?.toLowerCase() === rawId.toLowerCase(),
     );
-    if (fromStore) return fromStore;
-    if (dbProject) return mapApiProjectToProject(dbProject);
-    return loaderData?.project;
+    const base = fromStore
+      ? (!dbProject
+        ? fromStore
+        : {
+            ...fromStore,
+            renewedFromProjectId: fromStore.renewedFromProjectId || dbProject.renewedFromProjectId || undefined,
+            renewedFromWbsId: fromStore.renewedFromWbsId || dbProject.renewedFromWbsId || undefined,
+          })
+      : dbProject
+        ? mapApiProjectToProject(dbProject)
+        : loaderData?.project;
+    if (!base) return base;
+    const withManagers = dbProject
+      ? {
+          ...base,
+          projectManagers: dbProject.projectManagers ?? base.projectManagers ?? [],
+          seniorProjectManagers: dbProject.seniorProjectManagers ?? base.seniorProjectManagers ?? [],
+          projectManagerId: dbProject.projectManagerId ?? base.projectManagerId,
+          projectManagerName: dbProject.projectManagerName ?? base.projectManagerName,
+        }
+      : base;
+    const withLeaders = dbLeaders
+      ? {
+          ...withManagers,
+          projectManagers: dbLeaders.projectManagers,
+          seniorProjectManagers: dbLeaders.seniorProjectManagers,
+        }
+      : withManagers;
+    const dateSource = liveServiceDates?.length ? liveServiceDates : withLeaders.wbsDetails?.services;
+    const dated = !dateSource?.length
+      ? withLeaders
+      : (() => {
+          const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
+          return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
+        })();
+    if (!dbProject || !dbServices?.length) return dated;
+    const mapped = mapApiProjectToProject(dbProject, dbServices);
+    return {
+      ...dated,
+      wbsDetails: {
+        ...(mapped.wbsDetails ?? {}),
+        ...(dated.wbsDetails ?? {}),
+        services: mapped.wbsDetails?.services ?? dated.wbsDetails?.services ?? [],
+      },
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawId, extraCount, poDocuments, dbProject, loaderData?.project]);
+  }, [rawId, extraCount, poDocuments, dbProject, dbLeaders, liveServiceDates, dbServices, loaderData?.project]);
 
   const client: Client = useMemo(() => {
     if (!project) return loaderData?.client ?? {
@@ -546,6 +692,32 @@ function ProjectDetail() {
     }
     return isEmployee ? "Team" : "Overview";
   });
+
+  useEffect(() => {
+    if (!isApiGuid(project.id)) return;
+    let active = true;
+    fetchProjectTeamMembers(project.id)
+      .then((items) => {
+        if (!active) return;
+        if (items.length > 0 && items.every((m) => !m.memberRole)) return;
+        const managers = items.filter((m) => isManagerRole(m.memberRole));
+        dhStore.assignPMsWithPeople(
+          project.id,
+          managers.filter((m) => m.memberRole === "ProjectManager").map((m) => m.employeeId),
+          managers.filter((m) => m.memberRole === "SeniorProjectManager").map((m) => m.employeeId),
+          managers.map((m) => ({
+            id: m.employeeId,
+            name: m.employeeName,
+            role: m.memberRole === "SeniorProjectManager" ? "Senior Project Manager" : "Project Manager",
+            email: m.employeeEmail || "",
+          })),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
 
   const [closureErrorModalOpen, setClosureErrorModalOpen] = useState(false);
   const [closureErrors, setClosureErrors] = useState<{
@@ -1004,6 +1176,7 @@ function ProjectDetail() {
               tl={tl}
               team={team}
               customerRouteId={customerRouteId}
+              onLeadershipSaved={(items) => setDbLeaders(managersFromTeamMembers(items))}
             />
           )}
 
@@ -1011,6 +1184,7 @@ function ProjectDetail() {
             <WbsTab
               project={project}
               client={client}
+              onLeadershipSaved={(items) => setDbLeaders(managersFromTeamMembers(items))}
               onRaiseInvoice={(invoiceId) => {
                 setRaiseInvoiceId(invoiceId);
                 const existing = snapshotInvoices.find((i) => i.id === invoiceId);
@@ -1439,12 +1613,14 @@ function WbsTab({
   onRaiseInvoice,
   onNavigateToHealthAlerts,
   poDocumentPanel,
+  onLeadershipSaved,
 }: {
   project: Project;
   client?: Client;
   onRaiseInvoice: (invoiceId: string) => void;
   onNavigateToHealthAlerts?: () => void;
   poDocumentPanel?: React.ReactNode;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const snapshotInvoices = useDhStore((s) => s.invoices);
   const { user, isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
@@ -1532,7 +1708,7 @@ function WbsTab({
         </div>
 
         {!hidePrereq && (
-          <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+          <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} onLeadershipSaved={onLeadershipSaved} />
         )}
 
         <div>
@@ -1597,7 +1773,7 @@ function WbsTab({
         {!hideAmounts && (
           <div className="grid gap-4 md:grid-cols-3 rounded-lg border border-border bg-muted/20 p-4">
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1">Total Services</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">Services Subtotal</div>
               <div className="text-lg font-semibold">{wbsDetails.currency} {totalServices.toLocaleString()}</div>
             </div>
             <div>
@@ -1772,7 +1948,7 @@ function WbsTab({
 
       {/* PMO Intake & Prerequisite Workflow — hidden for PM family and Accounts */}
       {!hidePrereq && (
-        <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} />
+        <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} onLeadershipSaved={onLeadershipSaved} />
       )}
 
       {/* Services Table */}
@@ -2025,6 +2201,7 @@ function OverviewTab({
   tl,
   team,
   customerRouteId,
+  onLeadershipSaved,
 }: {
   project: Project;
   client?: Client;
@@ -2032,6 +2209,7 @@ function OverviewTab({
   tl: Person;
   team: Person[];
   customerRouteId: string | null;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const { isDhanshree, isProjectManager, isSeniorPm, isPmFamily, isPmoFamily, isAccounts, isSales, hideBudget } =
     useRoleContext();
@@ -2074,6 +2252,17 @@ function OverviewTab({
   }, [leadershipAssignment, project, knownPeople]);
 
   const spms: Person[] = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.seniorProjectManagers ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({
+          id: person.employeeId,
+          name: person.name.trim(),
+          role: "Senior Project Manager",
+          avatar: person.name.trim().slice(0, 2).toUpperCase(),
+          email: "",
+        }));
+    }
     if (leadershipAssignment?.spmIds?.length) {
       return leadershipAssignment.spmIds.map(getPerson).filter(Boolean);
     }
@@ -2087,6 +2276,17 @@ function OverviewTab({
   }, [leadershipAssignment, prereq, project, knownPeople]);
 
   const pms: Person[] = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.projectManagers ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({
+          id: person.employeeId,
+          name: person.name.trim(),
+          role: "Project Manager",
+          avatar: person.name.trim().slice(0, 2).toUpperCase(),
+          email: "",
+        }));
+    }
     if (leadershipAssignment?.pmIds?.length) {
       return leadershipAssignment.pmIds.map(getPerson).filter(Boolean);
     }
@@ -2131,13 +2331,47 @@ function OverviewTab({
     () => findProjectByWbsId(allProjects(), project.renewedFromWbsId),
     [project.renewedFromWbsId, extraCount],
   );
+  const originalProjectId = (project.renewedFromProjectId || originalProject?.id || "").trim();
 
   const wbs = project.wbsDetails;
-  const hasWbsData = !!(project.wbsId || wbs);
   const poDocName = useDhStore((s) => s.poDocuments[project.id]?.fileName) || wbs?.accounts?.poFileName || "";
 
+  // Service lines live on the project services API. The project payload alone does not
+  // carry line totals, so Overview reads them here (same source as the WBS tab).
+  const [liveServices, setLiveServices] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (!isApiGuid(project.id)) {
+      setLiveServices(null);
+      return;
+    }
+    let active = true;
+    fetchProjectServices(project.id)
+      .then((rows) => {
+        if (!active) return;
+        setLiveServices(
+          rows.map((s) => ({
+            id: s.id,
+            qty: s.qty || 1,
+            unitPrice: s.unitPrice || 0,
+            total: s.total || ((s.unitPrice || 0) * (s.qty || 1)),
+            totalDays: s.totalDays || s.durationDays || 0,
+            totalHrs: s.totalHours || s.durationHours || ((s.totalDays || s.durationDays || 0) * 8),
+            startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
+            endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
+          })),
+        );
+      })
+      .catch(() => {
+        if (active) setLiveServices(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
+
   // Derive project start date as the earliest service start date and end date as the latest service end date
-  const services = (wbs?.services ?? []) as any[];
+  const services = ((liveServices && liveServices.length > 0) ? liveServices : (wbs?.services ?? [])) as any[];
+  const hasWbsData = !!(project.wbsId || wbs || services.length > 0);
   const validStarts = services
     .map((s) => (typeof s.startDate === "string" ? s.startDate.trim() : ""))
     .filter((d) => Boolean(d && !isNaN(new Date(d).getTime())))
@@ -2151,9 +2385,17 @@ function OverviewTab({
   const effectiveStartDate = validStarts.length > 0 ? validStarts[0] : project.startDate;
   const effectiveEndDate = validEnds.length > 0 ? validEnds[validEnds.length - 1] : project.endDate;
 
-  const totalServices = wbs ? wbs.services.reduce((a, b) => a + b.total, 0) : 0;
+  const totalServices = services.reduce((sum, s) => {
+    const line = Number(s.total);
+    if (Number.isFinite(line) && line > 0) return sum + line;
+    return sum + (Number(s.unitPrice) || 0) * (Number(s.qty) || 1);
+  }, 0);
+  const serviceDays = services.reduce((sum, s) => sum + (Number(s.totalDays) || 0), 0);
+  const serviceHours = services.reduce((sum, s) => sum + (Number(s.totalHrs ?? s.totalHours) || 0), 0);
+  const displayDays = Number(project.totalDays) || serviceDays;
+  const displayHours = Number(project.totalHours) || serviceHours;
   const currency = wbs?.currency ?? project.currency ?? "INR";
-  const taxPct = wbs ? (project.taxPercent ?? 18) : 18;
+  const taxPct = project.taxPercent ?? 18;
   const grandTotal = totalServices + totalServices * (taxPct / 100);
 
   return (
@@ -2168,10 +2410,10 @@ function OverviewTab({
         {project.renewedFromWbsId ? (
           <p className="text-sm text-foreground">
             This project is a renewal of:{" "}
-            {originalProject ? (
+            {originalProjectId ? (
               <Link
                 to="/projects/$projectId"
-                params={{ projectId: originalProject.id }}
+                params={{ projectId: originalProjectId }}
                 className="font-medium text-primary hover:underline"
               >
                 {project.renewedFromWbsId}
@@ -2225,7 +2467,7 @@ function OverviewTab({
                   <DetailField key={f.label} label={f.label} value={f.value} />
                 ))}
             </div>
-            {!hideAmounts && totalServices > 0 && (
+            {totalServices > 0 && (
               <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
                 <div>
                   <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Services Subtotal</div>
@@ -2241,18 +2483,18 @@ function OverviewTab({
                 </div>
               </div>
             )}
-            {(project.totalDays || project.totalHours) ? (
+            {(displayDays || displayHours) ? (
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
-                {project.totalDays ? (
+                {displayDays ? (
                   <div>
                     <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Days</div>
-                    <div className="text-sm font-semibold">{project.totalDays} days</div>
+                    <div className="text-sm font-semibold">{displayDays} days</div>
                   </div>
                 ) : null}
-                {project.totalHours ? (
+                {displayHours ? (
                   <div>
                     <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Hours</div>
-                    <div className="text-sm font-semibold">{project.totalHours} hrs</div>
+                    <div className="text-sm font-semibold">{displayHours} hrs</div>
                   </div>
                 ) : null}
               </div>
@@ -2269,6 +2511,7 @@ function OverviewTab({
               unassigned={spms.length === 0}
               project={project}
               viewOnly={!isDhanshree}
+              onLeadershipSaved={onLeadershipSaved}
             />
             <LeadershipBlock
               title="Project Managers"
@@ -2277,6 +2520,7 @@ function OverviewTab({
               unassigned={pms.length === 0}
               project={project}
               viewOnly={!isDhanshree && !isSeniorPm}
+              onLeadershipSaved={onLeadershipSaved}
             />
             <LeadershipBlock
               title="Team Leads"
@@ -2512,7 +2756,7 @@ function PeopleBlock({ title, people, unassigned }: { title: string; people: Per
 
 // ---------- Leadership Block (Dhanshree only) — chips + Change Leader button ----------
 function LeadershipBlock({
-  title, role, people, unassigned, project, viewOnly = false, hideChange = false,
+  title, role, people, unassigned, project, viewOnly = false, hideChange = false, onLeadershipSaved,
 }: {
   title: string;
   role: LeadershipRole;
@@ -2521,6 +2765,7 @@ function LeadershipBlock({
   project: Project;
   viewOnly?: boolean;
   hideChange?: boolean;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const [showPanel, setShowPanel] = useState(false);
   return (
@@ -2555,6 +2800,7 @@ function LeadershipBlock({
           project={project}
           role={role}
           assignedPeople={people}
+          onLeadershipSaved={onLeadershipSaved}
           onClose={() => setShowPanel(false)}
         />
       )}
@@ -2665,12 +2911,13 @@ const EMPTY_ID_LIST: string[] = [];
 
 // ---------- Change Leader Panel — direct assign / deassign ----------
 function ChangeLeaderPanel({
-  project, role, assignedPeople, onClose,
+  project, role, assignedPeople, onClose, onLeadershipSaved,
 }: {
   project: Project;
   role: LeadershipRole;
   assignedPeople: Person[];
   onClose: () => void;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const [search, setSearch] = useState("");
   // Working copy of assigned IDs — saved on "Done" (multi-select supported)
@@ -2725,7 +2972,7 @@ function ChangeLeaderPanel({
       fetchProjectTeamMembers(project.id)
         .then((items) => {
           if (!active) return;
-          setProjectTeamMembers(items);
+          setProjectTeamMembers(items.filter((m) => m.memberRole === "ProjectTeam" || (!m.memberRole && !m.isShadowTeam)));
           dhStore.registerPeople(
             items.map((m) => ({
               id: m.employeeId,
@@ -2834,9 +3081,10 @@ function ChangeLeaderPanel({
     try {
       // Persist Team Lead flags on Project Team members (multi-select)
       if (role === "Team Lead" && isApiGuid(project.id)) {
-        const members = projectTeamMembers.length
+        const loaded = projectTeamMembers.length
           ? projectTeamMembers
           : await fetchProjectTeamMembers(project.id);
+        const members = loaded.filter((m) => m.memberRole === "ProjectTeam" || (!m.memberRole && !m.isShadowTeam));
         await Promise.all(
           members.map(async (m) => {
             const shouldBeLead = assignedIds.includes(m.employeeId);
@@ -2846,26 +3094,21 @@ function ChangeLeaderPanel({
         );
       }
 
-      dhStore.updateLeadershipAssignment(project.id, role, assignedIds, peopleForRole);
-      if (role === "Project Manager" && project.id && project.id.length > 20) {
-        const pmIdToSave = assignedIds[0] || null;
-        try {
-          await fetch(`http://localhost:5194/api/v1/projects/${project.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: project.name,
-              description: project.description,
-              status: project.status,
-              health: project.health,
-              progress: project.progress,
-              projectManagerId: pmIdToSave && pmIdToSave.includes("-") ? pmIdToSave : undefined,
-            }),
-          });
-        } catch (err) {
-          console.warn("Failed to persist PM assignment to backend:", err);
+      if ((role === "Project Manager" || role === "Senior Project Manager") && isApiGuid(project.id)) {
+        const ids = assignedIds.filter((id) => isApiGuid(id));
+        if (ids.length !== assignedIds.length) {
+          toast.error("Select a Project Manager or Senior Project Manager from the employee list");
+          return;
         }
+        const saved = await syncProjectLeadership(
+          project.id,
+          role === "Project Manager"
+            ? { projectManagerIds: ids }
+            : { seniorProjectManagerIds: ids },
+        );
+        onLeadershipSaved?.(saved);
       }
+      dhStore.updateLeadershipAssignment(project.id, role, assignedIds, peopleForRole);
       const names = peopleForRole.map((p) => p.name).join(", ") || "None";
       toast.success(`${role} updated`, { description: names });
       onClose();
@@ -3317,50 +3560,10 @@ interface ServiceFolder {
   aps: APFolder[] | null;
 }
 
-function dummyWbsServices(project: Project): WbsService[] {
-  const start = project.startDate;
-  const end = project.endDate;
-  const mk = (
-    id: string,
-    department: string,
-    serviceName: string,
-    qty: number,
-    frequency: string,
-    serviceModel: string,
-    totalHrs: number,
-  ): WbsService => ({
-    id,
-    department,
-    serviceName,
-    qty,
-    description: `${serviceName} workstream for ${project.name}`,
-    frequency,
-    location: "Offshore",
-    serviceModel,
-    deliveryModel: "Offshore",
-    finalDeliveryFormat: "Report",
-    billingModel: "Fixed Price",
-    tools: "Jira",
-    startDate: start,
-    endDate: end,
-    duration: 30,
-    totalDays: 30,
-    totalHrs,
-    unitPrice: 0,
-    total: 0,
-  });
-  return [
-    mk("s1", "QA", "Application Testing", 2, "Once", "Initial + 1", 240),
-    mk("s2", "Security", "SOC", 1, "Half Yearly", "Initial Test", 160),
-    mk("s3", "Infra", "Infrastructure", 1, "Once", "Initial + 2", 200),
-  ];
-}
-
 function buildServiceTree(project: Project, store: any): ServiceFolder[] {
-  const services = project.wbsDetails?.services?.length
-    ? project.wbsDetails.services
-    : dummyWbsServices(project);
-  const usingDummy = !project.wbsDetails?.services?.length;
+  const services = project.wbsDetails?.services ?? [];
+  if (services.length === 0) return [];
+  const usingDummy = false;
 
   return services.map((svc, serviceIndex) => {
     const qty = svc.qty || 1;
@@ -3470,13 +3673,31 @@ function buildServiceTree(project: Project, store: any): ServiceFolder[] {
 
 const expandedNodesMap = new Map<string, Set<string>>();
 
-function applyPersistedTasks(folders: ServiceFolder[], tasks: ApiProjectTask[]): ServiceFolder[] {
+function taskLeafKey(service: string, period: string, phase: string, title: string): string {
+  return `${service}|${period}|${phase}|${title}`.trim().toLowerCase();
+}
+
+function applyPersistedTasks(
+  folders: ServiceFolder[],
+  tasks: ApiProjectTask[],
+  serviceIdsByKey: Map<string, string> = new Map(),
+): ServiceFolder[] {
   const map = new Map<string, ApiProjectTask>();
   for (const t of tasks) {
-    map.set(`${t.projectServiceId}|${t.period || ""}|${t.phase || ""}|${t.title}`, t);
+    const period = t.period || "";
+    const phase = t.phase || "";
+    const title = t.title || "";
+    if (t.projectServiceId) map.set(taskLeafKey(t.projectServiceId, period, phase, title), t);
+    if (t.serviceName) map.set(taskLeafKey(t.serviceName, period, phase, title), t);
   }
-  const mapTask = (task: TreeTask, serviceId: string, period: string, phase: string): TreeTask => {
-    const hit = map.get(`${serviceId}|${period}|${phase}|${task.taskId}`);
+  const mapTask = (task: TreeTask, serviceId: string, serviceName: string, serviceCode: string, period: string, phase: string): TreeTask => {
+    const dbServiceId =
+      serviceIdsByKey.get(`code:${serviceCode.trim().toLowerCase()}`) ||
+      serviceIdsByKey.get(`name:${serviceName.trim().toLowerCase()}`) ||
+      serviceId;
+    const hit =
+      map.get(taskLeafKey(dbServiceId, period, phase, task.taskId)) ||
+      map.get(taskLeafKey(serviceName, period, phase, task.taskId));
     if (!hit) return task;
     const shares = (hit.assignments ?? [])
       .filter((a) => a.isActive !== false && Number(a.allocatedHours) > 0)
@@ -3500,14 +3721,14 @@ function applyPersistedTasks(folders: ServiceFolder[], tasks: ApiProjectTask[]):
           ...q,
           aps: q.aps.map((ap) => ({
             ...ap,
-            tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, q.label, ap.label)),
+            tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, ap.label)),
           })),
         }))
       : null,
     aps: svc.aps
       ? svc.aps.map((ap) => ({
           ...ap,
-          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, "", ap.label)),
+          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, "", ap.label)),
         }))
       : null,
   }));
@@ -3519,7 +3740,8 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
   const useApiTasks = isApiGuid(project.id);
   const [dbTasks, setDbTasks] = useState<ApiProjectTask[]>([]);
-  const [apiServices, setApiServices] = useState<WbsService[] | null>(null);
+  const [apiServices, setApiServices] = useState<ApiProjectService[] | null>(useApiTasks ? null : []);
+  const [serviceIdsByKey, setServiceIdsByKey] = useState<Map<string, string>>(new Map());
   const [apiPool, setApiPool] = useState<{ person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[] | null>(null);
 
   useEffect(() => {
@@ -3527,34 +3749,19 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
     let active = true;
     (async () => {
       try {
-        const services = await fetchProjectServices(project.id);
-        if (!active) return;
-        setApiServices(services.map((s) => ({
-          id: s.id,
-          taskId: s.taskId || "",
-          department: s.department || "",
-          subDepartment: s.subDepartment || "",
-          serviceName: s.serviceName,
-          resourceLevel: s.resourceLevel || "",
-          qty: s.qty || 1,
-          description: s.description || "",
-          frequency: s.frequency || "Once",
-          location: s.location || "",
-          serviceModel: s.serviceModel || "Initial Test",
-          deliveryModel: s.deliveryModel || "",
-          finalDeliveryFormat: s.finalDeliveryFormat || "",
-          billingModel: s.billingModel || "",
-          tools: s.tools || "",
-          startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
-          endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
-          duration: s.durationDays || 0,
-          totalDays: s.totalDays || s.durationDays || 0,
-          totalHrs: s.totalHours || ((s.totalDays || s.durationDays || 0) * 8),
-          unitPrice: s.unitPrice || 0,
-          total: s.total || 0,
-        })));
         await generateProjectTasks(project.id);
-        const tasks = await fetchProjectTasks(project.id);
+        const [services, tasks] = await Promise.all([
+          fetchProjectServices(project.id),
+          fetchProjectTasks(project.id),
+        ]);
+        if (!active) return;
+        setApiServices(services);
+        const keys = new Map<string, string>();
+        for (const service of services) {
+          if (service.taskId?.trim()) keys.set(`code:${service.taskId.trim().toLowerCase()}`, service.id);
+          if (service.serviceName?.trim()) keys.set(`name:${service.serviceName.trim().toLowerCase()}`, service.id);
+        }
+        setServiceIdsByKey(keys);
         if (!active) return;
         setDbTasks(tasks);
         const peopleToRegister = tasks.flatMap((t) =>
@@ -3568,6 +3775,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
         if (peopleToRegister.length) dhStore.registerPeople(peopleToRegister);
       } catch (err) {
         console.warn("Failed to load project tasks", err);
+        if (active) setApiServices([]);
       }
     })();
     return () => {
@@ -3575,36 +3783,37 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
     };
   }, [project.id, useApiTasks]);
 
-  const treeProject = useMemo(() => {
-    if (!useApiTasks || !apiServices) return project;
-    return {
-      ...project,
-      wbsDetails: {
-        ...(project.wbsDetails ?? { services: [], accounts: { invoices: [] } }),
-        services: apiServices,
-      },
-    } as Project;
-  }, [project, useApiTasks, apiServices]);
-
   const tree = useMemo(() => {
-    if (useApiTasks && !apiServices) return [];
-    const built = buildServiceTree(treeProject, dhStore);
+    const built = buildServiceTree(project, dhStore);
     if (!useApiTasks || dbTasks.length === 0) return built;
-    return applyPersistedTasks(built, dbTasks);
-  }, [treeProject, snapshot.treeTaskStates, useApiTasks, apiServices, dbTasks]);
-
-  const usingDummy = useApiTasks ? false : !project.wbsDetails?.services?.length;
+    return applyPersistedTasks(built, dbTasks, serviceIdsByKey);
+  }, [project, snapshot.treeTaskStates, useApiTasks, dbTasks, serviceIdsByKey]);
 
   const visibleTree = useMemo(() => {
-    if (useApiTasks || usingDummy) return tree;
-    if (!prereq) return [];
+    if (useApiTasks) {
+      return tree.filter((svcFolder) => {
+        const fromApi = apiServices?.find(
+          (s) => s.id === svcFolder.serviceId || s.serviceName === svcFolder.serviceName,
+        );
+        if (fromApi) return Boolean(fromApi.isReady);
+        const stored = prereq?.services?.find(
+          (s) => s.serviceId === svcFolder.serviceId || s.serviceName === svcFolder.serviceName,
+        );
+        if (stored) return Boolean(stored.isReady);
+        const live = project.wbsDetails?.services?.find(
+          (s) => s.id === svcFolder.serviceId || s.serviceName === svcFolder.serviceName,
+        );
+        return Boolean(live?.isReady);
+      });
+    }
+    if (!prereq?.services?.length) return [];
     return tree.filter((svcFolder) => {
       const pSvc = prereq.services?.find(
         (s) => s.serviceId === svcFolder.serviceId || s.serviceName === svcFolder.serviceName
       );
-      return pSvc ? pSvc.isReady : false;
+      return Boolean(pSvc?.isReady);
     });
-  }, [tree, prereq, usingDummy]);
+  }, [tree, prereq, useApiTasks, apiServices, project.wbsDetails?.services]);
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
     const existing = expandedNodesMap.get(project.id);
@@ -3711,15 +3920,17 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   const liveAssignments = useDhStore((s) => s.taskAssignments);
 
   const teamPool = useMemo(() => {
-    if (useApiTasks && apiPool) return apiPool;
+    const isRealMember = (person: Person) =>
+      Boolean(person?.id && person.id !== "unknown" && person.name?.trim() && person.name !== "Unknown User");
+    if (useApiTasks && apiPool) return apiPool.filter((row) => isRealMember(row.person));
     const projectTeamAdditionIds = snapshot.projectTeamAdditions[project.id] ?? [];
     const removedIds = snapshot.projectTeamRemovals[project.id] ?? [];
-    const ids = Array.from(new Set([project.pmId, project.tlId, ...project.teamIds, ...projectTeamAdditionIds, ...shadowTeamIds]))
-      .filter(id => !removedIds.includes(id));
+    const ids = Array.from(new Set([...project.teamIds, ...projectTeamAdditionIds, ...shadowTeamIds]))
+      .filter((id) => id?.trim() && !removedIds.includes(id));
     return ids.map((id) => {
       const person = getPerson(id);
-      return { person, isProjectTeam: project.pmId === id || project.tlId === id || project.teamIds.includes(id) || projectTeamAdditionIds.includes(id), isShadowTeam: shadowTeamIds.includes(id) };
-    });
+      return { person, isProjectTeam: project.teamIds.includes(id) || projectTeamAdditionIds.includes(id), isShadowTeam: shadowTeamIds.includes(id) };
+    }).filter((row) => isRealMember(row.person));
   }, [useApiTasks, apiPool, project, shadowTeamIds, snapshot.projectTeamAdditions, snapshot.projectTeamRemovals]);
 
   const getDescendantTasks = (row: TreeRow): TreeTask[] => {
@@ -3730,6 +3941,37 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
       ? svc.quarters.flatMap(q => q.aps.flatMap(ap => ap.tasks))
       : (svc.aps ? svc.aps.flatMap(ap => ap.tasks) : []);
   };
+
+  const apiHasReady = (apiServices ?? []).some((service) => Boolean(service.isReady));
+  const hasStartedService = visibleTree.length > 0 || apiHasReady;
+
+  if (useApiTasks && apiServices === null && visibleTree.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading tasks…
+      </div>
+    );
+  }
+
+  if (!hasStartedService) {
+    return (
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
+        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
+        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — No Service Started</h4>
+        <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
+          First mark a service as Ready to Start on the WBS tab. Tasks stay blocked until a service is started.
+        </p>
+      </div>
+    );
+  }
+
+  if (apiHasReady && visibleTree.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading tasks…
+      </div>
+    );
+  }
 
   return (
     <>
@@ -4067,6 +4309,36 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                             {!readOnly && (
                                             <button
                                               onClick={async () => {
+                                                if (useApiTasks) {
+                                                  try {
+                                                    const [projectMembers, shadowMembers] = await Promise.all([
+                                                      fetchProjectTeamMembers(project.id),
+                                                      fetchProjectTeamMembers(project.id, { shadow: true }),
+                                                    ]);
+                                                    const named = [...projectMembers, ...shadowMembers].filter(
+                                                      (m) => m.employeeId && m.employeeName?.trim() && m.employeeName !== "Unknown User" && !isManagerRole(m.memberRole),
+                                                    );
+                                                    dhStore.registerPeople(named.map((m) => ({
+                                                      id: m.employeeId,
+                                                      name: m.employeeName,
+                                                      role: m.employeeRole || "Team Member",
+                                                      email: m.employeeEmail || "",
+                                                    })));
+                                                    setApiPool(named.map((m) => ({
+                                                      person: {
+                                                        id: m.employeeId,
+                                                        name: m.employeeName,
+                                                        role: m.employeeRole || "Team Member",
+                                                        avatar: m.employeeName.slice(0, 2).toUpperCase(),
+                                                        email: m.employeeEmail || "",
+                                                      },
+                                                      isProjectTeam: m.memberRole ? m.memberRole === "ProjectTeam" : !m.isShadowTeam,
+                                                      isShadowTeam: m.memberRole ? m.memberRole === "ShadowTeam" : m.isShadowTeam,
+                                                    })));
+                                                  } catch (err) {
+                                                    toast.error(err instanceof Error ? err.message : "Could not load team members");
+                                                  }
+                                                }
                                                 if (useApiTasks && t.dbId) {
                                                   try {
                                                     const [resources, history] = await Promise.all([
@@ -4074,13 +4346,16 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                       fetchTaskAssignmentHistory(project.id, t.dbId),
                                                     ]);
                                                     setAssignHistory(history);
-                                                    dhStore.registerPeople(resources.map((r) => ({
+                                                    const namedResources = resources.filter(
+                                                      (r) => r.employeeId && r.employeeName?.trim() && r.employeeName !== "Unknown User",
+                                                    );
+                                                    dhStore.registerPeople(namedResources.map((r) => ({
                                                       id: r.employeeId,
                                                       name: r.employeeName,
                                                       role: r.employeeRole || "Team Member",
                                                       email: "",
                                                     })));
-                                                    setApiPool(resources.map((r) => ({
+                                                    setApiPool(namedResources.map((r) => ({
                                                       person: {
                                                         id: r.employeeId,
                                                         name: r.employeeName,
@@ -4204,7 +4479,13 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
           historyEntries={useApiTasks ? assignHistory : undefined}
           onClose={() => { setAssignFor(null); setAssignHistory([]); }}
           onSave={(ids) => {
-            if (useApiTasks && assignFor.dbId) {
+            if (useApiTasks) {
+              if (!assignFor.dbId) {
+                toast.error("Could not save assignments", {
+                  description: "This task is not linked to the database yet. Refresh the page and try again.",
+                });
+                return;
+              }
               syncTaskAssignments(project.id, assignFor.dbId, ids)
                 .then((saved) => {
                   setDbTasks((prev) => prev.map((row) => {
@@ -4212,6 +4493,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                     const utilizedHours = row.stage === "Completed" ? Number(row.estimatedHours || 0) : 0;
                     return { ...row, assignments: saved, utilizedHours };
                   }));
+                  dhStore.registerPeople(saved.map((a) => ({
+                    id: a.employeeId,
+                    name: a.employeeName,
+                    role: a.role || "Team Member",
+                    email: a.workEmail || "",
+                  })));
                   toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
                   setAssignFor(null);
                 })
@@ -4263,6 +4550,15 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
     <Modal title={`Assign — ${task.title}`} onClose={onClose} draggable>
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">Resources from Project Team and Shadow Team can be assigned. Select one or more.</p>
+        {pool.length === 0 ? (
+          <div className="rounded-lg border border-warning/30 bg-warning/10 p-6 text-center">
+            <p className="text-sm font-semibold text-warning-foreground">No team members are added to assign</p>
+            <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
+              First create a team on the Team tab. Add Project Team or Shadow Team members, then come back here to assign them.
+            </p>
+          </div>
+        ) : (
+        <>
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search team member…"
@@ -4311,6 +4607,8 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
           })}
           {visible.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted-foreground">No match</li>}
         </ul>
+        </>
+        )}
 
         {/* Assignment History Log */}
         <div className="border-t border-border pt-3">
@@ -4336,7 +4634,7 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
 
         <div className="flex justify-end gap-2 border-t border-border pt-3">
           <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-          <button onClick={() => onSave(sel)} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Save Assignments</button>
+          <button onClick={() => onSave(sel)} disabled={pool.length === 0} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">Save Assignments</button>
         </div>
       </div>
     </Modal>
@@ -4393,7 +4691,21 @@ type ProjectTeamRow = {
   subDepartment?: string;
   isTeamLead?: boolean;
   isShadowTeam?: boolean;
+  memberRole?: string;
 };
+
+function teamDisplayRank(row: ProjectTeamRow): number {
+  if (row.memberRole === "SeniorProjectManager") return 0;
+  if (row.memberRole === "ProjectManager") return 1;
+  if (row.isTeamLead) return 2;
+  return 3;
+}
+
+function managerRoleLabel(role?: string): string | null {
+  if (role === "SeniorProjectManager") return "Senior Project Manager";
+  if (role === "ProjectManager") return "Project Manager";
+  return null;
+}
 
 function mapApiTeamMemberToRow(m: ApiProjectTeamMember): ProjectTeamRow {
   return {
@@ -4412,6 +4724,7 @@ function mapApiTeamMemberToRow(m: ApiProjectTeamMember): ProjectTeamRow {
     subDepartment: m.subDepartment || "—",
     isTeamLead: m.isTeamLead,
     isShadowTeam: m.isShadowTeam,
+    memberRole: m.memberRole || (m.isShadowTeam ? "ShadowTeam" : "ProjectTeam"),
   };
 }
 
@@ -4442,8 +4755,8 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
   const [showAddModal, setShowAddModal] = useState(false);
   const [apiTeamRows, setApiTeamRows] = useState<ProjectTeamRow[] | null>(null);
   const [apiShadowRows, setApiShadowRows] = useState<ProjectTeamRow[] | null>(null);
-  const [teamLoading, setTeamLoading] = useState(false);
   const useApiTeam = isApiGuid(project.id);
+  const [teamLoading, setTeamLoading] = useState(useApiTeam);
   const removedIds = useMemo(() => new Set(snapshot.projectTeamRemovals[project.id] ?? []), [snapshot.projectTeamRemovals, project.id]);
 
   // Reactive access to DhStore shadow team records (fallback for non-API projects)
@@ -4506,7 +4819,11 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
 
   const rows = useMemo((): ProjectTeamRow[] => {
     if (useApiTeam && apiTeamRows) {
-      return apiTeamRows;
+      return [...apiTeamRows].sort((a, b) => {
+        const rank = teamDisplayRank(a) - teamDisplayRank(b);
+        if (rank !== 0) return rank;
+        return a.person.name.localeCompare(b.person.name);
+      });
     }
 
     // WBS-created projects start with no team. Members are only those added
@@ -4675,18 +4992,30 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
     toast.success("Shadow team member removed");
   };
 
-  // Access-blocked guard AFTER all hooks
-  const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
-  const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
+  // Access-blocked guard AFTER all hooks. API projects use the database rows.
+  const hasSPM = useApiTeam
+    ? (apiTeamRows ?? []).some((r) => r.memberRole === "SeniorProjectManager")
+    : (prereq?.assignedSpmIds?.length ?? 0) > 0;
+  const hasPM = useApiTeam
+    ? (apiTeamRows ?? []).some((r) => r.memberRole === "ProjectManager")
+    : (prereq?.assignedPmIds?.length ?? 0) > 0;
   const isAssigned = hasPM && hasSPM;
 
-  if (prereq && !isAssigned) {
+  if (useApiTeam && teamLoading && apiTeamRows === null) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Loading team…
+      </div>
+    );
+  }
+
+  if (!isAssigned) {
     return (
       <div className="rounded-lg border border-warning/30 bg-warning/10 p-8 text-center">
         <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
         <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — PM/SPM Not Assigned</h4>
         <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
-          Team building, resource assignment, shadow team allocation, task assignment, and activity assignment are disabled until both PM and SPM are assigned.
+          First assign the Project Manager and the Senior Project Manager on the WBS tab. Team building stays blocked until both are assigned.
         </p>
       </div>
     );
@@ -4732,7 +5061,13 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
             {teamLoading && (
               <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">Loading team…</td></tr>
             )}
-            {!teamLoading && (teamTab === "project" ? rows : shadowRows).map((r) => (
+            {!teamLoading && (teamTab === "project" ? rows : shadowRows).map((r) => {
+              const managerLabel = teamTab === "project" ? managerRoleLabel(r.memberRole) : null;
+              const actionsLocked = Boolean(managerLabel);
+              const allocationLabel = managerLabel && project.startDate && project.endDate
+                ? formatAllocationDuration(String(project.startDate).slice(0, 10), String(project.endDate).slice(0, 10))
+                : (r.duration || "—");
+              return (
               <tr key={r.person.id} className="hover:bg-accent/30">
                 {/* Resource — left aligned with avatar */}
                 <td className="px-4 py-3">
@@ -4741,7 +5076,12 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                     <div>
                       <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
                         {r.person.name}
-                        {teamTab === "project" && teamLeadIds.has(r.person.id) && (
+                        {managerLabel && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
+                            <Crown className="h-2.5 w-2.5" /> {managerLabel}
+                          </span>
+                        )}
+                        {teamTab === "project" && !managerLabel && teamLeadIds.has(r.person.id) && (
                           <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
                             <Crown className="h-2.5 w-2.5" /> Team Lead
                           </span>
@@ -4764,7 +5104,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                     : getSubDept(r.person)}
                 </td>
                 {/* Allocation Duration — center, monospaced */}
-                <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{r.duration || "—"}</td>
+                <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{allocationLabel}</td>
                 {/* Billability — center pill */}
                 <td className="px-3 py-3 text-center align-middle">
                   <span className={cn(
@@ -4790,16 +5130,17 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                 {/* Actions — center */}
                 <td className="px-3 py-3 text-center align-middle">
                   <div className="inline-flex items-center gap-1">
-                    <button title="View" onClick={() => setAction({ type: "view", person: r.person })}
-                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Eye className="h-3.5 w-3.5" /></button>
+                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "View"} disabled={actionsLocked} onClick={() => setAction({ type: "view", person: r.person })}
+                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Eye className="h-3.5 w-3.5" /></button>
                     {!readOnly && (
                     <>
-                    <button title="Edit" onClick={() => setAction({ type: "edit", person: r.person })}
-                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button title="Remove" onClick={() => setAction({ type: "remove", person: r.person })}
-                      className="rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Edit"} disabled={actionsLocked} onClick={() => setAction({ type: "edit", person: r.person })}
+                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Pencil className="h-3.5 w-3.5" /></button>
+                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Remove"} disabled={actionsLocked} onClick={() => setAction({ type: "remove", person: r.person })}
+                      className={cn("rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Trash2 className="h-3.5 w-3.5" /></button>
                     <button
-                      title="More"
+                      title={actionsLocked ? "Assigned from WBS Project Allocation" : "More"}
+                      disabled={actionsLocked}
                       onClick={(e) => {
                         if (menuOpen === r.person.id) {
                           setMenuOpen(null);
@@ -4815,13 +5156,13 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                         setMenuPos({ top, left });
                         setMenuOpen(r.person.id);
                       }}
-                      className="rounded-md border border-input bg-card p-1.5 hover:bg-accent"
+                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}
                     >
                       <MoreHorizontal className="h-3.5 w-3.5" />
                     </button>
                     </>
                     )}
-                    {menuOpen === r.person.id && menuPos && (
+                    {menuOpen === r.person.id && menuPos && !actionsLocked && (
                       <div
                         className="fixed z-[9999] w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg"
                         style={{ top: menuPos.top, left: menuPos.left }}
@@ -4892,7 +5233,8 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {!teamLoading && (teamTab === "project" ? rows : shadowRows).length === 0 && (
               <tr><td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">No {teamTab} team members allocated</td></tr>
             )}
@@ -5460,6 +5802,7 @@ function AddTeamMemberModal({
           <DateRangePicker
             value={duration}
             onChange={setDuration}
+            disablePastStart
           />
         </Field>
 
@@ -6975,7 +7318,7 @@ function getClientInfo(clientId: string, clientProp?: Client | null, subVentureN
   };
 }
 
-function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: { project: Project; client?: Client; onNavigateToHealthAlerts?: () => void }) {
+function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onLeadershipSaved }: { project: Project; client?: Client; onNavigateToHealthAlerts?: () => void; onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void }) {
   const allPrereqs = useDhStore((s) => s.prereqs);
   const prereqData = allPrereqs[project.id];
   const knownPeople = useDhStore((s) => s.knownPeople);
@@ -7049,9 +7392,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
   }, [prereqData, defaultPmIds, defaultSpmIds, project.id]);
 
   const servicesList: DhServicePrereq[] = useMemo(() => {
-    const rawServices: any[] = project.wbsDetails?.services?.length
-      ? project.wbsDetails.services
-      : dummyWbsServices(project);
+    const rawServices: any[] = project.wbsDetails?.services ?? [];
 
     const storeServices = prereq.services || [];
 
@@ -7193,6 +7534,15 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
     if (isViewOnly) return;
     dhStore.setServicePrereqStatus(project.id, serviceId, field, value, user.id, user.name);
     toast.success("Service status updated successfully");
+    if (isApiGuid(project.id) && isApiGuid(serviceId)) {
+      const payload: { collectionStatus?: string; validationStatus?: string; billingStatus?: string } = { [field]: value };
+      if (field === "collectionStatus" && value === "Pending To Collect") {
+        payload.validationStatus = "Pending To Validate";
+      }
+      void updateServicePrerequisite(project.id, serviceId, payload).catch(() => {
+        toast.error("Could not save the service status");
+      });
+    }
   };
 
   return (
@@ -7471,6 +7821,11 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
                                 onClick={() => {
                                   dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
                                   toast.success("Service marked as Ready to Start", { description: svc.serviceName });
+                                  if (isApiGuid(project.id) && isApiGuid(svc.serviceId)) {
+                                    void updateServicePrerequisite(project.id, svc.serviceId, { isReady: true }).catch(() => {
+                                      toast.error("Could not save Ready for this service");
+                                    });
+                                  }
                                 }}
                                 className={cn(
                                   "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
@@ -7729,6 +8084,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts }: {
           prereq={prereq}
           clientInfo={clientInfo}
           mode={assignModalMode}
+          onLeadershipSaved={onLeadershipSaved}
           onClose={() => setAssignModalMode(null)}
         />
       )}
@@ -7744,12 +8100,14 @@ function WbsAssignmentModal({
   clientInfo,
   mode,
   onClose,
+  onLeadershipSaved,
 }: {
   project: Project;
   prereq: DhProjectPrereq;
   clientInfo: { name: string; type: "NEW" | "OLD"; previousPmIds: string[] } | null;
   mode: "pm" | "spm";
   onClose: () => void;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const [selectedPMs, setSelectedPMs] = useState<string[]>(prereq.assignedPmIds);
   const [selectedSPMs, setSelectedSPMs] = useState<string[]>(prereq.assignedSpmIds);
@@ -7831,7 +8189,7 @@ function WbsAssignmentModal({
     setSelectedSPMs(s => (s.includes(id) ? s.filter(x => x !== id) : [...s, id]));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (mode === "pm" && selectedPMs.length === 0) {
       toast.error("Please select at least one Project Manager");
       return;
@@ -7844,30 +8202,35 @@ function WbsAssignmentModal({
     // Merge with existing assignments — keep the other role's assignments intact
     const finalPMs = mode === "pm" ? selectedPMs : prereq.assignedPmIds;
     const finalSPMs = mode === "spm" ? selectedSPMs : prereq.assignedSpmIds;
+    const idsToSave = (mode === "pm" ? finalPMs : finalSPMs).filter((id) => isApiGuid(id));
+    if (isApiGuid(project.id) && idsToSave.length !== (mode === "pm" ? finalPMs : finalSPMs).length) {
+      toast.error("Select a Project Manager or Senior Project Manager from the employee list");
+      return;
+    }
 
     const peopleForAssign = [
       ...pmPool.filter((p) => finalPMs.includes(p.id)),
       ...spmPool.filter((p) => finalSPMs.includes(p.id)),
     ].map((p) => ({ id: p.id, name: p.name, role: p.role }));
 
-    dhStore.assignPMsWithPeople(project.id, finalPMs, finalSPMs, peopleForAssign);
-
-    // Sync to backend if project ID is a valid GUID
-    if (project.id && project.id.length > 20) {
-      const pmIdToSave = finalPMs[0] || null;
-      fetch(`http://localhost:5194/api/v1/projects/${project.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: project.name,
-          description: project.description,
-          status: project.status,
-          health: project.health,
-          progress: project.progress,
-          projectManagerId: pmIdToSave && pmIdToSave.includes("-") ? pmIdToSave : undefined,
-        }),
-      }).catch((err) => console.warn("Failed to persist PM assignment to backend:", err));
+    if (isApiGuid(project.id)) {
+      try {
+        const saved = await syncProjectLeadership(
+          project.id,
+          mode === "pm"
+            ? { projectManagerIds: idsToSave }
+            : { seniorProjectManagerIds: idsToSave },
+        );
+        onLeadershipSaved?.(saved);
+      } catch (err) {
+        toast.error(mode === "pm" ? "Could not assign Project Manager" : "Could not assign Senior Project Manager", {
+          description: err instanceof Error ? err.message : "API error",
+        });
+        return;
+      }
     }
+
+    dhStore.assignPMsWithPeople(project.id, finalPMs, finalSPMs, peopleForAssign);
 
     toast.success(
       mode === "pm" ? "PM Assigned" : "Senior PM Assigned",
@@ -7883,7 +8246,7 @@ function WbsAssignmentModal({
   const title = mode === "pm" ? "Assign Project Manager" : "Assign Senior Project Manager";
 
   return (
-    <Modal title={title} onClose={onClose} draggable>
+    <Modal title={title} onClose={onClose} draggable portal>
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">
           {mode === "pm"

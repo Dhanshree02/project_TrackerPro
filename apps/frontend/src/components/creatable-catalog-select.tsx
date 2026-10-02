@@ -36,6 +36,7 @@ export function SearchableSelect({
   onCreate,
   showSearch: showSearchProp,
   onSearchChange,
+  menuZIndex,
 }: {
   label?: string;
   options: Array<string | SearchableSelectOption>;
@@ -54,6 +55,7 @@ export function SearchableSelect({
   showSearch?: boolean;
   /** Fires when the dropdown search text changes (for live API filtering). */
   onSearchChange?: (query: string) => void;
+  menuZIndex?: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -63,6 +65,25 @@ export function SearchableSelect({
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
+
+  const computeMenuStyle = (el: HTMLElement): CSSProperties => {
+    const rect = el.getBoundingClientRect();
+    const upward = window.innerHeight - rect.bottom < 260 && rect.top > 260;
+    const menuWidth = Math.max(rect.width, 220);
+    let left = rect.left;
+    if (typeof window !== "undefined" && left + menuWidth > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    return {
+      position: "fixed",
+      left,
+      width: menuWidth,
+      zIndex: menuZIndex ?? 99999,
+      ...(upward
+        ? { bottom: window.innerHeight - rect.top + 4 }
+        : { top: rect.bottom + 4 }),
+    };
+  };
 
   const normalizedOptions: SearchableSelectOption[] = useMemo(
     () =>
@@ -110,18 +131,7 @@ export function SearchableSelect({
     if (!isOpen) return;
     const placeMenu = () => {
       const el = buttonRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const upward = window.innerHeight - rect.bottom < 260 && rect.top > 260;
-      setMenuStyle({
-        position: "fixed",
-        left: rect.left,
-        width: Math.max(rect.width, 220),
-        zIndex: 80,
-        ...(upward
-          ? { bottom: window.innerHeight - rect.top + 4 }
-          : { top: rect.bottom + 4 }),
-      });
+      setMenuStyle(computeMenuStyle(el));
     };
     placeMenu();
     window.addEventListener("resize", placeMenu);
@@ -137,7 +147,7 @@ export function SearchableSelect({
       window.removeEventListener("scroll", placeMenu, true);
       if (focusTimer) clearTimeout(focusTimer);
     };
-  }, [isOpen, showSearch]);
+  }, [isOpen, showSearch, menuZIndex]);
 
   const handleSelect = (val: string) => {
     onChange?.(val);
@@ -182,17 +192,7 @@ export function SearchableSelect({
             if (disabled) return;
             const el = buttonRef.current;
             if (el) {
-              const rect = el.getBoundingClientRect();
-              const upward = window.innerHeight - rect.bottom < 260 && rect.top > 260;
-              setMenuStyle({
-                position: "fixed",
-                left: rect.left,
-                width: Math.max(rect.width, 220),
-                zIndex: 80,
-                ...(upward
-                  ? { bottom: window.innerHeight - rect.top + 4 }
-                  : { top: rect.bottom + 4 }),
-              });
+              setMenuStyle(computeMenuStyle(el));
             }
             setIsOpen((prev) => !prev);
           }}

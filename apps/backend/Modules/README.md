@@ -5,7 +5,6 @@ delivered one at a time (see the roadmap in `wiki/31_Backend_Plan_DotNet.md`).
 
 ```
 Modules/
-├── Auth/          # login, refresh, logout, me, change-password
 ├── Customers/     # clients — CRUD + data scoping (sub-ventures, SPOC contacts)
 ├── Users/         # users & roles management, permissions
 ├── Health/        # health endpoint

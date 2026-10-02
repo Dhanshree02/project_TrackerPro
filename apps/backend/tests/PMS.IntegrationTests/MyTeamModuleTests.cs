@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PMS.API.Infrastructure.Persistence;
-using PMS.API.Modules.Auth.DTOs;
 using PMS.API.Modules.MyTeam.DTOs;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Shared.Common.Wrappers;
@@ -142,14 +141,11 @@ public class MyTeamModuleTests : IClassFixture<WebApplicationFactory<Program>>
         return envelope!.Data!;
     }
 
-    private async Task AuthorizeAsync(string email)
+    private Task AuthorizeAsync(string email)
     {
-        var response = await _client.PostAsJsonAsync("/api/v1/auth/login",
-            new LoginRequest(email, "Password@123"));
-        response.EnsureSuccessStatusCode();
-        var envelope = await response.Content.ReadFromJsonAsync<ApiResponse<AuthResult>>();
-        _client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", envelope!.Data!.AccessToken);
+        _client.DefaultRequestHeaders.Remove("X-User-Email");
+        _client.DefaultRequestHeaders.Add("X-User-Email", email);
+        return Task.CompletedTask;
     }
 
     private async Task<Graph> SeedGraphAsync()

@@ -17,6 +17,7 @@ export interface ApiProjectTeamMember {
   isTeamLead: boolean;
   resourceType: string;
   isShadowTeam: boolean;
+  memberRole?: string | null;
   createdAtUtc: string;
   updatedAtUtc?: string | null;
 }
@@ -98,6 +99,29 @@ export async function updateProjectTeamMember(
     method: "PUT",
     body: JSON.stringify(payload),
   });
+}
+
+export async function syncProjectLeadership(
+  projectId: string,
+  payload: { projectManagerIds?: string[]; seniorProjectManagerIds?: string[] },
+): Promise<ApiProjectTeamMember[]> {
+  const res = await apiFetch<ApiProjectTeamMember[]>(`/api/v1/projects/${projectId}/leadership`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return res ?? [];
+}
+
+export function isProjectManagerRole(role?: string | null): boolean {
+  return role === "ProjectManager";
+}
+
+export function isSeniorProjectManagerRole(role?: string | null): boolean {
+  return role === "SeniorProjectManager";
+}
+
+export function isManagerRole(role?: string | null): boolean {
+  return isProjectManagerRole(role) || isSeniorProjectManagerRole(role);
 }
 
 export async function removeProjectTeamMember(projectId: string, memberId: string): Promise<void> {

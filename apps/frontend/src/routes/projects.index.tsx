@@ -25,7 +25,8 @@ import { allClients, dhStore, useDhStore, type WbsDraft } from "@/lib/dh-store";
 import { fetchProjectDrafts, deleteProjectDraft, type ProjectDraftListDto } from "@/lib/api/project-drafts";
 import { fetchProjects, type ApiProject } from "@/lib/api/projects";
 import { fetchClients, mapApiClient, type ApiClient } from "@/lib/api/clients";
-import { type Project, type Client, people, type Person } from "@/lib/mock-data";
+import { fetchEmployees } from "@/lib/api/employees";
+import { type Project, type Client, people, type Person, getPerson } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { isRenewedProject } from "@/lib/project-renewal";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/dh-helpers";
@@ -74,11 +75,11 @@ function ProjectsPage() {
   const [q, setQ] = useState("");
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [backendDrafts, setBackendDrafts] = useState<ProjectDraftListDto[]>([]);
+  const [draftsLoaded, setDraftsLoaded] = useState(false);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [draftSearch, setDraftSearch] = useState("");
 
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
-  const localDrafts = useDhStore((s) => s.wbsDrafts);
   const leadershipAssignments = useDhStore((s) => s.leadershipAssignments);
   const prereqs = useDhStore((s) => s.prereqs);
 
@@ -89,11 +90,11 @@ function ProjectsPage() {
         perPage: 100,
         search: searchQuery !== undefined ? searchQuery : draftSearch,
       });
-      if (res?.items) {
-        setBackendDrafts(res.items);
-      }
+      setBackendDrafts(res?.items ?? []);
+      setDraftsLoaded(true);
     } catch (e) {
-      console.warn("Failed to load drafts from backend, using local store:", e);
+      console.warn("Failed to load drafts from the database:", e);
+      setDraftsLoaded(false);
     } finally {
       setLoadingDrafts(false);
     }
@@ -103,32 +104,16 @@ function ProjectsPage() {
     loadDrafts();
   }, [draftsOpen]);
 
-  const drafts = useMemo(() => {
-    if (backendDrafts.length > 0) return backendDrafts;
-    return localDrafts.map((ld) => ({
-      id: ld.id,
-      projectName: ld.projectName,
-      clientId: ld.clientId,
-      clientName: ld.clientName,
-      salesPerson: ld.salesPerson,
-      createdByName: ld.savedBy || "Local User",
-      updatedByName: ld.savedBy || null,
-      status: "active",
-      rowVersion: 0,
-      createdAtUtc: ld.savedAt,
-      updatedAtUtc: ld.savedAt,
-    }));
-  }, [backendDrafts, localDrafts]);
+  const drafts = draftsLoaded ? backendDrafts : [];
 
   async function handleDeleteDraft(draftId: string) {
     try {
       await deleteProjectDraft(draftId);
       toast.success("Draft deleted");
+      loadDrafts();
     } catch {
-      dhStore.deleteDraft(draftId);
-      toast.success("Draft deleted from local storage");
+      toast.error("Could not delete the draft from the database");
     }
-    loadDrafts();
   }
 
   // Live database records only — no mock data
@@ -145,8 +130,9 @@ function ProjectsPage() {
     Promise.all([
       fetchProjects({ perPage: 500 }),
       fetchClients(1, 200),
+      fetchEmployees({ perPage: 200 }),
     ])
-      .then(([projRes, clientRes]) => {
+      .then(([projRes, clientRes, empRes]) => {
         if (!active) return;
         if (projRes?.items) {
           setDbProjects(projRes.items);
@@ -155,6 +141,28 @@ function ProjectsPage() {
         }
         if (clientRes) {
           setDbClients(clientRes);
+        }
+        if (empRes?.items) {
+          const mapped = empRes.items.map((e) => ({
+            id: e.id,
+            name: e.fullName,
+            role: e.designation || e.role || "Employee",
+            avatar: e.avatarUrl || e.fullName.slice(0, 2).toUpperCase(),
+            email: e.workEmail || "",
+          }));
+          dhStore.registerPeople(mapped);
+          const codeMapped = empRes.items
+            .filter((e) => e.employeeCode)
+            .map((e) => ({
+              id: e.employeeCode!,
+              name: e.fullName,
+              role: e.designation || e.role || "Employee",
+              avatar: e.avatarUrl || e.fullName.slice(0, 2).toUpperCase(),
+              email: e.workEmail || "",
+            }));
+          if (codeMapped.length > 0) {
+            dhStore.registerPeople(codeMapped);
+          }
         }
       })
       .catch((err) => {
@@ -226,6 +234,9 @@ function ProjectsPage() {
         isRenewal: isRenewalVal,
         projectManagerId: p.projectManagerId ?? undefined,
         projectManagerName: p.projectManagerName ?? undefined,
+        projectManagers: p.projectManagers ?? [],
+        seniorProjectManagers: p.seniorProjectManagers ?? [],
+        teamLeads: p.teamLeads ?? [],
         teamLeadId: p.teamLeadId ?? undefined,
         teamLeadName: p.teamLeadName ?? undefined,
         seniorProjectManager: undefined,
@@ -416,10 +427,10 @@ function ProjectsPage() {
               accountManagerId: "u1",
             };
             const clientLogo = client.logo || (client.name || "P").slice(0, 2).toUpperCase();
-            const ems = getCardEMs(p, leadershipAssignments);
+            const ems = getCardEMs(p);
             const spms = getCardSPMs(p, leadershipAssignments, prereqs);
             const pms = getCardPMs(p, leadershipAssignments, prereqs);
-            const tls = getCardTLs(p, leadershipAssignments, prereqs);
+            const tls = getCardTLs(p);
             return (
               <article
                 key={p.id}
@@ -521,6 +532,7 @@ function ProjectsPage() {
                 <th className="px-3 py-2 font-medium">End</th>
                 <th className="px-3 py-2 font-medium">Engagement Mgr</th>
                 <th className="px-3 py-2 font-medium">Project Mgr</th>
+                <th className="px-3 py-2 font-medium">Team Lead</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -536,8 +548,9 @@ function ProjectsPage() {
                   totalRevenue: 0,
                   accountManagerId: "u1",
                 };
-                const ems = getProjectEMs(p);
-                const pms = getProjectPMs(p);
+                const ems = getCardEMs(p);
+                const pms = getCardPMs(p, leadershipAssignments, prereqs);
+                const tls = getCardTLs(p);
                 return (
                   <tr
                     key={p.id}
@@ -584,12 +597,15 @@ function ProjectsPage() {
                     <td className="px-3 py-2.5">
                       <PeopleSummary list={pms} />
                     </td>
+                    <td className="px-3 py-2.5">
+                      <PeopleSummary list={tls} emptyText="Not Assigned" />
+                    </td>
                   </tr>
                 );
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={10} className="px-3 py-10 text-center text-sm text-muted-foreground">
                     No projects in this view
                   </td>
                 </tr>
@@ -602,9 +618,9 @@ function ProjectsPage() {
       {/* New Project navigates to /projects/new (full WBS form) */}
 
       {/* ── Drafts panel ── */}
-      {draftsOpen && (
+      {draftsOpen && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-[2px] transition-all duration-200"
+          className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-[2px] transition-all duration-200"
           onClick={() => setDraftsOpen(false)}
         >
           <aside
@@ -722,7 +738,8 @@ function ProjectsPage() {
               )}
             </div>
           </aside>
-        </div>
+        </div>,
+        document.body,
       )}
     </AppShell>
   );
@@ -732,10 +749,32 @@ function resolvePerson(idOrName?: string | null): Person | null {
   if (!idOrName) return null;
   const trimmed = idOrName.trim();
   if (!trimmed || trimmed === "—" || trimmed.toLowerCase() === "not assigned") return null;
+
+  // 1. Try resolving via getPerson (which checks knownPeople, registered DB employees, and static people)
+  const resolved = getPerson(trimmed);
+  if (resolved && resolved.id !== "unknown" && resolved.name && resolved.name !== trimmed) {
+    return resolved;
+  }
+
+  // 2. Direct match in static mock people by ID, name, or email
   const found = people.find(
-    (p) => p.id === trimmed || p.name.toLowerCase() === trimmed.toLowerCase()
+    (p) =>
+      p.id === trimmed ||
+      p.name.toLowerCase() === trimmed.toLowerCase() ||
+      (p.email && p.email.toLowerCase() === trimmed.toLowerCase()),
   );
   if (found) return found;
+
+  // 3. If trimmed is a pure numeric ID (e.g. "1", "2"), GUID, or code that failed resolution,
+  // do NOT display the raw number/code as a person's name!
+  const isPureNumber = /^\d+$/.test(trimmed);
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed);
+  const isIdCode = /^(TK|TKI|EMP|u)[-_]?\d+$/i.test(trimmed);
+  if (isPureNumber || isGuid || isIdCode) {
+    return null;
+  }
+
+  // 4. Otherwise, trimmed is an actual readable name (e.g. "Dhanshree Pansare", "Arjun Mehta")
   return {
     id: trimmed,
     name: trimmed,
@@ -745,17 +784,27 @@ function resolvePerson(idOrName?: string | null): Person | null {
   };
 }
 
-function getCardEMs(
-  p: Project,
-  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
-): Person[] {
-  const la = leadershipAssignments[p.id];
-  if (la?.emIds && Array.isArray(la.emIds) && la.emIds.length > 0) {
-    const list = la.emIds.map(resolvePerson).filter(Boolean) as Person[];
-    if (list.length > 0) return list;
-  }
-  const em = resolvePerson(p.engagementManager);
+function getCardEMs(p: Project): Person[] {
+  const name = p.engagementManager?.trim();
+  if (!name) return [];
+  const em = resolvePerson(name);
   return em ? [em] : [];
+}
+
+function assigneesToPeople(
+  list: { employeeId: string; name: string }[] | undefined,
+  role: string,
+): Person[] | null {
+  if (!Array.isArray(list)) return null;
+  return list
+    .filter((person) => person.employeeId && person.name?.trim())
+    .map((person) => ({
+      id: person.employeeId,
+      name: person.name.trim(),
+      role,
+      avatar: person.name.trim().slice(0, 2).toUpperCase(),
+      email: "",
+    }));
 }
 
 function getCardSPMs(
@@ -763,6 +812,12 @@ function getCardSPMs(
   leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
   prereqs: Record<string, any>,
 ): Person[] {
+  const fromProject = assigneesToPeople(p.seniorProjectManagers, "Senior Project Manager");
+  if (fromProject) return fromProject;
+  if (p.seniorProjectManager?.trim()) {
+    const spm = resolvePerson(p.seniorProjectManager);
+    if (spm) return [spm];
+  }
   const la = leadershipAssignments[p.id];
   if (la?.spmIds && Array.isArray(la.spmIds) && la.spmIds.length > 0) {
     const list = la.spmIds.map(resolvePerson).filter(Boolean) as Person[];
@@ -773,8 +828,7 @@ function getCardSPMs(
     const list = pr.assignedSpmIds.map(resolvePerson).filter(Boolean) as Person[];
     if (list.length > 0) return list;
   }
-  const spm = resolvePerson(p.seniorProjectManager);
-  return spm ? [spm] : [];
+  return [];
 }
 
 function getCardPMs(
@@ -782,37 +836,38 @@ function getCardPMs(
   leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
   prereqs: Record<string, any>,
 ): Person[] {
+  const fromProject = assigneesToPeople(p.projectManagers, "Project Manager");
+  if (fromProject) return fromProject;
+  // 1. If backend provided a real projectManagerName directly, use it
+  if (p.projectManagerName?.trim()) {
+    const fromName = resolvePerson(p.projectManagerName);
+    if (fromName) return [fromName];
+  }
+  // 2. Active leadership assignment from store
   const la = leadershipAssignments[p.id];
   if (la?.pmIds && Array.isArray(la.pmIds) && la.pmIds.length > 0) {
     const list = la.pmIds.map(resolvePerson).filter(Boolean) as Person[];
     if (list.length > 0) return list;
   }
+  // 3. Prereq assigned PMs
   const pr = prereqs[p.id];
   if (pr?.assignedPmIds && Array.isArray(pr.assignedPmIds) && pr.assignedPmIds.length > 0) {
     const list = pr.assignedPmIds.map(resolvePerson).filter(Boolean) as Person[];
     if (list.length > 0) return list;
   }
-  const pm = resolvePerson(p.projectManagerName || p.projectManagerId || p.pmId);
+  // 4. Fallback to projectManagerId or pmId
+  const pm = resolvePerson(p.projectManagerId || p.pmId);
   return pm ? [pm] : [];
 }
 
-function getCardTLs(
-  p: Project,
-  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
-  prereqs: Record<string, any>,
-): Person[] {
-  const la = leadershipAssignments[p.id];
-  if (la?.tlIds && Array.isArray(la.tlIds) && la.tlIds.length > 0) {
-    const list = la.tlIds.map(resolvePerson).filter(Boolean) as Person[];
-    if (list.length > 0) return list;
+function getCardTLs(p: Project): Person[] {
+  const fromProject = assigneesToPeople(p.teamLeads, "Team Lead");
+  if (fromProject) return fromProject;
+  if (p.teamLeadName?.trim()) {
+    const fromName = resolvePerson(p.teamLeadName);
+    if (fromName) return [fromName];
   }
-  const pr = prereqs[p.id];
-  if (pr?.assignedTlIds && Array.isArray(pr.assignedTlIds) && pr.assignedTlIds.length > 0) {
-    const list = pr.assignedTlIds.map(resolvePerson).filter(Boolean) as Person[];
-    if (list.length > 0) return list;
-  }
-  const tl = resolvePerson(p.teamLeadName || p.teamLeadId || p.tlId);
-  return tl ? [tl] : [];
+  return [];
 }
 
 function PeopleSummary({
@@ -1663,47 +1718,32 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 }
 
 let modalScrollLocks = 0;
-let previousHtmlOverflow = "";
-let previousBodyOverflow = "";
-let previousBodyPaddingRight = "";
-let previousBodyPosition = "";
-let previousBodyTop = "";
-let previousBodyLeft = "";
-let previousBodyRight = "";
-let previousScrollY = 0;
+let lockedScrollX = 0;
+let lockedScrollY = 0;
+let scrollLockHandler: (() => void) | null = null;
 
 function lockPageScroll() {
   modalScrollLocks += 1;
   if (modalScrollLocks !== 1) return;
-  previousHtmlOverflow = document.documentElement.style.overflow;
-  previousBodyOverflow = document.body.style.overflow;
-  previousBodyPaddingRight = document.body.style.paddingRight;
-  previousBodyPosition = document.body.style.position;
-  previousBodyTop = document.body.style.top;
-  previousBodyLeft = document.body.style.left;
-  previousBodyRight = document.body.style.right;
-  previousScrollY = window.scrollY;
-  const scrollbar = window.innerWidth - document.documentElement.clientWidth;
-  document.documentElement.style.overflow = "hidden";
-  document.body.style.overflow = "hidden";
-  document.body.style.position = "fixed";
-  document.body.style.top = `-${previousScrollY}px`;
-  document.body.style.left = "0";
-  document.body.style.right = "0";
-  if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
+  // Keep the document in normal flow. Pinning the page or hiding overflow on
+  // <html> unsticks the sidebar and shifts it up by the current scroll.
+  lockedScrollX = window.scrollX;
+  lockedScrollY = window.scrollY;
+  scrollLockHandler = () => {
+    if (window.scrollX !== lockedScrollX || window.scrollY !== lockedScrollY) {
+      window.scrollTo(lockedScrollX, lockedScrollY);
+    }
+  };
+  window.addEventListener("scroll", scrollLockHandler);
 }
 
 function unlockPageScroll() {
   modalScrollLocks = Math.max(0, modalScrollLocks - 1);
   if (modalScrollLocks !== 0) return;
-  document.documentElement.style.overflow = previousHtmlOverflow;
-  document.body.style.overflow = previousBodyOverflow;
-  document.body.style.paddingRight = previousBodyPaddingRight;
-  document.body.style.position = previousBodyPosition;
-  document.body.style.top = previousBodyTop;
-  document.body.style.left = previousBodyLeft;
-  document.body.style.right = previousBodyRight;
-  window.scrollTo(0, previousScrollY);
+  if (scrollLockHandler) {
+    window.removeEventListener("scroll", scrollLockHandler);
+    scrollLockHandler = null;
+  }
 }
 
 export function Modal({

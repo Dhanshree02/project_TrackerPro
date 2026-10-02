@@ -1,16 +1,13 @@
 # Users & Auth Module — Completion Plan
 
-> **Status:** ✅ Complete (backend + frontend + DB)  \
-> **Date:** 2026-08-07  \
-> **Stack:** ASP.NET Core 10 + PostgreSQL 16
+> **Status:** 🔄 Transitioning to Microsoft 365 Authentication  \
+> **Auth Architecture:** Custom username/password login page and endpoints are removed. During development and testing, the **Topbar User Switcher** provides instant switching across all employee personas. Production Microsoft 365 OAuth/SSO login will be integrated after full feature development.
 
 ---
 
 ## 1. Scope
 
-Real authentication and user administration: the frontend role-switcher placeholder is
-replaced by a secure login, and admins can manage users, roles, and access. This is the
-security backbone every later module builds on.
+User administration and RBAC: During development, users and roles are managed with the flexible Topbar User Switcher. Real authentication is being replaced by Microsoft 365 SSO. This document preserves the historical RBAC and user management design context.
 
 ```
 Login page → POST /auth/login → JWT (access + rotating refresh) → /auth/me → app

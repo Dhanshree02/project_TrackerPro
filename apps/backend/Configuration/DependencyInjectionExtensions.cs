@@ -7,7 +7,6 @@ using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Infrastructure.Storage;
-using PMS.API.Modules.Auth.Services;
 using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Modules.Customers.Services;
 using PMS.API.Modules.MyTeam.Services;
@@ -36,15 +35,10 @@ public static class DependencyInjectionExtensions
         // ---- Storage (Local Modular File Storage) ----
         services.AddSingleton<IFileStorageService, FileStorageService>();
 
-        // ---- Security / Authentication ----
+        // ---- Security / Authentication (M365 Transition) ----
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
-        services.Configure<RefreshCookieOptions>(configuration.GetSection(RefreshCookieOptions.SectionName));
         services.AddSingleton<JwtTokenService>();
-        services.AddSingleton<RefreshTokenCookie>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
-        services.AddScoped<IAuthService, AuthService>();
-        // Brute-force mitigation on /auth/* (10 attempts / 15 min per IP).
-        services.AddSingleton(_ => new LoginRateLimiter(TimeSpan.FromMinutes(15), 10));
 
         // ---- Authorization ----
         services.AddHttpContextAccessor();

@@ -36,7 +36,9 @@ export type OnboardingProjectNameInput = {
   subVentureName: string;
   /** Sub-department of each selected service — never service or department names. */
   subDepartmentNames: readonly string[];
-  existingClientProjectCount: number;
+  existingClientProjectCount?: number;
+  /** Explicit 1-based next project count e.g. 7 or "07" (takes precedence over existingClientProjectCount + 1) */
+  nextProjectCount?: number | string | null;
 };
 
 /**
@@ -61,7 +63,10 @@ export function buildOnboardingProjectName(input: OnboardingProjectNameInput): s
   const descriptor = projectNameDescriptor(input.subDepartmentNames);
   if (!clientName || !subVentureName || !descriptor) return "";
 
-  const count = formatClientProjectCount(input.existingClientProjectCount);
+  const count =
+    input.nextProjectCount != null && input.nextProjectCount !== ""
+      ? String(input.nextProjectCount).padStart(2, "0")
+      : formatClientProjectCount(input.existingClientProjectCount ?? 0);
   return `${clientName}(${subVentureName})_${descriptor}_${count}`;
 }
 
