@@ -15,6 +15,8 @@ import {
   RBAC_WIDGET_CATALOG,
   getBaselinePermissionsForRole,
   useWidgetPermissions,
+  saveCustomRolePermissions,
+  clearCustomRolePermissions,
 } from "@/lib/rbac";
 import {
   fetchRbacCatalogTree,
@@ -430,6 +432,8 @@ function ModuleAccessTab() {
   };
 
   const handleResetBaseline = async () => {
+    clearCustomRolePermissions(selectedRole);
+
     if (!selectedRoleId) {
       // Offline fallback
       const baseline = getBaselinePermissionsForRole(selectedRole);
@@ -483,10 +487,18 @@ function ModuleAccessTab() {
   };
 
   const handleSaveChanges = async () => {
+    // 1. Save locally to instant custom cache so switched persona reflects changes immediately
+    const permsMapToSave: Record<string, { canView: number; canManage: number }> = {};
+    for (const [key, val] of Object.entries(permissionsState)) {
+      permsMapToSave[key] = { canView: val.canView, canManage: val.canManage };
+    }
+    saveCustomRolePermissions(selectedRole, permsMapToSave);
+
     if (!selectedRoleId) {
-      toast.error("Role ID not found.");
+      toast.success("Permissions updated locally for role: " + selectedRole);
       return;
     }
+
     setIsSaving(true);
     try {
       const payload = Object.values(permissionsState).map((p) => ({
@@ -500,7 +512,7 @@ function ModuleAccessTab() {
         description: `Changes for ${selectedRole} saved to database.`,
       });
     } catch {
-      toast.error("Failed to save permissions.");
+      toast.error("Failed to save permissions to server.");
     } finally {
       setIsSaving(false);
     }

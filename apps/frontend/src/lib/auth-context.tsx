@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { AuthUser } from "@/lib/api-client";
 import {
   getStoredDemoRole,
@@ -6,6 +6,7 @@ import {
   setStoredDemoRole,
   type DemoRoleKey,
 } from "@/lib/demo-roles";
+import { PERMISSIONS_CHANGED_EVENT } from "@/lib/rbac";
 
 export type AuthStatus = "authed" | "loading";
 
@@ -23,6 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status] = useState<AuthStatus>("authed");
   const [demoRole, setDemoRole] = useState<DemoRoleKey>(() => initialRole);
   const [user, setUser] = useState<AuthUser | null>(() => mockAuthUser(initialRole));
+
+  useEffect(() => {
+    const handlePermsChange = () => {
+      setUser(mockAuthUser(demoRole));
+    };
+    window.addEventListener(PERMISSIONS_CHANGED_EVENT, handlePermsChange);
+    return () => window.removeEventListener(PERMISSIONS_CHANGED_EVENT, handlePermsChange);
+  }, [demoRole]);
 
   const switchDemoRole = async (role: DemoRoleKey) => {
     setStoredDemoRole(role);

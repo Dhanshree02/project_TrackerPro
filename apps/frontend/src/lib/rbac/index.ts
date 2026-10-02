@@ -2,6 +2,7 @@ export * from "./excel-baseline";
 export * from "./widget-permissions";
 export * from "./catalog";
 export * from "./matrix";
+export * from "./permissions-sync";
 
 import type { Role } from "@/lib/mock-data";
 import type { PermissionKey } from "./catalog";

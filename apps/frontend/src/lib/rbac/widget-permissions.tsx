@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getBaselinePermissionsForRole, type WidgetPermissionValue } from "@/lib/rbac/excel-baseline";
+import { getEffectiveRoleWidgetMap, PERMISSIONS_CHANGED_EVENT } from "@/lib/rbac/permissions-sync";
 import { fetchMyWidgetPermissions } from "@/lib/api/rbac";
 
 export interface WidgetAccessState {
@@ -29,9 +30,9 @@ export function WidgetPermissionsProvider({ children }: { children: React.ReactN
     return r === "admin" || r === "dhanshree" || r === "ceo";
   }, [currentRole]);
 
-  // Initial baseline permissions from Excel matrix
+  // Initial effective permissions (checks custom overrides in localStorage, then Excel baseline)
   const initialMap = useMemo(() => {
-    const base = getBaselinePermissionsForRole(currentRole);
+    const base = getEffectiveRoleWidgetMap(currentRole);
     const map: Record<string, { canView: boolean; canManage: boolean }> = {};
     for (const [key, val] of Object.entries(base)) {
       map[key] = {
@@ -49,7 +50,27 @@ export function WidgetPermissionsProvider({ children }: { children: React.ReactN
     setPermissionsMap(initialMap);
   }, [initialMap]);
 
-  // Background sync with API for real-time customizations
+  // Listen to live permission changes saved by Admin in Settings
+  useEffect(() => {
+    const handlePermsChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail || !detail.roleName || detail.roleName.toLowerCase() === currentRole.toLowerCase()) {
+        const base = getEffectiveRoleWidgetMap(currentRole);
+        const map: Record<string, { canView: boolean; canManage: boolean }> = {};
+        for (const [key, val] of Object.entries(base)) {
+          map[key] = {
+            canView: isSuperAdmin ? true : val.canView === 1,
+            canManage: isSuperAdmin ? true : (val.canManage === 1 && val.canView === 1),
+          };
+        }
+        setPermissionsMap(map);
+      }
+    };
+    window.addEventListener(PERMISSIONS_CHANGED_EVENT, handlePermsChange);
+    return () => window.removeEventListener(PERMISSIONS_CHANGED_EVENT, handlePermsChange);
+  }, [currentRole, isSuperAdmin]);
+
+  // Background sync with API for database-saved customizations
   const refresh = useCallback(async () => {
     try {
       const serverPerms = await fetchMyWidgetPermissions(currentRole);
@@ -64,7 +85,7 @@ export function WidgetPermissionsProvider({ children }: { children: React.ReactN
         setPermissionsMap(updated);
       }
     } catch {
-      // Fallback already active from Excel baseline
+      // Fallback already active from effective local/Excel map
     }
   }, [currentRole, isSuperAdmin]);
 
@@ -78,8 +99,8 @@ export function WidgetPermissionsProvider({ children }: { children: React.ReactN
     }
     const perm = permissionsMap[widgetKey];
     if (!perm) {
-      // Check baseline
-      const base = getBaselinePermissionsForRole(currentRole)[widgetKey];
+      // Check effective map
+      const base = getEffectiveRoleWidgetMap(currentRole)[widgetKey];
       return {
         canView: base?.canView === 1,
         canManage: base?.canManage === 1 && base?.canView === 1,

@@ -1,5 +1,5 @@
 import type { AuthUser } from "@/lib/api-client";
-import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
+import { DEFAULT_ROLE_PERMISSIONS, deriveRolePermissionKeys } from "@/lib/rbac";
 
 /**
  * RBAC system roles + employee identity keys.
@@ -939,12 +939,13 @@ export function getDemoPersona(roleOrKey: string): DemoPersona {
 
 export function mockAuthUser(roleOrKey: string): AuthUser {
   const persona = getDemoPersona(roleOrKey);
+  const livePermissions = deriveRolePermissionKeys(persona.roleKey);
   return {
     id: persona.id,
     email: persona.email,
     name: persona.name,
     role: persona.roleKey,
     mustChangePassword: false,
-    permissions: persona.permissions,
+    permissions: livePermissions.length > 0 ? livePermissions : persona.permissions,
   };
 }

@@ -240,7 +240,7 @@ export function filterNavItems(
   }
 
   const hideStandalone = isPmFamily || isPmoFamily || isAccounts || isSales;
-  if (hideStandalone) {
+  if (hideStandalone && !hasPermission("settings.view")) {
     return result.filter((i) => i.label !== "Settings");
   }
 
