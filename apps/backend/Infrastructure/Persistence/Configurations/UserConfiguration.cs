@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using PMS.API.Modules.Auth.Models;
 using PMS.API.Modules.Users.Models;
 
 namespace PMS.API.Infrastructure.Persistence.Configurations;

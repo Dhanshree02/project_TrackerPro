@@ -36,7 +36,6 @@ export type DemoRoleKey =
   | (string & {});
 
 export const DEMO_ROLE_STORAGE_KEY = "pulse-demo-role";
-export const DEMO_PASSWORD = "Password@123";
 
 export interface DemoPersona {
   key: string;

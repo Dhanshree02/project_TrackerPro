@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using PMS.API.Modules.Auth.DTOs;
 using PMS.API.Modules.Resources.DTOs;
 using PMS.API.Shared.Common.Wrappers;
 
@@ -20,14 +19,11 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
         _client = factory.CreateClient();
     }
 
-    private async Task<string> LoginAsync()
+    private Task<string> LoginAsync()
     {
-        var response = await _client.PostAsJsonAsync("/api/v1/auth/login",
-            new LoginRequest("dhanshree@acme.co", "Password@123"));
-        response.EnsureSuccessStatusCode();
-
-        var envelope = await response.Content.ReadFromJsonAsync<ApiResponse<AuthResult>>();
-        return envelope!.Data!.AccessToken;
+        _client.DefaultRequestHeaders.Remove("X-User-Email");
+        _client.DefaultRequestHeaders.Add("X-User-Email", "dhanshree@acme.co");
+        return Task.FromResult("dev-bypass-token");
     }
 
     [Fact]

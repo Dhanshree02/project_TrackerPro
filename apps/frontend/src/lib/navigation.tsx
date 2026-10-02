@@ -285,7 +285,6 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] 
   { prefix: "/wbs-allocation", permission: "wbs.allocate" },
   { prefix: "/allocation", permission: "wbs.allocate" },
   { prefix: "/portfolio", permission: "portfolio.view" },
-  { prefix: "/change-password", permission: null },
   { prefix: "/access-denied", permission: null },
   { prefix: "/", permission: "dashboard.view" },
 ];

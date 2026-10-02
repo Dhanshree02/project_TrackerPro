@@ -18,7 +18,7 @@ apps/backend/
 ├── Properties/launchSettings.json # Dev launch profiles
 ├── Configuration/                 # DI registrations (DependencyInjectionExtensions.cs)
 ├── Infrastructure/
-│   ├── Authentication/            # JWT tokens, BCrypt, login rate limiting
+│   ├── Authentication/            # Authentication infrastructure (M365 integration planned)
 │   ├── Authorization/             # Permission guards, current-user resolution
 │   ├── Cache/                     # Reserved for future use
 │   ├── Persistence/               # EF Core DbContext, configurations, seeding
@@ -27,10 +27,9 @@ apps/backend/
 ├── Log/
 │   ├── Debug log/                 # Debug / Information / Warning logs
 │   └── Error log/                 # Error / Fatal logs
-├── Middleware/                    # Exception handling, validation filter
+├── Middleware/                    # Exception handling, validation filter, dev auth bypass
 ├── Migrations/                    # EF Core migrations
 ├── Modules/                       # Business modules (see Modules/README.md)
-│   ├── Auth/                      # login, refresh, logout, me, change-password
 │   ├── Customers/                 # clients — CRUD + data scoping
 │   ├── Users/                     # users & roles management
 │   ├── Health/                    # health endpoint
@@ -101,18 +100,16 @@ Override the credentials with `SMOKE_EMAIL` / `SMOKE_PASSWORD` if needed.
 - **Audit columns:** all entities derive from `BaseEntity` (created/updated/soft-delete).
 - **Naming:** tables are lowercase snake_case (e.g. `refresh_tokens`); C# types PascalCase.
 
-## Demo data (Development)
+## Demo data & User Switching (Development)
 
 On first start the API auto-applies migrations and seeds (see `Database:AutoMigrate` in
 `appsettings.Development.json`):
 
-- **Users:** the 14 people from `mock-data.ts` (e.g. `dhanshree@acme.co`, `rahul@acme.co`,
-  `riya@acme.co`) — password `Password@123`, `MustChangePassword = true`
-- **Roles:** 12 roles with permission sets matching the RBAC matrix
-- **Clients:** the 10 mock clients (`Northwind Bank`, `Helix Pharma`, …) with sub-ventures & contacts
+- **Users:** mock employees across departments with roles matching the RBAC matrix
+- **Roles:** roles with permission sets matching the RBAC matrix
+- **Clients:** mock clients with sub-ventures & contacts
 
-Log in as the admin for full visibility: `dhanshree@acme.co` / `Password@123`.
-The frontend auto-logs-in with these demo credentials when `VITE_DEMO_LOGIN=true` (default).
+During development, use the frontend Topbar **User Switcher** to switch between any persona or role instantly without credentials. Full M365 authentication will replace the development bypass upon completion.
 
 ## Security defaults (do not weaken)
 

@@ -1,9 +1,7 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using PMS.API.Modules.Auth.DTOs;
 using PMS.API.Modules.Catalogs.DTOs;
 using PMS.API.Shared.Common.Wrappers;
 
@@ -20,22 +18,17 @@ public class CatalogModuleTests : IClassFixture<WebApplicationFactory<Program>>
         _client = factory.CreateClient();
     }
 
-    private async Task<string> LoginAsync()
+    private Task AuthorizeAsync()
     {
-        var response = await _client.PostAsJsonAsync("/api/v1/auth/login",
-            new LoginRequest("dhanshree@acme.co", "Password@123"));
-        response.EnsureSuccessStatusCode();
-
-        var envelope = await response.Content.ReadFromJsonAsync<ApiResponse<AuthResult>>();
-        Assert.NotNull(envelope?.Data);
-        return envelope!.Data!.AccessToken;
+        _client.DefaultRequestHeaders.Remove("X-User-Email");
+        _client.DefaultRequestHeaders.Add("X-User-Email", "dhanshree@acme.co");
+        return Task.CompletedTask;
     }
 
     [Fact]
     public async Task Countries_ReturnsSeededIndia()
     {
-        _client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+        await AuthorizeAsync();
 
         var response = await _client.GetAsync("/api/v1/catalogs/countries");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -48,8 +41,7 @@ public class CatalogModuleTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Nationalities_ReturnsSeededIndian()
     {
-        _client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+        await AuthorizeAsync();
 
         var response = await _client.GetAsync("/api/v1/catalogs/nationalities");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -62,8 +54,7 @@ public class CatalogModuleTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Cities_FiltersByCountry()
     {
-        _client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+        await AuthorizeAsync();
 
         var countriesResponse = await _client.GetAsync("/api/v1/catalogs/countries");
         var countries = await countriesResponse.Content.ReadFromJsonAsync<ApiResponse<List<CatalogOptionDto>>>();
@@ -81,8 +72,7 @@ public class CatalogModuleTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task ClientMeta_Countries_RequiresClientsRead()
     {
-        _client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+        await AuthorizeAsync();
 
         var response = await _client.GetAsync("/api/v1/clients/meta/countries");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

@@ -8,9 +8,10 @@ using PMS.API.Shared.Constants;
 namespace PMS.API.Middleware;
 
 /// <summary>
-/// Development-only: treats unauthenticated requests as the seeded Admin user
-/// with full permissions so the frontend can work without a live JWT session.
-/// Remove or disable before production / M365 auth.
+/// Development-only bypass: treats unauthenticated requests as the active user
+/// selected in the frontend user-switcher dropdown (via X-User-Email / X-User-Role headers)
+/// or defaults to Admin, with full permissions.
+/// Production M365 authentication will replace this after full development.
 /// </summary>
 public sealed class DevelopmentAuthBypassMiddleware(RequestDelegate next)
 {
@@ -20,15 +21,31 @@ public sealed class DevelopmentAuthBypassMiddleware(RequestDelegate next)
     {
         if (context.User.Identity?.IsAuthenticated != true)
         {
+            var email = context.Request.Headers["X-User-Email"].FirstOrDefault();
+            var role = context.Request.Headers["X-User-Role"].FirstOrDefault();
+            var userIdStr = context.Request.Headers["X-User-Id"].FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(email)) email = "admin@acme.co";
+            if (string.IsNullOrWhiteSpace(role)) role = nameof(UserRole.Admin);
+
+            Guid userId = Guid.TryParse(userIdStr, out var parsedId)
+                ? parsedId
+                : DbSeeder.StableGuid($"user-{email}");
+
             var claims = new List<Claim>
             {
-                new(JwtRegisteredClaimNames.Sub, DbSeeder.StableGuid("user-u15").ToString()),
-                new(JwtRegisteredClaimNames.Email, "admin@acme.co"),
-                new(ClaimTypes.Name, "Admin User"),
-                new(ClaimTypes.Role, nameof(UserRole.Admin)),
+                new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new(JwtRegisteredClaimNames.Email, email),
+                new(ClaimTypes.Name, email.Split('@')[0]),
+                new(ClaimTypes.Role, role),
             };
 
-            foreach (var permission in RoleBaselines.For(nameof(UserRole.Admin)))
+            // Grant baseline permissions for the active role (or Admin baseline as fallback)
+            var permissions = RoleBaselines.For(role);
+            if (permissions.Count == 0)
+                permissions = RoleBaselines.For(nameof(UserRole.Admin));
+
+            foreach (var permission in permissions)
                 claims.Add(new Claim(AuthClaimTypes.Permission, permission));
 
             context.User = new ClaimsPrincipal(new ClaimsIdentity(claims, Scheme));

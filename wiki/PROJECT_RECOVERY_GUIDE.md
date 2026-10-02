@@ -151,7 +151,7 @@ DEVELOPMENT TRACKING:
 
 1. **Frontend restructuring** — Split 167KB project detail, 83KB action centre, 80KB store
 2. **Backend scaffolding** — FastAPI + PostgreSQL + Docker setup inside `apps/backend/`
-3. **Auth implementation** — JWT login replacing role switcher
+3. **Auth implementation** — Microsoft 365 OAuth/SSO login (planned post-development); Topbar User Switcher active for development & testing
 4. **Data seeding** — mock-data.ts → database seed scripts
 5. **API integration** — Replace static imports with React Query hooks
 

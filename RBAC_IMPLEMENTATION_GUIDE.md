@@ -335,11 +335,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/wbs-allocation")({
   beforeLoad: ({ context }) => {
     const { auth } = context;
-    if (!auth.isAuthenticated) {
-      throw redirect({ to: "/login" });
-    }
     if (!auth.user?.permissions.includes("wbs:allocate") && auth.user?.role !== "Admin") {
-      throw redirect({ to: "/unauthorized" });
+      throw redirect({ to: "/access-denied" });
     }
   },
   component: WbsAllocationPage,
@@ -387,8 +384,8 @@ gantt
    - Create `roles`, `users`, `user_client_assignments`, and `role_permission_audits` tables.
    - Run seed script with all 12 TrackerPro system roles and baseline permissions.
 
-2. **Phase 2: Backend Authentication & Authorization**
-   - Implement login API (`/api/v1/auth/login`) generating JWT tokens with permission claims.
+2. **Phase 2: Authentication & Authorization**
+   - Microsoft 365 OAuth/SSO login (production) / Topbar user-switcher bypass (development).
    - Attach `[RequirePermission(...)]` filter to all API controllers.
    - Add scoping queries to ensure data isolation (clients/projects).
 
