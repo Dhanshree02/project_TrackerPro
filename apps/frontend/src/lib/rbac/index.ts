@@ -1,15 +1,7 @@
-export {
-  APP_ROLES,
-  ROLE_LABELS,
-  PERMISSION_CATALOG,
-  MODULE_ORDER,
-  ROLE_PROJECT_SCOPE,
-  type AppRole,
-  type PermissionKey,
-  type ProjectScope,
-} from "./catalog";
-
-export { DEFAULT_ROLE_PERMISSIONS, RBAC_STORAGE_KEY } from "./matrix";
+export * from "./excel-baseline";
+export * from "./widget-permissions";
+export * from "./catalog";
+export * from "./matrix";
 
 import type { Role } from "@/lib/mock-data";
 import type { PermissionKey } from "./catalog";

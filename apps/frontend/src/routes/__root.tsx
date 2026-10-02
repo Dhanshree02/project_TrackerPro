@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth-context";
 import { RoleProvider } from "@/lib/role-context";
 import { PermissionProvider } from "@/lib/permissions";
+import { WidgetPermissionsProvider } from "@/lib/rbac";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -148,12 +149,14 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <PermissionProvider>
-          <RoleProvider>
-            <Outlet />
-            <Toaster />
-          </RoleProvider>
-        </PermissionProvider>
+        <WidgetPermissionsProvider>
+          <PermissionProvider>
+            <RoleProvider>
+              <Outlet />
+              <Toaster />
+            </RoleProvider>
+          </PermissionProvider>
+        </WidgetPermissionsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -21,6 +21,11 @@ public class AppDbContext(
 
     public DbSet<RolePermissionAudit> RolePermissionAudits => Set<RolePermissionAudit>();
 
+    public DbSet<MstModule> MstModules => Set<MstModule>();
+    public DbSet<MstSubmodule> MstSubmodules => Set<MstSubmodule>();
+    public DbSet<MstWidget> MstWidgets => Set<MstWidget>();
+    public DbSet<RoleWidgetPermission> RoleWidgetPermissions => Set<RoleWidgetPermission>();
+
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<Client> Clients => Set<Client>();

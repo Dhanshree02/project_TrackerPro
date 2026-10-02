@@ -61,6 +61,7 @@ backups/
 # Local File Storage (Tracked in git)
 !storage/
 !storage/**
+apps/backend/storage/
 
 
 

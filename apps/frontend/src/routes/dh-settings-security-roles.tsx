@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, ChevronDown, Save, RotateCcw, Loader2 } from "lucide-react";
+import { Search, ChevronDown, Save, RotateCcw, Loader2, Shield, Eye, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
@@ -8,27 +8,34 @@ import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/mock-data";
 import {
   APP_ROLES,
-  DEFAULT_ROLE_PERMISSIONS,
-  MODULE_ORDER,
-  PERMISSION_CATALOG,
   ROLE_LABELS,
   ROLE_PROJECT_SCOPE,
-  type PermissionKey,
 } from "@/lib/rbac";
+import {
+  RBAC_WIDGET_CATALOG,
+  getBaselinePermissionsForRole,
+  useWidgetPermissions,
+} from "@/lib/rbac";
+import {
+  fetchRbacCatalogTree,
+  updateRoleWidgetPermissions,
+  resetRoleWidgetBaseline,
+  type ModuleCatalogItemDto,
+  type WidgetCatalogItemDto,
+} from "@/lib/api/rbac";
 import {
   fetchUsers,
   fetchRoles,
   updateUser,
-  updateRolePermissions,
-  resetRoleToBaseline,
   type ApiRole,
 } from "@/lib/api/users";
+import { usePermissions } from "@/lib/permissions";
 
 export const Route = createFileRoute("/dh-settings-security-roles")({
   head: () => ({
     meta: [
       { title: "Roles & Permissions — Settings — Pulse PMO" },
-      { name: "description", content: "Assign user roles and fine-grained module permissions." },
+      { name: "description", content: "Assign user roles and fine-grained 4-tier module/widget permissions." },
     ],
   }),
   component: SecurityRolesPage,
@@ -68,18 +75,16 @@ const SCOPE_LABEL: Record<string, string> = {
   all: "All company projects",
 };
 
-import { usePermissions } from "@/lib/permissions";
-
 function SecurityRolesPage() {
   const { can, isDhanshree } = useRoleContext();
   const { hasAny } = usePermissions();
-  const [activeTab, setActiveTab] = useState<"users" | "modules">("modules");
+  const [activeTab, setActiveTab] = useState<"modules" | "users">("modules");
 
   const allowed = isDhanshree || (can ? can("settings.manage_roles") : false) || hasAny("settings.manage_roles", "roles:manage", "settings.view");
   if (!allowed) return <Navigate to="/" />;
 
   return (
-    <AppShell title="Roles & Permissions" subtitle="Who can see and do what — across every module">
+    <AppShell title="Roles & Permissions" subtitle="Fine-grained Role → Module → Submodule → Widget Access Control">
       <div className="mb-5 flex items-center border-b border-border">
         <button
           onClick={() => setActiveTab("modules")}
@@ -88,7 +93,7 @@ function SecurityRolesPage() {
             activeTab === "modules" ? "text-primary" : "text-muted-foreground hover:text-foreground",
           )}
         >
-          Module Access
+          Module & Widget Access
           {activeTab === "modules" && (
             <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
           )}
@@ -100,43 +105,39 @@ function SecurityRolesPage() {
             activeTab === "users" ? "text-primary" : "text-muted-foreground hover:text-foreground",
           )}
         >
-          User Role Access
+          User Role Assignment
           {activeTab === "users" && (
             <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
           )}
         </button>
       </div>
 
-      {activeTab === "users" ? <UserRoleAccessTab /> : <ModuleAccessTab />}
+      {activeTab === "modules" ? <ModuleAccessTab /> : <UsersTab />}
     </AppShell>
   );
 }
 
-function UserRoleAccessTab() {
+function UsersTab() {
+  const [users, setUsers] = useState<UserRow[]>(initialUsers);
   const [q, setQ] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [users, setUsers] = useState<UserRow[]>(() => [...initialUsers]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [roleFilter, setRoleFilter] = useState("all");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
-    fetchUsers({ perPage: 100 })
-      .then((res) => {
+    fetchUsers()
+      .then((apiUsers) => {
         if (cancelled) return;
-        if (res?.items && res.items.length > 0) {
-          const rows: UserRow[] = res.items.map((u) => {
-            const rawRole = u.role || "";
-            const matchedRole = (APP_ROLES.find(
-              (r) => r.toLowerCase() === rawRole.toLowerCase() || r === rawRole,
-            ) || "employee") as Role;
+        if (apiUsers && apiUsers.length > 0) {
+          const rows: UserRow[] = apiUsers.map((u) => {
+            const r = (u.role as Role) || "employee";
             return {
               id: u.id,
               name: u.name,
               email: u.email,
-              currentRole: matchedRole,
-              initialRole: matchedRole,
+              currentRole: r,
+              initialRole: r,
             };
           });
           setUsers(rows);
@@ -205,7 +206,7 @@ function UserRoleAccessTab() {
           <option value="all">All Roles</option>
           {APP_ROLES.map((r) => (
             <option key={r} value={r}>
-              {ROLE_LABELS[r]}
+              {ROLE_LABELS[r] || r}
             </option>
           ))}
         </select>
@@ -267,7 +268,7 @@ function UserRoleAccessTab() {
                     >
                       {APP_ROLES.map((r) => (
                         <option key={r} value={r}>
-                          {ROLE_LABELS[r]}
+                          {ROLE_LABELS[r] || r}
                         </option>
                       ))}
                     </select>
@@ -282,165 +283,583 @@ function UserRoleAccessTab() {
   );
 }
 
+interface EditablePermission {
+  widgetId: string;
+  widgetKey: string;
+  canView: number;
+  canManage: number;
+  hasManageAction: boolean;
+}
+
 function ModuleAccessTab() {
-  const ctx = useRoleContext();
-  const getPermissionsFor = ctx.getPermissionsFor ?? ((r: Role) => DEFAULT_ROLE_PERMISSIONS[r] ?? []);
-  const setRolePermissions = ctx.setRolePermissions ?? (() => {});
-  const resetRolePermissions = ctx.resetRolePermissions ?? (() => {});
-  const [selectedRole, setSelectedRole] = useState<Role>("Testing-Team Member");
-  const [openModules, setOpenModules] = useState<Record<string, boolean>>({ Projects: true });
-  const [draft, setDraft] = useState<PermissionKey[]>(() => getPermissionsFor("Testing-Team Member"));
+  const { refresh: refreshContextPerms } = useWidgetPermissions();
   const [backendRoles, setBackendRoles] = useState<ApiRole[]>([]);
+  const [selectedRole, setSelectedRole] = useState<string>("Testing-Manager");
+  const [catalogTree, setCatalogTree] = useState<ModuleCatalogItemDto[]>([]);
+  const [permissionsState, setPermissionsState] = useState<Record<string, EditablePermission>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>({
+    dashboard: true,
+    action_center: true,
+    projects: true,
+    reports: false,
+    resources: false,
+    customers: false,
+    repository: false,
+    my_team: false,
+    settings: false,
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Load all available backend roles
   useEffect(() => {
     fetchRoles()
-      .then((roles) => setBackendRoles(roles ?? []))
+      .then((roles) => {
+        if (roles && roles.length > 0) {
+          setBackendRoles(roles);
+        }
+      })
       .catch(() => {});
   }, []);
 
-  const switchRole = (role: Role) => {
-    setSelectedRole(role);
-    setDraft(getPermissionsFor(role));
+  const selectedRoleId = useMemo(() => {
+    const matched = backendRoles.find(
+      (r) => r.name.toLowerCase() === selectedRole.toLowerCase()
+    );
+    return matched?.id;
+  }, [backendRoles, selectedRole]);
+
+  // Load catalog tree from API (with fallback)
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+
+    fetchRbacCatalogTree(selectedRoleId)
+      .then((tree) => {
+        if (cancelled) return;
+        setCatalogTree(tree);
+
+        // Build flat permission map
+        const map: Record<string, EditablePermission> = {};
+        const collectWidgets = (widgets: WidgetCatalogItemDto[]) => {
+          for (const w of widgets) {
+            map[w.widgetKey] = {
+              widgetId: w.id,
+              widgetKey: w.widgetKey,
+              canView: w.canView,
+              canManage: w.canManage,
+              hasManageAction: w.hasManageAction,
+            };
+          }
+        };
+
+        for (const mod of tree) {
+          collectWidgets(mod.directWidgets);
+          for (const sub of mod.submodules) {
+            collectWidgets(sub.widgets);
+            for (const child of sub.childSubmodules) {
+              collectWidgets(child.widgets);
+            }
+          }
+        }
+
+        setPermissionsState(map);
+      })
+      .catch(() => {
+        // Fallback using excel-baseline
+        const baseline = getBaselinePermissionsForRole(selectedRole);
+        const map: Record<string, EditablePermission> = {};
+        for (const w of RBAC_WIDGET_CATALOG) {
+          const b = baseline[w.key] ?? { canView: 0, canManage: 0 };
+          map[w.key] = {
+            widgetId: w.key,
+            widgetKey: w.key,
+            canView: b.canView,
+            canManage: b.canManage,
+            hasManageAction: w.hasManageAction,
+          };
+        }
+        setPermissionsState(map);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRoleId, selectedRole]);
+
+  const handleToggleView = (key: string) => {
+    setPermissionsState((prev) => {
+      const cur = prev[key];
+      if (!cur) return prev;
+      const nextView = cur.canView === 1 ? 0 : 1;
+      // If turning off View, automatically turn off Manage
+      const nextManage = nextView === 0 ? 0 : cur.canManage;
+      return {
+        ...prev,
+        [key]: {
+          ...cur,
+          canView: nextView,
+          canManage: nextManage,
+        },
+      };
+    });
   };
 
-  const granted = useMemo(() => new Set(draft), [draft]);
-
-  const toggle = (key: PermissionKey) => {
-    setDraft((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  const handleToggleManage = (key: string) => {
+    setPermissionsState((prev) => {
+      const cur = prev[key];
+      if (!cur || !cur.hasManageAction) return prev;
+      const nextManage = cur.canManage === 1 ? 0 : 1;
+      // If turning on Manage, automatically turn on View
+      const nextView = nextManage === 1 ? 1 : cur.canView;
+      return {
+        ...prev,
+        [key]: {
+          ...cur,
+          canView: nextView,
+          canManage: nextManage,
+        },
+      };
+    });
   };
 
-  const grouped = useMemo(() => {
-    return MODULE_ORDER.map((module) => {
-      const items = PERMISSION_CATALOG.filter((p) => p.module === module);
-      const groups = [...new Set(items.map((i) => i.group))];
-      return { module, groups, items };
-    }).filter((g) => g.items.length > 0);
-  }, []);
+  const handleResetBaseline = async () => {
+    if (!selectedRoleId) {
+      // Offline fallback
+      const baseline = getBaselinePermissionsForRole(selectedRole);
+      setPermissionsState((prev) => {
+        const next = { ...prev };
+        for (const [key, val] of Object.entries(baseline)) {
+          if (next[key]) {
+            next[key].canView = val.canView;
+            next[key].canManage = val.canManage;
+          }
+        }
+        return next;
+      });
+      toast.success("Restored to Excel baseline (offline)");
+      return;
+    }
 
-  const enabledCount = draft.length;
+    try {
+      await resetRoleWidgetBaseline(selectedRoleId);
+      // Reload catalog tree
+      const tree = await fetchRbacCatalogTree(selectedRoleId);
+      setCatalogTree(tree);
+      const map: Record<string, EditablePermission> = {};
+      const collectWidgets = (widgets: WidgetCatalogItemDto[]) => {
+        for (const w of widgets) {
+          map[w.widgetKey] = {
+            widgetId: w.id,
+            widgetKey: w.widgetKey,
+            canView: w.canView,
+            canManage: w.canManage,
+            hasManageAction: w.hasManageAction,
+          };
+        }
+      };
+      for (const mod of tree) {
+        collectWidgets(mod.directWidgets);
+        for (const sub of mod.submodules) {
+          collectWidgets(sub.widgets);
+          for (const child of sub.childSubmodules) {
+            collectWidgets(child.widgets);
+          }
+        }
+      }
+      setPermissionsState(map);
+      await refreshContextPerms();
+      toast.success("Reset to factory baseline successfully.");
+    } catch {
+      toast.error("Failed to reset baseline.");
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!selectedRoleId) {
+      toast.error("Role ID not found.");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const payload = Object.values(permissionsState).map((p) => ({
+        widgetId: p.widgetId,
+        canView: p.canView,
+        canManage: p.canManage,
+      }));
+      await updateRoleWidgetPermissions(selectedRoleId, payload);
+      await refreshContextPerms();
+      toast.success("Permissions updated successfully.", {
+        description: `Changes for ${selectedRole} saved to database.`,
+      });
+    } catch {
+      toast.error("Failed to save permissions.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Grouped fallback catalog if catalogTree is empty
+  const displayModules = useMemo(() => {
+    if (catalogTree.length > 0) return catalogTree;
+
+    // Convert RBAC_WIDGET_CATALOG to ModuleCatalogItemDto structure
+    const modMap = new Map<string, ModuleCatalogItemDto>();
+    for (const w of RBAC_WIDGET_CATALOG) {
+      if (!modMap.has(w.moduleCode)) {
+        modMap.set(w.moduleCode, {
+          id: w.moduleCode,
+          code: w.moduleCode,
+          name: w.moduleName,
+          icon: null,
+          sortOrder: 1,
+          submodules: [],
+          directWidgets: [],
+        });
+      }
+      const mod = modMap.get(w.moduleCode)!;
+      const widgetDto: WidgetCatalogItemDto = {
+        id: w.key,
+        code: w.code,
+        name: w.name,
+        widgetKey: w.key,
+        widgetType: w.widgetType,
+        hasManageAction: w.hasManageAction,
+        sortOrder: w.sortOrder,
+        canView: permissionsState[w.key]?.canView ?? 0,
+        canManage: permissionsState[w.key]?.canManage ?? 0,
+      };
+
+      if (!w.submoduleCode) {
+        mod.directWidgets.push(widgetDto);
+      } else {
+        let sub = mod.submodules.find((s) => s.code === w.submoduleCode);
+        if (!sub) {
+          sub = {
+            id: w.submoduleCode,
+            code: w.submoduleCode,
+            name: w.submoduleName || w.submoduleCode,
+            routePrefix: null,
+            sortOrder: 1,
+            widgets: [],
+            childSubmodules: [],
+          };
+          mod.submodules.push(sub);
+        }
+        sub.widgets.push(widgetDto);
+      }
+    }
+    return Array.from(modMap.values());
+  }, [catalogTree, permissionsState]);
+
+  const viewCount = Object.values(permissionsState).filter((p) => p.canView === 1).length;
+  const manageCount = Object.values(permissionsState).filter((p) => p.canManage === 1).length;
 
   return (
     <>
-      <p className="mb-4 text-xs text-muted-foreground">
-        Defaults match the master catalog permissions for each role. Saving updates both local state and the database role permissions.
-      </p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-muted/20 p-3 rounded-xl border border-border">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            <span className="text-xs font-bold text-foreground">Select Role:</span>
+          </div>
+          <select
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value)}
+            className="h-9 rounded-md border border-input bg-card px-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-2xs"
+          >
+            {backendRoles.length > 0
+              ? backendRoles.map((r) => (
+                  <option key={r.id} value={r.name}>
+                    {r.name}
+                  </option>
+                ))
+              : APP_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r] || r}
+                  </option>
+                ))}
+          </select>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <select
-          value={selectedRole}
-          onChange={(e) => switchRole(e.target.value as Role)}
-          className="h-9 rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {APP_ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
-        <span className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground">
-          Data scope: {SCOPE_LABEL[ROLE_PROJECT_SCOPE[selectedRole]] || "Department"}
-        </span>
-        <span className="text-[11px] text-muted-foreground">{enabledCount} permissions on</span>
-        <button
-          onClick={async () => {
-            const matchedBackendRole = backendRoles.find(
-              (r) => r.name.toLowerCase() === selectedRole.toLowerCase(),
-            );
-            if (matchedBackendRole) {
-              try {
-                await resetRoleToBaseline(matchedBackendRole.id);
-              } catch {}
-            }
-            resetRolePermissions(selectedRole);
-            setDraft(DEFAULT_ROLE_PERMISSIONS[selectedRole] ?? []);
-            toast.message("Reset to defaults", { description: ROLE_LABELS[selectedRole] });
-          }}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-accent"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          Reset
-        </button>
-        <button
-          onClick={async () => {
-            setIsSaving(true);
-            const matchedBackendRole = backendRoles.find(
-              (r) => r.name.toLowerCase() === selectedRole.toLowerCase(),
-            );
-            if (matchedBackendRole) {
-              try {
-                await updateRolePermissions(matchedBackendRole.id, draft);
-              } catch (e: any) {
-                toast.error("Failed to save to database", { description: e?.message });
-              }
-            }
-            setRolePermissions(selectedRole, draft);
-            setIsSaving(false);
-            toast.success("Permissions saved", {
-              description: `Access for ${ROLE_LABELS[selectedRole]} updated.`,
-            });
-          }}
-          disabled={isSaving}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save Permissions
-        </button>
+          <span className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-[11px] text-muted-foreground font-mono">
+            Data scope: {SCOPE_LABEL[ROLE_PROJECT_SCOPE[selectedRole as Role]] || "Involved"}
+          </span>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+              <Eye className="h-3.5 w-3.5" /> {viewCount} View
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="inline-flex items-center gap-1 text-primary font-medium">
+              <Edit3 className="h-3.5 w-3.5" /> {manageCount} Manage
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative w-48 sm:w-64">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search widget..."
+              className="h-8 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+
+          <button
+            onClick={handleResetBaseline}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
+            title="Reset role to baseline from Excel"
+          >
+            <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+            Reset Baseline
+          </button>
+
+          <button
+            onClick={handleSaveChanges}
+            disabled={isSaving || isLoading}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-2xs disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Save Permissions
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {grouped.map(({ module, groups, items }) => {
-          const open = openModules[module] ?? false;
-          const onCount = items.filter((i) => granted.has(i.key)).length;
-          return (
-            <div key={module} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <button
-                onClick={() => setOpenModules((p) => ({ ...p, [module]: !open }))}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent/30"
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center rounded-xl border border-border bg-card text-xs text-muted-foreground">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
+          Loading 4-tier RBAC matrix...
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {displayModules.map((mod) => {
+            const open = openModules[mod.code] ?? true;
+
+            // Collect all widgets in this module for count
+            const allModWidgets: WidgetCatalogItemDto[] = [
+              ...mod.directWidgets,
+              ...mod.submodules.flatMap((s) => [
+                ...s.widgets,
+                ...s.childSubmodules.flatMap((cs) => cs.widgets),
+              ]),
+            ];
+
+            const filteredWidgets = searchQuery.trim()
+              ? allModWidgets.filter((w) =>
+                  w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  w.widgetKey.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+              : allModWidgets;
+
+            if (searchQuery.trim() && filteredWidgets.length === 0) {
+              return null;
+            }
+
+            const modViewCount = allModWidgets.filter(
+              (w) => permissionsState[w.widgetKey]?.canView === 1
+            ).length;
+            const modManageCount = allModWidgets.filter(
+              (w) => permissionsState[w.widgetKey]?.canManage === 1
+            ).length;
+
+            return (
+              <div
+                key={mod.code}
+                className="overflow-hidden rounded-xl border border-border bg-card shadow-xs"
               >
-                <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
-                <span className="text-sm font-semibold">{module}</span>
-                <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
-                  {onCount}/{items.length} enabled
-                </span>
-              </button>
-              {open && (
-                <div className="border-t border-border px-4 py-3 space-y-4">
-                  {groups.map((group) => (
-                    <div key={group}>
-                      <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        {group}
-                      </div>
-                      <div className="grid gap-1.5 sm:grid-cols-2">
-                        {items
-                          .filter((i) => i.group === group)
-                          .map((item) => (
-                            <label
-                              key={item.key}
-                              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent/40 cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={granted.has(item.key)}
-                                onChange={() => toggle(item.key)}
-                                disabled={selectedRole === "dhanshree"}
-                                className="h-4 w-4 rounded border-2 border-input accent-primary cursor-pointer"
-                              />
-                              <span>{item.label}</span>
-                            </label>
-                          ))}
+                <button
+                  onClick={() =>
+                    setOpenModules((prev) => ({ ...prev, [mod.code]: !open }))
+                  }
+                  className="flex w-full items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 text-muted-foreground transition-transform",
+                        open && "rotate-180"
+                      )}
+                    />
+                    <span className="text-sm font-bold text-foreground">
+                      {mod.name}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      ({mod.code})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-muted-foreground">
+                      <span className="font-semibold text-emerald-600">{modViewCount}</span>/{allModWidgets.length} View
+                    </span>
+                    <span className="text-muted-foreground">
+                      <span className="font-semibold text-primary">{modManageCount}</span>/{allModWidgets.length} Manage
+                    </span>
+                  </div>
+                </button>
+
+                {open && (
+                  <div className="divide-y divide-border/60">
+                    {/* Header Columns */}
+                    <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-muted/20 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <div className="col-span-7">Widget / Submodule / Action</div>
+                      <div className="col-span-2 text-center">Type</div>
+                      <div className="col-span-3 text-center grid grid-cols-2">
+                        <span>Can View</span>
+                        <span>Can Manage</span>
                       </div>
                     </div>
-                  ))}
-                  {selectedRole === "dhanshree" && (
-                    <p className="text-[11px] text-muted-foreground">Admin always has full access.</p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+
+                    {/* Direct widgets */}
+                    {mod.directWidgets.map((w) => (
+                      <WidgetPermissionRow
+                        key={w.widgetKey}
+                        widget={w}
+                        permission={permissionsState[w.widgetKey]}
+                        onToggleView={() => handleToggleView(w.widgetKey)}
+                        onToggleManage={() => handleToggleManage(w.widgetKey)}
+                      />
+                    ))}
+
+                    {/* Submodules */}
+                    {mod.submodules.map((sub) => (
+                      <div key={sub.code} className="bg-background/50">
+                        <div className="px-4 py-1.5 bg-muted/15 text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
+                          <span>📂 {sub.name}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground/70">
+                            {sub.code}
+                          </span>
+                        </div>
+
+                        {sub.widgets.map((w) => (
+                          <WidgetPermissionRow
+                            key={w.widgetKey}
+                            widget={w}
+                            permission={permissionsState[w.widgetKey]}
+                            onToggleView={() => handleToggleView(w.widgetKey)}
+                            onToggleManage={() => handleToggleManage(w.widgetKey)}
+                            indent
+                          />
+                        ))}
+
+                        {/* Child submodules */}
+                        {sub.childSubmodules.map((child) => (
+                          <div key={child.code}>
+                            <div className="pl-8 pr-4 py-1 bg-muted/10 text-[10px] font-semibold text-muted-foreground flex items-center justify-between">
+                              <span>↳ {child.name}</span>
+                              <span className="text-[9px] font-mono text-muted-foreground/60">
+                                {child.code}
+                              </span>
+                            </div>
+                            {child.widgets.map((w) => (
+                              <WidgetPermissionRow
+                                key={w.widgetKey}
+                                widget={w}
+                                permission={permissionsState[w.widgetKey]}
+                                onToggleView={() => handleToggleView(w.widgetKey)}
+                                onToggleManage={() => handleToggleManage(w.widgetKey)}
+                                doubleIndent
+                              />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
+  );
+}
+
+function WidgetPermissionRow({
+  widget,
+  permission,
+  onToggleView,
+  onToggleManage,
+  indent = false,
+  doubleIndent = false,
+}: {
+  widget: WidgetCatalogItemDto;
+  permission?: EditablePermission;
+  onToggleView: () => void;
+  onToggleManage: () => void;
+  indent?: boolean;
+  doubleIndent?: boolean;
+}) {
+  const canView = permission?.canView === 1;
+  const canManage = permission?.canManage === 1;
+
+  const typeBadgeColors: Record<string, string> = {
+    widget: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+    action: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+    tab: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    kpi_card: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  };
+
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-12 gap-2 px-4 py-2.5 items-center hover:bg-accent/30 transition-colors text-xs border-b border-border/40",
+        indent && "pl-8",
+        doubleIndent && "pl-12",
+      )}
+    >
+      <div className="col-span-7 flex flex-col min-w-0">
+        <span className="font-medium text-foreground truncate">{widget.name}</span>
+        <span className="text-[10px] text-muted-foreground font-mono truncate">
+          {widget.widgetKey}
+        </span>
+      </div>
+
+      <div className="col-span-2 text-center">
+        <span
+          className={cn(
+            "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border",
+            typeBadgeColors[widget.widgetType] || "bg-muted text-muted-foreground",
+          )}
+        >
+          {widget.widgetType}
+        </span>
+      </div>
+
+      <div className="col-span-3 grid grid-cols-2 text-center items-center">
+        <label className="flex items-center justify-center cursor-pointer">
+          <input
+            type="checkbox"
+            checked={canView}
+            onChange={onToggleView}
+            className="h-4 w-4 rounded border-border accent-emerald-600 cursor-pointer"
+          />
+        </label>
+
+        <label className="flex items-center justify-center cursor-pointer">
+          {widget.hasManageAction ? (
+            <input
+              type="checkbox"
+              checked={canManage}
+              onChange={onToggleManage}
+              disabled={!canView}
+              className={cn(
+                "h-4 w-4 rounded border-border accent-primary cursor-pointer",
+                !canView && "opacity-30 cursor-not-allowed"
+              )}
+            />
+          ) : (
+            <span className="text-[10px] text-muted-foreground italic">—</span>
+          )}
+        </label>
+      </div>
+    </div>
   );
 }
