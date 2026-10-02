@@ -59,11 +59,13 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "My Team",
     icon: Users,
+    permission: "my-team.view",
     subItems: [
-      { to: "/my-team/", label: "Team Dashboard" },
+      { to: "/my-team/", label: "Team Dashboard", permission: "my-team.view" },
       {
         to: "/my-team/timesheets",
         label: "Timesheet Approval",
+        permission: "my-team.view",
       },
     ],
   },
@@ -103,11 +105,13 @@ export const DH_NAV_ITEMS: NavItem[] = [
   {
     label: "My Team",
     icon: Users,
+    permission: "my-team.view",
     subItems: [
-      { to: "/my-team/", label: "Team Dashboard" },
+      { to: "/my-team/", label: "Team Dashboard", permission: "my-team.view" },
       {
         to: "/my-team/timesheets",
         label: "Timesheets",
+        permission: "my-team.view",
       },
     ],
   },
@@ -269,9 +273,9 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] 
   { prefix: "/my-org", permission: "repository.view" },
   {
     prefix: "/my-team/timesheets",
-    permission: null,
+    permission: "my-team.view",
   },
-  { prefix: "/my-team", permission: null },
+  { prefix: "/my-team", permission: "my-team.view" },
   { prefix: "/timesheet", permission: "my-team.my-timesheet.view" },
   { prefix: "/health", permission: "projects.health.view" },
   {

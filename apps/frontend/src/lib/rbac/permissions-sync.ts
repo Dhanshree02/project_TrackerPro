@@ -97,13 +97,22 @@ export function deriveRolePermissionKeys(roleName: string): string[] {
   const keys = new Set<string>();
 
   let hasProjectsView = false;
+  let hasProjectsManage = false;
   let hasReportsView = false;
+  let hasReportsManage = false;
   let hasResourcesView = false;
+  let hasResourcesManage = false;
   let hasCustomersView = false;
+  let hasCustomersManage = false;
   let hasRepositoryView = false;
+  let hasRepositoryManage = false;
   let hasActionCenterView = false;
+  let hasActionCenterManage = false;
   let hasDashboardView = false;
   let hasSettingsView = false;
+  let hasSettingsManage = false;
+  let hasMyTeamView = false;
+  let hasMyTeamManage = false;
   let hasTimesheetView = false;
   let hasTimesheetApproval = false;
 
@@ -111,14 +120,41 @@ export function deriveRolePermissionKeys(roleName: string): string[] {
     if (val.canView === 1) {
       keys.add(wKey);
 
-      if (wKey.startsWith("projects.")) hasProjectsView = true;
-      if (wKey.startsWith("reports.")) hasReportsView = true;
-      if (wKey.startsWith("resources.")) hasResourcesView = true;
-      if (wKey.startsWith("customers.")) hasCustomersView = true;
-      if (wKey.startsWith("repository.")) hasRepositoryView = true;
-      if (wKey.startsWith("action_center.") || wKey.startsWith("action.")) hasActionCenterView = true;
-      if (wKey.startsWith("dashboard.")) hasDashboardView = true;
-      if (wKey.startsWith("settings.")) hasSettingsView = true;
+      if (wKey.startsWith("projects.")) {
+        hasProjectsView = true;
+        if (val.canManage === 1) hasProjectsManage = true;
+      }
+      if (wKey.startsWith("reports.")) {
+        hasReportsView = true;
+        if (val.canManage === 1) hasReportsManage = true;
+      }
+      if (wKey.startsWith("resources.")) {
+        hasResourcesView = true;
+        if (val.canManage === 1) hasResourcesManage = true;
+      }
+      if (wKey.startsWith("customers.")) {
+        hasCustomersView = true;
+        if (val.canManage === 1) hasCustomersManage = true;
+      }
+      if (wKey.startsWith("repository.")) {
+        hasRepositoryView = true;
+        if (val.canManage === 1) hasRepositoryManage = true;
+      }
+      if (wKey.startsWith("action_center.") || wKey.startsWith("action.")) {
+        hasActionCenterView = true;
+        if (val.canManage === 1) hasActionCenterManage = true;
+      }
+      if (wKey.startsWith("dashboard.")) {
+        hasDashboardView = true;
+      }
+      if (wKey.startsWith("settings.")) {
+        hasSettingsView = true;
+        if (val.canManage === 1) hasSettingsManage = true;
+      }
+      if (wKey.startsWith("my_team.") || wKey.startsWith("my-team.")) {
+        hasMyTeamView = true;
+        if (val.canManage === 1) hasMyTeamManage = true;
+      }
       if (wKey === "my_team.my_timesheet") hasTimesheetView = true;
       if (wKey === "my_team.timesheet_approval") hasTimesheetApproval = true;
 
@@ -130,12 +166,41 @@ export function deriveRolePermissionKeys(roleName: string): string[] {
 
   // Macro module keys required by sidebar and TanStack route guards
   if (hasDashboardView) keys.add("dashboard.view");
-  if (hasActionCenterView) keys.add("action-center.view");
-  if (hasProjectsView) keys.add("projects.view");
-  if (hasReportsView) keys.add("reports.view");
-  if (hasResourcesView) keys.add("resources.view");
-  if (hasCustomersView) keys.add("customers.view");
-  if (hasRepositoryView) keys.add("repository.view");
+  if (hasActionCenterView) {
+    keys.add("action-center.view");
+    if (hasActionCenterManage) keys.add("action-center.manage");
+  }
+  if (hasProjectsView) {
+    keys.add("projects.view");
+    if (hasProjectsManage) {
+      keys.add("projects.manage");
+      keys.add("projects.create");
+      keys.add("projects.edit");
+    }
+  }
+  if (hasReportsView) {
+    keys.add("reports.view");
+    if (hasReportsManage) keys.add("reports.manage");
+  }
+  if (hasResourcesView) {
+    keys.add("resources.view");
+    if (hasResourcesManage) keys.add("resources.manage");
+  }
+  if (hasCustomersView) {
+    keys.add("customers.view");
+    if (hasCustomersManage) {
+      keys.add("customers.manage");
+      keys.add("customers.create");
+    }
+  }
+  if (hasRepositoryView) {
+    keys.add("repository.view");
+    if (hasRepositoryManage) keys.add("repository.manage");
+  }
+  if (hasMyTeamView || hasTimesheetView || hasTimesheetApproval) {
+    keys.add("my-team.view");
+    if (hasMyTeamManage) keys.add("my-team.manage");
+  }
   if (hasTimesheetView) keys.add("my-team.my-timesheet.view");
   if (hasTimesheetApproval) {
     keys.add("my-team.timesheet-approval.view");
@@ -143,7 +208,7 @@ export function deriveRolePermissionKeys(roleName: string): string[] {
   }
   if (hasSettingsView) {
     keys.add("settings.view");
-    keys.add("settings.manage_roles");
+    if (hasSettingsManage) keys.add("settings.manage_roles");
   }
 
   return Array.from(keys);

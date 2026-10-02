@@ -17,6 +17,7 @@ import {
   useWidgetPermissions,
   saveCustomRolePermissions,
   clearCustomRolePermissions,
+  getCustomRolePermissions,
 } from "@/lib/rbac";
 import {
   fetchRbacCatalogTree,
@@ -343,16 +344,21 @@ function ModuleAccessTab() {
         const safeTree = Array.isArray(tree) ? tree : [];
         setCatalogTree(safeTree);
 
+        // Overlay custom permissions from localStorage if present
+        const custom = getCustomRolePermissions(selectedRole);
+
         // Build flat permission map
         const map: Record<string, EditablePermission> = {};
         const collectWidgets = (widgets?: WidgetCatalogItemDto[]) => {
           if (!widgets) return;
           for (const w of widgets) {
+            const cv = custom && custom[w.widgetKey] !== undefined ? custom[w.widgetKey].canView : w.canView;
+            const cm = custom && custom[w.widgetKey] !== undefined ? custom[w.widgetKey].canManage : w.canManage;
             map[w.widgetKey] = {
               widgetId: w.id,
               widgetKey: w.widgetKey,
-              canView: w.canView,
-              canManage: w.canManage,
+              canView: cv,
+              canManage: cm,
               hasManageAction: w.hasManageAction,
             };
           }
@@ -371,8 +377,9 @@ function ModuleAccessTab() {
         setPermissionsState(map);
       })
       .catch(() => {
-        // Fallback using excel-baseline
-        const baseline = getBaselinePermissionsForRole(selectedRole);
+        // Fallback using excel-baseline or custom overrides
+        const custom = getCustomRolePermissions(selectedRole);
+        const baseline = custom || getBaselinePermissionsForRole(selectedRole);
         const map: Record<string, EditablePermission> = {};
         for (const w of RBAC_WIDGET_CATALOG) {
           const b = baseline[w.key] ?? { canView: 0, canManage: 0 };
@@ -428,6 +435,42 @@ function ModuleAccessTab() {
           canManage: nextManage,
         },
       };
+    });
+  };
+
+  const handleToggleModuleView = (modWidgets: WidgetCatalogItemDto[], currentHasView: boolean) => {
+    const nextView = currentHasView ? 0 : 1;
+    setPermissionsState((prev) => {
+      const next = { ...prev };
+      for (const w of modWidgets) {
+        const cur = next[w.widgetKey];
+        if (cur) {
+          next[w.widgetKey] = {
+            ...cur,
+            canView: nextView,
+            canManage: nextView === 0 ? 0 : cur.canManage,
+          };
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleToggleModuleManage = (modWidgets: WidgetCatalogItemDto[], currentHasManage: boolean) => {
+    const nextManage = currentHasManage ? 0 : 1;
+    setPermissionsState((prev) => {
+      const next = { ...prev };
+      for (const w of modWidgets) {
+        const cur = next[w.widgetKey];
+        if (cur && cur.hasManageAction) {
+          next[w.widgetKey] = {
+            ...cur,
+            canManage: nextManage,
+            canView: nextManage === 1 ? 1 : cur.canView,
+          };
+        }
+      }
+      return next;
     });
   };
 
@@ -682,19 +725,20 @@ function ModuleAccessTab() {
             const modManageCount = allModWidgets.filter(
               (w) => permissionsState[w.widgetKey]?.canManage === 1
             ).length;
+            const manageableWidgets = allModWidgets.filter((w) => w.hasManageAction);
 
             return (
               <div
                 key={mod.code}
                 className="overflow-hidden rounded-xl border border-border bg-card shadow-xs"
               >
-                <button
+                <div
                   onClick={() =>
                     setOpenModules((prev) => ({ ...prev, [mod.code]: !open }))
                   }
-                  className="flex w-full items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+                  className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer select-none text-left"
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <ChevronDown
                       className={cn(
                         "h-4 w-4 text-muted-foreground transition-transform",
@@ -707,17 +751,76 @@ function ModuleAccessTab() {
                     <span className="text-[10px] text-muted-foreground font-mono">
                       ({mod.code})
                     </span>
+
+                    {/* Status badge */}
+                    {modViewCount === 0 ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-900/50">
+                        🚫 No Access (Hidden for this role)
+                      </span>
+                    ) : modViewCount === allModWidgets.length ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-900/50">
+                        ✓ Full Access ({modViewCount} widgets)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-900/50">
+                        Partial Access ({modViewCount}/{allModWidgets.length})
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="text-muted-foreground">
-                      <span className="font-semibold text-emerald-600">{modViewCount}</span>/{allModWidgets.length} View
-                    </span>
-                    <span className="text-muted-foreground">
-                      <span className="font-semibold text-primary">{modManageCount}</span>/{allModWidgets.length} Manage
-                    </span>
+                  {/* Module Level View & Manage Options */}
+                  <div className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
+                    <label
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all shadow-2xs",
+                        modViewCount > 0
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20"
+                          : "bg-background border-border text-muted-foreground hover:bg-muted"
+                      )}
+                      title={modViewCount > 0 ? "Click to revoke module access (hides module for this role)" : "Click to grant module view access"}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={modViewCount > 0}
+                        onChange={() => handleToggleModuleView(allModWidgets, modViewCount > 0)}
+                        className="h-4 w-4 rounded border-input text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                      />
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>Module View</span>
+                      <span className="text-[10px] opacity-80 font-mono">
+                        ({modViewCount}/{allModWidgets.length})
+                      </span>
+                    </label>
+
+                    {manageableWidgets.length > 0 ? (
+                      <label
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all shadow-2xs",
+                          modManageCount > 0
+                            ? "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
+                            : "bg-background border-border text-muted-foreground hover:bg-muted"
+                        )}
+                        title={modManageCount > 0 ? "Click to turn off manage for this module" : "Click to grant manage actions for this module"}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={modManageCount > 0}
+                          onChange={() => handleToggleModuleManage(allModWidgets, modManageCount > 0)}
+                          className="h-4 w-4 rounded border-input text-primary focus:ring-primary cursor-pointer accent-primary"
+                        />
+                        <Edit3 className="h-3.5 w-3.5" />
+                        <span>Module Manage</span>
+                        <span className="text-[10px] opacity-80 font-mono">
+                          ({modManageCount}/{manageableWidgets.length})
+                        </span>
+                      </label>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/60 italic px-2">
+                        View-only module
+                      </span>
+                    )}
                   </div>
-                </button>
+                </div>
 
                 {open && (
                   <div className="divide-y divide-border/60">
@@ -743,14 +846,51 @@ function ModuleAccessTab() {
                     ))}
 
                     {/* Submodules */}
-                    {(mod.submodules || []).map((sub) => (
-                      <div key={sub.code} className="bg-background/50">
-                        <div className="px-4 py-1.5 bg-muted/15 text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
-                          <span>📂 {sub.name}</span>
-                          <span className="text-[10px] font-mono text-muted-foreground/70">
-                            {sub.code}
-                          </span>
-                        </div>
+                    {(mod.submodules || []).map((sub) => {
+                      const allSubWidgets: WidgetCatalogItemDto[] = [
+                        ...(sub.widgets || []),
+                        ...(sub.childSubmodules || []).flatMap((cs) => cs.widgets || []),
+                      ];
+                      const subViewCount = allSubWidgets.filter((w) => permissionsState[w.widgetKey]?.canView === 1).length;
+                      const subManageCount = allSubWidgets.filter((w) => permissionsState[w.widgetKey]?.canManage === 1).length;
+                      const subManageable = allSubWidgets.filter((w) => w.hasManageAction);
+
+                      return (
+                        <div key={sub.code} className="bg-background/50">
+                          <div className="px-4 py-2 bg-muted/15 text-[11px] font-semibold text-muted-foreground flex flex-wrap items-center justify-between gap-2 border-b border-border/30">
+                            <span className="flex items-center gap-1.5 font-bold text-foreground">
+                              📂 {sub.name}
+                              <span className="text-[10px] font-mono text-muted-foreground/70 font-normal">
+                                ({sub.code})
+                              </span>
+                            </span>
+                            <div className="flex items-center gap-3">
+                              <label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium hover:text-foreground">
+                                <input
+                                  type="checkbox"
+                                  checked={subViewCount > 0}
+                                  onChange={() => handleToggleModuleView(allSubWidgets, subViewCount > 0)}
+                                  className="h-3.5 w-3.5 rounded border-input text-emerald-600 accent-emerald-600"
+                                />
+                                <span className={subViewCount > 0 ? "text-emerald-600 font-semibold" : "text-muted-foreground"}>
+                                  View ({subViewCount}/{allSubWidgets.length})
+                                </span>
+                              </label>
+                              {subManageable.length > 0 && (
+                                <label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium hover:text-foreground">
+                                  <input
+                                    type="checkbox"
+                                    checked={subManageCount > 0}
+                                    onChange={() => handleToggleModuleManage(allSubWidgets, subManageCount > 0)}
+                                    className="h-3.5 w-3.5 rounded border-input text-primary accent-primary"
+                                  />
+                                  <span className={subManageCount > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>
+                                    Manage ({subManageCount}/{subManageable.length})
+                                  </span>
+                                </label>
+                              )}
+                            </div>
+                          </div>
 
                         {(sub.widgets || []).map((w) => (
                           <WidgetPermissionRow
@@ -785,7 +925,8 @@ function ModuleAccessTab() {
                           </div>
                         ))}
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
                 )}
               </div>
