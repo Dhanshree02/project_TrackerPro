@@ -73,7 +73,7 @@ export function getEffectiveRoleWidgetMap(roleName: string): Record<string, Widg
  */
 export function deriveRolePermissionKeys(roleName: string): string[] {
   const norm = (roleName || "").trim().toLowerCase();
-  if (norm === "admin" || norm === "dhanshree" || norm === "ceo") {
+  if (norm === "admin" || norm === "dhanshree") {
     return [
       "dashboard.view",
       "action-center.view",
@@ -110,7 +110,9 @@ export function deriveRolePermissionKeys(roleName: string): string[] {
   let hasActionCenterManage = false;
   let hasDashboardView = false;
   let hasSettingsView = false;
-  let hasSettingsManage = false;
+  let hasSettingsRolesView = false;
+  let hasSettingsRolesManage = false;
+  let hasSettingsMastersView = false;
   let hasMyTeamView = false;
   let hasMyTeamManage = false;
   let hasTimesheetView = false;
@@ -149,7 +151,13 @@ export function deriveRolePermissionKeys(roleName: string): string[] {
       }
       if (wKey.startsWith("settings.")) {
         hasSettingsView = true;
-        if (val.canManage === 1) hasSettingsManage = true;
+        if (wKey.startsWith("settings.roles.")) {
+          hasSettingsRolesView = true;
+          if (val.canManage === 1) hasSettingsRolesManage = true;
+        }
+        if (wKey.startsWith("settings.masters.")) {
+          hasSettingsMastersView = true;
+        }
       }
       if (wKey.startsWith("my_team.") || wKey.startsWith("my-team.")) {
         hasMyTeamView = true;
@@ -208,7 +216,9 @@ export function deriveRolePermissionKeys(roleName: string): string[] {
   }
   if (hasSettingsView) {
     keys.add("settings.view");
-    if (hasSettingsManage) keys.add("settings.manage_roles");
+    if (hasSettingsRolesView) keys.add("settings.roles.view");
+    if (hasSettingsRolesManage) keys.add("settings.manage_roles");
+    if (hasSettingsMastersView) keys.add("settings.masters.view");
   }
 
   return Array.from(keys);

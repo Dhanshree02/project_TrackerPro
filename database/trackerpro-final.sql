@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 3ZDyTHWygdGTg4iCsBWimT6uArJY3DeBwyE76WjHaLgCDQaXGZ0a4N7sVPkveg0
+\restrict N53clScdGUeHXnDf6hDzjnRs2ZFQSNrZe0e6cERea77dPHfH3IqjhxnxJF6zhof
 
 -- Dumped from database version 18.4
 -- Dumped by pg_dump version 18.4
@@ -903,7 +903,11 @@ CREATE TABLE public.project_services (
     "UpdatedAtUtc" timestamp with time zone,
     "CreatedBy" uuid,
     "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
+    "DeletedAtUtc" timestamp with time zone,
+    "BillingStatus" character varying(40) DEFAULT 'Advance Pending'::character varying NOT NULL,
+    "CollectionStatus" character varying(40) DEFAULT 'Pending To Collect'::character varying NOT NULL,
+    "IsReady" boolean DEFAULT false NOT NULL,
+    "ValidationStatus" character varying(40) DEFAULT 'Pending To Validate'::character varying NOT NULL
 );
 
 
@@ -999,7 +1003,8 @@ CREATE TABLE public.project_team_members (
     "CreatedBy" uuid,
     "UpdatedBy" uuid,
     "DeletedAtUtc" timestamp with time zone,
-    "IsShadowTeam" boolean DEFAULT false NOT NULL
+    "IsShadowTeam" boolean DEFAULT false NOT NULL,
+    "MemberRole" character varying(40) DEFAULT 'ProjectTeam'::character varying NOT NULL
 );
 
 
@@ -1440,6 +1445,8 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 20260927183000_AddTimesheets	10.0.4
 20260927191151_AddProjectTaskAssignmentHistory	10.0.4
 20260928051557_DropProjectServiceResourceLevels	10.0.4
+20260929053844_AddProjectTeamMemberRole	9.0.0
+20260929183000_AddProjectServicePrerequisite	9.0.0
 \.
 
 
@@ -2664,93 +2671,93 @@ fe449bf5-161a-4920-96c8-13dce316e700	804038cb-1b0f-af18-247c-514d7edf2757	Final 
 -- Data for Name: project_services; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.project_services ("Id", "ProjectId", "ServiceCatalogId", "TaskId", "Department", "SubDepartment", "ServiceName", "Qty", "Description", "ResourceLevel", "Frequency", "Location", "LocationText", "ServiceModel", "DeliveryModel", "FinalDeliveryFormat", "BillingModel", "Tools", "StartDate", "EndDate", "DurationDays", "DurationHours", "TotalDays", "TotalHours", "UnitPrice", "Total", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-05bac44a-67a8-dea6-95d3-36e7c82a5a70	db951439-0ec5-b321-9266-611d80ea0ffa	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	450000.00	450000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-087e4b44-d201-7054-1e13-406aff3754c4	078de404-e464-38fe-bc5a-1eecc50c5cdb	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	216000.00	216000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-0b16929b-f648-0774-3d3a-04ee872062d9	6d888c0c-7071-ce2c-a642-2aa1ccff8ce0	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	168000.00	168000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-0c256a9f-e032-9c16-b370-382f769ba40d	42c28ff9-518b-917f-58fb-322aa28ffc9f	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	384000.00	384000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-0dc6d4be-ed14-8849-53b4-dedea1887e8f	da23da7f-348b-c5d8-c21c-6f5321338b69	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	324000.00	324000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-0ffc285b-63f3-eb43-95dc-ec01d54e7671	4b05d47c-011a-ca3b-0c37-a70112d30fe7	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	288000.00	288000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-1054551a-5919-4157-25f3-f277178825bd	143d6851-c81c-f1db-df43-09e721081b95	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	234000.00	234000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-10670d63-9013-e4a3-fff4-2bee3401de6e	9df44408-e0f7-1c11-d144-08e51e02851f	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	184000.00	184000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-12cc8282-faf3-2c4e-73cf-0174d98d5cfd	db951439-0ec5-b321-9266-611d80ea0ffa	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	300000.00	300000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-15b0f2d9-54fd-59a8-59fd-3a530cf4b72f	42c28ff9-518b-917f-58fb-322aa28ffc9f	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	256000.00	256000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-176462fe-5af9-51eb-df27-127232d7625d	589f13e8-777d-9e78-0179-6955019400a4	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	380000.00	380000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-1ab48c0e-5bcd-9c9d-16b5-ae4328a52479	4bdd9b6e-dc7e-83df-0e4a-588b718a46de	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	196000.00	196000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-1afd49cd-ab49-2739-da1a-1fa6dcee5078	e1dd4c6b-527b-5243-9f98-cb106d526ed9	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	356000.00	356000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-1e35a5bc-4e01-b9d6-a46e-53bf40227634	d9c31d7b-328e-11be-73d1-c8c578219b98	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	408000.00	408000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-2381f179-c713-3662-a15a-941357c74808	96771845-a6f8-9c00-10b1-7f6e20cb26f2	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	480000.00	480000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-290f5384-fa2d-9c09-2ba6-5136299b13c6	d9c31d7b-328e-11be-73d1-c8c578219b98	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	272000.00	272000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-2a603970-bdf9-5ed1-4f85-dbdc47f8f7b9	f70f1cb0-fd2b-e991-19c1-97058bf88682	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	588000.00	588000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-2bf6eb9a-efae-81ab-2269-3090bd9d5d58	4b05d47c-011a-ca3b-0c37-a70112d30fe7	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	192000.00	192000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-2d764f0b-9442-6d98-9684-fc71d242e8db	569eb2b4-dce7-5d4f-5e8c-6321a995cf38	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	180000.00	180000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-2df0e698-e269-9722-1baf-1ef46b658d8d	bbdd9713-b12d-1026-241e-f23f2881fbd6	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	196000.00	196000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-2fc2dee5-f447-d953-9b34-7168fd912855	633de7eb-3b6c-dd5b-49e3-e6218fbb857d	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	186000.00	186000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-31073bb0-6430-4113-7806-da6542c7ef70	b31447f7-a279-235e-1c13-5e1332ac6f71	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	152000.00	152000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-35ab8110-a847-5e90-c961-f4ed123a134c	078de404-e464-38fe-bc5a-1eecc50c5cdb	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	144000.00	144000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-35c728c6-8c05-6c76-d801-88762d76500d	9df44408-e0f7-1c11-d144-08e51e02851f	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	276000.00	276000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-363b3132-f311-8115-0a6a-4833b3d8032a	37f0631e-ff18-137e-2790-48bf2a3aed53	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	132000.00	132000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-3676c60b-0bdd-5476-2391-778b0e93daf9	2b6e8fc3-44f8-a096-04cb-40f258f06eb4	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	480000.00	480000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-3bcefdb5-d53a-c4c7-e086-1d8c187936f3	0005c8ca-9a64-17b8-256b-4ee73b53e81e	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	258000.00	258000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-3ce7a798-fe69-7f2e-f86b-646973d476cb	e1dd4c6b-527b-5243-9f98-cb106d526ed9	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	534000.00	534000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-3e5533e3-d1c3-3c16-1160-b8eb29172655	3de4e5fa-92ba-df0d-06f0-ee3caacf1ffd	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	304000.00	304000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-410e3e7a-d656-735f-e216-9adf10ef7703	48e0163b-4dfa-3376-dac6-ee5de57f0f99	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	128000.00	128000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-432e2d21-bf0d-c6b9-b055-37cfaab5c694	df04abe8-20bf-ba46-4e51-73dfb2469b6b	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	168000.00	168000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-46666780-3545-52dc-2ce0-7b8e53511045	37f0631e-ff18-137e-2790-48bf2a3aed53	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	88000.00	88000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-49421cfd-1bd3-b93a-27cd-301b7407c754	2b6e8fc3-44f8-a096-04cb-40f258f06eb4	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	720000.00	720000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-4b752a38-4211-7934-a715-2b5b05578797	fbb030f3-e849-5b81-6934-cf7a89075db1	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	204000.00	204000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-508bc02a-7f4d-cd33-1037-15ea3915806c	27198d8b-d6cf-276d-f1a7-a66b0abf819a	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	168000.00	168000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-51c72dd7-b22d-2483-e76e-ea3b64e6ecae	8674f685-9512-d7a4-1399-e58a4b88fe5b	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	368000.00	368000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-524898de-b5f7-1fca-dcc5-a7de591c672f	0ce49262-f49c-2000-fe94-e93c5bdfb327	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	402000.00	402000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-5d17cfaa-2414-8912-f685-90e74b7dabb5	dd709b37-3794-40c0-13ae-e35ec70100a2	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	168000.00	168000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-5fd5d5f2-6564-cb5c-e88a-74ca15afde28	96771845-a6f8-9c00-10b1-7f6e20cb26f2	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	720000.00	720000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-61ee7a2d-9ea7-253e-2b90-80fe738f69e5	e4d9ede1-e653-6c3b-1081-c54a2be3f6e0	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	348000.00	348000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-6650596e-77bb-9270-ef6a-bd48c3cf470e	8674f685-9512-d7a4-1399-e58a4b88fe5b	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	552000.00	552000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-6770ea6e-b27f-c489-264d-8837151b0833	6d888c0c-7071-ce2c-a642-2aa1ccff8ce0	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	112000.00	112000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-6b4f7f9e-d6b3-f178-6b34-76169bc32763	da23da7f-348b-c5d8-c21c-6f5321338b69	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	216000.00	216000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-6cd5d5d0-3b08-2bec-45cd-a5b847830ade	53265692-ac5b-a712-54c9-eeb3f10efef2	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	228000.00	228000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-6d7da59a-e68e-3852-6e06-1caa42acc509	45f61698-e7ca-9049-dce4-2678530df87e	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	292000.00	292000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-7506ff05-9ce4-10f9-b6ab-cb812638a200	4bdd9b6e-dc7e-83df-0e4a-588b718a46de	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	294000.00	294000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-756926a6-d053-4adc-4345-9808c00cef68	804038cb-1b0f-af18-247c-514d7edf2757	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	186000.00	186000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-7b6a309b-6e0f-9c7f-5bd0-ff4f96ace4a5	0110e115-3f2e-645f-fa51-3f844cd6227e	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	660000.00	660000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-7d6e6bdb-5c0b-00ea-a1f2-fdf1754f994d	589f13e8-777d-9e78-0179-6955019400a4	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	570000.00	570000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-7eb667b3-3f3f-ad65-a874-8eb4e5ce0c06	e3d8204f-df7e-d5f0-79cf-7578c1385684	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	244000.00	244000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-8548d90d-ef14-4d23-a819-ed401afac78f	569eb2b4-dce7-5d4f-5e8c-6321a995cf38	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	270000.00	270000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-89a93f8f-a20a-9468-5381-de195e92438b	3de4e5fa-92ba-df0d-06f0-ee3caacf1ffd	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	456000.00	456000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-8db53daf-2a87-4f81-6d4b-57740dd0b1f6	6aaca83f-9e2d-72bf-2873-cc7f244f91a5	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	192000.00	192000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-8ed27ef1-635a-a926-f5c3-e43ebbe5461c	bbdd9713-b12d-1026-241e-f23f2881fbd6	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	294000.00	294000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-8ee83ad7-ea23-7f24-7a8c-e4d4f148b1a8	c6600f41-5fbd-cbb0-983b-ccbbcbf9636f	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	342000.00	342000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-9279e70e-9cff-a540-aaa0-a69a28e40861	dd709b37-3794-40c0-13ae-e35ec70100a2	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	112000.00	112000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-9342f7e0-dcf7-04d0-161b-a0dee2dffc6a	058887ff-6249-66e3-e9b6-6d54d5bedf62	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	552000.00	552000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-93df6167-e309-f86c-dd0e-b74192db38de	45f61698-e7ca-9049-dce4-2678530df87e	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	438000.00	438000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-9863f9d0-1640-009c-1811-6d083d585ff9	140eef6e-917f-4d05-d414-eaaa470f8665	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	216000.00	216000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-996f2546-6740-af77-8960-72e4a7391ca4	0005c8ca-9a64-17b8-256b-4ee73b53e81e	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	172000.00	172000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-a32944fe-5c3f-7da3-71da-b1c5d67516e6	9e038dae-c384-1ce5-0dc2-493dd9c9720e	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	630000.00	630000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-ab011c73-dd7f-2a45-79d6-972cc0101c1b	b71355b0-ed52-fd33-d6f7-87bb249aacce	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	348000.00	348000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-adfa2cfb-6855-06f9-6831-f1d8989a20c8	140eef6e-917f-4d05-d414-eaaa470f8665	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	324000.00	324000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-b4f2e875-9fa4-0897-f4ed-4cd0e4534ed9	b71355b0-ed52-fd33-d6f7-87bb249aacce	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	232000.00	232000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-b5ecadf8-885e-c8e3-3415-ffc86e5f1ff7	0ce49262-f49c-2000-fe94-e93c5bdfb327	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	268000.00	268000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-b623c0cf-5b8b-dde1-39fe-74e26adcdde0	e4d9ede1-e653-6c3b-1081-c54a2be3f6e0	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	522000.00	522000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-b869ff8b-af76-d0a4-5a0c-1618e76ea079	27198d8b-d6cf-276d-f1a7-a66b0abf819a	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	252000.00	252000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-b95d4d6f-04a8-34b3-8078-8418577a24a1	804038cb-1b0f-af18-247c-514d7edf2757	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	124000.00	124000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-be756cb9-406f-1c8b-176e-c05db328a779	b31447f7-a279-235e-1c13-5e1332ac6f71	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	228000.00	228000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-c3b79a4d-14cd-8b0c-643a-1e51d917236f	6aaca83f-9e2d-72bf-2873-cc7f244f91a5	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	128000.00	128000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-c4254748-163c-c056-2806-836fd70067ee	0110e115-3f2e-645f-fa51-3f844cd6227e	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	440000.00	440000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-c594bea9-c6c3-df5e-3c43-67be9a76374e	9e038dae-c384-1ce5-0dc2-493dd9c9720e	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	420000.00	420000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-c5b87c76-1516-4268-4dfe-030ffdab04d2	53265692-ac5b-a712-54c9-eeb3f10efef2	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	152000.00	152000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-c810d02a-dc97-f0a3-dd2a-35c1baf84095	143d6851-c81c-f1db-df43-09e721081b95	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	156000.00	156000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-c8812907-3f2e-288b-ce2a-f51edc210dfa	058887ff-6249-66e3-e9b6-6d54d5bedf62	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	368000.00	368000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-c8c95c8d-a6ca-2f0c-2901-491214dc43ff	48e0163b-4dfa-3376-dac6-ee5de57f0f99	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	192000.00	192000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-d2bc3749-98a4-c0af-d1a2-653a602c2684	c6600f41-5fbd-cbb0-983b-ccbbcbf9636f	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	228000.00	228000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-d9b9c7d9-25ee-8548-d06d-52f14f813b22	633de7eb-3b6c-dd5b-49e3-e6218fbb857d	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	124000.00	124000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-dbfad812-ac74-d649-c9c4-0f88164f3fe2	df04abe8-20bf-ba46-4e51-73dfb2469b6b	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	252000.00	252000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-dfeff0cc-88c1-b4d2-6287-c514bd92c3d4	b094ee94-07db-74de-1151-8dbf3fdc5feb	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	116000.00	116000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-e56c85df-82db-df7d-bda2-13f9bdbe2ae4	e665c8c1-23cb-3bc0-bb8a-2ac17e4d8a37	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	312000.00	312000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-e6edca5e-cb3e-7cbc-f4c3-23dc932d1b4c	e3d8204f-df7e-d5f0-79cf-7578c1385684	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	366000.00	366000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-ef74f6e3-b8d7-d02c-c4c7-1b9a35b0039b	e665c8c1-23cb-3bc0-bb8a-2ac17e4d8a37	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	208000.00	208000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-f58be831-e861-9cbe-2870-5e883a046cf7	f70f1cb0-fd2b-e991-19c1-97058bf88682	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	392000.00	392000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-f955ef69-6ee0-a918-1394-b96652a8b8ca	fbb030f3-e849-5b81-6934-cf7a89075db1	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	136000.00	136000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
-f986a116-8632-0eaa-227f-c64e9796a59d	b094ee94-07db-74de-1151-8dbf3fdc5feb	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	174000.00	174000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N
+COPY public.project_services ("Id", "ProjectId", "ServiceCatalogId", "TaskId", "Department", "SubDepartment", "ServiceName", "Qty", "Description", "ResourceLevel", "Frequency", "Location", "LocationText", "ServiceModel", "DeliveryModel", "FinalDeliveryFormat", "BillingModel", "Tools", "StartDate", "EndDate", "DurationDays", "DurationHours", "TotalDays", "TotalHours", "UnitPrice", "Total", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BillingStatus", "CollectionStatus", "IsReady", "ValidationStatus") FROM stdin;
+05bac44a-67a8-dea6-95d3-36e7c82a5a70	db951439-0ec5-b321-9266-611d80ea0ffa	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	450000.00	450000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+087e4b44-d201-7054-1e13-406aff3754c4	078de404-e464-38fe-bc5a-1eecc50c5cdb	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	216000.00	216000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+0b16929b-f648-0774-3d3a-04ee872062d9	6d888c0c-7071-ce2c-a642-2aa1ccff8ce0	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	168000.00	168000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+0c256a9f-e032-9c16-b370-382f769ba40d	42c28ff9-518b-917f-58fb-322aa28ffc9f	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	384000.00	384000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+0dc6d4be-ed14-8849-53b4-dedea1887e8f	da23da7f-348b-c5d8-c21c-6f5321338b69	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	324000.00	324000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+0ffc285b-63f3-eb43-95dc-ec01d54e7671	4b05d47c-011a-ca3b-0c37-a70112d30fe7	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	288000.00	288000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+1054551a-5919-4157-25f3-f277178825bd	143d6851-c81c-f1db-df43-09e721081b95	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	234000.00	234000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+10670d63-9013-e4a3-fff4-2bee3401de6e	9df44408-e0f7-1c11-d144-08e51e02851f	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	184000.00	184000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+12cc8282-faf3-2c4e-73cf-0174d98d5cfd	db951439-0ec5-b321-9266-611d80ea0ffa	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	300000.00	300000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+15b0f2d9-54fd-59a8-59fd-3a530cf4b72f	42c28ff9-518b-917f-58fb-322aa28ffc9f	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	256000.00	256000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+176462fe-5af9-51eb-df27-127232d7625d	589f13e8-777d-9e78-0179-6955019400a4	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	380000.00	380000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+1ab48c0e-5bcd-9c9d-16b5-ae4328a52479	4bdd9b6e-dc7e-83df-0e4a-588b718a46de	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	196000.00	196000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+1afd49cd-ab49-2739-da1a-1fa6dcee5078	e1dd4c6b-527b-5243-9f98-cb106d526ed9	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	356000.00	356000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+1e35a5bc-4e01-b9d6-a46e-53bf40227634	d9c31d7b-328e-11be-73d1-c8c578219b98	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	408000.00	408000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+2381f179-c713-3662-a15a-941357c74808	96771845-a6f8-9c00-10b1-7f6e20cb26f2	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	480000.00	480000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+290f5384-fa2d-9c09-2ba6-5136299b13c6	d9c31d7b-328e-11be-73d1-c8c578219b98	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	272000.00	272000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+2a603970-bdf9-5ed1-4f85-dbdc47f8f7b9	f70f1cb0-fd2b-e991-19c1-97058bf88682	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	588000.00	588000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+2bf6eb9a-efae-81ab-2269-3090bd9d5d58	4b05d47c-011a-ca3b-0c37-a70112d30fe7	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	192000.00	192000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+2d764f0b-9442-6d98-9684-fc71d242e8db	569eb2b4-dce7-5d4f-5e8c-6321a995cf38	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	180000.00	180000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+2df0e698-e269-9722-1baf-1ef46b658d8d	bbdd9713-b12d-1026-241e-f23f2881fbd6	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	196000.00	196000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+2fc2dee5-f447-d953-9b34-7168fd912855	633de7eb-3b6c-dd5b-49e3-e6218fbb857d	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	186000.00	186000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+31073bb0-6430-4113-7806-da6542c7ef70	b31447f7-a279-235e-1c13-5e1332ac6f71	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	152000.00	152000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+35ab8110-a847-5e90-c961-f4ed123a134c	078de404-e464-38fe-bc5a-1eecc50c5cdb	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	144000.00	144000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+35c728c6-8c05-6c76-d801-88762d76500d	9df44408-e0f7-1c11-d144-08e51e02851f	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	276000.00	276000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+363b3132-f311-8115-0a6a-4833b3d8032a	37f0631e-ff18-137e-2790-48bf2a3aed53	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	132000.00	132000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+3676c60b-0bdd-5476-2391-778b0e93daf9	2b6e8fc3-44f8-a096-04cb-40f258f06eb4	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	480000.00	480000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+3bcefdb5-d53a-c4c7-e086-1d8c187936f3	0005c8ca-9a64-17b8-256b-4ee73b53e81e	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	258000.00	258000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+3ce7a798-fe69-7f2e-f86b-646973d476cb	e1dd4c6b-527b-5243-9f98-cb106d526ed9	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	534000.00	534000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+3e5533e3-d1c3-3c16-1160-b8eb29172655	3de4e5fa-92ba-df0d-06f0-ee3caacf1ffd	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	304000.00	304000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+410e3e7a-d656-735f-e216-9adf10ef7703	48e0163b-4dfa-3376-dac6-ee5de57f0f99	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	128000.00	128000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+432e2d21-bf0d-c6b9-b055-37cfaab5c694	df04abe8-20bf-ba46-4e51-73dfb2469b6b	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	168000.00	168000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+46666780-3545-52dc-2ce0-7b8e53511045	37f0631e-ff18-137e-2790-48bf2a3aed53	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	88000.00	88000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+49421cfd-1bd3-b93a-27cd-301b7407c754	2b6e8fc3-44f8-a096-04cb-40f258f06eb4	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	720000.00	720000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+4b752a38-4211-7934-a715-2b5b05578797	fbb030f3-e849-5b81-6934-cf7a89075db1	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	204000.00	204000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+508bc02a-7f4d-cd33-1037-15ea3915806c	27198d8b-d6cf-276d-f1a7-a66b0abf819a	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	168000.00	168000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+51c72dd7-b22d-2483-e76e-ea3b64e6ecae	8674f685-9512-d7a4-1399-e58a4b88fe5b	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	368000.00	368000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+524898de-b5f7-1fca-dcc5-a7de591c672f	0ce49262-f49c-2000-fe94-e93c5bdfb327	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	402000.00	402000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+5d17cfaa-2414-8912-f685-90e74b7dabb5	dd709b37-3794-40c0-13ae-e35ec70100a2	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	168000.00	168000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+5fd5d5f2-6564-cb5c-e88a-74ca15afde28	96771845-a6f8-9c00-10b1-7f6e20cb26f2	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	720000.00	720000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+61ee7a2d-9ea7-253e-2b90-80fe738f69e5	e4d9ede1-e653-6c3b-1081-c54a2be3f6e0	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	348000.00	348000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+6650596e-77bb-9270-ef6a-bd48c3cf470e	8674f685-9512-d7a4-1399-e58a4b88fe5b	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	552000.00	552000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+6770ea6e-b27f-c489-264d-8837151b0833	6d888c0c-7071-ce2c-a642-2aa1ccff8ce0	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	112000.00	112000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+6b4f7f9e-d6b3-f178-6b34-76169bc32763	da23da7f-348b-c5d8-c21c-6f5321338b69	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	216000.00	216000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+6cd5d5d0-3b08-2bec-45cd-a5b847830ade	53265692-ac5b-a712-54c9-eeb3f10efef2	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	228000.00	228000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+6d7da59a-e68e-3852-6e06-1caa42acc509	45f61698-e7ca-9049-dce4-2678530df87e	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	292000.00	292000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+7506ff05-9ce4-10f9-b6ab-cb812638a200	4bdd9b6e-dc7e-83df-0e4a-588b718a46de	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	294000.00	294000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+756926a6-d053-4adc-4345-9808c00cef68	804038cb-1b0f-af18-247c-514d7edf2757	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	186000.00	186000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+7b6a309b-6e0f-9c7f-5bd0-ff4f96ace4a5	0110e115-3f2e-645f-fa51-3f844cd6227e	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	660000.00	660000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+7d6e6bdb-5c0b-00ea-a1f2-fdf1754f994d	589f13e8-777d-9e78-0179-6955019400a4	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	570000.00	570000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+7eb667b3-3f3f-ad65-a874-8eb4e5ce0c06	e3d8204f-df7e-d5f0-79cf-7578c1385684	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	244000.00	244000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+8548d90d-ef14-4d23-a819-ed401afac78f	569eb2b4-dce7-5d4f-5e8c-6321a995cf38	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	270000.00	270000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+89a93f8f-a20a-9468-5381-de195e92438b	3de4e5fa-92ba-df0d-06f0-ee3caacf1ffd	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	456000.00	456000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+8db53daf-2a87-4f81-6d4b-57740dd0b1f6	6aaca83f-9e2d-72bf-2873-cc7f244f91a5	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	192000.00	192000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+8ed27ef1-635a-a926-f5c3-e43ebbe5461c	bbdd9713-b12d-1026-241e-f23f2881fbd6	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	294000.00	294000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+8ee83ad7-ea23-7f24-7a8c-e4d4f148b1a8	c6600f41-5fbd-cbb0-983b-ccbbcbf9636f	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	342000.00	342000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+9279e70e-9cff-a540-aaa0-a69a28e40861	dd709b37-3794-40c0-13ae-e35ec70100a2	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	112000.00	112000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+9342f7e0-dcf7-04d0-161b-a0dee2dffc6a	058887ff-6249-66e3-e9b6-6d54d5bedf62	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	552000.00	552000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+93df6167-e309-f86c-dd0e-b74192db38de	45f61698-e7ca-9049-dce4-2678530df87e	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	438000.00	438000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+9863f9d0-1640-009c-1811-6d083d585ff9	140eef6e-917f-4d05-d414-eaaa470f8665	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	216000.00	216000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+996f2546-6740-af77-8960-72e4a7391ca4	0005c8ca-9a64-17b8-256b-4ee73b53e81e	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	172000.00	172000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+a32944fe-5c3f-7da3-71da-b1c5d67516e6	9e038dae-c384-1ce5-0dc2-493dd9c9720e	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	630000.00	630000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+ab011c73-dd7f-2a45-79d6-972cc0101c1b	b71355b0-ed52-fd33-d6f7-87bb249aacce	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	348000.00	348000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+adfa2cfb-6855-06f9-6831-f1d8989a20c8	140eef6e-917f-4d05-d414-eaaa470f8665	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	324000.00	324000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+b4f2e875-9fa4-0897-f4ed-4cd0e4534ed9	b71355b0-ed52-fd33-d6f7-87bb249aacce	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	232000.00	232000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+b5ecadf8-885e-c8e3-3415-ffc86e5f1ff7	0ce49262-f49c-2000-fe94-e93c5bdfb327	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	268000.00	268000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+b623c0cf-5b8b-dde1-39fe-74e26adcdde0	e4d9ede1-e653-6c3b-1081-c54a2be3f6e0	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	522000.00	522000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+b869ff8b-af76-d0a4-5a0c-1618e76ea079	27198d8b-d6cf-276d-f1a7-a66b0abf819a	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	252000.00	252000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+b95d4d6f-04a8-34b3-8078-8418577a24a1	804038cb-1b0f-af18-247c-514d7edf2757	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	124000.00	124000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+be756cb9-406f-1c8b-176e-c05db328a779	b31447f7-a279-235e-1c13-5e1332ac6f71	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	228000.00	228000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+c3b79a4d-14cd-8b0c-643a-1e51d917236f	6aaca83f-9e2d-72bf-2873-cc7f244f91a5	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	128000.00	128000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+c4254748-163c-c056-2806-836fd70067ee	0110e115-3f2e-645f-fa51-3f844cd6227e	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	440000.00	440000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+c594bea9-c6c3-df5e-3c43-67be9a76374e	9e038dae-c384-1ce5-0dc2-493dd9c9720e	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	420000.00	420000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+c5b87c76-1516-4268-4dfe-030ffdab04d2	53265692-ac5b-a712-54c9-eeb3f10efef2	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	152000.00	152000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+c810d02a-dc97-f0a3-dd2a-35c1baf84095	143d6851-c81c-f1db-df43-09e721081b95	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	156000.00	156000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+c8812907-3f2e-288b-ce2a-f51edc210dfa	058887ff-6249-66e3-e9b6-6d54d5bedf62	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	368000.00	368000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+c8c95c8d-a6ca-2f0c-2901-491214dc43ff	48e0163b-4dfa-3376-dac6-ee5de57f0f99	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	192000.00	192000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+d2bc3749-98a4-c0af-d1a2-653a602c2684	c6600f41-5fbd-cbb0-983b-ccbbcbf9636f	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	228000.00	228000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+d9b9c7d9-25ee-8548-d06d-52f14f813b22	633de7eb-3b6c-dd5b-49e3-e6218fbb857d	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	124000.00	124000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+dbfad812-ac74-d649-c9c4-0f88164f3fe2	df04abe8-20bf-ba46-4e51-73dfb2469b6b	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	252000.00	252000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+dfeff0cc-88c1-b4d2-6287-c514bd92c3d4	b094ee94-07db-74de-1151-8dbf3fdc5feb	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	116000.00	116000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+e56c85df-82db-df7d-bda2-13f9bdbe2ae4	e665c8c1-23cb-3bc0-bb8a-2ac17e4d8a37	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	312000.00	312000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+e6edca5e-cb3e-7cbc-f4c3-23dc932d1b4c	e3d8204f-df7e-d5f0-79cf-7578c1385684	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	366000.00	366000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+ef74f6e3-b8d7-d02c-c4c7-1b9a35b0039b	e665c8c1-23cb-3bc0-bb8a-2ac17e4d8a37	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	208000.00	208000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+f58be831-e861-9cbe-2870-5e883a046cf7	f70f1cb0-fd2b-e991-19c1-97058bf88682	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	392000.00	392000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+f955ef69-6ee0-a918-1394-b96652a8b8ca	fbb030f3-e849-5b81-6934-cf7a89075db1	\N	\N	Vulnerability Assessment	Web Application Vulnerability Assessment	Web Application Vulnerability Assessment	1	\N	Mid	One Time	Remote	\N	Grey Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	136000.00	136000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+f986a116-8632-0eaa-227f-c64e9796a59d	b094ee94-07db-74de-1151-8dbf3fdc5feb	\N	\N	Penetration Testing	Network Penetration Testing	External Network Penetration Testing	1	\N	Senior	One Time	Remote	\N	Black Box	Fixed Scope	PDF Report	50-50	\N	\N	\N	15	120	15	120	174000.00	174000.00	0	2026-09-29 12:27:28.962548+05:30	\N	\N	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
 \.
 
 
@@ -3298,7 +3305,7 @@ fff67130-68d6-8cd4-0e02-50f08346e9d3	bbdd9713-b12d-1026-241e-f23f2881fbd6	2df0e6
 -- Data for Name: project_team_members; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.project_team_members ("Id", "ProjectId", "EmployeeId", "DepartmentId", "SubDepartment", "AllocationStartDate", "AllocationEndDate", "Billability", "IsTeamLead", "ResourceType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "IsShadowTeam") FROM stdin;
+COPY public.project_team_members ("Id", "ProjectId", "EmployeeId", "DepartmentId", "SubDepartment", "AllocationStartDate", "AllocationEndDate", "Billability", "IsTeamLead", "ResourceType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "IsShadowTeam", "MemberRole") FROM stdin;
 \.
 
 
@@ -3991,1378 +3998,1378 @@ COPY public.role_permission_audits ("Id", "RoleId", "RoleName", "ModuleKey", "Mo
 --
 
 COPY public.role_widget_permissions ("Id", "RoleId", "WidgetId", "CanView", "CanManage", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-aa720287-fcfa-4e11-afc3-f9dcc8a553c0	62a927b7-9fd8-461a-b64e-1aa441eeba4d	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7b6f70a1-00c2-42ae-acf9-bcdb3c3cf683	62a927b7-9fd8-461a-b64e-1aa441eeba4d	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-046b290b-6c12-4f6d-83ca-15bfb12263dd	62a927b7-9fd8-461a-b64e-1aa441eeba4d	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f0842794-2a17-4e2b-9798-770f90ecf200	62a927b7-9fd8-461a-b64e-1aa441eeba4d	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d50ec060-c622-4338-9953-3bd692bc53fc	62a927b7-9fd8-461a-b64e-1aa441eeba4d	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a128a6dd-b486-4ded-b90e-295418b156db	62a927b7-9fd8-461a-b64e-1aa441eeba4d	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b711920f-06c0-4182-a21d-123f83f7b0ed	62a927b7-9fd8-461a-b64e-1aa441eeba4d	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b37b30cf-aa11-4f47-bc05-a5dc02ad0075	62a927b7-9fd8-461a-b64e-1aa441eeba4d	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3010bf79-0a97-4f09-95ae-96a7da607272	62a927b7-9fd8-461a-b64e-1aa441eeba4d	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8c9981aa-e41c-4c3e-8aa4-18f4276c3bf9	62a927b7-9fd8-461a-b64e-1aa441eeba4d	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-89130297-bbb2-41c9-ab57-7a2ae34d91ac	62a927b7-9fd8-461a-b64e-1aa441eeba4d	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-87ca93ac-a9e4-46c0-a727-96fc693a80bc	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a016110f-ceeb-42f3-945b-58c9c5238984	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2dab3d1a-44c4-432e-9473-679550dab8d1	62a927b7-9fd8-461a-b64e-1aa441eeba4d	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2db141f9-1ffd-4bea-a731-afe046ee16a0	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1496584c-e3e7-4a09-8b90-5559a9ca9f7f	62a927b7-9fd8-461a-b64e-1aa441eeba4d	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d761e549-2738-4e5f-a0a6-dbdfcc046fb5	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fc975b74-79b1-4b4b-9133-9bff6547c5d1	62a927b7-9fd8-461a-b64e-1aa441eeba4d	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2478301a-113b-4c2b-8a99-51fb4cedfdf2	62a927b7-9fd8-461a-b64e-1aa441eeba4d	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-17a7c2b0-63c9-4e14-8558-c9efad6dc2ed	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a2f39b0b-4f3c-451e-86cb-0117b3314025	62a927b7-9fd8-461a-b64e-1aa441eeba4d	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8ece73b1-3e57-475f-b2de-625d4ba4684f	62a927b7-9fd8-461a-b64e-1aa441eeba4d	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8fef779b-af0b-4dcf-b170-016b42cd36f7	62a927b7-9fd8-461a-b64e-1aa441eeba4d	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e3e0268b-c6f5-4083-a76c-618cd21fed32	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1fc8d436-951f-4634-b277-c0f295a6df54	62a927b7-9fd8-461a-b64e-1aa441eeba4d	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-02a80a02-837b-4f03-be9d-c94cb93d0092	62a927b7-9fd8-461a-b64e-1aa441eeba4d	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-56f36f6a-81e7-46fb-bcad-4f1a252858a5	62a927b7-9fd8-461a-b64e-1aa441eeba4d	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ed2533eb-95da-459b-88ed-85f959a661ac	62a927b7-9fd8-461a-b64e-1aa441eeba4d	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e2f06ec4-5c95-4926-a2ca-ee8cf06dafc8	62a927b7-9fd8-461a-b64e-1aa441eeba4d	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-13483a6a-50ff-4f2b-8248-761532b91ea2	62a927b7-9fd8-461a-b64e-1aa441eeba4d	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c054d31a-db68-4d52-8687-cebb6bc54c53	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f6e763fa-aedf-4462-b6d3-0dd6afe7621d	62a927b7-9fd8-461a-b64e-1aa441eeba4d	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6b543894-598b-4a0b-ae35-e51241df1269	62a927b7-9fd8-461a-b64e-1aa441eeba4d	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f981a6ee-31b0-400a-b8f5-f66809570e85	62a927b7-9fd8-461a-b64e-1aa441eeba4d	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7c5ba735-7e33-491e-9d36-afa51be91739	62a927b7-9fd8-461a-b64e-1aa441eeba4d	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9706e9ee-ab20-412b-96fe-faa995f5a7f9	62a927b7-9fd8-461a-b64e-1aa441eeba4d	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-57e47ba2-453c-4ad9-8e7b-03a10936a0f0	62a927b7-9fd8-461a-b64e-1aa441eeba4d	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8104b123-dae8-41b9-b270-87656860a66e	62a927b7-9fd8-461a-b64e-1aa441eeba4d	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3240f4a7-7839-48c1-9fdd-51a13fa8cd5a	62a927b7-9fd8-461a-b64e-1aa441eeba4d	b1b803ec-f626-44c8-bfb2-97cd61795374	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-753c176b-eaa8-426d-b210-c8ede5bc3b8e	62a927b7-9fd8-461a-b64e-1aa441eeba4d	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a714f49b-7b28-4753-a43d-1640122f64e9	62a927b7-9fd8-461a-b64e-1aa441eeba4d	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7f929411-17d3-475a-8cbc-b3065a1d8e82	62a927b7-9fd8-461a-b64e-1aa441eeba4d	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f0e95166-e3c6-45f9-8915-42716f7de9f7	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b07a2428-8673-4bc5-9c1d-1fc4ad70ed21	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d8079401-9850-4f5a-b916-acd776c4335b	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-85822825-6577-44dc-99ac-525b35994603	62a927b7-9fd8-461a-b64e-1aa441eeba4d	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-70561801-7601-4082-9453-cd9cbac3c097	62a927b7-9fd8-461a-b64e-1aa441eeba4d	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4d4c3cfd-2458-4dc8-a40b-a1e6052942a8	62a927b7-9fd8-461a-b64e-1aa441eeba4d	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f12cd1f2-ea0e-4f58-8c92-514f28a9fbf7	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-601ce14e-d537-4d3b-8d39-6ad45c694137	62a927b7-9fd8-461a-b64e-1aa441eeba4d	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8a82ff80-6044-421f-bb9f-855987a9f634	a5bfe265-981a-4723-b7bb-6ddc389db7f0	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4bf6fe67-f82b-4b4c-8892-b072fb4b4d1d	a5bfe265-981a-4723-b7bb-6ddc389db7f0	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b67ba8f7-71a0-44bf-abd4-d36ec01e01e5	a5bfe265-981a-4723-b7bb-6ddc389db7f0	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-122e1662-4258-4c68-9333-e4476df74d8c	a5bfe265-981a-4723-b7bb-6ddc389db7f0	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-25ddfbe8-284c-43fb-b3de-bc069d1f034d	a5bfe265-981a-4723-b7bb-6ddc389db7f0	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-829194f3-d676-42a5-8941-422bde5344d0	a5bfe265-981a-4723-b7bb-6ddc389db7f0	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9741733e-d501-40c1-a16a-366aa42fceed	a5bfe265-981a-4723-b7bb-6ddc389db7f0	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7239248e-4bce-46ed-925e-a2267accd3d9	a5bfe265-981a-4723-b7bb-6ddc389db7f0	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ac7269c6-af18-4f45-bc78-827e67f917c8	a5bfe265-981a-4723-b7bb-6ddc389db7f0	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ca64f6f3-e6c8-433e-a5b8-018e0f7496a4	a5bfe265-981a-4723-b7bb-6ddc389db7f0	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d6bcf095-465a-4473-a527-973eb85ca8b8	a5bfe265-981a-4723-b7bb-6ddc389db7f0	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-75de1259-3aa6-4002-882d-ba88654b9028	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a016110f-ceeb-42f3-945b-58c9c5238984	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-58bd4ab8-b553-49b3-b218-d9aaa829e3d9	a5bfe265-981a-4723-b7bb-6ddc389db7f0	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e33e2dcc-0281-474a-994f-eb9525d75cc3	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-791cb93e-0273-40fd-aa5b-f4b080fe4076	a5bfe265-981a-4723-b7bb-6ddc389db7f0	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-42673339-9c4b-473a-9069-369e8077002d	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7c65dc91-887f-4748-9d13-9cdb1b82c2e5	a5bfe265-981a-4723-b7bb-6ddc389db7f0	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-975de0dc-3eda-4c85-9fd3-935cf64c0d2a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-744197e2-72bc-4343-bfb4-20f766af3bcf	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-451e834f-7ba2-4b98-afeb-812ee1d400bc	a5bfe265-981a-4723-b7bb-6ddc389db7f0	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2c6d4ee9-6eca-4c9c-be4b-c43784819522	a5bfe265-981a-4723-b7bb-6ddc389db7f0	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5d786d04-ec1f-46c9-a85a-9de5de674ff7	a5bfe265-981a-4723-b7bb-6ddc389db7f0	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f592dff3-4a32-4d49-b751-8685211fa6d6	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-24eba4c3-1305-4453-a3fa-417a65d8eee8	a5bfe265-981a-4723-b7bb-6ddc389db7f0	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7e997823-82ba-4edd-8143-8bfeedb7d073	a5bfe265-981a-4723-b7bb-6ddc389db7f0	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4064825a-93eb-4c93-99a8-efe3c0eb6c96	a5bfe265-981a-4723-b7bb-6ddc389db7f0	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d247ea7c-d48d-43d8-89e2-2e6dc3012e57	a5bfe265-981a-4723-b7bb-6ddc389db7f0	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-299119c7-8bb3-403c-9381-6061c30f35ba	a5bfe265-981a-4723-b7bb-6ddc389db7f0	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c9cdd806-494f-4180-82bf-1394de3af00c	a5bfe265-981a-4723-b7bb-6ddc389db7f0	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f706cbb8-6c69-432c-97c0-36abad985809	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-92e5431b-1988-4143-8fec-991df179e4e4	a5bfe265-981a-4723-b7bb-6ddc389db7f0	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-57733735-905f-4ac8-a501-4524d5793ba4	a5bfe265-981a-4723-b7bb-6ddc389db7f0	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2f6422d4-6f41-463e-a9ed-dd560624510f	a5bfe265-981a-4723-b7bb-6ddc389db7f0	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-55fb52a0-f17e-491c-b590-daaee157bc42	a5bfe265-981a-4723-b7bb-6ddc389db7f0	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3bb799a7-94ab-4010-83c5-69dde875f767	a5bfe265-981a-4723-b7bb-6ddc389db7f0	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f02d1dac-9f5a-46d5-b8c1-acbadb1d6a25	a5bfe265-981a-4723-b7bb-6ddc389db7f0	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a59e06bc-eca3-41f8-9646-0a793dfa7b5a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4f449dea-f763-4c9b-a427-e5ad188220ed	a5bfe265-981a-4723-b7bb-6ddc389db7f0	b1b803ec-f626-44c8-bfb2-97cd61795374	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fba6a3d0-ce47-4069-abc0-3c6c4f09684e	a5bfe265-981a-4723-b7bb-6ddc389db7f0	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-78cda90f-0b20-47ad-978c-9b0b68372a44	a5bfe265-981a-4723-b7bb-6ddc389db7f0	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a7e1516b-5421-48e4-ba20-3900be0fe74f	a5bfe265-981a-4723-b7bb-6ddc389db7f0	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-124aa71d-6402-4358-af21-d6dfc3da832c	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4a154ac7-d33b-4b79-891f-4200caeb3f71	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6e2c466e-fb01-44f2-9c13-acba791edd40	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e79ccd73-a0eb-4cfd-aaf8-ff6434cbec48	a5bfe265-981a-4723-b7bb-6ddc389db7f0	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-09ba7d51-5320-47b4-9bd2-5a72d9f209e5	a5bfe265-981a-4723-b7bb-6ddc389db7f0	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-643970cd-1cd5-4a60-93cb-00620143c53a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-72c52065-21c9-4374-ab6f-d04a057dd4b3	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e2a10525-830f-4bf7-817e-6142b03d3eab	a5bfe265-981a-4723-b7bb-6ddc389db7f0	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-866be478-e2ec-41f3-8098-771b38b18967	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c276413f-8612-41b1-8551-487d88705879	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-aa890921-c3ad-4ed0-b3da-9d6e79b2f8a4	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ddd890fe-7e3d-4b3d-9ae7-afb29c98df6a	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ab38ace1-da7c-4e03-b5b8-29ac370057ce	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-77bd866a-44b3-4b43-8ce5-4c1287b3a528	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c3f1d525-2f63-48d5-a239-cbac38720452	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7aee52fc-d1a0-4d08-9829-c3f22528a063	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6aff54df-2919-4709-8e54-495b4e3d56ee	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d04dc898-997d-4337-8ac2-d18c96bb347c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-485faee3-ecb0-4d50-b20b-c70f4bdcdc7c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c08ac115-ac59-4b72-8ab8-d29f81de587d	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a016110f-ceeb-42f3-945b-58c9c5238984	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-85ca5612-849c-414c-b1f7-bf6a2e715775	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c070ad91-0705-4542-8a3a-275276048cdd	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6412b2af-3b0f-480c-b4d0-cd83c907c633	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-666eadd9-2e6c-4c36-88ec-c80aff319a13	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-db9979e1-31c5-4434-b5d5-5e06b5e09509	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-002e67bb-5299-4075-890c-7bc217cf2b21	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4b4a65aa-c868-4464-96d1-8790f0afe11c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7613894a-9f58-4c03-9d7b-9134d0d88c3c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c10cc778-e162-4d67-96f7-abb8d58be961	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1ab86bcf-4624-4f0c-aa53-7c23bca31791	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-02f0ba6b-81a3-4a5e-bdc0-e7e1e9dd79b5	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7ea497c4-a877-44a5-a59e-96382485de79	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eca8799c-3e41-49e4-8ef1-ec99b8728f3e	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-edeb67c5-8845-48b2-9632-40710a714b6d	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bdfec3e2-ab83-4ae7-a832-f89b6b305f72	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-61498a71-0b17-4ed8-8574-8b9720a82912	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-37ee1bba-fe3a-4518-8953-eadf782f5a04	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a56df7d1-31e3-4521-b978-161ba028a8cf	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-428dced2-b845-4f83-b55f-7c86e24e958c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bf71be6c-42cc-4c92-aeb8-9ea6e2da44eb	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-353448cd-5451-443f-9b46-43f3d086f903	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c84db43f-622c-425a-8174-5b8e7de54bdf	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-503c5f82-16ce-4a11-b445-3de22cbb5d81	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fac000b2-1aa0-4986-af2c-57639dbe990a	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ccef9ec5-2eec-467a-85a7-151eb79728c0	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fa6ccd8e-1465-45e5-8f99-2b4c53aaf342	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	b1b803ec-f626-44c8-bfb2-97cd61795374	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bfc8fe02-e898-4956-b0c2-b6d14ef214d0	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-df966bad-bd96-4010-b441-f2610a57fe69	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e6c1a8c3-a312-4327-91b3-7e5b1c4f01dc	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d33d74d6-b475-4280-ac43-a990bbed9751	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-59554f1c-9778-4ff5-8014-755e19b4f0ce	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3deec50c-63ca-4836-889a-87f207f1df07	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d83d5b57-aaf8-43d7-9f71-3c2cd6f868b9	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8ba97302-ea3a-4ea4-a3f9-c7b5d9a8f206	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5787525a-522a-44b9-a57f-839c3c9cb25c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-919e518f-86a2-4947-964b-d9d79ee8b361	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-84b2b084-6e21-4f93-aa7e-13240c324ce5	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e4992cd1-ef85-4be9-8d1f-3a41ba47a73a	b552183f-2695-41f9-860e-16d5fe94c4aa	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-90409416-2673-4600-b2c6-5b533f6ff417	b552183f-2695-41f9-860e-16d5fe94c4aa	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b0ac862f-265f-4e77-989c-0db22d6f5bb4	b552183f-2695-41f9-860e-16d5fe94c4aa	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a19ce735-ac8a-4fc9-aefc-c78d97647782	b552183f-2695-41f9-860e-16d5fe94c4aa	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ef441dc7-6a9a-4faf-a459-23559196665c	b552183f-2695-41f9-860e-16d5fe94c4aa	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2337c8d5-0815-41ea-b60e-e7c94f4ce359	b552183f-2695-41f9-860e-16d5fe94c4aa	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ce29c90e-e70c-4052-97fb-d1facd426312	b552183f-2695-41f9-860e-16d5fe94c4aa	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-294e7c97-fb87-4841-b195-fc07a1e4ddf1	b552183f-2695-41f9-860e-16d5fe94c4aa	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b082c2b7-db76-4828-b695-723967d042b0	b552183f-2695-41f9-860e-16d5fe94c4aa	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e91aee24-efcd-46b6-8310-b3f57604782c	b552183f-2695-41f9-860e-16d5fe94c4aa	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-93cd435c-9f52-4dec-ad0b-498893a4d56c	b552183f-2695-41f9-860e-16d5fe94c4aa	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dc4a4c61-8ed0-4d64-b1c8-33fe9249b19f	b552183f-2695-41f9-860e-16d5fe94c4aa	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c6d9e11b-37c9-407b-b241-cbc5110b7df1	b552183f-2695-41f9-860e-16d5fe94c4aa	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0c2e022a-7529-44aa-9a8c-a0fcbbd6e086	b552183f-2695-41f9-860e-16d5fe94c4aa	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-708e8824-055e-44ec-b7f8-f882ecc7e79d	b552183f-2695-41f9-860e-16d5fe94c4aa	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-60a0715a-e611-404a-801c-b77a0a5bf405	b552183f-2695-41f9-860e-16d5fe94c4aa	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1a20bb23-adbf-498e-9e08-c964d5aac8ac	b552183f-2695-41f9-860e-16d5fe94c4aa	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4d611f75-35d0-4978-9620-505d7b3f7d84	b552183f-2695-41f9-860e-16d5fe94c4aa	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-20058b03-411f-4bbf-a233-958d818cbdce	b552183f-2695-41f9-860e-16d5fe94c4aa	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a771cab9-2235-4f7d-b352-19fb5d8557c4	b552183f-2695-41f9-860e-16d5fe94c4aa	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-176043e3-cb26-4f11-9107-fb66d342abac	b552183f-2695-41f9-860e-16d5fe94c4aa	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-15d60d5b-c44b-4700-bb2a-79d7771410ec	b552183f-2695-41f9-860e-16d5fe94c4aa	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5d480913-1bc9-4e94-a404-41cd36278951	b552183f-2695-41f9-860e-16d5fe94c4aa	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b32c565f-823c-4728-9d08-e195f50fa3e1	b552183f-2695-41f9-860e-16d5fe94c4aa	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d8443d82-5e1f-476f-8c28-fc5f29a9cd85	b552183f-2695-41f9-860e-16d5fe94c4aa	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e3852560-4649-4a56-b66e-79cf2e2546ef	b552183f-2695-41f9-860e-16d5fe94c4aa	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cfc59ac3-7f63-4319-aef6-e9ad75020227	b552183f-2695-41f9-860e-16d5fe94c4aa	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4d56e187-7e06-4c5e-a84a-41a05d42568e	b552183f-2695-41f9-860e-16d5fe94c4aa	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-21669dd2-e694-47aa-aa5a-f800109aa21d	b552183f-2695-41f9-860e-16d5fe94c4aa	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ea1a0e30-23fc-465d-8605-d098f96c2345	b552183f-2695-41f9-860e-16d5fe94c4aa	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-48a2e2ce-153e-4237-ad50-584e52c25a60	b552183f-2695-41f9-860e-16d5fe94c4aa	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e929f655-f471-4a31-806f-bf75b756ad0c	b552183f-2695-41f9-860e-16d5fe94c4aa	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dbedf50c-5aef-4feb-ba31-31c6a518707f	b552183f-2695-41f9-860e-16d5fe94c4aa	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-76f955be-f6c9-4cf3-b5c5-386694117fce	b552183f-2695-41f9-860e-16d5fe94c4aa	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4bbff2d4-8f17-4372-8a77-c887d5f9b8a1	b552183f-2695-41f9-860e-16d5fe94c4aa	7c212d3a-54c3-4012-9944-b8b9ff25af2a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ae6930d1-d8ba-450e-937b-1aeba68e6eca	b552183f-2695-41f9-860e-16d5fe94c4aa	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ef19c3bc-0643-478b-b047-5c7f12af2a13	b552183f-2695-41f9-860e-16d5fe94c4aa	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-960f138a-abc3-4d9d-9144-b5998a256e60	b552183f-2695-41f9-860e-16d5fe94c4aa	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-921713bb-6f50-4c5f-92fd-67db38bdb942	b552183f-2695-41f9-860e-16d5fe94c4aa	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-67acc268-e53d-4b82-b7fd-30fb1c462326	b552183f-2695-41f9-860e-16d5fe94c4aa	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9e808a8e-7511-4c02-969d-cf323fcd5c69	b552183f-2695-41f9-860e-16d5fe94c4aa	63ec4257-dc36-4f14-a617-bc8fe094258d	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a4e0f459-22f4-443b-b733-e3728ffb21d8	b552183f-2695-41f9-860e-16d5fe94c4aa	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e983a910-0bc0-4f9e-95e5-f5df54134dd8	b552183f-2695-41f9-860e-16d5fe94c4aa	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f3c5b078-2749-483d-ac51-0a712a5eb96d	b552183f-2695-41f9-860e-16d5fe94c4aa	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0b1ee644-0653-4de2-b778-7368f3a58d2e	b552183f-2695-41f9-860e-16d5fe94c4aa	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-df715698-584a-47ef-a505-a93f5d49c500	b552183f-2695-41f9-860e-16d5fe94c4aa	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e20c996c-fa15-40f1-a528-1df69588502f	b552183f-2695-41f9-860e-16d5fe94c4aa	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c7510165-f83e-47cc-9d44-a24b9c8a8437	b552183f-2695-41f9-860e-16d5fe94c4aa	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9eac7851-0eb0-48d9-8d53-8b145e7fb931	b552183f-2695-41f9-860e-16d5fe94c4aa	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9f9dd2f2-bc54-4b1d-a02c-6b3494cfcc58	cd2a32ed-32fc-47bc-88a9-e6fc48863869	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a5e2b386-a55d-4423-a110-6ce3a0ef09a6	cd2a32ed-32fc-47bc-88a9-e6fc48863869	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-917c1ef0-dd3b-4679-90e4-ef3cc9892559	cd2a32ed-32fc-47bc-88a9-e6fc48863869	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-938c07bb-23e3-47e1-b505-59af7a48216d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bb226096-39ad-4d01-aa7b-9daed525c1ec	cd2a32ed-32fc-47bc-88a9-e6fc48863869	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b72cb69c-078a-4cf6-bb19-573fb2ca3404	cd2a32ed-32fc-47bc-88a9-e6fc48863869	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2f56cfac-cfae-46d7-8f0f-ea13b5fe4428	cd2a32ed-32fc-47bc-88a9-e6fc48863869	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7d443ab6-7d8d-4d0b-9919-31aa1272b70b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3568bfb5-0e20-432c-b756-2e9b250d5f64	cd2a32ed-32fc-47bc-88a9-e6fc48863869	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cc1d78bc-b7ae-4027-9b7c-dc9daf5fa846	cd2a32ed-32fc-47bc-88a9-e6fc48863869	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-26bba655-8d4f-4b18-8f2f-1e2687ce02e2	cd2a32ed-32fc-47bc-88a9-e6fc48863869	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-51e1cb95-4249-480e-b366-00396dc1601a	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-05c4dbf1-3be5-4048-8f0f-0ee472c96e3d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9750a0cd-7998-4177-a358-1e456409193e	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-48730d01-a578-476e-8dd1-8c1033a4efad	cd2a32ed-32fc-47bc-88a9-e6fc48863869	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5269155a-5b56-4630-826d-2cb0607d4a52	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a07f2fd2-a0b3-4fce-bd16-9c3dc6eeac25	cd2a32ed-32fc-47bc-88a9-e6fc48863869	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f094b0ad-35bd-4023-8029-5d27dead7289	cd2a32ed-32fc-47bc-88a9-e6fc48863869	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7b3a8650-5076-44a9-9c56-77d33cf78943	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d86a3e63-aea1-45e4-a9b8-a165e112528f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-04a230f7-5d79-4b81-91a5-2a5a26ba69a1	cd2a32ed-32fc-47bc-88a9-e6fc48863869	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8e246836-ae43-465d-a894-20a757de0f66	cd2a32ed-32fc-47bc-88a9-e6fc48863869	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a0f3c616-4257-4dd5-bcbf-1b80c397be16	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-064b04bf-b786-4c75-967d-3c1976f2f479	cd2a32ed-32fc-47bc-88a9-e6fc48863869	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ccae3906-656e-4025-a31c-9f9d74ed7b06	cd2a32ed-32fc-47bc-88a9-e6fc48863869	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fa9ba6da-348e-4423-a179-8438c99e433e	cd2a32ed-32fc-47bc-88a9-e6fc48863869	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dcfad26d-b734-4d8c-9691-2c4768cf29b7	cd2a32ed-32fc-47bc-88a9-e6fc48863869	28545f25-9461-4a0a-a49d-f5b0a400a650	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e041996e-a843-45f1-b422-875c8f7022ea	cd2a32ed-32fc-47bc-88a9-e6fc48863869	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-54591149-0b6b-4904-a370-10b9ad8bb483	cd2a32ed-32fc-47bc-88a9-e6fc48863869	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-66c0fdaa-1a38-402d-88c6-a7170887d796	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1749636a-f709-41df-a465-c8153238c7be	cd2a32ed-32fc-47bc-88a9-e6fc48863869	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-37669643-aeeb-4309-a83f-1a938ecbc558	cd2a32ed-32fc-47bc-88a9-e6fc48863869	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-18e0e4f1-c74d-49b3-800c-6edb90b4e073	cd2a32ed-32fc-47bc-88a9-e6fc48863869	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6597c312-0e2d-4ba4-a238-90f924257667	cd2a32ed-32fc-47bc-88a9-e6fc48863869	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b68d30bc-1202-4230-94fc-be34795d3c1a	cd2a32ed-32fc-47bc-88a9-e6fc48863869	7c212d3a-54c3-4012-9944-b8b9ff25af2a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-40363189-b4ba-4609-9a9c-1b477b259977	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-99ff13f0-2c6a-4a09-a7cc-4606a0e7c86f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3128b152-ab4d-4d35-8569-6b76b9114c7d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0b3328ac-2e7d-43b3-a306-f9d4d15e7e36	cd2a32ed-32fc-47bc-88a9-e6fc48863869	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3f4c8bbb-6ac8-4007-b3ec-cff812bd81e8	cd2a32ed-32fc-47bc-88a9-e6fc48863869	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-86a27dd4-644b-4af0-be28-c1c6d18726c2	cd2a32ed-32fc-47bc-88a9-e6fc48863869	63ec4257-dc36-4f14-a617-bc8fe094258d	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-398c14d7-0403-4311-a2f8-85fdbfc81045	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-006d5a3e-3d32-4be1-9e74-6ad21246b74c	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e54aac36-9eab-4bce-886f-780f7ed4dc21	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-742e4779-6efa-4808-8106-03747b70e2e3	cd2a32ed-32fc-47bc-88a9-e6fc48863869	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2ba08a0a-2481-4f59-99e5-9f084125c2ea	cd2a32ed-32fc-47bc-88a9-e6fc48863869	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fc182948-e9b9-4573-aeff-40e319bb010b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-91ff2774-3008-483e-b4db-ad4cd9c87c5b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-72d35f5c-85ab-493c-8ec8-c64b8afebd73	cd2a32ed-32fc-47bc-88a9-e6fc48863869	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a30c33df-0782-446f-a09e-301be563de8f	bb568e26-548b-4ca5-9221-fefb9c9143b3	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-28d8b725-ce12-4d6f-b0a3-46eba1e551af	bb568e26-548b-4ca5-9221-fefb9c9143b3	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c32fdcb0-f37c-4040-8bcd-f382017e35d2	bb568e26-548b-4ca5-9221-fefb9c9143b3	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5046b7f1-006a-4544-8f0d-2d95d67d07a9	bb568e26-548b-4ca5-9221-fefb9c9143b3	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-53870d2b-710f-4601-a8a9-52d17f3ec105	bb568e26-548b-4ca5-9221-fefb9c9143b3	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5deab631-c9e8-4b42-a8ef-18a7ef35f9ac	bb568e26-548b-4ca5-9221-fefb9c9143b3	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fbab5a2c-3686-45a8-aee4-a733bcdfd538	bb568e26-548b-4ca5-9221-fefb9c9143b3	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-98206977-d931-4e42-80f8-b0d53250f908	bb568e26-548b-4ca5-9221-fefb9c9143b3	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-22659ce1-99e5-4faf-af0b-faa30be6d7ce	bb568e26-548b-4ca5-9221-fefb9c9143b3	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f61fc641-560c-4f4f-9feb-b4bad1febb6a	bb568e26-548b-4ca5-9221-fefb9c9143b3	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9a770f0b-323b-453d-a308-eca58aa324b6	bb568e26-548b-4ca5-9221-fefb9c9143b3	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e4e2ebad-96ae-43ce-9e2d-7fe3376150a7	bb568e26-548b-4ca5-9221-fefb9c9143b3	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5016eb24-e4d9-4733-80f3-ab264397f4c3	bb568e26-548b-4ca5-9221-fefb9c9143b3	e0b823d8-b851-4f5e-8043-13b9f4d73368	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dce8af54-17f2-4a5e-be54-d1d3092c3993	bb568e26-548b-4ca5-9221-fefb9c9143b3	a226a193-561a-49d5-9fcd-811ed5732c83	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1be21bb9-6727-4d63-a440-36f80cf51e40	bb568e26-548b-4ca5-9221-fefb9c9143b3	40f046e7-e4ec-4289-ae56-b44d8193ed5a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8ef3679a-a5d6-4b81-9388-7fc5d6781400	bb568e26-548b-4ca5-9221-fefb9c9143b3	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-71fadd9a-16d5-4cf3-9d51-2ca2c0ed89c8	bb568e26-548b-4ca5-9221-fefb9c9143b3	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cf5f89eb-2e81-48ec-bbe7-6eec37e7e4e5	bb568e26-548b-4ca5-9221-fefb9c9143b3	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6f1b5226-50e7-4b02-a12c-d61255dbdf14	bb568e26-548b-4ca5-9221-fefb9c9143b3	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-42a0e418-88ef-47e2-b0a9-75366b9a0fdc	bb568e26-548b-4ca5-9221-fefb9c9143b3	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-64897e21-16e4-4584-9c46-8dd167acc9c5	bb568e26-548b-4ca5-9221-fefb9c9143b3	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0bda30e0-82c2-47bc-91fe-f979598d87e4	bb568e26-548b-4ca5-9221-fefb9c9143b3	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-584bc02a-ce06-403f-a8c5-249fc23b6642	bb568e26-548b-4ca5-9221-fefb9c9143b3	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b353cfde-db11-4a35-95bd-04126ceef039	bb568e26-548b-4ca5-9221-fefb9c9143b3	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3255f47a-d3e6-4264-9924-5a65aa2b3270	bb568e26-548b-4ca5-9221-fefb9c9143b3	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b686dd2c-4859-4bd0-aa54-1d7e549c46c2	bb568e26-548b-4ca5-9221-fefb9c9143b3	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-67f0802d-efa0-4fd9-b21f-01f74264ad18	bb568e26-548b-4ca5-9221-fefb9c9143b3	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2c97e906-9ad7-4034-84a0-3e5c33d18957	bb568e26-548b-4ca5-9221-fefb9c9143b3	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3d663c7c-b013-4a0a-b8f7-a3f538a03ec6	bb568e26-548b-4ca5-9221-fefb9c9143b3	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-32b115fc-2bdb-426f-9edd-785756aba18e	bb568e26-548b-4ca5-9221-fefb9c9143b3	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e649778c-6d28-4a98-ab2a-96cb8c7f6b52	bb568e26-548b-4ca5-9221-fefb9c9143b3	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d57e8b7d-f065-48e3-9ccf-2c55586303fc	bb568e26-548b-4ca5-9221-fefb9c9143b3	810a9407-d878-4b50-ae22-879042f12ad3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ea32f827-0922-4948-9918-784caaec4272	bb568e26-548b-4ca5-9221-fefb9c9143b3	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e682d9e7-1e63-445d-99ee-514d5d0379b1	bb568e26-548b-4ca5-9221-fefb9c9143b3	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ac9ef365-5876-4c9d-ab9d-eb810c7354db	bb568e26-548b-4ca5-9221-fefb9c9143b3	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-80784f7d-c8b0-48eb-9137-6380f1426182	bb568e26-548b-4ca5-9221-fefb9c9143b3	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8d45f84f-5a0e-4c4f-86db-3d8d834eaa54	bb568e26-548b-4ca5-9221-fefb9c9143b3	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-68068af5-1f2f-4c79-90ad-662af0debda3	bb568e26-548b-4ca5-9221-fefb9c9143b3	b1b803ec-f626-44c8-bfb2-97cd61795374	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-36ce67af-5ef3-4f29-9418-96ccdec3bd44	bb568e26-548b-4ca5-9221-fefb9c9143b3	d9923931-5bd8-4633-94d1-e03381e9b218	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e00a36fb-ce0a-4b84-b8ac-015d07978f8b	bb568e26-548b-4ca5-9221-fefb9c9143b3	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-71f3d6d5-1495-4e7e-8294-584e7fc97df6	bb568e26-548b-4ca5-9221-fefb9c9143b3	63ec4257-dc36-4f14-a617-bc8fe094258d	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1853da6e-f85d-43ad-a74b-78687416f6a5	bb568e26-548b-4ca5-9221-fefb9c9143b3	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-751e9523-75cc-4db4-868a-38a899b56787	bb568e26-548b-4ca5-9221-fefb9c9143b3	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e28c2412-91aa-479e-9344-aab1dc0daeb0	bb568e26-548b-4ca5-9221-fefb9c9143b3	c69af742-1b39-4c84-a7ff-018e808e6973	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c4d6991a-ac79-4f6e-954c-622a92da2399	bb568e26-548b-4ca5-9221-fefb9c9143b3	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c0ac4d85-1257-49c5-8f2a-c07db5702d81	bb568e26-548b-4ca5-9221-fefb9c9143b3	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a2b1af6e-cfad-45ef-a0ba-4cd4eafb550f	bb568e26-548b-4ca5-9221-fefb9c9143b3	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c65a98b2-1751-4c46-b940-db33c7ccdfea	bb568e26-548b-4ca5-9221-fefb9c9143b3	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6d408dfc-bce8-4882-8240-14b1bd4dd311	bb568e26-548b-4ca5-9221-fefb9c9143b3	74855d28-4b88-459f-a31c-0408eb26421a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b9e2746c-d0c6-419d-a52f-23b981fc4cba	914d8500-03b6-4a43-a250-244effca1cf1	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-650875e2-8537-46ac-a0bd-1d57e238632d	914d8500-03b6-4a43-a250-244effca1cf1	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2edc4384-26b1-42cb-aea2-45c280299019	914d8500-03b6-4a43-a250-244effca1cf1	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0715e2c2-e98a-467b-9abc-e85eccc76af0	914d8500-03b6-4a43-a250-244effca1cf1	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-780a0358-5802-4ec1-aea9-fee5b4b57f60	914d8500-03b6-4a43-a250-244effca1cf1	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3df5b1f5-9669-4bac-90c4-5873d4c788d6	914d8500-03b6-4a43-a250-244effca1cf1	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6bdac036-159a-4350-99bb-6b816a29a5f5	914d8500-03b6-4a43-a250-244effca1cf1	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cf461f8f-8ccb-400e-8df5-51a9f27da045	914d8500-03b6-4a43-a250-244effca1cf1	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-60b53cd7-3b37-43ed-b9cc-9651c0f104e5	914d8500-03b6-4a43-a250-244effca1cf1	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-451ab12f-23c5-4b4f-9d2e-c56ec3e7d8f3	914d8500-03b6-4a43-a250-244effca1cf1	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3ccdce6c-6b12-4188-a37c-ea076719bbd3	914d8500-03b6-4a43-a250-244effca1cf1	5a7389b3-43da-46bb-bbcb-729d889af05b	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-48937dd4-ee3d-4044-b1fb-92aad7c96d47	914d8500-03b6-4a43-a250-244effca1cf1	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5ad79401-2315-458f-83bd-cd0ccb2207db	914d8500-03b6-4a43-a250-244effca1cf1	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-957431e9-9eab-485c-9a91-5f9e845baf51	914d8500-03b6-4a43-a250-244effca1cf1	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ecd3e776-8ab1-4865-a48b-18c3ea80454e	914d8500-03b6-4a43-a250-244effca1cf1	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3ada8f56-4bce-4e69-96da-364b00dff502	914d8500-03b6-4a43-a250-244effca1cf1	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cbd01f9c-c66b-458e-8be0-1cf5edbc563c	914d8500-03b6-4a43-a250-244effca1cf1	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f29b2fdd-1f92-4c91-923b-a2b056f2e341	914d8500-03b6-4a43-a250-244effca1cf1	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f9372fc1-9ee0-460d-b078-36d88f8c89cc	914d8500-03b6-4a43-a250-244effca1cf1	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3c475bfc-175c-470b-a4d0-7ce44a32c0c0	914d8500-03b6-4a43-a250-244effca1cf1	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cc05a32b-c9fd-49a2-8dd0-935be419da0d	914d8500-03b6-4a43-a250-244effca1cf1	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0c07df16-8b48-4969-8b8b-550b5d48cd9c	914d8500-03b6-4a43-a250-244effca1cf1	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-803d4943-e01d-4ad1-b9d9-72a133fc0a1d	914d8500-03b6-4a43-a250-244effca1cf1	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e511f251-95cb-4082-8818-981a8fac6298	914d8500-03b6-4a43-a250-244effca1cf1	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5b8c7c4a-9fcc-41fc-b988-fcb0c68fe1eb	914d8500-03b6-4a43-a250-244effca1cf1	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-057cba14-c06a-45fe-b4d3-48381bce8008	914d8500-03b6-4a43-a250-244effca1cf1	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-74cb5abc-a282-4a6d-b8c1-1bfffa2ff949	914d8500-03b6-4a43-a250-244effca1cf1	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-10517d03-b6fa-49e5-8419-1a65b21fd2af	914d8500-03b6-4a43-a250-244effca1cf1	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c64ee840-1e55-4797-bc10-954e663fea88	914d8500-03b6-4a43-a250-244effca1cf1	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-158dca81-43a0-4884-8164-9361c88c9b1f	914d8500-03b6-4a43-a250-244effca1cf1	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eac38e27-1dd4-4e1c-a907-6585ed4fc93f	914d8500-03b6-4a43-a250-244effca1cf1	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-32144757-13cd-4c6a-92a0-775111b03eb6	914d8500-03b6-4a43-a250-244effca1cf1	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c823b23b-0e41-4e7c-ae23-894c3c1f6689	914d8500-03b6-4a43-a250-244effca1cf1	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-af83001d-0198-4c8d-b5d0-1bb2d85d439a	914d8500-03b6-4a43-a250-244effca1cf1	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ac5cd4db-bf1d-4edf-861e-58bea5451f46	914d8500-03b6-4a43-a250-244effca1cf1	7c212d3a-54c3-4012-9944-b8b9ff25af2a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-55e4caf6-82c5-4e73-a439-1d4b886fbe45	914d8500-03b6-4a43-a250-244effca1cf1	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5674b8d5-d84a-4dca-83d3-a2c9df779744	914d8500-03b6-4a43-a250-244effca1cf1	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a2f8635b-19f6-46d1-86f4-4dc6dd6dad26	914d8500-03b6-4a43-a250-244effca1cf1	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0401044d-629f-4f05-a84c-2c1422e33ebe	914d8500-03b6-4a43-a250-244effca1cf1	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-56f84d7d-b898-4ba4-ae9c-0422d7c594b0	914d8500-03b6-4a43-a250-244effca1cf1	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b74b5396-eef8-4eca-b5a5-177cd14eba15	914d8500-03b6-4a43-a250-244effca1cf1	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a27b0649-1eb6-4b2c-bde9-a6d476d13e17	914d8500-03b6-4a43-a250-244effca1cf1	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6153c3f7-4724-4444-a4a8-02bc0a9c0a52	914d8500-03b6-4a43-a250-244effca1cf1	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0e2dd435-164b-41e2-98d6-0755a99a8a5b	914d8500-03b6-4a43-a250-244effca1cf1	c69af742-1b39-4c84-a7ff-018e808e6973	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-25e3fc58-cbcc-40a3-8578-2c709e45c0d3	914d8500-03b6-4a43-a250-244effca1cf1	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5d9b786b-0ab9-47c1-a18d-15d9ec93fd13	914d8500-03b6-4a43-a250-244effca1cf1	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5f26a685-8f6d-4b20-a3cf-0c4c33c11302	914d8500-03b6-4a43-a250-244effca1cf1	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-83f4a1d5-a752-45d0-9aa4-f19e37fbfeda	914d8500-03b6-4a43-a250-244effca1cf1	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4eb52913-a3b1-4c2d-b0ec-8c836435e16f	914d8500-03b6-4a43-a250-244effca1cf1	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4d28642c-ae17-4418-b34f-94e0c3345c9d	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0e2a2627-56eb-4b4c-b20b-66743c976920	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bad018e8-276a-4296-99fd-3761e54e7319	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f3c5845f-467a-4696-9b89-cd326c330275	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3407ea9c-0198-4b19-8755-27ef26687165	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a8ff64f5-493b-4cb3-9b50-6c8c7ea5abd1	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c324e0ee-2867-4550-868d-1d88987fb172	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8d0cd267-11ac-4fb3-8cd6-39226693bcfd	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	f1221521-34ad-4791-9768-bedf88a64f91	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c3a95bb9-feb3-444f-8f67-e382a3c2d36b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-093d6fe1-c9e1-4895-bf1e-684ab05b0c0b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-db1ced0d-27ee-48ea-8ed4-65a3761edaaf	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-db207429-df80-422e-81eb-aed294070e2b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4d37e80a-30d9-4ff6-9876-3f7353da8669	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e8f98f81-5265-4d37-a8eb-c98b4d7d2755	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-66c641a7-d2cb-477c-818a-15b1500334a5	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f82709b5-787e-4959-bca3-86ef3bb58f6e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f066fd7e-f84a-4d47-9220-3bb6ff7eebfd	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-aedd2e90-1c4b-48fe-afa3-8954b139d06b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-639d0b9a-5e72-4e43-817c-244d58daf328	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-57be2031-2901-4b3f-bbeb-3198cacc73bc	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eccdf960-51c2-4ad6-a372-c04beee7f8db	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e4b44127-5d8d-4e42-86ad-7adebb8f3508	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-14dc6e6a-c2f2-4a63-865c-bedecbd53d7b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cdcd1dc0-9b6c-4b76-8a19-fdb4fa7420d8	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f929e26e-e221-4a83-92c3-f1306720b5cb	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dbd24ad1-9d03-4efa-8069-e9a5f8a8a72b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-15e9cbb1-af65-420e-8026-3bb402e7c713	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2fcefdff-fced-48ac-bbf4-2a38864ad0c3	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8337e64b-cb0d-4d7d-9555-ac19d3573f81	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-71706b36-abb0-40bf-98ce-30edc3765fd6	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-63795c0c-8696-4aad-a028-28480e81a64b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a22e14f4-0d12-4350-85da-6e6ab884dd4b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0ada2853-6cbc-459f-927c-82f4f36c220d	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d6662970-89ed-4e60-85c9-e805c5f57aa2	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bb9e7f62-2106-493f-a008-a513f1658baf	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	7c212d3a-54c3-4012-9944-b8b9ff25af2a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e83bb0a7-fbe4-448f-baa6-a08444f76ae8	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0cfdc9e9-2834-440f-a9ab-39a8a5c287fc	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b2087f21-1d69-43a4-aa10-5c077b3f22aa	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ee84ee8b-4819-4349-91b3-3b02d54c14ea	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ffe40523-f443-4067-a425-e05b469e4372	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-985965e3-6c50-46db-b195-367af342260a	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5566dd5a-ac31-4f1d-8cef-34c8d1776aaa	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c249acb6-03bd-474b-b407-e6f40150c97f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e59bac91-1ac6-414b-9e12-d6b54a25893b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c69af742-1b39-4c84-a7ff-018e808e6973	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a41b0654-9b1e-4712-9a83-bccbc1dbb481	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-14ba11ba-97dc-4630-b445-6b76b250ee94	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d196c269-6270-45d0-a8b3-d5de3bfa53c9	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-04ca9d04-6ac5-4968-9def-bf09678b674e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-46ca3f5f-54b2-4988-bf52-c5ac270a5ea9	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ca44cd2d-6136-4426-bf91-2043e006a770	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4052c01d-70ae-4323-a44a-e019fa0ce2e3	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-338cb046-843d-41ec-8464-9a2cc3cc9dc6	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7428237e-8379-4874-8568-e6538424fae4	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3d6255d8-cbe9-40d6-9d43-ca4e391fda34	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-488cb80a-dced-4677-8bc0-021c05e45676	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-65115350-04df-4421-8e0c-aa5ac74e92a3	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bf4bcab7-20ab-44b0-9294-5ea49ea26bb7	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7f096d65-0f15-4b33-821a-5b2f9d13ea06	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ec02ed06-8eac-4602-ae66-ece4f8520250	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bc21cd6b-80a1-4ca4-82ae-122e1745994d	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fb763c2f-9101-4a20-9a67-5c272eb954a2	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a016110f-ceeb-42f3-945b-58c9c5238984	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d4c9a63a-8d31-4478-a4d4-fcbe3fccf571	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6b5a5f8c-1673-4b09-b222-05dcda753b58	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a226a193-561a-49d5-9fcd-811ed5732c83	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-80c2ed4a-9a39-495e-a579-0e7ebc003496	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f683d924-de18-4213-98e7-b79f31f5d5c3	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a0cfcc92-8854-438c-8613-8e5ced0a69ab	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9583bab1-5ae4-41da-b614-566e721169a6	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7b89c5ba-cf81-4fde-8272-779cc976f6c1	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9271ab8c-720e-4cfd-ba4d-cab4c72b2ccc	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f5481555-3241-4fcd-b1f3-29a67749aa4f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d55771ac-2ea2-4b02-ad13-97547dc2e5ef	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e9bd89f9-1199-4982-bcc0-9437cbdfb1ac	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-481ba8bd-e464-4bff-b595-0a72e0aa364c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1dbebfc2-5604-41e3-a77a-8011485e8c6e	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d6448c0f-61a6-4101-95c8-63a1b2ab6004	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f94b2899-6038-41f2-8a8c-e46f95c6040f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6f0ca6ef-1637-400e-ba25-e7617fcea272	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eb593202-a4c5-4037-9e0e-a0453d564547	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2d440415-d6cf-4b76-9580-f66d0a8cdb51	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e64f6c5d-d3d0-415f-8634-a907f7a12177	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-82acfba9-5118-4375-a1cd-9749928b6438	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1af08d15-c378-4e23-acb6-1e1dee49842c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-52bcce99-6304-484a-b25c-8ff39d9ec01c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e1fb7eba-e79a-493a-b210-c934a12277a6	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-274f66e5-22d2-44a8-b66f-d60b416e092c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ca1134e8-d094-436f-8588-e0e529e4f3e9	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8e38dfb6-953f-4965-bd71-a99d3cb9b51e	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-956559c2-e511-42af-bad6-6e132e8aff95	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-647bb882-e99e-43f2-8417-fdea104de3cc	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-94ab337b-9e21-444b-ab74-14192e98686d	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	63ec4257-dc36-4f14-a617-bc8fe094258d	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-40e7b2b7-d65e-4f89-b74b-9691c5496f85	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-34131ab6-3a9b-449d-a7bb-2a765fd23dc3	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-79b52bf1-c7ef-4f53-85f2-a8c81335d207	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8d42e73f-de9e-44e4-b9c0-9edbc412c767	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8ebfa61d-687f-4de0-b853-3ed9fbec4a41	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cec97cff-1bca-40ee-9beb-92a132d7d3b0	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	00b86fba-6eac-4606-8767-fc19de00e04f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3dbbd716-a4cb-48d8-b26b-6b6dc81b4837	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ba426e9e-f74e-49a3-91cb-36dc9fd8543d	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6f7e72e8-29fe-495e-8a62-5eac56819015	a5023c9e-367f-41e1-ba02-bdb2929edc89	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-002fd806-8551-4758-9dd7-4c73cb0dfe5b	a5023c9e-367f-41e1-ba02-bdb2929edc89	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c866bbab-692b-4119-88e3-cf38524976c9	a5023c9e-367f-41e1-ba02-bdb2929edc89	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9b772d22-82f4-4efd-a388-c511a54ef0a6	a5023c9e-367f-41e1-ba02-bdb2929edc89	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d771bcb2-2462-45a5-bc1e-a54821c04c0c	a5023c9e-367f-41e1-ba02-bdb2929edc89	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-242b1717-d0ca-4614-bf1f-d6800809e84d	a5023c9e-367f-41e1-ba02-bdb2929edc89	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ea20089e-94ac-44a1-b911-62919151a72a	a5023c9e-367f-41e1-ba02-bdb2929edc89	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-33dfa745-a889-4eb3-8496-5dd588362bd8	a5023c9e-367f-41e1-ba02-bdb2929edc89	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e3fc6c0e-c64e-488e-9af7-4e91972201aa	a5023c9e-367f-41e1-ba02-bdb2929edc89	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d54130d1-a8f5-4623-9984-9216eeae5ee9	a5023c9e-367f-41e1-ba02-bdb2929edc89	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6a63c258-c067-4786-8378-7229c3bba9a2	a5023c9e-367f-41e1-ba02-bdb2929edc89	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4111bcb8-a5cc-45bc-b649-2bc9162820ae	a5023c9e-367f-41e1-ba02-bdb2929edc89	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0c65805c-9823-4868-a235-0f9028eadc06	a5023c9e-367f-41e1-ba02-bdb2929edc89	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eb3fbeb2-d52e-4e9a-9f8e-dba2d2c3af3f	a5023c9e-367f-41e1-ba02-bdb2929edc89	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6ecba6c9-71de-4c03-9a44-7e0c8035d2ed	a5023c9e-367f-41e1-ba02-bdb2929edc89	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-71b4df59-cfd4-4633-9d53-45653c7e7108	a5023c9e-367f-41e1-ba02-bdb2929edc89	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5aeeaa2a-597a-4b22-bb3b-466782aae813	a5023c9e-367f-41e1-ba02-bdb2929edc89	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0f29aa9a-10e7-4dcc-af25-df5b2340e4ea	a5023c9e-367f-41e1-ba02-bdb2929edc89	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1ad04a48-545d-4ee7-8bf1-f812edbe34ca	a5023c9e-367f-41e1-ba02-bdb2929edc89	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5266bc7c-1308-461d-b96e-5c19a7219ac1	a5023c9e-367f-41e1-ba02-bdb2929edc89	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ad7fb079-eb3a-4460-b133-359e49013055	a5023c9e-367f-41e1-ba02-bdb2929edc89	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-63677681-82fd-41a8-b32d-4d7e4d5a206d	a5023c9e-367f-41e1-ba02-bdb2929edc89	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e200f81f-9b21-4393-a927-7b4f1b6f6c18	a5023c9e-367f-41e1-ba02-bdb2929edc89	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-566fea4e-6d67-430f-87c1-6b1a670f1ecc	a5023c9e-367f-41e1-ba02-bdb2929edc89	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-15fd3d8f-c10d-4d64-9f76-7fe8001bc830	a5023c9e-367f-41e1-ba02-bdb2929edc89	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ba414e99-45d5-4a82-a92f-e46f4f823c40	a5023c9e-367f-41e1-ba02-bdb2929edc89	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1508f662-298f-45ae-9631-6e284d170c74	a5023c9e-367f-41e1-ba02-bdb2929edc89	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ac0e04ac-1af6-413e-a40b-94f3cdb6f2f8	a5023c9e-367f-41e1-ba02-bdb2929edc89	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-65d3b506-b881-4087-8c34-ae4ea41b55a3	a5023c9e-367f-41e1-ba02-bdb2929edc89	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ddcb83b5-e1c0-42e7-aa7a-d83ea4fa9fd5	a5023c9e-367f-41e1-ba02-bdb2929edc89	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9af5d843-9b1f-4f45-864f-210e48dc234d	a5023c9e-367f-41e1-ba02-bdb2929edc89	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c87c62c3-0e89-4b77-a73a-94d7a7e478dc	a5023c9e-367f-41e1-ba02-bdb2929edc89	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f729ca14-06cb-4335-98fc-e0991bcce15c	a5023c9e-367f-41e1-ba02-bdb2929edc89	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-65dddc90-0c9f-4515-9ff4-0310942af5b6	a5023c9e-367f-41e1-ba02-bdb2929edc89	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-66a97870-faea-4906-a4a4-c6a1d511c7c9	a5023c9e-367f-41e1-ba02-bdb2929edc89	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8d70ffdf-7f39-42dc-8d51-c30290f71fd1	a5023c9e-367f-41e1-ba02-bdb2929edc89	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b4421715-0931-4970-9c9b-d7a258d223b9	a5023c9e-367f-41e1-ba02-bdb2929edc89	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e7510e83-20a2-4a0e-9627-988ec0b8042a	a5023c9e-367f-41e1-ba02-bdb2929edc89	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-306a18d3-cb05-456b-87ac-99336501c4e7	a5023c9e-367f-41e1-ba02-bdb2929edc89	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-40f187d6-260f-4e2e-b338-9d8fabd1e8fe	a5023c9e-367f-41e1-ba02-bdb2929edc89	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b358681c-7a97-44df-9f5e-5abcc163af61	a5023c9e-367f-41e1-ba02-bdb2929edc89	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4b857481-e0f8-43a2-b64a-ac05783d6536	a5023c9e-367f-41e1-ba02-bdb2929edc89	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c2175859-b667-4100-9f80-c5cdf673d771	a5023c9e-367f-41e1-ba02-bdb2929edc89	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6bdb592a-d1b2-424c-b398-a24621f156ee	a5023c9e-367f-41e1-ba02-bdb2929edc89	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-88e5edae-3fd9-4c04-a883-2a113ae1f01a	a5023c9e-367f-41e1-ba02-bdb2929edc89	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-af07cd4c-bb1f-4e29-bb6e-a2e6abd1b4d7	a5023c9e-367f-41e1-ba02-bdb2929edc89	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b72184f0-c421-4278-abd6-10a2cbad0d94	a5023c9e-367f-41e1-ba02-bdb2929edc89	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-969b5a11-9b9a-499a-87e6-be6f3d9c33e2	a5023c9e-367f-41e1-ba02-bdb2929edc89	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-334ea3b4-4f84-4875-8336-81a0ca1cbd5c	a5023c9e-367f-41e1-ba02-bdb2929edc89	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ee1ac85e-368f-451f-a88f-8b2c487dc6dc	f5c742d1-e0cc-4bf8-b860-a673ac407393	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eac1a62d-b8e3-41c2-9262-1d2c930de9d0	f5c742d1-e0cc-4bf8-b860-a673ac407393	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9158de1d-9ae4-49e0-9077-63d9649ab1d6	f5c742d1-e0cc-4bf8-b860-a673ac407393	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6da2c897-fce1-41df-94a8-a1e58824c470	f5c742d1-e0cc-4bf8-b860-a673ac407393	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ad69f41b-0659-44a8-a011-36e7d78eeb53	f5c742d1-e0cc-4bf8-b860-a673ac407393	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6c25c7ba-f7b5-4eac-93e5-e832ed93b1e8	f5c742d1-e0cc-4bf8-b860-a673ac407393	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-39908dc6-afcc-427b-b542-bbe9b87a2a34	f5c742d1-e0cc-4bf8-b860-a673ac407393	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e8720bc9-eaba-40a4-a0be-ac8bfe12f7b0	f5c742d1-e0cc-4bf8-b860-a673ac407393	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a2741bcb-b23f-4864-84d8-dc04b186e59b	f5c742d1-e0cc-4bf8-b860-a673ac407393	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-588b38c2-594a-4b1c-bef5-1536cbb75e0e	f5c742d1-e0cc-4bf8-b860-a673ac407393	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4ed46b1b-fd37-4121-a768-f6a87aec3958	f5c742d1-e0cc-4bf8-b860-a673ac407393	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8649b1bc-20c3-4ca3-9244-5e802399d643	f5c742d1-e0cc-4bf8-b860-a673ac407393	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b9fc1311-76b2-4fe2-a1b7-898a60f5ab09	f5c742d1-e0cc-4bf8-b860-a673ac407393	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d468c26e-8877-4c5a-b873-cbd98b72becf	f5c742d1-e0cc-4bf8-b860-a673ac407393	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ea56ce1d-b054-4e2c-ba42-37fae08cf1f7	f5c742d1-e0cc-4bf8-b860-a673ac407393	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-af9df24f-26b3-48b5-aea5-f13806896e8b	f5c742d1-e0cc-4bf8-b860-a673ac407393	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c2f316fd-f305-4a3f-8223-372f7d279a26	f5c742d1-e0cc-4bf8-b860-a673ac407393	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-da6dd47c-629f-49f2-9a79-87e6028b6657	f5c742d1-e0cc-4bf8-b860-a673ac407393	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9bae7532-81fa-4ee0-a051-0fa0cf98f0a8	f5c742d1-e0cc-4bf8-b860-a673ac407393	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-474310f2-a8e1-4f83-af3f-201574c14537	f5c742d1-e0cc-4bf8-b860-a673ac407393	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-243623f2-7b97-47c9-bdc5-d31bac8a41fd	f5c742d1-e0cc-4bf8-b860-a673ac407393	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c9bcf4d8-c561-4165-9404-66095b450ed0	f5c742d1-e0cc-4bf8-b860-a673ac407393	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9fadc70a-f007-4a6a-984d-1462e842d98c	f5c742d1-e0cc-4bf8-b860-a673ac407393	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-25393e5f-9a62-469a-ac74-a9b4bd981ba0	f5c742d1-e0cc-4bf8-b860-a673ac407393	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3dd1b239-dd90-4667-8c0c-4a29cc4cc9c9	f5c742d1-e0cc-4bf8-b860-a673ac407393	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e846dc1e-bc9b-4b08-8185-59a57b4430e6	f5c742d1-e0cc-4bf8-b860-a673ac407393	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5644fee2-874a-4501-bb6b-63b2ac4f35fd	f5c742d1-e0cc-4bf8-b860-a673ac407393	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-00ed3d82-4fd0-4aa4-8a8f-2c5c2bf2dd16	f5c742d1-e0cc-4bf8-b860-a673ac407393	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a0db4be8-8e1e-4afe-a503-956db422c169	f5c742d1-e0cc-4bf8-b860-a673ac407393	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-baf0a9d2-08d2-4680-90f3-e26a1f2fdc0b	f5c742d1-e0cc-4bf8-b860-a673ac407393	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-86e0c67b-0243-4758-8dd7-c634cafa114f	f5c742d1-e0cc-4bf8-b860-a673ac407393	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-99e5e6cc-e5b1-41e8-87e2-045a4dad985a	f5c742d1-e0cc-4bf8-b860-a673ac407393	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e695161f-d47d-4a50-bf4a-fbb26cd5297b	f5c742d1-e0cc-4bf8-b860-a673ac407393	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c04444d4-1cb9-4980-9eed-6f1db0e6a9fc	f5c742d1-e0cc-4bf8-b860-a673ac407393	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-92d93d22-4d42-47b0-9b57-973da1e85bb3	f5c742d1-e0cc-4bf8-b860-a673ac407393	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-56a96433-a828-466c-9b86-a04f22be1b1c	f5c742d1-e0cc-4bf8-b860-a673ac407393	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-db6d2d10-0757-4924-8471-3e63b357193b	f5c742d1-e0cc-4bf8-b860-a673ac407393	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-59a4603c-777d-4918-ab98-bcfbb9bccb95	f5c742d1-e0cc-4bf8-b860-a673ac407393	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fabcf185-bb61-41e1-8e76-d10cbbbc7f37	f5c742d1-e0cc-4bf8-b860-a673ac407393	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a7d3cd06-9ebc-4e13-8739-f418812a0dc3	f5c742d1-e0cc-4bf8-b860-a673ac407393	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c8535251-82c7-4307-aca6-b5b39831de20	f5c742d1-e0cc-4bf8-b860-a673ac407393	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0dd3bd40-2c1f-44a8-aa5f-becc6d33a364	f5c742d1-e0cc-4bf8-b860-a673ac407393	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-beb08123-482c-4e8d-a49c-c5e8577b4f3e	f5c742d1-e0cc-4bf8-b860-a673ac407393	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-674bb4b6-0874-4d1f-8606-bc2c1c0ecbd0	f5c742d1-e0cc-4bf8-b860-a673ac407393	c69af742-1b39-4c84-a7ff-018e808e6973	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3223375d-f0a2-478c-a17c-7f4fbccd08f2	f5c742d1-e0cc-4bf8-b860-a673ac407393	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-39320004-01b2-47e8-ab6f-66696d579c07	f5c742d1-e0cc-4bf8-b860-a673ac407393	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-29f97ba3-0d7a-401e-b675-0798b87d710e	f5c742d1-e0cc-4bf8-b860-a673ac407393	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a349f935-394f-4f3c-b2ac-c49a0d04da87	f5c742d1-e0cc-4bf8-b860-a673ac407393	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-64a3cd41-f348-406e-b847-f53a57d9a36d	f5c742d1-e0cc-4bf8-b860-a673ac407393	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-db50acf6-0ab0-4cf5-8bda-e8aabe71ea62	1a62b1f8-1810-464d-a67b-168d7e419827	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-86c02075-3f7b-472a-82f9-0a0ed3b3cab8	1a62b1f8-1810-464d-a67b-168d7e419827	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6a784010-108b-49b4-8858-6765f1702973	1a62b1f8-1810-464d-a67b-168d7e419827	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b5967a81-cb1d-4729-aa98-2ae82f39fb08	1a62b1f8-1810-464d-a67b-168d7e419827	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-477c8709-473b-4bba-b3ca-bc8b15e64be0	1a62b1f8-1810-464d-a67b-168d7e419827	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e27b73f7-8a00-4ccb-93cd-db3427e941a6	1a62b1f8-1810-464d-a67b-168d7e419827	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5c06fae4-02cc-45bb-8603-5b9467f49116	1a62b1f8-1810-464d-a67b-168d7e419827	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-033600be-ba59-416c-b27c-b45028b46788	1a62b1f8-1810-464d-a67b-168d7e419827	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-986443ed-2f93-4322-af1c-67b90b9d3149	1a62b1f8-1810-464d-a67b-168d7e419827	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8f3c69c3-f437-4acf-b1e5-dd9327372e1a	1a62b1f8-1810-464d-a67b-168d7e419827	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-37071dad-941e-4aa4-957a-e1b4651e2655	1a62b1f8-1810-464d-a67b-168d7e419827	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d12f8321-537e-4ebd-9de9-18ea9dcd716f	1a62b1f8-1810-464d-a67b-168d7e419827	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-30409d21-b337-4ef0-b901-8998ef1f43df	1a62b1f8-1810-464d-a67b-168d7e419827	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0fe77ef7-3d0b-46c2-b65c-219cedc12b0d	1a62b1f8-1810-464d-a67b-168d7e419827	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-64a12901-e607-42bd-b511-b4ecf55fc5ef	1a62b1f8-1810-464d-a67b-168d7e419827	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-331a9c16-d19a-4a7a-b69f-17a865634d02	1a62b1f8-1810-464d-a67b-168d7e419827	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cab67cd9-c768-408e-b9bd-2812815a8bfc	1a62b1f8-1810-464d-a67b-168d7e419827	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-11979b6c-4b62-4a35-bf9e-dcb5adf013ea	1a62b1f8-1810-464d-a67b-168d7e419827	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-535050cd-2668-4db3-be96-e010f7eeefc4	1a62b1f8-1810-464d-a67b-168d7e419827	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d3612fee-7cc2-4d9f-94da-76dda805262d	1a62b1f8-1810-464d-a67b-168d7e419827	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ab92d94e-2fc6-4b3c-af55-4fdf0b4a8635	1a62b1f8-1810-464d-a67b-168d7e419827	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-700cb5d2-3e8d-4adb-bcf2-6c00b79aeda4	1a62b1f8-1810-464d-a67b-168d7e419827	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bae72557-b54f-4cac-9f56-e1e2e2330386	1a62b1f8-1810-464d-a67b-168d7e419827	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f58aaa6d-d40a-43a1-ac37-f7a7eceab522	1a62b1f8-1810-464d-a67b-168d7e419827	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c8303960-b670-4dfb-b18d-770656ccf085	1a62b1f8-1810-464d-a67b-168d7e419827	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e1ad0d4d-c4d2-4fee-a2bb-68bca92c13ce	1a62b1f8-1810-464d-a67b-168d7e419827	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-db54f0a4-5721-4434-aa38-ba6a9b319cd1	1a62b1f8-1810-464d-a67b-168d7e419827	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-91353eed-b342-4ab0-9b28-2ca32c501d13	1a62b1f8-1810-464d-a67b-168d7e419827	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ca5f6aef-88e2-4da1-861b-1f552a8fc26d	1a62b1f8-1810-464d-a67b-168d7e419827	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b9b0e238-3ad0-4f3c-89b7-25f1478f1f5d	1a62b1f8-1810-464d-a67b-168d7e419827	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b1610a59-c25c-4209-89e7-93dfdaa748fe	1a62b1f8-1810-464d-a67b-168d7e419827	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1cd37795-b2cb-47a1-b4ba-c6aa114f10eb	1a62b1f8-1810-464d-a67b-168d7e419827	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-47e0843f-3ea3-469f-9ad5-f03393eb5e02	1a62b1f8-1810-464d-a67b-168d7e419827	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0397005f-2933-404a-b198-f4d673f5c1e9	1a62b1f8-1810-464d-a67b-168d7e419827	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-270d2c04-d7f0-4c24-ab46-90223b1c6f38	1a62b1f8-1810-464d-a67b-168d7e419827	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4f9e048c-c9ac-4de3-9189-46cf0bcff075	1a62b1f8-1810-464d-a67b-168d7e419827	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0baf3bff-6bcf-42c5-85ad-ca4aad5d135f	1a62b1f8-1810-464d-a67b-168d7e419827	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fdc746e4-592c-4aaf-9729-8fd63e8916f4	1a62b1f8-1810-464d-a67b-168d7e419827	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dca6e960-9822-4a58-aea9-1a6ee22616f8	1a62b1f8-1810-464d-a67b-168d7e419827	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-948de2d6-6042-4b0f-a776-b630c312ff3a	1a62b1f8-1810-464d-a67b-168d7e419827	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d36e8f5a-c0b7-4815-b500-cf3460ec24c1	1a62b1f8-1810-464d-a67b-168d7e419827	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-688cf17b-42c7-4daa-8f8c-614e0d782e4a	1a62b1f8-1810-464d-a67b-168d7e419827	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-80bba6cd-66ab-4ce4-8833-f0033d6b98b1	1a62b1f8-1810-464d-a67b-168d7e419827	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e2d58c51-a5f5-4848-b5ac-ef49d0c64dd7	1a62b1f8-1810-464d-a67b-168d7e419827	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1198db95-045c-41e5-a947-003786939f30	1a62b1f8-1810-464d-a67b-168d7e419827	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-61254923-8f51-4738-aac6-ae666864c651	1a62b1f8-1810-464d-a67b-168d7e419827	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7fc39871-17ec-4f5f-adaa-529cfde46b23	1a62b1f8-1810-464d-a67b-168d7e419827	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-38ee7b8b-ff5c-4de9-a36d-74d2a1537625	1a62b1f8-1810-464d-a67b-168d7e419827	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-89f4f461-31e7-4213-a307-1197be15ed83	1a62b1f8-1810-464d-a67b-168d7e419827	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fadab9e0-d64d-4f6d-8248-8b74a97b0631	aba61e5b-422a-4461-b9da-8dba8f6d3f85	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b8621019-8ea5-4ca4-8dc4-d33413f83bb6	aba61e5b-422a-4461-b9da-8dba8f6d3f85	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4a0489c9-9afc-4c69-ab80-effbd8a740f9	aba61e5b-422a-4461-b9da-8dba8f6d3f85	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5bc8e829-1573-4b9c-bc10-807f8a7cfd11	aba61e5b-422a-4461-b9da-8dba8f6d3f85	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d9b43a01-d1b8-4375-be00-e5bf1bf541f5	aba61e5b-422a-4461-b9da-8dba8f6d3f85	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-36d765ee-e863-4524-9642-013045c08471	aba61e5b-422a-4461-b9da-8dba8f6d3f85	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-56eade69-3f8b-42a2-8196-fa13d75a3bf8	aba61e5b-422a-4461-b9da-8dba8f6d3f85	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b82f6f0d-a0eb-4dd1-8270-188f4d7dd34c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c3957729-1d69-46cf-9dbb-0b8dda2e8a71	aba61e5b-422a-4461-b9da-8dba8f6d3f85	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cde76131-d4d0-44e8-9545-9f8c56eb49f1	aba61e5b-422a-4461-b9da-8dba8f6d3f85	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-52432871-2d1f-4546-bc22-3bb434c1bc41	aba61e5b-422a-4461-b9da-8dba8f6d3f85	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-18faf09d-70d7-47fc-b664-a8cf20b755c0	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-301a2473-46e9-4f88-b409-84e07a34cb55	aba61e5b-422a-4461-b9da-8dba8f6d3f85	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f7ddb1ce-a914-4c4c-b307-25f42e51467a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9eb0168e-af13-4816-8004-ffd57b09ce7a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-25bb2f55-64aa-409e-8738-976fe7017bf9	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f8ff8627-497f-4455-8cd3-e829d215f5f6	aba61e5b-422a-4461-b9da-8dba8f6d3f85	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c37c90cd-8b05-4fe6-8bf0-c265122e9f0a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e9ff22db-d4cd-474f-a6e3-62694b861577	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-767837ca-d44e-44f0-95c1-a4016e4be3d8	aba61e5b-422a-4461-b9da-8dba8f6d3f85	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-915926fe-9481-43c4-af62-34a68072cd8e	aba61e5b-422a-4461-b9da-8dba8f6d3f85	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e753c570-c3f4-4634-95da-cfafc008a994	aba61e5b-422a-4461-b9da-8dba8f6d3f85	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-af98278e-51cd-4167-83bb-5587165645aa	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c7753c5e-9fc9-469a-aa76-2dccd0ef8db4	aba61e5b-422a-4461-b9da-8dba8f6d3f85	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5e2b7aee-f5a5-456c-a45d-c556b5338c3c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f8a8e1ae-fc7a-4aa7-a2d8-2f96627dcfab	aba61e5b-422a-4461-b9da-8dba8f6d3f85	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-73686c1a-053e-45b9-b505-847d9081fdca	aba61e5b-422a-4461-b9da-8dba8f6d3f85	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7606e6c2-e32b-4e5e-985a-9c4f286476b5	aba61e5b-422a-4461-b9da-8dba8f6d3f85	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8155c4e7-5aeb-49ff-b293-9ba59cc6e112	aba61e5b-422a-4461-b9da-8dba8f6d3f85	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2690aa5c-5343-46bf-800f-184eb1645433	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-33c1d645-4950-4134-9da2-d3ab3fdc589e	aba61e5b-422a-4461-b9da-8dba8f6d3f85	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3ae46cf5-c3a4-4e9a-80f1-028311e54bea	aba61e5b-422a-4461-b9da-8dba8f6d3f85	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dfebdd30-d66b-46b5-b62a-24bb1d8e2367	aba61e5b-422a-4461-b9da-8dba8f6d3f85	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7ef4da78-e693-46f1-a22f-5fc8e30f4f65	aba61e5b-422a-4461-b9da-8dba8f6d3f85	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e3b72e17-d571-48eb-9798-36659e8ca1ad	aba61e5b-422a-4461-b9da-8dba8f6d3f85	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7247eb65-efce-4e3d-a972-52d2b5942a8c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-abe1355e-bd5a-4c33-984f-23721bfd0d76	aba61e5b-422a-4461-b9da-8dba8f6d3f85	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a83307ad-c23a-4a8c-a04d-6125d5b7d396	aba61e5b-422a-4461-b9da-8dba8f6d3f85	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-713938ce-4b58-4959-831a-89119ea11dde	aba61e5b-422a-4461-b9da-8dba8f6d3f85	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d1d5a553-53b6-405b-aeb2-f8ff31709072	aba61e5b-422a-4461-b9da-8dba8f6d3f85	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-15152522-34e8-4de6-b69e-070498b2f934	aba61e5b-422a-4461-b9da-8dba8f6d3f85	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-26eefe96-c6d2-4878-b457-27c2a9eb0c0c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-93891151-bca3-4cdd-90d1-2721cba4cd43	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-92f643d6-1da6-4928-b964-e161e3810638	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-18c8f40e-6973-478e-9546-40bb2388e93c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-00d27e8c-9cea-497a-8255-dace0bfa3cb6	aba61e5b-422a-4461-b9da-8dba8f6d3f85	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5d94aa7e-3fb4-4e6f-b702-732facec7713	aba61e5b-422a-4461-b9da-8dba8f6d3f85	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-931eec35-e724-4125-9ee6-bd5964aea684	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0d3d6c78-0a39-4658-93ae-0dc07d12e285	aba61e5b-422a-4461-b9da-8dba8f6d3f85	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-06b3fe8d-1a6e-4e44-b082-9a5e9c3dde5a	111cc3cd-6d35-43ce-be91-dde90d3d4015	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9cfbc773-5c11-449b-a73b-e1c794241c23	111cc3cd-6d35-43ce-be91-dde90d3d4015	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a7520df5-f025-481b-9335-ac3fdef183ac	111cc3cd-6d35-43ce-be91-dde90d3d4015	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d578b755-bfd8-45bc-a156-da7b3ecf85ef	111cc3cd-6d35-43ce-be91-dde90d3d4015	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-79aaa86f-24d5-4fda-8a54-7b0b2fa623b4	111cc3cd-6d35-43ce-be91-dde90d3d4015	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6d2499ab-1c36-4005-9489-3d9975aeb568	111cc3cd-6d35-43ce-be91-dde90d3d4015	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ed0e6cb6-34bd-4a1c-8245-1f0e0e209f46	111cc3cd-6d35-43ce-be91-dde90d3d4015	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3a669257-2914-4053-82dc-2fdf7804007a	111cc3cd-6d35-43ce-be91-dde90d3d4015	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0ddf6094-d884-45f2-8afc-b57fd3c2632d	111cc3cd-6d35-43ce-be91-dde90d3d4015	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9d3aaaac-57c5-405f-ad00-f2989e4f27ee	111cc3cd-6d35-43ce-be91-dde90d3d4015	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cac00966-5291-48e1-b5ee-abfe385c142f	111cc3cd-6d35-43ce-be91-dde90d3d4015	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c7ac3d8e-6dd9-4b79-96d4-d24c9729baf2	111cc3cd-6d35-43ce-be91-dde90d3d4015	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-08dbaa71-d1ff-4174-87c1-513258e2b1df	111cc3cd-6d35-43ce-be91-dde90d3d4015	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1392adf5-8b1e-4b79-8eaf-7cf461545d20	111cc3cd-6d35-43ce-be91-dde90d3d4015	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c8d56f0b-728c-470a-bbf6-ba079a58f2c8	111cc3cd-6d35-43ce-be91-dde90d3d4015	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-93835146-7915-4336-bb9c-b9b672ba3430	111cc3cd-6d35-43ce-be91-dde90d3d4015	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f36c9ada-7613-4989-bddc-f656ae93b584	111cc3cd-6d35-43ce-be91-dde90d3d4015	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-21bb76b1-600a-4b61-926c-8a717236e7d6	111cc3cd-6d35-43ce-be91-dde90d3d4015	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c806eefe-3ffc-43ff-8553-3634641811f9	111cc3cd-6d35-43ce-be91-dde90d3d4015	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e588ab2d-5679-4acb-8b3e-b47052c2c735	111cc3cd-6d35-43ce-be91-dde90d3d4015	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f34f3e5f-6d83-41f1-abc3-ecad727b0b65	111cc3cd-6d35-43ce-be91-dde90d3d4015	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0d3ec70a-052b-46af-a150-9d60d232efc9	111cc3cd-6d35-43ce-be91-dde90d3d4015	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b3a71310-2f8d-43f2-856d-d4f2d03a43aa	111cc3cd-6d35-43ce-be91-dde90d3d4015	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a5e7e5fe-596a-4044-8f29-800a9e64175e	111cc3cd-6d35-43ce-be91-dde90d3d4015	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3c81f5af-8641-487c-b86f-c1eb774b8086	111cc3cd-6d35-43ce-be91-dde90d3d4015	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6d1b6724-bd6f-4608-9f77-d1da2c2e488b	111cc3cd-6d35-43ce-be91-dde90d3d4015	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ca306614-1a00-4a4b-acf9-223bb2abee70	111cc3cd-6d35-43ce-be91-dde90d3d4015	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a71673ad-5a2b-4de4-9330-3805e5c29907	111cc3cd-6d35-43ce-be91-dde90d3d4015	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9a68d342-b705-411a-8e6a-6cb267ae01c9	111cc3cd-6d35-43ce-be91-dde90d3d4015	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8767a792-0caa-4140-a56e-aae0ba171518	111cc3cd-6d35-43ce-be91-dde90d3d4015	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c5341b1b-c8a7-49cc-b08e-f673fc5ee7b1	111cc3cd-6d35-43ce-be91-dde90d3d4015	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4d479380-9e86-4a9a-8874-ad2f39a4ba20	111cc3cd-6d35-43ce-be91-dde90d3d4015	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ad724781-209a-44c8-906c-8f79ded57e77	111cc3cd-6d35-43ce-be91-dde90d3d4015	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-971a3b86-a32f-450f-9917-7ffed7ebf90f	111cc3cd-6d35-43ce-be91-dde90d3d4015	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c8bbe2cd-809c-4985-a8ec-5130f790acb1	111cc3cd-6d35-43ce-be91-dde90d3d4015	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-552d3956-3d75-4a83-af47-25dbc8582122	111cc3cd-6d35-43ce-be91-dde90d3d4015	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-74d7aacd-a7fc-4ea8-9d85-22440022df27	111cc3cd-6d35-43ce-be91-dde90d3d4015	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-688fcabf-a9c3-4c96-8181-9a944ea847de	111cc3cd-6d35-43ce-be91-dde90d3d4015	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d3432dc6-3f7c-4afe-ad11-3a9747d6b0ea	111cc3cd-6d35-43ce-be91-dde90d3d4015	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6eef959e-cc2f-4296-a2c8-d8622ae53e61	111cc3cd-6d35-43ce-be91-dde90d3d4015	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dc6f0438-2742-472f-8cf7-e3a6f5a24df3	111cc3cd-6d35-43ce-be91-dde90d3d4015	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a22bae1f-4fbf-4760-b3bf-07719167b5e7	111cc3cd-6d35-43ce-be91-dde90d3d4015	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b3141a57-45bd-4729-9f91-362f7726ede4	111cc3cd-6d35-43ce-be91-dde90d3d4015	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9bcac5a5-2ffb-45d4-91c0-97718e47baff	111cc3cd-6d35-43ce-be91-dde90d3d4015	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c5182f4f-a73f-4047-b4fc-479d73b96acc	111cc3cd-6d35-43ce-be91-dde90d3d4015	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9aa2e156-51e2-4fee-ac03-b1768659fefc	111cc3cd-6d35-43ce-be91-dde90d3d4015	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7d8c03bd-1d19-40b9-a523-832265ac4b5e	111cc3cd-6d35-43ce-be91-dde90d3d4015	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c39726fa-a3af-494e-bb74-daef753b4fe8	111cc3cd-6d35-43ce-be91-dde90d3d4015	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-285f1254-79c6-4c6f-a43e-599b9e974743	111cc3cd-6d35-43ce-be91-dde90d3d4015	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-afbc8aa8-95bf-4a0f-b676-c2a643acb18e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4121bae8-8895-47c8-a77d-7a4864bdd997	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-56a5c523-8c54-47b6-84a9-311e36db89c2	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-966593a5-656c-4380-b934-0e53e4edd8bd	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9549a541-6e61-40ab-be0f-6fbb1c316cac	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-04fe509e-6968-4969-a142-53234e6c495f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b560c65b-ba4d-4755-b5df-635994fe3d2a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dfe53f03-6f9f-494b-95b8-aa39d82bb278	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-372a66d5-1683-4f21-a470-c5195fec8415	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b5bb6d4d-e77b-4b59-b89d-5d790f8f8c04	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c68848bf-bb1b-4569-8b2f-1006c2e44768	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0a18d787-f33e-4741-8198-afec0f165a6f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9012c5c3-19bc-4334-9560-9cf936fc84fe	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-08226efc-7461-4cc3-a485-bec890638c3a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6c088a8e-49a7-4571-8fae-dbbd06083fba	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-53a7106b-78ae-4b8d-9baa-1a3a7b522b6d	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b7af0de5-26e2-4642-956d-82e1a0d42067	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-554e46b6-00d2-4819-9da5-a8da96d1fc0f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ed50fbb4-43d5-4b3f-b6cf-986884f11eb3	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5eacff37-91c3-4b2b-aa3f-d88a267a9bb5	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-132d027c-f8ac-49f3-9bb2-abfb828c242e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ade6faf2-c6ff-499c-a8ad-e91b11c8ebdc	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-958bc3f8-4031-435e-aa0c-4c44dfb23fb7	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9d0d5c36-d0ea-4bb2-8816-0521e173e0c5	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fd484a98-293a-4b3c-a0bf-597a59cb6ce9	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9187287f-bcf7-4aba-80db-ceead3034735	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3fd986f5-c677-433e-bebe-e36cbfd2625f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f597ff4b-142c-4f16-a7ff-85f88dba60cd	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-88dd2ffd-c471-4d26-8176-43aa524fe1c4	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-57c04d33-5403-4740-92b7-0325587d9e50	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-977a222e-8e6f-4c4f-a660-e0a91d9cbe6a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0e23847c-ce39-4ad1-876c-30fc4c310181	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5de807e9-4030-4171-b93b-02c2a6d75ef3	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-35e1e964-e0ab-4322-bde4-5d9bda0755a5	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f5567e75-2698-452b-b80a-028fd6c2bde9	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7d26837e-7106-475e-9a75-d3fd7ac699be	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d454609c-9230-4dc3-b0b0-ecc4ba3699ea	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-844996ba-632a-42e2-ba50-cb6483957d1e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-42472ee7-d327-43c5-980b-486f420f4c87	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-74543a68-c72e-406a-8783-f80cf9f50e2e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-df278aaf-decc-43f9-9069-e95ba5d7f81c	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-831a01bd-a665-477f-92bc-b43b3e2e019a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d7bf7d70-5638-4550-b188-24a03504ba5c	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4ca30dd8-049d-4f61-a769-945c39b4bc31	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-df08cb84-c7d0-4668-9575-7f2e60cf431a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-71de5477-511c-4bcf-b1b2-b65375b4f877	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4fe0e0b7-9c87-4355-a4ef-6aaf9154d7f6	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cf3d70b1-aa79-49e0-9eac-6963b5f68a68	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4537e916-46db-4c45-8bb7-8c51602c4236	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6bbf6794-a2c8-453a-a254-f0bbd056d82f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-541257db-131b-4a5d-a6b8-68a06e0c674f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-654e719b-4485-47c5-a428-b63d3a79b4d5	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-da5a5804-f93f-4d1c-b4c1-968b09397a64	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0a34cb98-c9b3-4b5c-9bc2-da232594808a	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c4bcf234-8dc8-4bd6-a29f-48867427a8e7	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0963e36b-fa6c-4586-8427-a707912a720a	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-926f4605-4ae1-49ab-8815-5007c5464d0a	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ad91c43f-df92-46de-9523-7723fad5d594	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0be5149e-0ea8-415c-a149-7e3a21652990	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2a9ed38b-18fc-4b18-9049-3962183110e4	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-918a4296-815d-4830-8db3-6e41ac9cc5e5	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4634ebde-345f-4071-95b1-2fb32eb35075	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9cdc1bd6-84d8-4f88-9bba-18165cebb176	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9fbb8c44-cd64-40cf-bcd2-373309218c62	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-93c07628-3598-4388-b3b2-002a3e2aacbd	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9560f63e-a407-473f-aed2-00b6398201dd	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ad7661ce-d319-488a-8593-1fead819c2a8	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e57abc8a-a056-46f9-876b-c39adf207acd	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e3793b30-00eb-4cac-988b-bf74cf66fba2	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-75c58b0f-5a4e-497c-9613-4bd083d5a446	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-84fce58b-8dd6-42ab-a17a-c72575a440f3	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-93ec9181-af8c-4940-82c2-93b0c3d22dda	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0089895d-3aab-436a-8b9d-45ecbab43336	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-efccabdb-e1e7-4563-b4ca-e9c771967f52	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9aa7836a-27bd-4219-b5b2-b280334ca96d	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ac109407-4001-49f3-9a5a-5e113189e2ca	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c308c29e-52aa-474a-afd5-cee4520d21ee	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6909336d-adb3-44f2-a1f9-7cd0bef7e24f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-85d2629e-e164-42c3-97c8-9589c5a9c271	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-066fd70b-c2d7-4286-9d6d-555c4bc73a31	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-577b57db-1f4c-4748-b97d-998fc81eac07	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-728a707c-a920-49e4-84c5-b4f41084b868	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-621cd89b-c7cb-4ca0-abc9-89feb74b6b22	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5d08cc76-2249-4d8c-9bdc-e1c2a14099ff	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d0f5e55d-60e4-448c-b8a4-8092ca680353	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c9d913dc-3495-4b43-bb95-0d7e4cc75082	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6c72d84e-40ac-419e-a804-a1bea14a9ee2	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b720ec75-025e-45fa-b15d-0eb5eaec82e4	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e532830f-9bff-488a-ace4-49aef6eef24c	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-91d90172-d397-4e2d-a991-429149552056	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9524dc6c-7048-48f3-bf89-f954787fa6ba	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-80207928-47c4-41d4-b2ed-14579c63088d	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-73262df8-96a1-43c3-bbef-277fb337a7e5	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b073f317-fc89-445a-acca-529c45e97b47	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b19ba9ab-7f02-45ad-a3f6-53f7b37d9e0b	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c04613c3-2928-4504-b07d-44dd8102dba6	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3d12cac1-27d9-4989-8732-0dcca84a2fac	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-14bbb373-5ed5-4b98-be29-dd6dc855fb13	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-36f102a3-2d44-4a71-91d3-f46bd97620de	768a11f9-ded7-4f6f-ba86-073e279255d9	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e7a3626e-5f84-45a8-ae25-598f29eeb96a	768a11f9-ded7-4f6f-ba86-073e279255d9	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f0430b9a-945a-41f8-a266-75f3d9dc986f	768a11f9-ded7-4f6f-ba86-073e279255d9	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-43e1115f-b4a6-439f-a8bb-46e512ab25ce	768a11f9-ded7-4f6f-ba86-073e279255d9	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-70872ff9-c544-498b-a3bf-f8cd7003297c	768a11f9-ded7-4f6f-ba86-073e279255d9	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-086e8618-e2f3-4b30-bfa7-803e137123b9	768a11f9-ded7-4f6f-ba86-073e279255d9	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-414bd9ad-8aaa-408c-ba52-4136e0b780a4	768a11f9-ded7-4f6f-ba86-073e279255d9	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a2f4233d-2102-4c2a-9e0c-dc9911c14511	768a11f9-ded7-4f6f-ba86-073e279255d9	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-78158bbc-6863-435b-a50e-79645288d012	768a11f9-ded7-4f6f-ba86-073e279255d9	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e613dfad-8e4a-48d7-bd51-7be92a7eb856	768a11f9-ded7-4f6f-ba86-073e279255d9	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f999c83b-77b1-436e-970b-10d0eddaed93	768a11f9-ded7-4f6f-ba86-073e279255d9	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-069e7f03-da26-4cb3-8ae6-441b1990a124	768a11f9-ded7-4f6f-ba86-073e279255d9	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5786932d-665d-4ac1-ade4-1eaa77665887	768a11f9-ded7-4f6f-ba86-073e279255d9	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-84d0bae0-67ad-49e2-ad36-acec381703df	768a11f9-ded7-4f6f-ba86-073e279255d9	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-590b3b55-c5a6-436a-9ae7-867aadb9c695	768a11f9-ded7-4f6f-ba86-073e279255d9	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-952b6572-7e78-4d7f-9489-297f8bb2dbb8	768a11f9-ded7-4f6f-ba86-073e279255d9	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c91a4fce-7e34-41a8-a2e3-0f169d683f00	768a11f9-ded7-4f6f-ba86-073e279255d9	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3050bf59-70ea-4c8e-bcd0-9a7d3292be48	768a11f9-ded7-4f6f-ba86-073e279255d9	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cb3e3377-d03c-463e-a589-bc2f83638458	768a11f9-ded7-4f6f-ba86-073e279255d9	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0826a098-553a-4e9d-8fb7-a6afbc3bbc9d	768a11f9-ded7-4f6f-ba86-073e279255d9	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e553f164-7d19-40f4-95e4-6d03fafefe32	768a11f9-ded7-4f6f-ba86-073e279255d9	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-58d03ef4-0127-4576-9305-392c78513f50	768a11f9-ded7-4f6f-ba86-073e279255d9	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-be140bb4-a6b3-42a4-9518-4fa018f60a88	768a11f9-ded7-4f6f-ba86-073e279255d9	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8908d936-e168-4072-a7d7-79990a102530	768a11f9-ded7-4f6f-ba86-073e279255d9	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6df50c01-a5c9-4702-877c-5c672524d9cc	768a11f9-ded7-4f6f-ba86-073e279255d9	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4dc57475-2440-4430-a8b9-178d1d96f6d3	768a11f9-ded7-4f6f-ba86-073e279255d9	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0e357e3a-72ad-45f7-8cef-044235691471	768a11f9-ded7-4f6f-ba86-073e279255d9	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a6a1b826-2701-494e-b512-335885e3ccc3	768a11f9-ded7-4f6f-ba86-073e279255d9	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a55dacf7-3f5d-4142-9656-411b02e8bcaa	768a11f9-ded7-4f6f-ba86-073e279255d9	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0e2e51b0-c1ed-4e8b-a4a8-2b0a9b6ccc5a	768a11f9-ded7-4f6f-ba86-073e279255d9	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0bfcd858-c0d8-48ff-8e39-5c4de5ac800f	768a11f9-ded7-4f6f-ba86-073e279255d9	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-46e67f3b-1308-4b75-a2f6-d9961d65352a	768a11f9-ded7-4f6f-ba86-073e279255d9	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-825731a3-e1d8-4496-a786-e9953175a2d2	768a11f9-ded7-4f6f-ba86-073e279255d9	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-95a93d94-daed-4e8b-8d4d-79de69a9df81	768a11f9-ded7-4f6f-ba86-073e279255d9	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-842de171-d152-41a6-8acc-1541424051db	768a11f9-ded7-4f6f-ba86-073e279255d9	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8c72caaa-4251-488a-87ca-38c47f3c051e	768a11f9-ded7-4f6f-ba86-073e279255d9	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f48cda4b-dc11-414b-b9fd-cc1710873355	768a11f9-ded7-4f6f-ba86-073e279255d9	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d5e06252-8946-48d8-916c-3defded794d1	768a11f9-ded7-4f6f-ba86-073e279255d9	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cd60345b-a4cc-4ac7-b590-ed9f09d09f1d	768a11f9-ded7-4f6f-ba86-073e279255d9	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-90d339b9-d475-435d-b377-f658b5daaa95	768a11f9-ded7-4f6f-ba86-073e279255d9	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-597cb076-01de-410e-879e-bb205725663a	768a11f9-ded7-4f6f-ba86-073e279255d9	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c5c15c96-5aba-458f-be7e-22a3d5135e42	768a11f9-ded7-4f6f-ba86-073e279255d9	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8047e1bf-185e-43b2-8a04-3108df0fe189	768a11f9-ded7-4f6f-ba86-073e279255d9	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9ffce159-c3e7-46cd-bd3b-3aeb71013a85	768a11f9-ded7-4f6f-ba86-073e279255d9	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6d1f565b-24e7-485a-a3af-547ec638974d	768a11f9-ded7-4f6f-ba86-073e279255d9	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bfec1067-40b0-402c-b8a3-d670be290161	768a11f9-ded7-4f6f-ba86-073e279255d9	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0beaba26-fdf7-4b5a-9aaf-ffe0a13f9385	768a11f9-ded7-4f6f-ba86-073e279255d9	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1c1c3553-4c98-45c0-a098-e8bf572c52bb	768a11f9-ded7-4f6f-ba86-073e279255d9	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-28eb366a-efa5-4773-9588-0a09f56503e6	768a11f9-ded7-4f6f-ba86-073e279255d9	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c0014086-d132-4290-a223-740ddeccc5fb	701aaa2c-a899-4def-bf5f-e17511874409	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c3788cb1-47fb-4a56-9ea6-f141097402ff	701aaa2c-a899-4def-bf5f-e17511874409	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ec51d4bd-1dd6-4432-94cd-11a7dc1c9df4	701aaa2c-a899-4def-bf5f-e17511874409	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-041b0fa8-6ae3-4dd9-a8bf-dab66d1d24aa	701aaa2c-a899-4def-bf5f-e17511874409	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9cd05729-057a-4bcd-9d1f-0a0199043a2f	701aaa2c-a899-4def-bf5f-e17511874409	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cc370e8d-4906-4edd-95a7-048d858e3218	701aaa2c-a899-4def-bf5f-e17511874409	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-825f5f1c-28f3-4396-912b-5a0993154bc7	701aaa2c-a899-4def-bf5f-e17511874409	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-28ca2414-c1ca-4837-a247-1d40669db615	701aaa2c-a899-4def-bf5f-e17511874409	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-59ec5493-366a-4e0f-97ff-7a70de7907f2	701aaa2c-a899-4def-bf5f-e17511874409	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7b3166fa-6417-4094-8932-f3db117c7950	701aaa2c-a899-4def-bf5f-e17511874409	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-21026266-7c57-4968-9bd5-63f6c400a2f3	701aaa2c-a899-4def-bf5f-e17511874409	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b1c13a02-d422-41ce-b1b1-ee42085ce263	701aaa2c-a899-4def-bf5f-e17511874409	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b190ff40-7658-45b9-a5ce-40c25f248680	701aaa2c-a899-4def-bf5f-e17511874409	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b380c453-10e5-4ae4-b6da-0fddaa46da62	701aaa2c-a899-4def-bf5f-e17511874409	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-acfc90fb-60eb-4cad-835e-8a94cc598716	701aaa2c-a899-4def-bf5f-e17511874409	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7eff7081-5493-4872-840a-62148c7c0883	701aaa2c-a899-4def-bf5f-e17511874409	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d3364981-7a83-4b9c-9376-c05b126c2bd2	701aaa2c-a899-4def-bf5f-e17511874409	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bdbf64a1-6196-4bc8-923e-5d604572ea86	701aaa2c-a899-4def-bf5f-e17511874409	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2c1ee6fc-9d6e-4590-b47f-a0b82277e419	701aaa2c-a899-4def-bf5f-e17511874409	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3e887278-a28d-44de-921f-cedbfb2fdbd7	701aaa2c-a899-4def-bf5f-e17511874409	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ead52dd3-06b5-4600-8961-da794f3be13e	701aaa2c-a899-4def-bf5f-e17511874409	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7c1a1d9c-1fc3-4082-803e-3ee929292ffd	701aaa2c-a899-4def-bf5f-e17511874409	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ca99e605-8e3c-48da-9226-53540bb5a255	701aaa2c-a899-4def-bf5f-e17511874409	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a4a247aa-da17-4f2d-897c-98a19b664daf	701aaa2c-a899-4def-bf5f-e17511874409	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-38dd30ea-317f-414f-843f-aadf4de38e48	701aaa2c-a899-4def-bf5f-e17511874409	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f8ef76c9-cb15-4b11-8248-e89e25821bb5	701aaa2c-a899-4def-bf5f-e17511874409	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d875b930-be1c-490a-926d-1c62a0c83b8d	701aaa2c-a899-4def-bf5f-e17511874409	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9f3d4020-e6eb-4723-9c0a-f61b9f46261c	701aaa2c-a899-4def-bf5f-e17511874409	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-42d2713f-72bd-4aa6-bab0-9529ee042f70	701aaa2c-a899-4def-bf5f-e17511874409	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3d697af6-6ad3-4283-ae93-1bd8799480e6	701aaa2c-a899-4def-bf5f-e17511874409	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-646a8f7f-c7fb-41a3-8674-56916df75da6	701aaa2c-a899-4def-bf5f-e17511874409	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8ff0473e-fc3e-429f-a848-da95a9e83a71	701aaa2c-a899-4def-bf5f-e17511874409	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-aa615f46-5a3d-4a94-8c7d-d56f6cd53f77	701aaa2c-a899-4def-bf5f-e17511874409	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-70a0a3b9-bd58-427a-988f-ae83ecc58bed	701aaa2c-a899-4def-bf5f-e17511874409	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9a1eef56-c562-4f60-b7f0-81b3f022c661	701aaa2c-a899-4def-bf5f-e17511874409	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d4e08875-4063-4de3-9d3f-771031c54278	701aaa2c-a899-4def-bf5f-e17511874409	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5092114c-1820-4f7a-8ac9-97d331dcb8e4	701aaa2c-a899-4def-bf5f-e17511874409	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-75a5b0de-293e-40b8-9605-1c599fe105e2	701aaa2c-a899-4def-bf5f-e17511874409	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5b35ef22-087b-486a-8a4d-c229a525e8f4	701aaa2c-a899-4def-bf5f-e17511874409	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c463ca83-e231-4fbc-a59c-ce6ff0af7e3a	701aaa2c-a899-4def-bf5f-e17511874409	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f5911aa8-7529-444a-9b09-bd100f4f2bc7	701aaa2c-a899-4def-bf5f-e17511874409	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-65491047-90a9-4827-969e-da529d1199ca	701aaa2c-a899-4def-bf5f-e17511874409	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d81c844e-8e5d-4f71-87d0-efe97d3700de	701aaa2c-a899-4def-bf5f-e17511874409	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8a50be68-18f0-47a1-ac07-f82b207b1ddc	701aaa2c-a899-4def-bf5f-e17511874409	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b2346b63-72c3-4b62-aca2-6b4d7212d448	701aaa2c-a899-4def-bf5f-e17511874409	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c27d7cac-5932-4225-a388-3e6d5fbb0ef2	701aaa2c-a899-4def-bf5f-e17511874409	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6fd325bb-9faa-4a2b-baec-3a61026a479f	701aaa2c-a899-4def-bf5f-e17511874409	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-987a7b47-f0c0-4ab2-a796-2ae053c4a033	701aaa2c-a899-4def-bf5f-e17511874409	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-61fd1fed-532f-4b36-b388-d23518f7cb3e	701aaa2c-a899-4def-bf5f-e17511874409	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-621af157-42da-4034-88bd-a8f7567ab0f5	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3d989cc5-59d6-437b-92e2-fcef0c7d40c8	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-52f5bef3-c77b-4a70-9b5b-dd034667a956	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-26c51915-f559-461d-88da-fbd0e5ad8358	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c4747966-194f-498e-8ee8-6688c0f86767	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-76f88bee-43a0-42d9-b455-f9c0f39cfed3	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ea5b330e-4d74-4163-9aad-193bffc375c9	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-41e00b5d-276f-41c6-b469-dd971535562d	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-239d3f15-9d50-4546-aabe-57b1c38072a9	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3ea95e1d-1226-4dd4-818d-d74017e21522	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4b516dda-974e-4bbe-ab75-f1c34469e745	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3aadbd2d-1102-419c-aff4-ab62e28a9355	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7c96576c-488e-4e20-bb31-a93e75e67224	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dd681477-b100-4ff6-9fc4-e64b8cd3542e	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0bc42731-a2de-43c0-b968-bea5804a4c89	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5adb6a84-b361-4ca0-8cf3-cf2878fcc5e1	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-856fe8ac-4a29-4952-a65f-47e849bbaff8	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e9ee5d69-26d7-47af-a3a1-12feb8aa5367	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-24ef2745-e10d-488b-90aa-d770a6e2d0bc	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d73a18e9-e97f-4d3f-828b-3900ba10b8ee	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-09a9d3d3-08a2-423f-96e5-8f75c20b0123	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b78ceb5e-a734-45ea-867f-be9859c3714b	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-62d91d12-56c9-4632-82d7-0f487428a86b	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-02f6797f-bf5e-4252-a783-d864fa352913	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-920b4517-68f0-462f-93e4-d621d4b00737	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-628eb2fb-9499-4f32-a212-113f7a7f42a0	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ea6a6d96-b615-4717-a25a-085d49160807	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-be60a117-6d84-4a1e-8e6b-1941ff6fefb8	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-989b51f2-ca47-4240-8715-564f6cf82e24	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ad2ac947-0a08-4b50-906d-f00f8ddfadc6	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-629ddaa5-3bf7-4b44-8c9d-1d6cb31944ca	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5e4d962c-a7e6-4a18-9f89-76f6bda27273	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4f13c206-d720-49f9-881e-efe6646b079e	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-533ff916-8c9a-4620-b11b-430874437998	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bc1e27fc-cbc9-4527-8ba8-ea85efe350bd	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6e195c99-f87c-4a99-a135-e177d16fb283	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6301f9a2-9359-4058-a3b4-6743d4483c4f	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4dee24f3-6ccd-42b4-8734-d513a92c3a9a	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eaa949e9-e4f4-428a-9e3b-cfe06ea8ebc7	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bd443375-2785-4dfe-982c-77990be9e511	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-594f3e35-5615-4d33-8ade-2c919e17ddb0	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-350edb1f-5385-443f-a691-781a081a8473	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5ab9c88c-b0df-4f80-97bc-ae5a52a90a85	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3da12316-9d98-4f7b-9c09-6ed3e4e86dc8	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6444af9a-ca1b-4078-8d1d-6482d83026e2	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2c658a5f-7f25-4b50-a789-967499f2d858	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f7c245e5-ea14-4143-8343-ccf7892870e5	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-16dade26-8db6-40b3-be9e-c4ce50ffd1e4	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b3cd0aac-f4d7-4e56-a5ac-fe7d37c3e2d5	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-aa23cf0a-ecff-4606-af10-1cfda221368f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f4ce14ea-a11e-4161-aefc-dba53f7e8742	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2c994b3d-9dbd-4c4d-be78-18da01005b24	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-764ff5b4-8152-4f7d-84a7-2f6d6268fdf8	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-384a0773-9ff3-407b-9f77-1b902d32bce3	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-75e62967-10b0-44f0-83d0-57485cef6989	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-87757482-1c44-488a-8f03-3a4f8d3218a3	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-969966de-475a-4bf1-83c2-c8be668c4311	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c436a046-fbf2-42af-ae9d-50a33f29320b	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-35d24775-7276-4644-8b21-f626b7f764ee	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a6f5f834-a782-4367-854d-174e5c0ccb43	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-29ebe02c-8a04-4249-b335-fcbb1bbb9f0b	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7db38c2a-ec97-4914-8d6a-0d2281524281	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-194f772e-5dbe-420d-82a8-349866918dc0	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-abf17b6e-9ad0-46d1-9134-4c9773acbcae	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-407f4737-4e45-47ab-892b-71fbbd9865cb	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-817981d7-7543-4704-83f6-22507f612297	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-232923cb-ef95-4271-b88d-1076d5718546	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5b5e1ab1-885d-4f9c-97d3-b022c0214650	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4a658961-ea34-4c09-b4bb-734857de2857	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-af4312e2-f7b0-4091-91c3-025a48c44ff7	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-91786fed-bca7-40f1-af1b-2337ea6d4afe	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bb8c5264-eb11-4074-a482-df74312ff0bf	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5bd9a7c5-092c-456f-aaf2-57f310b9538b	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8dabdbd8-7c92-4087-b78c-822763432f39	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1ad19d62-cef5-47f3-99cb-a0d18d802ad6	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6b1a146d-838b-47f5-9c80-c5f1cd122d88	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9576364c-509f-4439-8456-c3a7ff4aea0f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c83743b7-c2da-499e-9c57-4306cb3714b2	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7a8182ba-73fa-495a-b26f-18d4b689f332	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6b424645-27ba-4107-804e-106859449ef0	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8ae0a805-920b-4b38-ab4a-a917dacc2dae	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-81f1b916-cc40-4312-aa39-5484b1a333be	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dd1072e5-d301-4fac-a278-ee0091dd1943	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-01d3d7e6-9dde-4221-92cb-5cd303946c19	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-93c81392-5d29-4ab4-beb8-1dd6418dc7a7	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e12ebf37-a538-4930-a387-e8f8d719956a	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c373f79a-b1fd-4ab4-ae07-88bf9bbbd680	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4df84bc4-fd52-4887-b209-e6b3b085950c	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3f013734-ca14-4e37-8856-e85cfcaefa3f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1a8d7230-b954-4ff7-8c42-9fb077951901	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c375fd5a-6267-4e80-bc8b-55c94e517a6e	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4e100d9f-2b4c-48fc-b862-07623658e17c	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a0f93491-209a-453a-b710-2faf124c520d	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1f0d2f13-d6f7-466e-861f-bc0e0349d9af	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9140aace-4c82-41e5-ac76-dd3efe26bdf2	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c9927bd8-7b46-4582-b68a-3749adf06929	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ff791ac0-ba9f-4f69-b971-0de39b88251a	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-50eece80-39e6-4ab4-81f7-0648c3a3844f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7657bf93-fd58-4d4f-acc4-d9eaffa2748c	64c49f37-a38a-46a6-9622-7427f1501658	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-19d7ebed-766b-4462-9076-20c796f71320	64c49f37-a38a-46a6-9622-7427f1501658	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-07cbf616-115f-40db-80cf-17bb6932bab9	64c49f37-a38a-46a6-9622-7427f1501658	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-70b958ac-4f68-4716-84c9-dc9d3e18c7b2	64c49f37-a38a-46a6-9622-7427f1501658	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1b13e257-97f6-4dc7-b443-d158d9c9790e	64c49f37-a38a-46a6-9622-7427f1501658	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-48896b87-b6a6-4172-8e6b-fb82a2a7819d	64c49f37-a38a-46a6-9622-7427f1501658	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-53604082-7bae-45d9-957a-10693e8146cb	64c49f37-a38a-46a6-9622-7427f1501658	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d33b3a7c-6065-43d5-ac3d-913811e41713	64c49f37-a38a-46a6-9622-7427f1501658	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5c06812e-bae4-4a41-b742-4ee2ec4fb606	64c49f37-a38a-46a6-9622-7427f1501658	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4d67db82-f506-497c-8f5e-b69268a67b80	64c49f37-a38a-46a6-9622-7427f1501658	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0ac8cda7-8ae6-44ed-bf9b-5a0fe336cee8	64c49f37-a38a-46a6-9622-7427f1501658	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cd4ac2e5-23cf-4c1a-b39a-b502e2a5bc9c	64c49f37-a38a-46a6-9622-7427f1501658	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d22ec3de-04b9-42de-acf5-5c26e7cdddba	64c49f37-a38a-46a6-9622-7427f1501658	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5d710232-7e8a-499d-bd95-67647996dae0	64c49f37-a38a-46a6-9622-7427f1501658	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b8fe8860-d1b9-4f94-a5a5-1314fb1ba2c6	64c49f37-a38a-46a6-9622-7427f1501658	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b719a8b0-519c-46de-a535-03a2cc4631ad	64c49f37-a38a-46a6-9622-7427f1501658	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-403836de-c900-4e01-a734-5ed007f454f8	64c49f37-a38a-46a6-9622-7427f1501658	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-62c63f68-c42d-4fa8-98b5-b68f189e6715	64c49f37-a38a-46a6-9622-7427f1501658	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ace4c8de-00f8-4a3d-98ad-1787e8039a29	64c49f37-a38a-46a6-9622-7427f1501658	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d326f8a0-e27e-472d-968e-fa04211df73d	64c49f37-a38a-46a6-9622-7427f1501658	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4876bcd2-064a-4b5f-9da3-3e6aa5d536ce	64c49f37-a38a-46a6-9622-7427f1501658	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9dfdbbdf-17d3-4a59-ab20-55bdfb30d426	64c49f37-a38a-46a6-9622-7427f1501658	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-248693fd-1faa-496f-bf08-04739d7ab39b	64c49f37-a38a-46a6-9622-7427f1501658	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8a042b75-3d24-480c-99cb-e212824578f6	64c49f37-a38a-46a6-9622-7427f1501658	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-54f7c64e-3278-4b9b-8e54-687e6ab3223a	64c49f37-a38a-46a6-9622-7427f1501658	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3794c994-a442-4563-8024-5d9b5b351e63	64c49f37-a38a-46a6-9622-7427f1501658	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3eb016da-93be-495e-b620-bba57e9566b1	64c49f37-a38a-46a6-9622-7427f1501658	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c277027d-d37a-430f-83d8-9b64f97eb274	64c49f37-a38a-46a6-9622-7427f1501658	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-36e1b197-af06-4ca9-9fa1-1992d0c2508f	64c49f37-a38a-46a6-9622-7427f1501658	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-05488913-0a64-44bc-9bf1-9c9ba23b5edc	64c49f37-a38a-46a6-9622-7427f1501658	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c3a4ff48-6f11-4306-8795-111182460ee5	64c49f37-a38a-46a6-9622-7427f1501658	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ed55a733-23d5-4419-ae76-e79beb55fa53	64c49f37-a38a-46a6-9622-7427f1501658	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3113a05d-fc26-4876-9d36-3ce3e12f25ab	64c49f37-a38a-46a6-9622-7427f1501658	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-048ad164-78b9-43d2-bb92-753ddc2c5329	64c49f37-a38a-46a6-9622-7427f1501658	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f28eec03-47da-4f67-89ff-9f0542ecd5ee	64c49f37-a38a-46a6-9622-7427f1501658	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ce9924e6-8583-40d3-b574-62c37c8b0634	64c49f37-a38a-46a6-9622-7427f1501658	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0f3a4579-d575-42cd-b000-bf9ce1cc6623	64c49f37-a38a-46a6-9622-7427f1501658	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d719f727-9a77-493c-ad2f-cd6383f470c6	64c49f37-a38a-46a6-9622-7427f1501658	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-01c2ca2b-f17d-4491-9852-5260163354a1	64c49f37-a38a-46a6-9622-7427f1501658	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-644f4d11-2734-4154-8c5f-950e4b12436f	64c49f37-a38a-46a6-9622-7427f1501658	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d5cfdb72-f90f-4c91-918f-deff382e8d57	64c49f37-a38a-46a6-9622-7427f1501658	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bbdbb224-8e6d-4ab4-9182-c61431e7a06a	64c49f37-a38a-46a6-9622-7427f1501658	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ede45e99-a560-4459-9d15-aeb91f60d7a9	64c49f37-a38a-46a6-9622-7427f1501658	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8a786d00-b735-471b-89aa-daccc336a198	64c49f37-a38a-46a6-9622-7427f1501658	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-27ef3511-a210-4e1f-86f5-56f0fe3930b6	64c49f37-a38a-46a6-9622-7427f1501658	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e2922a16-f9db-4eed-b2f5-64dd4749c33e	64c49f37-a38a-46a6-9622-7427f1501658	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-694c5dca-cd8b-4ef9-b45d-7371e45afa9f	64c49f37-a38a-46a6-9622-7427f1501658	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c62b0734-8eb0-4a4d-be66-c0645a41f16e	64c49f37-a38a-46a6-9622-7427f1501658	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8981868f-d665-4e2c-afd9-4d3a1c7d3670	64c49f37-a38a-46a6-9622-7427f1501658	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a8f5f2de-4672-46b9-b383-19bbb98a6afe	92aa9169-28d9-4754-a570-553b067642ed	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c0b9a40a-a03e-4a0e-ba4b-830ac8cd0c90	92aa9169-28d9-4754-a570-553b067642ed	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-81a3a0af-782e-441d-9c9d-0512dd594d8e	92aa9169-28d9-4754-a570-553b067642ed	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-77a22be4-584d-47a5-86a1-20969f95c3de	92aa9169-28d9-4754-a570-553b067642ed	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0f0f2b6b-09fd-421b-8459-6b53d59777ab	92aa9169-28d9-4754-a570-553b067642ed	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7cbb03d5-8cf0-4176-9d39-cadd837cc055	92aa9169-28d9-4754-a570-553b067642ed	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2c2801af-63d8-4991-8a73-01a568d53e5a	92aa9169-28d9-4754-a570-553b067642ed	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-de03820b-473d-4620-b5dc-b0ecf8101800	92aa9169-28d9-4754-a570-553b067642ed	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4591cb07-ab1d-4590-a3a7-c430caa61ae9	92aa9169-28d9-4754-a570-553b067642ed	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b78f5e1d-7b5b-47f0-bc4a-cc75545e24aa	92aa9169-28d9-4754-a570-553b067642ed	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-16fb2f3b-9ccf-410d-a659-eaa46a64e0f0	92aa9169-28d9-4754-a570-553b067642ed	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-03ad8be9-bc92-4def-afa0-4dab4f50d72d	92aa9169-28d9-4754-a570-553b067642ed	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-78e87209-f9b0-47f5-8edc-0e2b8089338d	92aa9169-28d9-4754-a570-553b067642ed	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9d60d8c6-7f7a-4369-a56c-5efffa868054	92aa9169-28d9-4754-a570-553b067642ed	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-110e87a0-8d7d-4cd5-b4e6-f6a0f0edd224	92aa9169-28d9-4754-a570-553b067642ed	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9d23104e-030c-416f-ad68-6fdf2eccef50	92aa9169-28d9-4754-a570-553b067642ed	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1425f26c-d022-488e-855b-c04b16341ede	92aa9169-28d9-4754-a570-553b067642ed	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ba4df63a-47ec-4ce4-bf67-cb02d82a796a	92aa9169-28d9-4754-a570-553b067642ed	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4bf569f0-01c3-46d4-96f7-251f74128f14	92aa9169-28d9-4754-a570-553b067642ed	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a9468546-b009-41b1-ba0a-61f477364f24	92aa9169-28d9-4754-a570-553b067642ed	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-36e9e9d0-d630-43c3-a3f3-217a8c3ee3f1	92aa9169-28d9-4754-a570-553b067642ed	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5f0d4636-704b-4551-a593-295e9f10cbc1	92aa9169-28d9-4754-a570-553b067642ed	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a49ad01f-252f-4b0d-8db5-5a9325351c89	92aa9169-28d9-4754-a570-553b067642ed	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-60727745-3048-48e3-9b36-0e2964ecfffa	92aa9169-28d9-4754-a570-553b067642ed	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ad7321a3-ece9-4cfe-b838-17200a50cc8a	92aa9169-28d9-4754-a570-553b067642ed	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-019befe7-967a-462a-81bc-5519554b8845	92aa9169-28d9-4754-a570-553b067642ed	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8689a5c1-5bd7-48f1-91f1-037877c83630	92aa9169-28d9-4754-a570-553b067642ed	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-16ade594-4592-43ca-b441-61ed21a6f9a3	92aa9169-28d9-4754-a570-553b067642ed	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-52141eae-d3bd-436e-986e-755576c4a197	92aa9169-28d9-4754-a570-553b067642ed	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7d43f891-2b5b-4259-800d-73f9810ce3dc	92aa9169-28d9-4754-a570-553b067642ed	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1bf3c276-cf1b-4523-bd48-0fdbf1a7f33c	92aa9169-28d9-4754-a570-553b067642ed	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-59766278-05bc-4092-8b6f-60f1a1e84fdd	92aa9169-28d9-4754-a570-553b067642ed	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d0463c72-2c55-4757-9fa3-64b8338bdec4	92aa9169-28d9-4754-a570-553b067642ed	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-380a61c1-171e-4954-bc86-57ec569075ef	92aa9169-28d9-4754-a570-553b067642ed	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-26489ddf-01f6-4668-8196-f32d7f6392b6	92aa9169-28d9-4754-a570-553b067642ed	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b1ac789c-b5bc-401d-8771-4e86aee4a41a	92aa9169-28d9-4754-a570-553b067642ed	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-77313c27-43e3-4990-bdb7-59551289dfac	92aa9169-28d9-4754-a570-553b067642ed	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d3b9eaac-b294-4992-b91e-01d975622cf4	92aa9169-28d9-4754-a570-553b067642ed	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3ca02c5b-2f45-4984-8913-1ce28c2b170e	92aa9169-28d9-4754-a570-553b067642ed	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e9b73a8b-d127-41b0-9561-88ba144a3936	92aa9169-28d9-4754-a570-553b067642ed	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5a1eec98-c764-4ecf-af8d-cbb27187ea9f	92aa9169-28d9-4754-a570-553b067642ed	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bafa22bf-c34e-4b47-bed2-54632130ec8c	92aa9169-28d9-4754-a570-553b067642ed	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2091a034-1361-4410-8e88-e5906646baa5	92aa9169-28d9-4754-a570-553b067642ed	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-648494d3-b8b9-4189-b0b7-a691f88bd7eb	92aa9169-28d9-4754-a570-553b067642ed	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bce8d726-1622-4abc-bcd7-a22c2ecb331d	92aa9169-28d9-4754-a570-553b067642ed	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ced04bea-d559-4a1f-96fb-dcf4e6951324	92aa9169-28d9-4754-a570-553b067642ed	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8b6ba42e-b899-4045-9043-3c96cb22ee23	92aa9169-28d9-4754-a570-553b067642ed	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5db4a4a8-109b-491c-b3f0-e0689656c3f0	92aa9169-28d9-4754-a570-553b067642ed	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0341df5f-c3d0-4045-bb2e-cf5b567bc32a	92aa9169-28d9-4754-a570-553b067642ed	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cab15628-a690-4294-87fa-3b4cfb7aab37	a3793f87-7f3c-41a1-a675-236fc1b710ab	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0941d5d7-82c1-48ed-89cf-0cdff5ea6488	a3793f87-7f3c-41a1-a675-236fc1b710ab	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-22f8af91-3e36-46a0-984c-69a60adbb49e	a3793f87-7f3c-41a1-a675-236fc1b710ab	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a9a808ad-0c8f-4124-9abc-50471da1accc	a3793f87-7f3c-41a1-a675-236fc1b710ab	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a0050447-d70e-4467-aec7-2ac3db043d48	a3793f87-7f3c-41a1-a675-236fc1b710ab	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-103cc5aa-3dca-4816-8fa0-4cfb3904b0bf	a3793f87-7f3c-41a1-a675-236fc1b710ab	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-112316d5-5ee0-4f7e-a88f-10dec60b090a	a3793f87-7f3c-41a1-a675-236fc1b710ab	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9ce7e5f7-a7c2-430a-9ffc-f83d4afb335a	a3793f87-7f3c-41a1-a675-236fc1b710ab	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-496a7574-02be-42b8-bfc6-4f3478215f80	a3793f87-7f3c-41a1-a675-236fc1b710ab	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-98b8c38f-526c-4f8d-8c8f-4f65db80dcae	a3793f87-7f3c-41a1-a675-236fc1b710ab	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e839eec0-2545-4a09-b525-ecbeabdf2878	a3793f87-7f3c-41a1-a675-236fc1b710ab	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-26564600-9a3b-4cc6-bd7f-dfdb4c058264	a3793f87-7f3c-41a1-a675-236fc1b710ab	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-80d62bdc-99ab-4f6b-a0b9-4707523a5fc7	a3793f87-7f3c-41a1-a675-236fc1b710ab	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-26aee4df-40c5-4e5d-b115-cf2cd93b79ff	a3793f87-7f3c-41a1-a675-236fc1b710ab	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e95e8c4d-40c7-403a-9beb-44ad70a6d3aa	a3793f87-7f3c-41a1-a675-236fc1b710ab	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-93e972c3-db42-4336-91ee-778e11c4b9a4	a3793f87-7f3c-41a1-a675-236fc1b710ab	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f84c6f76-db44-450b-89b1-72fefaf34313	a3793f87-7f3c-41a1-a675-236fc1b710ab	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b88d5006-09c7-4819-9769-0e9acc1d7d88	a3793f87-7f3c-41a1-a675-236fc1b710ab	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-02d7b3ca-1d5c-461e-9001-36696e7ce3d7	a3793f87-7f3c-41a1-a675-236fc1b710ab	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bd23990d-0343-41b8-a21f-efbb6931f45d	a3793f87-7f3c-41a1-a675-236fc1b710ab	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c2ec8866-d8b4-4288-b8a9-3a9132dda1a6	a3793f87-7f3c-41a1-a675-236fc1b710ab	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-799b7d0f-c753-43db-be33-7da5d47c088b	a3793f87-7f3c-41a1-a675-236fc1b710ab	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-069e90e5-e1d8-4696-a71c-405307883cf0	a3793f87-7f3c-41a1-a675-236fc1b710ab	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-02e64ff2-2090-43c9-af4c-87e3314f48ed	a3793f87-7f3c-41a1-a675-236fc1b710ab	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f7e38d72-1dd3-4982-85bb-de49293ed85c	a3793f87-7f3c-41a1-a675-236fc1b710ab	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3f6e4e6e-54f1-41aa-89ad-ae54c0333c60	a3793f87-7f3c-41a1-a675-236fc1b710ab	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-57bf7c89-a6c3-4425-b4ef-9595579b67d0	a3793f87-7f3c-41a1-a675-236fc1b710ab	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f36b9dff-817f-484a-b28c-f5d26dbf1ad0	a3793f87-7f3c-41a1-a675-236fc1b710ab	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-72a95e06-db7f-4d3f-9bba-229d20d23560	a3793f87-7f3c-41a1-a675-236fc1b710ab	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-83088a68-1389-4e5d-ab11-e6be0285fd76	a3793f87-7f3c-41a1-a675-236fc1b710ab	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2218c2d2-32e9-4551-a509-981a3a72ca8f	a3793f87-7f3c-41a1-a675-236fc1b710ab	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f2c9916e-0ecd-45d2-81e1-cd7761d4c90c	a3793f87-7f3c-41a1-a675-236fc1b710ab	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d04242ff-bf74-4c04-9d02-0729208f3e3c	a3793f87-7f3c-41a1-a675-236fc1b710ab	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-51801002-e01d-4997-b549-a52fff121484	a3793f87-7f3c-41a1-a675-236fc1b710ab	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-32479ce7-06f4-431e-8ad4-39d78b56db65	a3793f87-7f3c-41a1-a675-236fc1b710ab	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b4d7fa56-7050-493c-ad67-5d95d30c73ed	a3793f87-7f3c-41a1-a675-236fc1b710ab	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ba6f4774-67d4-4fb8-a97e-551faf9fdfa4	a3793f87-7f3c-41a1-a675-236fc1b710ab	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a7b73618-0c84-4ab8-b71e-ed0b0ea3efc4	a3793f87-7f3c-41a1-a675-236fc1b710ab	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2b89ab9b-3def-4f6c-bf2b-3787c51ce6fc	a3793f87-7f3c-41a1-a675-236fc1b710ab	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f8822228-8469-4ca2-a520-a4096adc76c4	a3793f87-7f3c-41a1-a675-236fc1b710ab	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e7407a23-a768-4b81-8f77-3b2b717707f5	a3793f87-7f3c-41a1-a675-236fc1b710ab	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bb259bfc-ac89-40da-9d92-296cc858b62f	a3793f87-7f3c-41a1-a675-236fc1b710ab	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-89541188-962f-46a3-96ea-b9b45f9180c5	a3793f87-7f3c-41a1-a675-236fc1b710ab	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-48850c2f-b199-417a-83ca-1df5ab47fe22	a3793f87-7f3c-41a1-a675-236fc1b710ab	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9774093a-dfd9-4779-b797-7e1898bafe75	a3793f87-7f3c-41a1-a675-236fc1b710ab	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-45a2d317-e8b9-4f17-8177-8be6899742ea	a3793f87-7f3c-41a1-a675-236fc1b710ab	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eca430e6-6998-416f-8dcd-93f00edee4f9	a3793f87-7f3c-41a1-a675-236fc1b710ab	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e13d3a57-05b4-41b7-8702-4cf3d7dafa15	a3793f87-7f3c-41a1-a675-236fc1b710ab	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ff307a5d-bde2-44f9-8b69-d1fd15379f1f	a3793f87-7f3c-41a1-a675-236fc1b710ab	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bd341c4f-e866-40e3-a29e-c75173764476	29ad5710-1621-4c24-ac75-dedfc168ba1a	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ba260637-40be-4899-966e-d941d58e86b9	29ad5710-1621-4c24-ac75-dedfc168ba1a	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-98a876b7-d1f3-435b-889f-8a530a22366c	29ad5710-1621-4c24-ac75-dedfc168ba1a	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2cb10bd9-9f49-4678-9ed8-d17e3e6007c2	29ad5710-1621-4c24-ac75-dedfc168ba1a	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-66bb8fce-3bd7-4dc4-9051-7ca2e384ced0	29ad5710-1621-4c24-ac75-dedfc168ba1a	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c3751e61-c360-4673-b857-6365ebbcbcd0	29ad5710-1621-4c24-ac75-dedfc168ba1a	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-483ac487-45eb-4c2f-8aea-213bae41c7b7	29ad5710-1621-4c24-ac75-dedfc168ba1a	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-54e8a34e-4062-493f-b7fb-9ffa35622a0b	29ad5710-1621-4c24-ac75-dedfc168ba1a	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c11ea748-4ab5-4fcb-85e1-1150a4155f09	29ad5710-1621-4c24-ac75-dedfc168ba1a	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-501412e0-b28a-4b60-b19a-8263a731244f	29ad5710-1621-4c24-ac75-dedfc168ba1a	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e9bf6bc1-ca76-4eac-9595-ade16b3437ea	29ad5710-1621-4c24-ac75-dedfc168ba1a	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4b8b95a3-71ae-48eb-89a7-3087aff30011	29ad5710-1621-4c24-ac75-dedfc168ba1a	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f007d1a9-8a33-4a69-b193-03775c21e821	29ad5710-1621-4c24-ac75-dedfc168ba1a	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4d528473-92b4-470f-a6ed-317b9eea544f	29ad5710-1621-4c24-ac75-dedfc168ba1a	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9e9569de-ebe3-4ae8-95fc-ad682e44b269	29ad5710-1621-4c24-ac75-dedfc168ba1a	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-430528ba-ad85-475e-ac7a-a9c760b7b8f9	29ad5710-1621-4c24-ac75-dedfc168ba1a	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-10dc569e-cdc6-4b3d-8a0c-115fc6ea8e7c	29ad5710-1621-4c24-ac75-dedfc168ba1a	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4265842d-b669-4d11-9f0a-de3e6a2e73dd	29ad5710-1621-4c24-ac75-dedfc168ba1a	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d32a2716-270d-4ec6-921f-a5b046cc43a3	29ad5710-1621-4c24-ac75-dedfc168ba1a	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-76c5f574-8ef3-4e1c-9a49-088cb17cb9a6	29ad5710-1621-4c24-ac75-dedfc168ba1a	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-32b58362-c2d7-41ef-a4c7-58086b01501d	29ad5710-1621-4c24-ac75-dedfc168ba1a	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d92677d7-1129-462b-8b59-531953b01504	29ad5710-1621-4c24-ac75-dedfc168ba1a	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5aa9e001-6c31-42e8-908d-fac1d41d7c6a	29ad5710-1621-4c24-ac75-dedfc168ba1a	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-12c063bf-c856-4062-a6d9-10845b28c95a	29ad5710-1621-4c24-ac75-dedfc168ba1a	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fa6dd9c4-ddeb-42b6-a35e-04cf4eb8abd3	29ad5710-1621-4c24-ac75-dedfc168ba1a	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-351a566e-4b19-42d9-9798-de78fa5a0172	29ad5710-1621-4c24-ac75-dedfc168ba1a	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6ec60553-9e73-40b3-848c-cc265bddcb79	29ad5710-1621-4c24-ac75-dedfc168ba1a	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ac7d6aa1-f87d-4852-87f6-2a1432e05f4a	29ad5710-1621-4c24-ac75-dedfc168ba1a	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7672a19e-6aba-46db-982a-f57faf46950d	29ad5710-1621-4c24-ac75-dedfc168ba1a	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3a81ef98-a34c-44eb-aa2d-61e76584f3eb	29ad5710-1621-4c24-ac75-dedfc168ba1a	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-445c7f5e-868d-4201-87f2-6952c7a2b09a	29ad5710-1621-4c24-ac75-dedfc168ba1a	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-47ba80e5-f517-4380-a3d9-1bdd7c4b0303	29ad5710-1621-4c24-ac75-dedfc168ba1a	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bd7c60ea-d192-4e1c-b4c9-d364386fd0b4	29ad5710-1621-4c24-ac75-dedfc168ba1a	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f9257c36-63e2-463e-aeaa-ed6611f9c993	29ad5710-1621-4c24-ac75-dedfc168ba1a	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-09c5ae3a-e754-4aed-8818-9f6bb2c91b4d	29ad5710-1621-4c24-ac75-dedfc168ba1a	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8bfce30b-441d-4ecd-8400-4dc23dc0efcc	29ad5710-1621-4c24-ac75-dedfc168ba1a	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-297afd65-2866-4538-b0e6-6366c37b79bd	29ad5710-1621-4c24-ac75-dedfc168ba1a	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cf479d7d-61e3-486d-bc4d-76a18f94664d	29ad5710-1621-4c24-ac75-dedfc168ba1a	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0f102d23-8c93-4bfc-b3ec-8e7d54deb5e4	29ad5710-1621-4c24-ac75-dedfc168ba1a	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c08ae209-ae92-42af-8f47-b296e3fb1481	29ad5710-1621-4c24-ac75-dedfc168ba1a	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d06c4843-81a0-43b6-ae7e-f94f115228b6	29ad5710-1621-4c24-ac75-dedfc168ba1a	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1cd111ad-7447-4f43-b180-9523f7c4fd2b	29ad5710-1621-4c24-ac75-dedfc168ba1a	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d9114353-9eea-42d4-814e-b2d0897c14da	29ad5710-1621-4c24-ac75-dedfc168ba1a	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-07c557b4-7382-4006-808c-ef81efea9589	29ad5710-1621-4c24-ac75-dedfc168ba1a	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-22caccac-f75c-4f5c-9451-eb2aeacf895b	29ad5710-1621-4c24-ac75-dedfc168ba1a	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5838c23f-1138-4129-899f-512ce86cf69b	29ad5710-1621-4c24-ac75-dedfc168ba1a	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-65137378-327e-411a-be03-b30962b8a405	29ad5710-1621-4c24-ac75-dedfc168ba1a	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a0a7d6fe-1970-44cc-ba8d-574f50aa2e17	29ad5710-1621-4c24-ac75-dedfc168ba1a	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d1b71f68-29b3-4597-a5e5-f206dfdff2a6	29ad5710-1621-4c24-ac75-dedfc168ba1a	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0799cf35-045e-4936-bfd3-ebda04877a7c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7a670ec4-9eeb-4174-b377-91002edcbd50	efc1df20-ca04-44a6-87b2-7cae1ff50a88	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2c92e3ee-81e2-494c-9adb-900333e35151	efc1df20-ca04-44a6-87b2-7cae1ff50a88	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f27fe920-53e3-46a9-be24-e297c251b990	efc1df20-ca04-44a6-87b2-7cae1ff50a88	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-45424e7f-38fe-4216-a5d1-5ee7f4b5e40e	efc1df20-ca04-44a6-87b2-7cae1ff50a88	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8a200634-edea-435f-824a-e7a5403ba57a	efc1df20-ca04-44a6-87b2-7cae1ff50a88	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7452e1b6-f963-4a63-bfe0-dc1c7a2770e5	efc1df20-ca04-44a6-87b2-7cae1ff50a88	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-05697700-23cb-4863-9897-94abe4623226	efc1df20-ca04-44a6-87b2-7cae1ff50a88	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-575efcac-75f5-40fe-8916-cb2b35107e36	efc1df20-ca04-44a6-87b2-7cae1ff50a88	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-77702cfa-c93d-4687-878d-412201a1b773	efc1df20-ca04-44a6-87b2-7cae1ff50a88	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7982db3c-adf3-40d1-b053-acf3be0fc62b	efc1df20-ca04-44a6-87b2-7cae1ff50a88	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e3104b20-62f8-40e0-a9b6-184b40ca67d7	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7912798d-a067-4f31-8e2a-e39f2ded545c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-04eb10bb-c587-423b-bd82-8955cc00e884	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7b21c5e5-5f66-406a-8a33-116aaa7c17e5	efc1df20-ca04-44a6-87b2-7cae1ff50a88	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-92ca7e09-91bf-41a7-ad11-d08889eb992a	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a5de4597-ac98-4ba9-8d97-65f156494047	efc1df20-ca04-44a6-87b2-7cae1ff50a88	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4ab82912-0451-4867-9607-e54c6c2fd753	efc1df20-ca04-44a6-87b2-7cae1ff50a88	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8c3257b0-9248-4595-a2df-e0a76318f38c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b2b08c31-f25a-4767-8e08-2a31fc8ff0d3	efc1df20-ca04-44a6-87b2-7cae1ff50a88	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-62caa52b-d6ca-4720-a373-ddb2b6ff3505	efc1df20-ca04-44a6-87b2-7cae1ff50a88	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bc0e7126-f18e-4a92-96b4-dc49db2cdc43	efc1df20-ca04-44a6-87b2-7cae1ff50a88	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3b44bf48-17d8-4822-9dd7-1834ac646f37	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-60ed1e17-3c27-4cbd-aef6-6c5636618dff	efc1df20-ca04-44a6-87b2-7cae1ff50a88	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-538d5fc0-a5da-45c3-9bd5-a6b373bf363e	efc1df20-ca04-44a6-87b2-7cae1ff50a88	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-74f60d75-9dfb-4495-8cd2-48c0092f6622	efc1df20-ca04-44a6-87b2-7cae1ff50a88	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5f7ff597-f1eb-4041-9ba4-9dcacdc85af8	efc1df20-ca04-44a6-87b2-7cae1ff50a88	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f429efe5-8d1d-4d39-a6e5-fda7dd7a4be3	efc1df20-ca04-44a6-87b2-7cae1ff50a88	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5099f102-a57d-46e7-ac8b-fef1b886dbf7	efc1df20-ca04-44a6-87b2-7cae1ff50a88	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d14f43bc-b192-439f-8c86-2794ad8d0179	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-74cc97dd-4218-4a40-9b71-edd20c5ba934	efc1df20-ca04-44a6-87b2-7cae1ff50a88	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2afe46f3-cb42-4b64-9457-afe8acdf106c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-83e5bf45-780f-4b0b-b625-785062c773e6	efc1df20-ca04-44a6-87b2-7cae1ff50a88	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-87467ea0-ae38-497f-bcc3-50343f6c4c00	efc1df20-ca04-44a6-87b2-7cae1ff50a88	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b8c00761-bf3c-49c0-a0f3-116f8a85b642	efc1df20-ca04-44a6-87b2-7cae1ff50a88	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8cb76a65-2384-4a33-afe8-0088360602da	efc1df20-ca04-44a6-87b2-7cae1ff50a88	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1ddbbc04-723c-493b-95dc-b42b8ec6c194	efc1df20-ca04-44a6-87b2-7cae1ff50a88	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b8b4c9bc-ff33-407b-a5b2-63a05572813d	efc1df20-ca04-44a6-87b2-7cae1ff50a88	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-af0b31a9-a15e-4621-a4fc-bf97296fffaa	efc1df20-ca04-44a6-87b2-7cae1ff50a88	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-29a2cec0-6989-4f17-bc56-a08fc0ca76a5	efc1df20-ca04-44a6-87b2-7cae1ff50a88	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-76c0253a-aff2-471f-a174-6d23494ba8fe	efc1df20-ca04-44a6-87b2-7cae1ff50a88	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3577cd76-69b4-4121-85c2-089e876916c2	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fa827a93-63ed-4ec0-a1d8-92d09539aa93	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ddfb88d1-cff5-4e1b-9690-6ee7a6a6e4c6	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e390bcb3-9256-47b9-b328-9943ec4d7d25	efc1df20-ca04-44a6-87b2-7cae1ff50a88	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6d1e2445-084d-4a38-ac29-fded005ab021	efc1df20-ca04-44a6-87b2-7cae1ff50a88	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-042e6c3f-6c80-4c3c-81d9-dcc93db5811b	efc1df20-ca04-44a6-87b2-7cae1ff50a88	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d4518975-9cf0-43c2-a97c-70d46e05c914	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-db34ae4f-6391-49a0-ac62-d902ef52250d	efc1df20-ca04-44a6-87b2-7cae1ff50a88	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ef8dba2c-6cbd-4354-b9ab-4716e7b4da56	c787fe3b-4b33-40ee-8794-c1148202f81a	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5b5d6c11-cdf4-4a3c-9cd6-23793525ee36	c787fe3b-4b33-40ee-8794-c1148202f81a	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-659de580-3eb2-476b-9f02-646a3dbfcdbe	c787fe3b-4b33-40ee-8794-c1148202f81a	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d459f4e6-b088-4f92-9dde-1f2568a20b0d	c787fe3b-4b33-40ee-8794-c1148202f81a	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5b1df658-061c-442e-ad2a-a3ed157fb86d	c787fe3b-4b33-40ee-8794-c1148202f81a	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-391a8b2b-99a6-4e7a-9b58-03c5abb24f0c	c787fe3b-4b33-40ee-8794-c1148202f81a	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a73a3d2b-0d25-4d01-86ab-59bc0ad361a4	c787fe3b-4b33-40ee-8794-c1148202f81a	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0a0a1031-5e2a-4c8c-b915-837fe47c02fd	c787fe3b-4b33-40ee-8794-c1148202f81a	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ca68816f-37bd-4cd4-8067-193f2df84d5a	c787fe3b-4b33-40ee-8794-c1148202f81a	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-26d8eb90-7b8d-454a-9669-cab08f17b7b1	c787fe3b-4b33-40ee-8794-c1148202f81a	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cedc5923-4fed-4a6b-a541-79e16fdeee9b	c787fe3b-4b33-40ee-8794-c1148202f81a	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-71b53080-a75c-4142-9b79-c79d9ac1b468	c787fe3b-4b33-40ee-8794-c1148202f81a	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4c0757a4-a673-490c-b9df-5df364f87313	c787fe3b-4b33-40ee-8794-c1148202f81a	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-49f449ca-0845-4e6c-b2b6-52fe73449905	c787fe3b-4b33-40ee-8794-c1148202f81a	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-992ffca4-01fe-4731-9d63-06f53a4d315b	c787fe3b-4b33-40ee-8794-c1148202f81a	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2926b4dd-2868-413c-81ce-aece21aa2126	c787fe3b-4b33-40ee-8794-c1148202f81a	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-176d6196-387c-449b-8ad1-99e25334c507	c787fe3b-4b33-40ee-8794-c1148202f81a	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e8d64269-8505-499f-9909-0c4a6ef333c1	c787fe3b-4b33-40ee-8794-c1148202f81a	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-867b5ac1-f062-4b14-8920-862ad1fcee46	c787fe3b-4b33-40ee-8794-c1148202f81a	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-82fb4a73-17ae-4466-928a-3f266494509b	c787fe3b-4b33-40ee-8794-c1148202f81a	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8f2f31ca-fc1a-4df5-8ed2-4a1b7f0f5dad	c787fe3b-4b33-40ee-8794-c1148202f81a	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-333dbb8a-50dd-4a87-af97-aead2e9a3127	c787fe3b-4b33-40ee-8794-c1148202f81a	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-14a8ba9a-d812-4dc3-babc-2aef7430855f	c787fe3b-4b33-40ee-8794-c1148202f81a	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d9c0c180-c631-4db5-8563-10021840288a	c787fe3b-4b33-40ee-8794-c1148202f81a	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-08357bff-b3c3-4fd4-8f0c-5f00b8448a47	c787fe3b-4b33-40ee-8794-c1148202f81a	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-70f3f277-45aa-4e02-a9a5-73fb186d7665	c787fe3b-4b33-40ee-8794-c1148202f81a	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4e60adf1-c2ac-4768-bafa-dc37354584e8	c787fe3b-4b33-40ee-8794-c1148202f81a	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4304deae-fa65-4893-9988-a66ea707e9d0	c787fe3b-4b33-40ee-8794-c1148202f81a	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1a1024ff-a4ce-40df-a3e5-676a347dd739	c787fe3b-4b33-40ee-8794-c1148202f81a	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-509f7336-4a73-422a-9815-ecbab6e8c903	c787fe3b-4b33-40ee-8794-c1148202f81a	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3cf6d4c9-db1e-4833-9306-21f254e0adb3	c787fe3b-4b33-40ee-8794-c1148202f81a	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0e8da40c-0ca8-4394-8ddc-05985b07b811	c787fe3b-4b33-40ee-8794-c1148202f81a	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ea4f5540-a768-425e-8f7e-0a887d6b8b7b	c787fe3b-4b33-40ee-8794-c1148202f81a	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ba0b78cb-38d4-41be-b61d-45a1f8c1e8ad	c787fe3b-4b33-40ee-8794-c1148202f81a	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-89c2f3af-3e58-4e9e-95ae-e8d7bcd80fab	c787fe3b-4b33-40ee-8794-c1148202f81a	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e1fbf4a4-5393-4676-b414-2887f20edb21	c787fe3b-4b33-40ee-8794-c1148202f81a	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ce6b284c-78b1-4147-bf78-3cb0fca64533	c787fe3b-4b33-40ee-8794-c1148202f81a	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-aaa6afef-2485-4a0f-9f7d-3c1bc97e0d54	c787fe3b-4b33-40ee-8794-c1148202f81a	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fc63b4bd-5768-4f3f-af77-692240e0b36f	c787fe3b-4b33-40ee-8794-c1148202f81a	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e96d0982-63e6-44a8-9cee-6856a1b6fc12	c787fe3b-4b33-40ee-8794-c1148202f81a	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ee8d9fe6-59bf-4cc4-8944-c2347f0857c9	c787fe3b-4b33-40ee-8794-c1148202f81a	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1d872c1a-3d90-4806-9fbe-018b5676a1c1	c787fe3b-4b33-40ee-8794-c1148202f81a	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-88a1b201-0f7c-419b-b790-8eb57eebfb13	c787fe3b-4b33-40ee-8794-c1148202f81a	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0b1c369e-accb-48ff-83d4-7376591891cc	c787fe3b-4b33-40ee-8794-c1148202f81a	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a718b13b-9ab9-498c-ae0d-291f812edb7b	c787fe3b-4b33-40ee-8794-c1148202f81a	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4674de74-c7a8-4428-bf0a-b32ca45eb065	c787fe3b-4b33-40ee-8794-c1148202f81a	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-31b83e3c-95c1-4a93-a39f-5f23a860c82d	c787fe3b-4b33-40ee-8794-c1148202f81a	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2d6e0653-4e66-4d57-a4cc-ca87528a98cf	c787fe3b-4b33-40ee-8794-c1148202f81a	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-632b040b-b290-4ad7-9ee3-a7d589fe5508	c787fe3b-4b33-40ee-8794-c1148202f81a	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0d071edd-3640-456f-96c3-c7e99305a171	f29af015-7833-4f9a-ac57-6fbef5bf91ec	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8e3145d5-d2d0-40c8-a133-d55a98562440	f29af015-7833-4f9a-ac57-6fbef5bf91ec	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-00e634f5-8534-4664-8b7f-bf00c63eecfe	f29af015-7833-4f9a-ac57-6fbef5bf91ec	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-4d170c67-c12c-4c47-a5b4-36ee088a5cb0	f29af015-7833-4f9a-ac57-6fbef5bf91ec	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-528fa2e3-2645-4f1a-84dd-1fef8902913b	f29af015-7833-4f9a-ac57-6fbef5bf91ec	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8efdff1e-1e0a-4bf9-abac-73fca8b8b1ac	f29af015-7833-4f9a-ac57-6fbef5bf91ec	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-329ac9a2-0635-408d-8800-7ae7a44429c6	f29af015-7833-4f9a-ac57-6fbef5bf91ec	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-035c6672-074f-4edd-9623-e4dd2cb790e8	f29af015-7833-4f9a-ac57-6fbef5bf91ec	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dd2d8815-f66e-4ef9-a454-fa390228b676	f29af015-7833-4f9a-ac57-6fbef5bf91ec	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8c0a68dc-bc4e-4df7-932e-11638f9b4a33	f29af015-7833-4f9a-ac57-6fbef5bf91ec	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-540ace1e-a018-41fe-8239-6b461823b8c4	f29af015-7833-4f9a-ac57-6fbef5bf91ec	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0acf4dea-a9ad-4197-b07a-d9436e8fef0e	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b91f040b-9e86-4151-a566-6609e71d6564	f29af015-7833-4f9a-ac57-6fbef5bf91ec	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-7f8b6eab-e843-45d8-a46c-22b9ebc1eda5	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bb562ee4-29d6-421b-ae4c-592889de0e23	f29af015-7833-4f9a-ac57-6fbef5bf91ec	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1a729f7b-f8dd-4f51-b665-087d56e4f7aa	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-905b0949-ebcf-46a0-a8c2-4020a4b96512	f29af015-7833-4f9a-ac57-6fbef5bf91ec	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eb267024-5d4a-4f3c-af78-f8861134de88	f29af015-7833-4f9a-ac57-6fbef5bf91ec	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ec472f54-fe36-4c3f-9df1-9609983d8639	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e4224165-a7cd-467f-bd05-95cd8a069dd7	f29af015-7833-4f9a-ac57-6fbef5bf91ec	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c38839ef-0cc9-403f-a4cc-d7165c32942b	f29af015-7833-4f9a-ac57-6fbef5bf91ec	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-db0d5985-2baf-4f33-933a-79e4cda6ffcd	f29af015-7833-4f9a-ac57-6fbef5bf91ec	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c57527fb-1e67-46ca-b470-f422e1b5a34f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-2c663acd-5cb1-4eb6-9245-f44f84ac941a	f29af015-7833-4f9a-ac57-6fbef5bf91ec	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-216f73ef-8422-40d1-b0e5-db87e05af280	f29af015-7833-4f9a-ac57-6fbef5bf91ec	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d5192e12-f549-4237-813c-5d30b032f064	f29af015-7833-4f9a-ac57-6fbef5bf91ec	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-04657d85-79a9-4f77-b05e-8d200e928e3e	f29af015-7833-4f9a-ac57-6fbef5bf91ec	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-fd6883dd-8313-4491-8a29-a67910c5ddd7	f29af015-7833-4f9a-ac57-6fbef5bf91ec	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-be166bfc-0372-4556-9233-cc6b948e6747	f29af015-7833-4f9a-ac57-6fbef5bf91ec	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e0709249-2951-4402-a1ac-39b004fdac46	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ad1ceeda-99fe-4e71-af70-acf57dc3b56c	f29af015-7833-4f9a-ac57-6fbef5bf91ec	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d9daa35e-4c53-4d2d-91a6-5579dcb530fa	f29af015-7833-4f9a-ac57-6fbef5bf91ec	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-574fc2bb-6019-4e87-bebe-72008ac54e3e	f29af015-7833-4f9a-ac57-6fbef5bf91ec	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-28d47a93-2446-4912-8b41-37694b467a52	f29af015-7833-4f9a-ac57-6fbef5bf91ec	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-f504fac0-f189-4cdb-84ff-bb0ddf54a10a	f29af015-7833-4f9a-ac57-6fbef5bf91ec	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6da99f7c-7538-41f7-b491-13b043be54d9	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0a7179c9-ce97-4183-9549-c6d98b6130e4	f29af015-7833-4f9a-ac57-6fbef5bf91ec	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-43378980-7f7e-41f2-9394-676e80f35b02	f29af015-7833-4f9a-ac57-6fbef5bf91ec	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-809854f3-06a9-4c23-b8a6-58b49f0e2d8c	f29af015-7833-4f9a-ac57-6fbef5bf91ec	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-0c01cf3f-b38c-4568-aa25-cfaed6f9a944	f29af015-7833-4f9a-ac57-6fbef5bf91ec	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bc237b6f-c7be-475c-bbe3-4bdd1d1b3b68	f29af015-7833-4f9a-ac57-6fbef5bf91ec	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-31386d2a-be7f-49c2-a238-dd5c6f9e81bb	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-614a46aa-4f1f-4ba1-ac79-91232e1f4da8	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8ffc5529-73f0-460a-a9b0-8b60774a0621	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-52a1d234-fd81-4f5c-9244-92c585e4f9b9	f29af015-7833-4f9a-ac57-6fbef5bf91ec	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e8f52363-5ce6-410b-a2c5-f9cd379ac04d	f29af015-7833-4f9a-ac57-6fbef5bf91ec	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5a040e37-03df-4466-8dbc-64b9e61952e9	f29af015-7833-4f9a-ac57-6fbef5bf91ec	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ef1456ab-96ff-4898-b04e-5ea3cbf991fd	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-437ec6d6-59c3-42d6-8002-1ba98126165f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-720fb61b-d783-4e17-881e-b72e8c00b479	a0000000-0000-0000-0000-000000000001	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a2b794bb-0965-4229-9097-f20fce149450	a0000000-0000-0000-0000-000000000001	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-435bb6ec-31be-47f0-9210-55f631baee76	a0000000-0000-0000-0000-000000000001	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-743d31c1-2153-4f63-bda6-1f0f47172405	a0000000-0000-0000-0000-000000000001	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1011e764-f595-4cbd-8eed-ebb253c7f514	a0000000-0000-0000-0000-000000000001	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e80df9c5-7460-4b7a-acad-d4e619e60728	a0000000-0000-0000-0000-000000000001	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-71f0d089-649b-4f1f-bd50-71618a1a5eca	a0000000-0000-0000-0000-000000000001	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-a74f948c-961c-4f20-93c0-2d7dfcf43117	a0000000-0000-0000-0000-000000000001	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-be7bf3e3-7477-4baa-9dde-75ec590666c3	a0000000-0000-0000-0000-000000000001	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-74cdee1a-32a3-4369-b43e-066a534cdf10	a0000000-0000-0000-0000-000000000001	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-90252504-9837-44e4-992b-e031074690c0	a0000000-0000-0000-0000-000000000001	5a7389b3-43da-46bb-bbcb-729d889af05b	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-64f24450-804f-45cf-b110-44b66dd41779	a0000000-0000-0000-0000-000000000001	a016110f-ceeb-42f3-945b-58c9c5238984	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-9cc3e8aa-db5a-4513-a981-1f00ef567986	a0000000-0000-0000-0000-000000000001	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-eb3662f6-be09-4674-b75c-2c93bfc7d910	a0000000-0000-0000-0000-000000000001	a226a193-561a-49d5-9fcd-811ed5732c83	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5f02a105-db82-4cad-932d-5b049cf30621	a0000000-0000-0000-0000-000000000001	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-47611bec-3ece-4e79-bfb0-0417e8fc5b8b	a0000000-0000-0000-0000-000000000001	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-72e6985e-5fb2-4a02-b4de-e58367bf32a2	a0000000-0000-0000-0000-000000000001	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-51d14e2f-5e92-463c-9912-df9bab95c202	a0000000-0000-0000-0000-000000000001	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-b2e166dc-9be9-4d6e-9af1-9be40288a9fd	a0000000-0000-0000-0000-000000000001	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e499c3ed-e25f-48b3-8a82-690b0c0b56c7	a0000000-0000-0000-0000-000000000001	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-cd3b953b-34ed-4aa8-9b59-ead339e82581	a0000000-0000-0000-0000-000000000001	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1cc6361b-6293-4683-aeb6-ec7c33c80d7a	a0000000-0000-0000-0000-000000000001	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c1291c33-6fa0-47db-b87b-f64baffd3978	a0000000-0000-0000-0000-000000000001	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6a12580f-9978-41bd-ad6e-94086d5ec298	a0000000-0000-0000-0000-000000000001	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-88155a4c-af14-405e-9604-fcad613212e8	a0000000-0000-0000-0000-000000000001	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ae3f3a17-e3d2-4f88-8e2c-b0f816605a30	a0000000-0000-0000-0000-000000000001	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ba6245fa-42e2-4f6f-8dfe-3af7641370f5	a0000000-0000-0000-0000-000000000001	28545f25-9461-4a0a-a49d-f5b0a400a650	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-dfb6fe32-799d-42f9-82a5-2a7b5d881f72	a0000000-0000-0000-0000-000000000001	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-12945e29-fdf7-42c7-b6a6-e839e2054351	a0000000-0000-0000-0000-000000000001	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6c93eed0-33d8-4bf9-b949-90dd6bc6ac26	a0000000-0000-0000-0000-000000000001	0695a095-b1fb-4785-a346-6a7970bff92e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-d9d0293f-5880-4db4-a858-edee4b2dd743	a0000000-0000-0000-0000-000000000001	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-ef56b541-7d38-4be7-9b7d-5a3875878e0f	a0000000-0000-0000-0000-000000000001	810a9407-d878-4b50-ae22-879042f12ad3	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-579e10c5-3ad2-4643-a614-2cf4491b8f4b	a0000000-0000-0000-0000-000000000001	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-5f4daac8-47c9-4c71-96e0-e6f580a03e0a	a0000000-0000-0000-0000-000000000001	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-26b5e3f5-a59c-44aa-894c-3696c36f45a6	a0000000-0000-0000-0000-000000000001	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-010328ff-42a0-4604-980f-4bba369e4d47	a0000000-0000-0000-0000-000000000001	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-8fcc812c-53fe-4497-959d-304b69a7bee1	a0000000-0000-0000-0000-000000000001	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-847fb3ba-eada-4bba-ac1d-555adc4e88b6	a0000000-0000-0000-0000-000000000001	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-bbf4dd77-721c-4d40-961e-528437822e2e	a0000000-0000-0000-0000-000000000001	d9923931-5bd8-4633-94d1-e03381e9b218	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-3763c23e-90be-4e04-90f9-e702823ecf8b	a0000000-0000-0000-0000-000000000001	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-29e6777e-8b6b-40b7-b95f-8b11b1091569	a0000000-0000-0000-0000-000000000001	63ec4257-dc36-4f14-a617-bc8fe094258d	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6da07296-e27e-4dfb-ad7d-edb23781a803	a0000000-0000-0000-0000-000000000001	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-e38b067a-7faa-4ff8-8839-1f25a7d1b417	a0000000-0000-0000-0000-000000000001	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-6e47c62a-fbfb-451b-95ba-061bbfe8b550	a0000000-0000-0000-0000-000000000001	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-02f4b0e4-b540-418d-a3ff-08c3840f9aaa	a0000000-0000-0000-0000-000000000001	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c2ba35bf-0f45-4693-8cad-88c5947c69ce	a0000000-0000-0000-0000-000000000001	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-1414870c-b24e-47bc-aeb0-98bf9ec74a0e	a0000000-0000-0000-0000-000000000001	00b86fba-6eac-4606-8767-fc19de00e04f	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-c67d46fe-9da3-4e79-8579-2510624dbd40	a0000000-0000-0000-0000-000000000001	0a1091b3-ab51-4283-9835-6aa6582a089e	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
-24bcf12a-a908-40f3-9dda-eca9d93a4739	a0000000-0000-0000-0000-000000000001	74855d28-4b88-459f-a31c-0408eb26421a	1	1	2026-10-02 14:37:31.221288+05:30	\N	\N	\N	\N
+2c6d4ee9-6eca-4c9c-be4b-c43784819522	a5bfe265-981a-4723-b7bb-6ddc389db7f0	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4064825a-93eb-4c93-99a8-efe3c0eb6c96	a5bfe265-981a-4723-b7bb-6ddc389db7f0	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+42673339-9c4b-473a-9069-369e8077002d	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+451e834f-7ba2-4b98-afeb-812ee1d400bc	a5bfe265-981a-4723-b7bb-6ddc389db7f0	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4bf6fe67-f82b-4b4c-8892-b072fb4b4d1d	a5bfe265-981a-4723-b7bb-6ddc389db7f0	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+57733735-905f-4ac8-a501-4524d5793ba4	a5bfe265-981a-4723-b7bb-6ddc389db7f0	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+58bd4ab8-b553-49b3-b218-d9aaa829e3d9	a5bfe265-981a-4723-b7bb-6ddc389db7f0	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5d786d04-ec1f-46c9-a85a-9de5de674ff7	a5bfe265-981a-4723-b7bb-6ddc389db7f0	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7239248e-4bce-46ed-925e-a2267accd3d9	a5bfe265-981a-4723-b7bb-6ddc389db7f0	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+744197e2-72bc-4343-bfb4-20f766af3bcf	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+75de1259-3aa6-4002-882d-ba88654b9028	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a016110f-ceeb-42f3-945b-58c9c5238984	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+791cb93e-0273-40fd-aa5b-f4b080fe4076	a5bfe265-981a-4723-b7bb-6ddc389db7f0	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7c65dc91-887f-4748-9d13-9cdb1b82c2e5	a5bfe265-981a-4723-b7bb-6ddc389db7f0	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7e997823-82ba-4edd-8143-8bfeedb7d073	a5bfe265-981a-4723-b7bb-6ddc389db7f0	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+829194f3-d676-42a5-8941-422bde5344d0	a5bfe265-981a-4723-b7bb-6ddc389db7f0	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8a82ff80-6044-421f-bb9f-855987a9f634	a5bfe265-981a-4723-b7bb-6ddc389db7f0	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+92e5431b-1988-4143-8fec-991df179e4e4	a5bfe265-981a-4723-b7bb-6ddc389db7f0	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9741733e-d501-40c1-a16a-366aa42fceed	a5bfe265-981a-4723-b7bb-6ddc389db7f0	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+975de0dc-3eda-4c85-9fd3-935cf64c0d2a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a7e1516b-5421-48e4-ba20-3900be0fe74f	a5bfe265-981a-4723-b7bb-6ddc389db7f0	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ac7269c6-af18-4f45-bc78-827e67f917c8	a5bfe265-981a-4723-b7bb-6ddc389db7f0	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b67ba8f7-71a0-44bf-abd4-d36ec01e01e5	a5bfe265-981a-4723-b7bb-6ddc389db7f0	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c9cdd806-494f-4180-82bf-1394de3af00c	a5bfe265-981a-4723-b7bb-6ddc389db7f0	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+122e1662-4258-4c68-9333-e4476df74d8c	a5bfe265-981a-4723-b7bb-6ddc389db7f0	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+24eba4c3-1305-4453-a3fa-417a65d8eee8	a5bfe265-981a-4723-b7bb-6ddc389db7f0	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+25ddfbe8-284c-43fb-b3de-bc069d1f034d	a5bfe265-981a-4723-b7bb-6ddc389db7f0	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+299119c7-8bb3-403c-9381-6061c30f35ba	a5bfe265-981a-4723-b7bb-6ddc389db7f0	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f007d1a9-8a33-4a69-b193-03775c21e821	29ad5710-1621-4c24-ac75-dedfc168ba1a	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f9257c36-63e2-463e-aeaa-ed6611f9c993	29ad5710-1621-4c24-ac75-dedfc168ba1a	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+fa6dd9c4-ddeb-42b6-a35e-04cf4eb8abd3	29ad5710-1621-4c24-ac75-dedfc168ba1a	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+09ba7d51-5320-47b4-9bd2-5a72d9f209e5	a5bfe265-981a-4723-b7bb-6ddc389db7f0	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+124aa71d-6402-4358-af21-d6dfc3da832c	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2f6422d4-6f41-463e-a9ed-dd560624510f	a5bfe265-981a-4723-b7bb-6ddc389db7f0	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+3bb799a7-94ab-4010-83c5-69dde875f767	a5bfe265-981a-4723-b7bb-6ddc389db7f0	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4a154ac7-d33b-4b79-891f-4200caeb3f71	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4f449dea-f763-4c9b-a427-e5ad188220ed	a5bfe265-981a-4723-b7bb-6ddc389db7f0	b1b803ec-f626-44c8-bfb2-97cd61795374	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+55fb52a0-f17e-491c-b590-daaee157bc42	a5bfe265-981a-4723-b7bb-6ddc389db7f0	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+643970cd-1cd5-4a60-93cb-00620143c53a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6e2c466e-fb01-44f2-9c13-acba791edd40	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+72c52065-21c9-4374-ab6f-d04a057dd4b3	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+78cda90f-0b20-47ad-978c-9b0b68372a44	a5bfe265-981a-4723-b7bb-6ddc389db7f0	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a59e06bc-eca3-41f8-9646-0a793dfa7b5a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+866be478-e2ec-41f3-8098-771b38b18967	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c276413f-8612-41b1-8551-487d88705879	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+07c557b4-7382-4006-808c-ef81efea9589	29ad5710-1621-4c24-ac75-dedfc168ba1a	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0f102d23-8c93-4bfc-b3ec-8e7d54deb5e4	29ad5710-1621-4c24-ac75-dedfc168ba1a	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1cd111ad-7447-4f43-b180-9523f7c4fd2b	29ad5710-1621-4c24-ac75-dedfc168ba1a	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+22caccac-f75c-4f5c-9451-eb2aeacf895b	29ad5710-1621-4c24-ac75-dedfc168ba1a	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+297afd65-2866-4538-b0e6-6366c37b79bd	29ad5710-1621-4c24-ac75-dedfc168ba1a	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2cb10bd9-9f49-4678-9ed8-d17e3e6007c2	29ad5710-1621-4c24-ac75-dedfc168ba1a	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+445c7f5e-868d-4201-87f2-6952c7a2b09a	29ad5710-1621-4c24-ac75-dedfc168ba1a	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+47ba80e5-f517-4380-a3d9-1bdd7c4b0303	29ad5710-1621-4c24-ac75-dedfc168ba1a	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+483ac487-45eb-4c2f-8aea-213bae41c7b7	29ad5710-1621-4c24-ac75-dedfc168ba1a	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4b8b95a3-71ae-48eb-89a7-3087aff30011	29ad5710-1621-4c24-ac75-dedfc168ba1a	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4d528473-92b4-470f-a6ed-317b9eea544f	29ad5710-1621-4c24-ac75-dedfc168ba1a	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+501412e0-b28a-4b60-b19a-8263a731244f	29ad5710-1621-4c24-ac75-dedfc168ba1a	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+54e8a34e-4062-493f-b7fb-9ffa35622a0b	29ad5710-1621-4c24-ac75-dedfc168ba1a	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5838c23f-1138-4129-899f-512ce86cf69b	29ad5710-1621-4c24-ac75-dedfc168ba1a	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5aa9e001-6c31-42e8-908d-fac1d41d7c6a	29ad5710-1621-4c24-ac75-dedfc168ba1a	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+65137378-327e-411a-be03-b30962b8a405	29ad5710-1621-4c24-ac75-dedfc168ba1a	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+66bb8fce-3bd7-4dc4-9051-7ca2e384ced0	29ad5710-1621-4c24-ac75-dedfc168ba1a	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6ec60553-9e73-40b3-848c-cc265bddcb79	29ad5710-1621-4c24-ac75-dedfc168ba1a	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7672a19e-6aba-46db-982a-f57faf46950d	29ad5710-1621-4c24-ac75-dedfc168ba1a	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+76c5f574-8ef3-4e1c-9a49-088cb17cb9a6	29ad5710-1621-4c24-ac75-dedfc168ba1a	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8bfce30b-441d-4ecd-8400-4dc23dc0efcc	29ad5710-1621-4c24-ac75-dedfc168ba1a	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+98a876b7-d1f3-435b-889f-8a530a22366c	29ad5710-1621-4c24-ac75-dedfc168ba1a	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9e9569de-ebe3-4ae8-95fc-ad682e44b269	29ad5710-1621-4c24-ac75-dedfc168ba1a	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a0a7d6fe-1970-44cc-ba8d-574f50aa2e17	29ad5710-1621-4c24-ac75-dedfc168ba1a	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ac7d6aa1-f87d-4852-87f6-2a1432e05f4a	29ad5710-1621-4c24-ac75-dedfc168ba1a	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ba260637-40be-4899-966e-d941d58e86b9	29ad5710-1621-4c24-ac75-dedfc168ba1a	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+bd341c4f-e866-40e3-a29e-c75173764476	29ad5710-1621-4c24-ac75-dedfc168ba1a	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+bd7c60ea-d192-4e1c-b4c9-d364386fd0b4	29ad5710-1621-4c24-ac75-dedfc168ba1a	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c08ae209-ae92-42af-8f47-b296e3fb1481	29ad5710-1621-4c24-ac75-dedfc168ba1a	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c11ea748-4ab5-4fcb-85e1-1150a4155f09	29ad5710-1621-4c24-ac75-dedfc168ba1a	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c3751e61-c360-4673-b857-6365ebbcbcd0	29ad5710-1621-4c24-ac75-dedfc168ba1a	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+cf479d7d-61e3-486d-bc4d-76a18f94664d	29ad5710-1621-4c24-ac75-dedfc168ba1a	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d06c4843-81a0-43b6-ae7e-f94f115228b6	29ad5710-1621-4c24-ac75-dedfc168ba1a	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d1b71f68-29b3-4597-a5e5-f206dfdff2a6	29ad5710-1621-4c24-ac75-dedfc168ba1a	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d32a2716-270d-4ec6-921f-a5b046cc43a3	29ad5710-1621-4c24-ac75-dedfc168ba1a	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d9114353-9eea-42d4-814e-b2d0897c14da	29ad5710-1621-4c24-ac75-dedfc168ba1a	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d92677d7-1129-462b-8b59-531953b01504	29ad5710-1621-4c24-ac75-dedfc168ba1a	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e9bf6bc1-ca76-4eac-9595-ade16b3437ea	29ad5710-1621-4c24-ac75-dedfc168ba1a	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0089895d-3aab-436a-8b9d-45ecbab43336	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+066fd70b-c2d7-4286-9d6d-555c4bc73a31	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0963e36b-fa6c-4586-8427-a707912a720a	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0a34cb98-c9b3-4b5c-9bc2-da232594808a	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0be5149e-0ea8-415c-a149-7e3a21652990	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+14bbb373-5ed5-4b98-be29-dd6dc855fb13	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2a9ed38b-18fc-4b18-9049-3962183110e4	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+3d12cac1-27d9-4989-8732-0dcca84a2fac	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4634ebde-345f-4071-95b1-2fb32eb35075	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+541257db-131b-4a5d-a6b8-68a06e0c674f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+577b57db-1f4c-4748-b97d-998fc81eac07	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5d08cc76-2249-4d8c-9bdc-e1c2a14099ff	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+621cd89b-c7cb-4ca0-abc9-89feb74b6b22	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+654e719b-4485-47c5-a428-b63d3a79b4d5	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6909336d-adb3-44f2-a1f9-7cd0bef7e24f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6bbf6794-a2c8-453a-a254-f0bbd056d82f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6c72d84e-40ac-419e-a804-a1bea14a9ee2	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+728a707c-a920-49e4-84c5-b4f41084b868	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+73262df8-96a1-43c3-bbef-277fb337a7e5	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+75c58b0f-5a4e-497c-9613-4bd083d5a446	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+80207928-47c4-41d4-b2ed-14579c63088d	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+84fce58b-8dd6-42ab-a17a-c72575a440f3	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+85d2629e-e164-42c3-97c8-9589c5a9c271	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+918a4296-815d-4830-8db3-6e41ac9cc5e5	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+91d90172-d397-4e2d-a991-429149552056	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+926f4605-4ae1-49ab-8815-5007c5464d0a	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+93c07628-3598-4388-b3b2-002a3e2aacbd	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+93ec9181-af8c-4940-82c2-93b0c3d22dda	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9524dc6c-7048-48f3-bf89-f954787fa6ba	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9560f63e-a407-473f-aed2-00b6398201dd	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9aa7836a-27bd-4219-b5b2-b280334ca96d	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9cdc1bd6-84d8-4f88-9bba-18165cebb176	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9fbb8c44-cd64-40cf-bcd2-373309218c62	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ac109407-4001-49f3-9a5a-5e113189e2ca	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ad7661ce-d319-488a-8593-1fead819c2a8	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ad91c43f-df92-46de-9523-7723fad5d594	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b073f317-fc89-445a-acca-529c45e97b47	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b19ba9ab-7f02-45ad-a3f6-53f7b37d9e0b	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b720ec75-025e-45fa-b15d-0eb5eaec82e4	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c04613c3-2928-4504-b07d-44dd8102dba6	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c308c29e-52aa-474a-afd5-cee4520d21ee	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c4bcf234-8dc8-4bd6-a29f-48867427a8e7	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c9d913dc-3495-4b43-bb95-0d7e4cc75082	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d0f5e55d-60e4-448c-b8a4-8092ca680353	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+da5a5804-f93f-4d1c-b4c1-968b09397a64	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e3793b30-00eb-4cac-988b-bf74cf66fba2	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e532830f-9bff-488a-ace4-49aef6eef24c	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e57abc8a-a056-46f9-876b-c39adf207acd	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+efccabdb-e1e7-4563-b4ca-e9c771967f52	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:45:45.168254+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+91ff2774-3008-483e-b4db-ad4cd9c87c5b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+72d35f5c-85ab-493c-8ec8-c64b8afebd73	cd2a32ed-32fc-47bc-88a9-e6fc48863869	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b9e2746c-d0c6-419d-a52f-23b981fc4cba	914d8500-03b6-4a43-a250-244effca1cf1	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+650875e2-8537-46ac-a0bd-1d57e238632d	914d8500-03b6-4a43-a250-244effca1cf1	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2edc4384-26b1-42cb-aea2-45c280299019	914d8500-03b6-4a43-a250-244effca1cf1	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0715e2c2-e98a-467b-9abc-e85eccc76af0	914d8500-03b6-4a43-a250-244effca1cf1	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+780a0358-5802-4ec1-aea9-fee5b4b57f60	914d8500-03b6-4a43-a250-244effca1cf1	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3df5b1f5-9669-4bac-90c4-5873d4c788d6	914d8500-03b6-4a43-a250-244effca1cf1	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6bdac036-159a-4350-99bb-6b816a29a5f5	914d8500-03b6-4a43-a250-244effca1cf1	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cf461f8f-8ccb-400e-8df5-51a9f27da045	914d8500-03b6-4a43-a250-244effca1cf1	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+60b53cd7-3b37-43ed-b9cc-9651c0f104e5	914d8500-03b6-4a43-a250-244effca1cf1	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+451ab12f-23c5-4b4f-9d2e-c56ec3e7d8f3	914d8500-03b6-4a43-a250-244effca1cf1	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3ccdce6c-6b12-4188-a37c-ea076719bbd3	914d8500-03b6-4a43-a250-244effca1cf1	5a7389b3-43da-46bb-bbcb-729d889af05b	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+48937dd4-ee3d-4044-b1fb-92aad7c96d47	914d8500-03b6-4a43-a250-244effca1cf1	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5ad79401-2315-458f-83bd-cd0ccb2207db	914d8500-03b6-4a43-a250-244effca1cf1	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+957431e9-9eab-485c-9a91-5f9e845baf51	914d8500-03b6-4a43-a250-244effca1cf1	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ecd3e776-8ab1-4865-a48b-18c3ea80454e	914d8500-03b6-4a43-a250-244effca1cf1	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3ada8f56-4bce-4e69-96da-364b00dff502	914d8500-03b6-4a43-a250-244effca1cf1	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cbd01f9c-c66b-458e-8be0-1cf5edbc563c	914d8500-03b6-4a43-a250-244effca1cf1	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f29b2fdd-1f92-4c91-923b-a2b056f2e341	914d8500-03b6-4a43-a250-244effca1cf1	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f9372fc1-9ee0-460d-b078-36d88f8c89cc	914d8500-03b6-4a43-a250-244effca1cf1	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3c475bfc-175c-470b-a4d0-7ce44a32c0c0	914d8500-03b6-4a43-a250-244effca1cf1	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cc05a32b-c9fd-49a2-8dd0-935be419da0d	914d8500-03b6-4a43-a250-244effca1cf1	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0c07df16-8b48-4969-8b8b-550b5d48cd9c	914d8500-03b6-4a43-a250-244effca1cf1	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+803d4943-e01d-4ad1-b9d9-72a133fc0a1d	914d8500-03b6-4a43-a250-244effca1cf1	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e511f251-95cb-4082-8818-981a8fac6298	914d8500-03b6-4a43-a250-244effca1cf1	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5b8c7c4a-9fcc-41fc-b988-fcb0c68fe1eb	914d8500-03b6-4a43-a250-244effca1cf1	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+057cba14-c06a-45fe-b4d3-48381bce8008	914d8500-03b6-4a43-a250-244effca1cf1	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+74cb5abc-a282-4a6d-b8c1-1bfffa2ff949	914d8500-03b6-4a43-a250-244effca1cf1	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+10517d03-b6fa-49e5-8419-1a65b21fd2af	914d8500-03b6-4a43-a250-244effca1cf1	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c64ee840-1e55-4797-bc10-954e663fea88	914d8500-03b6-4a43-a250-244effca1cf1	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+158dca81-43a0-4884-8164-9361c88c9b1f	914d8500-03b6-4a43-a250-244effca1cf1	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ca64f6f3-e6c8-433e-a5b8-018e0f7496a4	a5bfe265-981a-4723-b7bb-6ddc389db7f0	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d247ea7c-d48d-43d8-89e2-2e6dc3012e57	a5bfe265-981a-4723-b7bb-6ddc389db7f0	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d6bcf095-465a-4473-a527-973eb85ca8b8	a5bfe265-981a-4723-b7bb-6ddc389db7f0	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e33e2dcc-0281-474a-994f-eb9525d75cc3	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f592dff3-4a32-4d49-b751-8685211fa6d6	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f706cbb8-6c69-432c-97c0-36abad985809	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6b5a5f8c-1673-4b09-b222-05dcda753b58	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a226a193-561a-49d5-9fcd-811ed5732c83	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+80c2ed4a-9a39-495e-a579-0e7ebc003496	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f683d924-de18-4213-98e7-b79f31f5d5c3	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a0cfcc92-8854-438c-8613-8e5ced0a69ab	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9583bab1-5ae4-41da-b614-566e721169a6	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7b89c5ba-cf81-4fde-8272-779cc976f6c1	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9271ab8c-720e-4cfd-ba4d-cab4c72b2ccc	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f5481555-3241-4fcd-b1f3-29a67749aa4f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d55771ac-2ea2-4b02-ad13-97547dc2e5ef	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e9bd89f9-1199-4982-bcc0-9437cbdfb1ac	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+481ba8bd-e464-4bff-b595-0a72e0aa364c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1dbebfc2-5604-41e3-a77a-8011485e8c6e	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d6448c0f-61a6-4101-95c8-63a1b2ab6004	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f94b2899-6038-41f2-8a8c-e46f95c6040f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6f0ca6ef-1637-400e-ba25-e7617fcea272	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+eb593202-a4c5-4037-9e0e-a0453d564547	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2d440415-d6cf-4b76-9580-f66d0a8cdb51	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e64f6c5d-d3d0-415f-8634-a907f7a12177	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+82acfba9-5118-4375-a1cd-9749928b6438	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1af08d15-c378-4e23-acb6-1e1dee49842c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+52bcce99-6304-484a-b25c-8ff39d9ec01c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e1fb7eba-e79a-493a-b210-c934a12277a6	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+274f66e5-22d2-44a8-b66f-d60b416e092c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ca1134e8-d094-436f-8588-e0e529e4f3e9	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8e38dfb6-953f-4965-bd71-a99d3cb9b51e	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+956559c2-e511-42af-bad6-6e132e8aff95	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+647bb882-e99e-43f2-8417-fdea104de3cc	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+94ab337b-9e21-444b-ab74-14192e98686d	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	63ec4257-dc36-4f14-a617-bc8fe094258d	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+40e7b2b7-d65e-4f89-b74b-9691c5496f85	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+34131ab6-3a9b-449d-a7bb-2a765fd23dc3	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+79b52bf1-c7ef-4f53-85f2-a8c81335d207	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8d42e73f-de9e-44e4-b9c0-9edbc412c767	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8ebfa61d-687f-4de0-b853-3ed9fbec4a41	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cec97cff-1bca-40ee-9beb-92a132d7d3b0	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	00b86fba-6eac-4606-8767-fc19de00e04f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3dbbd716-a4cb-48d8-b26b-6b6dc81b4837	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ba426e9e-f74e-49a3-91cb-36dc9fd8543d	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dce8af54-17f2-4a5e-be54-d1d3092c3993	bb568e26-548b-4ca5-9221-fefb9c9143b3	a226a193-561a-49d5-9fcd-811ed5732c83	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e00a36fb-ce0a-4b84-b8ac-015d07978f8b	bb568e26-548b-4ca5-9221-fefb9c9143b3	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e28c2412-91aa-479e-9344-aab1dc0daeb0	bb568e26-548b-4ca5-9221-fefb9c9143b3	c69af742-1b39-4c84-a7ff-018e808e6973	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e4e2ebad-96ae-43ce-9e2d-7fe3376150a7	bb568e26-548b-4ca5-9221-fefb9c9143b3	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e649778c-6d28-4a98-ab2a-96cb8c7f6b52	bb568e26-548b-4ca5-9221-fefb9c9143b3	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e682d9e7-1e63-445d-99ee-514d5d0379b1	bb568e26-548b-4ca5-9221-fefb9c9143b3	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ea32f827-0922-4948-9918-784caaec4272	bb568e26-548b-4ca5-9221-fefb9c9143b3	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f61fc641-560c-4f4f-9feb-b4bad1febb6a	bb568e26-548b-4ca5-9221-fefb9c9143b3	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+fbab5a2c-3686-45a8-aee4-a733bcdfd538	bb568e26-548b-4ca5-9221-fefb9c9143b3	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ee1ac85e-368f-451f-a88f-8b2c487dc6dc	f5c742d1-e0cc-4bf8-b860-a673ac407393	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+eac1a62d-b8e3-41c2-9262-1d2c930de9d0	f5c742d1-e0cc-4bf8-b860-a673ac407393	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9158de1d-9ae4-49e0-9077-63d9649ab1d6	f5c742d1-e0cc-4bf8-b860-a673ac407393	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6da2c897-fce1-41df-94a8-a1e58824c470	f5c742d1-e0cc-4bf8-b860-a673ac407393	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0bda30e0-82c2-47bc-91fe-f979598d87e4	bb568e26-548b-4ca5-9221-fefb9c9143b3	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1853da6e-f85d-43ad-a74b-78687416f6a5	bb568e26-548b-4ca5-9221-fefb9c9143b3	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1be21bb9-6727-4d63-a440-36f80cf51e40	bb568e26-548b-4ca5-9221-fefb9c9143b3	40f046e7-e4ec-4289-ae56-b44d8193ed5a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+22659ce1-99e5-4faf-af0b-faa30be6d7ce	bb568e26-548b-4ca5-9221-fefb9c9143b3	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+28d8b725-ce12-4d6f-b0a3-46eba1e551af	bb568e26-548b-4ca5-9221-fefb9c9143b3	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2c97e906-9ad7-4034-84a0-3e5c33d18957	bb568e26-548b-4ca5-9221-fefb9c9143b3	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+3255f47a-d3e6-4264-9924-5a65aa2b3270	bb568e26-548b-4ca5-9221-fefb9c9143b3	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+32b115fc-2bdb-426f-9edd-785756aba18e	bb568e26-548b-4ca5-9221-fefb9c9143b3	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+36ce67af-5ef3-4f29-9418-96ccdec3bd44	bb568e26-548b-4ca5-9221-fefb9c9143b3	d9923931-5bd8-4633-94d1-e03381e9b218	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+3d663c7c-b013-4a0a-b8f7-a3f538a03ec6	bb568e26-548b-4ca5-9221-fefb9c9143b3	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+42a0e418-88ef-47e2-b0a9-75366b9a0fdc	bb568e26-548b-4ca5-9221-fefb9c9143b3	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5016eb24-e4d9-4733-80f3-ab264397f4c3	bb568e26-548b-4ca5-9221-fefb9c9143b3	e0b823d8-b851-4f5e-8043-13b9f4d73368	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5046b7f1-006a-4544-8f0d-2d95d67d07a9	bb568e26-548b-4ca5-9221-fefb9c9143b3	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+53870d2b-710f-4601-a8a9-52d17f3ec105	bb568e26-548b-4ca5-9221-fefb9c9143b3	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+584bc02a-ce06-403f-a8c5-249fc23b6642	bb568e26-548b-4ca5-9221-fefb9c9143b3	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5deab631-c9e8-4b42-a8ef-18a7ef35f9ac	bb568e26-548b-4ca5-9221-fefb9c9143b3	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+64897e21-16e4-4584-9c46-8dd167acc9c5	bb568e26-548b-4ca5-9221-fefb9c9143b3	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+67f0802d-efa0-4fd9-b21f-01f74264ad18	bb568e26-548b-4ca5-9221-fefb9c9143b3	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+68068af5-1f2f-4c79-90ad-662af0debda3	bb568e26-548b-4ca5-9221-fefb9c9143b3	b1b803ec-f626-44c8-bfb2-97cd61795374	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6d408dfc-bce8-4882-8240-14b1bd4dd311	bb568e26-548b-4ca5-9221-fefb9c9143b3	74855d28-4b88-459f-a31c-0408eb26421a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+71f3d6d5-1495-4e7e-8294-584e7fc97df6	bb568e26-548b-4ca5-9221-fefb9c9143b3	63ec4257-dc36-4f14-a617-bc8fe094258d	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+751e9523-75cc-4db4-868a-38a899b56787	bb568e26-548b-4ca5-9221-fefb9c9143b3	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+80784f7d-c8b0-48eb-9137-6380f1426182	bb568e26-548b-4ca5-9221-fefb9c9143b3	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8d45f84f-5a0e-4c4f-86db-3d8d834eaa54	bb568e26-548b-4ca5-9221-fefb9c9143b3	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a2b1af6e-cfad-45ef-a0ba-4cd4eafb550f	bb568e26-548b-4ca5-9221-fefb9c9143b3	00b86fba-6eac-4606-8767-fc19de00e04f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ac9ef365-5876-4c9d-ab9d-eb810c7354db	bb568e26-548b-4ca5-9221-fefb9c9143b3	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b686dd2c-4859-4bd0-aa54-1d7e549c46c2	bb568e26-548b-4ca5-9221-fefb9c9143b3	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c0ac4d85-1257-49c5-8f2a-c07db5702d81	bb568e26-548b-4ca5-9221-fefb9c9143b3	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c4d6991a-ac79-4f6e-954c-622a92da2399	bb568e26-548b-4ca5-9221-fefb9c9143b3	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c65a98b2-1751-4c46-b940-db33c7ccdfea	bb568e26-548b-4ca5-9221-fefb9c9143b3	0a1091b3-ab51-4283-9835-6aa6582a089e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+cf5f89eb-2e81-48ec-bbe7-6eec37e7e4e5	bb568e26-548b-4ca5-9221-fefb9c9143b3	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d57e8b7d-f065-48e3-9ccf-2c55586303fc	bb568e26-548b-4ca5-9221-fefb9c9143b3	810a9407-d878-4b50-ae22-879042f12ad3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c375fd5a-6267-4e80-bc8b-55c94e517a6e	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6f1b5226-50e7-4b02-a12c-d61255dbdf14	bb568e26-548b-4ca5-9221-fefb9c9143b3	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+71fadd9a-16d5-4cf3-9d51-2ca2c0ed89c8	bb568e26-548b-4ca5-9221-fefb9c9143b3	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8ef3679a-a5d6-4b81-9388-7fc5d6781400	bb568e26-548b-4ca5-9221-fefb9c9143b3	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+98206977-d931-4e42-80f8-b0d53250f908	bb568e26-548b-4ca5-9221-fefb9c9143b3	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9a770f0b-323b-453d-a308-eca58aa324b6	bb568e26-548b-4ca5-9221-fefb9c9143b3	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a30c33df-0782-446f-a09e-301be563de8f	bb568e26-548b-4ca5-9221-fefb9c9143b3	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b353cfde-db11-4a35-95bd-04126ceef039	bb568e26-548b-4ca5-9221-fefb9c9143b3	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c32fdcb0-f37c-4040-8bcd-f382017e35d2	bb568e26-548b-4ca5-9221-fefb9c9143b3	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 18:10:49.069228+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+29a2cec0-6989-4f17-bc56-a08fc0ca76a5	efc1df20-ca04-44a6-87b2-7cae1ff50a88	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+76c0253a-aff2-471f-a174-6d23494ba8fe	efc1df20-ca04-44a6-87b2-7cae1ff50a88	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3577cd76-69b4-4121-85c2-089e876916c2	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fa827a93-63ed-4ec0-a1d8-92d09539aa93	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ddfb88d1-cff5-4e1b-9690-6ee7a6a6e4c6	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e390bcb3-9256-47b9-b328-9943ec4d7d25	efc1df20-ca04-44a6-87b2-7cae1ff50a88	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6d1e2445-084d-4a38-ac29-fded005ab021	efc1df20-ca04-44a6-87b2-7cae1ff50a88	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+042e6c3f-6c80-4c3c-81d9-dcc93db5811b	efc1df20-ca04-44a6-87b2-7cae1ff50a88	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d4518975-9cf0-43c2-a97c-70d46e05c914	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+db34ae4f-6391-49a0-ac62-d902ef52250d	efc1df20-ca04-44a6-87b2-7cae1ff50a88	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ef8dba2c-6cbd-4354-b9ab-4716e7b4da56	c787fe3b-4b33-40ee-8794-c1148202f81a	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5b5d6c11-cdf4-4a3c-9cd6-23793525ee36	c787fe3b-4b33-40ee-8794-c1148202f81a	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+659de580-3eb2-476b-9f02-646a3dbfcdbe	c787fe3b-4b33-40ee-8794-c1148202f81a	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d459f4e6-b088-4f92-9dde-1f2568a20b0d	c787fe3b-4b33-40ee-8794-c1148202f81a	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5b1df658-061c-442e-ad2a-a3ed157fb86d	c787fe3b-4b33-40ee-8794-c1148202f81a	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+391a8b2b-99a6-4e7a-9b58-03c5abb24f0c	c787fe3b-4b33-40ee-8794-c1148202f81a	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a73a3d2b-0d25-4d01-86ab-59bc0ad361a4	c787fe3b-4b33-40ee-8794-c1148202f81a	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0a0a1031-5e2a-4c8c-b915-837fe47c02fd	c787fe3b-4b33-40ee-8794-c1148202f81a	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ca68816f-37bd-4cd4-8067-193f2df84d5a	c787fe3b-4b33-40ee-8794-c1148202f81a	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+26d8eb90-7b8d-454a-9669-cab08f17b7b1	c787fe3b-4b33-40ee-8794-c1148202f81a	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+046b290b-6c12-4f6d-83ca-15bfb12263dd	62a927b7-9fd8-461a-b64e-1aa441eeba4d	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1496584c-e3e7-4a09-8b90-5559a9ca9f7f	62a927b7-9fd8-461a-b64e-1aa441eeba4d	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+02a80a02-837b-4f03-be9d-c94cb93d0092	62a927b7-9fd8-461a-b64e-1aa441eeba4d	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+13483a6a-50ff-4f2b-8248-761532b91ea2	62a927b7-9fd8-461a-b64e-1aa441eeba4d	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+720fb61b-d783-4e17-881e-b72e8c00b479	a0000000-0000-0000-0000-000000000001	6d278091-4576-4bc6-8d47-2a1925436089	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a2b794bb-0965-4229-9097-f20fce149450	a0000000-0000-0000-0000-000000000001	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+435bb6ec-31be-47f0-9210-55f631baee76	a0000000-0000-0000-0000-000000000001	9464495c-36b2-4c10-9c2f-9b596e6841df	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+743d31c1-2153-4f63-bda6-1f0f47172405	a0000000-0000-0000-0000-000000000001	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1011e764-f595-4cbd-8eed-ebb253c7f514	a0000000-0000-0000-0000-000000000001	56c1f856-a42d-45c5-a2c8-6041f0080167	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e80df9c5-7460-4b7a-acad-d4e619e60728	a0000000-0000-0000-0000-000000000001	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+71f0d089-649b-4f1f-bd50-71618a1a5eca	a0000000-0000-0000-0000-000000000001	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a74f948c-961c-4f20-93c0-2d7dfcf43117	a0000000-0000-0000-0000-000000000001	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+be7bf3e3-7477-4baa-9dde-75ec590666c3	a0000000-0000-0000-0000-000000000001	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+74cdee1a-32a3-4369-b43e-066a534cdf10	a0000000-0000-0000-0000-000000000001	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+90252504-9837-44e4-992b-e031074690c0	a0000000-0000-0000-0000-000000000001	5a7389b3-43da-46bb-bbcb-729d889af05b	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+64f24450-804f-45cf-b110-44b66dd41779	a0000000-0000-0000-0000-000000000001	a016110f-ceeb-42f3-945b-58c9c5238984	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9cc3e8aa-db5a-4513-a981-1f00ef567986	a0000000-0000-0000-0000-000000000001	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+eb3662f6-be09-4674-b75c-2c93bfc7d910	a0000000-0000-0000-0000-000000000001	a226a193-561a-49d5-9fcd-811ed5732c83	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5f02a105-db82-4cad-932d-5b049cf30621	a0000000-0000-0000-0000-000000000001	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+47611bec-3ece-4e79-bfb0-0417e8fc5b8b	a0000000-0000-0000-0000-000000000001	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+72e6985e-5fb2-4a02-b4de-e58367bf32a2	a0000000-0000-0000-0000-000000000001	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+51d14e2f-5e92-463c-9912-df9bab95c202	a0000000-0000-0000-0000-000000000001	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b2e166dc-9be9-4d6e-9af1-9be40288a9fd	a0000000-0000-0000-0000-000000000001	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e499c3ed-e25f-48b3-8a82-690b0c0b56c7	a0000000-0000-0000-0000-000000000001	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+aa720287-fcfa-4e11-afc3-f9dcc8a553c0	62a927b7-9fd8-461a-b64e-1aa441eeba4d	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7b6f70a1-00c2-42ae-acf9-bcdb3c3cf683	62a927b7-9fd8-461a-b64e-1aa441eeba4d	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f0842794-2a17-4e2b-9798-770f90ecf200	62a927b7-9fd8-461a-b64e-1aa441eeba4d	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d50ec060-c622-4338-9953-3bd692bc53fc	62a927b7-9fd8-461a-b64e-1aa441eeba4d	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a128a6dd-b486-4ded-b90e-295418b156db	62a927b7-9fd8-461a-b64e-1aa441eeba4d	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b711920f-06c0-4182-a21d-123f83f7b0ed	62a927b7-9fd8-461a-b64e-1aa441eeba4d	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b37b30cf-aa11-4f47-bc05-a5dc02ad0075	62a927b7-9fd8-461a-b64e-1aa441eeba4d	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+3010bf79-0a97-4f09-95ae-96a7da607272	62a927b7-9fd8-461a-b64e-1aa441eeba4d	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8c9981aa-e41c-4c3e-8aa4-18f4276c3bf9	62a927b7-9fd8-461a-b64e-1aa441eeba4d	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+89130297-bbb2-41c9-ab57-7a2ae34d91ac	62a927b7-9fd8-461a-b64e-1aa441eeba4d	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+87ca93ac-a9e4-46c0-a727-96fc693a80bc	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a016110f-ceeb-42f3-945b-58c9c5238984	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2dab3d1a-44c4-432e-9473-679550dab8d1	62a927b7-9fd8-461a-b64e-1aa441eeba4d	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2db141f9-1ffd-4bea-a731-afe046ee16a0	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d761e549-2738-4e5f-a0a6-dbdfcc046fb5	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+fc975b74-79b1-4b4b-9133-9bff6547c5d1	62a927b7-9fd8-461a-b64e-1aa441eeba4d	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2478301a-113b-4c2b-8a99-51fb4cedfdf2	62a927b7-9fd8-461a-b64e-1aa441eeba4d	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+17a7c2b0-63c9-4e14-8558-c9efad6dc2ed	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+002fd806-8551-4758-9dd7-4c73cb0dfe5b	a5023c9e-367f-41e1-ba02-bdb2929edc89	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+242b1717-d0ca-4614-bf1f-d6800809e84d	a5023c9e-367f-41e1-ba02-bdb2929edc89	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+33dfa745-a889-4eb3-8496-5dd588362bd8	a5023c9e-367f-41e1-ba02-bdb2929edc89	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0c65805c-9823-4868-a235-0f9028eadc06	a5023c9e-367f-41e1-ba02-bdb2929edc89	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0f29aa9a-10e7-4dcc-af25-df5b2340e4ea	a5023c9e-367f-41e1-ba02-bdb2929edc89	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1ad04a48-545d-4ee7-8bf1-f812edbe34ca	a5023c9e-367f-41e1-ba02-bdb2929edc89	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+15fd3d8f-c10d-4d64-9f76-7fe8001bc830	a5023c9e-367f-41e1-ba02-bdb2929edc89	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1508f662-298f-45ae-9631-6e284d170c74	a5023c9e-367f-41e1-ba02-bdb2929edc89	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+306a18d3-cb05-456b-87ac-99336501c4e7	a5023c9e-367f-41e1-ba02-bdb2929edc89	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+40f187d6-260f-4e2e-b338-9d8fabd1e8fe	a5023c9e-367f-41e1-ba02-bdb2929edc89	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+334ea3b4-4f84-4875-8336-81a0ca1cbd5c	a5023c9e-367f-41e1-ba02-bdb2929edc89	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+77a22be4-584d-47a5-86a1-20969f95c3de	92aa9169-28d9-4754-a570-553b067642ed	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0f0f2b6b-09fd-421b-8459-6b53d59777ab	92aa9169-28d9-4754-a570-553b067642ed	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7cbb03d5-8cf0-4176-9d39-cadd837cc055	92aa9169-28d9-4754-a570-553b067642ed	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2c2801af-63d8-4991-8a73-01a568d53e5a	92aa9169-28d9-4754-a570-553b067642ed	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4591cb07-ab1d-4590-a3a7-c430caa61ae9	92aa9169-28d9-4754-a570-553b067642ed	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+16fb2f3b-9ccf-410d-a659-eaa46a64e0f0	92aa9169-28d9-4754-a570-553b067642ed	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+03ad8be9-bc92-4def-afa0-4dab4f50d72d	92aa9169-28d9-4754-a570-553b067642ed	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+78e87209-f9b0-47f5-8edc-0e2b8089338d	92aa9169-28d9-4754-a570-553b067642ed	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+110e87a0-8d7d-4cd5-b4e6-f6a0f0edd224	92aa9169-28d9-4754-a570-553b067642ed	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+09c5ae3a-e754-4aed-8818-9f6bb2c91b4d	29ad5710-1621-4c24-ac75-dedfc168ba1a	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+10dc569e-cdc6-4b3d-8a0c-115fc6ea8e7c	29ad5710-1621-4c24-ac75-dedfc168ba1a	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+12c063bf-c856-4062-a6d9-10845b28c95a	29ad5710-1621-4c24-ac75-dedfc168ba1a	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+32b58362-c2d7-41ef-a4c7-58086b01501d	29ad5710-1621-4c24-ac75-dedfc168ba1a	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+351a566e-4b19-42d9-9798-de78fa5a0172	29ad5710-1621-4c24-ac75-dedfc168ba1a	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+3a81ef98-a34c-44eb-aa2d-61e76584f3eb	29ad5710-1621-4c24-ac75-dedfc168ba1a	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4265842d-b669-4d11-9f0a-de3e6a2e73dd	29ad5710-1621-4c24-ac75-dedfc168ba1a	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+430528ba-ad85-475e-ac7a-a9c760b7b8f9	29ad5710-1621-4c24-ac75-dedfc168ba1a	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:43:33.910332+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a8f5f2de-4672-46b9-b383-19bbb98a6afe	92aa9169-28d9-4754-a570-553b067642ed	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c0b9a40a-a03e-4a0e-ba4b-830ac8cd0c90	92aa9169-28d9-4754-a570-553b067642ed	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+81a3a0af-782e-441d-9c9d-0512dd594d8e	92aa9169-28d9-4754-a570-553b067642ed	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+de03820b-473d-4620-b5dc-b0ecf8101800	92aa9169-28d9-4754-a570-553b067642ed	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b78f5e1d-7b5b-47f0-bc4a-cc75545e24aa	92aa9169-28d9-4754-a570-553b067642ed	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9d60d8c6-7f7a-4369-a56c-5efffa868054	92aa9169-28d9-4754-a570-553b067642ed	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9d23104e-030c-416f-ad68-6fdf2eccef50	92aa9169-28d9-4754-a570-553b067642ed	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ba4df63a-47ec-4ce4-bf67-cb02d82a796a	92aa9169-28d9-4754-a570-553b067642ed	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a9468546-b009-41b1-ba0a-61f477364f24	92aa9169-28d9-4754-a570-553b067642ed	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a49ad01f-252f-4b0d-8db5-5a9325351c89	92aa9169-28d9-4754-a570-553b067642ed	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ad7321a3-ece9-4cfe-b838-17200a50cc8a	92aa9169-28d9-4754-a570-553b067642ed	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8689a5c1-5bd7-48f1-91f1-037877c83630	92aa9169-28d9-4754-a570-553b067642ed	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7d43f891-2b5b-4259-800d-73f9810ce3dc	92aa9169-28d9-4754-a570-553b067642ed	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d0463c72-2c55-4757-9fa3-64b8338bdec4	92aa9169-28d9-4754-a570-553b067642ed	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b1ac789c-b5bc-401d-8771-4e86aee4a41a	92aa9169-28d9-4754-a570-553b067642ed	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d3b9eaac-b294-4992-b91e-01d975622cf4	92aa9169-28d9-4754-a570-553b067642ed	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e9b73a8b-d127-41b0-9561-88ba144a3936	92aa9169-28d9-4754-a570-553b067642ed	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+bafa22bf-c34e-4b47-bed2-54632130ec8c	92aa9169-28d9-4754-a570-553b067642ed	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+bce8d726-1622-4abc-bcd7-a22c2ecb331d	92aa9169-28d9-4754-a570-553b067642ed	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ced04bea-d559-4a1f-96fb-dcf4e6951324	92aa9169-28d9-4754-a570-553b067642ed	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8b6ba42e-b899-4045-9043-3c96cb22ee23	92aa9169-28d9-4754-a570-553b067642ed	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0c2e022a-7529-44aa-9a8c-a0fcbbd6e086	b552183f-2695-41f9-860e-16d5fe94c4aa	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1a20bb23-adbf-498e-9e08-c964d5aac8ac	b552183f-2695-41f9-860e-16d5fe94c4aa	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+176043e3-cb26-4f11-9107-fb66d342abac	b552183f-2695-41f9-860e-16d5fe94c4aa	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+15d60d5b-c44b-4700-bb2a-79d7771410ec	b552183f-2695-41f9-860e-16d5fe94c4aa	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0b1ee644-0653-4de2-b778-7368f3a58d2e	b552183f-2695-41f9-860e-16d5fe94c4aa	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6f7e72e8-29fe-495e-8a62-5eac56819015	a5023c9e-367f-41e1-ba02-bdb2929edc89	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6a63c258-c067-4786-8378-7229c3bba9a2	a5023c9e-367f-41e1-ba02-bdb2929edc89	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4111bcb8-a5cc-45bc-b649-2bc9162820ae	a5023c9e-367f-41e1-ba02-bdb2929edc89	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6ecba6c9-71de-4c03-9a44-7e0c8035d2ed	a5023c9e-367f-41e1-ba02-bdb2929edc89	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+71b4df59-cfd4-4633-9d53-45653c7e7108	a5023c9e-367f-41e1-ba02-bdb2929edc89	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5aeeaa2a-597a-4b22-bb3b-466782aae813	a5023c9e-367f-41e1-ba02-bdb2929edc89	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5266bc7c-1308-461d-b96e-5c19a7219ac1	a5023c9e-367f-41e1-ba02-bdb2929edc89	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+63677681-82fd-41a8-b32d-4d7e4d5a206d	a5023c9e-367f-41e1-ba02-bdb2929edc89	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+566fea4e-6d67-430f-87c1-6b1a670f1ecc	a5023c9e-367f-41e1-ba02-bdb2929edc89	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+65d3b506-b881-4087-8c34-ae4ea41b55a3	a5023c9e-367f-41e1-ba02-bdb2929edc89	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+90409416-2673-4600-b2c6-5b533f6ff417	b552183f-2695-41f9-860e-16d5fe94c4aa	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a19ce735-ac8a-4fc9-aefc-c78d97647782	b552183f-2695-41f9-860e-16d5fe94c4aa	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2337c8d5-0815-41ea-b60e-e7c94f4ce359	b552183f-2695-41f9-860e-16d5fe94c4aa	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+294e7c97-fb87-4841-b195-fc07a1e4ddf1	b552183f-2695-41f9-860e-16d5fe94c4aa	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+93cd435c-9f52-4dec-ad0b-498893a4d56c	b552183f-2695-41f9-860e-16d5fe94c4aa	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+708e8824-055e-44ec-b7f8-f882ecc7e79d	b552183f-2695-41f9-860e-16d5fe94c4aa	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+60a0715a-e611-404a-801c-b77a0a5bf405	b552183f-2695-41f9-860e-16d5fe94c4aa	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4d611f75-35d0-4978-9620-505d7b3f7d84	b552183f-2695-41f9-860e-16d5fe94c4aa	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+20058b03-411f-4bbf-a233-958d818cbdce	b552183f-2695-41f9-860e-16d5fe94c4aa	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5d480913-1bc9-4e94-a404-41cd36278951	b552183f-2695-41f9-860e-16d5fe94c4aa	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4d56e187-7e06-4c5e-a84a-41a05d42568e	b552183f-2695-41f9-860e-16d5fe94c4aa	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+21669dd2-e694-47aa-aa5a-f800109aa21d	b552183f-2695-41f9-860e-16d5fe94c4aa	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+48a2e2ce-153e-4237-ad50-584e52c25a60	b552183f-2695-41f9-860e-16d5fe94c4aa	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+76f955be-f6c9-4cf3-b5c5-386694117fce	b552183f-2695-41f9-860e-16d5fe94c4aa	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4bbff2d4-8f17-4372-8a77-c887d5f9b8a1	b552183f-2695-41f9-860e-16d5fe94c4aa	7c212d3a-54c3-4012-9944-b8b9ff25af2a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+960f138a-abc3-4d9d-9144-b5998a256e60	b552183f-2695-41f9-860e-16d5fe94c4aa	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+921713bb-6f50-4c5f-92fd-67db38bdb942	b552183f-2695-41f9-860e-16d5fe94c4aa	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+67acc268-e53d-4b82-b7fd-30fb1c462326	b552183f-2695-41f9-860e-16d5fe94c4aa	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9e808a8e-7511-4c02-969d-cf323fcd5c69	b552183f-2695-41f9-860e-16d5fe94c4aa	63ec4257-dc36-4f14-a617-bc8fe094258d	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a4e0f459-22f4-443b-b733-e3728ffb21d8	b552183f-2695-41f9-860e-16d5fe94c4aa	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9eac7851-0eb0-48d9-8d53-8b145e7fb931	b552183f-2695-41f9-860e-16d5fe94c4aa	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0d071edd-3640-456f-96c3-c7e99305a171	f29af015-7833-4f9a-ac57-6fbef5bf91ec	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e4992cd1-ef85-4be9-8d1f-3a41ba47a73a	b552183f-2695-41f9-860e-16d5fe94c4aa	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b0ac862f-265f-4e77-989c-0db22d6f5bb4	b552183f-2695-41f9-860e-16d5fe94c4aa	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ef441dc7-6a9a-4faf-a459-23559196665c	b552183f-2695-41f9-860e-16d5fe94c4aa	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ce29c90e-e70c-4052-97fb-d1facd426312	b552183f-2695-41f9-860e-16d5fe94c4aa	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b082c2b7-db76-4828-b695-723967d042b0	b552183f-2695-41f9-860e-16d5fe94c4aa	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e91aee24-efcd-46b6-8310-b3f57604782c	b552183f-2695-41f9-860e-16d5fe94c4aa	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+dc4a4c61-8ed0-4d64-b1c8-33fe9249b19f	b552183f-2695-41f9-860e-16d5fe94c4aa	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c6d9e11b-37c9-407b-b241-cbc5110b7df1	b552183f-2695-41f9-860e-16d5fe94c4aa	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a771cab9-2235-4f7d-b352-19fb5d8557c4	b552183f-2695-41f9-860e-16d5fe94c4aa	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b32c565f-823c-4728-9d08-e195f50fa3e1	b552183f-2695-41f9-860e-16d5fe94c4aa	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d8443d82-5e1f-476f-8c28-fc5f29a9cd85	b552183f-2695-41f9-860e-16d5fe94c4aa	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e3852560-4649-4a56-b66e-79cf2e2546ef	b552183f-2695-41f9-860e-16d5fe94c4aa	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+cfc59ac3-7f63-4319-aef6-e9ad75020227	b552183f-2695-41f9-860e-16d5fe94c4aa	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ea1a0e30-23fc-465d-8605-d098f96c2345	b552183f-2695-41f9-860e-16d5fe94c4aa	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e929f655-f471-4a31-806f-bf75b756ad0c	b552183f-2695-41f9-860e-16d5fe94c4aa	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+dbedf50c-5aef-4feb-ba31-31c6a518707f	b552183f-2695-41f9-860e-16d5fe94c4aa	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ae6930d1-d8ba-450e-937b-1aeba68e6eca	b552183f-2695-41f9-860e-16d5fe94c4aa	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ef19c3bc-0643-478b-b047-5c7f12af2a13	b552183f-2695-41f9-860e-16d5fe94c4aa	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e983a910-0bc0-4f9e-95e5-f5df54134dd8	b552183f-2695-41f9-860e-16d5fe94c4aa	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f3c5b078-2749-483d-ac51-0a712a5eb96d	b552183f-2695-41f9-860e-16d5fe94c4aa	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+df715698-584a-47ef-a505-a93f5d49c500	b552183f-2695-41f9-860e-16d5fe94c4aa	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e20c996c-fa15-40f1-a528-1df69588502f	b552183f-2695-41f9-860e-16d5fe94c4aa	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c7510165-f83e-47cc-9d44-a24b9c8a8437	b552183f-2695-41f9-860e-16d5fe94c4aa	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9b772d22-82f4-4efd-a388-c511a54ef0a6	a5023c9e-367f-41e1-ba02-bdb2929edc89	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ad7fb079-eb3a-4460-b133-359e49013055	a5023c9e-367f-41e1-ba02-bdb2929edc89	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ac0e04ac-1af6-413e-a40b-94f3cdb6f2f8	a5023c9e-367f-41e1-ba02-bdb2929edc89	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b4421715-0931-4970-9c9b-d7a258d223b9	a5023c9e-367f-41e1-ba02-bdb2929edc89	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a2f39b0b-4f3c-451e-86cb-0117b3314025	62a927b7-9fd8-461a-b64e-1aa441eeba4d	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8ece73b1-3e57-475f-b2de-625d4ba4684f	62a927b7-9fd8-461a-b64e-1aa441eeba4d	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8fef779b-af0b-4dcf-b170-016b42cd36f7	62a927b7-9fd8-461a-b64e-1aa441eeba4d	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e3e0268b-c6f5-4083-a76c-618cd21fed32	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1fc8d436-951f-4634-b277-c0f295a6df54	62a927b7-9fd8-461a-b64e-1aa441eeba4d	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+56f36f6a-81e7-46fb-bcad-4f1a252858a5	62a927b7-9fd8-461a-b64e-1aa441eeba4d	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ed2533eb-95da-459b-88ed-85f959a661ac	62a927b7-9fd8-461a-b64e-1aa441eeba4d	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e2f06ec4-5c95-4926-a2ca-ee8cf06dafc8	62a927b7-9fd8-461a-b64e-1aa441eeba4d	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c054d31a-db68-4d52-8687-cebb6bc54c53	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f6e763fa-aedf-4462-b6d3-0dd6afe7621d	62a927b7-9fd8-461a-b64e-1aa441eeba4d	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6b543894-598b-4a0b-ae35-e51241df1269	62a927b7-9fd8-461a-b64e-1aa441eeba4d	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f981a6ee-31b0-400a-b8f5-f66809570e85	62a927b7-9fd8-461a-b64e-1aa441eeba4d	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7c5ba735-7e33-491e-9d36-afa51be91739	62a927b7-9fd8-461a-b64e-1aa441eeba4d	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9706e9ee-ab20-412b-96fe-faa995f5a7f9	62a927b7-9fd8-461a-b64e-1aa441eeba4d	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+57e47ba2-453c-4ad9-8e7b-03a10936a0f0	62a927b7-9fd8-461a-b64e-1aa441eeba4d	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8104b123-dae8-41b9-b270-87656860a66e	62a927b7-9fd8-461a-b64e-1aa441eeba4d	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+3240f4a7-7839-48c1-9fdd-51a13fa8cd5a	62a927b7-9fd8-461a-b64e-1aa441eeba4d	b1b803ec-f626-44c8-bfb2-97cd61795374	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+753c176b-eaa8-426d-b210-c8ede5bc3b8e	62a927b7-9fd8-461a-b64e-1aa441eeba4d	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+a714f49b-7b28-4753-a43d-1640122f64e9	62a927b7-9fd8-461a-b64e-1aa441eeba4d	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7f929411-17d3-475a-8cbc-b3065a1d8e82	62a927b7-9fd8-461a-b64e-1aa441eeba4d	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f0e95166-e3c6-45f9-8915-42716f7de9f7	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b07a2428-8673-4bc5-9c1d-1fc4ad70ed21	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d8079401-9850-4f5a-b916-acd776c4335b	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+85822825-6577-44dc-99ac-525b35994603	62a927b7-9fd8-461a-b64e-1aa441eeba4d	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+70561801-7601-4082-9453-cd9cbac3c097	62a927b7-9fd8-461a-b64e-1aa441eeba4d	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4d4c3cfd-2458-4dc8-a40b-a1e6052942a8	62a927b7-9fd8-461a-b64e-1aa441eeba4d	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f12cd1f2-ea0e-4f58-8c92-514f28a9fbf7	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+601ce14e-d537-4d3b-8d39-6ad45c694137	62a927b7-9fd8-461a-b64e-1aa441eeba4d	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+aa890921-c3ad-4ed0-b3da-9d6e79b2f8a4	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ddd890fe-7e3d-4b3d-9ae7-afb29c98df6a	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ab38ace1-da7c-4e03-b5b8-29ac370057ce	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+77bd866a-44b3-4b43-8ce5-4c1287b3a528	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c3f1d525-2f63-48d5-a239-cbac38720452	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7aee52fc-d1a0-4d08-9829-c3f22528a063	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6aff54df-2919-4709-8e54-495b4e3d56ee	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d04dc898-997d-4337-8ac2-d18c96bb347c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+485faee3-ecb0-4d50-b20b-c70f4bdcdc7c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c08ac115-ac59-4b72-8ab8-d29f81de587d	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a016110f-ceeb-42f3-945b-58c9c5238984	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+85ca5612-849c-414c-b1f7-bf6a2e715775	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c070ad91-0705-4542-8a3a-275276048cdd	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6412b2af-3b0f-480c-b4d0-cd83c907c633	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+666eadd9-2e6c-4c36-88ec-c80aff319a13	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+db9979e1-31c5-4434-b5d5-5e06b5e09509	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+002e67bb-5299-4075-890c-7bc217cf2b21	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4b4a65aa-c868-4464-96d1-8790f0afe11c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7613894a-9f58-4c03-9d7b-9134d0d88c3c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c10cc778-e162-4d67-96f7-abb8d58be961	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1ab86bcf-4624-4f0c-aa53-7c23bca31791	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+02f0ba6b-81a3-4a5e-bdc0-e7e1e9dd79b5	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7ea497c4-a877-44a5-a59e-96382485de79	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+eca8799c-3e41-49e4-8ef1-ec99b8728f3e	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+edeb67c5-8845-48b2-9632-40710a714b6d	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bdfec3e2-ab83-4ae7-a832-f89b6b305f72	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+61498a71-0b17-4ed8-8574-8b9720a82912	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+37ee1bba-fe3a-4518-8953-eadf782f5a04	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a56df7d1-31e3-4521-b978-161ba028a8cf	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+428dced2-b845-4f83-b55f-7c86e24e958c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bf71be6c-42cc-4c92-aeb8-9ea6e2da44eb	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+353448cd-5451-443f-9b46-43f3d086f903	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c84db43f-622c-425a-8174-5b8e7de54bdf	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+503c5f82-16ce-4a11-b445-3de22cbb5d81	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fac000b2-1aa0-4986-af2c-57639dbe990a	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e2a10525-830f-4bf7-817e-6142b03d3eab	a5bfe265-981a-4723-b7bb-6ddc389db7f0	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e79ccd73-a0eb-4cfd-aaf8-ff6434cbec48	a5bfe265-981a-4723-b7bb-6ddc389db7f0	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f02d1dac-9f5a-46d5-b8c1-acbadb1d6a25	a5bfe265-981a-4723-b7bb-6ddc389db7f0	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+fba6a3d0-ce47-4069-abc0-3c6c4f09684e	a5bfe265-981a-4723-b7bb-6ddc389db7f0	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:48:35.567407+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ccef9ec5-2eec-467a-85a7-151eb79728c0	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fa6ccd8e-1465-45e5-8f99-2b4c53aaf342	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	b1b803ec-f626-44c8-bfb2-97cd61795374	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bfc8fe02-e898-4956-b0c2-b6d14ef214d0	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+df966bad-bd96-4010-b441-f2610a57fe69	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e6c1a8c3-a312-4327-91b3-7e5b1c4f01dc	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d33d74d6-b475-4280-ac43-a990bbed9751	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+59554f1c-9778-4ff5-8014-755e19b4f0ce	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3deec50c-63ca-4836-889a-87f207f1df07	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d83d5b57-aaf8-43d7-9f71-3c2cd6f868b9	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8ba97302-ea3a-4ea4-a3f9-c7b5d9a8f206	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5787525a-522a-44b9-a57f-839c3c9cb25c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+919e518f-86a2-4947-964b-d9d79ee8b361	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+84b2b084-6e21-4f93-aa7e-13240c324ce5	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9f9dd2f2-bc54-4b1d-a02c-6b3494cfcc58	cd2a32ed-32fc-47bc-88a9-e6fc48863869	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a5e2b386-a55d-4423-a110-6ce3a0ef09a6	cd2a32ed-32fc-47bc-88a9-e6fc48863869	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+917c1ef0-dd3b-4679-90e4-ef3cc9892559	cd2a32ed-32fc-47bc-88a9-e6fc48863869	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+938c07bb-23e3-47e1-b505-59af7a48216d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bb226096-39ad-4d01-aa7b-9daed525c1ec	cd2a32ed-32fc-47bc-88a9-e6fc48863869	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b72cb69c-078a-4cf6-bb19-573fb2ca3404	cd2a32ed-32fc-47bc-88a9-e6fc48863869	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2f56cfac-cfae-46d7-8f0f-ea13b5fe4428	cd2a32ed-32fc-47bc-88a9-e6fc48863869	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7d443ab6-7d8d-4d0b-9919-31aa1272b70b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3568bfb5-0e20-432c-b756-2e9b250d5f64	cd2a32ed-32fc-47bc-88a9-e6fc48863869	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cc1d78bc-b7ae-4027-9b7c-dc9daf5fa846	cd2a32ed-32fc-47bc-88a9-e6fc48863869	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+26bba655-8d4f-4b18-8f2f-1e2687ce02e2	cd2a32ed-32fc-47bc-88a9-e6fc48863869	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+51e1cb95-4249-480e-b366-00396dc1601a	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+05c4dbf1-3be5-4048-8f0f-0ee472c96e3d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9750a0cd-7998-4177-a358-1e456409193e	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+48730d01-a578-476e-8dd1-8c1033a4efad	cd2a32ed-32fc-47bc-88a9-e6fc48863869	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5269155a-5b56-4630-826d-2cb0607d4a52	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a07f2fd2-a0b3-4fce-bd16-9c3dc6eeac25	cd2a32ed-32fc-47bc-88a9-e6fc48863869	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f094b0ad-35bd-4023-8029-5d27dead7289	cd2a32ed-32fc-47bc-88a9-e6fc48863869	ec931934-ffc1-4bb7-977c-fb2f91689c71	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7b3a8650-5076-44a9-9c56-77d33cf78943	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d86a3e63-aea1-45e4-a9b8-a165e112528f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+04a230f7-5d79-4b81-91a5-2a5a26ba69a1	cd2a32ed-32fc-47bc-88a9-e6fc48863869	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8e246836-ae43-465d-a894-20a757de0f66	cd2a32ed-32fc-47bc-88a9-e6fc48863869	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a0f3c616-4257-4dd5-bcbf-1b80c397be16	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+064b04bf-b786-4c75-967d-3c1976f2f479	cd2a32ed-32fc-47bc-88a9-e6fc48863869	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ccae3906-656e-4025-a31c-9f9d74ed7b06	cd2a32ed-32fc-47bc-88a9-e6fc48863869	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fa9ba6da-348e-4423-a179-8438c99e433e	cd2a32ed-32fc-47bc-88a9-e6fc48863869	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dcfad26d-b734-4d8c-9691-2c4768cf29b7	cd2a32ed-32fc-47bc-88a9-e6fc48863869	28545f25-9461-4a0a-a49d-f5b0a400a650	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e041996e-a843-45f1-b422-875c8f7022ea	cd2a32ed-32fc-47bc-88a9-e6fc48863869	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+54591149-0b6b-4904-a370-10b9ad8bb483	cd2a32ed-32fc-47bc-88a9-e6fc48863869	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+66c0fdaa-1a38-402d-88c6-a7170887d796	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1749636a-f709-41df-a465-c8153238c7be	cd2a32ed-32fc-47bc-88a9-e6fc48863869	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+37669643-aeeb-4309-a83f-1a938ecbc558	cd2a32ed-32fc-47bc-88a9-e6fc48863869	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+18e0e4f1-c74d-49b3-800c-6edb90b4e073	cd2a32ed-32fc-47bc-88a9-e6fc48863869	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6597c312-0e2d-4ba4-a238-90f924257667	cd2a32ed-32fc-47bc-88a9-e6fc48863869	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b68d30bc-1202-4230-94fc-be34795d3c1a	cd2a32ed-32fc-47bc-88a9-e6fc48863869	7c212d3a-54c3-4012-9944-b8b9ff25af2a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+40363189-b4ba-4609-9a9c-1b477b259977	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+99ff13f0-2c6a-4a09-a7cc-4606a0e7c86f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3128b152-ab4d-4d35-8569-6b76b9114c7d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0b3328ac-2e7d-43b3-a306-f9d4d15e7e36	cd2a32ed-32fc-47bc-88a9-e6fc48863869	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3f4c8bbb-6ac8-4007-b3ec-cff812bd81e8	cd2a32ed-32fc-47bc-88a9-e6fc48863869	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+86a27dd4-644b-4af0-be28-c1c6d18726c2	cd2a32ed-32fc-47bc-88a9-e6fc48863869	63ec4257-dc36-4f14-a617-bc8fe094258d	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+398c14d7-0403-4311-a2f8-85fdbfc81045	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+006d5a3e-3d32-4be1-9e74-6ad21246b74c	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e54aac36-9eab-4bce-886f-780f7ed4dc21	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+742e4779-6efa-4808-8106-03747b70e2e3	cd2a32ed-32fc-47bc-88a9-e6fc48863869	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2ba08a0a-2481-4f59-99e5-9f084125c2ea	cd2a32ed-32fc-47bc-88a9-e6fc48863869	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fc182948-e9b9-4573-aeff-40e319bb010b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+eac38e27-1dd4-4e1c-a907-6585ed4fc93f	914d8500-03b6-4a43-a250-244effca1cf1	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+32144757-13cd-4c6a-92a0-775111b03eb6	914d8500-03b6-4a43-a250-244effca1cf1	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c823b23b-0e41-4e7c-ae23-894c3c1f6689	914d8500-03b6-4a43-a250-244effca1cf1	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+af83001d-0198-4c8d-b5d0-1bb2d85d439a	914d8500-03b6-4a43-a250-244effca1cf1	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ac5cd4db-bf1d-4edf-861e-58bea5451f46	914d8500-03b6-4a43-a250-244effca1cf1	7c212d3a-54c3-4012-9944-b8b9ff25af2a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+55e4caf6-82c5-4e73-a439-1d4b886fbe45	914d8500-03b6-4a43-a250-244effca1cf1	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5674b8d5-d84a-4dca-83d3-a2c9df779744	914d8500-03b6-4a43-a250-244effca1cf1	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a2f8635b-19f6-46d1-86f4-4dc6dd6dad26	914d8500-03b6-4a43-a250-244effca1cf1	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0401044d-629f-4f05-a84c-2c1422e33ebe	914d8500-03b6-4a43-a250-244effca1cf1	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+56f84d7d-b898-4ba4-ae9c-0422d7c594b0	914d8500-03b6-4a43-a250-244effca1cf1	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b74b5396-eef8-4eca-b5a5-177cd14eba15	914d8500-03b6-4a43-a250-244effca1cf1	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a27b0649-1eb6-4b2c-bde9-a6d476d13e17	914d8500-03b6-4a43-a250-244effca1cf1	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6153c3f7-4724-4444-a4a8-02bc0a9c0a52	914d8500-03b6-4a43-a250-244effca1cf1	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0e2dd435-164b-41e2-98d6-0755a99a8a5b	914d8500-03b6-4a43-a250-244effca1cf1	c69af742-1b39-4c84-a7ff-018e808e6973	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+25e3fc58-cbcc-40a3-8578-2c709e45c0d3	914d8500-03b6-4a43-a250-244effca1cf1	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5d9b786b-0ab9-47c1-a18d-15d9ec93fd13	914d8500-03b6-4a43-a250-244effca1cf1	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5f26a685-8f6d-4b20-a3cf-0c4c33c11302	914d8500-03b6-4a43-a250-244effca1cf1	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+83f4a1d5-a752-45d0-9aa4-f19e37fbfeda	914d8500-03b6-4a43-a250-244effca1cf1	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4eb52913-a3b1-4c2d-b0ec-8c836435e16f	914d8500-03b6-4a43-a250-244effca1cf1	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4d28642c-ae17-4418-b34f-94e0c3345c9d	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0e2a2627-56eb-4b4c-b20b-66743c976920	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bad018e8-276a-4296-99fd-3761e54e7319	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f3c5845f-467a-4696-9b89-cd326c330275	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3407ea9c-0198-4b19-8755-27ef26687165	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a8ff64f5-493b-4cb3-9b50-6c8c7ea5abd1	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c324e0ee-2867-4550-868d-1d88987fb172	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8d0cd267-11ac-4fb3-8cd6-39226693bcfd	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	f1221521-34ad-4791-9768-bedf88a64f91	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c3a95bb9-feb3-444f-8f67-e382a3c2d36b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+093d6fe1-c9e1-4895-bf1e-684ab05b0c0b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+db1ced0d-27ee-48ea-8ed4-65a3761edaaf	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+db207429-df80-422e-81eb-aed294070e2b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4d37e80a-30d9-4ff6-9876-3f7353da8669	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e8f98f81-5265-4d37-a8eb-c98b4d7d2755	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+66c641a7-d2cb-477c-818a-15b1500334a5	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f82709b5-787e-4959-bca3-86ef3bb58f6e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f066fd7e-f84a-4d47-9220-3bb6ff7eebfd	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+aedd2e90-1c4b-48fe-afa3-8954b139d06b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+639d0b9a-5e72-4e43-817c-244d58daf328	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+57be2031-2901-4b3f-bbeb-3198cacc73bc	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+eccdf960-51c2-4ad6-a372-c04beee7f8db	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e4b44127-5d8d-4e42-86ad-7adebb8f3508	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+14dc6e6a-c2f2-4a63-865c-bedecbd53d7b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cdcd1dc0-9b6c-4b76-8a19-fdb4fa7420d8	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f929e26e-e221-4a83-92c3-f1306720b5cb	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dbd24ad1-9d03-4efa-8069-e9a5f8a8a72b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+15e9cbb1-af65-420e-8026-3bb402e7c713	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2fcefdff-fced-48ac-bbf4-2a38864ad0c3	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8337e64b-cb0d-4d7d-9555-ac19d3573f81	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+71706b36-abb0-40bf-98ce-30edc3765fd6	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+63795c0c-8696-4aad-a028-28480e81a64b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a22e14f4-0d12-4350-85da-6e6ab884dd4b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0ada2853-6cbc-459f-927c-82f4f36c220d	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d6662970-89ed-4e60-85c9-e805c5f57aa2	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bb9e7f62-2106-493f-a008-a513f1658baf	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	7c212d3a-54c3-4012-9944-b8b9ff25af2a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e83bb0a7-fbe4-448f-baa6-a08444f76ae8	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0cfdc9e9-2834-440f-a9ab-39a8a5c287fc	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b2087f21-1d69-43a4-aa10-5c077b3f22aa	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ee84ee8b-4819-4349-91b3-3b02d54c14ea	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ffe40523-f443-4067-a425-e05b469e4372	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+985965e3-6c50-46db-b195-367af342260a	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5566dd5a-ac31-4f1d-8cef-34c8d1776aaa	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c249acb6-03bd-474b-b407-e6f40150c97f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e59bac91-1ac6-414b-9e12-d6b54a25893b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c69af742-1b39-4c84-a7ff-018e808e6973	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a41b0654-9b1e-4712-9a83-bccbc1dbb481	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+14ba11ba-97dc-4630-b445-6b76b250ee94	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d196c269-6270-45d0-a8b3-d5de3bfa53c9	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+04ca9d04-6ac5-4968-9def-bf09678b674e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+46ca3f5f-54b2-4988-bf52-c5ac270a5ea9	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ca44cd2d-6136-4426-bf91-2043e006a770	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	6d278091-4576-4bc6-8d47-2a1925436089	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4052c01d-70ae-4323-a44a-e019fa0ce2e3	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+338cb046-843d-41ec-8464-9a2cc3cc9dc6	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	9464495c-36b2-4c10-9c2f-9b596e6841df	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7428237e-8379-4874-8568-e6538424fae4	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3d6255d8-cbe9-40d6-9d43-ca4e391fda34	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	56c1f856-a42d-45c5-a2c8-6041f0080167	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+488cb80a-dced-4677-8bc0-021c05e45676	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+65115350-04df-4421-8e0c-aa5ac74e92a3	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bf4bcab7-20ab-44b0-9294-5ea49ea26bb7	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7f096d65-0f15-4b33-821a-5b2f9d13ea06	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ec02ed06-8eac-4602-ae66-ece4f8520250	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bc21cd6b-80a1-4ca4-82ae-122e1745994d	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fb763c2f-9101-4a20-9a67-5c272eb954a2	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a016110f-ceeb-42f3-945b-58c9c5238984	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d4c9a63a-8d31-4478-a4d4-fcbe3fccf571	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c866bbab-692b-4119-88e3-cf38524976c9	a5023c9e-367f-41e1-ba02-bdb2929edc89	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d771bcb2-2462-45a5-bc1e-a54821c04c0c	a5023c9e-367f-41e1-ba02-bdb2929edc89	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ea20089e-94ac-44a1-b911-62919151a72a	a5023c9e-367f-41e1-ba02-bdb2929edc89	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e3fc6c0e-c64e-488e-9af7-4e91972201aa	a5023c9e-367f-41e1-ba02-bdb2929edc89	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d54130d1-a8f5-4623-9984-9216eeae5ee9	a5023c9e-367f-41e1-ba02-bdb2929edc89	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+eb3fbeb2-d52e-4e9a-9f8e-dba2d2c3af3f	a5023c9e-367f-41e1-ba02-bdb2929edc89	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e200f81f-9b21-4393-a927-7b4f1b6f6c18	a5023c9e-367f-41e1-ba02-bdb2929edc89	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ba414e99-45d5-4a82-a92f-e46f4f823c40	a5023c9e-367f-41e1-ba02-bdb2929edc89	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ddcb83b5-e1c0-42e7-aa7a-d83ea4fa9fd5	a5023c9e-367f-41e1-ba02-bdb2929edc89	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+9af5d843-9b1f-4f45-864f-210e48dc234d	a5023c9e-367f-41e1-ba02-bdb2929edc89	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c87c62c3-0e89-4b77-a73a-94d7a7e478dc	a5023c9e-367f-41e1-ba02-bdb2929edc89	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f729ca14-06cb-4335-98fc-e0991bcce15c	a5023c9e-367f-41e1-ba02-bdb2929edc89	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+65dddc90-0c9f-4515-9ff4-0310942af5b6	a5023c9e-367f-41e1-ba02-bdb2929edc89	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+66a97870-faea-4906-a4a4-c6a1d511c7c9	a5023c9e-367f-41e1-ba02-bdb2929edc89	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8d70ffdf-7f39-42dc-8d51-c30290f71fd1	a5023c9e-367f-41e1-ba02-bdb2929edc89	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e7510e83-20a2-4a0e-9627-988ec0b8042a	a5023c9e-367f-41e1-ba02-bdb2929edc89	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b358681c-7a97-44df-9f5e-5abcc163af61	a5023c9e-367f-41e1-ba02-bdb2929edc89	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4b857481-e0f8-43a2-b64a-ac05783d6536	a5023c9e-367f-41e1-ba02-bdb2929edc89	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c2175859-b667-4100-9f80-c5cdf673d771	a5023c9e-367f-41e1-ba02-bdb2929edc89	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6bdb592a-d1b2-424c-b398-a24621f156ee	a5023c9e-367f-41e1-ba02-bdb2929edc89	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+88e5edae-3fd9-4c04-a883-2a113ae1f01a	a5023c9e-367f-41e1-ba02-bdb2929edc89	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+af07cd4c-bb1f-4e29-bb6e-a2e6abd1b4d7	a5023c9e-367f-41e1-ba02-bdb2929edc89	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b72184f0-c421-4278-abd6-10a2cbad0d94	a5023c9e-367f-41e1-ba02-bdb2929edc89	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+969b5a11-9b9a-499a-87e6-be6f3d9c33e2	a5023c9e-367f-41e1-ba02-bdb2929edc89	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ad69f41b-0659-44a8-a011-36e7d78eeb53	f5c742d1-e0cc-4bf8-b860-a673ac407393	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6c25c7ba-f7b5-4eac-93e5-e832ed93b1e8	f5c742d1-e0cc-4bf8-b860-a673ac407393	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+39908dc6-afcc-427b-b542-bbe9b87a2a34	f5c742d1-e0cc-4bf8-b860-a673ac407393	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e8720bc9-eaba-40a4-a0be-ac8bfe12f7b0	f5c742d1-e0cc-4bf8-b860-a673ac407393	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a2741bcb-b23f-4864-84d8-dc04b186e59b	f5c742d1-e0cc-4bf8-b860-a673ac407393	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+588b38c2-594a-4b1c-bef5-1536cbb75e0e	f5c742d1-e0cc-4bf8-b860-a673ac407393	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4ed46b1b-fd37-4121-a768-f6a87aec3958	f5c742d1-e0cc-4bf8-b860-a673ac407393	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8649b1bc-20c3-4ca3-9244-5e802399d643	f5c742d1-e0cc-4bf8-b860-a673ac407393	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b9fc1311-76b2-4fe2-a1b7-898a60f5ab09	f5c742d1-e0cc-4bf8-b860-a673ac407393	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d468c26e-8877-4c5a-b873-cbd98b72becf	f5c742d1-e0cc-4bf8-b860-a673ac407393	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ea56ce1d-b054-4e2c-ba42-37fae08cf1f7	f5c742d1-e0cc-4bf8-b860-a673ac407393	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+af9df24f-26b3-48b5-aea5-f13806896e8b	f5c742d1-e0cc-4bf8-b860-a673ac407393	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c2f316fd-f305-4a3f-8223-372f7d279a26	f5c742d1-e0cc-4bf8-b860-a673ac407393	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+da6dd47c-629f-49f2-9a79-87e6028b6657	f5c742d1-e0cc-4bf8-b860-a673ac407393	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9bae7532-81fa-4ee0-a051-0fa0cf98f0a8	f5c742d1-e0cc-4bf8-b860-a673ac407393	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+474310f2-a8e1-4f83-af3f-201574c14537	f5c742d1-e0cc-4bf8-b860-a673ac407393	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+243623f2-7b97-47c9-bdc5-d31bac8a41fd	f5c742d1-e0cc-4bf8-b860-a673ac407393	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c9bcf4d8-c561-4165-9404-66095b450ed0	f5c742d1-e0cc-4bf8-b860-a673ac407393	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9fadc70a-f007-4a6a-984d-1462e842d98c	f5c742d1-e0cc-4bf8-b860-a673ac407393	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+25393e5f-9a62-469a-ac74-a9b4bd981ba0	f5c742d1-e0cc-4bf8-b860-a673ac407393	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3dd1b239-dd90-4667-8c0c-4a29cc4cc9c9	f5c742d1-e0cc-4bf8-b860-a673ac407393	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e846dc1e-bc9b-4b08-8185-59a57b4430e6	f5c742d1-e0cc-4bf8-b860-a673ac407393	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5644fee2-874a-4501-bb6b-63b2ac4f35fd	f5c742d1-e0cc-4bf8-b860-a673ac407393	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+00ed3d82-4fd0-4aa4-8a8f-2c5c2bf2dd16	f5c742d1-e0cc-4bf8-b860-a673ac407393	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a0db4be8-8e1e-4afe-a503-956db422c169	f5c742d1-e0cc-4bf8-b860-a673ac407393	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+baf0a9d2-08d2-4680-90f3-e26a1f2fdc0b	f5c742d1-e0cc-4bf8-b860-a673ac407393	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+86e0c67b-0243-4758-8dd7-c634cafa114f	f5c742d1-e0cc-4bf8-b860-a673ac407393	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+99e5e6cc-e5b1-41e8-87e2-045a4dad985a	f5c742d1-e0cc-4bf8-b860-a673ac407393	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e695161f-d47d-4a50-bf4a-fbb26cd5297b	f5c742d1-e0cc-4bf8-b860-a673ac407393	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c04444d4-1cb9-4980-9eed-6f1db0e6a9fc	f5c742d1-e0cc-4bf8-b860-a673ac407393	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+92d93d22-4d42-47b0-9b57-973da1e85bb3	f5c742d1-e0cc-4bf8-b860-a673ac407393	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+56a96433-a828-466c-9b86-a04f22be1b1c	f5c742d1-e0cc-4bf8-b860-a673ac407393	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+db6d2d10-0757-4924-8471-3e63b357193b	f5c742d1-e0cc-4bf8-b860-a673ac407393	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+59a4603c-777d-4918-ab98-bcfbb9bccb95	f5c742d1-e0cc-4bf8-b860-a673ac407393	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fabcf185-bb61-41e1-8e76-d10cbbbc7f37	f5c742d1-e0cc-4bf8-b860-a673ac407393	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a7d3cd06-9ebc-4e13-8739-f418812a0dc3	f5c742d1-e0cc-4bf8-b860-a673ac407393	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c8535251-82c7-4307-aca6-b5b39831de20	f5c742d1-e0cc-4bf8-b860-a673ac407393	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0dd3bd40-2c1f-44a8-aa5f-becc6d33a364	f5c742d1-e0cc-4bf8-b860-a673ac407393	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+beb08123-482c-4e8d-a49c-c5e8577b4f3e	f5c742d1-e0cc-4bf8-b860-a673ac407393	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+674bb4b6-0874-4d1f-8606-bc2c1c0ecbd0	f5c742d1-e0cc-4bf8-b860-a673ac407393	c69af742-1b39-4c84-a7ff-018e808e6973	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3223375d-f0a2-478c-a17c-7f4fbccd08f2	f5c742d1-e0cc-4bf8-b860-a673ac407393	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+39320004-01b2-47e8-ab6f-66696d579c07	f5c742d1-e0cc-4bf8-b860-a673ac407393	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+29f97ba3-0d7a-401e-b675-0798b87d710e	f5c742d1-e0cc-4bf8-b860-a673ac407393	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a349f935-394f-4f3c-b2ac-c49a0d04da87	f5c742d1-e0cc-4bf8-b860-a673ac407393	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+64a3cd41-f348-406e-b847-f53a57d9a36d	f5c742d1-e0cc-4bf8-b860-a673ac407393	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+db50acf6-0ab0-4cf5-8bda-e8aabe71ea62	1a62b1f8-1810-464d-a67b-168d7e419827	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+86c02075-3f7b-472a-82f9-0a0ed3b3cab8	1a62b1f8-1810-464d-a67b-168d7e419827	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6a784010-108b-49b4-8858-6765f1702973	1a62b1f8-1810-464d-a67b-168d7e419827	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b5967a81-cb1d-4729-aa98-2ae82f39fb08	1a62b1f8-1810-464d-a67b-168d7e419827	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+477c8709-473b-4bba-b3ca-bc8b15e64be0	1a62b1f8-1810-464d-a67b-168d7e419827	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e27b73f7-8a00-4ccb-93cd-db3427e941a6	1a62b1f8-1810-464d-a67b-168d7e419827	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5c06fae4-02cc-45bb-8603-5b9467f49116	1a62b1f8-1810-464d-a67b-168d7e419827	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+033600be-ba59-416c-b27c-b45028b46788	1a62b1f8-1810-464d-a67b-168d7e419827	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+986443ed-2f93-4322-af1c-67b90b9d3149	1a62b1f8-1810-464d-a67b-168d7e419827	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8f3c69c3-f437-4acf-b1e5-dd9327372e1a	1a62b1f8-1810-464d-a67b-168d7e419827	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+37071dad-941e-4aa4-957a-e1b4651e2655	1a62b1f8-1810-464d-a67b-168d7e419827	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d12f8321-537e-4ebd-9de9-18ea9dcd716f	1a62b1f8-1810-464d-a67b-168d7e419827	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+30409d21-b337-4ef0-b901-8998ef1f43df	1a62b1f8-1810-464d-a67b-168d7e419827	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0fe77ef7-3d0b-46c2-b65c-219cedc12b0d	1a62b1f8-1810-464d-a67b-168d7e419827	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+64a12901-e607-42bd-b511-b4ecf55fc5ef	1a62b1f8-1810-464d-a67b-168d7e419827	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+331a9c16-d19a-4a7a-b69f-17a865634d02	1a62b1f8-1810-464d-a67b-168d7e419827	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cab67cd9-c768-408e-b9bd-2812815a8bfc	1a62b1f8-1810-464d-a67b-168d7e419827	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+11979b6c-4b62-4a35-bf9e-dcb5adf013ea	1a62b1f8-1810-464d-a67b-168d7e419827	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+535050cd-2668-4db3-be96-e010f7eeefc4	1a62b1f8-1810-464d-a67b-168d7e419827	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d3612fee-7cc2-4d9f-94da-76dda805262d	1a62b1f8-1810-464d-a67b-168d7e419827	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ab92d94e-2fc6-4b3c-af55-4fdf0b4a8635	1a62b1f8-1810-464d-a67b-168d7e419827	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+700cb5d2-3e8d-4adb-bcf2-6c00b79aeda4	1a62b1f8-1810-464d-a67b-168d7e419827	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bae72557-b54f-4cac-9f56-e1e2e2330386	1a62b1f8-1810-464d-a67b-168d7e419827	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f58aaa6d-d40a-43a1-ac37-f7a7eceab522	1a62b1f8-1810-464d-a67b-168d7e419827	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c8303960-b670-4dfb-b18d-770656ccf085	1a62b1f8-1810-464d-a67b-168d7e419827	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e1ad0d4d-c4d2-4fee-a2bb-68bca92c13ce	1a62b1f8-1810-464d-a67b-168d7e419827	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+db54f0a4-5721-4434-aa38-ba6a9b319cd1	1a62b1f8-1810-464d-a67b-168d7e419827	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+91353eed-b342-4ab0-9b28-2ca32c501d13	1a62b1f8-1810-464d-a67b-168d7e419827	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ca5f6aef-88e2-4da1-861b-1f552a8fc26d	1a62b1f8-1810-464d-a67b-168d7e419827	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b9b0e238-3ad0-4f3c-89b7-25f1478f1f5d	1a62b1f8-1810-464d-a67b-168d7e419827	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b1610a59-c25c-4209-89e7-93dfdaa748fe	1a62b1f8-1810-464d-a67b-168d7e419827	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1cd37795-b2cb-47a1-b4ba-c6aa114f10eb	1a62b1f8-1810-464d-a67b-168d7e419827	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+47e0843f-3ea3-469f-9ad5-f03393eb5e02	1a62b1f8-1810-464d-a67b-168d7e419827	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0397005f-2933-404a-b198-f4d673f5c1e9	1a62b1f8-1810-464d-a67b-168d7e419827	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+270d2c04-d7f0-4c24-ab46-90223b1c6f38	1a62b1f8-1810-464d-a67b-168d7e419827	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4f9e048c-c9ac-4de3-9189-46cf0bcff075	1a62b1f8-1810-464d-a67b-168d7e419827	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0baf3bff-6bcf-42c5-85ad-ca4aad5d135f	1a62b1f8-1810-464d-a67b-168d7e419827	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fdc746e4-592c-4aaf-9729-8fd63e8916f4	1a62b1f8-1810-464d-a67b-168d7e419827	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dca6e960-9822-4a58-aea9-1a6ee22616f8	1a62b1f8-1810-464d-a67b-168d7e419827	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+948de2d6-6042-4b0f-a776-b630c312ff3a	1a62b1f8-1810-464d-a67b-168d7e419827	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d36e8f5a-c0b7-4815-b500-cf3460ec24c1	1a62b1f8-1810-464d-a67b-168d7e419827	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+688cf17b-42c7-4daa-8f8c-614e0d782e4a	1a62b1f8-1810-464d-a67b-168d7e419827	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+80bba6cd-66ab-4ce4-8833-f0033d6b98b1	1a62b1f8-1810-464d-a67b-168d7e419827	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e2d58c51-a5f5-4848-b5ac-ef49d0c64dd7	1a62b1f8-1810-464d-a67b-168d7e419827	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1198db95-045c-41e5-a947-003786939f30	1a62b1f8-1810-464d-a67b-168d7e419827	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+61254923-8f51-4738-aac6-ae666864c651	1a62b1f8-1810-464d-a67b-168d7e419827	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7fc39871-17ec-4f5f-adaa-529cfde46b23	1a62b1f8-1810-464d-a67b-168d7e419827	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+38ee7b8b-ff5c-4de9-a36d-74d2a1537625	1a62b1f8-1810-464d-a67b-168d7e419827	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+89f4f461-31e7-4213-a307-1197be15ed83	1a62b1f8-1810-464d-a67b-168d7e419827	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fadab9e0-d64d-4f6d-8248-8b74a97b0631	aba61e5b-422a-4461-b9da-8dba8f6d3f85	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b8621019-8ea5-4ca4-8dc4-d33413f83bb6	aba61e5b-422a-4461-b9da-8dba8f6d3f85	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4a0489c9-9afc-4c69-ab80-effbd8a740f9	aba61e5b-422a-4461-b9da-8dba8f6d3f85	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5bc8e829-1573-4b9c-bc10-807f8a7cfd11	aba61e5b-422a-4461-b9da-8dba8f6d3f85	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d9b43a01-d1b8-4375-be00-e5bf1bf541f5	aba61e5b-422a-4461-b9da-8dba8f6d3f85	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+36d765ee-e863-4524-9642-013045c08471	aba61e5b-422a-4461-b9da-8dba8f6d3f85	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+56eade69-3f8b-42a2-8196-fa13d75a3bf8	aba61e5b-422a-4461-b9da-8dba8f6d3f85	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b82f6f0d-a0eb-4dd1-8270-188f4d7dd34c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c3957729-1d69-46cf-9dbb-0b8dda2e8a71	aba61e5b-422a-4461-b9da-8dba8f6d3f85	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cde76131-d4d0-44e8-9545-9f8c56eb49f1	aba61e5b-422a-4461-b9da-8dba8f6d3f85	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+52432871-2d1f-4546-bc22-3bb434c1bc41	aba61e5b-422a-4461-b9da-8dba8f6d3f85	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+18faf09d-70d7-47fc-b664-a8cf20b755c0	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+301a2473-46e9-4f88-b409-84e07a34cb55	aba61e5b-422a-4461-b9da-8dba8f6d3f85	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f7ddb1ce-a914-4c4c-b307-25f42e51467a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9eb0168e-af13-4816-8004-ffd57b09ce7a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+25bb2f55-64aa-409e-8738-976fe7017bf9	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f8ff8627-497f-4455-8cd3-e829d215f5f6	aba61e5b-422a-4461-b9da-8dba8f6d3f85	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c37c90cd-8b05-4fe6-8bf0-c265122e9f0a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e9ff22db-d4cd-474f-a6e3-62694b861577	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+767837ca-d44e-44f0-95c1-a4016e4be3d8	aba61e5b-422a-4461-b9da-8dba8f6d3f85	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+915926fe-9481-43c4-af62-34a68072cd8e	aba61e5b-422a-4461-b9da-8dba8f6d3f85	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e753c570-c3f4-4634-95da-cfafc008a994	aba61e5b-422a-4461-b9da-8dba8f6d3f85	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+af98278e-51cd-4167-83bb-5587165645aa	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c7753c5e-9fc9-469a-aa76-2dccd0ef8db4	aba61e5b-422a-4461-b9da-8dba8f6d3f85	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5e2b7aee-f5a5-456c-a45d-c556b5338c3c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f8a8e1ae-fc7a-4aa7-a2d8-2f96627dcfab	aba61e5b-422a-4461-b9da-8dba8f6d3f85	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+73686c1a-053e-45b9-b505-847d9081fdca	aba61e5b-422a-4461-b9da-8dba8f6d3f85	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7606e6c2-e32b-4e5e-985a-9c4f286476b5	aba61e5b-422a-4461-b9da-8dba8f6d3f85	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8155c4e7-5aeb-49ff-b293-9ba59cc6e112	aba61e5b-422a-4461-b9da-8dba8f6d3f85	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2690aa5c-5343-46bf-800f-184eb1645433	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+33c1d645-4950-4134-9da2-d3ab3fdc589e	aba61e5b-422a-4461-b9da-8dba8f6d3f85	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3ae46cf5-c3a4-4e9a-80f1-028311e54bea	aba61e5b-422a-4461-b9da-8dba8f6d3f85	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dfebdd30-d66b-46b5-b62a-24bb1d8e2367	aba61e5b-422a-4461-b9da-8dba8f6d3f85	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7ef4da78-e693-46f1-a22f-5fc8e30f4f65	aba61e5b-422a-4461-b9da-8dba8f6d3f85	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e3b72e17-d571-48eb-9798-36659e8ca1ad	aba61e5b-422a-4461-b9da-8dba8f6d3f85	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7247eb65-efce-4e3d-a972-52d2b5942a8c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+abe1355e-bd5a-4c33-984f-23721bfd0d76	aba61e5b-422a-4461-b9da-8dba8f6d3f85	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a83307ad-c23a-4a8c-a04d-6125d5b7d396	aba61e5b-422a-4461-b9da-8dba8f6d3f85	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+713938ce-4b58-4959-831a-89119ea11dde	aba61e5b-422a-4461-b9da-8dba8f6d3f85	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d1d5a553-53b6-405b-aeb2-f8ff31709072	aba61e5b-422a-4461-b9da-8dba8f6d3f85	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+15152522-34e8-4de6-b69e-070498b2f934	aba61e5b-422a-4461-b9da-8dba8f6d3f85	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+26eefe96-c6d2-4878-b457-27c2a9eb0c0c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+93891151-bca3-4cdd-90d1-2721cba4cd43	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+92f643d6-1da6-4928-b964-e161e3810638	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+18c8f40e-6973-478e-9546-40bb2388e93c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+00d27e8c-9cea-497a-8255-dace0bfa3cb6	aba61e5b-422a-4461-b9da-8dba8f6d3f85	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5d94aa7e-3fb4-4e6f-b702-732facec7713	aba61e5b-422a-4461-b9da-8dba8f6d3f85	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+931eec35-e724-4125-9ee6-bd5964aea684	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0d3d6c78-0a39-4658-93ae-0dc07d12e285	aba61e5b-422a-4461-b9da-8dba8f6d3f85	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+06b3fe8d-1a6e-4e44-b082-9a5e9c3dde5a	111cc3cd-6d35-43ce-be91-dde90d3d4015	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9cfbc773-5c11-449b-a73b-e1c794241c23	111cc3cd-6d35-43ce-be91-dde90d3d4015	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a7520df5-f025-481b-9335-ac3fdef183ac	111cc3cd-6d35-43ce-be91-dde90d3d4015	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d578b755-bfd8-45bc-a156-da7b3ecf85ef	111cc3cd-6d35-43ce-be91-dde90d3d4015	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+79aaa86f-24d5-4fda-8a54-7b0b2fa623b4	111cc3cd-6d35-43ce-be91-dde90d3d4015	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6d2499ab-1c36-4005-9489-3d9975aeb568	111cc3cd-6d35-43ce-be91-dde90d3d4015	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ed0e6cb6-34bd-4a1c-8245-1f0e0e209f46	111cc3cd-6d35-43ce-be91-dde90d3d4015	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3a669257-2914-4053-82dc-2fdf7804007a	111cc3cd-6d35-43ce-be91-dde90d3d4015	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0ddf6094-d884-45f2-8afc-b57fd3c2632d	111cc3cd-6d35-43ce-be91-dde90d3d4015	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9d3aaaac-57c5-405f-ad00-f2989e4f27ee	111cc3cd-6d35-43ce-be91-dde90d3d4015	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cac00966-5291-48e1-b5ee-abfe385c142f	111cc3cd-6d35-43ce-be91-dde90d3d4015	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c7ac3d8e-6dd9-4b79-96d4-d24c9729baf2	111cc3cd-6d35-43ce-be91-dde90d3d4015	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+08dbaa71-d1ff-4174-87c1-513258e2b1df	111cc3cd-6d35-43ce-be91-dde90d3d4015	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1392adf5-8b1e-4b79-8eaf-7cf461545d20	111cc3cd-6d35-43ce-be91-dde90d3d4015	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c8d56f0b-728c-470a-bbf6-ba079a58f2c8	111cc3cd-6d35-43ce-be91-dde90d3d4015	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+93835146-7915-4336-bb9c-b9b672ba3430	111cc3cd-6d35-43ce-be91-dde90d3d4015	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f36c9ada-7613-4989-bddc-f656ae93b584	111cc3cd-6d35-43ce-be91-dde90d3d4015	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+21bb76b1-600a-4b61-926c-8a717236e7d6	111cc3cd-6d35-43ce-be91-dde90d3d4015	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c806eefe-3ffc-43ff-8553-3634641811f9	111cc3cd-6d35-43ce-be91-dde90d3d4015	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e588ab2d-5679-4acb-8b3e-b47052c2c735	111cc3cd-6d35-43ce-be91-dde90d3d4015	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f34f3e5f-6d83-41f1-abc3-ecad727b0b65	111cc3cd-6d35-43ce-be91-dde90d3d4015	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0d3ec70a-052b-46af-a150-9d60d232efc9	111cc3cd-6d35-43ce-be91-dde90d3d4015	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b3a71310-2f8d-43f2-856d-d4f2d03a43aa	111cc3cd-6d35-43ce-be91-dde90d3d4015	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a5e7e5fe-596a-4044-8f29-800a9e64175e	111cc3cd-6d35-43ce-be91-dde90d3d4015	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3c81f5af-8641-487c-b86f-c1eb774b8086	111cc3cd-6d35-43ce-be91-dde90d3d4015	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6d1b6724-bd6f-4608-9f77-d1da2c2e488b	111cc3cd-6d35-43ce-be91-dde90d3d4015	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ca306614-1a00-4a4b-acf9-223bb2abee70	111cc3cd-6d35-43ce-be91-dde90d3d4015	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a71673ad-5a2b-4de4-9330-3805e5c29907	111cc3cd-6d35-43ce-be91-dde90d3d4015	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9a68d342-b705-411a-8e6a-6cb267ae01c9	111cc3cd-6d35-43ce-be91-dde90d3d4015	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8767a792-0caa-4140-a56e-aae0ba171518	111cc3cd-6d35-43ce-be91-dde90d3d4015	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c5341b1b-c8a7-49cc-b08e-f673fc5ee7b1	111cc3cd-6d35-43ce-be91-dde90d3d4015	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4d479380-9e86-4a9a-8874-ad2f39a4ba20	111cc3cd-6d35-43ce-be91-dde90d3d4015	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ad724781-209a-44c8-906c-8f79ded57e77	111cc3cd-6d35-43ce-be91-dde90d3d4015	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+971a3b86-a32f-450f-9917-7ffed7ebf90f	111cc3cd-6d35-43ce-be91-dde90d3d4015	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c8bbe2cd-809c-4985-a8ec-5130f790acb1	111cc3cd-6d35-43ce-be91-dde90d3d4015	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+552d3956-3d75-4a83-af47-25dbc8582122	111cc3cd-6d35-43ce-be91-dde90d3d4015	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+74d7aacd-a7fc-4ea8-9d85-22440022df27	111cc3cd-6d35-43ce-be91-dde90d3d4015	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+688fcabf-a9c3-4c96-8181-9a944ea847de	111cc3cd-6d35-43ce-be91-dde90d3d4015	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d3432dc6-3f7c-4afe-ad11-3a9747d6b0ea	111cc3cd-6d35-43ce-be91-dde90d3d4015	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6eef959e-cc2f-4296-a2c8-d8622ae53e61	111cc3cd-6d35-43ce-be91-dde90d3d4015	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dc6f0438-2742-472f-8cf7-e3a6f5a24df3	111cc3cd-6d35-43ce-be91-dde90d3d4015	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a22bae1f-4fbf-4760-b3bf-07719167b5e7	111cc3cd-6d35-43ce-be91-dde90d3d4015	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b3141a57-45bd-4729-9f91-362f7726ede4	111cc3cd-6d35-43ce-be91-dde90d3d4015	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9bcac5a5-2ffb-45d4-91c0-97718e47baff	111cc3cd-6d35-43ce-be91-dde90d3d4015	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c5182f4f-a73f-4047-b4fc-479d73b96acc	111cc3cd-6d35-43ce-be91-dde90d3d4015	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9aa2e156-51e2-4fee-ac03-b1768659fefc	111cc3cd-6d35-43ce-be91-dde90d3d4015	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7d8c03bd-1d19-40b9-a523-832265ac4b5e	111cc3cd-6d35-43ce-be91-dde90d3d4015	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c39726fa-a3af-494e-bb74-daef753b4fe8	111cc3cd-6d35-43ce-be91-dde90d3d4015	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+285f1254-79c6-4c6f-a43e-599b9e974743	111cc3cd-6d35-43ce-be91-dde90d3d4015	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+afbc8aa8-95bf-4a0f-b676-c2a643acb18e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4121bae8-8895-47c8-a77d-7a4864bdd997	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+56a5c523-8c54-47b6-84a9-311e36db89c2	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+966593a5-656c-4380-b934-0e53e4edd8bd	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9549a541-6e61-40ab-be0f-6fbb1c316cac	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+04fe509e-6968-4969-a142-53234e6c495f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b560c65b-ba4d-4755-b5df-635994fe3d2a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dfe53f03-6f9f-494b-95b8-aa39d82bb278	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+372a66d5-1683-4f21-a470-c5195fec8415	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b5bb6d4d-e77b-4b59-b89d-5d790f8f8c04	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c68848bf-bb1b-4569-8b2f-1006c2e44768	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0a18d787-f33e-4741-8198-afec0f165a6f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9012c5c3-19bc-4334-9560-9cf936fc84fe	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+08226efc-7461-4cc3-a485-bec890638c3a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6c088a8e-49a7-4571-8fae-dbbd06083fba	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+53a7106b-78ae-4b8d-9baa-1a3a7b522b6d	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b7af0de5-26e2-4642-956d-82e1a0d42067	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+554e46b6-00d2-4819-9da5-a8da96d1fc0f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ed50fbb4-43d5-4b3f-b6cf-986884f11eb3	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5eacff37-91c3-4b2b-aa3f-d88a267a9bb5	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+132d027c-f8ac-49f3-9bb2-abfb828c242e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ade6faf2-c6ff-499c-a8ad-e91b11c8ebdc	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+958bc3f8-4031-435e-aa0c-4c44dfb23fb7	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9d0d5c36-d0ea-4bb2-8816-0521e173e0c5	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fd484a98-293a-4b3c-a0bf-597a59cb6ce9	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9187287f-bcf7-4aba-80db-ceead3034735	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3fd986f5-c677-433e-bebe-e36cbfd2625f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f597ff4b-142c-4f16-a7ff-85f88dba60cd	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+88dd2ffd-c471-4d26-8176-43aa524fe1c4	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+57c04d33-5403-4740-92b7-0325587d9e50	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+977a222e-8e6f-4c4f-a660-e0a91d9cbe6a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0e23847c-ce39-4ad1-876c-30fc4c310181	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5de807e9-4030-4171-b93b-02c2a6d75ef3	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+35e1e964-e0ab-4322-bde4-5d9bda0755a5	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f5567e75-2698-452b-b80a-028fd6c2bde9	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7d26837e-7106-475e-9a75-d3fd7ac699be	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d454609c-9230-4dc3-b0b0-ecc4ba3699ea	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+844996ba-632a-42e2-ba50-cb6483957d1e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+42472ee7-d327-43c5-980b-486f420f4c87	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+74543a68-c72e-406a-8783-f80cf9f50e2e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+df278aaf-decc-43f9-9069-e95ba5d7f81c	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+831a01bd-a665-477f-92bc-b43b3e2e019a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d7bf7d70-5638-4550-b188-24a03504ba5c	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4ca30dd8-049d-4f61-a769-945c39b4bc31	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+df08cb84-c7d0-4668-9575-7f2e60cf431a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+71de5477-511c-4bcf-b1b2-b65375b4f877	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4fe0e0b7-9c87-4355-a4ef-6aaf9154d7f6	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cf3d70b1-aa79-49e0-9eac-6963b5f68a68	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4537e916-46db-4c45-8bb7-8c51602c4236	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+36f102a3-2d44-4a71-91d3-f46bd97620de	768a11f9-ded7-4f6f-ba86-073e279255d9	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e7a3626e-5f84-45a8-ae25-598f29eeb96a	768a11f9-ded7-4f6f-ba86-073e279255d9	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f0430b9a-945a-41f8-a266-75f3d9dc986f	768a11f9-ded7-4f6f-ba86-073e279255d9	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+43e1115f-b4a6-439f-a8bb-46e512ab25ce	768a11f9-ded7-4f6f-ba86-073e279255d9	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+70872ff9-c544-498b-a3bf-f8cd7003297c	768a11f9-ded7-4f6f-ba86-073e279255d9	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+086e8618-e2f3-4b30-bfa7-803e137123b9	768a11f9-ded7-4f6f-ba86-073e279255d9	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+414bd9ad-8aaa-408c-ba52-4136e0b780a4	768a11f9-ded7-4f6f-ba86-073e279255d9	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a2f4233d-2102-4c2a-9e0c-dc9911c14511	768a11f9-ded7-4f6f-ba86-073e279255d9	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+78158bbc-6863-435b-a50e-79645288d012	768a11f9-ded7-4f6f-ba86-073e279255d9	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e613dfad-8e4a-48d7-bd51-7be92a7eb856	768a11f9-ded7-4f6f-ba86-073e279255d9	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f999c83b-77b1-436e-970b-10d0eddaed93	768a11f9-ded7-4f6f-ba86-073e279255d9	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+069e7f03-da26-4cb3-8ae6-441b1990a124	768a11f9-ded7-4f6f-ba86-073e279255d9	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5786932d-665d-4ac1-ade4-1eaa77665887	768a11f9-ded7-4f6f-ba86-073e279255d9	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+84d0bae0-67ad-49e2-ad36-acec381703df	768a11f9-ded7-4f6f-ba86-073e279255d9	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+590b3b55-c5a6-436a-9ae7-867aadb9c695	768a11f9-ded7-4f6f-ba86-073e279255d9	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+952b6572-7e78-4d7f-9489-297f8bb2dbb8	768a11f9-ded7-4f6f-ba86-073e279255d9	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c91a4fce-7e34-41a8-a2e3-0f169d683f00	768a11f9-ded7-4f6f-ba86-073e279255d9	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3050bf59-70ea-4c8e-bcd0-9a7d3292be48	768a11f9-ded7-4f6f-ba86-073e279255d9	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cb3e3377-d03c-463e-a589-bc2f83638458	768a11f9-ded7-4f6f-ba86-073e279255d9	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0826a098-553a-4e9d-8fb7-a6afbc3bbc9d	768a11f9-ded7-4f6f-ba86-073e279255d9	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e553f164-7d19-40f4-95e4-6d03fafefe32	768a11f9-ded7-4f6f-ba86-073e279255d9	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+58d03ef4-0127-4576-9305-392c78513f50	768a11f9-ded7-4f6f-ba86-073e279255d9	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+be140bb4-a6b3-42a4-9518-4fa018f60a88	768a11f9-ded7-4f6f-ba86-073e279255d9	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8908d936-e168-4072-a7d7-79990a102530	768a11f9-ded7-4f6f-ba86-073e279255d9	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6df50c01-a5c9-4702-877c-5c672524d9cc	768a11f9-ded7-4f6f-ba86-073e279255d9	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4dc57475-2440-4430-a8b9-178d1d96f6d3	768a11f9-ded7-4f6f-ba86-073e279255d9	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0e357e3a-72ad-45f7-8cef-044235691471	768a11f9-ded7-4f6f-ba86-073e279255d9	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a6a1b826-2701-494e-b512-335885e3ccc3	768a11f9-ded7-4f6f-ba86-073e279255d9	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a55dacf7-3f5d-4142-9656-411b02e8bcaa	768a11f9-ded7-4f6f-ba86-073e279255d9	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0e2e51b0-c1ed-4e8b-a4a8-2b0a9b6ccc5a	768a11f9-ded7-4f6f-ba86-073e279255d9	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0bfcd858-c0d8-48ff-8e39-5c4de5ac800f	768a11f9-ded7-4f6f-ba86-073e279255d9	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+46e67f3b-1308-4b75-a2f6-d9961d65352a	768a11f9-ded7-4f6f-ba86-073e279255d9	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+825731a3-e1d8-4496-a786-e9953175a2d2	768a11f9-ded7-4f6f-ba86-073e279255d9	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+95a93d94-daed-4e8b-8d4d-79de69a9df81	768a11f9-ded7-4f6f-ba86-073e279255d9	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+842de171-d152-41a6-8acc-1541424051db	768a11f9-ded7-4f6f-ba86-073e279255d9	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8c72caaa-4251-488a-87ca-38c47f3c051e	768a11f9-ded7-4f6f-ba86-073e279255d9	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f48cda4b-dc11-414b-b9fd-cc1710873355	768a11f9-ded7-4f6f-ba86-073e279255d9	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d5e06252-8946-48d8-916c-3defded794d1	768a11f9-ded7-4f6f-ba86-073e279255d9	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cd60345b-a4cc-4ac7-b590-ed9f09d09f1d	768a11f9-ded7-4f6f-ba86-073e279255d9	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+90d339b9-d475-435d-b377-f658b5daaa95	768a11f9-ded7-4f6f-ba86-073e279255d9	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+597cb076-01de-410e-879e-bb205725663a	768a11f9-ded7-4f6f-ba86-073e279255d9	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c5c15c96-5aba-458f-be7e-22a3d5135e42	768a11f9-ded7-4f6f-ba86-073e279255d9	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8047e1bf-185e-43b2-8a04-3108df0fe189	768a11f9-ded7-4f6f-ba86-073e279255d9	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9ffce159-c3e7-46cd-bd3b-3aeb71013a85	768a11f9-ded7-4f6f-ba86-073e279255d9	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6d1f565b-24e7-485a-a3af-547ec638974d	768a11f9-ded7-4f6f-ba86-073e279255d9	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bfec1067-40b0-402c-b8a3-d670be290161	768a11f9-ded7-4f6f-ba86-073e279255d9	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0beaba26-fdf7-4b5a-9aaf-ffe0a13f9385	768a11f9-ded7-4f6f-ba86-073e279255d9	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1c1c3553-4c98-45c0-a098-e8bf572c52bb	768a11f9-ded7-4f6f-ba86-073e279255d9	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+28eb366a-efa5-4773-9588-0a09f56503e6	768a11f9-ded7-4f6f-ba86-073e279255d9	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c0014086-d132-4290-a223-740ddeccc5fb	701aaa2c-a899-4def-bf5f-e17511874409	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c3788cb1-47fb-4a56-9ea6-f141097402ff	701aaa2c-a899-4def-bf5f-e17511874409	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ec51d4bd-1dd6-4432-94cd-11a7dc1c9df4	701aaa2c-a899-4def-bf5f-e17511874409	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+041b0fa8-6ae3-4dd9-a8bf-dab66d1d24aa	701aaa2c-a899-4def-bf5f-e17511874409	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9cd05729-057a-4bcd-9d1f-0a0199043a2f	701aaa2c-a899-4def-bf5f-e17511874409	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cc370e8d-4906-4edd-95a7-048d858e3218	701aaa2c-a899-4def-bf5f-e17511874409	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+825f5f1c-28f3-4396-912b-5a0993154bc7	701aaa2c-a899-4def-bf5f-e17511874409	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+28ca2414-c1ca-4837-a247-1d40669db615	701aaa2c-a899-4def-bf5f-e17511874409	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+59ec5493-366a-4e0f-97ff-7a70de7907f2	701aaa2c-a899-4def-bf5f-e17511874409	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7b3166fa-6417-4094-8932-f3db117c7950	701aaa2c-a899-4def-bf5f-e17511874409	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+21026266-7c57-4968-9bd5-63f6c400a2f3	701aaa2c-a899-4def-bf5f-e17511874409	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b1c13a02-d422-41ce-b1b1-ee42085ce263	701aaa2c-a899-4def-bf5f-e17511874409	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b190ff40-7658-45b9-a5ce-40c25f248680	701aaa2c-a899-4def-bf5f-e17511874409	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b380c453-10e5-4ae4-b6da-0fddaa46da62	701aaa2c-a899-4def-bf5f-e17511874409	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+acfc90fb-60eb-4cad-835e-8a94cc598716	701aaa2c-a899-4def-bf5f-e17511874409	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7eff7081-5493-4872-840a-62148c7c0883	701aaa2c-a899-4def-bf5f-e17511874409	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d3364981-7a83-4b9c-9376-c05b126c2bd2	701aaa2c-a899-4def-bf5f-e17511874409	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bdbf64a1-6196-4bc8-923e-5d604572ea86	701aaa2c-a899-4def-bf5f-e17511874409	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2c1ee6fc-9d6e-4590-b47f-a0b82277e419	701aaa2c-a899-4def-bf5f-e17511874409	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3e887278-a28d-44de-921f-cedbfb2fdbd7	701aaa2c-a899-4def-bf5f-e17511874409	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ead52dd3-06b5-4600-8961-da794f3be13e	701aaa2c-a899-4def-bf5f-e17511874409	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7c1a1d9c-1fc3-4082-803e-3ee929292ffd	701aaa2c-a899-4def-bf5f-e17511874409	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ca99e605-8e3c-48da-9226-53540bb5a255	701aaa2c-a899-4def-bf5f-e17511874409	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a4a247aa-da17-4f2d-897c-98a19b664daf	701aaa2c-a899-4def-bf5f-e17511874409	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+38dd30ea-317f-414f-843f-aadf4de38e48	701aaa2c-a899-4def-bf5f-e17511874409	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f8ef76c9-cb15-4b11-8248-e89e25821bb5	701aaa2c-a899-4def-bf5f-e17511874409	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d875b930-be1c-490a-926d-1c62a0c83b8d	701aaa2c-a899-4def-bf5f-e17511874409	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9f3d4020-e6eb-4723-9c0a-f61b9f46261c	701aaa2c-a899-4def-bf5f-e17511874409	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+42d2713f-72bd-4aa6-bab0-9529ee042f70	701aaa2c-a899-4def-bf5f-e17511874409	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3d697af6-6ad3-4283-ae93-1bd8799480e6	701aaa2c-a899-4def-bf5f-e17511874409	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+646a8f7f-c7fb-41a3-8674-56916df75da6	701aaa2c-a899-4def-bf5f-e17511874409	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8ff0473e-fc3e-429f-a848-da95a9e83a71	701aaa2c-a899-4def-bf5f-e17511874409	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+aa615f46-5a3d-4a94-8c7d-d56f6cd53f77	701aaa2c-a899-4def-bf5f-e17511874409	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+70a0a3b9-bd58-427a-988f-ae83ecc58bed	701aaa2c-a899-4def-bf5f-e17511874409	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9a1eef56-c562-4f60-b7f0-81b3f022c661	701aaa2c-a899-4def-bf5f-e17511874409	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d4e08875-4063-4de3-9d3f-771031c54278	701aaa2c-a899-4def-bf5f-e17511874409	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5092114c-1820-4f7a-8ac9-97d331dcb8e4	701aaa2c-a899-4def-bf5f-e17511874409	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+75a5b0de-293e-40b8-9605-1c599fe105e2	701aaa2c-a899-4def-bf5f-e17511874409	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5b35ef22-087b-486a-8a4d-c229a525e8f4	701aaa2c-a899-4def-bf5f-e17511874409	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c463ca83-e231-4fbc-a59c-ce6ff0af7e3a	701aaa2c-a899-4def-bf5f-e17511874409	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f5911aa8-7529-444a-9b09-bd100f4f2bc7	701aaa2c-a899-4def-bf5f-e17511874409	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+65491047-90a9-4827-969e-da529d1199ca	701aaa2c-a899-4def-bf5f-e17511874409	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d81c844e-8e5d-4f71-87d0-efe97d3700de	701aaa2c-a899-4def-bf5f-e17511874409	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8a50be68-18f0-47a1-ac07-f82b207b1ddc	701aaa2c-a899-4def-bf5f-e17511874409	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b2346b63-72c3-4b62-aca2-6b4d7212d448	701aaa2c-a899-4def-bf5f-e17511874409	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c27d7cac-5932-4225-a388-3e6d5fbb0ef2	701aaa2c-a899-4def-bf5f-e17511874409	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6fd325bb-9faa-4a2b-baec-3a61026a479f	701aaa2c-a899-4def-bf5f-e17511874409	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+987a7b47-f0c0-4ab2-a796-2ae053c4a033	701aaa2c-a899-4def-bf5f-e17511874409	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+61fd1fed-532f-4b36-b388-d23518f7cb3e	701aaa2c-a899-4def-bf5f-e17511874409	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+621af157-42da-4034-88bd-a8f7567ab0f5	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3d989cc5-59d6-437b-92e2-fcef0c7d40c8	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+52f5bef3-c77b-4a70-9b5b-dd034667a956	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+26c51915-f559-461d-88da-fbd0e5ad8358	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c4747966-194f-498e-8ee8-6688c0f86767	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+76f88bee-43a0-42d9-b455-f9c0f39cfed3	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ea5b330e-4d74-4163-9aad-193bffc375c9	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+41e00b5d-276f-41c6-b469-dd971535562d	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+239d3f15-9d50-4546-aabe-57b1c38072a9	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3ea95e1d-1226-4dd4-818d-d74017e21522	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4b516dda-974e-4bbe-ab75-f1c34469e745	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3aadbd2d-1102-419c-aff4-ab62e28a9355	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7c96576c-488e-4e20-bb31-a93e75e67224	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dd681477-b100-4ff6-9fc4-e64b8cd3542e	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0bc42731-a2de-43c0-b968-bea5804a4c89	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5adb6a84-b361-4ca0-8cf3-cf2878fcc5e1	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+856fe8ac-4a29-4952-a65f-47e849bbaff8	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e9ee5d69-26d7-47af-a3a1-12feb8aa5367	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+24ef2745-e10d-488b-90aa-d770a6e2d0bc	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d73a18e9-e97f-4d3f-828b-3900ba10b8ee	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+09a9d3d3-08a2-423f-96e5-8f75c20b0123	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b78ceb5e-a734-45ea-867f-be9859c3714b	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+62d91d12-56c9-4632-82d7-0f487428a86b	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+02f6797f-bf5e-4252-a783-d864fa352913	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+920b4517-68f0-462f-93e4-d621d4b00737	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+628eb2fb-9499-4f32-a212-113f7a7f42a0	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ea6a6d96-b615-4717-a25a-085d49160807	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+be60a117-6d84-4a1e-8e6b-1941ff6fefb8	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+989b51f2-ca47-4240-8715-564f6cf82e24	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ad2ac947-0a08-4b50-906d-f00f8ddfadc6	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+629ddaa5-3bf7-4b44-8c9d-1d6cb31944ca	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5e4d962c-a7e6-4a18-9f89-76f6bda27273	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4f13c206-d720-49f9-881e-efe6646b079e	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+533ff916-8c9a-4620-b11b-430874437998	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bc1e27fc-cbc9-4527-8ba8-ea85efe350bd	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6e195c99-f87c-4a99-a135-e177d16fb283	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6301f9a2-9359-4058-a3b4-6743d4483c4f	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4dee24f3-6ccd-42b4-8734-d513a92c3a9a	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+eaa949e9-e4f4-428a-9e3b-cfe06ea8ebc7	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bd443375-2785-4dfe-982c-77990be9e511	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+594f3e35-5615-4d33-8ade-2c919e17ddb0	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+350edb1f-5385-443f-a691-781a081a8473	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5ab9c88c-b0df-4f80-97bc-ae5a52a90a85	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3da12316-9d98-4f7b-9c09-6ed3e4e86dc8	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6444af9a-ca1b-4078-8d1d-6482d83026e2	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2c658a5f-7f25-4b50-a789-967499f2d858	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f7c245e5-ea14-4143-8343-ccf7892870e5	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+16dade26-8db6-40b3-be9e-c4ce50ffd1e4	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b3cd0aac-f4d7-4e56-a5ac-fe7d37c3e2d5	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+aa23cf0a-ecff-4606-af10-1cfda221368f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f4ce14ea-a11e-4161-aefc-dba53f7e8742	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2c994b3d-9dbd-4c4d-be78-18da01005b24	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+764ff5b4-8152-4f7d-84a7-2f6d6268fdf8	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+384a0773-9ff3-407b-9f77-1b902d32bce3	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+75e62967-10b0-44f0-83d0-57485cef6989	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+87757482-1c44-488a-8f03-3a4f8d3218a3	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+969966de-475a-4bf1-83c2-c8be668c4311	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c436a046-fbf2-42af-ae9d-50a33f29320b	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+35d24775-7276-4644-8b21-f626b7f764ee	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a6f5f834-a782-4367-854d-174e5c0ccb43	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+29ebe02c-8a04-4249-b335-fcbb1bbb9f0b	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7db38c2a-ec97-4914-8d6a-0d2281524281	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+194f772e-5dbe-420d-82a8-349866918dc0	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+abf17b6e-9ad0-46d1-9134-4c9773acbcae	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+407f4737-4e45-47ab-892b-71fbbd9865cb	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+817981d7-7543-4704-83f6-22507f612297	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+232923cb-ef95-4271-b88d-1076d5718546	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5b5e1ab1-885d-4f9c-97d3-b022c0214650	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4a658961-ea34-4c09-b4bb-734857de2857	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+af4312e2-f7b0-4091-91c3-025a48c44ff7	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+91786fed-bca7-40f1-af1b-2337ea6d4afe	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bb8c5264-eb11-4074-a482-df74312ff0bf	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5bd9a7c5-092c-456f-aaf2-57f310b9538b	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8dabdbd8-7c92-4087-b78c-822763432f39	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1ad19d62-cef5-47f3-99cb-a0d18d802ad6	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6b1a146d-838b-47f5-9c80-c5f1cd122d88	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9576364c-509f-4439-8456-c3a7ff4aea0f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c83743b7-c2da-499e-9c57-4306cb3714b2	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7a8182ba-73fa-495a-b26f-18d4b689f332	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6b424645-27ba-4107-804e-106859449ef0	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8ae0a805-920b-4b38-ab4a-a917dacc2dae	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+81f1b916-cc40-4312-aa39-5484b1a333be	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dd1072e5-d301-4fac-a278-ee0091dd1943	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+01d3d7e6-9dde-4221-92cb-5cd303946c19	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+93c81392-5d29-4ab4-beb8-1dd6418dc7a7	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e12ebf37-a538-4930-a387-e8f8d719956a	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c373f79a-b1fd-4ab4-ae07-88bf9bbbd680	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4df84bc4-fd52-4887-b209-e6b3b085950c	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3f013734-ca14-4e37-8856-e85cfcaefa3f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1a8d7230-b954-4ff7-8c42-9fb077951901	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4e100d9f-2b4c-48fc-b862-07623658e17c	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a0f93491-209a-453a-b710-2faf124c520d	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1f0d2f13-d6f7-466e-861f-bc0e0349d9af	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9140aace-4c82-41e5-ac76-dd3efe26bdf2	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c9927bd8-7b46-4582-b68a-3749adf06929	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ff791ac0-ba9f-4f69-b971-0de39b88251a	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+50eece80-39e6-4ab4-81f7-0648c3a3844f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7657bf93-fd58-4d4f-acc4-d9eaffa2748c	64c49f37-a38a-46a6-9622-7427f1501658	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+19d7ebed-766b-4462-9076-20c796f71320	64c49f37-a38a-46a6-9622-7427f1501658	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+07cbf616-115f-40db-80cf-17bb6932bab9	64c49f37-a38a-46a6-9622-7427f1501658	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+70b958ac-4f68-4716-84c9-dc9d3e18c7b2	64c49f37-a38a-46a6-9622-7427f1501658	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1b13e257-97f6-4dc7-b443-d158d9c9790e	64c49f37-a38a-46a6-9622-7427f1501658	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+48896b87-b6a6-4172-8e6b-fb82a2a7819d	64c49f37-a38a-46a6-9622-7427f1501658	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+53604082-7bae-45d9-957a-10693e8146cb	64c49f37-a38a-46a6-9622-7427f1501658	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d33b3a7c-6065-43d5-ac3d-913811e41713	64c49f37-a38a-46a6-9622-7427f1501658	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5c06812e-bae4-4a41-b742-4ee2ec4fb606	64c49f37-a38a-46a6-9622-7427f1501658	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4d67db82-f506-497c-8f5e-b69268a67b80	64c49f37-a38a-46a6-9622-7427f1501658	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0ac8cda7-8ae6-44ed-bf9b-5a0fe336cee8	64c49f37-a38a-46a6-9622-7427f1501658	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cd4ac2e5-23cf-4c1a-b39a-b502e2a5bc9c	64c49f37-a38a-46a6-9622-7427f1501658	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d22ec3de-04b9-42de-acf5-5c26e7cdddba	64c49f37-a38a-46a6-9622-7427f1501658	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5d710232-7e8a-499d-bd95-67647996dae0	64c49f37-a38a-46a6-9622-7427f1501658	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b8fe8860-d1b9-4f94-a5a5-1314fb1ba2c6	64c49f37-a38a-46a6-9622-7427f1501658	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b719a8b0-519c-46de-a535-03a2cc4631ad	64c49f37-a38a-46a6-9622-7427f1501658	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+403836de-c900-4e01-a734-5ed007f454f8	64c49f37-a38a-46a6-9622-7427f1501658	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+62c63f68-c42d-4fa8-98b5-b68f189e6715	64c49f37-a38a-46a6-9622-7427f1501658	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ace4c8de-00f8-4a3d-98ad-1787e8039a29	64c49f37-a38a-46a6-9622-7427f1501658	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d326f8a0-e27e-472d-968e-fa04211df73d	64c49f37-a38a-46a6-9622-7427f1501658	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4876bcd2-064a-4b5f-9da3-3e6aa5d536ce	64c49f37-a38a-46a6-9622-7427f1501658	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9dfdbbdf-17d3-4a59-ab20-55bdfb30d426	64c49f37-a38a-46a6-9622-7427f1501658	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+248693fd-1faa-496f-bf08-04739d7ab39b	64c49f37-a38a-46a6-9622-7427f1501658	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8a042b75-3d24-480c-99cb-e212824578f6	64c49f37-a38a-46a6-9622-7427f1501658	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+54f7c64e-3278-4b9b-8e54-687e6ab3223a	64c49f37-a38a-46a6-9622-7427f1501658	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3794c994-a442-4563-8024-5d9b5b351e63	64c49f37-a38a-46a6-9622-7427f1501658	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3eb016da-93be-495e-b620-bba57e9566b1	64c49f37-a38a-46a6-9622-7427f1501658	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c277027d-d37a-430f-83d8-9b64f97eb274	64c49f37-a38a-46a6-9622-7427f1501658	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+36e1b197-af06-4ca9-9fa1-1992d0c2508f	64c49f37-a38a-46a6-9622-7427f1501658	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+05488913-0a64-44bc-9bf1-9c9ba23b5edc	64c49f37-a38a-46a6-9622-7427f1501658	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c3a4ff48-6f11-4306-8795-111182460ee5	64c49f37-a38a-46a6-9622-7427f1501658	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ed55a733-23d5-4419-ae76-e79beb55fa53	64c49f37-a38a-46a6-9622-7427f1501658	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3113a05d-fc26-4876-9d36-3ce3e12f25ab	64c49f37-a38a-46a6-9622-7427f1501658	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+048ad164-78b9-43d2-bb92-753ddc2c5329	64c49f37-a38a-46a6-9622-7427f1501658	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f28eec03-47da-4f67-89ff-9f0542ecd5ee	64c49f37-a38a-46a6-9622-7427f1501658	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ce9924e6-8583-40d3-b574-62c37c8b0634	64c49f37-a38a-46a6-9622-7427f1501658	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0f3a4579-d575-42cd-b000-bf9ce1cc6623	64c49f37-a38a-46a6-9622-7427f1501658	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d719f727-9a77-493c-ad2f-cd6383f470c6	64c49f37-a38a-46a6-9622-7427f1501658	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+01c2ca2b-f17d-4491-9852-5260163354a1	64c49f37-a38a-46a6-9622-7427f1501658	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+644f4d11-2734-4154-8c5f-950e4b12436f	64c49f37-a38a-46a6-9622-7427f1501658	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d5cfdb72-f90f-4c91-918f-deff382e8d57	64c49f37-a38a-46a6-9622-7427f1501658	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bbdbb224-8e6d-4ab4-9182-c61431e7a06a	64c49f37-a38a-46a6-9622-7427f1501658	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ede45e99-a560-4459-9d15-aeb91f60d7a9	64c49f37-a38a-46a6-9622-7427f1501658	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8a786d00-b735-471b-89aa-daccc336a198	64c49f37-a38a-46a6-9622-7427f1501658	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+27ef3511-a210-4e1f-86f5-56f0fe3930b6	64c49f37-a38a-46a6-9622-7427f1501658	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e2922a16-f9db-4eed-b2f5-64dd4749c33e	64c49f37-a38a-46a6-9622-7427f1501658	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+694c5dca-cd8b-4ef9-b45d-7371e45afa9f	64c49f37-a38a-46a6-9622-7427f1501658	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c62b0734-8eb0-4a4d-be66-c0645a41f16e	64c49f37-a38a-46a6-9622-7427f1501658	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8981868f-d665-4e2c-afd9-4d3a1c7d3670	64c49f37-a38a-46a6-9622-7427f1501658	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1425f26c-d022-488e-855b-c04b16341ede	92aa9169-28d9-4754-a570-553b067642ed	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4bf569f0-01c3-46d4-96f7-251f74128f14	92aa9169-28d9-4754-a570-553b067642ed	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+36e9e9d0-d630-43c3-a3f3-217a8c3ee3f1	92aa9169-28d9-4754-a570-553b067642ed	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5f0d4636-704b-4551-a593-295e9f10cbc1	92aa9169-28d9-4754-a570-553b067642ed	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+60727745-3048-48e3-9b36-0e2964ecfffa	92aa9169-28d9-4754-a570-553b067642ed	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+019befe7-967a-462a-81bc-5519554b8845	92aa9169-28d9-4754-a570-553b067642ed	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+16ade594-4592-43ca-b441-61ed21a6f9a3	92aa9169-28d9-4754-a570-553b067642ed	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+52141eae-d3bd-436e-986e-755576c4a197	92aa9169-28d9-4754-a570-553b067642ed	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1bf3c276-cf1b-4523-bd48-0fdbf1a7f33c	92aa9169-28d9-4754-a570-553b067642ed	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+59766278-05bc-4092-8b6f-60f1a1e84fdd	92aa9169-28d9-4754-a570-553b067642ed	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+380a61c1-171e-4954-bc86-57ec569075ef	92aa9169-28d9-4754-a570-553b067642ed	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+26489ddf-01f6-4668-8196-f32d7f6392b6	92aa9169-28d9-4754-a570-553b067642ed	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+77313c27-43e3-4990-bdb7-59551289dfac	92aa9169-28d9-4754-a570-553b067642ed	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+3ca02c5b-2f45-4984-8913-1ce28c2b170e	92aa9169-28d9-4754-a570-553b067642ed	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5a1eec98-c764-4ecf-af8d-cbb27187ea9f	92aa9169-28d9-4754-a570-553b067642ed	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2091a034-1361-4410-8e88-e5906646baa5	92aa9169-28d9-4754-a570-553b067642ed	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+648494d3-b8b9-4189-b0b7-a691f88bd7eb	92aa9169-28d9-4754-a570-553b067642ed	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5db4a4a8-109b-491c-b3f0-e0689656c3f0	92aa9169-28d9-4754-a570-553b067642ed	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0341df5f-c3d0-4045-bb2e-cf5b567bc32a	92aa9169-28d9-4754-a570-553b067642ed	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+cab15628-a690-4294-87fa-3b4cfb7aab37	a3793f87-7f3c-41a1-a675-236fc1b710ab	6d278091-4576-4bc6-8d47-2a1925436089	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0941d5d7-82c1-48ed-89cf-0cdff5ea6488	a3793f87-7f3c-41a1-a675-236fc1b710ab	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+22f8af91-3e36-46a0-984c-69a60adbb49e	a3793f87-7f3c-41a1-a675-236fc1b710ab	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a9a808ad-0c8f-4124-9abc-50471da1accc	a3793f87-7f3c-41a1-a675-236fc1b710ab	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a0050447-d70e-4467-aec7-2ac3db043d48	a3793f87-7f3c-41a1-a675-236fc1b710ab	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+103cc5aa-3dca-4816-8fa0-4cfb3904b0bf	a3793f87-7f3c-41a1-a675-236fc1b710ab	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+112316d5-5ee0-4f7e-a88f-10dec60b090a	a3793f87-7f3c-41a1-a675-236fc1b710ab	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9ce7e5f7-a7c2-430a-9ffc-f83d4afb335a	a3793f87-7f3c-41a1-a675-236fc1b710ab	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+496a7574-02be-42b8-bfc6-4f3478215f80	a3793f87-7f3c-41a1-a675-236fc1b710ab	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+98b8c38f-526c-4f8d-8c8f-4f65db80dcae	a3793f87-7f3c-41a1-a675-236fc1b710ab	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e839eec0-2545-4a09-b525-ecbeabdf2878	a3793f87-7f3c-41a1-a675-236fc1b710ab	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+26564600-9a3b-4cc6-bd7f-dfdb4c058264	a3793f87-7f3c-41a1-a675-236fc1b710ab	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+80d62bdc-99ab-4f6b-a0b9-4707523a5fc7	a3793f87-7f3c-41a1-a675-236fc1b710ab	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+26aee4df-40c5-4e5d-b115-cf2cd93b79ff	a3793f87-7f3c-41a1-a675-236fc1b710ab	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e95e8c4d-40c7-403a-9beb-44ad70a6d3aa	a3793f87-7f3c-41a1-a675-236fc1b710ab	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+93e972c3-db42-4336-91ee-778e11c4b9a4	a3793f87-7f3c-41a1-a675-236fc1b710ab	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f84c6f76-db44-450b-89b1-72fefaf34313	a3793f87-7f3c-41a1-a675-236fc1b710ab	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b88d5006-09c7-4819-9769-0e9acc1d7d88	a3793f87-7f3c-41a1-a675-236fc1b710ab	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+02d7b3ca-1d5c-461e-9001-36696e7ce3d7	a3793f87-7f3c-41a1-a675-236fc1b710ab	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bd23990d-0343-41b8-a21f-efbb6931f45d	a3793f87-7f3c-41a1-a675-236fc1b710ab	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c2ec8866-d8b4-4288-b8a9-3a9132dda1a6	a3793f87-7f3c-41a1-a675-236fc1b710ab	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+799b7d0f-c753-43db-be33-7da5d47c088b	a3793f87-7f3c-41a1-a675-236fc1b710ab	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+069e90e5-e1d8-4696-a71c-405307883cf0	a3793f87-7f3c-41a1-a675-236fc1b710ab	c7930f90-dff0-421d-94bb-45ff21cc9613	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+02e64ff2-2090-43c9-af4c-87e3314f48ed	a3793f87-7f3c-41a1-a675-236fc1b710ab	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f7e38d72-1dd3-4982-85bb-de49293ed85c	a3793f87-7f3c-41a1-a675-236fc1b710ab	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3f6e4e6e-54f1-41aa-89ad-ae54c0333c60	a3793f87-7f3c-41a1-a675-236fc1b710ab	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+57bf7c89-a6c3-4425-b4ef-9595579b67d0	a3793f87-7f3c-41a1-a675-236fc1b710ab	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f36b9dff-817f-484a-b28c-f5d26dbf1ad0	a3793f87-7f3c-41a1-a675-236fc1b710ab	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+72a95e06-db7f-4d3f-9bba-229d20d23560	a3793f87-7f3c-41a1-a675-236fc1b710ab	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+83088a68-1389-4e5d-ab11-e6be0285fd76	a3793f87-7f3c-41a1-a675-236fc1b710ab	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2218c2d2-32e9-4551-a509-981a3a72ca8f	a3793f87-7f3c-41a1-a675-236fc1b710ab	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f2c9916e-0ecd-45d2-81e1-cd7761d4c90c	a3793f87-7f3c-41a1-a675-236fc1b710ab	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d04242ff-bf74-4c04-9d02-0729208f3e3c	a3793f87-7f3c-41a1-a675-236fc1b710ab	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+51801002-e01d-4997-b549-a52fff121484	a3793f87-7f3c-41a1-a675-236fc1b710ab	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+32479ce7-06f4-431e-8ad4-39d78b56db65	a3793f87-7f3c-41a1-a675-236fc1b710ab	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b4d7fa56-7050-493c-ad67-5d95d30c73ed	a3793f87-7f3c-41a1-a675-236fc1b710ab	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ba6f4774-67d4-4fb8-a97e-551faf9fdfa4	a3793f87-7f3c-41a1-a675-236fc1b710ab	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a7b73618-0c84-4ab8-b71e-ed0b0ea3efc4	a3793f87-7f3c-41a1-a675-236fc1b710ab	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2b89ab9b-3def-4f6c-bf2b-3787c51ce6fc	a3793f87-7f3c-41a1-a675-236fc1b710ab	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f8822228-8469-4ca2-a520-a4096adc76c4	a3793f87-7f3c-41a1-a675-236fc1b710ab	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e7407a23-a768-4b81-8f77-3b2b717707f5	a3793f87-7f3c-41a1-a675-236fc1b710ab	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bb259bfc-ac89-40da-9d92-296cc858b62f	a3793f87-7f3c-41a1-a675-236fc1b710ab	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+89541188-962f-46a3-96ea-b9b45f9180c5	a3793f87-7f3c-41a1-a675-236fc1b710ab	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+48850c2f-b199-417a-83ca-1df5ab47fe22	a3793f87-7f3c-41a1-a675-236fc1b710ab	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+9774093a-dfd9-4779-b797-7e1898bafe75	a3793f87-7f3c-41a1-a675-236fc1b710ab	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+45a2d317-e8b9-4f17-8177-8be6899742ea	a3793f87-7f3c-41a1-a675-236fc1b710ab	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+eca430e6-6998-416f-8dcd-93f00edee4f9	a3793f87-7f3c-41a1-a675-236fc1b710ab	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e13d3a57-05b4-41b7-8702-4cf3d7dafa15	a3793f87-7f3c-41a1-a675-236fc1b710ab	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ff307a5d-bde2-44f9-8b69-d1fd15379f1f	a3793f87-7f3c-41a1-a675-236fc1b710ab	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0799cf35-045e-4936-bfd3-ebda04877a7c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	6d278091-4576-4bc6-8d47-2a1925436089	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7a670ec4-9eeb-4174-b377-91002edcbd50	efc1df20-ca04-44a6-87b2-7cae1ff50a88	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2c92e3ee-81e2-494c-9adb-900333e35151	efc1df20-ca04-44a6-87b2-7cae1ff50a88	9464495c-36b2-4c10-9c2f-9b596e6841df	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f27fe920-53e3-46a9-be24-e297c251b990	efc1df20-ca04-44a6-87b2-7cae1ff50a88	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+45424e7f-38fe-4216-a5d1-5ee7f4b5e40e	efc1df20-ca04-44a6-87b2-7cae1ff50a88	56c1f856-a42d-45c5-a2c8-6041f0080167	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8a200634-edea-435f-824a-e7a5403ba57a	efc1df20-ca04-44a6-87b2-7cae1ff50a88	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7452e1b6-f963-4a63-bfe0-dc1c7a2770e5	efc1df20-ca04-44a6-87b2-7cae1ff50a88	77525cd9-5815-4214-ad35-869fb27e6d8f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+05697700-23cb-4863-9897-94abe4623226	efc1df20-ca04-44a6-87b2-7cae1ff50a88	f1221521-34ad-4791-9768-bedf88a64f91	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+575efcac-75f5-40fe-8916-cb2b35107e36	efc1df20-ca04-44a6-87b2-7cae1ff50a88	3d795ee8-9be9-44c7-be7e-ed6698048b31	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+77702cfa-c93d-4687-878d-412201a1b773	efc1df20-ca04-44a6-87b2-7cae1ff50a88	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7982db3c-adf3-40d1-b053-acf3be0fc62b	efc1df20-ca04-44a6-87b2-7cae1ff50a88	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e3104b20-62f8-40e0-a9b6-184b40ca67d7	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7912798d-a067-4f31-8e2a-e39f2ded545c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+04eb10bb-c587-423b-bd82-8955cc00e884	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+7b21c5e5-5f66-406a-8a33-116aaa7c17e5	efc1df20-ca04-44a6-87b2-7cae1ff50a88	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+92ca7e09-91bf-41a7-ad11-d08889eb992a	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a5de4597-ac98-4ba9-8d97-65f156494047	efc1df20-ca04-44a6-87b2-7cae1ff50a88	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4ab82912-0451-4867-9607-e54c6c2fd753	efc1df20-ca04-44a6-87b2-7cae1ff50a88	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8c3257b0-9248-4595-a2df-e0a76318f38c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b2b08c31-f25a-4767-8e08-2a31fc8ff0d3	efc1df20-ca04-44a6-87b2-7cae1ff50a88	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+62caa52b-d6ca-4720-a373-ddb2b6ff3505	efc1df20-ca04-44a6-87b2-7cae1ff50a88	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bc0e7126-f18e-4a92-96b4-dc49db2cdc43	efc1df20-ca04-44a6-87b2-7cae1ff50a88	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3b44bf48-17d8-4822-9dd7-1834ac646f37	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+60ed1e17-3c27-4cbd-aef6-6c5636618dff	efc1df20-ca04-44a6-87b2-7cae1ff50a88	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+538d5fc0-a5da-45c3-9bd5-a6b373bf363e	efc1df20-ca04-44a6-87b2-7cae1ff50a88	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+74f60d75-9dfb-4495-8cd2-48c0092f6622	efc1df20-ca04-44a6-87b2-7cae1ff50a88	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5f7ff597-f1eb-4041-9ba4-9dcacdc85af8	efc1df20-ca04-44a6-87b2-7cae1ff50a88	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+f429efe5-8d1d-4d39-a6e5-fda7dd7a4be3	efc1df20-ca04-44a6-87b2-7cae1ff50a88	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5099f102-a57d-46e7-ac8b-fef1b886dbf7	efc1df20-ca04-44a6-87b2-7cae1ff50a88	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d14f43bc-b192-439f-8c86-2794ad8d0179	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+74cc97dd-4218-4a40-9b71-edd20c5ba934	efc1df20-ca04-44a6-87b2-7cae1ff50a88	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2afe46f3-cb42-4b64-9457-afe8acdf106c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+83e5bf45-780f-4b0b-b625-785062c773e6	efc1df20-ca04-44a6-87b2-7cae1ff50a88	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+87467ea0-ae38-497f-bcc3-50343f6c4c00	efc1df20-ca04-44a6-87b2-7cae1ff50a88	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b8c00761-bf3c-49c0-a0f3-116f8a85b642	efc1df20-ca04-44a6-87b2-7cae1ff50a88	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8cb76a65-2384-4a33-afe8-0088360602da	efc1df20-ca04-44a6-87b2-7cae1ff50a88	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1ddbbc04-723c-493b-95dc-b42b8ec6c194	efc1df20-ca04-44a6-87b2-7cae1ff50a88	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+b8b4c9bc-ff33-407b-a5b2-63a05572813d	efc1df20-ca04-44a6-87b2-7cae1ff50a88	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+af0b31a9-a15e-4621-a4fc-bf97296fffaa	efc1df20-ca04-44a6-87b2-7cae1ff50a88	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+cedc5923-4fed-4a6b-a541-79e16fdeee9b	c787fe3b-4b33-40ee-8794-c1148202f81a	5a7389b3-43da-46bb-bbcb-729d889af05b	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+71b53080-a75c-4142-9b79-c79d9ac1b468	c787fe3b-4b33-40ee-8794-c1148202f81a	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4c0757a4-a673-490c-b9df-5df364f87313	c787fe3b-4b33-40ee-8794-c1148202f81a	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+49f449ca-0845-4e6c-b2b6-52fe73449905	c787fe3b-4b33-40ee-8794-c1148202f81a	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+992ffca4-01fe-4731-9d63-06f53a4d315b	c787fe3b-4b33-40ee-8794-c1148202f81a	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2926b4dd-2868-413c-81ce-aece21aa2126	c787fe3b-4b33-40ee-8794-c1148202f81a	a513bae1-012e-4b6b-b145-0f1b013df1b7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+176d6196-387c-449b-8ad1-99e25334c507	c787fe3b-4b33-40ee-8794-c1148202f81a	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e8d64269-8505-499f-9909-0c4a6ef333c1	c787fe3b-4b33-40ee-8794-c1148202f81a	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+867b5ac1-f062-4b14-8920-862ad1fcee46	c787fe3b-4b33-40ee-8794-c1148202f81a	a1934139-514c-4d0c-bdc3-56a972fe7a48	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+82fb4a73-17ae-4466-928a-3f266494509b	c787fe3b-4b33-40ee-8794-c1148202f81a	bc216ba3-180d-4e46-a1cb-b778f9e7780e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8f2f31ca-fc1a-4df5-8ed2-4a1b7f0f5dad	c787fe3b-4b33-40ee-8794-c1148202f81a	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+333dbb8a-50dd-4a87-af97-aead2e9a3127	c787fe3b-4b33-40ee-8794-c1148202f81a	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+14a8ba9a-d812-4dc3-babc-2aef7430855f	c787fe3b-4b33-40ee-8794-c1148202f81a	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d9c0c180-c631-4db5-8563-10021840288a	c787fe3b-4b33-40ee-8794-c1148202f81a	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+08357bff-b3c3-4fd4-8f0c-5f00b8448a47	c787fe3b-4b33-40ee-8794-c1148202f81a	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+70f3f277-45aa-4e02-a9a5-73fb186d7665	c787fe3b-4b33-40ee-8794-c1148202f81a	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4e60adf1-c2ac-4768-bafa-dc37354584e8	c787fe3b-4b33-40ee-8794-c1148202f81a	28545f25-9461-4a0a-a49d-f5b0a400a650	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4304deae-fa65-4893-9988-a66ea707e9d0	c787fe3b-4b33-40ee-8794-c1148202f81a	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1a1024ff-a4ce-40df-a3e5-676a347dd739	c787fe3b-4b33-40ee-8794-c1148202f81a	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+509f7336-4a73-422a-9815-ecbab6e8c903	c787fe3b-4b33-40ee-8794-c1148202f81a	0695a095-b1fb-4785-a346-6a7970bff92e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3cf6d4c9-db1e-4833-9306-21f254e0adb3	c787fe3b-4b33-40ee-8794-c1148202f81a	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0e8da40c-0ca8-4394-8ddc-05985b07b811	c787fe3b-4b33-40ee-8794-c1148202f81a	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ea4f5540-a768-425e-8f7e-0a887d6b8b7b	c787fe3b-4b33-40ee-8794-c1148202f81a	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ba0b78cb-38d4-41be-b61d-45a1f8c1e8ad	c787fe3b-4b33-40ee-8794-c1148202f81a	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+89c2f3af-3e58-4e9e-95ae-e8d7bcd80fab	c787fe3b-4b33-40ee-8794-c1148202f81a	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e1fbf4a4-5393-4676-b414-2887f20edb21	c787fe3b-4b33-40ee-8794-c1148202f81a	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ce6b284c-78b1-4147-bf78-3cb0fca64533	c787fe3b-4b33-40ee-8794-c1148202f81a	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+aaa6afef-2485-4a0f-9f7d-3c1bc97e0d54	c787fe3b-4b33-40ee-8794-c1148202f81a	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+fc63b4bd-5768-4f3f-af77-692240e0b36f	c787fe3b-4b33-40ee-8794-c1148202f81a	d9923931-5bd8-4633-94d1-e03381e9b218	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e96d0982-63e6-44a8-9cee-6856a1b6fc12	c787fe3b-4b33-40ee-8794-c1148202f81a	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ee8d9fe6-59bf-4cc4-8944-c2347f0857c9	c787fe3b-4b33-40ee-8794-c1148202f81a	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1d872c1a-3d90-4806-9fbe-018b5676a1c1	c787fe3b-4b33-40ee-8794-c1148202f81a	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+88a1b201-0f7c-419b-b790-8eb57eebfb13	c787fe3b-4b33-40ee-8794-c1148202f81a	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+0b1c369e-accb-48ff-83d4-7376591891cc	c787fe3b-4b33-40ee-8794-c1148202f81a	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+a718b13b-9ab9-498c-ae0d-291f812edb7b	c787fe3b-4b33-40ee-8794-c1148202f81a	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+4674de74-c7a8-4428-bf0a-b32ca45eb065	c787fe3b-4b33-40ee-8794-c1148202f81a	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+31b83e3c-95c1-4a93-a39f-5f23a860c82d	c787fe3b-4b33-40ee-8794-c1148202f81a	00b86fba-6eac-4606-8767-fc19de00e04f	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+2d6e0653-4e66-4d57-a4cc-ca87528a98cf	c787fe3b-4b33-40ee-8794-c1148202f81a	0a1091b3-ab51-4283-9835-6aa6582a089e	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+632b040b-b290-4ad7-9ee3-a7d589fe5508	c787fe3b-4b33-40ee-8794-c1148202f81a	74855d28-4b88-459f-a31c-0408eb26421a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8e3145d5-d2d0-40c8-a133-d55a98562440	f29af015-7833-4f9a-ac57-6fbef5bf91ec	da3553bc-7c71-4b99-90ee-1dc919c8d0c0	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+00e634f5-8534-4664-8b7f-bf00c63eecfe	f29af015-7833-4f9a-ac57-6fbef5bf91ec	9464495c-36b2-4c10-9c2f-9b596e6841df	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+4d170c67-c12c-4c47-a5b4-36ee088a5cb0	f29af015-7833-4f9a-ac57-6fbef5bf91ec	78bd7ff9-d4e3-413b-b4c2-af9391a66c35	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+528fa2e3-2645-4f1a-84dd-1fef8902913b	f29af015-7833-4f9a-ac57-6fbef5bf91ec	56c1f856-a42d-45c5-a2c8-6041f0080167	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8efdff1e-1e0a-4bf9-abac-73fca8b8b1ac	f29af015-7833-4f9a-ac57-6fbef5bf91ec	64843f8a-913d-486b-9b6b-a6fe7f0ab0f3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+329ac9a2-0635-408d-8800-7ae7a44429c6	f29af015-7833-4f9a-ac57-6fbef5bf91ec	77525cd9-5815-4214-ad35-869fb27e6d8f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+035c6672-074f-4edd-9623-e4dd2cb790e8	f29af015-7833-4f9a-ac57-6fbef5bf91ec	f1221521-34ad-4791-9768-bedf88a64f91	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+dd2d8815-f66e-4ef9-a454-fa390228b676	f29af015-7833-4f9a-ac57-6fbef5bf91ec	3d795ee8-9be9-44c7-be7e-ed6698048b31	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8c0a68dc-bc4e-4df7-932e-11638f9b4a33	f29af015-7833-4f9a-ac57-6fbef5bf91ec	4aa783da-7f94-4366-ad9e-6d11b7a9ab2e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+540ace1e-a018-41fe-8239-6b461823b8c4	f29af015-7833-4f9a-ac57-6fbef5bf91ec	5a7389b3-43da-46bb-bbcb-729d889af05b	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0acf4dea-a9ad-4197-b07a-d9436e8fef0e	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a016110f-ceeb-42f3-945b-58c9c5238984	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+b91f040b-9e86-4151-a566-6609e71d6564	f29af015-7833-4f9a-ac57-6fbef5bf91ec	e0b823d8-b851-4f5e-8043-13b9f4d73368	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+7f8b6eab-e843-45d8-a46c-22b9ebc1eda5	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a226a193-561a-49d5-9fcd-811ed5732c83	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+bb562ee4-29d6-421b-ae4c-592889de0e23	f29af015-7833-4f9a-ac57-6fbef5bf91ec	40f046e7-e4ec-4289-ae56-b44d8193ed5a	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+1a729f7b-f8dd-4f51-b665-087d56e4f7aa	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a513bae1-012e-4b6b-b145-0f1b013df1b7	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+905b0949-ebcf-46a0-a8c2-4020a4b96512	f29af015-7833-4f9a-ac57-6fbef5bf91ec	6747cee4-19eb-4d07-9dad-c2a1c49c2d42	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+eb267024-5d4a-4f3c-af78-f8861134de88	f29af015-7833-4f9a-ac57-6fbef5bf91ec	ec931934-ffc1-4bb7-977c-fb2f91689c71	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ec472f54-fe36-4c3f-9df1-9609983d8639	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a1934139-514c-4d0c-bdc3-56a972fe7a48	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e4224165-a7cd-467f-bd05-95cd8a069dd7	f29af015-7833-4f9a-ac57-6fbef5bf91ec	bc216ba3-180d-4e46-a1cb-b778f9e7780e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c38839ef-0cc9-403f-a4cc-d7165c32942b	f29af015-7833-4f9a-ac57-6fbef5bf91ec	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+db0d5985-2baf-4f33-933a-79e4cda6ffcd	f29af015-7833-4f9a-ac57-6fbef5bf91ec	034f8c06-5343-4dd2-a6b7-a140a9f03f19	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+c57527fb-1e67-46ca-b470-f422e1b5a34f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c7930f90-dff0-421d-94bb-45ff21cc9613	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+2c663acd-5cb1-4eb6-9245-f44f84ac941a	f29af015-7833-4f9a-ac57-6fbef5bf91ec	3731509e-8b55-4d45-b08f-dacaefd3cacc	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+216f73ef-8422-40d1-b0e5-db87e05af280	f29af015-7833-4f9a-ac57-6fbef5bf91ec	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d5192e12-f549-4237-813c-5d30b032f064	f29af015-7833-4f9a-ac57-6fbef5bf91ec	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+04657d85-79a9-4f77-b05e-8d200e928e3e	f29af015-7833-4f9a-ac57-6fbef5bf91ec	28545f25-9461-4a0a-a49d-f5b0a400a650	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+fd6883dd-8313-4491-8a29-a67910c5ddd7	f29af015-7833-4f9a-ac57-6fbef5bf91ec	73e54834-8d6f-4369-bd8a-8401d1033b1c	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+be166bfc-0372-4556-9233-cc6b948e6747	f29af015-7833-4f9a-ac57-6fbef5bf91ec	41dc1c2b-286a-4e4c-9301-e78d483a1065	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e0709249-2951-4402-a1ac-39b004fdac46	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0695a095-b1fb-4785-a346-6a7970bff92e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ad1ceeda-99fe-4e71-af70-acf57dc3b56c	f29af015-7833-4f9a-ac57-6fbef5bf91ec	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+d9daa35e-4c53-4d2d-91a6-5579dcb530fa	f29af015-7833-4f9a-ac57-6fbef5bf91ec	810a9407-d878-4b50-ae22-879042f12ad3	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+574fc2bb-6019-4e87-bebe-72008ac54e3e	f29af015-7833-4f9a-ac57-6fbef5bf91ec	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+28d47a93-2446-4912-8b41-37694b467a52	f29af015-7833-4f9a-ac57-6fbef5bf91ec	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+f504fac0-f189-4cdb-84ff-bb0ddf54a10a	f29af015-7833-4f9a-ac57-6fbef5bf91ec	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+6da99f7c-7538-41f7-b491-13b043be54d9	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0a7179c9-ce97-4183-9549-c6d98b6130e4	f29af015-7833-4f9a-ac57-6fbef5bf91ec	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+43378980-7f7e-41f2-9394-676e80f35b02	f29af015-7833-4f9a-ac57-6fbef5bf91ec	b1b803ec-f626-44c8-bfb2-97cd61795374	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+809854f3-06a9-4c23-b8a6-58b49f0e2d8c	f29af015-7833-4f9a-ac57-6fbef5bf91ec	d9923931-5bd8-4633-94d1-e03381e9b218	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+0c01cf3f-b38c-4568-aa25-cfaed6f9a944	f29af015-7833-4f9a-ac57-6fbef5bf91ec	fcc8aa7e-ba84-442d-b12d-5a929132f159	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+bc237b6f-c7be-475c-bbe3-4bdd1d1b3b68	f29af015-7833-4f9a-ac57-6fbef5bf91ec	63ec4257-dc36-4f14-a617-bc8fe094258d	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+31386d2a-be7f-49c2-a238-dd5c6f9e81bb	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+614a46aa-4f1f-4ba1-ac79-91232e1f4da8	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+8ffc5529-73f0-460a-a9b0-8b60774a0621	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c69af742-1b39-4c84-a7ff-018e808e6973	1	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+52a1d234-fd81-4f5c-9244-92c585e4f9b9	f29af015-7833-4f9a-ac57-6fbef5bf91ec	4a039293-6d43-4a06-8bec-5ac533ab1c1a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+e8f52363-5ce6-410b-a2c5-f9cd379ac04d	f29af015-7833-4f9a-ac57-6fbef5bf91ec	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+5a040e37-03df-4466-8dbc-64b9e61952e9	f29af015-7833-4f9a-ac57-6fbef5bf91ec	00b86fba-6eac-4606-8767-fc19de00e04f	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+ef1456ab-96ff-4898-b04e-5ea3cbf991fd	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0a1091b3-ab51-4283-9835-6aa6582a089e	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+437ec6d6-59c3-42d6-8002-1ba98126165f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	74855d28-4b88-459f-a31c-0408eb26421a	0	0	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	00000000-0000-4000-8000-000000000004	\N
+cd3b953b-34ed-4aa8-9b59-ead339e82581	a0000000-0000-0000-0000-000000000001	82cdbaa4-d416-41d6-9f8e-5c1f3d88b2e3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1cc6361b-6293-4683-aeb6-ec7c33c80d7a	a0000000-0000-0000-0000-000000000001	034f8c06-5343-4dd2-a6b7-a140a9f03f19	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c1291c33-6fa0-47db-b87b-f64baffd3978	a0000000-0000-0000-0000-000000000001	c7930f90-dff0-421d-94bb-45ff21cc9613	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6a12580f-9978-41bd-ad6e-94086d5ec298	a0000000-0000-0000-0000-000000000001	3731509e-8b55-4d45-b08f-dacaefd3cacc	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+88155a4c-af14-405e-9604-fcad613212e8	a0000000-0000-0000-0000-000000000001	d7151db6-3d3c-4afb-b422-0e1c7eeb6ad7	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ae3f3a17-e3d2-4f88-8e2c-b0f816605a30	a0000000-0000-0000-0000-000000000001	7daabe93-ae37-44b5-bd4d-e26f87f8ac9a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ba6245fa-42e2-4f6f-8dfe-3af7641370f5	a0000000-0000-0000-0000-000000000001	28545f25-9461-4a0a-a49d-f5b0a400a650	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+dfb6fe32-799d-42f9-82a5-2a7b5d881f72	a0000000-0000-0000-0000-000000000001	73e54834-8d6f-4369-bd8a-8401d1033b1c	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+12945e29-fdf7-42c7-b6a6-e839e2054351	a0000000-0000-0000-0000-000000000001	41dc1c2b-286a-4e4c-9301-e78d483a1065	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6c93eed0-33d8-4bf9-b949-90dd6bc6ac26	a0000000-0000-0000-0000-000000000001	0695a095-b1fb-4785-a346-6a7970bff92e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+d9d0293f-5880-4db4-a858-edee4b2dd743	a0000000-0000-0000-0000-000000000001	03bccb5f-ee0f-4915-ab7b-1d29bb2975b9	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+ef56b541-7d38-4be7-9b7d-5a3875878e0f	a0000000-0000-0000-0000-000000000001	810a9407-d878-4b50-ae22-879042f12ad3	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+579e10c5-3ad2-4643-a614-2cf4491b8f4b	a0000000-0000-0000-0000-000000000001	5a63d967-1b3f-4669-9b8c-7325b39ae1cd	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+5f4daac8-47c9-4c71-96e0-e6f580a03e0a	a0000000-0000-0000-0000-000000000001	35a4ada8-f0e5-49a4-9e1e-81e0c5c20398	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+26b5e3f5-a59c-44aa-894c-3696c36f45a6	a0000000-0000-0000-0000-000000000001	7c212d3a-54c3-4012-9944-b8b9ff25af2a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+010328ff-42a0-4604-980f-4bba369e4d47	a0000000-0000-0000-0000-000000000001	2c3a8cac-1587-40a4-9b7a-ebfc1b85d248	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+8fcc812c-53fe-4497-959d-304b69a7bee1	a0000000-0000-0000-0000-000000000001	5e945ceb-235f-4be7-a75b-f5c5eb6a47a2	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+847fb3ba-eada-4bba-ac1d-555adc4e88b6	a0000000-0000-0000-0000-000000000001	b1b803ec-f626-44c8-bfb2-97cd61795374	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+bbf4dd77-721c-4d40-961e-528437822e2e	a0000000-0000-0000-0000-000000000001	d9923931-5bd8-4633-94d1-e03381e9b218	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+3763c23e-90be-4e04-90f9-e702823ecf8b	a0000000-0000-0000-0000-000000000001	fcc8aa7e-ba84-442d-b12d-5a929132f159	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+29e6777e-8b6b-40b7-b95f-8b11b1091569	a0000000-0000-0000-0000-000000000001	63ec4257-dc36-4f14-a617-bc8fe094258d	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6da07296-e27e-4dfb-ad7d-edb23781a803	a0000000-0000-0000-0000-000000000001	c81f6ba8-410e-4b46-9ebe-a1b1977aed23	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+e38b067a-7faa-4ff8-8839-1f25a7d1b417	a0000000-0000-0000-0000-000000000001	0f0d5e9d-fa5c-4642-b311-eb9b7f9b1f72	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+6e47c62a-fbfb-451b-95ba-061bbfe8b550	a0000000-0000-0000-0000-000000000001	c69af742-1b39-4c84-a7ff-018e808e6973	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+02f4b0e4-b540-418d-a3ff-08c3840f9aaa	a0000000-0000-0000-0000-000000000001	4a039293-6d43-4a06-8bec-5ac533ab1c1a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c2ba35bf-0f45-4693-8cad-88c5947c69ce	a0000000-0000-0000-0000-000000000001	1e8e457b-227b-49cb-a0fd-b94f0e8055c5	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+1414870c-b24e-47bc-aeb0-98bf9ec74a0e	a0000000-0000-0000-0000-000000000001	00b86fba-6eac-4606-8767-fc19de00e04f	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+c67d46fe-9da3-4e79-8579-2510624dbd40	a0000000-0000-0000-0000-000000000001	0a1091b3-ab51-4283-9835-6aa6582a089e	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
+24bcf12a-a908-40f3-9dda-eca9d93a4739	a0000000-0000-0000-0000-000000000001	74855d28-4b88-459f-a31c-0408eb26421a	1	1	2026-10-02 14:37:31.221288+05:30	2026-10-02 17:40:45.008029+05:30	\N	\N	\N
 \.
 
 
@@ -7545,5 +7552,5 @@ ALTER TABLE ONLY public.mst_offices
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 3ZDyTHWygdGTg4iCsBWimT6uArJY3DeBwyE76WjHaLgCDQaXGZ0a4N7sVPkveg0
+\unrestrict N53clScdGUeHXnDf6hDzjnRs2ZFQSNrZe0e6cERea77dPHfH3IqjhxnxJF6zhof
 

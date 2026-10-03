@@ -422,11 +422,11 @@ public static class RbacWidgetBaselines
         },
         ["PMO"] = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["dashboard.kpis"] = (1, 0),
-            ["dashboard.assigned_projects"] = (1, 0),
-            ["dashboard.pending_issues"] = (1, 0),
-            ["dashboard.project_status"] = (1, 0),
-            ["dashboard.pending_approvals"] = (1, 0),
+            ["dashboard.kpis"] = (1, 1),
+            ["dashboard.assigned_projects"] = (1, 1),
+            ["dashboard.pending_issues"] = (1, 1),
+            ["dashboard.project_status"] = (1, 1),
+            ["dashboard.pending_approvals"] = (1, 1),
             ["action_center.bucket_list.raise_issues"] = (1, 1),
             ["action_center.bucket_list.start_timer"] = (0, 0),
             ["action_center.approvals"] = (1, 1),

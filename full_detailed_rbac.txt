@@ -1,0 +1,956 @@
+# MODULE: DASHBOARD
+
+## Submodule: Overview
+
+### Widget / Tab: KPI Summary Cards (`dashboard.kpis`) [Type: kpi_card]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Assigned Projects (`dashboard.assigned_projects`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Pending Issues (`dashboard.pending_issues`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Project Status Summary (`dashboard.project_status`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Pending Approvals (`dashboard.pending_approvals`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+# MODULE: ACTION CENTER
+
+## Submodule: Bucket List
+
+### Widget / Tab: Raise Issues Action (`action_center.bucket_list.raise_issues`) [Type: action]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `Manage`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `Manage`
+- **Sales Manager**: `Manage`
+- **Sales Member**: `Manage`
+- **IT Admin**: `Manage`
+- **Intern**: `Manage`
+- **R&D Member**: `Manage`
+
+### Widget / Tab: Start / Pause Task Timer (`action_center.bucket_list.start_timer`) [Type: action]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `No Access`
+- **PMO**: `No Access`
+- **HODs**: `No Access`
+- **Senior PMs**: `No Access`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `Manage`
+- **EM**: `No Access`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `Manage`
+- **R&D Member**: `Manage`
+
+## Submodule: Approvals
+
+### Widget / Tab: Approvals Tab (`action_center.approvals`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `No Access`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `Manage`
+- **Sales Manager**: `Manage`
+- **Sales Member**: `View`
+- **IT Admin**: `Manage`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Alerts
+
+### Widget / Tab: Alerts Tab (`action_center.alerts`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `View`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `Manage`
+- **Sales Manager**: `Manage`
+- **Sales Member**: `View`
+- **IT Admin**: `Manage`
+- **Intern**: `No Access`
+- **R&D Member**: `Manage`
+
+## Submodule: Notifications
+
+### Widget / Tab: Notifications Tab (`action_center.notifications`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `Manage`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `Manage`
+- **Sales Manager**: `Manage`
+- **Sales Member**: `View`
+- **IT Admin**: `Manage`
+- **Intern**: `Manage`
+- **R&D Member**: `Manage`
+
+# MODULE: PROJECTS
+
+## Submodule: Overview
+
+### Widget / Tab: Budget & Financials (`projects.overview.budget`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `No Access`
+- **HODs**: `View`
+- **Senior PMs**: `No Access`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `No Access`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `Manage`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Extension Request (`projects.overview.extension_request`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `No Access`
+- **Senior PMs**: `No Access`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `No Access`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Assign Senior Project Manager (`projects.overview.assign_spm`) [Type: action]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `View`
+- **Team Members**: `View`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `View`
+- **Intern**: `View`
+- **R&D Member**: `View`
+
+### Widget / Tab: Assign Project Manager (`projects.overview.assign_pm`) [Type: action]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `View`
+- **Team Members**: `View`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `View`
+- **Intern**: `View`
+- **R&D Member**: `View`
+
+### Widget / Tab: Assign Team Lead (`projects.overview.assign_tl`) [Type: action]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `View`
+- **Team Members**: `View`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `View`
+- **Intern**: `View`
+- **R&D Member**: `View`
+
+## Submodule: WBS
+
+### Widget / Tab: Billing Information (`projects.wbs.billing_info`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `No Access`
+- **HODs**: `No Access`
+- **Senior PMs**: `No Access`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `No Access`
+- **HR**: `No Access`
+- **Accounts**: `Manage`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `View`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: PMO Intake & Prerequisite Workflow (`projects.wbs.pmo_intake`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Invoice Schedule (`projects.wbs.invoice_schedule`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `No Access`
+- **HODs**: `No Access`
+- **Senior PMs**: `No Access`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `No Access`
+- **HR**: `No Access`
+- **Accounts**: `Manage`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Team
+
+### Widget / Tab: Team Allocation Grid (`projects.team.allocation`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `View`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Task
+
+### Widget / Tab: Task Management Grid (`projects.task.management`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Health & Governance
+
+### Widget / Tab: Issue Tracker (`projects.health.issues`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `View`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Alerts Feed (`projects.health.alerts`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `View`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Escalation Matrix (`projects.health.escalation`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `View`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Appreciation Feed (`projects.health.appreciation`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `View`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Interview Scheduling (`projects.health.engagement.interview`) [Type: tab]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `View`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+### Widget / Tab: Additional Customer Requirement (`projects.health.engagement.requirements`) [Type: tab]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `View`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `Manage`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Invoice
+
+### Widget / Tab: Invoicing Grid (`projects.invoice.management`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `No Access`
+- **HODs**: `View`
+- **Senior PMs**: `No Access`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `No Access`
+- **HR**: `No Access`
+- **Accounts**: `Manage`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+# MODULE: REPORTS
+
+## Submodule: Sales Report
+
+### Widget / Tab: Sales Report (`reports.sales`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `No Access`
+- **HODs**: `No Access`
+- **Senior PMs**: `No Access`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `No Access`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `Manage`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: WBS Tracker
+
+### Widget / Tab: WBS Tracker (`reports.wbs_tracker`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: PO Tracker
+
+### Widget / Tab: PO Tracker (`reports.po_tracker`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Invoice Tracker
+
+### Widget / Tab: Invoice Tracker (`reports.invoice_tracker`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `No Access`
+- **HODs**: `No Access`
+- **Senior PMs**: `No Access`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `No Access`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+# MODULE: RESOURCES
+
+## Submodule: Resource Details
+
+### Widget / Tab: Personal Information (`resources.directory.personal_info`) [Type: tab]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `View`
+- **Team Members**: `View`
+- **EM**: `View`
+- **HR**: `Manage`
+- **Accounts**: `View`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `View`
+- **Intern**: `View`
+- **R&D Member**: `View`
+
+### Widget / Tab: Organization Details (`resources.directory.org_details`) [Type: tab]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `View`
+- **Team Members**: `View`
+- **EM**: `View`
+- **HR**: `Manage`
+- **Accounts**: `View`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `View`
+- **Intern**: `View`
+- **R&D Member**: `View`
+
+### Widget / Tab: Employment & Bond (`resources.directory.employment_bond`) [Type: tab]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `View`
+- **Team Members**: `View`
+- **EM**: `View`
+- **HR**: `Manage`
+- **Accounts**: `View`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `View`
+- **Intern**: `View`
+- **R&D Member**: `View`
+
+### Widget / Tab: Education & Experience (`resources.directory.education_exp`) [Type: tab]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `Manage`
+- **EM**: `Manage`
+- **HR**: `Manage`
+- **Accounts**: `No Access`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `Manage`
+- **R&D Member**: `Manage`
+
+### Widget / Tab: PMO Information (`resources.directory.pmo_info`) [Type: tab]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `View`
+- **Team Members**: `View`
+- **EM**: `View`
+- **HR**: `View`
+- **Accounts**: `View`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `View`
+- **Intern**: `View`
+- **R&D Member**: `View`
+
+### Widget / Tab: Activity Logs (`resources.directory.activity_logs`) [Type: tab]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `No Access`
+- **Senior PMs**: `No Access`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `No Access`
+- **HR**: `View`
+- **Accounts**: `No Access`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Resource Pool
+
+### Widget / Tab: Resource Pool Grid (`resources.resource_pool`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `No Access`
+- **EM**: `Manage`
+- **HR**: `View`
+- **Accounts**: `No Access`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Exit Summary
+
+### Widget / Tab: Exit Summary Logs (`resources.exit_summary`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `View`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `Manage`
+- **Accounts**: `No Access`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+# MODULE: CUSTOMERS
+
+## Submodule: Customer Profile
+
+### Widget / Tab: Customer Profiles (`customers.customer_profile`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `Manage`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+# MODULE: REPOSITORY
+
+## Submodule: Overview
+
+### Widget / Tab: Document Repository (`repository.documents`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `View`
+- **Team Leaders**: `View`
+- **Team Members**: `View`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `View`
+- **R&D Member**: `View`
+
+# MODULE: MY TEAM
+
+## Submodule: Team Dashboard
+
+### Widget / Tab: Team Dashboard (`my_team.dashboard`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `View`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `View`
+- **Intern**: `View`
+- **R&D Member**: `No Access`
+
+## Submodule: My Timesheet
+
+### Widget / Tab: My Timesheet (`my_team.my_timesheet`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `Manage`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `View`
+- **Intern**: `Manage`
+- **R&D Member**: `No Access`
+
+## Submodule: Timesheet Approval
+
+### Widget / Tab: Timesheet Approval (`my_team.timesheet_approval`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `Manage`
+- **Senior PMs**: `Manage`
+- **PMs (Managers)**: `Manage`
+- **Team Leaders**: `Manage`
+- **Team Members**: `View`
+- **EM**: `Manage`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `View`
+- **Intern**: `View`
+- **R&D Member**: `No Access`
+
+# MODULE: SETTINGS
+
+## Submodule: Moduleswise Access
+
+### Widget / Tab: Moduleswise Access (`settings.roles.modules_access`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: User Role Access
+
+### Widget / Tab: User Role Access (`settings.roles.user_access`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `No Access`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Project Masters
+
+### Widget / Tab: Project Masters Grid (`settings.masters.project`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `Manage`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Customer Masters
+
+### Widget / Tab: Customer Masters Grid (`settings.masters.customer`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `No Access`
+- **Accounts**: `View`
+- **Sales Manager**: `View`
+- **Sales Member**: `View`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+
+## Submodule: Resource Masters
+
+### Widget / Tab: Resource Masters Grid (`settings.masters.resource`) [Type: widget]
+- **Admin**: `Manage`
+- **CEO / COO / CTO**: `View`
+- **PMO**: `View`
+- **HODs**: `View`
+- **Senior PMs**: `View`
+- **PMs (Managers)**: `No Access`
+- **Team Leaders**: `No Access`
+- **Team Members**: `No Access`
+- **EM**: `View`
+- **HR**: `Manage`
+- **Accounts**: `No Access`
+- **Sales Manager**: `No Access`
+- **Sales Member**: `No Access`
+- **IT Admin**: `No Access`
+- **Intern**: `No Access`
+- **R&D Member**: `No Access`
+

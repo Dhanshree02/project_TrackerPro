@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FolderKanban,
   Building2,
@@ -32,16 +32,60 @@ export const Route = createFileRoute("/dh-settings-masters")({
 type MasterTab = "projects" | "customers" | "resources";
 
 function MastersPage() {
-  const { can, isDhanshree } = useRoleContext();
+  const { can, isDhanshree, isAdmin } = useRoleContext();
   const { hasAny } = usePermissions();
-  const [activeTab, setActiveTab] = useState<MasterTab>("projects");
+
+  const canProjectMasters =
+    isAdmin ||
+    isDhanshree ||
+    (can ? can("settings.masters.project") : false) ||
+    hasAny("settings.masters.project", "settings.manage_roles");
+
+  const canCustomerMasters =
+    isAdmin ||
+    isDhanshree ||
+    (can ? can("settings.masters.customer") : false) ||
+    hasAny("settings.masters.customer", "settings.manage_roles");
+
+  const canResourceMasters =
+    isAdmin ||
+    isDhanshree ||
+    (can ? can("settings.masters.resource") : false) ||
+    hasAny("settings.masters.resource", "settings.manage_roles");
 
   const allowed =
+    isAdmin ||
     isDhanshree ||
+    canProjectMasters ||
+    canCustomerMasters ||
+    canResourceMasters ||
     (can ? can("settings.view") : false) ||
-    hasAny("settings.view", "settings.manage_roles", "roles:manage", "users:manage");
+    hasAny("settings.view", "settings.masters.view");
 
   if (!allowed) return <Navigate to="/" />;
+
+  const initialTab: MasterTab = canProjectMasters
+    ? "projects"
+    : canCustomerMasters
+    ? "customers"
+    : canResourceMasters
+    ? "resources"
+    : "projects";
+
+  const [activeTab, setActiveTab] = useState<MasterTab>(initialTab);
+
+  useEffect(() => {
+    if (activeTab === "projects" && !canProjectMasters) {
+      if (canCustomerMasters) setActiveTab("customers");
+      else if (canResourceMasters) setActiveTab("resources");
+    } else if (activeTab === "customers" && !canCustomerMasters) {
+      if (canResourceMasters) setActiveTab("resources");
+      else if (canProjectMasters) setActiveTab("projects");
+    } else if (activeTab === "resources" && !canResourceMasters) {
+      if (canProjectMasters) setActiveTab("projects");
+      else if (canCustomerMasters) setActiveTab("customers");
+    }
+  }, [canProjectMasters, canCustomerMasters, canResourceMasters, activeTab]);
 
   const {
     projectMasters,
@@ -77,87 +121,95 @@ function MastersPage() {
       {/* ── Top Tabs & Actions (Project Masters, Customer Masters, Resource Masters) ─ */}
       <div className="mb-6 flex items-center justify-between border-b border-border">
         <div className="flex items-center">
-          <button
-            onClick={() => setActiveTab("projects")}
-            className={cn(
-              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
-              activeTab === "projects"
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <FolderKanban className="h-4 w-4" />
-            <span>Project Masters</span>
-            <Badge
-              variant="secondary"
+          {canProjectMasters && (
+            <button
+              onClick={() => setActiveTab("projects")}
               className={cn(
-                "text-[10px] px-1.5 py-0",
-                activeTab === "projects" ? "bg-primary/15 text-primary font-semibold" : "",
+                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                activeTab === "projects"
+                  ? "text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {projectMasters.length}
-            </Badge>
-            {activeTab === "projects" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-            )}
-          </button>
+              <FolderKanban className="h-4 w-4" />
+              <span>Project Masters</span>
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-[10px] px-1.5 py-0",
+                  activeTab === "projects" ? "bg-primary/15 text-primary font-semibold" : "",
+                )}
+              >
+                {projectMasters.length}
+              </Badge>
+              {activeTab === "projects" && (
+                <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+              )}
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab("customers")}
-            className={cn(
-              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
-              activeTab === "customers"
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Building2 className="h-4 w-4" />
-            <span>Customer Masters</span>
-            <Badge
-              variant="secondary"
+          {canCustomerMasters && (
+            <button
+              onClick={() => setActiveTab("customers")}
               className={cn(
-                "text-[10px] px-1.5 py-0",
-                activeTab === "customers" ? "bg-primary/15 text-primary font-semibold" : "",
+                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                activeTab === "customers"
+                  ? "text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {totalCustomerItems}
-            </Badge>
-            {activeTab === "customers" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-            )}
-          </button>
+              <Building2 className="h-4 w-4" />
+              <span>Customer Masters</span>
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-[10px] px-1.5 py-0",
+                  activeTab === "customers" ? "bg-primary/15 text-primary font-semibold" : "",
+                )}
+              >
+                {totalCustomerItems}
+              </Badge>
+              {activeTab === "customers" && (
+                <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+              )}
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab("resources")}
-            className={cn(
-              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
-              activeTab === "resources"
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Users className="h-4 w-4" />
-            <span>Resource Masters</span>
-            {activeTab === "resources" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-            )}
-          </button>
+          {canResourceMasters && (
+            <button
+              onClick={() => setActiveTab("resources")}
+              className={cn(
+                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                activeTab === "resources"
+                  ? "text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Users className="h-4 w-4" />
+              <span>Resource Masters</span>
+              {activeTab === "resources" && (
+                <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+              )}
+            </button>
+          )}
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={resetAllToDefaults}
-          className="mb-1.5 h-7 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground"
-          title="Reset all masters to initial mock datasets"
-        >
-          <RotateCcw className="h-3 w-3" />
-          Reset Defaults
-        </Button>
+        {(isAdmin || isDhanshree) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={resetAllToDefaults}
+            className="mb-1.5 h-7 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground"
+            title="Reset all masters to initial mock datasets"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Reset Defaults
+          </Button>
+        )}
       </div>
 
       {/* ── Active Tab Content ───────────────────────────────────────────── */}
-      {activeTab === "projects" && (
+      {activeTab === "projects" && canProjectMasters && (
         <ProjectMastersSection
           items={projectMasters}
           contractTypes={contractTypes}
@@ -173,7 +225,7 @@ function MastersPage() {
         />
       )}
 
-      {activeTab === "customers" && (
+      {activeTab === "customers" && canCustomerMasters && (
         <CustomerMastersSection
           customerMasters={customerMasters}
           onAdd={addCustomerMasterItem}
@@ -182,7 +234,7 @@ function MastersPage() {
         />
       )}
 
-      {activeTab === "resources" && <ResourceMastersSection />}
+      {activeTab === "resources" && canResourceMasters && <ResourceMastersSection />}
     </AppShell>
   );
 }

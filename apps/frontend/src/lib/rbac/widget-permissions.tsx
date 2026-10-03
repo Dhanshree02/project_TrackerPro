@@ -27,7 +27,7 @@ export function WidgetPermissionsProvider({ children }: { children: React.ReactN
 
   const isSuperAdmin = useMemo(() => {
     const r = (currentRole || "").trim().toLowerCase();
-    return r === "admin" || r === "dhanshree" || r === "ceo";
+    return r === "admin" || r === "dhanshree";
   }, [currentRole]);
 
   // Initial effective permissions (checks custom overrides in localStorage, then Excel baseline)

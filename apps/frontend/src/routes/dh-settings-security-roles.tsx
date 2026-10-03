@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   Search,
   ChevronDown,
@@ -26,6 +26,7 @@ import {
   ChevronsUpDown,
   Layers,
   XCircle,
+  Lock,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -89,11 +90,11 @@ const initialUsers: UserRow[] = [
   { id: "r9", name: "Dev Patel", email: "dev.patel@talakunchi.com", currentRole: "employee", initialRole: "employee" },
   { id: "r10", name: "Kavya Nair", email: "kavya.nair@talakunchi.com", currentRole: "hr", initialRole: "hr" },
   { id: "r11", name: "Rahul Gupta", email: "rahul.gupta@talakunchi.com", currentRole: "pmo", initialRole: "pmo" },
-  { id: "r12", name: "Neha Sharma", email: "neha.sharma@talakunchi.com", currentRole: "sales", initialRole: "sales" },
-  { id: "r13", name: "Ananya Desai", email: "ananya.desai@talakunchi.com", currentRole: "accounts", initialRole: "accounts" },
+  { id: "r12", name: "Neha Sharma", email: "neha.sharma@talakunchi.com", currentRole: "sales_bd", initialRole: "sales_bd" },
+  { id: "r13", name: "Ananya Desai", email: "ananya.desai@talakunchi.com", currentRole: "Accounts", initialRole: "Accounts" },
   { id: "r14", name: "Karan Verma", email: "karan.verma@talakunchi.com", currentRole: "employee", initialRole: "employee" },
   { id: "r15", name: "Pooja Hegde", email: "pooja.hegde@talakunchi.com", currentRole: "employee", initialRole: "employee" },
-  { id: "r16", name: "Aditya Roy", email: "aditya.roy@talakunchi.com", currentRole: "management", initialRole: "management" },
+  { id: "r16", name: "Aditya Roy", email: "aditya.roy@talakunchi.com", currentRole: "Admin" as Role, initialRole: "Admin" as Role },
   { id: "r17", name: "Dhanshree", email: "dhanshree@talakunchi.com", currentRole: "dhanshree", initialRole: "dhanshree" },
 ];
 
@@ -106,15 +107,47 @@ const SCOPE_LABEL: Record<string, string> = {
 };
 
 function SecurityRolesPage() {
-  const { can, isDhanshree } = useRoleContext();
-  const { hasAny } = usePermissions();
+  const { can, isDhanshree, isAdmin } = useRoleContext();
+  const { hasAny, hasPermission } = usePermissions();
+  const { canManage, canView } = useWidgetPermissions();
   const [activeTab, setActiveTab] = useState<"modules" | "users">("modules");
 
-  const allowed = isDhanshree || (can ? can("settings.manage_roles") : false) || hasAny("settings.manage_roles", "roles:manage", "settings.view");
-  if (!allowed) return <Navigate to="/" />;
+  // Only roles with explicit MANAGE access to settings.roles (Admin, PMO) can edit.
+  // View-only roles (CEO, COO, CTO, EM, HODs, Senior Managers) can only view.
+  const canManageRoles = useMemo(() => {
+    if (isAdmin) return true;
+    return canManage("settings.roles.modules_access") || canManage("settings.roles.user_access");
+  }, [isAdmin, canManage]);
+
+  const allowed =
+    canManageRoles ||
+    canView("settings.roles.modules_access") ||
+    canView("settings.roles.user_access") ||
+    (can ? can("settings.roles.view") : false) ||
+    hasAny(
+      "settings.roles.view",
+      "settings.roles.modules_access",
+      "settings.roles.user_access"
+    );
+  if (!allowed) return <Navigate to="/dh-settings-masters" replace />;
 
   return (
     <AppShell title="Roles & Permissions" subtitle="Fine-grained Role → Module → Submodule → Widget Access Control">
+      {!canManageRoles && (
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 dark:text-amber-300 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <Shield className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <span className="font-bold">Read-Only Mode:</span>{" "}
+              <span>Your role has view-only access to Roles & Permissions. All modifications and saving are disabled.</span>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0">
+            <Lock className="h-3 w-3" /> View Only
+          </span>
+        </div>
+      )}
+
       <div className="mb-5 flex items-center border-b border-border">
         <button
           onClick={() => setActiveTab("modules")}
@@ -142,12 +175,16 @@ function SecurityRolesPage() {
         </button>
       </div>
 
-      {activeTab === "modules" ? <ModuleAccessTab /> : <UsersTab />}
+      {activeTab === "modules" ? (
+        <ModuleAccessTab canManageRoles={canManageRoles} />
+      ) : (
+        <UsersTab canManageRoles={canManageRoles} />
+      )}
     </AppShell>
   );
 }
 
-function UsersTab() {
+function UsersTab({ canManageRoles }: { canManageRoles: boolean }) {
   const [users, setUsers] = useState<UserRow[]>(initialUsers);
   const [q, setQ] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -157,10 +194,11 @@ function UsersTab() {
   useEffect(() => {
     let cancelled = false;
     fetchUsers()
-      .then((apiUsers) => {
+      .then((res) => {
         if (cancelled) return;
-        if (apiUsers && apiUsers.length > 0) {
-          const rows: UserRow[] = apiUsers.map((u) => {
+        const usersList = Array.isArray(res) ? res : res?.items || [];
+        if (usersList.length > 0) {
+          const rows: UserRow[] = usersList.map((u: any) => {
             const r = (u.role as Role) || "employee";
             return {
               id: u.id,
@@ -193,10 +231,15 @@ function UsersTab() {
   }, [users, q, roleFilter]);
 
   const changeRole = (id: string, newRole: Role) => {
+    if (!canManageRoles) return;
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, currentRole: newRole } : u)));
   };
 
   const handleSave = async () => {
+    if (!canManageRoles) {
+      toast.error("Read-only access: you do not have permission to modify user roles.");
+      return;
+    }
     const changed = users.filter((u) => u.currentRole !== u.initialRole);
     if (changed.length === 0) {
       toast.info("No changes to save.");
@@ -242,8 +285,9 @@ function UsersTab() {
         </select>
         <button
           onClick={handleSave}
-          disabled={isSaving}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+          disabled={!canManageRoles || isSaving}
+          title={!canManageRoles ? "Read-only access: changes cannot be saved" : undefined}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           Save Changes
@@ -293,8 +337,12 @@ function UsersTab() {
                   <td className="px-4 py-3">
                     <select
                       value={u.currentRole}
+                      disabled={!canManageRoles}
                       onChange={(e) => changeRole(u.id, e.target.value as Role)}
-                      className="h-8 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className={cn(
+                        "h-8 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        !canManageRoles && "cursor-not-allowed opacity-50 bg-muted pointer-events-none"
+                      )}
                     >
                       {APP_ROLES.map((r) => (
                         <option key={r} value={r}>
@@ -333,52 +381,73 @@ const MODULE_ICONS: Record<string, LucideIcon> = {
   settings: Settings,
 };
 
-function ToggleSwitch({
+function PermissionCheckbox({
   checked,
+  indeterminate = false,
   onChange,
   disabled = false,
-  activeColor = "emerald",
+  color = "emerald",
   label,
+  subLabel,
+  className,
 }: {
   checked: boolean;
+  indeterminate?: boolean;
   onChange: () => void;
   disabled?: boolean;
-  activeColor?: "emerald" | "primary";
+  color?: "emerald" | "primary";
   label?: string;
+  subLabel?: string;
+  className?: string;
 }) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.indeterminate = Boolean(indeterminate);
+    }
+  }, [indeterminate]);
+
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!disabled) onChange();
-      }}
+    <label
+      onClick={(e) => e.stopPropagation()}
       className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 select-none",
-        checked
-          ? activeColor === "emerald"
-            ? "bg-emerald-500 shadow-2xs shadow-emerald-500/20"
-            : "bg-primary shadow-2xs shadow-primary/20"
-          : "bg-muted-foreground/25 dark:bg-muted-foreground/35 hover:bg-muted-foreground/35",
-        disabled && "opacity-30 cursor-not-allowed"
+        "inline-flex items-center gap-2 select-none px-2.5 py-1.5 rounded-lg border transition-all text-xs",
+        checked || indeterminate
+          ? color === "emerald"
+            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-medium"
+            : "bg-primary/10 border-primary/30 text-primary font-medium"
+          : "bg-background border-border/60 text-muted-foreground hover:bg-muted/40",
+        disabled ? "opacity-35 cursor-not-allowed pointer-events-none" : "cursor-pointer",
+        className
       )}
     >
-      <span
-        aria-hidden="true"
+      <input
+        ref={ref}
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => {
+          e.stopPropagation();
+          if (!disabled) onChange();
+        }}
         className={cn(
-          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out",
-          checked ? "translate-x-4" : "translate-x-0"
+          "h-4 w-4 rounded border-input cursor-pointer transition-colors",
+          color === "emerald"
+            ? "accent-emerald-600 text-emerald-600 focus:ring-emerald-500"
+            : "accent-primary text-primary focus:ring-primary",
+          disabled && "cursor-not-allowed"
         )}
       />
-      {label && <span className="sr-only">{label}</span>}
-    </button>
+      {label && <span className="text-xs font-semibold">{label}</span>}
+      {subLabel && (
+        <span className="text-[10px] opacity-75 font-mono ml-0.5">{subLabel}</span>
+      )}
+    </label>
   );
 }
 
-function ModuleAccessTab() {
+function ModuleAccessTab({ canManageRoles }: { canManageRoles: boolean }) {
   const { refresh: refreshContextPerms } = useWidgetPermissions();
   const [backendRoles, setBackendRoles] = useState<ApiRole[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>("Testing-Manager");
@@ -488,6 +557,7 @@ function ModuleAccessTab() {
   }, [selectedRoleId, selectedRole]);
 
   const handleToggleView = (key: string) => {
+    if (!canManageRoles) return;
     setPermissionsState((prev) => {
       const cur = prev[key];
       if (!cur) return prev;
@@ -506,6 +576,7 @@ function ModuleAccessTab() {
   };
 
   const handleToggleManage = (key: string) => {
+    if (!canManageRoles) return;
     setPermissionsState((prev) => {
       const cur = prev[key];
       if (!cur || !cur.hasManageAction) return prev;
@@ -524,6 +595,7 @@ function ModuleAccessTab() {
   };
 
   const handleToggleModuleView = (modWidgets: WidgetCatalogItemDto[], currentHasView: boolean) => {
+    if (!canManageRoles) return;
     const nextView = currentHasView ? 0 : 1;
     setPermissionsState((prev) => {
       const next = { ...prev };
@@ -542,6 +614,7 @@ function ModuleAccessTab() {
   };
 
   const handleToggleModuleManage = (modWidgets: WidgetCatalogItemDto[], currentHasManage: boolean) => {
+    if (!canManageRoles) return;
     const nextManage = currentHasManage ? 0 : 1;
     setPermissionsState((prev) => {
       const next = { ...prev };
@@ -560,6 +633,10 @@ function ModuleAccessTab() {
   };
 
   const handleResetBaseline = async () => {
+    if (!canManageRoles) {
+      toast.error("Read-only access: you do not have permission to reset baselines.");
+      return;
+    }
     clearCustomRolePermissions(selectedRole);
 
     if (!selectedRoleId) {
@@ -615,6 +692,10 @@ function ModuleAccessTab() {
   };
 
   const handleSaveChanges = async () => {
+    if (!canManageRoles) {
+      toast.error("Read-only access: you do not have permission to save permissions.");
+      return;
+    }
     // 1. Save locally to instant custom cache so switched persona reflects changes immediately
     const permsMapToSave: Record<string, { canView: number; canManage: number }> = {};
     for (const [key, val] of Object.entries(permissionsState)) {
@@ -775,8 +856,12 @@ function ModuleAccessTab() {
           <div className="flex items-center gap-2.5">
             <button
               onClick={handleResetBaseline}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-background px-3.5 py-2 text-xs font-semibold hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground shadow-2xs cursor-pointer"
-              title="Reset role permissions to baseline from Excel"
+              disabled={!canManageRoles}
+              title={!canManageRoles ? "Read-only access: cannot reset baseline" : "Reset role permissions to baseline from Excel"}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-background px-3.5 py-2 text-xs font-semibold hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground shadow-2xs",
+                !canManageRoles ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+              )}
             >
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Reset Baseline</span>
@@ -784,8 +869,12 @@ function ModuleAccessTab() {
 
             <button
               onClick={handleSaveChanges}
-              disabled={isSaving || isLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-xs active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              disabled={!canManageRoles || isSaving || isLoading}
+              title={!canManageRoles ? "Read-only access: changes cannot be saved" : undefined}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-xs active:scale-[0.98]",
+                !canManageRoles || isSaving || isLoading ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+              )}
             >
               {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
               <span>Save Permissions</span>
@@ -983,7 +1072,7 @@ function ModuleAccessTab() {
 
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-foreground tracking-tight">
+                        <span className="text-base font-extrabold text-foreground tracking-tight">
                           {mod.name}
                         </span>
                         <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/40">
@@ -1011,52 +1100,30 @@ function ModuleAccessTab() {
                     )}
                   </div>
 
-                  {/* Right: Quick Module Toggles + Accordion Chevron */}
+                  {/* Right: Quick Module Checkboxes + Accordion Chevron */}
                   <div className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
-                    {/* Module View Pill Switch */}
-                    <div
-                      className={cn(
-                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold select-none transition-all",
-                        modViewCount > 0
-                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
-                          : "bg-background border-border text-muted-foreground"
-                      )}
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      <span className="text-xs">Module View</span>
-                      <ToggleSwitch
-                        checked={modViewCount > 0}
-                        onChange={() => handleToggleModuleView(allModWidgets, modViewCount > 0)}
-                        activeColor="emerald"
-                        label={`Toggle view for module ${mod.name}`}
-                      />
-                      <span className="text-[10px] opacity-75 font-mono ml-0.5">
-                        ({modViewCount}/{allModWidgets.length})
-                      </span>
-                    </div>
+                    {/* Module View Checkbox */}
+                    <PermissionCheckbox
+                      checked={modViewCount === allModWidgets.length}
+                      indeterminate={modViewCount > 0 && modViewCount < allModWidgets.length}
+                      onChange={() => handleToggleModuleView(allModWidgets, modViewCount > 0)}
+                      disabled={!canManageRoles}
+                      color="emerald"
+                      label="View"
+                      subLabel={`(${modViewCount}/${allModWidgets.length})`}
+                    />
 
-                    {/* Module Manage Pill Switch */}
+                    {/* Module Manage Checkbox */}
                     {manageableWidgets.length > 0 ? (
-                      <div
-                        className={cn(
-                          "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold select-none transition-all",
-                          modManageCount > 0
-                            ? "bg-primary/10 border-primary/30 text-primary"
-                            : "bg-background border-border text-muted-foreground"
-                        )}
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                        <span className="text-xs">Module Manage</span>
-                        <ToggleSwitch
-                          checked={modManageCount > 0}
-                          onChange={() => handleToggleModuleManage(allModWidgets, modManageCount > 0)}
-                          activeColor="primary"
-                          label={`Toggle manage for module ${mod.name}`}
-                        />
-                        <span className="text-[10px] opacity-75 font-mono ml-0.5">
-                          ({modManageCount}/{manageableWidgets.length})
-                        </span>
-                      </div>
+                      <PermissionCheckbox
+                        checked={modManageCount === manageableWidgets.length}
+                        indeterminate={modManageCount > 0 && modManageCount < manageableWidgets.length}
+                        onChange={() => handleToggleModuleManage(allModWidgets, modManageCount > 0)}
+                        disabled={!canManageRoles}
+                        color="primary"
+                        label="Manage"
+                        subLabel={`(${modManageCount}/${manageableWidgets.length})`}
+                      />
                     ) : (
                       <span className="text-[10px] text-muted-foreground/60 italic px-1 hidden sm:inline">
                         View-only
@@ -1085,13 +1152,13 @@ function ModuleAccessTab() {
                   <div className="border-t border-border/50">
                     {/* Header Columns */}
                     <div className="grid grid-cols-12 gap-3 px-5 py-2.5 bg-muted/30 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
-                      <div className="col-span-6">Widget / Submodule / Action</div>
+                      <div className="col-span-6">Folder / Submodule / Widget</div>
                       <div className="col-span-2 text-center">Type</div>
                       <div className="col-span-2 text-center">View Access</div>
                       <div className="col-span-2 text-center">Manage Access</div>
                     </div>
 
-                    {/* Direct widgets */}
+                    {/* Direct widgets (Level 3 - under Module) */}
                     {(mod.directWidgets || []).map((w) => (
                       <WidgetPermissionRow
                         key={w.widgetKey}
@@ -1099,10 +1166,11 @@ function ModuleAccessTab() {
                         permission={permissionsState[w.widgetKey]}
                         onToggleView={() => handleToggleView(w.widgetKey)}
                         onToggleManage={() => handleToggleManage(w.widgetKey)}
+                        canManageRoles={canManageRoles}
                       />
                     ))}
 
-                    {/* Submodules */}
+                    {/* Submodules (Level 2 - Light Bold) */}
                     {(mod.submodules || []).map((sub) => {
                       const allSubWidgets: WidgetCatalogItemDto[] = [
                         ...(sub.widgets || []),
@@ -1114,46 +1182,44 @@ function ModuleAccessTab() {
 
                       return (
                         <div key={sub.code} className="border-b border-border/30 last:border-0 bg-background/50">
-                          {/* Submodule Bar */}
-                          <div className="px-5 py-2.5 bg-muted/20 text-xs font-semibold text-foreground flex flex-wrap items-center justify-between gap-2 border-b border-border/30">
+                          {/* Submodule Bar - Light Bold Header */}
+                          <div className="pl-6 sm:pl-8 pr-5 py-2.5 bg-muted/20 text-xs font-semibold text-foreground/90 flex flex-wrap items-center justify-between gap-2 border-b border-border/30 border-l-4 border-l-primary/40">
                             <div className="flex items-center gap-2">
-                              <Folder className="h-3.5 w-3.5 text-primary/70" />
-                              <span className="font-bold text-foreground text-xs">{sub.name}</span>
+                              <Folder className="h-4 w-4 text-primary/70 shrink-0" />
+                              <span className="font-semibold text-xs sm:text-sm text-foreground/90">{sub.name}</span>
                               <span className="text-[10px] font-mono text-muted-foreground font-normal bg-muted px-1.5 py-0.5 rounded border border-border/30">
                                 {sub.code}
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2 text-xs">
-                                <span className="text-muted-foreground text-[11px] font-medium">View:</span>
-                                <ToggleSwitch
-                                  checked={subViewCount > 0}
-                                  onChange={() => handleToggleModuleView(allSubWidgets, subViewCount > 0)}
-                                  activeColor="emerald"
-                                />
-                                <span className="text-[10px] text-muted-foreground font-mono">
-                                  ({subViewCount}/{allSubWidgets.length})
-                                </span>
-                              </div>
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <PermissionCheckbox
+                                checked={subViewCount === allSubWidgets.length}
+                                indeterminate={subViewCount > 0 && subViewCount < allSubWidgets.length}
+                                onChange={() => handleToggleModuleView(allSubWidgets, subViewCount > 0)}
+                                disabled={!canManageRoles}
+                                color="emerald"
+                                label="View"
+                                subLabel={`(${subViewCount}/${allSubWidgets.length})`}
+                                className="py-1 px-2.5 bg-background/80"
+                              />
 
                               {subManageable.length > 0 && (
-                                <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-muted-foreground text-[11px] font-medium">Manage:</span>
-                                  <ToggleSwitch
-                                    checked={subManageCount > 0}
-                                    onChange={() => handleToggleModuleManage(allSubWidgets, subManageCount > 0)}
-                                    activeColor="primary"
-                                  />
-                                  <span className="text-[10px] text-muted-foreground font-mono">
-                                    ({subManageCount}/{subManageable.length})
-                                  </span>
-                                </div>
+                                <PermissionCheckbox
+                                  checked={subManageCount === subManageable.length}
+                                  indeterminate={subManageCount > 0 && subManageCount < subManageable.length}
+                                  onChange={() => handleToggleModuleManage(allSubWidgets, subManageCount > 0)}
+                                  disabled={!canManageRoles}
+                                  color="primary"
+                                  label="Manage"
+                                  subLabel={`(${subManageCount}/${subManageable.length})`}
+                                  className="py-1 px-2.5 bg-background/80"
+                                />
                               )}
                             </div>
                           </div>
 
-                          {/* Submodule Widgets */}
+                          {/* Submodule Widgets (Level 3 - More Light) */}
                           {(sub.widgets || []).map((w) => (
                             <WidgetPermissionRow
                               key={w.widgetKey}
@@ -1162,30 +1228,71 @@ function ModuleAccessTab() {
                               onToggleView={() => handleToggleView(w.widgetKey)}
                               onToggleManage={() => handleToggleManage(w.widgetKey)}
                               indent
+                              canManageRoles={canManageRoles}
                             />
                           ))}
 
-                          {/* Child Submodules */}
-                          {(sub.childSubmodules || []).map((child) => (
-                            <div key={child.code}>
-                              <div className="pl-10 pr-5 py-2 bg-muted/10 text-[11px] font-semibold text-muted-foreground flex items-center justify-between border-b border-border/20">
-                                <span>↳ {child.name}</span>
-                                <span className="text-[9px] font-mono text-muted-foreground/60">
-                                  {child.code}
-                                </span>
+                          {/* Child Submodules (Level 2.5) */}
+                          {(sub.childSubmodules || []).map((child) => {
+                            const childWidgets = child.widgets || [];
+                            const childViewCount = childWidgets.filter((w) => permissionsState[w.widgetKey]?.canView === 1).length;
+                            const childManageCount = childWidgets.filter((w) => permissionsState[w.widgetKey]?.canManage === 1).length;
+                            const childManageable = childWidgets.filter((w) => w.hasManageAction);
+
+                            return (
+                              <div key={child.code} className="border-b border-border/20 last:border-0">
+                                <div className="pl-10 sm:pl-12 pr-5 py-2 bg-muted/15 text-xs font-medium text-foreground/85 flex flex-wrap items-center justify-between gap-2 border-b border-border/20 border-l-4 border-l-primary/20">
+                                  <div className="flex items-center gap-2">
+                                    <Folder className="h-3.5 w-3.5 text-primary/60 shrink-0" />
+                                    <span className="font-semibold text-xs text-foreground/85">{child.name}</span>
+                                    <span className="text-[9px] font-mono text-muted-foreground/60 bg-muted px-1.5 py-0.5 rounded border border-border/20">
+                                      {child.code}
+                                    </span>
+                                  </div>
+
+                                  {childWidgets.length > 0 && (
+                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                      <PermissionCheckbox
+                                        checked={childViewCount === childWidgets.length}
+                                        indeterminate={childViewCount > 0 && childViewCount < childWidgets.length}
+                                        onChange={() => handleToggleModuleView(childWidgets, childViewCount > 0)}
+                                        disabled={!canManageRoles}
+                                        color="emerald"
+                                        label="View"
+                                        subLabel={`(${childViewCount}/${childWidgets.length})`}
+                                        className="py-0.5 px-2 text-[11px] bg-background/80"
+                                      />
+
+                                      {childManageable.length > 0 && (
+                                        <PermissionCheckbox
+                                          checked={childManageCount === childManageable.length}
+                                          indeterminate={childManageCount > 0 && childManageCount < childManageable.length}
+                                          onChange={() => handleToggleModuleManage(childWidgets, childManageCount > 0)}
+                                          disabled={!canManageRoles}
+                                          color="primary"
+                                          label="Manage"
+                                          subLabel={`(${childManageCount}/${childManageable.length})`}
+                                          className="py-0.5 px-2 text-[11px] bg-background/80"
+                                        />
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {childWidgets.map((w) => (
+                                  <WidgetPermissionRow
+                                    key={w.widgetKey}
+                                    widget={w}
+                                    permission={permissionsState[w.widgetKey]}
+                                    onToggleView={() => handleToggleView(w.widgetKey)}
+                                    onToggleManage={() => handleToggleManage(w.widgetKey)}
+                                    doubleIndent
+                                    canManageRoles={canManageRoles}
+                                  />
+                                ))}
                               </div>
-                              {(child.widgets || []).map((w) => (
-                                <WidgetPermissionRow
-                                  key={w.widgetKey}
-                                  widget={w}
-                                  permission={permissionsState[w.widgetKey]}
-                                  onToggleView={() => handleToggleView(w.widgetKey)}
-                                  onToggleManage={() => handleToggleManage(w.widgetKey)}
-                                  doubleIndent
-                                />
-                              ))}
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       );
                     })}
@@ -1207,6 +1314,7 @@ function WidgetPermissionRow({
   onToggleManage,
   indent = false,
   doubleIndent = false,
+  canManageRoles = true,
 }: {
   widget: WidgetCatalogItemDto;
   permission?: EditablePermission;
@@ -1214,6 +1322,7 @@ function WidgetPermissionRow({
   onToggleManage: () => void;
   indent?: boolean;
   doubleIndent?: boolean;
+  canManageRoles?: boolean;
 }) {
   const canView = permission?.canView === 1;
   const canManage = permission?.canManage === 1;
@@ -1234,18 +1343,21 @@ function WidgetPermissionRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-12 gap-3 px-5 py-3 items-center hover:bg-muted/30 transition-colors text-xs border-b border-border/30 last:border-0",
-        indent && "pl-10 bg-muted/5",
-        doubleIndent && "pl-14 bg-muted/10"
+        "grid grid-cols-12 gap-3 px-5 py-2.5 items-center hover:bg-muted/30 transition-colors text-xs border-b border-border/25 last:border-0",
+        doubleIndent ? "pl-16 sm:pl-20 bg-muted/10" : indent ? "pl-12 sm:pl-16 bg-muted/5" : "pl-8 sm:pl-10"
       )}
     >
-      <div className="col-span-6 flex flex-col min-w-0 pr-2">
-        <span className="font-semibold text-foreground text-xs leading-snug truncate">
-          {widget.name}
-        </span>
-        <span className="text-[10px] text-muted-foreground/75 font-mono truncate mt-0.5">
-          {widget.widgetKey}
-        </span>
+      {/* Level 3: More Light Widget */}
+      <div className="col-span-6 flex items-start gap-2 min-w-0 pr-2">
+        <span className="text-muted-foreground/45 font-mono text-sm leading-none mt-0.5 select-none shrink-0">↳</span>
+        <div className="flex flex-col min-w-0">
+          <span className="font-normal text-xs text-foreground/80 leading-snug truncate">
+            {widget.name}
+          </span>
+          <span className="text-[10px] text-muted-foreground/60 font-mono truncate mt-0.5">
+            {widget.widgetKey}
+          </span>
+        </div>
       </div>
 
       <div className="col-span-2 text-center">
@@ -1261,41 +1373,87 @@ function WidgetPermissionRow({
         </span>
       </div>
 
+      {/* Checkbox only for View */}
       <div className="col-span-2 flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <ToggleSwitch
+        <label
+          onClick={(e) => {
+            e.stopPropagation();
+            if (canManageRoles) onToggleView();
+          }}
+          className={cn(
+            "inline-flex items-center gap-1.5 select-none px-2 py-1 rounded transition-colors",
+            canManageRoles ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-40 pointer-events-none"
+          )}
+        >
+          <input
+            type="checkbox"
             checked={canView}
-            onChange={onToggleView}
-            activeColor="emerald"
-            label={`Toggle view for ${widget.name}`}
+            disabled={!canManageRoles}
+            onChange={() => {
+              if (canManageRoles) onToggleView();
+            }}
+            className={cn(
+              "h-4 w-4 rounded border-input text-emerald-600 focus:ring-emerald-500 accent-emerald-600",
+              canManageRoles ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+            )}
           />
-          <span className={cn("text-[11px] font-medium min-w-[28px]", canView ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-muted-foreground/60")}>
-            {canView ? "On" : "Off"}
+          <span
+            className={cn(
+              "text-[11px]",
+              canView
+                ? "text-emerald-700 dark:text-emerald-300 font-medium"
+                : "text-muted-foreground/60 font-normal"
+            )}
+          >
+            {canView ? "View" : "No"}
           </span>
-        </div>
+        </label>
       </div>
 
+      {/* Checkbox only for Manage */}
       <div className="col-span-2 flex items-center justify-center">
         {widget.hasManageAction ? (
-          <div className="flex items-center gap-2">
-            <ToggleSwitch
+          <label
+            onClick={(e) => {
+              e.stopPropagation();
+              if (canManageRoles && canView) onToggleManage();
+            }}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2 py-1 rounded transition-colors select-none",
+              !canManageRoles
+                ? "cursor-not-allowed opacity-40 pointer-events-none"
+                : canView
+                ? "cursor-pointer hover:bg-muted/50"
+                : "cursor-not-allowed opacity-35"
+            )}
+          >
+            <input
+              type="checkbox"
               checked={canManage}
-              onChange={onToggleManage}
-              disabled={!canView}
-              activeColor="primary"
-              label={`Toggle manage for ${widget.name}`}
+              onChange={() => {
+                if (canManageRoles && canView) onToggleManage();
+              }}
+              disabled={!canManageRoles || !canView}
+              className={cn(
+                "h-4 w-4 rounded border-input text-primary focus:ring-primary accent-primary",
+                canManageRoles && canView ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+              )}
             />
             <span
               className={cn(
-                "text-[11px] font-medium min-w-[28px]",
-                !canView ? "text-muted-foreground/40" : canManage ? "text-primary font-semibold" : "text-muted-foreground/60"
+                "text-[11px]",
+                !canView
+                  ? "text-muted-foreground/40 font-normal"
+                  : canManage
+                  ? "text-primary font-medium"
+                  : "text-muted-foreground/60 font-normal"
               )}
             >
-              {canManage ? "On" : "Off"}
+              {canManage ? "Manage" : "No"}
             </span>
-          </div>
+          </label>
         ) : (
-          <span className="text-[11px] text-muted-foreground/40 italic select-none">
+          <span className="text-[11px] text-muted-foreground/30 italic select-none">
             —
           </span>
         )}

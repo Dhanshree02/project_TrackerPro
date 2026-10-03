@@ -74,8 +74,26 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Settings,
     permission: "settings.view",
     subItems: [
-      { to: "/dh-settings-security-roles", label: "Roles & Permissions", permission: "settings.view" },
-      { to: "/dh-settings-masters", label: "Masters", permission: "settings.view" },
+      {
+        to: "/dh-settings-security-roles",
+        label: "Roles & Permissions",
+        permission: [
+          "settings.manage_roles",
+          "settings.roles.view",
+          "settings.roles.modules_access",
+          "settings.roles.user_access",
+        ],
+      },
+      {
+        to: "/dh-settings-masters",
+        label: "Masters",
+        permission: [
+          "settings.masters.view",
+          "settings.masters.project",
+          "settings.masters.customer",
+          "settings.masters.resource",
+        ],
+      },
     ],
   },
 ];
@@ -120,8 +138,26 @@ export const DH_NAV_ITEMS: NavItem[] = [
     icon: Settings,
     permission: "settings.view",
     subItems: [
-      { to: "/dh-settings-security-roles", label: "Roles & Permissions" },
-      { to: "/dh-settings-masters", label: "Masters" },
+      {
+        to: "/dh-settings-security-roles",
+        label: "Roles & Permissions",
+        permission: [
+          "settings.manage_roles",
+          "settings.roles.view",
+          "settings.roles.modules_access",
+          "settings.roles.user_access",
+        ],
+      },
+      {
+        to: "/dh-settings-masters",
+        label: "Masters",
+        permission: [
+          "settings.masters.view",
+          "settings.masters.project",
+          "settings.masters.customer",
+          "settings.masters.resource",
+        ],
+      },
     ],
   },
 ];

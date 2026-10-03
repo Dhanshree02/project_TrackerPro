@@ -219,6 +219,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     status === "authed" &&
     (backendRole === "CEO" ||
       backendRole === "COO" ||
+      backendRole === "CTO" ||
       backendRole === "Admin" ||
       backendRole === "Dhanshree");
 
@@ -233,7 +234,14 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const isBO =
     !!authUser &&
     status === "authed" &&
-    (backendRole === "CEO" || backendRole === "COO" || backendRole === "BusinessOwner");
+    (backendRole === "CEO" ||
+      backendRole === "COO" ||
+      backendRole === "CTO" ||
+      backendRole === "BusinessOwner" ||
+      role === "CEO" ||
+      role === "COO" ||
+      role === "CTO" ||
+      role === "business_owner");
 
   const isHOD =
     !!authUser &&
@@ -484,12 +492,12 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const can = useCallback(
     (perm: string): boolean => {
-      if (isAdmin || isDhanshree) return true;
+      if (isAdmin) return true;
       if (hasPermission(perm)) return true;
       const currentRolePerms = getPermissionsFor(role);
       return currentRolePerms.includes(perm as PermissionKey);
     },
-    [isAdmin, isDhanshree, hasPermission, getPermissionsFor, role],
+    [isAdmin, hasPermission, getPermissionsFor, role],
   );
 
   return (
