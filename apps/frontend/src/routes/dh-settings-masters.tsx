@@ -50,6 +50,7 @@ function MastersPage() {
     departments,
     services,
     customerMasters,
+    resourceMasters,
     addProjectMaster,
     updateProjectMaster,
     deleteProjectMaster,
@@ -59,6 +60,25 @@ function MastersPage() {
     addCustomerMasterItem,
     updateCustomerMasterItem,
     deleteCustomerMasterItem,
+    // Resource master operations
+    addDepartmentHierarchyItem,
+    updateDepartmentHierarchyItem,
+    deleteDepartmentHierarchyItem,
+    addEmailDomain,
+    updateEmailDomain,
+    deleteEmailDomain,
+    addCity,
+    updateCity,
+    deleteCity,
+    addTkIdFormat,
+    updateTkIdFormat,
+    deleteTkIdFormat,
+    addTkId,
+    updateTkId,
+    deleteTkId,
+    addResourceSimpleItem,
+    updateResourceSimpleItem,
+    deleteResourceSimpleItem,
     resetAllToDefaults,
   } = useMastersStore();
 
@@ -68,6 +88,17 @@ function MastersPage() {
     (customerMasters?.countries?.length || 0) +
     (customerMasters?.cities?.length || 0) +
     (customerMasters?.contactTypes?.length || 0);
+
+  const totalResourceItems =
+    (resourceMasters?.departmentHierarchy?.length || 0) +
+    (resourceMasters?.emailDomains?.length || 0) +
+    (resourceMasters?.cities?.length || 0) +
+    (resourceMasters?.tkIdFormats?.length || resourceMasters?.tkIds?.length || 0) +
+    (resourceMasters?.businessUnits?.length || 0) +
+    (resourceMasters?.workLocations?.length || 0) +
+    (resourceMasters?.graduationDegrees?.length || 0) +
+    (resourceMasters?.postGraduationDegrees?.length || 0) +
+    (resourceMasters?.certifications?.length || 0);
 
   return (
     <AppShell
@@ -138,6 +169,15 @@ function MastersPage() {
           >
             <Users className="h-4 w-4" />
             <span>Resource Masters</span>
+            <Badge
+              variant="secondary"
+              className={cn(
+                "text-[10px] px-1.5 py-0",
+                activeTab === "resources" ? "bg-primary/15 text-primary font-semibold" : "",
+              )}
+            >
+              {totalResourceItems}
+            </Badge>
             {activeTab === "resources" && (
               <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
@@ -182,7 +222,29 @@ function MastersPage() {
         />
       )}
 
-      {activeTab === "resources" && <ResourceMastersSection />}
+      {activeTab === "resources" && (
+        <ResourceMastersSection
+          resourceMasters={resourceMasters}
+          onAddHierarchy={addDepartmentHierarchyItem}
+          onUpdateHierarchy={updateDepartmentHierarchyItem}
+          onDeleteHierarchy={deleteDepartmentHierarchyItem}
+          onAddEmailDomain={addEmailDomain}
+          onUpdateEmailDomain={updateEmailDomain}
+          onDeleteEmailDomain={deleteEmailDomain}
+          onAddCity={addCity}
+          onUpdateCity={updateCity}
+          onDeleteCity={deleteCity}
+          onAddTkIdFormat={addTkIdFormat}
+          onUpdateTkIdFormat={updateTkIdFormat}
+          onDeleteTkIdFormat={deleteTkIdFormat}
+          onAddTkId={addTkId}
+          onUpdateTkId={updateTkId}
+          onDeleteTkId={deleteTkId}
+          onAddSimpleItem={addResourceSimpleItem}
+          onUpdateSimpleItem={updateResourceSimpleItem}
+          onDeleteSimpleItem={deleteResourceSimpleItem}
+        />
+      )}
     </AppShell>
   );
 }
