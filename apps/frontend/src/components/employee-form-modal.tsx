@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, Plus, FileText } from "lucide-react";
+import { X, Plus, FileText, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -77,7 +77,49 @@ import { allProjects, allClients } from "@/lib/dh-store";
 
 // ── Local Form Components ─────────────────────────
 
+const FIELD_LABELS: Record<string, string> = {
+  firstName: "First Name",
+  lastName: "Last Name",
+  workEmail: "Work Email",
+  personalEmail: "Personal Email",
+  employeeCode: "TK ID",
+  phone: "Phone (Personal)",
+  altPhone: "Alternate Contact Number",
+  emergencyContact: "Emergency Contact Number",
+  emergencyContactName: "Emergency Contact Name",
+  emergencyContactRelation: "Relation with Emergency Contact",
+  address: "Current Address - City",
+  departmentId: "Department",
+  designationId: "Designation",
+  jobRoleId: "On Floor Role",
+  role: "Assigned RBAC Role",
+  businessUnit: "Business Unit",
+  reportingManagerId: "Reporting Manager",
+  workLocation: "Work Location",
+  projectSite: "Location / Site",
+  joiningDate: "Date of Joining",
+  assetId: "Asset ID",
+  employeeStatusId: "Employee Status",
+  probationStatus: "Probation Status",
+  workerType: "Worker Type",
+  bondDelivered: "Bond Delivered",
+  bondDurationMonths: "Bond Duration",
+  gradDegree: "Graduation Degree Name",
+  gradYear: "Graduation Passing Year",
+  postGradDegree: "Post Graduation Degree Name",
+  postGradYear: "Post Graduation Passing Year",
+  expType: "Exp / Fresher",
+  priorTotalExp: "Total Prior Experience",
+  priorTotalExpYears: "Total Prior Experience (Years)",
+  priorTotalExpMonths: "Total Prior Experience (Months)",
+  priorRelevantExp: "Relevant Prior Experience",
+  priorRelevantExpYears: "Relevant Prior Experience (Years)",
+  priorRelevantExpMonths: "Relevant Prior Experience (Months)",
+  clientEngManagerMapping: "Client Engagement Manager",
+};
+
 function FormField({
+  id,
   label,
   type = "text",
   placeholder = "",
@@ -98,6 +140,7 @@ function FormField({
   max,
   hideErrorText,
 }: {
+  id?: string;
   label: string;
   type?: string;
   placeholder?: string;
@@ -143,7 +186,7 @@ function FormField({
           data-1p-ignore="true"
           data-bwignore="true"
           data-form-type="other"
-          id={name ? `form-${name}` : undefined}
+          id={id || (name ? `form-${name}` : undefined)}
           type={type}
           placeholder={placeholder}
           maxLength={maxLength}
@@ -182,6 +225,7 @@ function FormField({
 }
 
 function FormSelect({
+  id,
   label,
   options,
   value,
@@ -192,6 +236,7 @@ function FormSelect({
   placeholder = "Select…",
   showSearch,
 }: {
+  id?: string;
   label: string;
   options: Array<string | { value: string; label: string; subLabel?: string }>;
   value?: string;
@@ -204,6 +249,7 @@ function FormSelect({
 }) {
   return (
     <SearchableSelect
+      id={id}
       label={label}
       options={options}
       value={value}
@@ -747,8 +793,30 @@ export function EmployeeFormModal({
     const excludeCodes = mode === "edit" && initialEmployee ? existingCodes.filter((c) => c !== initialEmployee.id) : existingCodes;
     const nextErrors = validateOnboardForm(form, excludeCodes, validationOpts);
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      toast.error("Please complete all mandatory fields");
+    const errorEntries = Object.entries(nextErrors) as [OnboardField, string][];
+    if (errorEntries.length > 0) {
+      if (errorEntries.length === 1) {
+        const [field, msg] = errorEntries[0];
+        toast.error(`Please fix error: ${FIELD_LABELS[field] || field} - ${msg}`);
+      } else {
+        const firstFew = errorEntries.slice(0, 3).map(([f]) => FIELD_LABELS[f] || f).join(", ");
+        const more = errorEntries.length > 3 ? ` (+${errorEntries.length - 3} more)` : "";
+        toast.error(`Please fix ${errorEntries.length} field errors: ${firstFew}${more}`);
+      }
+
+      // Smoothly scroll to the first invalid field or error banner
+      const firstField = errorEntries[0][0];
+      const targetElement =
+        document.getElementById(`form-${firstField}`) ||
+        document.querySelector(`[name="${firstField}"]`) ||
+        document.getElementById("form-error-summary");
+
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        if ("focus" in targetElement && typeof (targetElement as any).focus === "function") {
+          setTimeout(() => (targetElement as HTMLElement).focus(), 150);
+        }
+      }
       return;
     }
     setIsSubmitting(true);
@@ -1001,7 +1069,47 @@ export function EmployeeFormModal({
           </div>
 
           {/* scrollable body */}
-          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
+          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6" id="employee-form-scroll-container">
+            {Object.keys(errors).length > 0 && (
+              <div
+                id="form-error-summary"
+                role="alert"
+                className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-destructive shadow-xs animate-in fade-in duration-150"
+              >
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-destructive" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold text-destructive">
+                      Please resolve the following {Object.keys(errors).length} error{Object.keys(errors).length > 1 ? "s" : ""}:
+                    </h4>
+                    <ul className="mt-2.5 space-y-1.5 text-xs">
+                      {(Object.entries(errors) as [OnboardField, string][]).map(([field, msg]) => (
+                        <li key={field} className="flex items-start gap-1.5">
+                          <span className="font-semibold text-foreground shrink-0">•</span>
+                          <button
+                            type="button"
+                            className="font-semibold text-foreground underline underline-offset-2 hover:text-destructive text-left cursor-pointer transition-colors"
+                            onClick={() => {
+                              const targetElement =
+                                document.getElementById(`form-${field}`) ||
+                                document.querySelector(`[name="${field}"]`);
+                              if (targetElement) {
+                                targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                                if ("focus" in targetElement) (targetElement as HTMLElement).focus();
+                              }
+                            }}
+                          >
+                            {FIELD_LABELS[field] || field}:
+                          </button>
+                          <span className="text-destructive font-medium">{msg}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <FormSection title="1. Personal Information">
               <FormField
                 label="First Name"
@@ -1106,6 +1214,7 @@ export function EmployeeFormModal({
               />
               <div>
                 <FormSelect
+                  id="form-address"
                   label="Current Address - City"
                   required
                   error={errors.address}
@@ -1152,6 +1261,7 @@ export function EmployeeFormModal({
                 error={errors.emergencyContact}
               />
               <FormSelect
+                id="form-emergencyContactRelation"
                 label="Relation with Emergency Contact"
                 required
                 error={errors.emergencyContactRelation}
@@ -1164,6 +1274,7 @@ export function EmployeeFormModal({
 
             <FormSection title="2. Organization Assignment">
               <TkIdField
+                id="form-employeeCode"
                 required
                 prefix={tkPrefix}
                 digits={splitTkId(form.employeeCode).digits}
@@ -1175,6 +1286,7 @@ export function EmployeeFormModal({
                 error={errors.employeeCode}
               />
               <CreatableCatalogSelect
+                id="form-departmentId"
                 label="Department"
                 required
                 error={errors.departmentId}
@@ -1193,6 +1305,7 @@ export function EmployeeFormModal({
                 }}
               />
               <CreatableCatalogSelect
+                id="form-designationId"
                 label="Designation"
                 required
                 error={errors.designationId}
@@ -1224,11 +1337,12 @@ export function EmployeeFormModal({
                 }}
               />
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-foreground flex items-center justify-between">
+                <label htmlFor="form-role" className="text-xs font-medium text-foreground flex items-center justify-between">
                   <span>Assigned RBAC Role <span className="text-destructive">*</span></span>
                   <span className="text-[10px] text-muted-foreground font-normal">Auto-mapped</span>
                 </label>
                 <select
+                  id="form-role"
                   value={form.role}
                   onChange={(e) => setField("role", e.target.value)}
                   disabled={!form.designationId}
@@ -1236,7 +1350,9 @@ export function EmployeeFormModal({
                     "h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm transition-colors",
                     "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                     "disabled:cursor-not-allowed disabled:opacity-50",
+                    errors.role && "border-destructive focus-visible:ring-destructive/30",
                   )}
+                  aria-invalid={Boolean(errors.role)}
                 >
                   <option value="">Select RBAC Role...</option>
                   {rbacRoleOptions.map((r) => (
@@ -1245,11 +1361,13 @@ export function EmployeeFormModal({
                     </option>
                   ))}
                 </select>
+                {errors.role ? <p className={FORM_ERROR_CLS}>{errors.role}</p> : null}
                 <span className="text-[10px] text-muted-foreground">
                   Default software permissions from catalog (overridable)
                 </span>
               </div>
               <CreatableCatalogSelect
+                id="form-jobRoleId"
                 label="On Floor Role"
                 options={roleOptions}
                 valueId={form.jobRoleId}
@@ -1270,6 +1388,7 @@ export function EmployeeFormModal({
               />
               <div className="md:col-span-2 lg:col-span-2">
                 <CreatableCatalogSelect
+                  id="form-businessUnit"
                   label="Business Unit"
                   options={buOptions}
                   valueId={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
@@ -1286,6 +1405,7 @@ export function EmployeeFormModal({
                 />
               </div>
               <CreatableCatalogSelect
+                id="form-reportingManagerId"
                 label="Reporting Manager"
                 required
                 error={errors.reportingManagerId}
@@ -1309,6 +1429,7 @@ export function EmployeeFormModal({
                 }}
               />
               <CreatableCatalogSelect
+                id="form-workLocation"
                 label="Work Location"
                 required
                 error={errors.workLocation}
@@ -1346,6 +1467,8 @@ export function EmployeeFormModal({
                 }}
               />
               <FormField
+                id="form-projectSite"
+                name="projectSite"
                 label="Location"
                 disabled={form.workLocation !== "Onsite"}
                 placeholder="Enter onsite location"
@@ -1357,6 +1480,8 @@ export function EmployeeFormModal({
 
             <FormSection title="3. Employment Information">
               <FormField
+                id="form-joiningDate"
+                name="joiningDate"
                 label="Date of Joining"
                 type="date"
                 required={mode === "create"}
@@ -1367,6 +1492,8 @@ export function EmployeeFormModal({
                 error={mode === "create" ? errors.joiningDate : undefined}
               />
               <FormField
+                id="form-assetId"
+                name="assetId"
                 label="Asset ID"
                 placeholder="e.g. AST-1001"
                 maxLength={FIELD_MAX.assetId}
@@ -1374,6 +1501,7 @@ export function EmployeeFormModal({
                 onChange={(v) => setField("assetId", v)}
               />
               <FormSelect
+                id="form-employeeStatusId"
                 label="Employee Status"
                 required
                 error={errors.employeeStatusId}
@@ -1383,6 +1511,7 @@ export function EmployeeFormModal({
               />
               {mode === "edit" ? (
                 <FormSelect
+                  id="form-probationStatus"
                   label="Probation Status"
                   options={["Ongoing", "Completed", "Not Completed"]}
                   value={form.probationStatus || "Ongoing"}
@@ -1390,6 +1519,7 @@ export function EmployeeFormModal({
                 />
               ) : null}
               <FormSelect
+                id="form-workerType"
                 label="Worker Type"
                 required
                 error={errors.workerType}
@@ -1398,6 +1528,7 @@ export function EmployeeFormModal({
                 onChange={(v) => setField("workerType", v)}
               />
               <FormSelect
+                id="form-bondDelivered"
                 label="Bond Delivered"
                 required
                 error={errors.bondDelivered}
@@ -1406,6 +1537,8 @@ export function EmployeeFormModal({
                 onChange={(v) => setField("bondDelivered", v)}
               />
               <FormField
+                id="form-bondDurationMonths"
+                name="bondDurationMonths"
                 label="Bond Duration"
                 inputMode="numeric"
                 maxLength={3}
@@ -1431,6 +1564,7 @@ export function EmployeeFormModal({
 
             <FormSection title="4. Education & Experience">
               <CreatableCatalogSelect
+                id="form-gradDegree"
                 label="Graduation Degree Name"
                 options={gradDegreeOptions}
                 valueId={
@@ -1452,6 +1586,7 @@ export function EmployeeFormModal({
               />
 
               <FormSelect
+                id="form-gradYear"
                 label="Graduation - Passing Year"
                 options={PASSING_YEAR_OPTIONS.map((y) => ({ value: y, label: y }))}
                 value={form.gradYear}
@@ -1464,6 +1599,7 @@ export function EmployeeFormModal({
               />
 
               <CreatableCatalogSelect
+                id="form-postGradDegree"
                 label="Post Graduation Degree Name"
                 options={postGradDegreeOptions}
                 valueId={
@@ -1490,6 +1626,7 @@ export function EmployeeFormModal({
               />
 
               <FormSelect
+                id="form-postGradYear"
                 label="Post Graduation - Passing Year"
                 options={[
                   { value: "NA", label: "NA" },
@@ -1510,6 +1647,7 @@ export function EmployeeFormModal({
               />
 
               <FormSelect
+                id="form-expType"
                 label="Exp / Fresher"
                 options={[
                   { value: "Fresher", label: "Fresher" },
@@ -1530,7 +1668,7 @@ export function EmployeeFormModal({
                 }}
               />
 
-              <div className="space-y-1">
+              <div id="form-priorTotalExpMonths" className="space-y-1">
                 <span className={FORM_LABEL_CLS}>Total exp prior to Talakunchi</span>
                 <div className="grid grid-cols-2 gap-2">
                   <FormField
@@ -1567,7 +1705,7 @@ export function EmployeeFormModal({
                 ) : null}
               </div>
 
-              <div className="space-y-1">
+              <div id="form-priorRelevantExpMonths" className="space-y-1">
                 <span className={FORM_LABEL_CLS}>Relevant exp prior to Talakunchi</span>
                 <div className="grid grid-cols-2 gap-2">
                   <FormField
@@ -1622,6 +1760,7 @@ export function EmployeeFormModal({
             {mode === "edit" && (
               <FormSection title="5. PMO Section">
                 <FormSelect
+                  id="form-pmoDepartment"
                   label="Department"
                   options={PMO_DEPARTMENT_OPTIONS}
                   value={form.pmoDepartment}
@@ -1630,6 +1769,7 @@ export function EmployeeFormModal({
                   showSearch
                 />
                 <FormSelect
+                  id="form-billableStatus"
                   label="Billable / Non Billable Status"
                   options={[...BILLABLE_STATUS_OPTIONS]}
                   value={form.billableStatus}
@@ -1637,6 +1777,7 @@ export function EmployeeFormModal({
                   placeholder="Select status…"
                 />
                 <FormSelect
+                  id="form-clientLocation"
                   label="Client Location"
                   options={[...MUMBAI_RAILWAY_STATIONS]}
                   value={form.clientLocation}
@@ -1645,6 +1786,7 @@ export function EmployeeFormModal({
                   showSearch
                 />
                 <FormSelect
+                  id="form-projectType"
                   label="Project Type"
                   options={[...PROJECT_TYPE_OPTIONS]}
                   value={form.projectType}
@@ -1652,6 +1794,7 @@ export function EmployeeFormModal({
                   placeholder="Select project type…"
                 />
                 <FormSelect
+                  id="form-projectAllocated"
                   label="Project Allocated"
                   options={projectAllocatedOptions}
                   value={form.projectAllocated}
@@ -1665,6 +1808,7 @@ export function EmployeeFormModal({
                 />
                 <div className="space-y-1">
                   <FormField
+                    id="form-clientEngManagerMapping"
                     label="Client Engagement Manager"
                     name="clientEngManagerMapping"
                     disabled

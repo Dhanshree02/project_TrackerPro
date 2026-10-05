@@ -23,7 +23,7 @@ public sealed class DevelopmentAuthBypassMiddleware(RequestDelegate next)
             var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, DbSeeder.StableGuid("user-u15").ToString()),
-                new(JwtRegisteredClaimNames.Email, "admin@acme.co"),
+                new(JwtRegisteredClaimNames.Email, "admin@talakunchi.com"),
                 new(ClaimTypes.Name, "Admin User"),
                 new(ClaimTypes.Role, nameof(UserRole.Admin)),
             };

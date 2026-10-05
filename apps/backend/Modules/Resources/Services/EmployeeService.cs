@@ -803,8 +803,32 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
-        var statusAtExit = employee.Status;
-        employee.Status = "Notice Period";
+        var statusAtExit = employee.ConfirmationStatus ?? employee.Status;
+
+        if (request.EmployeeStatusId.HasValue)
+        {
+            var empStatus = await db.EmployeeStatuses.FirstOrDefaultAsync(s => s.Id == request.EmployeeStatusId.Value, ct);
+            if (empStatus is not null)
+            {
+                employee.EmployeeStatusId = empStatus.Id;
+                employee.ConfirmationStatus = empStatus.Name;
+                employee.Status = empStatus.Name.StartsWith("Inactive", StringComparison.OrdinalIgnoreCase)
+                    ? "Inactive"
+                    : empStatus.Name.StartsWith("Resignation", StringComparison.OrdinalIgnoreCase) || empStatus.Name.Equals("Resigned", StringComparison.OrdinalIgnoreCase)
+                        ? "Notice Period"
+                        : empStatus.Name;
+                statusAtExit = empStatus.Name;
+            }
+            else
+            {
+                employee.Status = "Notice Period";
+            }
+        }
+        else
+        {
+            employee.Status = "Notice Period";
+        }
+
         employee.ExitType = request.ExitType ?? employee.ExitType;
         employee.ExitReason = request.ExitReason ?? employee.ExitReason;
         if (!string.IsNullOrWhiteSpace(request.NoticePeriodServed))
@@ -842,6 +866,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         else
         {
+            existingExit.StatusAtExit = statusAtExit;
             existingExit.ResignationDate = request.ResignationDate ?? existingExit.ResignationDate;
             existingExit.LastWorkingDay = request.LastWorkingDay ?? existingExit.LastWorkingDay;
             existingExit.ReasonForLeaving = request.ReasonForLeaving ?? existingExit.ReasonForLeaving;
@@ -868,7 +893,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             Action = "Offboarded",
             PerformedByEmail = offboardPerformerEmail,
             PerformedByName = offboardPerformerName,
-            Details = $"Offboarded employee (Reason: {request.ReasonForLeaving ?? "N/A"}, Last Working Day: {request.LastWorkingDay?.ToString("yyyy-MM-dd") ?? "N/A"})",
+            Details = $"Offboarded employee (Status: {statusAtExit}, Reason: {request.ReasonForLeaving ?? "N/A"}, Last Working Day: {request.LastWorkingDay?.ToString("yyyy-MM-dd") ?? "N/A"})",
             CreatedAtUtc = DateTime.UtcNow
         });
 
@@ -1747,7 +1772,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         if (!logs.Any(l => string.Equals(l.Action, "Created", StringComparison.OrdinalIgnoreCase)))
         {
-            string creatorEmail = "admin@acme.co";
+            string creatorEmail = "admin@talakunchi.com";
             string creatorName = "Admin User";
 
             if (employee.CreatedBy.HasValue)

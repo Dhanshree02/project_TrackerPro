@@ -4,6 +4,7 @@ import { FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import { TK_ID_DIGITS, TK_ID_PREFIXES, type TkIdPrefix } from "@/lib/form-validation";
 
 interface TkIdFieldProps {
+  id?: string;
   label?: string;
   required?: boolean;
   prefix: TkIdPrefix;
@@ -19,6 +20,7 @@ interface TkIdFieldProps {
 
 /** TK ID control: `[TK | TKI]` dropdown + 4-digit number box, producing `TK-0001` / `TKI-0001`. */
 export function TkIdField({
+  id,
   label = "TK ID",
   required,
   prefix,
@@ -71,6 +73,7 @@ export function TkIdField({
             -
           </span>
           <input
+            id={id}
             type="text"
             inputMode="numeric"
             autoComplete="off"

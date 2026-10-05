@@ -43,6 +43,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
           p.code === demoRole,
       ) ??
       DEMO_PERSONAS.find((p) => p.roleKey === authUser?.role) ??
+      DEMO_PERSONAS.find((p) => p.roleKey === "Admin") ??
       DEMO_PERSONAS[0]
     );
   }, [demoRole, authUser]);

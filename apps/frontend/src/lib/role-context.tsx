@@ -139,7 +139,7 @@ const roleFromBackend: Record<string, Role> = {
   Sales: "Sales Manager",
 };
 
-const fallbackRole: Role = "CEO";
+const fallbackRole: Role = "Admin";
 
 function mapBackendRole(role?: string | null): Role {
   return (role && roleFromBackend[role]) || fallbackRole;

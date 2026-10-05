@@ -339,7 +339,8 @@ public sealed record OffboardEmployeeRequest(
     string? ExitType,
     string? ExitReason,
     bool? ClearanceCompleted = null,
-    decimal? ExitRating = null);
+    decimal? ExitRating = null,
+    Guid? EmployeeStatusId = null);
 
 public sealed record EmployeeActivityLogDto(
     Guid Id,

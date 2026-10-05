@@ -93,3 +93,14 @@ Desktop.ini
 # Scratch & Local Diagnostics
 # =========================
 scratch/
+
+# =========================
+# UAT Deployment Packages & Dumps
+# =========================
+PMS_TrackerPro_UAT.zip
+PMS_TrackerPro_UAT/
+*.tar
+*.bak
+database/*backup*.sql
+database/prune_uat.sql
+database/trackerpro-uat-seed-clean.sql

@@ -17,8 +17,8 @@ describe("DEMO_PERSONAS catalog", () => {
     const itAdminPersona = getDemoPersona("IT Admin");
 
     // Must be completely different users
-    expect(adminPersona.email).toBe("admin@acme.co");
-    expect(itAdminPersona.email).toBe("itadmin@acme.co");
+    expect(adminPersona.email).toBe("admin@talakunchi.com");
+    expect(itAdminPersona.email).toBe("itadmin@talakunchi.com");
     expect(adminPersona.name).toBe("Admin User");
     expect(itAdminPersona.name).toBe("IT Admin User");
     expect(adminPersona.roleKey).toBe("Admin");
@@ -54,7 +54,7 @@ describe("DEMO_PERSONAS catalog", () => {
 
   it("has valid emails and roles for all personas", () => {
     for (const persona of DEMO_PERSONAS) {
-      expect(persona.email).toMatch(/@acme\.co$/);
+      expect(persona.email).toMatch(/@talakunchi\.com$/);
       expect(persona.roleKey).toBeTruthy();
       expect(persona.name).toBeTruthy();
       expect(persona.avatar).toBeTruthy();
@@ -65,7 +65,7 @@ describe("DEMO_PERSONAS catalog", () => {
   it("finds persona by employee code (e.g. TK-0046 Arjun Singh)", () => {
     const arjun = getDemoPersona("TK-0046");
     expect(arjun.name).toBe("Arjun Singh");
-    expect(arjun.email).toBe("arjun@acme.co");
+    expect(arjun.email).toBe("arjun@talakunchi.com");
     expect(arjun.roleKey).toBe("Testing-Team Member");
   });
 
@@ -84,16 +84,16 @@ describe("DEMO_PERSONAS catalog", () => {
   });
 
   it("finds persona by email (case-insensitive)", () => {
-    const divya = getDemoPersona("DIVYA.RAO@ACME.CO");
+    const divya = getDemoPersona("DIVYA.RAO@TALAKUNCHI.COM");
     expect(divya.name).toBe("Divya Rao");
     expect(divya.code).toBe("TK-0040");
     expect(divya.roleKey).toBe("Testing-Manager");
 
-    const itAdmin = getDemoPersona("itadmin@acme.co");
+    const itAdmin = getDemoPersona("itadmin@talakunchi.com");
     expect(itAdmin.name).toBe("IT Admin User");
     expect(itAdmin.roleKey).toBe("IT Admin");
 
-    const admin = getDemoPersona("admin@acme.co");
+    const admin = getDemoPersona("admin@talakunchi.com");
     expect(admin.name).toBe("Admin User");
     expect(admin.roleKey).toBe("Admin");
   });
@@ -105,8 +105,8 @@ describe("DEMO_PERSONAS catalog", () => {
     expect(isDemoRoleKey("CEO")).toBe(true);
     expect(isDemoRoleKey("Admin")).toBe(true);
     expect(isDemoRoleKey("IT Admin")).toBe(true);
-    expect(isDemoRoleKey("admin@acme.co")).toBe(true);
-    expect(isDemoRoleKey("itadmin@acme.co")).toBe(true);
+    expect(isDemoRoleKey("admin@talakunchi.com")).toBe(true);
+    expect(isDemoRoleKey("itadmin@talakunchi.com")).toBe(true);
     expect(isDemoRoleKey("non-existent-user")).toBe(false);
   });
 
