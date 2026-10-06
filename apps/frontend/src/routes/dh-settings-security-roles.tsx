@@ -1,8 +1,9 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Save, RotateCcw, Loader2, X } from "lucide-react";
+import { Search, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Save, RotateCcw, Loader2, X, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { usePermissions } from "@/lib/permissions";
 import { Avatar } from "@/components/pills";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { apiFetch } from "@/lib/api-client";
@@ -45,18 +46,39 @@ interface UserRow {
   initialAccessRole: string;
 }
 
-import { usePermissions } from "@/lib/permissions";
-
 function SecurityRolesPage() {
-  const { can, isDhanshree } = useRoleContext();
+  const { can, isDhanshree, isAdmin } = useRoleContext();
   const { hasAny } = usePermissions();
   const { permissionsReady } = useAuth();
   const [activeTab, setActiveTab] = useState<"users" | "modules">("modules");
 
   if (!permissionsReady) return null;
 
-  const allowed = isDhanshree || (can ? can("settings.manage_roles") : false) || hasAny("settings.manage_roles", "roles:manage", "settings.view");
+  const allowed =
+    isAdmin ||
+    isDhanshree ||
+    (can ? can("settings.manage_roles") : false) ||
+    hasAny(
+      "settings.manage_roles",
+      "roles:manage",
+      "settings.roles.view",
+      "roles.view",
+      "Settings|Roles & Permission:view",
+      "settings.view"
+    );
   if (!allowed) return <Navigate to="/" />;
+
+  const canManageRoles =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "settings.manage_roles",
+      "roles:manage",
+      "Settings|Roles & Permission:manage",
+      "Settings|Roles & Permission|Moduleswise Access:manage",
+      "Settings|Roles & Permission|User Role Access:manage"
+    ) ||
+    (can ? can("settings.manage_roles") || can("roles:manage") : false);
 
   return (
     <AppShell title="Roles & Permissions" subtitle="Who can see and do what — across every module">
@@ -87,7 +109,11 @@ function SecurityRolesPage() {
         </button>
       </div>
 
-      {activeTab === "users" ? <UserRoleAccessTab /> : <ModuleAccessTab />}
+      {activeTab === "users" ? (
+        <UserRoleAccessTab canManageRoles={canManageRoles} />
+      ) : (
+        <ModuleAccessTab canManageRoles={canManageRoles} />
+      )}
     </AppShell>
   );
 }
@@ -95,7 +121,7 @@ function SecurityRolesPage() {
 type AccessSortKey = "code" | "name" | "email" | "designation" | "profile";
 type SortDir = "asc" | "desc";
 
-function UserRoleAccessTab() {
+function UserRoleAccessTab({ canManageRoles = true }: { canManageRoles?: boolean }) {
   const [q, setQ] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -229,6 +255,13 @@ function UserRoleAccessTab() {
 
   return (
     <>
+      {!canManageRoles && (
+        <div className="mb-4 rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-2.5">
+          <ShieldAlert className="h-4 w-4 shrink-0" />
+          <span>You have View Only access to User Role assignments. Modifying user access roles requires manage permission.</span>
+        </div>
+      )}
+
       <div className="mb-4 rounded-xl border border-border bg-card p-3.5 shadow-xs">
         <p className="mb-2.5 text-xs text-muted-foreground">
           Access role decides what this person can open. Designation and On Floor Role stay on the resource profile.
@@ -270,15 +303,17 @@ function UserRoleAccessTab() {
               )}
             />
           </div>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving || pending === 0}
-            className="md:ml-auto inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-          >
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save Access{pending > 0 ? ` (${pending})` : ""}
-          </button>
+          {canManageRoles && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving || pending === 0}
+              className="md:ml-auto inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save Access{pending > 0 ? ` (${pending})` : ""}
+            </button>
+          )}
         </div>
       </div>
 
@@ -345,7 +380,7 @@ function UserRoleAccessTab() {
                           options={options}
                           value={user.accessRole}
                           onChange={(value) => changeRole(user.id, value)}
-                          disabled={!user.id}
+                          disabled={!user.id || !canManageRoles}
                           clearable={false}
                           className="w-full text-xs"
                           buttonClassName={cn(
@@ -497,7 +532,7 @@ interface RbacRoleOption {
   displayName: string;
 }
 
-function ModuleAccessTab() {
+function ModuleAccessTab({ canManageRoles = true }: { canManageRoles?: boolean }) {
   const [roles, setRoles] = useState<RbacRoleOption[]>([]);
   const [selectedRole, setSelectedRole] = useState("");
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
@@ -530,6 +565,7 @@ function ModuleAccessTab() {
   }, [selectedRole]);
 
   const setFlag = (permissionId: string, field: "canView" | "canManage", on: boolean) => {
+    if (!canManageRoles) return;
     setNodes((current) => {
       const node = findNode(current, permissionId);
       if (!node) return current;
@@ -547,6 +583,13 @@ function ModuleAccessTab() {
 
   return (
     <>
+      {!canManageRoles && (
+        <div className="mb-4 rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-2.5">
+          <ShieldAlert className="h-4 w-4 shrink-0" />
+          <span>You have View Only access to Roles & Permissions. Editing access requires manage permission.</span>
+        </div>
+      )}
+
       <div className="mb-4 rounded-xl border border-border bg-card p-3.5 shadow-xs">
         <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
           <div className="w-full md:w-72 shrink-0">
@@ -569,54 +612,58 @@ function ModuleAccessTab() {
               )}
             />
           </div>
-          <button
-            type="button"
-            onClick={async () => {
-              if (!selectedRole) return;
-              setIsResetting(true);
-              try {
-                await apiFetch("/api/v1/rbac/matrix/reset", {
-                  method: "POST",
-                  body: JSON.stringify({ roleName: selectedRole }),
-                });
-                load(selectedRole);
-                toast.success("Reset to default", { description: selectedLabel });
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Could not reset this role.");
-              } finally {
-                setIsResetting(false);
-              }
-            }}
-            disabled={!selectedRole || isResetting || isLoading}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            {isResetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
-            Reset to default
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              setIsSaving(true);
-              const items: { id: string; canView: number; canManage: number }[] = [];
-              collectGrants(nodes, items);
-              try {
-                await apiFetch("/api/v1/rbac/matrix", {
-                  method: "PUT",
-                  body: JSON.stringify({ roleName: selectedRole, items }),
-                });
-                toast.success("Permissions saved", { description: selectedLabel });
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Could not save permissions.");
-              } finally {
-                setIsSaving(false);
-              }
-            }}
-            disabled={isSaving || isLoading || !selectedRole}
-            className="md:ml-auto inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-          >
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save Permissions
-          </button>
+          {canManageRoles && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (!selectedRole) return;
+                setIsResetting(true);
+                try {
+                  await apiFetch("/api/v1/rbac/matrix/reset", {
+                    method: "POST",
+                    body: JSON.stringify({ roleName: selectedRole }),
+                  });
+                  load(selectedRole);
+                  toast.success("Reset to baseline", { description: selectedLabel });
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "Could not reset this role.");
+                } finally {
+                  setIsResetting(false);
+                }
+              }}
+              disabled={!selectedRole || isResetting || isLoading}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {isResetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              Reset to Baseline
+            </button>
+          )}
+          {canManageRoles && (
+            <button
+              type="button"
+              onClick={async () => {
+                setIsSaving(true);
+                const items: { id: string; canView: number; canManage: number }[] = [];
+                collectGrants(nodes, items);
+                try {
+                  await apiFetch("/api/v1/rbac/matrix", {
+                    method: "PUT",
+                    body: JSON.stringify({ roleName: selectedRole, items }),
+                  });
+                  toast.success("Permissions saved", { description: selectedLabel });
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "Could not save permissions.");
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              disabled={isSaving || isLoading || !selectedRole}
+              className="md:ml-auto inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save Permissions
+            </button>
+          )}
         </div>
       </div>
 
@@ -652,6 +699,7 @@ function ModuleAccessTab() {
                     <AccessRow
                       key={row.key}
                       row={row}
+                      canManageRoles={canManageRoles}
                       open={Boolean(row.node.children?.length) && expanded}
                       onToggle={() =>
                         setOpenModules((current) => ({
@@ -708,11 +756,13 @@ function findNode(nodes: RbacNode[], permissionId: string): RbacNode | null {
 
 function AccessRow({
   row,
+  canManageRoles = true,
   open,
   onToggle,
   onFlag,
 }: {
   row: AccessRowModel;
+  canManageRoles?: boolean;
   open: boolean;
   onToggle: () => void;
   onFlag: (permissionId: string, field: "canView" | "canManage", on: boolean) => void;
@@ -743,7 +793,7 @@ function AccessRow({
       <td className="px-4 py-3 text-center">
         <AccessCheck
           checked={viewOn}
-          disabled={!node.permissionId}
+          disabled={!canManageRoles || !node.permissionId}
           onChange={(on) => node.permissionId && onFlag(node.permissionId, "canView", on)}
           label={`View ${node.name}`}
         />
@@ -751,7 +801,7 @@ function AccessRow({
       <td className="px-4 py-3 text-center">
         <AccessCheck
           checked={manageOn}
-          disabled={!node.permissionId}
+          disabled={!canManageRoles || !node.permissionId}
           onChange={(on) => node.permissionId && onFlag(node.permissionId, "canManage", on)}
           label={`Manage ${node.name}`}
         />

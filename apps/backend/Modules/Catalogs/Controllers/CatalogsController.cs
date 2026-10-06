@@ -101,4 +101,32 @@ public class CatalogsController(ICatalogService catalogs) : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<ServiceHierarchyGroupDto>>.Ok(
             await catalogs.GetServiceHierarchyAsync(ct)));
     }
+
+    [HttpPost("service-departments")]
+    public async Task<ActionResult<ApiResponse<ServiceDepartmentDto>>> CreateServiceDepartment(
+        [FromBody] CreateServiceDepartmentRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateServiceDepartmentAsync(request, ct);
+        return StatusCode(201, ApiResponse<ServiceDepartmentDto>.Ok(created));
+    }
+
+    [HttpPost("service-sub-departments")]
+    public async Task<ActionResult<ApiResponse<ServiceSubDepartmentDto>>> CreateServiceSubDepartment(
+        [FromBody] CreateServiceSubDepartmentRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateServiceSubDepartmentAsync(request, ct);
+        return StatusCode(201, ApiResponse<ServiceSubDepartmentDto>.Ok(created));
+    }
+
+    [HttpPost("service-catalog")]
+    public async Task<ActionResult<ApiResponse<ServiceCatalogOptionDto>>> CreateServiceCatalog(
+        [FromBody] CreateServiceCatalogRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateServiceCatalogAsync(request, ct);
+        return StatusCode(201, ApiResponse<ServiceCatalogOptionDto>.Ok(created));
+    }
 }
+

@@ -54,3 +54,26 @@ public sealed record ServiceHierarchyGroupDto(
     string Name,
     int SortOrder,
     IReadOnlyList<ServiceHierarchyDeptDto> Departments);
+
+public sealed record CreateServiceDepartmentRequest(
+    string Name,
+    string? Group = null,
+    Guid? GroupId = null,
+    string? Code = null);
+
+public sealed record CreateServiceSubDepartmentRequest(
+    string Name,
+    string? DepartmentName = null,
+    Guid? DepartmentId = null,
+    string? Code = null);
+
+public sealed record CreateServiceCatalogRequest(
+    string Name,
+    string? DepartmentName = null,
+    string? SubDepartmentName = null,
+    Guid? SubDepartmentId = null,
+    string? Code = null,
+    string? DefaultTools = null,
+    decimal? DefaultUnitPrice = null,
+    int? DefaultDurationDays = null,
+    string? Description = null);

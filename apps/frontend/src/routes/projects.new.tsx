@@ -761,12 +761,24 @@ function WbsNewProjectPage() {
             });
           }
         }
-        if (deptList.length > 0) {
-          map[dept.name] = deptList;
-        }
+        map[dept.name] = deptList;
       }
     }
     return Object.keys(map).length > 0 ? map : DEPT_SERVICES;
+  }, [dbServiceHierarchy]);
+
+  // Dynamic department-to-group mapping derived from PostgreSQL dbServiceHierarchy
+  const dynamicDeptGroups = useMemo(() => {
+    const map: Record<string, "Resource" | "Scope"> = { ...DEPT_GROUPS };
+    if (dbServiceHierarchy && dbServiceHierarchy.length > 0) {
+      for (const group of dbServiceHierarchy) {
+        const groupType: "Resource" | "Scope" = group.name.toLowerCase().includes("resource") ? "Resource" : "Scope";
+        for (const dept of group.departments) {
+          map[dept.name] = groupType;
+        }
+      }
+    }
+    return map;
   }, [dbServiceHierarchy]);
 
   // Unfinished form kept in the browser. A saved draft (?draftId=) still loads from the API.
@@ -1717,15 +1729,16 @@ function WbsNewProjectPage() {
 
   // Filter departments based on Contract Type
   const allowedDepts = Object.keys(dynamicDeptServices).filter((dept) => {
-    const group = DEPT_GROUPS[dept];
-    if (contractType === "Resource Based") return group === "Resource";
-    if (contractType === "Scope Based") return group === "Scope";
+    const group = dynamicDeptGroups[dept];
+    const ctNorm = contractType.toLowerCase().replace(" based", "").trim();
+    if (ctNorm === "resource") return group === "Resource";
+    if (ctNorm === "scope") return group === "Scope";
     return true;
   });
 
   const deptsByGroup = allowedDepts.reduce(
     (acc, dept) => {
-      const group = DEPT_GROUPS[dept] || "Scope";
+      const group = dynamicDeptGroups[dept] || "Scope";
       if (!acc[group]) acc[group] = [];
       acc[group].push(dept);
       return acc;

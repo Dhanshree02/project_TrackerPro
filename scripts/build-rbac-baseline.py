@@ -1,9 +1,8 @@
-"""Turn the RBAC spreadsheet into the baseline JSON the API seeds."""
+"""Turn the RBAC spreadsheet into the baseline JSON the API seeds using openpyxl."""
 
 import json
-import zipfile
 from pathlib import Path
-from xml.etree import ElementTree as ET
+import openpyxl
 
 ROOT = Path(__file__).resolve().parents[1]
 XLSX = ROOT / "docs" / "TK I PMS I New Modules RBAC I V01.xlsx"
@@ -39,90 +38,76 @@ ROLE_NAMES = {
     "Intern": "Intern",
 }
 
-ACCESS = {
-    "No Access": [0, 0],
-    "Read Only": [1, 0],
-    "Read & Write": [1, 1],
-    "All RWE": [1, 1],
-}
 
-NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
-
-
-def col_row(ref: str) -> tuple[int, int]:
-    col = "".join(ch for ch in ref if ch.isalpha())
-    row = int("".join(ch for ch in ref if ch.isdigit()))
-    number = 0
-    for ch in col:
-        number = number * 26 + (ord(ch) - 64)
-    return number, row
-
-
-def load_grid(path: Path) -> dict[tuple[int, int], str]:
-    with zipfile.ZipFile(path) as workbook:
-        shared = ET.fromstring(workbook.read("xl/sharedStrings.xml"))
-        strings = [
-            "".join((node.text or "") for node in item.findall(".//m:t", NS))
-            for item in shared.findall("m:si", NS)
-        ]
-        sheet = ET.fromstring(workbook.read("xl/worksheets/sheet1.xml"))
-    grid: dict[tuple[int, int], str] = {}
-    for row in sheet.findall("m:sheetData/m:row", NS):
-        for cell in row.findall("m:c", NS):
-            column, row_number = col_row(cell.attrib["r"])
-            value = cell.find("m:v", NS)
-            if value is None or value.text is None:
-                text = ""
-            elif cell.attrib.get("t") == "s":
-                text = strings[int(value.text)]
-            else:
-                text = value.text
-            grid[(row_number, column)] = text
-    for merge in sheet.findall("m:mergeCells/m:mergeCell", NS):
-        start, end = merge.attrib["ref"].split(":")
-        (c1, r1), (c2, r2) = col_row(start), col_row(end)
-        text = grid.get((r1, c1), "")
-        for row_number in range(r1, r2 + 1):
-            for column in range(c1, c2 + 1):
-                grid[(row_number, column)] = text
-    return grid
+def parse_access(val: str) -> list[int]:
+    raw = (val or "").strip().lower()
+    if raw in ("read & write", "write", "rwe", "all rwe", "manage", "full manage", "r/w"):
+        return [1, 1]
+    if raw in ("read only", "read", "view only", "view", "ro"):
+        return [1, 0]
+    return [0, 0]  # "no access", empty, etc.
 
 
 def main() -> None:
-    grid = load_grid(XLSX)
-    roles = []
-    for row in range(6, 40):
-        label = grid.get((row, 1), "").strip()
-        if not label:
-            break
-        roles.append((row, ROLE_NAMES[label]))
+    wb = openpyxl.load_workbook(XLSX, data_only=True)
+    sheet = wb.active
 
-    leaves = []
-    for column in range(3, 60):
-        path = [grid.get((row, column), "").strip() for row in range(1, 6)]
-        if not any(path):
+    # Resolve merged cells
+    merged_map = {}
+    for rng in sheet.merged_cells.ranges:
+        top_left_val = sheet.cell(row=rng.min_row, column=rng.min_col).value
+        for row in range(rng.min_row, rng.max_row + 1):
+            for col in range(rng.min_col, rng.max_col + 1):
+                merged_map[(row, col)] = top_left_val
+
+    def get_val(r: int, c: int):
+        if (r, c) in merged_map:
+            return merged_map[(r, c)]
+        return sheet.cell(row=r, column=c).value
+
+    # Extract roles (Rows 6 to 32)
+    roles = []
+    for r in range(6, 33):
+        label = get_val(r, 1)
+        if not label:
             continue
+        clean_label = str(label).strip()
+        if clean_label in ROLE_NAMES:
+            roles.append((r, ROLE_NAMES[clean_label]))
+        else:
+            print(f"Warning: Unknown role label at row {r}: '{clean_label}'")
+
+    # Extract leaves (Columns 3 to 51)
+    leaves = []
+    for c in range(3, 52):
+        path = [get_val(r, c) for r in range(1, 6)]
+        path_str = [str(p).strip() if p is not None else "" for p in path]
+        if not any(path_str):
+            continue
+
         grants = {}
         for row, role_name in roles:
-            raw = grid.get((row, column), "").strip() or "No Access"
-            grants[role_name] = ACCESS[raw]
+            cell_val = get_val(row, c)
+            raw = str(cell_val).strip() if cell_val is not None else "No Access"
+            grants[role_name] = parse_access(raw)
+
         leaves.append(
             {
-                "module": path[0] or None,
-                "submodule": path[1] or None,
-                "subSubmodule": path[2] or None,
-                "widget": path[3] or None,
-                "tab": path[4] or None,
+                "module": path_str[0] or None,
+                "submodule": path_str[1] or None,
+                "subSubmodule": path_str[2] or None,
+                "widget": path_str[3] or None,
+                "tab": path_str[4] or None,
                 "grants": grants,
             }
         )
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(
-        json.dumps({"version": "excel-v01", "leaves": leaves}, indent=2),
+        json.dumps({"version": "excel-v02", "leaves": leaves}, indent=2),
         encoding="utf-8",
     )
-    print(f"wrote {len(leaves)} leaves for {len(roles)} roles to {OUT}")
+    print(f"Successfully generated {len(leaves)} leaves for {len(roles)} roles to {OUT}")
 
 
 if __name__ == "__main__":

@@ -217,9 +217,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const isDhanshree =
     !!authUser &&
     status === "authed" &&
-    (backendRole === "CEO" ||
-      backendRole === "COO" ||
-      backendRole === "Admin" ||
+    (backendRole === "Admin" ||
       backendRole === "Dhanshree");
 
   const isAdmin =
@@ -485,11 +483,14 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const can = useCallback(
     (perm: string): boolean => {
       if (isAdmin || isDhanshree) return true;
+      if (status === "authed") {
+        return hasPermission(perm);
+      }
       if (hasPermission(perm)) return true;
       const currentRolePerms = getPermissionsFor(role);
       return currentRolePerms.includes(perm as PermissionKey);
     },
-    [isAdmin, isDhanshree, hasPermission, getPermissionsFor, role],
+    [isAdmin, isDhanshree, status, hasPermission, getPermissionsFor, role],
   );
 
   return (

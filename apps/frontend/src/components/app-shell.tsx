@@ -53,8 +53,19 @@ export function AppShell({
     if (!hasAny(...keys)) return <Navigate to="/access-denied" replace />;
   }
 
+  const canManageProjects = hasAny(
+    "projects.drafts",
+    "projects.create",
+    "projects:write",
+    "Projects:manage",
+    "Projects|projects Cards:manage",
+  );
+
   return (
-    <div className="flex min-h-screen w-full isolate bg-background text-foreground">
+    <div
+      className="flex min-h-screen w-full isolate bg-background text-foreground"
+      data-can-manage-projects={canManageProjects ? "true" : "false"}
+    >
       <AppSidebar />
       <div className="relative flex min-w-0 flex-1 flex-col bg-background">
         <AppTopbar title={title} subtitle={subtitle} />

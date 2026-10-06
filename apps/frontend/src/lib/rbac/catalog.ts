@@ -170,6 +170,13 @@ export const PERMISSION_CATALOG = [
   // Settings
   { key: "settings.view", module: "Settings", group: "Access", label: "View settings" },
   { key: "settings.manage_roles", module: "Settings", group: "Access", label: "Manage roles & permissions" },
+  { key: "settings.masters.view", module: "Settings", group: "Masters", label: "View masters" },
+  { key: "settings.masters.projects.view", module: "Settings", group: "Masters", label: "View project masters" },
+  { key: "settings.masters.projects.manage", module: "Settings", group: "Masters", label: "Manage project masters" },
+  { key: "settings.masters.customers.view", module: "Settings", group: "Masters", label: "View customer masters" },
+  { key: "settings.masters.customers.manage", module: "Settings", group: "Masters", label: "Manage customer masters" },
+  { key: "settings.masters.resources.view", module: "Settings", group: "Masters", label: "View resource masters" },
+  { key: "settings.masters.resources.manage", module: "Settings", group: "Masters", label: "Manage resource masters" },
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_CATALOG)[number]["key"];

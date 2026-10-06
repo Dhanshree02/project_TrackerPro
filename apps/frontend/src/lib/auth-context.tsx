@@ -43,8 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    setPermissionsReady(false);
-    apiFetch<{ role?: string; permissions?: string[] }>("/api/v1/rbac/effective")
+    const persona = getDemoPersona(demoRole);
+    const roleParam = persona.roleKey || demoRole;
+    apiFetch<{ role?: string; permissions?: string[] }>(
+      `/api/v1/rbac/effective?role=${encodeURIComponent(roleParam)}`
+    )
       .then((access) => {
         const permissions = access?.permissions ?? [];
         if (cancelled || permissions.length === 0) return;

@@ -72,8 +72,8 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Settings,
     permission: "settings.view",
     subItems: [
-      { to: "/dh-settings-security-roles", label: "Roles & Permissions", permission: "settings.view" },
-      { to: "/dh-settings-masters", label: "Masters", permission: "settings.view" },
+      { to: "/dh-settings-security-roles", label: "Roles & Permissions", permission: ["settings.manage_roles", "roles:manage", "settings.roles.view", "roles.view"] },
+      { to: "/dh-settings-masters", label: "Masters", permission: ["settings.masters.view", "settings.view"] },
     ],
   },
 ];
@@ -116,8 +116,8 @@ export const DH_NAV_ITEMS: NavItem[] = [
     icon: Settings,
     permission: "settings.view",
     subItems: [
-      { to: "/dh-settings-security-roles", label: "Roles & Permissions" },
-      { to: "/dh-settings-masters", label: "Masters" },
+      { to: "/dh-settings-security-roles", label: "Roles & Permissions", permission: ["settings.manage_roles", "roles:manage", "settings.roles.view", "roles.view"] },
+      { to: "/dh-settings-masters", label: "Masters", permission: ["settings.masters.view", "settings.view"] },
     ],
   },
 ];
@@ -239,7 +239,7 @@ export function filterNavItems(
     }
   }
 
-  const hideStandalone = isPmFamily || isPmoFamily || isAccounts || isSales;
+  const hideStandalone = isPmFamily;
   if (hideStandalone) {
     return result.filter((i) => i.label !== "Settings");
   }
@@ -252,9 +252,9 @@ export function filterNavItems(
 // authenticated user). Every route that renders app content must be listed so
 // direct URL access is blocked for users without the permission.
 export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] | null }[] = [
-  { prefix: "/dh-settings-masters", permission: "settings.view" },
-  { prefix: "/settings/masters", permission: "settings.view" },
-  { prefix: "/dh-settings-security-roles", permission: ["settings.manage_roles", "roles:manage", "settings.view"] },
+  { prefix: "/dh-settings-masters", permission: ["settings.masters.view", "settings.view", "Settings|Masters:view"] },
+  { prefix: "/settings/masters", permission: ["settings.masters.view", "settings.view", "Settings|Masters:view"] },
+  { prefix: "/dh-settings-security-roles", permission: ["settings.manage_roles", "roles:manage", "settings.roles.view", "roles.view"] },
   { prefix: "/dh-settings", permission: "settings.view" },
   { prefix: "/action-centre", permission: "action-center.view" },
   { prefix: "/projects/new", permission: "projects.create" },

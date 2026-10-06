@@ -49,11 +49,11 @@ public class RbacController(IRbacAccessService rbac, ICurrentUserService current
     }
 
     [HttpGet("effective")]
-    public async Task<ActionResult<ApiResponse<EffectiveAccessDto>>> Effective(CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<EffectiveAccessDto>>> Effective([FromQuery] string? role, CancellationToken ct)
     {
-        var role = currentUser.Role ?? "";
-        var permissions = await rbac.GetClaimsAsync(role, ct);
-        return Ok(ApiResponse<EffectiveAccessDto>.Ok(new EffectiveAccessDto(role, permissions)));
+        var roleName = !string.IsNullOrWhiteSpace(role) ? role : (currentUser.Role ?? "");
+        var permissions = await rbac.GetClaimsAsync(roleName, ct);
+        return Ok(ApiResponse<EffectiveAccessDto>.Ok(new EffectiveAccessDto(roleName, permissions)));
     }
 }
 

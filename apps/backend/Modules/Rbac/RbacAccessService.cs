@@ -57,7 +57,7 @@ public sealed class RbacNode
 
 public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment environment) : IRbacAccessService
 {
-    public const string BaselineVersion = "excel-v02";
+    public const string BaselineVersion = "excel-v03";
 
     public async Task EnsureBaselineAsync(CancellationToken ct = default)
     {
@@ -620,6 +620,37 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
                 claims.Add(Permissions.TimesheetsSubmit);
             if (leaf.Equals("Approvals", StringComparison.OrdinalIgnoreCase))
                 claims.Add("approvals.view");
+
+            if (leaf.Equals("Project Masters", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add("settings.masters.view");
+                claims.Add("settings.masters.projects.view");
+                claims.Add("settings.masters.projects:view");
+                claims.Add("settings.masters.project:view");
+            }
+            else if (leaf.Equals("Customer Masters", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add("settings.masters.view");
+                claims.Add("settings.masters.customers.view");
+                claims.Add("settings.masters.customers:view");
+                claims.Add("settings.masters.customer:view");
+            }
+            else if (leaf.Equals("Resource Master", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add("settings.masters.view");
+                claims.Add("settings.masters.resources.view");
+                claims.Add("settings.masters.resources:view");
+                claims.Add("settings.masters.resource:view");
+            }
+            else if (leaf.Equals("Masters", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add("settings.masters.view");
+            }
+            else if (leaf.Contains("Role", StringComparison.OrdinalIgnoreCase) || leaf.Contains("Moduleswise", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add("settings.roles.view");
+                claims.Add("roles.view");
+            }
         }
 
         if (manage == 1)
@@ -627,19 +658,43 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
             switch (module)
             {
                 case "Projects":
-                    claims.Add(Permissions.ProjectsWrite);
-                    claims.Add(Permissions.WbsAllocate);
+                    if (leaf.Equals("projects Cards", StringComparison.OrdinalIgnoreCase) ||
+                        leaf.Equals("Projects", StringComparison.OrdinalIgnoreCase))
+                    {
+                        claims.Add(Permissions.ProjectsWrite);
+                        claims.Add(Permissions.WbsAllocate);
+                        claims.Add("projects.create");
+                        claims.Add("projects.manage");
+                        claims.Add("projects.drafts");
+                    }
+                    else if (leaf.Equals("WBS", StringComparison.OrdinalIgnoreCase))
+                    {
+                        claims.Add(Permissions.WbsAllocate);
+                    }
                     break;
                 case "Resource": claims.Add(Permissions.ResourcesManage); break;
-                case "Customers": claims.Add(Permissions.ClientsWrite); break;
+                case "Customers":
+                    if (leaf.Equals("Customers Card", StringComparison.OrdinalIgnoreCase) ||
+                        leaf.Equals("Customers", StringComparison.OrdinalIgnoreCase) ||
+                        leaf.Equals("Customer profile", StringComparison.OrdinalIgnoreCase))
+                    {
+                        claims.Add(Permissions.ClientsWrite);
+                        claims.Add("customers.create");
+                        claims.Add("customers.manage");
+                    }
+                    break;
                 case "Repository":
                     claims.Add("repository.upload");
                     claims.Add("repository.download");
                     break;
                 case "Settings":
-                    claims.Add(Permissions.RolesManage);
-                    claims.Add(Permissions.UsersManage);
-                    claims.Add("settings.manage_roles");
+                    if (leaf.Contains("Role", StringComparison.OrdinalIgnoreCase) || leaf.Contains("Moduleswise", StringComparison.OrdinalIgnoreCase))
+                    {
+                        claims.Add(Permissions.RolesManage);
+                        claims.Add(Permissions.UsersManage);
+                        claims.Add("settings.manage_roles");
+                        claims.Add("roles:manage");
+                    }
                     break;
             }
 
@@ -653,6 +708,25 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
             {
                 claims.Add(Permissions.TimesheetsApprove);
                 claims.Add(Permissions.ApprovalsManage);
+            }
+
+            if (leaf.Equals("Project Masters", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add("settings.masters.projects.manage");
+                claims.Add("settings.masters.projects:manage");
+                claims.Add("settings.masters.project:manage");
+            }
+            else if (leaf.Equals("Customer Masters", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add("settings.masters.customers.manage");
+                claims.Add("settings.masters.customers:manage");
+                claims.Add("settings.masters.customer:manage");
+            }
+            else if (leaf.Equals("Resource Master", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add("settings.masters.resources.manage");
+                claims.Add("settings.masters.resources:manage");
+                claims.Add("settings.masters.resource:manage");
             }
         }
     }

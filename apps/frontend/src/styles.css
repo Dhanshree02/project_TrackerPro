@@ -387,3 +387,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.85);
 }
+
+/* When user has only view access on projects, hide the drafts button */
+[data-can-manage-projects="false"] button:has(> svg.lucide-file-text) {
+  display: none !important;
+}

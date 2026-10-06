@@ -149,3 +149,49 @@ export async function fetchServiceHierarchy(): Promise<ServiceHierarchyGroup[]> 
   return (await apiFetch<ServiceHierarchyGroup[]>("/api/v1/catalogs/service-hierarchy")) ?? [];
 }
 
+/** POST /api/v1/catalogs/service-departments — Creates department in master.mst_service_departments */
+export async function createServiceDepartment(payload: {
+  name: string;
+  group?: string;
+  groupId?: string;
+  code?: string;
+}): Promise<ServiceDepartmentOption | null> {
+  return await apiFetch<ServiceDepartmentOption>("/api/v1/catalogs/service-departments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/** POST /api/v1/catalogs/service-sub-departments — Creates sub-department in master.mst_service_sub_departments */
+export async function createServiceSubDepartment(payload: {
+  name: string;
+  departmentName?: string;
+  departmentId?: string;
+  code?: string;
+}): Promise<ServiceSubDepartmentOption | null> {
+  return await apiFetch<ServiceSubDepartmentOption>("/api/v1/catalogs/service-sub-departments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/** POST /api/v1/catalogs/service-catalog — Creates service in master.mst_service_catalog */
+export async function createServiceCatalog(payload: {
+  name: string;
+  departmentName?: string;
+  subDepartmentName?: string;
+  subDepartmentId?: string;
+  defaultTools?: string;
+  defaultUnitPrice?: number;
+  defaultDurationDays?: number;
+  description?: string;
+}): Promise<ServiceCatalogOption | null> {
+  return await apiFetch<ServiceCatalogOption>("/api/v1/catalogs/service-catalog", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+

@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import type { CustomerMasterCategory, CustomerMastersState, SimpleMasterItem } from "@/lib/masters/types";
 
 interface CustomerMastersSectionProps {
+  canManage?: boolean;
   customerMasters: CustomerMastersState;
   onAdd: (category: CustomerMasterCategory, name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
   onUpdate: (category: CustomerMasterCategory, id: string, name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
@@ -103,6 +104,7 @@ const CATEGORIES: MasterCategoryConfig[] = [
 ];
 
 export function CustomerMastersSection({
+  canManage = true,
   customerMasters,
   onAdd,
   onUpdate,
@@ -162,6 +164,7 @@ export function CustomerMastersSection({
             <ReusableMasterCard
               key={cat.id}
               config={cat}
+              canManage={canManage}
               items={customerMasters[cat.id] || []}
               onAdd={(name, extra) => onAdd(cat.id, name, extra)}
               onUpdate={(id, name, extra) => onUpdate(cat.id, id, name, extra)}
@@ -176,6 +179,7 @@ export function CustomerMastersSection({
             return (
               <ReusableMasterCard
                 config={cat}
+                canManage={canManage}
                 items={customerMasters[cat.id] || []}
                 onAdd={(name, extra) => onAdd(cat.id, name, extra)}
                 onUpdate={(id, name, extra) => onUpdate(cat.id, id, name, extra)}
@@ -192,6 +196,7 @@ export function CustomerMastersSection({
 
 // ─── Reusable Master Card Component ─────────────────────────────────────────
 interface ReusableMasterCardProps {
+  canManage?: boolean;
   config: MasterCategoryConfig;
   items: SimpleMasterItem[];
   isExpandedView?: boolean;
@@ -201,6 +206,7 @@ interface ReusableMasterCardProps {
 }
 
 function ReusableMasterCard({
+  canManage = true,
   config,
   items,
   isExpandedView,
@@ -307,6 +313,7 @@ function ReusableMasterCard({
       </div>
 
       {/* Add Form */}
+      {canManage && (
       <form onSubmit={handleAdd} className="mt-4 space-y-2.5">
         {errorMsg && (
           <div className="flex items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive">
@@ -352,6 +359,7 @@ function ReusableMasterCard({
           />
         )}
       </form>
+      )}
 
       {/* Search & Items List */}
       <div className="mt-4 flex flex-col flex-1 space-y-2.5 pt-3 border-t border-border/60">
@@ -404,6 +412,7 @@ function ReusableMasterCard({
                   )}
                 </div>
 
+                {canManage && (
                 <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                   <Button
                     variant="ghost"
@@ -424,6 +433,7 @@ function ReusableMasterCard({
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
+                )}
               </div>
             ))}
           </div>

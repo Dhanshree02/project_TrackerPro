@@ -67,6 +67,7 @@ import {
 } from "@/lib/masters/resource-mock-data";
 
 export interface ResourceMastersSectionProps {
+  canManage?: boolean;
   resourceMasters: ResourceMastersState;
   onAddHierarchy: (item: Omit<DepartmentHierarchyItem, "id" | "createdAt">) => { success: boolean; error?: string };
   onUpdateHierarchy: (id: string, item: Partial<Omit<DepartmentHierarchyItem, "id" | "createdAt">>) => { success: boolean; error?: string };
@@ -103,6 +104,7 @@ interface CategoryMeta {
 }
 
 export function ResourceMastersSection({
+  canManage = true,
   resourceMasters,
   onAddHierarchy,
   onUpdateHierarchy,
@@ -250,6 +252,7 @@ export function ResourceMastersSection({
       {activeCategory === "all" ? (
         <div className="space-y-6">
           <DepartmentHierarchyCard
+            canManage={canManage}
             items={resourceMasters.departmentHierarchy}
             onAdd={onAddHierarchy}
             onUpdate={onUpdateHierarchy}
@@ -258,6 +261,7 @@ export function ResourceMastersSection({
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <EmailDomainsCard
+              canManage={canManage}
               items={resourceMasters.emailDomains}
               onAdd={onAddEmailDomain}
               onUpdate={onUpdateEmailDomain}
@@ -265,6 +269,7 @@ export function ResourceMastersSection({
             />
 
             <CitiesCard
+              canManage={canManage}
               items={resourceMasters.cities}
               onAdd={onAddCity}
               onUpdate={onUpdateCity}
@@ -272,6 +277,7 @@ export function ResourceMastersSection({
             />
 
             <TkIdFormatsCard
+              canManage={canManage}
               formats={resourceMasters.tkIdFormats || []}
               onAdd={onAddTkIdFormat || (() => ({ success: true }))}
               onUpdate={onUpdateTkIdFormat || (() => ({ success: true }))}
@@ -279,6 +285,7 @@ export function ResourceMastersSection({
             />
 
             <SimpleMasterCard
+              canManage={canManage}
               categoryKey="businessUnits"
               title="Business Unit"
               singular="Business Unit"
@@ -292,6 +299,7 @@ export function ResourceMastersSection({
             />
 
             <SimpleMasterCard
+              canManage={canManage}
               categoryKey="workLocations"
               title="Work Location"
               singular="Work Location"
@@ -305,6 +313,7 @@ export function ResourceMastersSection({
             />
 
             <SimpleMasterCard
+              canManage={canManage}
               categoryKey="graduationDegrees"
               title="Graduation Degree Name"
               singular="Graduation Degree"
@@ -318,6 +327,7 @@ export function ResourceMastersSection({
             />
 
             <SimpleMasterCard
+              canManage={canManage}
               categoryKey="postGraduationDegrees"
               title="Post Graduation Degree Name"
               singular="Post Graduation Degree"
@@ -331,6 +341,7 @@ export function ResourceMastersSection({
             />
 
             <SimpleMasterCard
+              canManage={canManage}
               categoryKey="certifications"
               title="Certification Details"
               singular="Certification"
@@ -346,6 +357,7 @@ export function ResourceMastersSection({
         </div>
       ) : activeCategory === "hierarchy" ? (
         <DepartmentHierarchyCard
+          canManage={canManage}
           items={resourceMasters.departmentHierarchy}
           onAdd={onAddHierarchy}
           onUpdate={onUpdateHierarchy}
@@ -354,6 +366,7 @@ export function ResourceMastersSection({
         />
       ) : activeCategory === "emailDomains" ? (
         <EmailDomainsCard
+          canManage={canManage}
           items={resourceMasters.emailDomains}
           onAdd={onAddEmailDomain}
           onUpdate={onUpdateEmailDomain}
@@ -362,6 +375,7 @@ export function ResourceMastersSection({
         />
       ) : activeCategory === "cities" ? (
         <CitiesCard
+          canManage={canManage}
           items={resourceMasters.cities}
           onAdd={onAddCity}
           onUpdate={onUpdateCity}
@@ -370,6 +384,7 @@ export function ResourceMastersSection({
         />
       ) : activeCategory === "tkIds" ? (
         <TkIdFormatsCard
+          canManage={canManage}
           formats={resourceMasters.tkIdFormats || []}
           onAdd={onAddTkIdFormat || (() => ({ success: true }))}
           onUpdate={onUpdateTkIdFormat || (() => ({ success: true }))}
@@ -378,6 +393,7 @@ export function ResourceMastersSection({
         />
       ) : activeCategory === "businessUnits" ? (
         <SimpleMasterCard
+          canManage={canManage}
           categoryKey="businessUnits"
           title="Business Unit"
           singular="Business Unit"
@@ -392,6 +408,7 @@ export function ResourceMastersSection({
         />
       ) : activeCategory === "workLocations" ? (
         <SimpleMasterCard
+          canManage={canManage}
           categoryKey="workLocations"
           title="Work Location"
           singular="Work Location"
@@ -406,6 +423,7 @@ export function ResourceMastersSection({
         />
       ) : activeCategory === "graduationDegrees" ? (
         <SimpleMasterCard
+          canManage={canManage}
           categoryKey="graduationDegrees"
           title="Graduation Degree Name"
           singular="Graduation Degree"
@@ -420,6 +438,7 @@ export function ResourceMastersSection({
         />
       ) : activeCategory === "postGraduationDegrees" ? (
         <SimpleMasterCard
+          canManage={canManage}
           categoryKey="postGraduationDegrees"
           title="Post Graduation Degree Name"
           singular="Post Graduation Degree"
@@ -434,6 +453,7 @@ export function ResourceMastersSection({
         />
       ) : (
         <SimpleMasterCard
+          canManage={canManage}
           categoryKey="certifications"
           title="Certification Details"
           singular="Certification"
@@ -455,12 +475,14 @@ export function ResourceMastersSection({
 // 1. Department Hierarchy Card Component
 // ══════════════════════════════════════════════════════════════════════════════
 function DepartmentHierarchyCard({
+  canManage = true,
   items,
   onAdd,
   onUpdate,
   onDelete,
   isExpandedView,
 }: {
+  canManage?: boolean;
   items: DepartmentHierarchyItem[];
   onAdd: (item: Omit<DepartmentHierarchyItem, "id" | "createdAt">) => { success: boolean; error?: string };
   onUpdate: (id: string, item: Partial<Omit<DepartmentHierarchyItem, "id" | "createdAt">>) => { success: boolean; error?: string };
@@ -635,10 +657,12 @@ function DepartmentHierarchyCard({
           </div>
         </div>
 
-        <Button size="sm" onClick={openAdd} className="h-8 gap-1.5 text-xs shrink-0 shadow-sm">
-          <Plus className="h-3.5 w-3.5" />
-          Add Hierarchy Mapping
-        </Button>
+        {canManage && (
+          <Button size="sm" onClick={openAdd} className="h-8 gap-1.5 text-xs shrink-0 shadow-sm">
+            <Plus className="h-3.5 w-3.5" />
+            Add Hierarchy Mapping
+          </Button>
+        )}
       </div>
 
       {/* ── Filters & Existing Data Dropdown Bar ── */}
@@ -714,7 +738,7 @@ function DepartmentHierarchyCard({
               <th className="py-2.5 px-4 font-semibold">Designation</th>
               <th className="py-2.5 px-4 font-semibold">On Floor Role</th>
               <th className="py-2.5 px-4 font-semibold">Assigned RBAC Role</th>
-              <th className="py-2.5 px-4 text-right font-semibold">Actions</th>
+              {canManage && <th className="py-2.5 px-4 text-right font-semibold">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -747,28 +771,30 @@ function DepartmentHierarchyCard({
                       {item.assignedRbacRoleName}
                     </span>
                   </td>
-                  <td className="py-2 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEdit(item)}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                        title="Edit hierarchy mapping"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteId(item.id)}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                        title="Delete hierarchy mapping"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </td>
+                  {canManage && (
+                    <td className="py-2 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEdit(item)}
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                          title="Edit hierarchy mapping"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteId(item.id)}
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                          title="Delete hierarchy mapping"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))
             )}
@@ -1053,12 +1079,14 @@ function DepartmentHierarchyCard({
 // 2. Work Email Domains Card
 // ══════════════════════════════════════════════════════════════════════════════
 function EmailDomainsCard({
+  canManage = true,
   items,
   onAdd,
   onUpdate,
   onDelete,
   isExpandedView,
 }: {
+  canManage?: boolean;
   items: EmailDomainItem[];
   onAdd: (domain: string, extra?: { displayName?: string; code?: string }) => { success: boolean; error?: string };
   onUpdate: (id: string, domain: string, extra?: { displayName?: string; code?: string; isActive?: boolean }) => { success: boolean; error?: string };
@@ -1142,10 +1170,12 @@ function EmailDomainsCard({
           </div>
         </div>
 
-        <Button size="sm" onClick={openAdd} className="h-7 gap-1 text-xs shrink-0">
-          <Plus className="h-3 w-3" />
-          Add Domain
-        </Button>
+        {canManage && (
+          <Button size="sm" onClick={openAdd} className="h-7 gap-1 text-xs shrink-0">
+            <Plus className="h-3 w-3" />
+            Add Domain
+          </Button>
+        )}
       </div>
 
       {/* Existing Dropdown & Search Bar */}
@@ -1189,7 +1219,7 @@ function EmailDomainsCard({
               <th className="py-2 px-3 font-semibold">Domain Name</th>
               <th className="py-2 px-3 font-semibold">Display Format</th>
               <th className="py-2 px-3 font-semibold">Status</th>
-              <th className="py-2 px-3 text-right font-semibold">Actions</th>
+              {canManage && <th className="py-2 px-3 text-right font-semibold">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -1214,26 +1244,28 @@ function EmailDomainsCard({
                     {item.isActive ? "Active" : "Inactive"}
                   </Badge>
                 </td>
-                <td className="py-2 px-3 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEdit(item)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteId(item.id)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </td>
+                {canManage && (
+                  <td className="py-2 px-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(item)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteId(item.id)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -1362,12 +1394,14 @@ function EmailDomainsCard({
 // 3. Current Address – City Card (Matches Attached Image with Custom Searchable Dropdown)
 // ══════════════════════════════════════════════════════════════════════════════
 function CitiesCard({
+  canManage = true,
   items,
   onAdd,
   onUpdate,
   onDelete,
   isExpandedView,
 }: {
+  canManage?: boolean;
   items: CityMasterItem[];
   onAdd: (name: string, extra?: { line?: string; code?: string; stationName?: string }) => { success: boolean; error?: string };
   onUpdate: (id: string, name: string, extra?: { line?: string; code?: string; stationName?: string; isActive?: boolean }) => { success: boolean; error?: string };
@@ -1514,7 +1548,7 @@ function CitiesCard({
         </div>
 
         <div className="flex items-center gap-2">
-          {selectedStation && (
+          {canManage && selectedStation && (
             <Button
               variant="outline"
               size="sm"
@@ -1526,10 +1560,12 @@ function CitiesCard({
             </Button>
           )}
 
-          <Button size="sm" onClick={openAdd} className="h-7 gap-1 text-xs shrink-0 shadow-sm">
-            <Plus className="h-3 w-3" />
-            Add New City / Station
-          </Button>
+          {canManage && (
+            <Button size="sm" onClick={openAdd} className="h-7 gap-1 text-xs shrink-0 shadow-sm">
+              <Plus className="h-3 w-3" />
+              Add New City / Station
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1714,7 +1750,7 @@ function CitiesCard({
               <th className="py-2 px-3 font-semibold">Station / City Name</th>
               <th className="py-2 px-3 font-semibold">Corridor / Line</th>
               <th className="py-2 px-3 font-semibold">Formatted Value</th>
-              <th className="py-2 px-3 text-right font-semibold">Actions</th>
+              {canManage && <th className="py-2 px-3 text-right font-semibold">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -1762,28 +1798,30 @@ function CitiesCard({
                     <td className="py-2 px-3 text-muted-foreground font-mono text-[11px]">
                       {item.value || `${item.name} (${item.line})`}
                     </td>
-                    <td className="py-2 px-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(item)}
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                          title="Edit Station / City Name"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteId(item.id)}
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                          title="Delete Station"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </td>
+                    {canManage && (
+                      <td className="py-2 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(item)}
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            title="Edit Station / City Name"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteId(item.id)}
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                            title="Delete Station"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })
@@ -1951,12 +1989,14 @@ function CitiesCard({
 // 4. TK ID Format Master Card (Configuring TK, TKI, etc.)
 // ══════════════════════════════════════════════════════════════════════════════
 function TkIdFormatsCard({
+  canManage = true,
   formats,
   onAdd,
   onUpdate,
   onDelete,
   isExpandedView,
 }: {
+  canManage?: boolean;
   formats: TkIdFormatItem[];
   onAdd: (item: Omit<TkIdFormatItem, "id" | "createdAt" | "sampleFormat">) => { success: boolean; error?: string };
   onUpdate: (id: string, item: Partial<Omit<TkIdFormatItem, "id" | "createdAt">>) => { success: boolean; error?: string };
@@ -2095,10 +2135,12 @@ function TkIdFormatsCard({
           </div>
         </div>
 
-        <Button size="sm" onClick={openAdd} className="h-7 gap-1 text-xs shrink-0 shadow-sm">
-          <Plus className="h-3 w-3" />
-          Add ID Format Prefix
-        </Button>
+        {canManage && (
+          <Button size="sm" onClick={openAdd} className="h-7 gap-1 text-xs shrink-0 shadow-sm">
+            <Plus className="h-3 w-3" />
+            Add ID Format Prefix
+          </Button>
+        )}
       </div>
 
       {/* Existing Formats Selector Dropdown Bar */}
@@ -2144,7 +2186,7 @@ function TkIdFormatsCard({
               <th className="py-2 px-3 font-semibold">Pattern & Sample</th>
               <th className="py-2 px-3 font-semibold">Current Sequence</th>
               <th className="py-2 px-3 font-semibold">Status</th>
-              <th className="py-2 px-3 text-right font-semibold">Actions</th>
+              {canManage && <th className="py-2 px-3 text-right font-semibold">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -2185,28 +2227,30 @@ function TkIdFormatsCard({
                     Active
                   </Badge>
                 </td>
-                <td className="py-2.5 px-3 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEdit(item)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                      title="Edit TK ID Format"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteId(item.id)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                      title="Delete Format"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </td>
+                {canManage && (
+                  <td className="py-2.5 px-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(item)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        title="Edit TK ID Format"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteId(item.id)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        title="Delete Format"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -2496,6 +2540,7 @@ function TkIdFormatsCard({
 // 5–9. Simple Master Card Component (Business Unit, Work Location, Grad, Post Grad, Certs)
 // ══════════════════════════════════════════════════════════════════════════════
 function SimpleMasterCard({
+  canManage = true,
   categoryKey,
   title,
   singular,
@@ -2508,6 +2553,7 @@ function SimpleMasterCard({
   onDelete,
   isExpandedView,
 }: {
+  canManage?: boolean;
   categoryKey: string;
   title: string;
   singular: string;
@@ -2607,10 +2653,12 @@ function SimpleMasterCard({
           </div>
         </div>
 
-        <Button size="sm" onClick={openAdd} className="h-7 gap-1 text-xs shrink-0">
-          <Plus className="h-3 w-3" />
-          Add {singular}
-        </Button>
+        {canManage && (
+          <Button size="sm" onClick={openAdd} className="h-7 gap-1 text-xs shrink-0">
+            <Plus className="h-3 w-3" />
+            Add {singular}
+          </Button>
+        )}
       </div>
 
       {/* Existing Dropdown & Search Bar */}
@@ -2653,7 +2701,7 @@ function SimpleMasterCard({
             <tr>
               <th className="py-2 px-3 font-semibold">Name</th>
               <th className="py-2 px-3 font-semibold">Code / Key</th>
-              <th className="py-2 px-3 text-right font-semibold">Actions</th>
+              {canManage && <th className="py-2 px-3 text-right font-semibold">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -2661,26 +2709,28 @@ function SimpleMasterCard({
               <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                 <td className="py-2 px-3 font-medium text-foreground">{item.name}</td>
                 <td className="py-2 px-3 text-muted-foreground font-mono text-[11px]">{item.code || "—"}</td>
-                <td className="py-2 px-3 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEdit(item)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteId(item.id)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </td>
+                {canManage && (
+                  <td className="py-2 px-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(item)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteId(item.id)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

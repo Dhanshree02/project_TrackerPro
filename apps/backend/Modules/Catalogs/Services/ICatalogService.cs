@@ -28,4 +28,10 @@ public interface ICatalogService
     Task<IReadOnlyList<ServiceCatalogOptionDto>> GetServiceCatalogAsync(Guid? subDepartmentId = null, CancellationToken ct = default);
 
     Task<IReadOnlyList<ServiceHierarchyGroupDto>> GetServiceHierarchyAsync(CancellationToken ct = default);
+
+    Task<ServiceDepartmentDto> CreateServiceDepartmentAsync(CreateServiceDepartmentRequest request, CancellationToken ct = default);
+
+    Task<ServiceSubDepartmentDto> CreateServiceSubDepartmentAsync(CreateServiceSubDepartmentRequest request, CancellationToken ct = default);
+
+    Task<ServiceCatalogOptionDto> CreateServiceCatalogAsync(CreateServiceCatalogRequest request, CancellationToken ct = default);
 }

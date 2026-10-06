@@ -21,30 +21,14 @@ import {
 import { INITIAL_RESOURCE_MASTERS } from "./resource-mock-data";
 import { useProjectCatalogStore } from "./project-catalog-store";
 
-const STORAGE_KEY_PROJECT = "trackerpro_project_masters_v2";
-const STORAGE_KEY_CUSTOMER = "trackerpro_customer_masters_v1";
-const STORAGE_KEY_RESOURCE = "trackerpro_resource_masters_v2";
-
-function loadFromStorage<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error(`Failed to load ${key} from storage:`, e);
-    return fallback;
-  }
-}
-
-function saveToStorage<T>(key: string, value: T): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    console.error(`Failed to save ${key} to storage:`, e);
-  }
-}
+import {
+  fetchServiceHierarchy,
+  fetchCountries,
+  fetchCities,
+  fetchIndustries,
+  fetchContactDesignations,
+  fetchContactTypes,
+} from "@/lib/api/catalogs";
 
 export function useMastersStore() {
   const {
@@ -54,41 +38,143 @@ export function useMastersStore() {
     deptGroups,
     allServices,
     getServicesForDepartment,
+    getSubDepartmentsForDepartment,
     addContractType,
     addDepartment,
+    addSubDepartment,
     addService,
     resetCatalog,
   } = useProjectCatalogStore();
 
-  const [projectMasters, setProjectMasters] = useState<ProjectMasterItem[]>(() => {
-    const loaded = loadFromStorage<ProjectMasterItem[]>(STORAGE_KEY_PROJECT, INITIAL_PROJECT_MASTERS);
-    return (loaded || []).map((p) => ({
-      ...p,
-      contractType: p.contractType || p.group || "Scope Based",
-      group: p.group || p.contractType || "Scope Based",
-    }));
-  });
+  const [projectMasters, setProjectMasters] = useState<ProjectMasterItem[]>([]);
+  const [customerMasters, setCustomerMasters] = useState<CustomerMastersState>(INITIAL_CUSTOMER_MASTERS);
+  const [resourceMasters, setResourceMasters] = useState<ResourceMastersState>(INITIAL_RESOURCE_MASTERS);
 
-  const [customerMasters, setCustomerMasters] = useState<CustomerMastersState>(() =>
-    loadFromStorage<CustomerMastersState>(STORAGE_KEY_CUSTOMER, INITIAL_CUSTOMER_MASTERS),
-  );
-
-  const [resourceMasters, setResourceMasters] = useState<ResourceMastersState>(() =>
-    loadFromStorage<ResourceMastersState>(STORAGE_KEY_RESOURCE, INITIAL_RESOURCE_MASTERS),
-  );
-
-  // Sync with localStorage
+  // Authoritative fetch for Project Masters directly from PostgreSQL database hierarchy
   useEffect(() => {
-    saveToStorage(STORAGE_KEY_PROJECT, projectMasters);
-  }, [projectMasters]);
+    let active = true;
+    fetchServiceHierarchy()
+      .then((hierarchy) => {
+        if (!active || !hierarchy || hierarchy.length === 0) return;
+        const list: ProjectMasterItem[] = [];
+        for (const group of hierarchy) {
+          for (const dept of group.departments) {
+            if (!dept.subDepartments || dept.subDepartments.length === 0) {
+              list.push({
+                id: dept.id,
+                contractType: group.name,
+                group: group.name,
+                department: dept.name,
+                subDepartment: "—",
+                service: "—",
+                tools: "—",
+                duration: "—",
+                unitPrice: 0,
+                createdAt: new Date().toISOString(),
+              });
+            } else {
+              for (const sub of dept.subDepartments) {
+                if (!sub.services || sub.services.length === 0) {
+                  list.push({
+                    id: sub.id,
+                    contractType: group.name,
+                    group: group.name,
+                    department: dept.name,
+                    subDepartment: sub.name,
+                    service: "—",
+                    tools: "—",
+                    duration: "—",
+                    unitPrice: 0,
+                    createdAt: new Date().toISOString(),
+                  });
+                } else {
+                  for (const svc of sub.services) {
+                    list.push({
+                      id: svc.id,
+                      contractType: group.name,
+                      group: group.name,
+                      department: dept.name,
+                      subDepartment: sub.name,
+                      service: svc.name,
+                      tools: svc.defaultTools || "—",
+                      duration: svc.defaultDurationDays ? `${svc.defaultDurationDays} Days` : "5 Days",
+                      unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
+                      createdAt: new Date().toISOString(),
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (list.length > 0) {
+          setProjectMasters(list);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not load project masters from PostgreSQL hierarchy:", err);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
+  // Authoritative fetch for Customer Masters directly from PostgreSQL database tables
   useEffect(() => {
-    saveToStorage(STORAGE_KEY_CUSTOMER, customerMasters);
-  }, [customerMasters]);
+    let active = true;
+    Promise.all([
+      fetchContactDesignations(),
+      fetchIndustries(),
+      fetchCountries(),
+      fetchCities(),
+      fetchContactTypes(),
+    ])
+      .then(([designations, industries, countries, cities, contactTypes]) => {
+        if (!active) return;
+        setCustomerMasters({
+          designations: (designations || []).map((d) => ({
+            id: d.id,
+            name: d.name,
+            code: d.code,
+            createdAt: new Date().toISOString(),
+          })),
+          industries: (industries || []).map((i) => ({
+            id: i.id,
+            name: i.name,
+            code: i.code,
+            createdAt: new Date().toISOString(),
+          })),
+          countries: (countries || []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            code: c.code,
+            phoneCode: c.phoneCode,
+            phoneDigits: c.phoneDigits,
+            createdAt: new Date().toISOString(),
+          })),
+          cities: (cities || []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            code: c.code,
+            country: c.countryId,
+            createdAt: new Date().toISOString(),
+          })),
+          contactTypes: (contactTypes || []).map((ct) => ({
+            id: ct.id,
+            name: ct.name,
+            code: ct.code,
+            createdAt: new Date().toISOString(),
+          })),
+        });
+      })
+      .catch((err) => {
+        console.warn("Could not load customer masters from PostgreSQL:", err);
+      });
 
-  useEffect(() => {
-    saveToStorage(STORAGE_KEY_RESOURCE, resourceMasters);
-  }, [resourceMasters]);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // --- Project Master Operations ---
   const addProjectMaster = useCallback(
@@ -104,18 +190,20 @@ export function useMastersStore() {
         return { success: false, error: "Unit Price must be a positive numeric value." };
       }
 
-      // Check duplicates (same contractType, department, service)
+      // Check duplicates (same contractType, department, subDepartment, service)
       const duplicate = projectMasters.some(
         (p) =>
           (p.contractType || p.group || "").toLowerCase() === contractTypeVal.toLowerCase() &&
           p.department.toLowerCase() === item.department.toLowerCase() &&
+          (p.subDepartment || "").toLowerCase() === (item.subDepartment || "").toLowerCase() &&
           p.service.toLowerCase() === item.service.toLowerCase(),
       );
 
       if (duplicate) {
+        const subDeptText = item.subDepartment?.trim() ? ` → ${item.subDepartment.trim()}` : "";
         return {
           success: false,
-          error: `A project master for ${contractTypeVal} → ${item.department} → ${item.service} already exists.`,
+          error: `A project master for ${contractTypeVal} → ${item.department}${subDeptText} → ${item.service} already exists.`,
         };
       }
 
@@ -124,6 +212,7 @@ export function useMastersStore() {
         contractType: contractTypeVal,
         group: contractTypeVal,
         department: item.department.trim(),
+        subDepartment: item.subDepartment?.trim() || undefined,
         service: item.service.trim(),
         tools: item.tools.trim(),
         duration: item.duration.trim(),
@@ -155,13 +244,15 @@ export function useMastersStore() {
           p.id !== id &&
           (p.contractType || p.group || "").toLowerCase() === contractTypeVal.toLowerCase() &&
           p.department.toLowerCase() === item.department.toLowerCase() &&
+          (p.subDepartment || "").toLowerCase() === (item.subDepartment || "").toLowerCase() &&
           p.service.toLowerCase() === item.service.toLowerCase(),
       );
 
       if (duplicate) {
+        const subDeptText = item.subDepartment?.trim() ? ` → ${item.subDepartment.trim()}` : "";
         return {
           success: false,
-          error: `Another project master for ${contractTypeVal} → ${item.department} → ${item.service} already exists.`,
+          error: `Another project master for ${contractTypeVal} → ${item.department}${subDeptText} → ${item.service} already exists.`,
         };
       }
 
@@ -173,6 +264,7 @@ export function useMastersStore() {
                 contractType: contractTypeVal,
                 group: contractTypeVal,
                 department: item.department.trim(),
+                subDepartment: item.subDepartment?.trim() || undefined,
                 service: item.service.trim(),
                 tools: item.tools.trim(),
                 duration: item.duration.trim(),
@@ -715,8 +807,10 @@ export function useMastersStore() {
     services: allServices,
     allServices,
     getServicesForDepartment,
+    getSubDepartmentsForDepartment,
     addContractType,
     addDepartment,
+    addSubDepartment,
     addService,
     addProjectMaster,
     updateProjectMaster,

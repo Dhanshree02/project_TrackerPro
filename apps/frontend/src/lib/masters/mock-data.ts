@@ -23,6 +23,7 @@ export const INITIAL_PROJECT_MASTERS: ProjectMasterItem[] = Object.entries(DEFAU
         contractType,
         group: contractType,
         department: dept,
+        subDepartment: svc.subDept || dept,
         service: svc.name,
         tools: svc.tool,
         duration: `${svc.days} Days`,

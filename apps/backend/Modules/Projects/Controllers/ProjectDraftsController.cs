@@ -12,7 +12,7 @@ namespace PMS.API.Modules.Projects.Controllers;
 public class ProjectDraftsController(IProjectDraftService draftService) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission(Permissions.ProjectsRead)]
+    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<PagedResult<ProjectDraftListDto>>>> GetDrafts(
         [FromQuery] ProjectDraftQueryParameters queryParams,
         CancellationToken ct)
@@ -22,7 +22,7 @@ public class ProjectDraftsController(IProjectDraftService draftService) : Contro
     }
 
     [HttpGet("{id:guid}")]
-    [RequirePermission(Permissions.ProjectsRead)]
+    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectDraftDto>>> GetDraftById(
         Guid id,
         CancellationToken ct)
