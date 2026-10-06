@@ -1,0 +1,58 @@
+# Development app only. Start the UAT stack first so pms_uat_db is running.
+#
+#   docker compose -f docker-compose.development.yml -p pms_development up -d
+#   docker compose -f docker-compose.development.yml -p pms_development down
+#
+# App: http://localhost:3000   API http://localhost:5194/swagger
+# Database: pms_development on the shared Postgres container pms_uat_db
+
+name: pms_development
+
+services:
+  backend:
+    image: pms-backend:dev
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: pms_development_backend
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=pms_uat_db;Port=5432;Database=pms_development;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
+      - Storage__RootPath=/app/storage
+    ports:
+      - "${DEV_BACKEND_PORT:-5194}:8080"
+    volumes:
+      - backend_storage:/app/storage
+    networks:
+      - pms_shared
+
+  frontend:
+    image: pms-frontend:dev
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: pms_development_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - VITE_BACKEND_URL=http://pms_development_backend:8080
+      - VITE_API_URL=
+    ports:
+      - "${DEV_FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+    networks:
+      - pms_shared
+
+networks:
+  pms_shared:
+    external: true
+    name: pms_shared
+
+volumes:
+  backend_storage:
+    name: pms_project_backend_dev_storage

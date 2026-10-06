@@ -1,16 +1,20 @@
 // ─── My Team Page ─────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarCog,
   ChevronLeft,
   ChevronRight,
+  Users,
+  UsersRound,
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { RowsPerPageSelect } from "@/components/rows-per-page-select";
+import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import { formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
-import { teamDataService } from "./services/teamDataService";
+import { teamDataService, type TeamCalendarPayload } from "./services/teamDataService";
 import {
   attendanceMeta,
   CALENDAR_DAY_COL_PX,
@@ -50,7 +54,16 @@ import { Legend, ShiftChipLegend } from "./components/Legend";
 import { PresenceCard, type ActiveFilter } from "./components/PresenceCard";
 import { ShiftCoverageCard } from "./components/ShiftCoverageCard";
 
+type Roster = "reportees" | "all";
+
+function rosterCacheKey(month: Date, scope: Roster) {
+  return `${month.getFullYear()}-${month.getMonth()}:${scope}`;
+}
+
 export function MyTeamPage() {
+  const [roster, setRoster] = useState<Roster>("reportees");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teamSchedule, setTeamSchedule] = useState<TeamSchedule>({});
   const [memberConfigs, setMemberConfigs] = useState<Record<string, MemberScheduleConfig>>({});
@@ -168,35 +181,118 @@ export function MyTeamPage() {
     return teamMembers;
   }, [activeFilter, teamMembers, onsiteMembers, offsiteMembers, wfhMembers, onLeaveMembers, shiftMembers]);
 
-  const loadCalendar = useCallback(async (month: Date) => {
+  const paginateRoster = roster === "all";
+  const totalPages = totalPageCount(filteredMembers.length, pageSize);
+  const currentPage = Math.min(page, totalPages);
+  const visibleMembers = useMemo(
+    () => (paginateRoster ? paginateSlice(filteredMembers, currentPage, pageSize) : filteredMembers),
+    [paginateRoster, filteredMembers, currentPage, pageSize],
+  );
+  const pageRange = paginationRange(currentPage, pageSize, filteredMembers.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [roster, activeFilter, pageSize]);
+
+  const rosterCache = useRef(new Map<string, TeamCalendarPayload>());
+  const rosterInflight = useRef(new Map<string, Promise<TeamCalendarPayload>>());
+  const liveRoster = useRef({ roster, month: selectedMonth, members: teamMembers, schedule: teamSchedule, configs: memberConfigs });
+  liveRoster.current = { roster, month: selectedMonth, members: teamMembers, schedule: teamSchedule, configs: memberConfigs };
+
+  const rememberLiveRoster = useCallback(() => {
+    const live = liveRoster.current;
+    if (live.members.length === 0) return;
+    rosterCache.current.set(rosterCacheKey(live.month, live.roster), {
+      members: live.members,
+      schedule: live.schedule,
+      configs: live.configs,
+    });
+  }, []);
+
+  const showRoster = useCallback((data: TeamCalendarPayload) => {
+    setTeamMembers(data.members);
+    setTeamSchedule(data.schedule);
+    setMemberConfigs(data.configs);
+  }, []);
+
+  const fetchRoster = useCallback((month: Date, scope: Roster) => {
+    const key = rosterCacheKey(month, scope);
+    const cached = rosterCache.current.get(key);
+    if (cached) return Promise.resolve(cached);
+    const pending = rosterInflight.current.get(key);
+    if (pending) return pending;
     const start = new Date(month.getFullYear(), month.getMonth(), 1);
     const end = new Date(month.getFullYear(), month.getMonth() + 1, 0);
     let from = makeDateKeyFromDate(start);
     let to = makeDateKeyFromDate(end);
     if (todayKey < from) from = todayKey;
     if (todayKey > to) to = todayKey;
-    const data = await teamDataService.getCalendar(from, to);
-    setTeamMembers(data.members);
-    setTeamSchedule(data.schedule);
-    setMemberConfigs(data.configs);
+    const request = teamDataService.getCalendar(from, to, scope === "all").then((data) => {
+      rosterCache.current.set(key, data);
+      rosterInflight.current.delete(key);
+      return data;
+    }).catch((error: unknown) => {
+      rosterInflight.current.delete(key);
+      throw error;
+    });
+    rosterInflight.current.set(key, request);
+    return request;
   }, [todayKey]);
+
+  const loadCalendar = useCallback(async (month: Date) => {
+    const scope = liveRoster.current.roster;
+    const key = rosterCacheKey(month, scope);
+    rosterCache.current.delete(key);
+    const data = await fetchRoster(month, scope);
+    rosterCache.current.set(key, data);
+    const live = liveRoster.current;
+    if (
+      live.roster === scope
+      && live.month.getFullYear() === month.getFullYear()
+      && live.month.getMonth() === month.getMonth()
+    ) {
+      showRoster(data);
+    }
+  }, [fetchRoster, showRoster]);
+
+  const selectRoster = (next: Roster) => {
+    if (next === roster) return;
+    rememberLiveRoster();
+    const cached = rosterCache.current.get(rosterCacheKey(selectedMonth, next));
+    setRoster(next);
+    setPage(1);
+    if (cached) showRoster(cached);
+  };
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    loadCalendar(selectedMonth)
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          toast.error(error instanceof Error ? error.message : "Could not load the team calendar");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const key = rosterCacheKey(selectedMonth, roster);
+    const cached = rosterCache.current.get(key);
+    if (cached) {
+      showRoster(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+      setTeamMembers([]);
+      fetchRoster(selectedMonth, roster)
+        .then((data) => {
+          if (!cancelled) showRoster(data);
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) {
+            toast.error(error instanceof Error ? error.message : "Could not load the team calendar");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }
+    const other: Roster = roster === "all" ? "reportees" : "all";
+    void fetchRoster(selectedMonth, other).catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [selectedMonth, loadCalendar]);
+  }, [selectedMonth, roster, fetchRoster, showRoster]);
 
   const reportSaveError = useCallback((error: unknown) => {
     toast.error(error instanceof Error ? error.message : "Could not save the team calendar");
@@ -430,7 +526,7 @@ export function MyTeamPage() {
         return;
       }
 
-      const memberIndex = filteredMembers.findIndex((member) => member.id === focusedCell.memberId);
+      const memberIndex = visibleMembers.findIndex((member) => member.id === focusedCell.memberId);
       const currentDay = parseDateKey(focusedCell.dateKey).getDate();
       if (memberIndex < 0) return;
 
@@ -444,15 +540,15 @@ export function MyTeamPage() {
 
       event.preventDefault();
       if (nextDay < 1 || nextDay > daysInMonth) return;
-      if (nextMemberIndex < 0 || nextMemberIndex >= filteredMembers.length) return;
+      if (nextMemberIndex < 0 || nextMemberIndex >= visibleMembers.length) return;
 
       setOpenCell(null);
-      focusCell(filteredMembers[nextMemberIndex].id, makeDateKey(year, monthIndex, nextDay));
+      focusCell(visibleMembers[nextMemberIndex].id, makeDateKey(year, monthIndex, nextDay));
     };
 
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [focusedCell, filteredMembers, daysInMonth, year, monthIndex, memberConfigs, today, reportSaveError]);
+  }, [focusedCell, visibleMembers, daysInMonth, year, monthIndex, memberConfigs, today, reportSaveError]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -461,12 +557,42 @@ export function MyTeamPage() {
       subtitle="Reporting team, availability, and leave visibility"
     >
       <div className="space-y-4">
+        <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner w-fit">
+          <button
+            type="button"
+            onClick={() => selectRoster("reportees")}
+            aria-label="My reportees"
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 ${
+              roster === "reportees"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            My Reportees
+          </button>
+          <button
+            type="button"
+            onClick={() => selectRoster("all")}
+            aria-label="All employees"
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 ${
+              roster === "all"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <UsersRound className="h-3.5 w-3.5" />
+            All Employees
+          </button>
+        </div>
         {loading && teamMembers.length === 0 && (
           <p className="text-sm text-muted-foreground">Loading team calendar…</p>
         )}
         {!loading && teamMembers.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            No employees are linked under you as Engagement Manager, Manager, or Project Manager yet.
+            {roster === "all"
+              ? "No employees are in the database yet."
+              : "No employees report to you yet."}
           </p>
         )}
         {/* Consolidated Minimalist Command Cards (Presence & Shift Coverage) */}
@@ -526,8 +652,8 @@ export function MyTeamPage() {
             )}
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-[22px] bg-[#fbfbfc] shadow-[inset_0_0.5px_0_rgba(255,255,255,1),inset_0_0_0_0.5px_rgba(255,255,255,0.7),0_0_0_0.5px_rgba(0,0,0,0.18),0_18px_48px_-20px_rgba(15,23,42,0.28)]">
-            <div className="relative z-30 border-b border-black/[0.06] bg-white/45 px-5 py-3.5 backdrop-blur-xl backdrop-saturate-150">
+          <div className="relative z-0 mt-5 isolate overflow-hidden rounded-[22px] bg-[#fbfbfc] shadow-[inset_0_0.5px_0_rgba(255,255,255,1),inset_0_0_0_0.5px_rgba(255,255,255,0.7),0_0_0_0.5px_rgba(0,0,0,0.18),0_18px_48px_-20px_rgba(15,23,42,0.28)]">
+            <div className="border-b border-black/[0.06] bg-white/45 px-5 py-3.5 backdrop-blur-xl backdrop-saturate-150">
               {/* ── Month navigation ── */}
               <div className="flex items-center gap-3">
                 {/* Month arrows */}
@@ -567,11 +693,13 @@ export function MyTeamPage() {
                     className="shrink-0 border-b border-black/[0.04]"
                     style={{ height: CALENDAR_HEADER_PX }}
                   />
-                  {filteredMembers.map((member, memberIdx) => (
+                  {visibleMembers.map((member, memberIdx) => {
+                    const viewOnly = roster === "all" && member.directReport === false;
+                    return (
                     <div
                       key={member.id}
                       className={`flex items-center gap-2.5 px-3.5 ${
-                        memberIdx < filteredMembers.length - 1 ? "border-b border-[#edf0f4]" : ""
+                        memberIdx < visibleMembers.length - 1 ? "border-b border-[#edf0f4]" : ""
                       }`}
                       style={{ height: CALENDAR_ROW_PX }}
                     >
@@ -589,6 +717,7 @@ export function MyTeamPage() {
                           >
                             {member.name}
                           </p>
+                          {!viewOnly && (
                           <button
                             type="button"
                             onClick={() => setScheduleDialogMember(member)}
@@ -598,13 +727,15 @@ export function MyTeamPage() {
                           >
                             <CalendarCog className="h-3.5 w-3.5" />
                           </button>
+                          )}
                         </div>
                         <p className="truncate text-[11px] text-[#8b93a3] leading-tight mt-0.5">
                           {member.designation}
                         </p>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </aside>
 
                 <div
@@ -646,8 +777,9 @@ export function MyTeamPage() {
                       })}
                   </div>
 
-                  {filteredMembers.map((member, memberIdx) => {
-                    const isLastRow = memberIdx === filteredMembers.length - 1;
+                  {visibleMembers.map((member, memberIdx) => {
+                    const viewOnly = roster === "all" && member.directReport === false;
+                    const isLastRow = memberIdx === visibleMembers.length - 1;
                     const isRowActive = openCell?.memberId === member.id;
                     const memberConfig = memberConfigs[member.id] || DEFAULT_MEMBER_SCHEDULE_CONFIG;
                     const memberHolidaysMap = new Map(memberConfig.holidays.map((h) => [h.date, h]));
@@ -657,7 +789,7 @@ export function MyTeamPage() {
                       <div
                         key={member.id}
                         className={`grid w-full overflow-visible border-b border-[#edf0f4] last:border-b-0 ${
-                          isRowActive ? "relative z-40" : "relative z-0"
+                          isRowActive ? "relative z-10" : "relative z-0"
                         }`}
                         style={{ height: CALENDAR_ROW_PX, gridTemplateColumns: dayGridTemplate }}
                       >
@@ -680,6 +812,7 @@ export function MyTeamPage() {
                               isOpen={isOpen}
                               isFocused={focusedCell?.memberId === member.id && focusedCell.dateKey === dateKey}
                               isPast={date < today}
+                              readOnly={viewOnly}
                               isHoliday={isHoliday}
                               isToday={dateKey === todayKey}
                               isLastRow={isLastRow}
@@ -716,6 +849,51 @@ export function MyTeamPage() {
                 <ShiftChipLegend chip={shiftMeta.Night.chip}     text="Night" />
                 <ShiftChipLegend chip={shiftMeta.General.chip}   text="General (default)" />
               </div>
+              {paginateRoster && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80">
+                  <div className="flex items-center gap-3">
+                    <span>
+                      Showing{" "}
+                      <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>
+                      {" - "}
+                      <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.to}</strong>
+                      {" of "}
+                      <strong className="font-semibold text-blue-950 dark:text-blue-100">{filteredMembers.length}</strong>
+                      {" employees"}
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>Per page:</span>
+                      <RowsPerPageSelect
+                        value={pageSize}
+                        onChange={setPageSize}
+                        className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1}
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                    </button>
+                    <span className="px-2 tabular-nums font-semibold text-blue-950 dark:text-blue-100">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage >= totalPages}
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                    >
+                      Next <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
           </div>
         </section>
 

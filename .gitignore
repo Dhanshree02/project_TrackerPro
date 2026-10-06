@@ -57,6 +57,11 @@ apps/backend/.idea/
 backups/
 *.dump
 *.sql.gz
+database/*-backup*.sql
+database/*.sql.bak
+database/prune_uat.sql
+database/trackerpro-uat-seed-clean.sql
+
 
 # Local File Storage (Tracked in git)
 !storage/

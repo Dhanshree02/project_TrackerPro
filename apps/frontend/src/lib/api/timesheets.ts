@@ -66,6 +66,10 @@ export function listTimesheetApprovals() {
   return apiFetch<TimesheetWeek[]>("/api/v1/timesheets/approvals");
 }
 
+export function listMyTimesheetHistory() {
+  return apiFetch<TimesheetWeek[]>("/api/v1/timesheets/mine/history");
+}
+
 export function decideTimesheet(
   id: string,
   entryIds: string[],

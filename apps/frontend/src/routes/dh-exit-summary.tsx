@@ -2,7 +2,6 @@ import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Search,
-  Download,
   UserMinus,
   User,
   CheckCircle2,
@@ -33,6 +32,7 @@ import {
 } from "@/lib/api/employees";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 
 export const Route = createFileRoute("/dh-exit-summary")({
   head: () => ({
@@ -228,6 +228,34 @@ function ExitTypeBadge({ type }: { type?: string | null }) {
   );
 }
 
+function FilterSelect({
+  value,
+  onChange,
+  placeholder,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  options: Array<string | { label: string; value: string }>;
+}) {
+  return (
+    <SearchableSelect
+      placeholder={placeholder}
+      options={options}
+      value={value}
+      onChange={onChange}
+      className="w-full text-xs"
+      buttonClassName={cn(
+        "h-9 text-xs transition-all",
+        value
+          ? "border-blue-500/50 font-medium text-foreground bg-blue-500/5"
+          : "border-input text-muted-foreground",
+      )}
+    />
+  );
+}
+
 function ExitSummaryPage() {
   const { status: authStatus } = useAuth();
   const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
@@ -369,51 +397,13 @@ function ExitSummaryPage() {
     setDatePeriodFilter("all");
   };
 
-  const exportCsv = () => {
-    if (filtered.length === 0) {
-      toast.error("No records to export");
-      return;
-    }
-    const header = [
-      "TK ID",
-      "Full Name",
-      "Department",
-      "Designation",
-      "Exit Type",
-      "Exit Reason",
-      "Last Working Day",
-      "Exited On (UTC)",
-    ];
-    const rows = filtered.map((e) => [
-      e.employeeCode,
-      e.fullName,
-      e.departmentName ?? "",
-      e.designationName ?? "",
-      e.exitType ?? "",
-      exitReasonOf(e),
-      e.lastWorkingDay ?? "",
-      e.exitedAtUtc,
-    ]);
-    const csv = [header, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `exit-summary-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success(`Exported ${filtered.length} exited employee records to CSV`);
-  };
-
   return (
     <AppShell
       title="Exit Summary"
       subtitle="Offboarding analytics, clearances tracking, and historical exit logs."
     >
       {/* Top action header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="mb-6 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Link
             to="/dh-employee-directory"
@@ -422,17 +412,6 @@ function ExitSummaryPage() {
             <Users className="h-3.5 w-3.5 text-muted-foreground" />
             <span>Employee Directory</span>
           </Link>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={exportCsv}
-            disabled={filtered.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-card px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-accent shadow-xs active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
-          >
-            <Download className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>Export CSV ({filtered.length})</span>
-          </button>
         </div>
       </div>
 
@@ -531,44 +510,38 @@ function ExitSummaryPage() {
             </div>
 
             {/* Department Filter */}
-            <select
-              value={deptFilter}
-              onChange={(e) => setDeptFilter(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring min-w-[150px] cursor-pointer hover:bg-muted/30 transition-colors"
-            >
-              <option value="">All Departments</option>
-              {departments.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+            <div className="w-full md:w-44 shrink-0">
+              <FilterSelect
+                value={deptFilter}
+                onChange={setDeptFilter}
+                placeholder="All Departments"
+                options={departments}
+              />
+            </div>
 
             {/* Exit Type Filter */}
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring min-w-[140px] cursor-pointer hover:bg-muted/30 transition-colors"
-            >
-              <option value="">All Exit Types</option>
-              {exitTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+            <div className="w-full md:w-40 shrink-0">
+              <FilterSelect
+                value={typeFilter}
+                onChange={setTypeFilter}
+                placeholder="All Exit Types"
+                options={exitTypes}
+              />
+            </div>
 
             {/* Date Range Filter */}
-            <select
-              value={datePeriodFilter}
-              onChange={(e) => setDatePeriodFilter(e.target.value as any)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring min-w-[140px] cursor-pointer hover:bg-muted/30 transition-colors"
-            >
-              <option value="all">All Dates</option>
-              <option value="this-month">This Month</option>
-              <option value="last-3-months">Last 3 Months</option>
-              <option value="this-year">This Year</option>
-            </select>
+            <div className="w-full md:w-36 shrink-0">
+              <FilterSelect
+                value={datePeriodFilter === "all" ? "" : datePeriodFilter}
+                onChange={(val) => setDatePeriodFilter((val || "all") as any)}
+                placeholder="All Dates"
+                options={[
+                  { label: "This Month", value: "this-month" },
+                  { label: "Last 3 Months", value: "last-3-months" },
+                  { label: "This Year", value: "this-year" },
+                ]}
+              />
+            </div>
 
             {/* Clear Filters button */}
             <div className="w-20 shrink-0 flex items-center">

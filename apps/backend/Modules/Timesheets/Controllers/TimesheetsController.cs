@@ -17,6 +17,12 @@ public class TimesheetsController(ITimesheetService timesheets) : ControllerBase
         return Ok(ApiResponse<TimesheetWeekDto?>.Ok(await timesheets.GetMineAsync(weekStart, ct)));
     }
 
+    [HttpGet("mine/history")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<TimesheetWeekDto>>>> MineHistory(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<TimesheetWeekDto>>.Ok(await timesheets.ListMineAsync(ct)));
+    }
+
     [HttpGet("mine/previous")]
     public async Task<ActionResult<ApiResponse<TimesheetWeekDto?>>> Previous(
         [FromQuery] DateOnly weekStart,

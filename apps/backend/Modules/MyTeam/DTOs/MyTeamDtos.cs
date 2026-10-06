@@ -10,7 +10,8 @@ public sealed record TeamMemberDto(
     string Name,
     string Initials,
     string Designation,
-    string Department);
+    string Department,
+    bool DirectReport);
 
 public sealed record TeamDayEntryDto(
     Guid EmployeeId,

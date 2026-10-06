@@ -16,9 +16,10 @@ public class MyTeamController(IMyTeamService myTeam) : ControllerBase
     public async Task<ActionResult<ApiResponse<TeamCalendarDto>>> Calendar(
         [FromQuery] DateOnly from,
         [FromQuery] DateOnly to,
-        CancellationToken ct)
+        [FromQuery] bool all = false,
+        CancellationToken ct = default)
     {
-        return Ok(ApiResponse<TeamCalendarDto>.Ok(await myTeam.GetCalendarAsync(from, to, ct)));
+        return Ok(ApiResponse<TeamCalendarDto>.Ok(await myTeam.GetCalendarAsync(from, to, all, ct)));
     }
 
     [HttpPut("days")]

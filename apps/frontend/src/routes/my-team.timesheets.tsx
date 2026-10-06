@@ -34,6 +34,7 @@ import {
   decideTimesheet,
   getMyTimesheet,
   getPreviousTimesheet,
+  listMyTimesheetHistory,
   listTimesheetApprovals,
   saveTimesheetDraft,
   submitTimesheet,
@@ -113,11 +114,11 @@ function thisMonday() {
 
 // ── TimesheetTab ─────────────────────────────────────────────────────────────
 function TimesheetTab() {
-  const [subTab, setSubTab] = useState<"My Timesheet" | "Timesheet Approval">("My Timesheet");
+  const [subTab, setSubTab] = useState<"My Timesheet" | "Timesheet History" | "Timesheet Approval">("My Timesheet");
   return (
     <div>
       <div className="mb-4 flex gap-1 rounded-lg border border-border bg-card p-1 text-sm shadow-sm w-fit">
-        {(["My Timesheet", "Timesheet Approval"] as const).map((st) => (
+        {(["My Timesheet", "Timesheet History", "Timesheet Approval"] as const).map((st) => (
           <button
             key={st}
             type="button"
@@ -133,7 +134,13 @@ function TimesheetTab() {
           </button>
         ))}
       </div>
-      {subTab === "My Timesheet" ? <MyTimesheetView /> : <TimesheetApprovalView />}
+      {subTab === "My Timesheet" ? (
+        <MyTimesheetView />
+      ) : subTab === "Timesheet History" ? (
+        <TimesheetHistoryView />
+      ) : (
+        <TimesheetApprovalView />
+      )}
     </div>
   );
 }
@@ -671,6 +678,102 @@ function ApprovalSortTh({
         />
       )}
     </th>
+  );
+}
+
+// ── TimesheetHistoryView ─────────────────────────────────────────────────────
+function TimesheetHistoryView() {
+  const [sheets, setSheets] = useState<ApprovalSheet[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    listMyTimesheetHistory()
+      .then((weeks) => setSheets(weeks.map(toApprovalSheet)))
+      .catch(() => toast.error("Could not load your timesheet history."));
+  }, []);
+
+  const open = sheets.find((sheet) => sheet.id === openId) ?? null;
+
+  return (
+    <section className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="overflow-auto max-h-[calc(100vh-220px)] min-h-[420px]">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700">
+            <tr>
+              <th className="px-4 py-3 font-semibold">Week</th>
+              <th className="px-4 py-3 font-semibold">Projects</th>
+              <th className="px-4 py-3 font-semibold">Submitted</th>
+              <th className="px-4 py-3 font-semibold">Hours</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold">Approval note</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {sheets.map((sheet) => {
+              const projects = Array.from(
+                new Set(sheet.entries.map((entry) => entry.projectName).filter(Boolean)),
+              ).join(", ") || "—";
+              return (
+                <tr
+                  key={sheet.id}
+                  onClick={() => setOpenId(sheet.id)}
+                  className="cursor-pointer hover:bg-accent/30"
+                >
+                  <td className="whitespace-nowrap px-4 py-3.5 tabular-nums">{formatDateDMY(sheet.weekStart)}</td>
+                  <td className="px-4 py-3.5 text-muted-foreground truncate" title={projects}>{projects}</td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">
+                    {sheet.submittedAt ? formatDateDMY(sheet.submittedAt.slice(0, 10)) : "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3.5 font-medium tabular-nums">{sheet.totalHours}h</td>
+                  <td className="whitespace-nowrap px-4 py-3.5">
+                    <TimesheetStatusPill status={sheet.status} />
+                  </td>
+                  <td className="px-4 py-3.5 text-muted-foreground truncate" title={sheet.reviewComment ?? ""}>
+                    {sheet.reviewComment?.trim() || "—"}
+                  </td>
+                </tr>
+              );
+            })}
+            {sheets.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  No timesheet history yet
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {open && (
+        <div className="border-t border-border bg-muted/20 px-4 py-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold">Week of {formatDateDMY(open.weekStart)}</p>
+            <button
+              type="button"
+              onClick={() => setOpenId(null)}
+              className="rounded-md p-1 text-muted-foreground hover:bg-accent"
+              aria-label="Close week details"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <ul className="space-y-1 text-sm">
+            {open.entries.map((entry) => (
+              <li key={entry.id} className="flex items-center justify-between gap-3">
+                <span className="truncate">{entry.projectName} · {entry.taskName}</span>
+                <span className="shrink-0 tabular-nums text-muted-foreground">
+                  {entry.hours.reduce((sum, hours) => sum + hours, 0)}h
+                  {entry.reviewDecision ? ` · ${entry.reviewDecision.replace("_", " ")}` : ""}
+                </span>
+              </li>
+            ))}
+            {open.entries.length === 0 && (
+              <li className="text-muted-foreground">No project rows on this week.</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }
 

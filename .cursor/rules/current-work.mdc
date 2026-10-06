@@ -5,8 +5,21 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-03
+**Last updated:** 2026-10-06
 
+- **Team calendar scrolls under the page header.** The month bar and employee rows stay inside the calendar, so they no longer cover Team Dashboard, search, or the user menu.
+- **Team Dashboard tab switches reuse the calendar already loaded.** My Reportees and All Employees are kept in memory for the open month, and the other tab is loaded in the background. Day menus are built only when a day is opened.
+- **Team Dashboard All Employees is paged like Resources.** The footer shows the range, per page (10, 15, 25, 50, 100, All), and previous/next. My Reportees stays one list. The presence cards still count everyone on the tab.
+- **Timesheets has three tabs.** My Timesheet is the week you fill and send to your manager. Timesheet History lists your own weeks and the approval note. Timesheet Approval lists only weeks sent to you. `GET /api/v1/timesheets/mine/history`.
+
+- **Team Dashboard has My Reportees and All Employees.** My Reportees is the people who report to the signed-in user. All Employees is the same calendar for everyone in the database. Schedule changes stay on reportees only.
+
+
+- **Timesheets has My Timesheet, Timesheet History, and Timesheet Approval.** History is the signed-in person's own weeks and the approval note. Approval lists only timesheets sent to that person, not their own.
+- **Two Compose stacks share `pms_uat_db`.** UAT is `docker-compose.uat.yml` (`pms_uat_db`, `pms_uat_backend`, `pms_uat_frontend`). Development is `docker-compose.development.yml` (`pms_development_backend`, `pms_development_frontend`) and does not start a database. The server holds `pms_development`, `pms_uat`, and `pms_deployment`. SQL files are `database/pms_development.sql`, `database/pms_uat.sql`, and `database/pms_deployment.sql`.
+- **One Postgres, two app stacks.** Container `pms_uat_db` holds `pms_development`, `pms_uat`, and `pms_deployment`. Development is `pms_development_backend` (5194) and `pms_development_frontend` (3000), using `pms_development`. UAT is `pms_uat_backend` (5195) and `pms_uat_frontend` (3001), using `pms_uat`. All three databases were copied from the loaded `trackerpro-final.sql` data.
+
+- **Local app uses `trackerpro_development` loaded from `database/trackerpro-final.sql`.** `origin/development` was already current. The database was recreated and the dump was applied in full. Root `docker-compose.yml`, pgAdmin, and `apps/backend/.env` point at `trackerpro_development`. The API container was recreated against it.
 - **`database/trackerpro-final.sql` was dumped from the Docker database on port 5433.** It is a full schema and data dump of `trackerpro` (PostgreSQL 16): module schemas `auth`, `master`, `resource`, `customer`, `project`, `timesheet`, and `repository`, with `__EFMigrationsHistory` still in `public`. Table ownership is left unset.
 - **Bulk upload saves a file only when every row is valid.** If 9 of 10 rows pass and 1 fails, none of the 10 are created. The upload shows an error with the failing rows.
 - **Bulk sample Designation follows the row's Department.** The Employees sheet designation list is only the titles mapped to that department on Lookups. A designation from another department is rejected on upload. Success and error toasts stay for 10 seconds.

@@ -20,6 +20,7 @@ export interface SearchableSelectOption {
  * checkmark highlighting, click-outside dismissal, and optional inline creation.
  */
 export function SearchableSelect({
+  id,
   label,
   options,
   value,
@@ -38,6 +39,7 @@ export function SearchableSelect({
   onSearchChange,
   menuZIndex,
 }: {
+  id?: string;
   label?: string;
   options: Array<string | SearchableSelectOption>;
   value?: string;
@@ -186,6 +188,7 @@ export function SearchableSelect({
       <div className="relative">
         <button
           ref={buttonRef}
+          id={id}
           type="button"
           disabled={disabled}
           onClick={() => {

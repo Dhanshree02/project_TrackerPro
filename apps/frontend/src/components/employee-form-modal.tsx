@@ -1228,26 +1228,32 @@ export function EmployeeFormModal({
                   <span>Assigned RBAC Role <span className="text-destructive">*</span></span>
                   <span className="text-[10px] text-muted-foreground font-normal">Auto-mapped</span>
                 </label>
-                <select
+                <SearchableSelect
+                  id="emp-field-role"
+                  placeholder="Select RBAC Role..."
+                  searchPlaceholder="Search RBAC roles..."
+                  options={rbacRoleOptions.map((r) => ({
+                    value: r.name,
+                    label: r.displayName || r.name,
+                  }))}
                   value={form.role}
-                  onChange={(e) => setField("role", e.target.value)}
+                  onChange={(val) => setField("role", val)}
                   disabled={!form.designationId}
-                  className={cn(
-                    "h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                    "disabled:cursor-not-allowed disabled:opacity-50",
+                  disabledHint="Select a designation first"
+                  error={errors.role}
+                  className="w-full text-xs"
+                  buttonClassName={cn(
+                    "h-9 text-xs transition-all",
+                    !form.role && "text-muted-foreground",
+                    errors.role && "!border-destructive text-destructive",
                   )}
-                >
-                  <option value="">Select RBAC Role...</option>
-                  {rbacRoleOptions.map((r) => (
-                    <option key={r.id} value={r.name}>
-                      {r.displayName || r.name}
-                    </option>
-                  ))}
-                </select>
+                />
                 <span className="text-[10px] text-muted-foreground">
                   Default software permissions from catalog (overridable)
                 </span>
+                {errors.role && (
+                  <p className="text-[11px] text-destructive">{errors.role}</p>
+                )}
               </div>
               <CreatableCatalogSelect
                 label="On Floor Role"
