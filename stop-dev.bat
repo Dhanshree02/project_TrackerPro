@@ -1,4 +1,4 @@
 @echo off
-echo Stopping Development Stack...
-docker compose stop backend_dev frontend_dev
-echo Development stack stopped (PostgreSQL remains running).
+echo Stopping Development App...
+docker compose -f docker-compose.development.yml -p pms_development down
+echo Development app stopped.

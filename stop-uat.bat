@@ -1,4 +1,4 @@
 @echo off
 echo Stopping UAT Stack...
-docker compose stop backend_uat frontend_uat
-echo UAT stack stopped (PostgreSQL remains running).
+docker compose -f docker-compose.uat.yml -p pms_uat down
+echo UAT stack stopped.
