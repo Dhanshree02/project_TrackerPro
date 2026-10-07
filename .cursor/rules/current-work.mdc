@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-06
+**Last updated:** 2026-10-07
+
+- **Current Address - City comes from `master.mst_address_cities`.** Settings → Masters → Resource Masters adds a city, and Onboard New Employee (and Client Location) loads `GET /api/v1/catalogs/address-cities`. The saved value stays on `resource.tbl_employees."Address"`. The Mumbai station list is seeded into that table. Bulk upload rejects a city that is not in the master.
 
 - **Team calendar scrolls under the page header.** The month bar and employee rows stay inside the calendar, so they no longer cover Team Dashboard, search, or the user menu.
 - **Team Dashboard tab switches reuse the calendar already loaded.** My Reportees and All Employees are kept in memory for the open month, and the other tab is loaded in the background. Day menus are built only when a day is opened.

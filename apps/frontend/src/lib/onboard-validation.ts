@@ -10,7 +10,7 @@ import {
   phoneError,
 } from "@/lib/form-validation";
 import type { Employee } from "@/lib/employee-data";
-import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
+import { addressCityOptions } from "@/lib/mumbai-stations";
 
 export const ONBOARD_DOC_SLOTS = [
   "Resume",
@@ -423,7 +423,7 @@ export function validateOnboardField(
     case "address": {
       const v = (values.address || "").trim();
       if (!v) return "Current Address - City is required";
-      if (!MUMBAI_RAILWAY_STATIONS.some((station) => station.value === v)) {
+      if (!addressCityOptions().some((station) => station.value === v)) {
         return "Select a city from the list";
       }
       return undefined;
@@ -832,7 +832,7 @@ export function employeeToOnboardValues(emp: Employee): OnboardValues {
     dateOfBirth: emp.dob || "",
     maritalStatus: emp.maritalStatus || "",
     nationalityId: "",
-    address: MUMBAI_RAILWAY_STATIONS.some((station) => station.value === (emp.address || "").trim())
+    address: addressCityOptions().some((station) => station.value === (emp.address || "").trim())
       ? emp.address || ""
       : "",
     emergencyContact: emp.emergencyContact || "",

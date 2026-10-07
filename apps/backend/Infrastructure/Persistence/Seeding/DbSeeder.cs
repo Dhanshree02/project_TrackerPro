@@ -5,6 +5,7 @@ using PMS.API.Shared.Constants;
 using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Repository.Models;
+using PMS.API.Modules.Resources;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Infrastructure.Authentication;
@@ -331,6 +332,7 @@ public static class DbSeeder
 
         await SeedContactDesignationsAsync(db, ct);
         await SeedContactTypesAsync(db, ct);
+        await SeedAddressCitiesAsync(db, ct);
         await SeedNationalitiesAsync(db, ct);
         await SeedSalaryBandsAsync(db, ct);
         var existingDesignations = await db.Designations.ToDictionaryAsync(d => d.Code, ct);
@@ -397,6 +399,34 @@ public static class DbSeeder
                 IsActive = true,
                 SortOrder = sortOrder,
             });
+        }
+    }
+
+    private static async Task SeedAddressCitiesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var existing = await db.AddressCities.IgnoreQueryFilters().ToListAsync(ct);
+        var codes = existing.Select(c => c.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var sort = 1;
+        foreach (var name in AddressCityCatalog.Names)
+        {
+            var row = existing.FirstOrDefault(c =>
+                string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (row is not null)
+            {
+                sort++;
+                continue;
+            }
+
+            var entity = new MstAddressCity
+            {
+                Code = AddressCityCatalog.CodeFor(name, codes),
+                Name = name,
+                Line = AddressCityCatalog.LineOf(name),
+                IsActive = true,
+                SortOrder = sort++,
+            };
+            db.AddressCities.Add(entity);
+            existing.Add(entity);
         }
     }
 

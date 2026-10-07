@@ -198,7 +198,9 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             AltPhone = PhoneRules.NullIfEmpty(request.AltPhone),
             Gender = request.Gender,
             DateOfBirth = request.DateOfBirth,
-            Address = request.Address,
+            Address = string.IsNullOrWhiteSpace(request.Address)
+                ? null
+                : await RequireAddressCityAsync(request.Address, ct),
             EmergencyContact = request.EmergencyContact,
             EmergencyContactName = request.EmergencyContactName,
             EmergencyContactRelation = request.EmergencyContactRelation,
@@ -370,8 +372,11 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.Address is not null)
         {
-            if (entity.Address != request.Address) changes.Add("Address");
-            entity.Address = request.Address;
+            var address = string.IsNullOrWhiteSpace(request.Address)
+                ? null
+                : await RequireAddressCityAsync(request.Address, ct);
+            if (entity.Address != address) changes.Add("Address");
+            entity.Address = address;
         }
         if (request.EmergencyContact is not null)
         {
@@ -1595,6 +1600,31 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is Npgsql.PostgresException { SqlState: "23505" };
+
+    private async Task<string> RequireAddressCityAsync(string address, CancellationToken ct)
+    {
+        var trimmed = address.Trim();
+        if (trimmed.Length == 0)
+            throw new ConflictException("Current Address - City is required.");
+
+        var match = await db.AddressCities
+            .Where(c => c.IsActive)
+            .FirstOrDefaultAsync(c => c.Name.ToLower() == trimmed.ToLower(), ct);
+        if (match is not null)
+            return match.Name;
+
+        var any = await db.AddressCities.AnyAsync(ct);
+        if (!any)
+        {
+            var seeded = AddressCityCatalog.Names.FirstOrDefault(n =>
+                n.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+            if (seeded is not null)
+                return seeded;
+        }
+
+        throw new ConflictException(
+            "Select a Current Address - City from the list. Add a new city under Settings → Masters → Resource Masters.");
+    }
 
     private static string RequireName(string name)
     {

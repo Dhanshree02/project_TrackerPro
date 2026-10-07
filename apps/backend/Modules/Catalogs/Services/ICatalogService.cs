@@ -19,6 +19,12 @@ public interface ICatalogService
 
     Task<IReadOnlyList<CatalogOptionDto>> GetContactTypesAsync(CancellationToken ct = default);
 
+    Task<IReadOnlyList<AddressCityDto>> GetAddressCitiesAsync(CancellationToken ct = default);
+
+    Task<AddressCityDto> CreateAddressCityAsync(string name, string? line, CancellationToken ct = default);
+
+    Task DeleteAddressCityAsync(Guid id, CancellationToken ct = default);
+
     Task<IReadOnlyList<ServiceGroupDto>> GetServiceGroupsAsync(CancellationToken ct = default);
 
     Task<IReadOnlyList<ServiceDepartmentDto>> GetServiceDepartmentsAsync(Guid? groupId = null, CancellationToken ct = default);

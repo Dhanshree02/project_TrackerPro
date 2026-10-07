@@ -54,6 +54,20 @@ public sealed class MstContactDesignationConfiguration : IEntityTypeConfiguratio
     }
 }
 
+public sealed class MstAddressCityConfiguration : IEntityTypeConfiguration<MstAddressCity>
+{
+    public void Configure(EntityTypeBuilder<MstAddressCity> builder)
+    {
+        builder.ToTable("mst_address_cities", DbSchemas.Master);
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Line).HasMaxLength(80);
+    }
+}
+
 public sealed class MstContactTypeConfiguration : IEntityTypeConfiguration<MstContactType>
 {
     public void Configure(EntityTypeBuilder<MstContactType> builder)

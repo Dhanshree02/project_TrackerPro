@@ -49,6 +49,7 @@ import {
   type ApiMetaOption,
 } from "@/lib/api/employees";
 import { fetchRoles, type ApiRole } from "@/lib/api/users";
+import { fetchAddressCities } from "@/lib/api/catalogs";
 import {
   EMPTY_ONBOARD,
   validateOnboardField,
@@ -72,7 +73,7 @@ import {
   formatBondExpiryDisplay,
 } from "@/lib/employment-bond";
 import type { Employee } from "@/lib/employee-data";
-import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
+import { MUMBAI_RAILWAY_STATIONS, addressCityToOption, setLiveAddressCities } from "@/lib/mumbai-stations";
 import { allProjects, allClients } from "@/lib/dh-store";
 
 // ── Local Form Components ─────────────────────────
@@ -343,6 +344,7 @@ export function EmployeeFormModal({
   const [postGradDegreeOptions, setPostGradDegreeOptions] = useState<ApiMetaOption[]>([]);
   const [certOptions, setCertOptions] = useState<ApiMetaOption[]>([]);
   const [rbacRoleOptions, setRbacRoleOptions] = useState<ApiRole[]>([]);
+  const [addressCityOptions, setAddressCityOptions] = useState(MUMBAI_RAILWAY_STATIONS);
 
   // Split parts
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
@@ -513,6 +515,23 @@ export function EmployeeFormModal({
         }
       })
       .catch(() => toast.error("Could not load reporting managers"));
+
+    void fetchAddressCities()
+      .then((rows) => {
+        const options = rows.length > 0 ? rows.map(addressCityToOption) : [...MUMBAI_RAILWAY_STATIONS];
+        setAddressCityOptions(options);
+        setLiveAddressCities(options);
+        if (mode === "edit" && initialEmployee?.address) {
+          const saved = initialEmployee.address.trim();
+          if (options.some((option) => option.value === saved)) {
+            setForm((prev) => (prev.address === saved ? prev : { ...prev, address: saved }));
+          }
+        }
+      })
+      .catch(() => {
+        setAddressCityOptions([...MUMBAI_RAILWAY_STATIONS]);
+        setLiveAddressCities(null);
+      });
 
     void fetchEmailDomainOptions()
       .then((domains) => {
@@ -1109,7 +1128,7 @@ export function EmployeeFormModal({
                   label="Current Address - City"
                   required
                   error={errors.address}
-                  options={[...MUMBAI_RAILWAY_STATIONS]}
+                  options={addressCityOptions}
                   value={form.address}
                   onChange={(v) => setField("address", v)}
                   placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
@@ -1644,7 +1663,7 @@ export function EmployeeFormModal({
                 />
                 <FormSelect
                   label="Client Location"
-                  options={[...MUMBAI_RAILWAY_STATIONS]}
+                  options={addressCityOptions}
                   value={form.clientLocation}
                   onChange={(v) => setField("clientLocation", v)}
                   placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
