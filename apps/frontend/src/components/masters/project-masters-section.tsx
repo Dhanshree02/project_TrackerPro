@@ -466,12 +466,15 @@ export function ProjectMastersSection({
       if (s && !map.has(s.toLowerCase().trim())) map.set(s.toLowerCase().trim(), s.trim());
     });
     items.forEach((it) => {
+      const itSub = (it.subDepartment || "").trim();
       if (
         it.department.toLowerCase().trim() === activeSubDeptTarget.toLowerCase().trim() &&
-        it.subDepartment &&
-        !map.has(it.subDepartment.toLowerCase().trim())
+        itSub &&
+        itSub !== "—" &&
+        itSub !== "-" &&
+        !map.has(itSub.toLowerCase())
       ) {
-        map.set(it.subDepartment.toLowerCase().trim(), it.subDepartment.trim());
+        map.set(itSub.toLowerCase(), itSub);
       }
     });
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
@@ -480,63 +483,85 @@ export function ProjectMastersSection({
   // 4. Services fetched from mst_service_catalog for selected Department & Sub-Department
   const catalogServicesForDept = useMemo(() => {
     if (!selectedDepartment) return [];
+    const normDept = selectedDepartment.trim().toLowerCase();
+    const normSub = (selectedSubDepartment || "").trim().toLowerCase();
     const svcMap = new Map<string, { id?: string; name: string; tool: string; unitPrice: number; days: number; subDept?: string }>();
+
+    // 1. From live database hierarchy
     if (hierarchy.length > 0) {
       for (const group of hierarchy) {
         const foundDept = group.departments.find(
-          (d) => d.name.toLowerCase() === selectedDepartment.toLowerCase()
+          (d) => d.name.trim().toLowerCase() === normDept
         );
-        if (foundDept) {
-          if (selectedSubDepartment) {
+        if (foundDept && foundDept.subDepartments) {
+          if (normSub) {
             const foundSub = foundDept.subDepartments.find(
-              (s) => s.name.toLowerCase() === selectedSubDepartment.toLowerCase()
+              (s) => s.name.trim().toLowerCase() === normSub
             );
-            if (foundSub) {
+            if (foundSub && foundSub.services) {
               foundSub.services.forEach((svc) => {
-                svcMap.set(svc.name.toLowerCase().trim(), {
-                  id: svc.id,
-                  name: svc.name,
-                  tool: svc.defaultTools || "",
-                  unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
-                  days: svc.defaultDurationDays || 5,
-                  subDept: foundSub.name,
-                });
+                if (svc.name && svc.name.trim()) {
+                  svcMap.set(svc.name.trim().toLowerCase(), {
+                    id: svc.id,
+                    name: svc.name.trim(),
+                    tool: svc.defaultTools || "",
+                    unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
+                    days: svc.defaultDurationDays || 5,
+                    subDept: foundSub.name.trim(),
+                  });
+                }
               });
             }
           } else {
+            // When no sub-department is selected, show all services belonging to this department
             foundDept.subDepartments.forEach((sub) => {
-              sub.services.forEach((svc) => {
-                svcMap.set(svc.name.toLowerCase().trim(), {
-                  id: svc.id,
-                  name: svc.name,
-                  tool: svc.defaultTools || "",
-                  unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
-                  days: svc.defaultDurationDays || 5,
-                  subDept: sub.name,
+              if (sub.services) {
+                sub.services.forEach((svc) => {
+                  if (svc.name && svc.name.trim()) {
+                    svcMap.set(svc.name.trim().toLowerCase(), {
+                      id: svc.id,
+                      name: svc.name.trim(),
+                      tool: svc.defaultTools || "",
+                      unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
+                      days: svc.defaultDurationDays || 5,
+                      subDept: sub.name.trim(),
+                    });
+                  }
                 });
-              });
+              }
             });
           }
         }
       }
     }
 
+    // 2. From catalog store for this department
     const storeSvcs = getServicesForDepartment(selectedDepartment, selectedSubDepartment || undefined);
     storeSvcs.forEach((svc) => {
-      if (!svcMap.has(svc.name.toLowerCase().trim())) {
-        svcMap.set(svc.name.toLowerCase().trim(), svc);
+      if (svc.name && svc.name.trim() && !svcMap.has(svc.name.trim().toLowerCase())) {
+        svcMap.set(svc.name.trim().toLowerCase(), {
+          ...svc,
+          name: svc.name.trim(),
+        });
       }
     });
 
+    // 3. From items (master.mst_project_masters in PostgreSQL)
     items.forEach((it) => {
+      const itDept = (it.department || "").trim().toLowerCase();
+      const itSub = (it.subDepartment || "").trim().toLowerCase();
+      const itSvc = (it.service || "").trim();
+
       if (
-        it.department.toLowerCase().trim() === selectedDepartment.toLowerCase().trim() &&
-        (!selectedSubDepartment || (it.subDepartment || "").toLowerCase().trim() === selectedSubDepartment.toLowerCase().trim()) &&
-        it.service &&
-        !svcMap.has(it.service.toLowerCase().trim())
+        itDept === normDept &&
+        (!normSub || itSub === normSub || itSub === "—" || itSub === "-") &&
+        itSvc &&
+        itSvc !== "—" &&
+        itSvc !== "-" &&
+        !svcMap.has(itSvc.toLowerCase())
       ) {
-        svcMap.set(it.service.toLowerCase().trim(), {
-          name: it.service,
+        svcMap.set(itSvc.toLowerCase(), {
+          name: itSvc,
           tool: it.tools || "",
           unitPrice: it.unitPrice || 50000,
           days: parseInt(it.duration.replace(/\D/g, ""), 10) || 5,
@@ -548,76 +573,143 @@ export function ProjectMastersSection({
     return Array.from(svcMap.values());
   }, [hierarchy, selectedDepartment, selectedSubDepartment, getServicesForDepartment, items]);
 
-  // Filtered service names for dropdown
+  // Filtered service names for dropdown - strictly restricted to selected department and sub-department
   const filteredServicesForDept = useMemo(() => {
-    let list: string[] = [];
-    if (catalogServicesForDept.length > 0) {
-      list = catalogServicesForDept.map((s) => s.name);
-    } else {
-      list = propsServices || storeAllServices || [];
-    }
+    if (!selectedDepartment) return [];
+    let list: string[] = catalogServicesForDept.map((s) => s.name);
     if (selectedService && !list.some((s) => s.toLowerCase().trim() === selectedService.toLowerCase().trim())) {
       list = [selectedService, ...list];
     }
-    return Array.from(new Set(list));
-  }, [catalogServicesForDept, propsServices, storeAllServices, selectedService]);
+    return Array.from(new Set(list)).sort((a, b) => a.localeCompare(b));
+  }, [selectedDepartment, catalogServicesForDept, selectedService]);
 
 
   // Sub-departments for Edit Modal
   const availableSubDepartmentsForEditDept = useMemo(() => {
     if (!editDepartment) return [];
+    const normDept = editDepartment.trim().toLowerCase();
+    const map = new Map<string, string>();
     if (hierarchy.length > 0) {
       for (const group of hierarchy) {
         const foundDept = group.departments.find(
-          (d) => d.name.toLowerCase() === editDepartment.toLowerCase()
+          (d) => d.name.trim().toLowerCase() === normDept
         );
-        if (foundDept && foundDept.subDepartments.length > 0) {
-          return foundDept.subDepartments.map((s) => s.name);
+        if (foundDept && foundDept.subDepartments) {
+          foundDept.subDepartments.forEach((s) => {
+            if (s.name && !map.has(s.name.trim().toLowerCase())) {
+              map.set(s.name.trim().toLowerCase(), s.name.trim());
+            }
+          });
         }
       }
     }
-    return getSubDepartmentsForDepartment(editDepartment);
-  }, [hierarchy, editDepartment, getSubDepartmentsForDepartment]);
+    const fromStore = getSubDepartmentsForDepartment(editDepartment);
+    fromStore.forEach((s) => {
+      if (s && !map.has(s.trim().toLowerCase())) map.set(s.trim().toLowerCase(), s.trim());
+    });
+    items.forEach((it) => {
+      const itSub = (it.subDepartment || "").trim();
+      if (
+        it.department.trim().toLowerCase() === normDept &&
+        itSub &&
+        itSub !== "—" &&
+        itSub !== "-" &&
+        !map.has(itSub.toLowerCase())
+      ) {
+        map.set(itSub.toLowerCase(), itSub);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [hierarchy, editDepartment, getSubDepartmentsForDepartment, items]);
 
   // Catalog services for Edit Modal
   const catalogServicesForEditDept = useMemo(() => {
     if (!editDepartment) return [];
+    const normDept = editDepartment.trim().toLowerCase();
+    const normSub = (editSubDepartment || "").trim().toLowerCase();
+    const svcMap = new Map<string, { id?: string; name: string; tool: string; unitPrice: number; days: number; subDept?: string }>();
+
     if (hierarchy.length > 0) {
       for (const group of hierarchy) {
         const foundDept = group.departments.find(
-          (d) => d.name.toLowerCase() === editDepartment.toLowerCase()
+          (d) => d.name.trim().toLowerCase() === normDept
         );
-        if (foundDept) {
-          if (editSubDepartment) {
+        if (foundDept && foundDept.subDepartments) {
+          if (normSub) {
             const foundSub = foundDept.subDepartments.find(
-              (s) => s.name.toLowerCase() === editSubDepartment.toLowerCase()
+              (s) => s.name.trim().toLowerCase() === normSub
             );
-            if (foundSub) {
-              return foundSub.services.map((svc) => ({
-                id: svc.id,
-                name: svc.name,
-                tool: svc.defaultTools || "",
-                unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
-                days: svc.defaultDurationDays || 5,
-                subDept: foundSub.name,
-              }));
+            if (foundSub && foundSub.services) {
+              foundSub.services.forEach((svc) => {
+                if (svc.name && svc.name.trim()) {
+                  svcMap.set(svc.name.trim().toLowerCase(), {
+                    id: svc.id,
+                    name: svc.name.trim(),
+                    tool: svc.defaultTools || "",
+                    unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
+                    days: svc.defaultDurationDays || 5,
+                    subDept: foundSub.name.trim(),
+                  });
+                }
+              });
             }
+          } else {
+            foundDept.subDepartments.forEach((sub) => {
+              if (sub.services) {
+                sub.services.forEach((svc) => {
+                  if (svc.name && svc.name.trim()) {
+                    svcMap.set(svc.name.trim().toLowerCase(), {
+                      id: svc.id,
+                      name: svc.name.trim(),
+                      tool: svc.defaultTools || "",
+                      unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
+                      days: svc.defaultDurationDays || 5,
+                      subDept: sub.name.trim(),
+                    });
+                  }
+                });
+              }
+            });
           }
-          return foundDept.subDepartments.flatMap((sub) =>
-            sub.services.map((svc) => ({
-              id: svc.id,
-              name: svc.name,
-              tool: svc.defaultTools || "",
-              unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
-              days: svc.defaultDurationDays || 5,
-              subDept: sub.name,
-            }))
-          );
         }
       }
     }
-    return getServicesForDepartment(editDepartment, editSubDepartment || undefined);
-  }, [hierarchy, editDepartment, editSubDepartment, getServicesForDepartment]);
+
+    const storeSvcs = getServicesForDepartment(editDepartment, editSubDepartment || undefined);
+    storeSvcs.forEach((svc) => {
+      if (svc.name && svc.name.trim() && !svcMap.has(svc.name.trim().toLowerCase())) {
+        svcMap.set(svc.name.trim().toLowerCase(), {
+          ...svc,
+          name: svc.name.trim(),
+        });
+      }
+    });
+
+    items.forEach((it) => {
+      const itDept = (it.department || "").trim().toLowerCase();
+      const itSub = (it.subDepartment || "").trim().toLowerCase();
+      const itSvc = (it.service || "").trim();
+
+      if (
+        itDept === normDept &&
+        (!normSub || itSub === normSub || itSub === "—" || itSub === "-") &&
+        itSvc &&
+        itSvc !== "—" &&
+        itSvc !== "-" &&
+        !svcMap.has(itSvc.toLowerCase())
+      ) {
+        svcMap.set(itSvc.toLowerCase(), {
+          name: itSvc,
+          tool: it.tools || "",
+          unitPrice: it.unitPrice || 50000,
+          days: parseInt(it.duration.replace(/\D/g, ""), 10) || 5,
+          subDept: it.subDepartment,
+        });
+      }
+    });
+
+    return Array.from(svcMap.values());
+  }, [hierarchy, editDepartment, editSubDepartment, getServicesForDepartment, items]);
 
   // Authoritative items derived directly from PostgreSQL database (projectMasters items prop, with fallback to hierarchy)
   const effectiveItems = useMemo(() => {
@@ -741,7 +833,9 @@ export function ProjectMastersSection({
   // Service change handler -> auto-populates tools, duration, unitPrice from mst_service_catalog
   const handleServiceChange = (serviceName: string) => {
     setSelectedService(serviceName);
-    const matched = catalogServicesForDept.find((s) => s.name === serviceName);
+    const matched = catalogServicesForDept.find(
+      (s) => s.name.trim().toLowerCase() === serviceName.trim().toLowerCase()
+    );
     if (matched) {
       if (matched.subDept && !selectedSubDepartment) {
         setSelectedSubDepartment(matched.subDept);
@@ -1233,7 +1327,7 @@ export function ProjectMastersSection({
               </div>
             </div>
 
-            {/* Service [+] - enabled only after Sub Department is selected */}
+            {/* Service [+] - enabled when Department is selected */}
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center justify-between">
                 <Label htmlFor="master-service" className="text-xs font-medium text-foreground">
@@ -1246,20 +1340,18 @@ export function ProjectMastersSection({
                   value={selectedService}
                   onChange={handleServiceChange}
                   placeholder={
-                    selectedSubDepartment
-                      ? "Select Service"
-                      : selectedDepartment
-                      ? "Select Sub Department first"
-                      : "Select Department first"
+                    !selectedDepartment
+                      ? "Select Department first"
+                      : availableSubDepartmentsForDept.length > 0 && !selectedSubDepartment
+                      ? "Select Sub Department (or Service)"
+                      : filteredServicesForDept.length === 0
+                      ? "No services found (click + to add)"
+                      : "Select Service"
                   }
                   searchPlaceholder="Search service..."
                   showSearch={true}
-                  disabled={!selectedSubDepartment}
-                  disabledHint={
-                    selectedDepartment
-                      ? "Select Sub Department first"
-                      : "Select Department first"
-                  }
+                  disabled={!selectedDepartment}
+                  disabledHint="Select Department first"
                   buttonClassName="h-9 text-xs bg-card border-border hover:bg-muted/30"
                   className="flex-1 min-w-0"
                   clearable={false}
@@ -1270,7 +1362,7 @@ export function ProjectMastersSection({
                   size="icon"
                   className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-50"
                   title="Add new Service"
-                  disabled={!selectedSubDepartment}
+                  disabled={!selectedDepartment}
                   onClick={() => {
                     setNewServiceName("");
                     setAddServiceError(null);
@@ -1902,7 +1994,9 @@ export function ProjectMastersSection({
                 value={editService}
                 onChange={(serviceName) => {
                   setEditService(serviceName);
-                  const matched = catalogServicesForEditDept.find((s) => s.name === serviceName);
+                  const matched = catalogServicesForEditDept.find(
+                    (s) => s.name.trim().toLowerCase() === serviceName.trim().toLowerCase()
+                  );
                   if (matched) {
                     if (matched.subDept && !editSubDepartment) {
                       setEditSubDepartment(matched.subDept);
@@ -1913,20 +2007,18 @@ export function ProjectMastersSection({
                   }
                 }}
                 placeholder={
-                  editSubDepartment
-                    ? "Select Service"
-                    : editDepartment
-                    ? "Select Sub Department first"
-                    : "Select Department first"
+                  !editDepartment
+                    ? "Select Department first"
+                    : availableSubDepartmentsForEditDept.length > 0 && !editSubDepartment
+                    ? "Select Sub Department (or Service)"
+                    : catalogServicesForEditDept.length === 0
+                    ? "No services found"
+                    : "Select Service"
                 }
                 searchPlaceholder="Search service..."
                 showSearch={true}
-                disabled={!editSubDepartment}
-                disabledHint={
-                  editDepartment
-                    ? "Select Sub Department first"
-                    : "Select Department first"
-                }
+                disabled={!editDepartment}
+                disabledHint="Select Department first"
                 buttonClassName="h-8 text-xs bg-card border-border hover:bg-muted/30"
                 className="w-full min-w-0"
                 clearable={false}

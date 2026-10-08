@@ -283,9 +283,13 @@ export function useProjectCatalogStore() {
 
   const getServicesForDepartment = useCallback(
     (dept: string, subDept?: string): CatalogServiceItem[] => {
-      const svcs = deptServices[dept] || [];
+      if (!dept) return [];
+      const normDept = dept.trim().toLowerCase();
+      const matchedKey = Object.keys(deptServices).find((k) => k.trim().toLowerCase() === normDept);
+      const svcs = matchedKey ? deptServices[matchedKey] || [] : [];
       if (!subDept) return svcs;
-      return svcs.filter((s) => !s.subDept || s.subDept.toLowerCase() === subDept.toLowerCase());
+      const normSub = subDept.trim().toLowerCase();
+      return svcs.filter((s) => s.subDept && s.subDept.trim().toLowerCase() === normSub);
     },
     [deptServices],
   );
@@ -293,12 +297,15 @@ export function useProjectCatalogStore() {
   const getSubDepartmentsForDepartment = useCallback(
     (dept: string): string[] => {
       if (!dept) return [];
-      const configured = deptSubDepts[dept] || [];
-      const fromServices = (deptServices[dept] || [])
+      const normDept = dept.trim().toLowerCase();
+      const matchedKey = Object.keys(deptSubDepts).find((k) => k.trim().toLowerCase() === normDept);
+      const configured = matchedKey ? deptSubDepts[matchedKey] || [] : [];
+      const svcsKey = Object.keys(deptServices).find((k) => k.trim().toLowerCase() === normDept);
+      const fromServices = (svcsKey ? deptServices[svcsKey] || [] : [])
         .map((s) => s.subDept)
         .filter((sub): sub is string => Boolean(sub && sub.trim()));
       const combined = Array.from(new Set([...configured, ...fromServices]));
-      return combined;
+      return combined.sort((a, b) => a.localeCompare(b));
     },
     [deptSubDepts, deptServices],
   );

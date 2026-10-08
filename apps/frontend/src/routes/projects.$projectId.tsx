@@ -1211,14 +1211,14 @@ function ProjectDetail() {
 
           {tab === "Tasks" &&
             (useDhWorkspace ? (
-              <DhTasksTab project={project} readOnly={isViewOnly || isSales} />
+              <DhTasksTab project={project} readOnly={isViewOnly} />
             ) : (
               <DefaultTasksTab project={project} />
             ))}
 
           {tab === "Team" &&
             (useDhWorkspace ? (
-              <DhTeamTab project={project} readOnly={isViewOnly || isSales} />
+              <DhTeamTab project={project} readOnly={isViewOnly} />
             ) : (
               <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />
             ))}

@@ -729,7 +729,22 @@ function WbsNewProjectPage() {
       }
     }).catch(console.error);
 
-    return () => { active = false; };
+    const handleCatalogUpdate = () => {
+      fetchServiceHierarchy().then((res) => {
+        if (res && res.length > 0) {
+          setDbServiceHierarchy(res);
+        }
+      }).catch(console.error);
+    };
+
+    window.addEventListener("trackerpro:catalog_updated", handleCatalogUpdate);
+    window.addEventListener("focus", handleCatalogUpdate);
+
+    return () => {
+      active = false;
+      window.removeEventListener("trackerpro:catalog_updated", handleCatalogUpdate);
+      window.removeEventListener("focus", handleCatalogUpdate);
+    };
   }, [extraCount]);
 
   // Use dbClients mapped to frontend Client format if available, fallback to mock store clients
@@ -750,20 +765,33 @@ function WbsNewProjectPage() {
       for (const dept of group.departments) {
         const deptList: CatalogService[] = [];
         for (const subDept of dept.subDepartments) {
-          for (const svc of subDept.services) {
+          if (!subDept.services || subDept.services.length === 0) {
+            // Register sub-department even if it has no services yet
             deptList.push({
-              id: svc.code,
-              name: svc.name,
-              tool: svc.defaultTools ?? "",
-              unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
-              days: svc.defaultDurationDays ?? 5,
+              id: `empty_${subDept.id}`,
+              name: "",
+              tool: "",
+              unitPrice: 0,
+              days: 0,
               subDept: subDept.name,
             });
+          } else {
+            for (const svc of subDept.services) {
+              deptList.push({
+                id: svc.code || svc.id,
+                name: svc.name,
+                tool: svc.defaultTools ?? "",
+                unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
+                days: svc.defaultDurationDays ?? 5,
+                subDept: subDept.name,
+              });
+            }
           }
         }
         map[dept.name] = deptList;
       }
     }
+    Object.assign(DEPT_SERVICES, map);
     return Object.keys(map).length > 0 ? map : DEPT_SERVICES;
   }, [dbServiceHierarchy]);
 
@@ -778,6 +806,7 @@ function WbsNewProjectPage() {
         }
       }
     }
+    Object.assign(DEPT_GROUPS, map);
     return map;
   }, [dbServiceHierarchy]);
 
@@ -1771,7 +1800,15 @@ function WbsNewProjectPage() {
     const withDept = (dept: string, s: CatalogService) => ({ ...s, dept });
     if (pickerSubDept) {
       return (dynamicDeptServices[pickerDept] || [])
-        .filter((s) => s.subDept === pickerSubDept && pickerServiceMatchesQuery(s, pickerSearchQuery))
+        .filter((s) => s.name && s.subDept === pickerSubDept && pickerServiceMatchesQuery(s, pickerSearchQuery))
+        .map((s) => withDept(pickerDept, s));
+    }
+    // If department has direct services without sub-departments or general services
+    const directServices = (dynamicDeptServices[pickerDept] || []).filter((s) => s.name);
+    const subList = subDeptsForDept(pickerDept).filter((sub) => sub && sub !== "—" && sub !== "-");
+    if (pickerDept && subList.length === 0 && directServices.length > 0) {
+      return directServices
+        .filter((s) => pickerServiceMatchesQuery(s, pickerSearchQuery))
         .map((s) => withDept(pickerDept, s));
     }
     // No sub-department yet: keep browsing empty, but let search find services
@@ -1779,7 +1816,7 @@ function WbsNewProjectPage() {
     if (pickerSearchQuery) {
       return allowedDepts.flatMap((dept) =>
         (dynamicDeptServices[dept] || [])
-          .filter((s) => pickerServiceMatchesQuery(s, pickerSearchQuery))
+          .filter((s) => s.name && pickerServiceMatchesQuery(s, pickerSearchQuery))
           .map((s) => withDept(dept, s)),
       );
     }

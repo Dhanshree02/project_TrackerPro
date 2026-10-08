@@ -120,6 +120,13 @@ function CustomerDetailPage() {
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
 
+  const canManageCustomer =
+    isAdmin ||
+    isDhanshree ||
+    hasPermission("customers.manage") ||
+    hasPermission("clients:write") ||
+    hasPermission("customers.edit");
+
   const [filter, setFilter] = useState<FilterTab>(searchParams.status || "all");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
   const [selectedSpoc, setSelectedSpoc] = useState<number | null>(null);
@@ -587,7 +594,7 @@ function CustomerDetailPage() {
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   <span>ENGAGEMENT MANAGER</span>
-                  {(isAdmin || isDhanshree || hasPermission("customers.edit") || hasPermission("customers.change_em")) && !isSales && (
+                  {(canManageCustomer || hasPermission("customers.change_em")) && (
                     <button
                       type="button"
                       onClick={openEmPicker}
@@ -621,7 +628,7 @@ function CustomerDetailPage() {
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   <span>SALES MANAGER</span>
-                  {(isAdmin || isDhanshree || hasPermission("customers.edit") || hasPermission("customers.change_sm")) && (
+                  {(canManageCustomer || hasPermission("customers.change_sm")) && (
                     <button
                       type="button"
                       onClick={openSmPicker}

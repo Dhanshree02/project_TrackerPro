@@ -308,8 +308,21 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const isPmFamily = isProjectManager || isSeniorPm || isEngagementManager || isTeamLead;
   const isPmoFamily = isPMO || isBO || isHOD;
-  /** Business Owner is view-only everywhere; HOD is view-only except approvals / acknowledge. */
-  const isViewOnly = isBO || isHOD || backendRole === "Intern";
+  const hasProjectManage =
+    isAdmin ||
+    isDhanshree ||
+    (authUser?.permissions && authUser.permissions.length > 0
+      ? Boolean(
+          authUser.permissions.some(
+            (p) =>
+              p === "projects.manage" ||
+              p === "projects.create" ||
+              p === "projects:write" ||
+              p === "projects.wbs.allocate",
+          ),
+        )
+      : !(isBO || isHOD || backendRole === "Intern"));
+  const isViewOnly = !hasProjectManage || backendRole === "Intern";
   const hideBudget = isPmoFamily;
 
   const directoryPersonId = people.find(

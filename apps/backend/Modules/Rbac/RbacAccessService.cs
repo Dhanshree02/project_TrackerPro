@@ -678,6 +678,26 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
         {
             switch (module)
             {
+                case "Action Center":
+                    claims.Add("action-center.manage");
+                    if (leaf.Equals("Approvals", StringComparison.OrdinalIgnoreCase))
+                    {
+                        claims.Add("approvals.manage");
+                        claims.Add("action-center.approvals.manage");
+                        claims.Add(Permissions.ApprovalsManage);
+                        claims.Add(Permissions.TimesheetsApprove);
+                    }
+                    else if (leaf.Equals("Bucket List", StringComparison.OrdinalIgnoreCase) ||
+                             leaf.Equals("Start timer", StringComparison.OrdinalIgnoreCase) ||
+                             leaf.Equals("Raise issues", StringComparison.OrdinalIgnoreCase))
+                    {
+                        claims.Add("action-center.bucket-list.manage");
+                    }
+                    else if (leaf.Equals("Alerts", StringComparison.OrdinalIgnoreCase))
+                    {
+                        claims.Add("action-center.alerts.manage");
+                    }
+                    break;
                 case "Projects":
                     if (leaf.Equals("projects Cards", StringComparison.OrdinalIgnoreCase) ||
                         leaf.Equals("Projects", StringComparison.OrdinalIgnoreCase))
@@ -702,6 +722,7 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
                         claims.Add(Permissions.ClientsWrite);
                         claims.Add("customers.create");
                         claims.Add("customers.manage");
+                        claims.Add("customers.edit");
                     }
                     break;
                 case "Repository":
