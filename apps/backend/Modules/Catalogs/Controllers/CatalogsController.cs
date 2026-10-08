@@ -128,5 +128,200 @@ public class CatalogsController(ICatalogService catalogs) : ControllerBase
         var created = await catalogs.CreateServiceCatalogAsync(request, ct);
         return StatusCode(201, ApiResponse<ServiceCatalogOptionDto>.Ok(created));
     }
+
+    [HttpGet("project-masters")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectMasterDto>>>> GetProjectMasters(
+        CancellationToken ct)
+    {
+        var list = await catalogs.GetProjectMastersAsync(ct);
+        return Ok(ApiResponse<IReadOnlyList<ProjectMasterDto>>.Ok(list));
+    }
+
+    [HttpPost("project-masters")]
+    public async Task<ActionResult<ApiResponse<ProjectMasterDto>>> CreateProjectMaster(
+        [FromBody] CreateProjectMasterRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateProjectMasterAsync(request, ct);
+        return StatusCode(201, ApiResponse<ProjectMasterDto>.Ok(created));
+    }
+
+    [HttpPut("project-masters/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<ProjectMasterDto>>> UpdateProjectMaster(
+        [FromRoute] Guid id,
+        [FromBody] UpdateProjectMasterRequest request,
+        CancellationToken ct)
+    {
+        var updated = await catalogs.UpdateProjectMasterAsync(id, request, ct);
+        return Ok(ApiResponse<ProjectMasterDto>.Ok(updated));
+    }
+
+    [HttpDelete("project-masters/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteProjectMaster(
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        var deleted = await catalogs.DeleteProjectMasterAsync(id, ct);
+        return Ok(ApiResponse<bool>.Ok(deleted));
+    }
+
+    [HttpPost("service-groups")]
+    public async Task<ActionResult<ApiResponse<ServiceGroupDto>>> CreateServiceGroup(
+        [FromBody] CreateServiceGroupRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateServiceGroupAsync(request, ct);
+        return StatusCode(201, ApiResponse<ServiceGroupDto>.Ok(created));
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // Customer Masters Endpoints
+    // ══════════════════════════════════════════════════════════════════════════
+
+    // ── Countries ──
+    [HttpPost("countries")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateCountry(
+        [FromBody] CreateCountryRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateCountryAsync(request, ct);
+        return StatusCode(201, ApiResponse<CatalogOptionDto>.Ok(created));
+    }
+
+    [HttpPut("countries/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateCountry(
+        [FromRoute] Guid id,
+        [FromBody] UpdateCountryRequest request,
+        CancellationToken ct)
+    {
+        var updated = await catalogs.UpdateCountryAsync(id, request, ct);
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(updated));
+    }
+
+    [HttpDelete("countries/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteCountry(
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        var deleted = await catalogs.DeleteCountryAsync(id, ct);
+        return Ok(ApiResponse<bool>.Ok(deleted));
+    }
+
+    // ── Cities (Country Dependency) ──
+    [HttpPost("cities")]
+    public async Task<ActionResult<ApiResponse<CityCatalogOptionDto>>> CreateCity(
+        [FromBody] CreateCustomerCityRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateCityAsync(request, ct);
+        return StatusCode(201, ApiResponse<CityCatalogOptionDto>.Ok(created));
+    }
+
+    [HttpPut("cities/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CityCatalogOptionDto>>> UpdateCity(
+        [FromRoute] Guid id,
+        [FromBody] UpdateCustomerCityRequest request,
+        CancellationToken ct)
+    {
+        var updated = await catalogs.UpdateCityAsync(id, request, ct);
+        return Ok(ApiResponse<CityCatalogOptionDto>.Ok(updated));
+    }
+
+    [HttpDelete("cities/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteCity(
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        var deleted = await catalogs.DeleteCityAsync(id, ct);
+        return Ok(ApiResponse<bool>.Ok(deleted));
+    }
+
+    // ── Industries ──
+    [HttpPost("industries")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateIndustry(
+        [FromBody] CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateIndustryAsync(request, ct);
+        return StatusCode(201, ApiResponse<CatalogOptionDto>.Ok(created));
+    }
+
+    [HttpPut("industries/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateIndustry(
+        [FromRoute] Guid id,
+        [FromBody] UpdateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var updated = await catalogs.UpdateIndustryAsync(id, request, ct);
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(updated));
+    }
+
+    [HttpDelete("industries/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteIndustry(
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        var deleted = await catalogs.DeleteIndustryAsync(id, ct);
+        return Ok(ApiResponse<bool>.Ok(deleted));
+    }
+
+    // ── Contact Designations ──
+    [HttpPost("contact-designations")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateContactDesignation(
+        [FromBody] CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateContactDesignationAsync(request, ct);
+        return StatusCode(201, ApiResponse<CatalogOptionDto>.Ok(created));
+    }
+
+    [HttpPut("contact-designations/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateContactDesignation(
+        [FromRoute] Guid id,
+        [FromBody] UpdateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var updated = await catalogs.UpdateContactDesignationAsync(id, request, ct);
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(updated));
+    }
+
+    [HttpDelete("contact-designations/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteContactDesignation(
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        var deleted = await catalogs.DeleteContactDesignationAsync(id, ct);
+        return Ok(ApiResponse<bool>.Ok(deleted));
+    }
+
+    // ── Contact Types ──
+    [HttpPost("contact-types")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateContactType(
+        [FromBody] CreateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateContactTypeAsync(request, ct);
+        return StatusCode(201, ApiResponse<CatalogOptionDto>.Ok(created));
+    }
+
+    [HttpPut("contact-types/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateContactType(
+        [FromRoute] Guid id,
+        [FromBody] UpdateCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var updated = await catalogs.UpdateContactTypeAsync(id, request, ct);
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(updated));
+    }
+
+    [HttpDelete("contact-types/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteContactType(
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        var deleted = await catalogs.DeleteContactTypeAsync(id, ct);
+        return Ok(ApiResponse<bool>.Ok(deleted));
+    }
 }
+
 

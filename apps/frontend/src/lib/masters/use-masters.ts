@@ -10,8 +10,6 @@ import type {
   DepartmentHierarchyItem,
   EmailDomainItem,
   CityMasterItem,
-  TkIdFormatItem,
-  TkIdMasterItem,
   SimpleResourceMasterItem,
 } from "./types";
 import {
@@ -23,12 +21,51 @@ import { useProjectCatalogStore } from "./project-catalog-store";
 
 import {
   fetchServiceHierarchy,
+  fetchProjectMasters,
+  createProjectMaster,
+  updateProjectMaster as updateProjectMasterApi,
+  deleteProjectMaster as deleteProjectMasterApi,
   fetchCountries,
+  createCountry,
+  updateCountry,
+  deleteCountry,
   fetchCities,
+  createCity,
+  updateCity,
+  deleteCity,
   fetchIndustries,
+  createIndustry,
+  updateIndustry,
+  deleteIndustry,
   fetchContactDesignations,
+  createContactDesignation,
+  updateContactDesignation,
+  deleteContactDesignation,
   fetchContactTypes,
+  createContactType,
+  updateContactType,
+  deleteContactType,
 } from "@/lib/api/catalogs";
+
+import {
+  fetchResourceHierarchy,
+  createResourceHierarchy,
+  updateResourceHierarchy,
+  deleteResourceHierarchy,
+  fetchEmailDomains,
+  createEmailDomain,
+  updateEmailDomain as updateEmailDomainApi,
+  deleteEmailDomain as deleteEmailDomainApi,
+  fetchResourceCities,
+  createResourceCity,
+  updateResourceCity as updateResourceCityApi,
+  deleteResourceCity as deleteResourceCityApi,
+  fetchSimpleMasters,
+  createSimpleMaster,
+  updateSimpleMaster as updateSimpleMasterApi,
+  deleteSimpleMaster as deleteSimpleMasterApi,
+  type SimpleCategory,
+} from "@/lib/api/resource-masters";
 
 export function useMastersStore() {
   const {
@@ -50,37 +87,41 @@ export function useMastersStore() {
   const [customerMasters, setCustomerMasters] = useState<CustomerMastersState>(INITIAL_CUSTOMER_MASTERS);
   const [resourceMasters, setResourceMasters] = useState<ResourceMastersState>(INITIAL_RESOURCE_MASTERS);
 
-  // Authoritative fetch for Project Masters directly from PostgreSQL database hierarchy
+  // Authoritative fetch for Project Masters directly from PostgreSQL database
   useEffect(() => {
     let active = true;
-    fetchServiceHierarchy()
-      .then((hierarchy) => {
-        if (!active || !hierarchy || hierarchy.length === 0) return;
-        const list: ProjectMasterItem[] = [];
-        for (const group of hierarchy) {
-          for (const dept of group.departments) {
-            if (!dept.subDepartments || dept.subDepartments.length === 0) {
-              list.push({
-                id: dept.id,
-                contractType: group.name,
-                group: group.name,
-                department: dept.name,
-                subDepartment: "—",
-                service: "—",
-                tools: "—",
-                duration: "—",
-                unitPrice: 0,
-                createdAt: new Date().toISOString(),
-              });
-            } else {
-              for (const sub of dept.subDepartments) {
-                if (!sub.services || sub.services.length === 0) {
+    fetchProjectMasters()
+      .then((items) => {
+        if (!active) return;
+        if (items && items.length > 0) {
+          setProjectMasters(
+            items.map((it) => ({
+              id: it.id,
+              contractType: it.contractType,
+              group: it.group,
+              department: it.department,
+              subDepartment: it.subDepartment,
+              service: it.service,
+              tools: it.tools,
+              duration: it.duration,
+              unitPrice: Number(it.unitPrice),
+              createdAt: it.createdAtUtc,
+            })),
+          );
+        } else {
+          // Fallback to hierarchy if project-masters endpoint returns empty
+          fetchServiceHierarchy().then((hierarchy) => {
+            if (!active || !hierarchy || hierarchy.length === 0) return;
+            const list: ProjectMasterItem[] = [];
+            for (const group of hierarchy) {
+              for (const dept of group.departments) {
+                if (!dept.subDepartments || dept.subDepartments.length === 0) {
                   list.push({
-                    id: sub.id,
+                    id: dept.id,
                     contractType: group.name,
                     group: group.name,
                     department: dept.name,
-                    subDepartment: sub.name,
+                    subDepartment: "—",
                     service: "—",
                     tools: "—",
                     duration: "—",
@@ -88,32 +129,50 @@ export function useMastersStore() {
                     createdAt: new Date().toISOString(),
                   });
                 } else {
-                  for (const svc of sub.services) {
-                    list.push({
-                      id: svc.id,
-                      contractType: group.name,
-                      group: group.name,
-                      department: dept.name,
-                      subDepartment: sub.name,
-                      service: svc.name,
-                      tools: svc.defaultTools || "—",
-                      duration: svc.defaultDurationDays ? `${svc.defaultDurationDays} Days` : "5 Days",
-                      unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
-                      createdAt: new Date().toISOString(),
-                    });
+                  for (const sub of dept.subDepartments) {
+                    if (!sub.services || sub.services.length === 0) {
+                      list.push({
+                        id: sub.id,
+                        contractType: group.name,
+                        group: group.name,
+                        department: dept.name,
+                        subDepartment: sub.name,
+                        service: "—",
+                        tools: "—",
+                        duration: "—",
+                        unitPrice: 0,
+                        createdAt: new Date().toISOString(),
+                      });
+                    } else {
+                      for (const svc of sub.services) {
+                        list.push({
+                          id: svc.id,
+                          contractType: group.name,
+                          group: group.name,
+                          department: dept.name,
+                          subDepartment: sub.name,
+                          service: svc.name,
+                          tools: svc.defaultTools || "—",
+                          duration: svc.defaultDurationDays ? `${svc.defaultDurationDays} Days` : "5 Days",
+                          unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
+                          createdAt: new Date().toISOString(),
+                        });
+                      }
+                    }
                   }
                 }
               }
             }
-          }
-        }
-        if (list.length > 0) {
-          setProjectMasters(list);
+            if (list.length > 0) {
+              setProjectMasters(list);
+            }
+          });
         }
       })
       .catch((err) => {
-        console.warn("Could not load project masters from PostgreSQL hierarchy:", err);
+        console.warn("Could not load project masters from PostgreSQL:", err);
       });
+
     return () => {
       active = false;
     };
@@ -157,6 +216,8 @@ export function useMastersStore() {
             name: c.name,
             code: c.code,
             country: c.countryId,
+            countryId: c.countryId,
+            countryName: c.countryName,
             createdAt: new Date().toISOString(),
           })),
           contactTypes: (contactTypes || []).map((ct) => ({
@@ -176,9 +237,55 @@ export function useMastersStore() {
     };
   }, []);
 
-  // --- Project Master Operations ---
+  // Authoritative fetch for Resource Masters directly from local PostgreSQL database
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      fetchResourceHierarchy(),
+      fetchEmailDomains(),
+      fetchResourceCities(),
+      fetchSimpleMasters("businessUnits"),
+      fetchSimpleMasters("workLocations"),
+      fetchSimpleMasters("graduationDegrees"),
+      fetchSimpleMasters("postGraduationDegrees"),
+      fetchSimpleMasters("certifications"),
+    ])
+      .then(
+        ([
+          hierarchy,
+          emailDomains,
+          cities,
+          businessUnits,
+          workLocations,
+          graduationDegrees,
+          postGraduationDegrees,
+          certifications,
+        ]) => {
+          if (!active) return;
+          setResourceMasters({
+            departmentHierarchy: hierarchy || [],
+            emailDomains: emailDomains || [],
+            cities: cities || [],
+            businessUnits: businessUnits || [],
+            workLocations: workLocations || [],
+            graduationDegrees: graduationDegrees || [],
+            postGraduationDegrees: postGraduationDegrees || [],
+            certifications: certifications || [],
+          });
+        },
+      )
+      .catch((err) => {
+        console.warn("Could not load resource masters from PostgreSQL database:", err);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // --- Project Master Operations (Synchronized with PostgreSQL) ---
   const addProjectMaster = useCallback(
-    (item: Omit<ProjectMasterItem, "id" | "createdAt">): { success: boolean; error?: string } => {
+    async (item: Omit<ProjectMasterItem, "id" | "createdAt">): Promise<{ success: boolean; error?: string }> => {
       const contractTypeVal = (item.contractType || item.group || "").trim();
       // Validate
       if (!contractTypeVal) return { success: false, error: "Please select a Contract Type." };
@@ -207,28 +314,44 @@ export function useMastersStore() {
         };
       }
 
-      const newItem: ProjectMasterItem = {
-        id: `pm-${Date.now()}`,
-        contractType: contractTypeVal,
-        group: contractTypeVal,
-        department: item.department.trim(),
-        subDepartment: item.subDepartment?.trim() || undefined,
-        service: item.service.trim(),
-        tools: item.tools.trim(),
-        duration: item.duration.trim(),
-        unitPrice: Number(item.unitPrice),
-        createdAt: new Date().toISOString(),
-      };
+      try {
+        const created = await createProjectMaster({
+          contractType: contractTypeVal,
+          department: item.department.trim(),
+          subDepartment: item.subDepartment?.trim() || "",
+          service: item.service.trim(),
+          tools: item.tools.trim(),
+          duration: item.duration.trim(),
+          unitPrice: Number(item.unitPrice),
+        });
 
-      setProjectMasters((prev) => [newItem, ...prev]);
-      toast.success("Project Master added successfully");
-      return { success: true };
+        const newItem: ProjectMasterItem = {
+          id: created.id,
+          contractType: created.contractType,
+          group: created.group || created.contractType,
+          department: created.department,
+          subDepartment: created.subDepartment || undefined,
+          service: created.service,
+          tools: created.tools,
+          duration: created.duration,
+          unitPrice: Number(created.unitPrice),
+          createdAt: created.createdAtUtc,
+        };
+
+        setProjectMasters((prev) => [newItem, ...prev]);
+        toast.success("Project Master added and saved to database");
+        return { success: true };
+      } catch (err: any) {
+        const errMsg = err?.message || "Failed to add project master to database";
+        toast.error(errMsg);
+        return { success: false, error: errMsg };
+      }
     },
     [projectMasters],
   );
 
   const updateProjectMaster = useCallback(
-    (id: string, item: Omit<ProjectMasterItem, "id" | "createdAt">): { success: boolean; error?: string } => {
+    async (id: string, item: Omit<ProjectMasterItem, "id" | "createdAt">): Promise<{ success: boolean; error?: string }> => {
       const contractTypeVal = (item.contractType || item.group || "").trim();
       if (!contractTypeVal) return { success: false, error: "Please select a Contract Type." };
       if (!item.department?.trim()) return { success: false, error: "Please select a Department." };
@@ -256,536 +379,571 @@ export function useMastersStore() {
         };
       }
 
-      setProjectMasters((prev) =>
-        prev.map((p) =>
-          p.id === id
-            ? {
-                ...p,
-                contractType: contractTypeVal,
-                group: contractTypeVal,
-                department: item.department.trim(),
-                subDepartment: item.subDepartment?.trim() || undefined,
-                service: item.service.trim(),
-                tools: item.tools.trim(),
-                duration: item.duration.trim(),
-                unitPrice: Number(item.unitPrice),
-              }
-            : p,
-        ),
-      );
-      toast.success("Project Master updated successfully");
-      return { success: true };
+      try {
+        const updated = await updateProjectMasterApi(id, {
+          contractType: contractTypeVal,
+          department: item.department.trim(),
+          subDepartment: item.subDepartment?.trim() || "",
+          service: item.service.trim(),
+          tools: item.tools.trim(),
+          duration: item.duration.trim(),
+          unitPrice: Number(item.unitPrice),
+        });
+
+        setProjectMasters((prev) =>
+          prev.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  contractType: updated.contractType,
+                  group: updated.group || updated.contractType,
+                  department: updated.department,
+                  subDepartment: updated.subDepartment || undefined,
+                  service: updated.service,
+                  tools: updated.tools,
+                  duration: updated.duration,
+                  unitPrice: Number(updated.unitPrice),
+                }
+              : p,
+          ),
+        );
+        toast.success("Project Master updated and synchronized with database");
+        return { success: true };
+      } catch (err: any) {
+        const errMsg = err?.message || "Failed to update project master in database";
+        toast.error(errMsg);
+        return { success: false, error: errMsg };
+      }
     },
     [projectMasters],
   );
 
-  const deleteProjectMaster = useCallback((id: string) => {
-    setProjectMasters((prev) => prev.filter((p) => p.id !== id));
-    toast.success("Project Master deleted");
+  const deleteProjectMaster = useCallback(async (id: string) => {
+    try {
+      await deleteProjectMasterApi(id);
+      setProjectMasters((prev) => prev.filter((p) => p.id !== id));
+      toast.success("Project Master deleted from database");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete project master from database");
+    }
   }, []);
 
-  // --- Customer Master Operations ---
+  // --- Customer Master Operations (Directly Connected to PostgreSQL Database) ---
   const addCustomerMasterItem = useCallback(
-    (category: CustomerMasterCategory, name: string, extra?: { code?: string; description?: string }): { success: boolean; error?: string } => {
-      const trimmed = name.trim();
-      if (!trimmed) {
-        return { success: false, error: "Name is required." };
-      }
-
-      const list = customerMasters[category] || [];
-      const duplicate = list.some((item) => item.name.toLowerCase() === trimmed.toLowerCase());
-      if (duplicate) {
-        return { success: false, error: `"${trimmed}" already exists in this master category.` };
-      }
-
-      const newItem: SimpleMasterItem = {
-        id: `${category.slice(0, 3)}-${Date.now()}`,
-        name: trimmed,
-        code: extra?.code?.trim(),
-        description: extra?.description?.trim(),
-        createdAt: new Date().toISOString(),
-      };
-
-      setCustomerMasters((prev) => ({
-        ...prev,
-        [category]: [newItem, ...prev[category]],
-      }));
-
-      toast.success(`Added "${trimmed}" to ${category}`);
-      return { success: true };
-    },
-    [customerMasters],
-  );
-
-  const updateCustomerMasterItem = useCallback(
-    (
+    async (
       category: CustomerMasterCategory,
-      id: string,
       name: string,
-      extra?: { code?: string; description?: string },
-    ): { success: boolean; error?: string } => {
+      extra?: { code?: string; description?: string; countryId?: string; phoneCode?: string; phoneDigits?: number },
+    ): Promise<{ success: boolean; error?: string }> => {
       const trimmed = name.trim();
       if (!trimmed) {
         return { success: false, error: "Name is required." };
       }
 
-      const list = customerMasters[category] || [];
-      const duplicate = list.some((item) => item.id !== id && item.name.toLowerCase() === trimmed.toLowerCase());
-      if (duplicate) {
-        return { success: false, error: `"${trimmed}" already exists in this master category.` };
+      try {
+        let createdItem: SimpleMasterItem;
+
+        if (category === "countries") {
+          const res = await createCountry({
+            name: trimmed,
+            code: extra?.code?.trim(),
+            phoneCode: extra?.phoneCode?.trim(),
+            phoneDigits: extra?.phoneDigits,
+          });
+          createdItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            phoneCode: res.phoneCode,
+            phoneDigits: res.phoneDigits,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (category === "cities") {
+          if (!extra?.countryId) {
+            return { success: false, error: "Please select a Country for this city." };
+          }
+          const res = await createCity({
+            name: trimmed,
+            countryId: extra.countryId,
+            code: extra?.code?.trim(),
+          });
+          createdItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            country: res.countryId,
+            countryId: res.countryId,
+            countryName: res.countryName,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (category === "industries") {
+          const res = await createIndustry({
+            name: trimmed,
+            code: extra?.code?.trim(),
+          });
+          createdItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (category === "designations") {
+          const res = await createContactDesignation({
+            name: trimmed,
+            code: extra?.code?.trim(),
+          });
+          createdItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (category === "contactTypes") {
+          const res = await createContactType({
+            name: trimmed,
+            code: extra?.code?.trim(),
+          });
+          createdItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            createdAt: new Date().toISOString(),
+          };
+        } else {
+          return { success: false, error: "Unknown master category" };
+        }
+
+        setCustomerMasters((prev) => ({
+          ...prev,
+          [category]: [createdItem, ...prev[category].filter((i) => i.id !== createdItem.id)],
+        }));
+
+        toast.success(`Saved "${trimmed}" in database`);
+        return { success: true };
+      } catch (err: any) {
+        console.error(`Failed to create ${category} item:`, err);
+        const msg = err?.message || `Failed to add item to ${category}.`;
+        toast.error(msg);
+        return { success: false, error: msg };
       }
-
-      setCustomerMasters((prev) => ({
-        ...prev,
-        [category]: prev[category].map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                name: trimmed,
-                code: extra?.code !== undefined ? extra.code.trim() : item.code,
-                description: extra?.description !== undefined ? extra.description.trim() : item.description,
-              }
-            : item,
-        ),
-      }));
-
-      toast.success(`Updated "${trimmed}"`);
-      return { success: true };
-    },
-    [customerMasters],
-  );
-
-  const deleteCustomerMasterItem = useCallback((category: CustomerMasterCategory, id: string) => {
-    setCustomerMasters((prev) => ({
-      ...prev,
-      [category]: prev[category].filter((item) => item.id !== id),
-    }));
-    toast.success("Master item deleted");
-  }, []);
-
-  // ── Resource Master Operations ──────────────────────────────────────────
-  const addDepartmentHierarchyItem = useCallback(
-    (item: Omit<DepartmentHierarchyItem, "id" | "createdAt">): { success: boolean; error?: string } => {
-      if (!item.departmentName?.trim()) return { success: false, error: "Department is required." };
-      if (!item.designationName?.trim()) return { success: false, error: "Designation is required." };
-      if (!item.onFloorRoleName?.trim()) return { success: false, error: "On Floor Role is required." };
-      if (!item.assignedRbacRoleName?.trim()) return { success: false, error: "Assigned RBAC Role is required." };
-
-      const duplicate = resourceMasters.departmentHierarchy.some(
-        (h) =>
-          h.departmentName.toLowerCase() === item.departmentName.trim().toLowerCase() &&
-          h.designationName.toLowerCase() === item.designationName.trim().toLowerCase() &&
-          h.onFloorRoleName.toLowerCase() === item.onFloorRoleName.trim().toLowerCase(),
-      );
-
-      if (duplicate) {
-        return {
-          success: false,
-          error: `Hierarchy mapping for ${item.departmentName} → ${item.designationName} → ${item.onFloorRoleName} already exists.`,
-        };
-      }
-
-      const newItem: DepartmentHierarchyItem = {
-        id: `dh-${Date.now()}`,
-        departmentId: item.departmentId,
-        departmentName: item.departmentName.trim(),
-        designationId: item.designationId,
-        designationName: item.designationName.trim(),
-        onFloorRoleId: item.onFloorRoleId,
-        onFloorRoleName: item.onFloorRoleName.trim(),
-        assignedRbacRoleId: item.assignedRbacRoleId,
-        assignedRbacRoleName: item.assignedRbacRoleName.trim(),
-        assignedRbacRoleCode: item.assignedRbacRoleCode?.trim(),
-        isActive: item.isActive !== undefined ? item.isActive : true,
-        createdAt: new Date().toISOString(),
-      };
-
-      setResourceMasters((prev) => ({
-        ...prev,
-        departmentHierarchy: [newItem, ...prev.departmentHierarchy],
-      }));
-
-      toast.success(`Added hierarchy mapping: ${newItem.departmentName} → ${newItem.designationName}`);
-      return { success: true };
-    },
-    [resourceMasters.departmentHierarchy],
-  );
-
-  const updateDepartmentHierarchyItem = useCallback(
-    (id: string, item: Partial<Omit<DepartmentHierarchyItem, "id" | "createdAt">>): { success: boolean; error?: string } => {
-      setResourceMasters((prev) => ({
-        ...prev,
-        departmentHierarchy: prev.departmentHierarchy.map((h) =>
-          h.id === id
-            ? {
-                ...h,
-                ...item,
-                departmentName: item.departmentName ? item.departmentName.trim() : h.departmentName,
-                designationName: item.designationName ? item.designationName.trim() : h.designationName,
-                onFloorRoleName: item.onFloorRoleName ? item.onFloorRoleName.trim() : h.onFloorRoleName,
-                assignedRbacRoleName: item.assignedRbacRoleName ? item.assignedRbacRoleName.trim() : h.assignedRbacRoleName,
-              }
-            : h,
-        ),
-      }));
-
-      toast.success("Updated hierarchy mapping");
-      return { success: true };
     },
     [],
   );
 
-  const deleteDepartmentHierarchyItem = useCallback((id: string) => {
-    setResourceMasters((prev) => ({
-      ...prev,
-      departmentHierarchy: prev.departmentHierarchy.filter((h) => h.id !== id),
-    }));
-    toast.success("Hierarchy mapping deleted");
-  }, []);
+  const updateCustomerMasterItem = useCallback(
+    async (
+      category: CustomerMasterCategory,
+      id: string,
+      name: string,
+      extra?: { code?: string; description?: string; countryId?: string; phoneCode?: string; phoneDigits?: number },
+    ): Promise<{ success: boolean; error?: string }> => {
+      const trimmed = name.trim();
+      if (!trimmed) {
+        return { success: false, error: "Name is required." };
+      }
+
+      try {
+        let updatedItem: SimpleMasterItem;
+
+        if (category === "countries") {
+          const res = await updateCountry(id, {
+            name: trimmed,
+            code: extra?.code?.trim(),
+            phoneCode: extra?.phoneCode?.trim(),
+            phoneDigits: extra?.phoneDigits,
+          });
+          updatedItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            phoneCode: res.phoneCode,
+            phoneDigits: res.phoneDigits,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (category === "cities") {
+          const res = await updateCity(id, {
+            name: trimmed,
+            countryId: extra?.countryId,
+            code: extra?.code?.trim(),
+          });
+          updatedItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            country: res.countryId,
+            countryId: res.countryId,
+            countryName: res.countryName,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (category === "industries") {
+          const res = await updateIndustry(id, {
+            name: trimmed,
+            code: extra?.code?.trim(),
+          });
+          updatedItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (category === "designations") {
+          const res = await updateContactDesignation(id, {
+            name: trimmed,
+            code: extra?.code?.trim(),
+          });
+          updatedItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (category === "contactTypes") {
+          const res = await updateContactType(id, {
+            name: trimmed,
+            code: extra?.code?.trim(),
+          });
+          updatedItem = {
+            id: res.id,
+            name: res.name,
+            code: res.code,
+            createdAt: new Date().toISOString(),
+          };
+        } else {
+          return { success: false, error: "Unknown category" };
+        }
+
+        setCustomerMasters((prev) => ({
+          ...prev,
+          [category]: prev[category].map((item) => (item.id === id ? updatedItem : item)),
+        }));
+
+        toast.success(`Updated "${trimmed}" in database`);
+        return { success: true };
+      } catch (err: any) {
+        console.error(`Failed to update ${category} item:`, err);
+        const msg = err?.message || `Failed to update item in ${category}.`;
+        toast.error(msg);
+        return { success: false, error: msg };
+      }
+    },
+    [],
+  );
+
+  const deleteCustomerMasterItem = useCallback(
+    async (category: CustomerMasterCategory, id: string) => {
+      try {
+        if (category === "countries") {
+          await deleteCountry(id);
+          setCustomerMasters((prev) => ({
+            ...prev,
+            countries: prev.countries.filter((item) => item.id !== id),
+            cities: prev.cities.filter((item) => item.countryId !== id && item.country !== id),
+          }));
+        } else if (category === "cities") {
+          await deleteCity(id);
+          setCustomerMasters((prev) => ({
+            ...prev,
+            cities: prev.cities.filter((item) => item.id !== id),
+          }));
+        } else if (category === "industries") {
+          await deleteIndustry(id);
+          setCustomerMasters((prev) => ({
+            ...prev,
+            industries: prev.industries.filter((item) => item.id !== id),
+          }));
+        } else if (category === "designations") {
+          await deleteContactDesignation(id);
+          setCustomerMasters((prev) => ({
+            ...prev,
+            designations: prev.designations.filter((item) => item.id !== id),
+          }));
+        } else if (category === "contactTypes") {
+          await deleteContactType(id);
+          setCustomerMasters((prev) => ({
+            ...prev,
+            contactTypes: prev.contactTypes.filter((item) => item.id !== id),
+          }));
+        }
+        toast.success("Master item deleted from database");
+      } catch (err: any) {
+        console.error(`Failed to delete ${category} item:`, err);
+        toast.error(err?.message || "Failed to delete master item.");
+      }
+    },
+    [],
+  );
+
+  // ── Resource Master Operations (Directly Connected to Local PostgreSQL Database) ──
+  const addDepartmentHierarchyItem = useCallback(
+    async (item: Omit<DepartmentHierarchyItem, "id" | "createdAt">): Promise<{ success: boolean; error?: string }> => {
+      if (!item.departmentName?.trim()) return { success: false, error: "Please select a Department." };
+      if (!item.designationName?.trim()) return { success: false, error: "Please select a Designation." };
+      if (!item.onFloorRoleName?.trim()) return { success: false, error: "Please select an On Floor Role." };
+      if (!item.assignedRbacRoleName?.trim()) return { success: false, error: "Please select an RBAC Role." };
+
+      try {
+        const created = await createResourceHierarchy(item);
+        setResourceMasters((prev) => ({
+          ...prev,
+          departmentHierarchy: [created, ...prev.departmentHierarchy.filter((h) => h.id !== created.id)],
+        }));
+        toast.success(`Saved hierarchy mapping: ${created.departmentName} → ${created.designationName}`);
+        return { success: true };
+      } catch (err: any) {
+        console.error("Failed to add hierarchy mapping to database:", err);
+        const msg = err?.message || "Failed to save hierarchy mapping to database.";
+        toast.error(msg);
+        return { success: false, error: msg };
+      }
+    },
+    [],
+  );
+
+  const updateDepartmentHierarchyItem = useCallback(
+    async (id: string, item: Partial<Omit<DepartmentHierarchyItem, "id" | "createdAt">>): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const updated = await updateResourceHierarchy(id, item);
+        setResourceMasters((prev) => ({
+          ...prev,
+          departmentHierarchy: prev.departmentHierarchy.map((h) => (h.id === id ? updated : h)),
+        }));
+        toast.success("Updated hierarchy mapping in database");
+        return { success: true };
+      } catch (err: any) {
+        console.error("Failed to update hierarchy mapping in database:", err);
+        const msg = err?.message || "Failed to update hierarchy mapping in database.";
+        toast.error(msg);
+        return { success: false, error: msg };
+      }
+    },
+    [],
+  );
+
+  const deleteDepartmentHierarchyItem = useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        await deleteResourceHierarchy(id);
+        setResourceMasters((prev) => ({
+          ...prev,
+          departmentHierarchy: prev.departmentHierarchy.filter((h) => h.id !== id),
+        }));
+        toast.success("Hierarchy mapping deleted from database");
+      } catch (err: any) {
+        console.error("Failed to delete hierarchy mapping from database:", err);
+        toast.error(err?.message || "Failed to delete hierarchy mapping from database.");
+      }
+    },
+    [],
+  );
 
   const addEmailDomain = useCallback(
-    (domainName: string, extra?: { displayName?: string; code?: string }): { success: boolean; error?: string } => {
+    async (domainName: string, extra?: { displayName?: string; code?: string }): Promise<{ success: boolean; error?: string }> => {
       const trimmed = domainName.trim().toLowerCase().replace(/^@/, "");
       if (!trimmed) return { success: false, error: "Domain name cannot be empty." };
       if (!trimmed.includes(".")) return { success: false, error: "Please enter a valid domain (e.g. talakunchi.in)." };
 
-      if (resourceMasters.emailDomains.some((d) => d.domainName.toLowerCase() === trimmed)) {
-        return { success: false, error: `Domain "${trimmed}" already exists.` };
+      try {
+        const created = await createEmailDomain(trimmed, extra);
+        setResourceMasters((prev) => ({
+          ...prev,
+          emailDomains: [created, ...prev.emailDomains.filter((d) => d.id !== created.id)],
+        }));
+        toast.success(`Saved email domain @${created.domainName} to database`);
+        return { success: true };
+      } catch (err: any) {
+        console.error("Failed to add email domain to database:", err);
+        const msg = err?.message || "Failed to save email domain to database.";
+        toast.error(msg);
+        return { success: false, error: msg };
       }
-
-      const newItem: EmailDomainItem = {
-        id: `edm-${Date.now()}`,
-        domainName: trimmed,
-        displayName: extra?.displayName?.trim() || `@${trimmed}`,
-        code: extra?.code?.trim() || trimmed.replace(/\./g, "_"),
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      };
-
-      setResourceMasters((prev) => ({
-        ...prev,
-        emailDomains: [newItem, ...prev.emailDomains],
-      }));
-
-      toast.success(`Added email domain: @${trimmed}`);
-      return { success: true };
     },
-    [resourceMasters.emailDomains],
+    [],
   );
 
   const updateEmailDomain = useCallback(
-    (id: string, domainName: string, extra?: { displayName?: string; code?: string; isActive?: boolean }): { success: boolean; error?: string } => {
+    async (id: string, domainName: string, extra?: { displayName?: string; code?: string; isActive?: boolean }): Promise<{ success: boolean; error?: string }> => {
       const trimmed = domainName.trim().toLowerCase().replace(/^@/, "");
       if (!trimmed) return { success: false, error: "Domain name cannot be empty." };
 
-      setResourceMasters((prev) => ({
-        ...prev,
-        emailDomains: prev.emailDomains.map((d) =>
-          d.id === id
-            ? {
-                ...d,
-                domainName: trimmed,
-                displayName: extra?.displayName !== undefined ? extra.displayName.trim() : `@${trimmed}`,
-                code: extra?.code !== undefined ? extra.code.trim() : d.code,
-                isActive: extra?.isActive !== undefined ? extra.isActive : d.isActive,
-              }
-            : d,
-        ),
-      }));
-
-      toast.success(`Updated domain @${trimmed}`);
-      return { success: true };
+      try {
+        const updated = await updateEmailDomainApi(id, trimmed, extra);
+        setResourceMasters((prev) => ({
+          ...prev,
+          emailDomains: prev.emailDomains.map((d) => (d.id === id ? updated : d)),
+        }));
+        toast.success(`Updated domain @${updated.domainName} in database`);
+        return { success: true };
+      } catch (err: any) {
+        console.error("Failed to update email domain in database:", err);
+        const msg = err?.message || "Failed to update email domain in database.";
+        toast.error(msg);
+        return { success: false, error: msg };
+      }
     },
     [],
   );
 
-  const deleteEmailDomain = useCallback((id: string) => {
-    setResourceMasters((prev) => ({
-      ...prev,
-      emailDomains: prev.emailDomains.filter((d) => d.id !== id),
-    }));
-    toast.success("Email domain deleted");
-  }, []);
+  const deleteEmailDomain = useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        await deleteEmailDomainApi(id);
+        setResourceMasters((prev) => ({
+          ...prev,
+          emailDomains: prev.emailDomains.filter((d) => d.id !== id),
+        }));
+        toast.success("Email domain deleted from database");
+      } catch (err: any) {
+        console.error("Failed to delete email domain:", err);
+        toast.error(err?.message || "Failed to delete email domain from database.");
+      }
+    },
+    [],
+  );
 
   const addCity = useCallback(
-    (name: string, extra?: { line?: string; code?: string; stationName?: string }): { success: boolean; error?: string } => {
+    async (name: string, extra?: { line?: string; code?: string; stationName?: string }): Promise<{ success: boolean; error?: string }> => {
       const trimmed = name.trim();
       if (!trimmed) return { success: false, error: "Station / City name cannot be empty." };
 
-      const line = extra?.line?.trim() || "Western Line";
-      const value = `${trimmed} (${line})`;
-
-      if (resourceMasters.cities.some((c) => c.name.toLowerCase() === trimmed.toLowerCase() && c.line.toLowerCase() === line.toLowerCase())) {
-        return { success: false, error: `Station "${trimmed}" on "${line}" already exists.` };
+      try {
+        const created = await createResourceCity(trimmed, extra);
+        setResourceMasters((prev) => ({
+          ...prev,
+          cities: [created, ...prev.cities.filter((c) => c.id !== created.id)],
+        }));
+        toast.success(`Saved station / city: ${created.name} (${created.line}) to database`);
+        return { success: true };
+      } catch (err: any) {
+        console.error("Failed to add station / city to database:", err);
+        const msg = err?.message || "Failed to save station / city to database.";
+        toast.error(msg);
+        return { success: false, error: msg };
       }
-
-      const newItem: CityMasterItem = {
-        id: `stn-${Date.now()}`,
-        name: trimmed,
-        line,
-        subLabel: line,
-        value,
-        code: extra?.code?.trim() || trimmed.toLowerCase().replace(/\s+/g, "_"),
-        stationName: extra?.stationName?.trim() || trimmed,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      };
-
-      setResourceMasters((prev) => ({
-        ...prev,
-        cities: [newItem, ...prev.cities],
-      }));
-
-      toast.success(`Added station / city: ${trimmed} (${line})`);
-      return { success: true };
     },
-    [resourceMasters.cities],
+    [],
   );
 
   const updateCity = useCallback(
-    (id: string, name: string, extra?: { line?: string; code?: string; stationName?: string; isActive?: boolean }): { success: boolean; error?: string } => {
+    async (id: string, name: string, extra?: { line?: string; code?: string; stationName?: string; isActive?: boolean }): Promise<{ success: boolean; error?: string }> => {
       const trimmed = name.trim();
       if (!trimmed) return { success: false, error: "Station / City name cannot be empty." };
 
-      setResourceMasters((prev) => ({
-        ...prev,
-        cities: prev.cities.map((c) => {
-          if (c.id !== id) return c;
-          const line = extra?.line !== undefined ? extra.line.trim() : c.line;
-          return {
-            ...c,
-            name: trimmed,
-            line,
-            subLabel: line,
-            value: `${trimmed} (${line})`,
-            code: extra?.code !== undefined ? extra.code.trim() : c.code,
-            stationName: extra?.stationName !== undefined ? extra.stationName.trim() : c.stationName,
-            isActive: extra?.isActive !== undefined ? extra.isActive : c.isActive,
-          };
-        }),
-      }));
-
-      toast.success(`Updated station / city: ${trimmed}`);
-      return { success: true };
+      try {
+        const updated = await updateResourceCityApi(id, trimmed, extra);
+        setResourceMasters((prev) => ({
+          ...prev,
+          cities: prev.cities.map((c) => (c.id === id ? updated : c)),
+        }));
+        toast.success(`Updated station / city: ${updated.name} in database`);
+        return { success: true };
+      } catch (err: any) {
+        console.error("Failed to update station / city in database:", err);
+        const msg = err?.message || "Failed to update station / city in database.";
+        toast.error(msg);
+        return { success: false, error: msg };
+      }
     },
     [],
   );
 
-  const deleteCity = useCallback((id: string) => {
-    setResourceMasters((prev) => ({
-      ...prev,
-      cities: prev.cities.filter((c) => c.id !== id),
-    }));
-    toast.success("Station / City deleted");
-  }, []);
+  const deleteCity = useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        await deleteResourceCityApi(id);
+        setResourceMasters((prev) => ({
+          ...prev,
+          cities: prev.cities.filter((c) => c.id !== id),
+        }));
+        toast.success("Station / City deleted from database");
+      } catch (err: any) {
+        console.error("Failed to delete station / city from database:", err);
+        toast.error(err?.message || "Failed to delete station / city from database.");
+      }
+    },
+    [],
+  );
 
   const addTkIdFormat = useCallback(
-    (item: Omit<TkIdFormatItem, "id" | "createdAt" | "sampleFormat">): { success: boolean; error?: string } => {
-      const prefix = item.prefix.trim().toUpperCase();
-      if (!prefix) return { success: false, error: "Prefix code (e.g. TK, TKI) is required." };
-
-      if (resourceMasters.tkIdFormats?.some((f) => f.prefix.toUpperCase() === prefix)) {
-        return { success: false, error: `TK ID format prefix "${prefix}" already exists.` };
-      }
-
-      const delim = item.delimiter !== undefined ? item.delimiter : "-";
-      const digits = item.digits || 4;
-      const seq = item.currentSequence || 1;
-      const sample = `${prefix}${delim}${String(seq).padStart(digits, "0")}`;
-
-      const newFormat: TkIdFormatItem = {
-        id: `tkf-${Date.now()}`,
-        prefix,
-        name: item.name.trim() || `${prefix} ID Format`,
-        targetCategory: item.targetCategory?.trim() || "Full-Time Employee",
-        delimiter: delim,
-        digits,
-        currentSequence: seq,
-        sampleFormat: sample,
-        isActive: item.isActive !== undefined ? item.isActive : true,
-        description: item.description?.trim(),
-        createdAt: new Date().toISOString(),
-      };
-
-      setResourceMasters((prev) => ({
-        ...prev,
-        tkIdFormats: [newFormat, ...(prev.tkIdFormats || [])],
-      }));
-
-      toast.success(`Added TK ID format prefix: ${prefix} (${sample})`);
-      return { success: true };
-    },
-    [resourceMasters.tkIdFormats],
+    (_item: any): { success: boolean; error?: string } => ({ success: true }),
+    [],
   );
-
   const updateTkIdFormat = useCallback(
-    (id: string, item: Partial<Omit<TkIdFormatItem, "id" | "createdAt">>): { success: boolean; error?: string } => {
-      setResourceMasters((prev) => ({
-        ...prev,
-        tkIdFormats: (prev.tkIdFormats || []).map((f) => {
-          if (f.id !== id) return f;
-          const prefix = item.prefix !== undefined ? item.prefix.trim().toUpperCase() : f.prefix;
-          const delim = item.delimiter !== undefined ? item.delimiter : f.delimiter;
-          const digits = item.digits !== undefined ? item.digits : f.digits;
-          const seq = item.currentSequence !== undefined ? item.currentSequence : f.currentSequence;
-          const sample = `${prefix}${delim}${String(seq).padStart(digits, "0")}`;
-
-          return {
-            ...f,
-            ...item,
-            prefix,
-            delimiter: delim,
-            digits,
-            currentSequence: seq,
-            sampleFormat: sample,
-            name: item.name !== undefined ? item.name.trim() : f.name,
-            targetCategory: item.targetCategory !== undefined ? item.targetCategory.trim() : f.targetCategory,
-            description: item.description !== undefined ? item.description.trim() : f.description,
-          };
-        }),
-      }));
-
-      toast.success("Updated TK ID format");
-      return { success: true };
-    },
+    (_id: string, _item: any): { success: boolean; error?: string } => ({ success: true }),
     [],
   );
-
-  const deleteTkIdFormat = useCallback((id: string) => {
-    setResourceMasters((prev) => ({
-      ...prev,
-      tkIdFormats: (prev.tkIdFormats || []).filter((f) => f.id !== id),
-    }));
-    toast.success("TK ID format deleted");
-  }, []);
-
+  const deleteTkIdFormat = useCallback((_id: string) => {}, []);
   const addTkId = useCallback(
-    (code: string, extra?: { prefix?: string; assignedTo?: string; status?: "Assigned" | "Available" | "Reserved" }): { success: boolean; error?: string } => {
-      const trimmed = code.trim().toUpperCase();
-      if (!trimmed) return { success: false, error: "TK ID cannot be empty." };
-
-      if (resourceMasters.tkIds.some((t) => t.code.toUpperCase() === trimmed)) {
-        return { success: false, error: `TK ID "${trimmed}" already exists.` };
-      }
-
-      const newItem: TkIdMasterItem = {
-        id: `tk-${Date.now()}`,
-        code: trimmed,
-        prefix: extra?.prefix?.trim() || "TK-",
-        assignedTo: extra?.assignedTo?.trim() || "",
-        status: extra?.status || (extra?.assignedTo?.trim() ? "Assigned" : "Available"),
-        createdAt: new Date().toISOString(),
-      };
-
-      setResourceMasters((prev) => ({
-        ...prev,
-        tkIds: [newItem, ...prev.tkIds],
-      }));
-
-      toast.success(`Added TK ID: ${trimmed}`);
-      return { success: true };
-    },
-    [resourceMasters.tkIds],
-  );
-
-  const updateTkId = useCallback(
-    (id: string, code: string, extra?: { prefix?: string; assignedTo?: string; status?: "Assigned" | "Available" | "Reserved" }): { success: boolean; error?: string } => {
-      const trimmed = code.trim().toUpperCase();
-      if (!trimmed) return { success: false, error: "TK ID cannot be empty." };
-
-      setResourceMasters((prev) => ({
-        ...prev,
-        tkIds: prev.tkIds.map((t) =>
-          t.id === id
-            ? {
-                ...t,
-                code: trimmed,
-                prefix: extra?.prefix !== undefined ? extra.prefix.trim() : t.prefix,
-                assignedTo: extra?.assignedTo !== undefined ? extra.assignedTo.trim() : t.assignedTo,
-                status: extra?.status !== undefined ? extra.status : t.status,
-              }
-            : t,
-        ),
-      }));
-
-      toast.success(`Updated TK ID ${trimmed}`);
-      return { success: true };
-    },
+    (_code: string, _extra?: any): { success: boolean; error?: string } => ({ success: true }),
     [],
   );
-
-  const deleteTkId = useCallback((id: string) => {
-    setResourceMasters((prev) => ({
-      ...prev,
-      tkIds: prev.tkIds.filter((t) => t.id !== id),
-    }));
-    toast.success("TK ID deleted");
-  }, []);
-
-  type SimpleCategory = "businessUnits" | "workLocations" | "graduationDegrees" | "postGraduationDegrees" | "certifications";
+  const updateTkId = useCallback(
+    (_id: string, _code: string, _extra?: any): { success: boolean; error?: string } => ({ success: true }),
+    [],
+  );
+  const deleteTkId = useCallback((_id: string) => {}, []);
 
   const addResourceSimpleItem = useCallback(
-    (category: SimpleCategory, name: string, extra?: { code?: string; description?: string }): { success: boolean; error?: string } => {
+    async (category: SimpleCategory, name: string, extra?: { code?: string; description?: string }): Promise<{ success: boolean; error?: string }> => {
       const trimmed = name.trim();
       if (!trimmed) return { success: false, error: "Name cannot be empty." };
 
-      if (resourceMasters[category].some((item) => item.name.toLowerCase() === trimmed.toLowerCase())) {
-        return { success: false, error: `"${trimmed}" already exists in this master.` };
+      try {
+        const created = await createSimpleMaster(category, trimmed, extra);
+        setResourceMasters((prev) => ({
+          ...prev,
+          [category]: [created, ...prev[category].filter((item) => item.id !== created.id)],
+        }));
+        toast.success(`Saved "${created.name}" to database`);
+        return { success: true };
+      } catch (err: any) {
+        console.error(`Failed to add item to ${category} in database:`, err);
+        const msg = err?.message || "Failed to save item to database.";
+        toast.error(msg);
+        return { success: false, error: msg };
       }
-
-      const newItem: SimpleResourceMasterItem = {
-        id: `${category}-${Date.now()}`,
-        name: trimmed,
-        code: extra?.code?.trim() || trimmed.toLowerCase().replace(/\s+/g, "_"),
-        description: extra?.description?.trim(),
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      };
-
-      setResourceMasters((prev) => ({
-        ...prev,
-        [category]: [newItem, ...prev[category]],
-      }));
-
-      toast.success(`Added to ${category}: "${trimmed}"`);
-      return { success: true };
     },
-    [resourceMasters],
+    [],
   );
 
   const updateResourceSimpleItem = useCallback(
-    (category: SimpleCategory, id: string, name: string, extra?: { code?: string; description?: string; isActive?: boolean }): { success: boolean; error?: string } => {
+    async (category: SimpleCategory, id: string, name: string, extra?: { code?: string; description?: string; isActive?: boolean }): Promise<{ success: boolean; error?: string }> => {
       const trimmed = name.trim();
       if (!trimmed) return { success: false, error: "Name cannot be empty." };
 
-      setResourceMasters((prev) => ({
-        ...prev,
-        [category]: prev[category].map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                name: trimmed,
-                code: extra?.code !== undefined ? extra.code.trim() : item.code,
-                description: extra?.description !== undefined ? extra.description.trim() : item.description,
-                isActive: extra?.isActive !== undefined ? extra.isActive : item.isActive,
-              }
-            : item,
-        ),
-      }));
-
-      toast.success(`Updated "${trimmed}"`);
-      return { success: true };
+      try {
+        const updated = await updateSimpleMasterApi(category, id, trimmed, extra);
+        setResourceMasters((prev) => ({
+          ...prev,
+          [category]: prev[category].map((item) => (item.id === id ? updated : item)),
+        }));
+        toast.success(`Updated "${updated.name}" in database`);
+        return { success: true };
+      } catch (err: any) {
+        console.error(`Failed to update item in ${category} in database:`, err);
+        const msg = err?.message || "Failed to update item in database.";
+        toast.error(msg);
+        return { success: false, error: msg };
+      }
     },
     [],
   );
 
-  const deleteResourceSimpleItem = useCallback((category: SimpleCategory, id: string) => {
-    setResourceMasters((prev) => ({
-      ...prev,
-      [category]: prev[category].filter((item) => item.id !== id),
-    }));
-    toast.success("Master item deleted");
-  }, []);
+  const deleteResourceSimpleItem = useCallback(
+    async (category: SimpleCategory, id: string): Promise<void> => {
+      try {
+        await deleteSimpleMasterApi(category, id);
+        setResourceMasters((prev) => ({
+          ...prev,
+          [category]: prev[category].filter((item) => item.id !== id),
+        }));
+        toast.success("Master item deleted from database");
+      } catch (err: any) {
+        console.error(`Failed to delete item from ${category} in database:`, err);
+        toast.error(err?.message || "Failed to delete item from database.");
+      }
+    },
+    [],
+  );
 
   const resetAllToDefaults = useCallback(() => {
     resetCatalog();

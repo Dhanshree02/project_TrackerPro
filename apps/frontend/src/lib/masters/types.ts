@@ -23,6 +23,11 @@ export interface SimpleMasterItem {
   name: string;
   code?: string;
   description?: string;
+  country?: string;
+  countryId?: string;
+  countryName?: string;
+  phoneCode?: string;
+  phoneDigits?: number;
   createdAt: string;
 }
 
@@ -46,8 +51,6 @@ export interface MasterCategoryMeta {
 export type ResourceMasterCategory =
   | "hierarchy"
   | "emailDomains"
-  | "cities"
-  | "tkIds"
   | "businessUnits"
   | "workLocations"
   | "graduationDegrees"

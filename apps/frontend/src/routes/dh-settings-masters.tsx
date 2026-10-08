@@ -49,7 +49,6 @@ function MastersPage() {
 
   const canManageProjects =
     isAdmin ||
-    isDhanshree ||
     hasAny(
       "Settings|Masters|Project Masters:manage",
       "settings.masters.projects.manage",
@@ -71,7 +70,6 @@ function MastersPage() {
 
   const canManageCustomers =
     isAdmin ||
-    isDhanshree ||
     hasAny(
       "Settings|Masters|Customer Masters:manage",
       "settings.masters.customers.manage",
@@ -93,7 +91,6 @@ function MastersPage() {
 
   const canManageResources =
     isAdmin ||
-    isDhanshree ||
     hasAny(
       "Settings|Masters|Resource Master:manage",
       "settings.masters.resources.manage",
@@ -153,15 +150,6 @@ function MastersPage() {
     addEmailDomain,
     updateEmailDomain,
     deleteEmailDomain,
-    addCity,
-    updateCity,
-    deleteCity,
-    addTkIdFormat,
-    updateTkIdFormat,
-    deleteTkIdFormat,
-    addTkId,
-    updateTkId,
-    deleteTkId,
     addResourceSimpleItem,
     updateResourceSimpleItem,
     deleteResourceSimpleItem,
@@ -178,8 +166,6 @@ function MastersPage() {
   const totalResourceItems =
     (resourceMasters?.departmentHierarchy?.length || 0) +
     (resourceMasters?.emailDomains?.length || 0) +
-    (resourceMasters?.cities?.length || 0) +
-    (resourceMasters?.tkIdFormats?.length || resourceMasters?.tkIds?.length || 0) +
     (resourceMasters?.businessUnits?.length || 0) +
     (resourceMasters?.workLocations?.length || 0) +
     (resourceMasters?.graduationDegrees?.length || 0) +
@@ -329,15 +315,6 @@ function MastersPage() {
           onAddEmailDomain={addEmailDomain}
           onUpdateEmailDomain={updateEmailDomain}
           onDeleteEmailDomain={deleteEmailDomain}
-          onAddCity={addCity}
-          onUpdateCity={updateCity}
-          onDeleteCity={deleteCity}
-          onAddTkIdFormat={addTkIdFormat}
-          onUpdateTkIdFormat={updateTkIdFormat}
-          onDeleteTkIdFormat={deleteTkIdFormat}
-          onAddTkId={addTkId}
-          onUpdateTkId={updateTkId}
-          onDeleteTkId={deleteTkId}
           onAddSimpleItem={addResourceSimpleItem}
           onUpdateSimpleItem={updateResourceSimpleItem}
           onDeleteSimpleItem={deleteResourceSimpleItem}

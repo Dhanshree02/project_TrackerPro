@@ -8,6 +8,7 @@ using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Shared.Validation;
+using PMS.API.Shared.Exceptions;
 
 namespace PMS.API.Modules.Customers.Services;
 
@@ -84,14 +85,64 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<ClientDto> CreateClientAsync(CreateClientRequest request, CancellationToken ct = default)
     {
+        var trimmedName = request.Name.Trim();
+        var existing = await db.Clients
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.Name.ToLower() == trimmedName.ToLower(), ct);
+
         var countryId = await ResolveCountryIdAsync(request.Country, ct);
+        var subVentureInputs = request.SubVentures ?? [];
+
+        if (existing is not null)
+        {
+            if (existing.DeletedAtUtc is not null)
+            {
+                // Restore on Re-Add!
+                existing.DeletedAtUtc = null;
+                existing.Name = trimmedName;
+                existing.Industry = request.Industry.Trim();
+                existing.IndustryId = await ResolveIndustryIdAsync(request.Industry, ct);
+                existing.Logo = Client.LogoFromName(trimmedName);
+                existing.ContactEmail = EmailRules.NullIfEmpty(request.ContactEmail);
+                existing.ClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New;
+                existing.EngagementManager = NormalizeManagerName(request.EngagementManager);
+                existing.EngagementManagerId = await ResolveEngagementManagerIdAsync(request.EngagementManager, ct);
+                existing.SalesManager = NormalizeManagerName(request.SalesManager);
+                existing.SalesManagerId = await ResolveSalesManagerIdAsync(request.SalesManager, ct);
+                existing.ContactName = NormalizeManagerName(request.GroupSpocName) ?? request.ContactName;
+                existing.ContactPhone = NormalizeManagerName(request.GroupSpocContact) ?? request.ContactPhone;
+                existing.ContactDesignation = request.ContactDesignation;
+                existing.ContactType = request.ContactType;
+                existing.Country = request.Country;
+                existing.CountryId = countryId;
+                existing.City = request.City;
+                existing.CityId = await ResolveCityIdAsync(request.City, countryId, ct);
+                existing.BusinessType = request.BusinessType;
+                existing.BillingMedium = NormalizeBillingMedium(request.BillingMedium);
+                existing.GroupSpocName = NormalizeManagerName(request.GroupSpocName);
+                existing.GroupSpocContact = NormalizeManagerName(request.GroupSpocContact);
+                existing.Notes = request.Notes;
+                existing.KycDocumentName = request.KycDocumentName;
+                existing.UpdatedAtUtc = DateTime.UtcNow;
+
+                await db.SaveChangesAsync(ct);
+                await PersistContactsAsync(existing, request.Contacts, subVentureInputs, ct);
+
+                var reloaded = await LoadClientGraphAsync(existing.Id, ct);
+                var clientCodesMap = await GetAllClientCodesAsync(ct);
+                return MapToDto(reloaded, clientCodesMap.GetValueOrDefault(reloaded.Id));
+            }
+
+            throw new ConflictException($"Customer '{trimmedName}' already exists.");
+        }
+
         var client = new Client
         {
-            Name = request.Name.Trim(),
+            Name = trimmedName,
             Industry = request.Industry.Trim(),
             IndustryId = await ResolveIndustryIdAsync(request.Industry, ct),
             // Logo is always derived from the client name.
-            Logo = Client.LogoFromName(request.Name),
+            Logo = Client.LogoFromName(trimmedName),
             ContactEmail = EmailRules.NullIfEmpty(request.ContactEmail),
             ClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New,
             EngagementManager = NormalizeManagerName(request.EngagementManager),
@@ -115,7 +166,6 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             CustomerSince = TodayIst(),
         };
 
-        var subVentureInputs = request.SubVentures ?? [];
         client.SubVentures = subVentureInputs
             .Select(s => new SubVenture
             {
@@ -143,7 +193,13 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
         if (request.Name is not null)
         {
-            client.Name = request.Name.Trim();
+            var trimmedName = request.Name.Trim();
+            var duplicate = await db.Clients.AnyAsync(c => c.Id != id && c.Name.ToLower() == trimmedName.ToLower() && c.DeletedAtUtc == null, ct);
+            if (duplicate)
+            {
+                throw new ConflictException($"Customer '{trimmedName}' already exists.");
+            }
+            client.Name = trimmedName;
             // Keep the logo in sync with the name (first + last letter).
             client.Logo = Client.LogoFromName(client.Name);
         }

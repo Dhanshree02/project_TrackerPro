@@ -272,7 +272,28 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
                 parent.Children.Add(node);
         }
 
+        EnforceHierarchy(roots, parentAllowsView: true, parentAllowsManage: true);
         return new RbacMatrix { RoleId = roleId, RoleName = roleName, Nodes = roots };
+    }
+
+    private static void EnforceHierarchy(IEnumerable<RbacNode> nodes, bool parentAllowsView, bool parentAllowsManage)
+    {
+        foreach (var node in nodes)
+        {
+            var rawView = node.CanView == 1 ? 1 : 0;
+            var rawManage = node.CanManage == 1 ? 1 : 0;
+
+            var canView = parentAllowsView ? rawView : 0;
+            var canManage = (parentAllowsManage && canView == 1) ? rawManage : 0;
+
+            node.CanView = canView;
+            node.CanManage = canManage;
+
+            if (node.Children.Count > 0)
+            {
+                EnforceHierarchy(node.Children, canView == 1, canManage == 1);
+            }
+        }
     }
 
     public async Task SaveAsync(string roleName, IReadOnlyList<RbacGrantUpdate> updates, CancellationToken ct = default)

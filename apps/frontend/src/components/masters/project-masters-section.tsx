@@ -247,13 +247,13 @@ interface ProjectMastersSectionProps {
   departments?: string[];
   subDepartments?: string[];
   services?: string[];
-  onAdd: (item: Omit<ProjectMasterItem, "id" | "createdAt">) => { success: boolean; error?: string };
-  onUpdate: (id: string, item: Omit<ProjectMasterItem, "id" | "createdAt">) => { success: boolean; error?: string };
-  onDelete: (id: string) => void;
-  onAddContractType?: (name: string) => { success: boolean; error?: string };
-  onAddDepartment?: (name: string, group?: "Resource" | "Scope") => { success: boolean; error?: string };
-  onAddSubDepartment?: (dept: string, subDept: string) => { success: boolean; error?: string };
-  onAddService?: (dept: string, service: { name: string; tool?: string; unitPrice?: number; days?: number; subDept?: string }) => { success: boolean; error?: string };
+  onAdd: (item: Omit<ProjectMasterItem, "id" | "createdAt">) => { success: boolean; error?: string } | Promise<{ success: boolean; error?: string }>;
+  onUpdate: (id: string, item: Omit<ProjectMasterItem, "id" | "createdAt">) => { success: boolean; error?: string } | Promise<{ success: boolean; error?: string }>;
+  onDelete: (id: string) => void | Promise<void>;
+  onAddContractType?: (name: string) => { success: boolean; error?: string } | Promise<{ success: boolean; error?: string }>;
+  onAddDepartment?: (name: string, group?: "Resource" | "Scope") => { success: boolean; error?: string } | Promise<{ success: boolean; error?: string }>;
+  onAddSubDepartment?: (dept: string, subDept: string) => { success: boolean; error?: string } | Promise<{ success: boolean; error?: string }>;
+  onAddService?: (dept: string, service: { name: string; tool?: string; unitPrice?: number; days?: number; subDept?: string }) => { success: boolean; error?: string } | Promise<{ success: boolean; error?: string }>;
 }
 
 export function ProjectMastersSection({
@@ -619,8 +619,11 @@ export function ProjectMastersSection({
     return getServicesForDepartment(editDepartment, editSubDepartment || undefined);
   }, [hierarchy, editDepartment, editSubDepartment, getServicesForDepartment]);
 
-  // Authoritative items derived directly from PostgreSQL database hierarchy
+  // Authoritative items derived directly from PostgreSQL database (projectMasters items prop, with fallback to hierarchy)
   const effectiveItems = useMemo(() => {
+    if (items && items.length > 0) {
+      return items;
+    }
     if (hierarchy && hierarchy.length > 0) {
       const list: ProjectMasterItem[] = [];
       for (const group of hierarchy) {
@@ -938,7 +941,7 @@ export function ProjectMastersSection({
   };
 
   // Handle Add Submit (Save Master)
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -994,25 +997,29 @@ export function ProjectMastersSection({
     if (!serviceExistsInCatalog) {
       const adder = onAddService || storeAddService;
       const parsedDays = parseInt(duration.replace(/\D/g, ""), 10);
-      adder(targetDept, {
-        name: trimmedService,
-        tool: tools.trim(),
-        unitPrice: priceNum,
-        days: !Number.isNaN(parsedDays) && parsedDays > 0 ? parsedDays : 5,
-        subDept: selectedSubDepartment.trim() || undefined,
-      });
+      await Promise.resolve(
+        adder(targetDept, {
+          name: trimmedService,
+          tool: tools.trim(),
+          unitPrice: priceNum,
+          days: !Number.isNaN(parsedDays) && parsedDays > 0 ? parsedDays : 5,
+          subDept: selectedSubDepartment.trim() || undefined,
+        })
+      );
     }
 
-    const res = onAdd({
-      contractType: selectedContractType,
-      group: selectedContractType,
-      department: targetDept,
-      subDepartment: selectedSubDepartment.trim() || undefined,
-      service: trimmedService,
-      tools: tools.trim(),
-      duration: duration.trim(),
-      unitPrice: priceNum,
-    });
+    const res = await Promise.resolve(
+      onAdd({
+        contractType: selectedContractType,
+        group: selectedContractType,
+        department: targetDept,
+        subDepartment: selectedSubDepartment.trim() || undefined,
+        service: trimmedService,
+        tools: tools.trim(),
+        duration: duration.trim(),
+        unitPrice: priceNum,
+      })
+    );
 
     if (res.success) {
       // Clear inputs
@@ -1022,6 +1029,7 @@ export function ProjectMastersSection({
       setUnitPrice("");
       setSelectedSubDepartment("");
       setFormError(null);
+      reloadHierarchy();
     } else {
       setFormError(res.error || "Failed to add project master.");
     }
@@ -1041,7 +1049,7 @@ export function ProjectMastersSection({
   };
 
   // Handle Edit Submit
-  const handleEditSubmit = () => {
+  const handleEditSubmit = async () => {
     if (!editingItem) return;
     setEditError(null);
 
@@ -1071,19 +1079,22 @@ export function ProjectMastersSection({
       return;
     }
 
-    const res = onUpdate(editingItem.id, {
-      contractType: editContractType,
-      group: editContractType,
-      department: editDepartment,
-      subDepartment: editSubDepartment.trim() || undefined,
-      service: editService,
-      tools: editTools.trim(),
-      duration: editDuration.trim(),
-      unitPrice: priceNum,
-    });
+    const res = await Promise.resolve(
+      onUpdate(editingItem.id, {
+        contractType: editContractType,
+        group: editContractType,
+        department: editDepartment,
+        subDepartment: editSubDepartment.trim() || undefined,
+        service: editService,
+        tools: editTools.trim(),
+        duration: editDuration.trim(),
+        unitPrice: priceNum,
+      })
+    );
 
     if (res.success) {
       setEditingItem(null);
+      reloadHierarchy();
     } else {
       setEditError(res.error || "Failed to update master.");
     }
@@ -1976,7 +1987,7 @@ export function ProjectMastersSection({
       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <DialogTitle className="text-sm font-semibold">Delete Project Master</DialogTitle>
+            <AlertDialogTitle className="text-sm font-semibold">Delete Project Master</AlertDialogTitle>
             <AlertDialogDescription className="text-xs">
               Are you sure you want to delete this project master entry? This action cannot be undone.
             </AlertDialogDescription>
@@ -1985,10 +1996,12 @@ export function ProjectMastersSection({
             <AlertDialogCancel className="text-xs h-8">Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="text-xs h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
+              onClick={async () => {
                 if (deletingId) {
-                  onDelete(deletingId);
+                  const idToDelete = deletingId;
                   setDeletingId(null);
+                  await Promise.resolve(onDelete(idToDelete));
+                  reloadHierarchy();
                 }
               }}
             >

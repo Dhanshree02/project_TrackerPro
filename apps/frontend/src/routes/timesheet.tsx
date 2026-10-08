@@ -77,7 +77,7 @@ function TimesheetPage() {
   // a direct URL load (browser refresh) would see an empty permission set while
   // auth is still initialising and wrongly bounce the user to the 403 page.
   if (authStatus === "loading") return null;
-  if (!hasPermission("my-team.my-timesheet.view")) return <Navigate to="/access-denied" />;
+  if (!hasPermission("my-team.my-timesheet.view")) return <Navigate to="/" replace />;
 
   const dayTotals = days.map((_, di) => rows.reduce((s, r) => s + (Number(r.hours[di]) || 0), 0));
   const total = dayTotals.reduce((a, b) => a + b, 0);

@@ -11,11 +11,38 @@ export interface CatalogOption {
 
 export interface CityCatalogOption extends CatalogOption {
   countryId: string;
+  countryName?: string;
 }
 
 /** GET /api/v1/catalogs/countries — reusable country dropdown source. */
 export async function fetchCountries(): Promise<CatalogOption[]> {
   return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/countries")) ?? [];
+}
+
+/** POST /api/v1/catalogs/countries */
+export async function createCountry(payload: { name: string; code?: string; phoneCode?: string; phoneDigits?: number }): Promise<CatalogOption> {
+  const res = await apiFetch<CatalogOption>("/api/v1/catalogs/countries", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to create country");
+  return res;
+}
+
+/** PUT /api/v1/catalogs/countries/:id */
+export async function updateCountry(id: string, payload: { name?: string; code?: string; phoneCode?: string; phoneDigits?: number }): Promise<CatalogOption> {
+  const res = await apiFetch<CatalogOption>(`/api/v1/catalogs/countries/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to update country");
+  return res;
+}
+
+/** DELETE /api/v1/catalogs/countries/:id */
+export async function deleteCountry(id: string): Promise<boolean> {
+  await apiFetch(`/api/v1/catalogs/countries/${id}`, { method: "DELETE" });
+  return true;
 }
 
 /** GET /api/v1/catalogs/nationalities — rows from mst_nationalities. */
@@ -29,9 +56,61 @@ export async function fetchCities(countryId?: string): Promise<CityCatalogOption
   return (await apiFetch<CityCatalogOption[]>(`/api/v1/catalogs/cities${query}`)) ?? [];
 }
 
+/** POST /api/v1/catalogs/cities */
+export async function createCity(payload: { name: string; countryId: string; code?: string }): Promise<CityCatalogOption> {
+  const res = await apiFetch<CityCatalogOption>("/api/v1/catalogs/cities", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to create city");
+  return res;
+}
+
+/** PUT /api/v1/catalogs/cities/:id */
+export async function updateCity(id: string, payload: { name?: string; countryId?: string; code?: string }): Promise<CityCatalogOption> {
+  const res = await apiFetch<CityCatalogOption>(`/api/v1/catalogs/cities/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to update city");
+  return res;
+}
+
+/** DELETE /api/v1/catalogs/cities/:id */
+export async function deleteCity(id: string): Promise<boolean> {
+  await apiFetch(`/api/v1/catalogs/cities/${id}`, { method: "DELETE" });
+  return true;
+}
+
 /** GET /api/v1/catalogs/industries — rows from mst_industries. */
 export async function fetchIndustries(): Promise<CatalogOption[]> {
   return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/industries")) ?? [];
+}
+
+/** POST /api/v1/catalogs/industries */
+export async function createIndustry(payload: { name: string; code?: string }): Promise<CatalogOption> {
+  const res = await apiFetch<CatalogOption>("/api/v1/catalogs/industries", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to create industry");
+  return res;
+}
+
+/** PUT /api/v1/catalogs/industries/:id */
+export async function updateIndustry(id: string, payload: { name?: string; code?: string }): Promise<CatalogOption> {
+  const res = await apiFetch<CatalogOption>(`/api/v1/catalogs/industries/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to update industry");
+  return res;
+}
+
+/** DELETE /api/v1/catalogs/industries/:id */
+export async function deleteIndustry(id: string): Promise<boolean> {
+  await apiFetch(`/api/v1/catalogs/industries/${id}`, { method: "DELETE" });
+  return true;
 }
 
 /** GET /api/v1/catalogs/contact-designations — rows from mst_contact_designations. */
@@ -39,9 +118,61 @@ export async function fetchContactDesignations(): Promise<CatalogOption[]> {
   return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/contact-designations")) ?? [];
 }
 
+/** POST /api/v1/catalogs/contact-designations */
+export async function createContactDesignation(payload: { name: string; code?: string }): Promise<CatalogOption> {
+  const res = await apiFetch<CatalogOption>("/api/v1/catalogs/contact-designations", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to create contact designation");
+  return res;
+}
+
+/** PUT /api/v1/catalogs/contact-designations/:id */
+export async function updateContactDesignation(id: string, payload: { name?: string; code?: string }): Promise<CatalogOption> {
+  const res = await apiFetch<CatalogOption>(`/api/v1/catalogs/contact-designations/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to update contact designation");
+  return res;
+}
+
+/** DELETE /api/v1/catalogs/contact-designations/:id */
+export async function deleteContactDesignation(id: string): Promise<boolean> {
+  await apiFetch(`/api/v1/catalogs/contact-designations/${id}`, { method: "DELETE" });
+  return true;
+}
+
 /** GET /api/v1/catalogs/contact-types — rows from mst_contact_types. */
 export async function fetchContactTypes(): Promise<CatalogOption[]> {
   return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/contact-types")) ?? [];
+}
+
+/** POST /api/v1/catalogs/contact-types */
+export async function createContactType(payload: { name: string; code?: string }): Promise<CatalogOption> {
+  const res = await apiFetch<CatalogOption>("/api/v1/catalogs/contact-types", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to create contact type");
+  return res;
+}
+
+/** PUT /api/v1/catalogs/contact-types/:id */
+export async function updateContactType(id: string, payload: { name?: string; code?: string }): Promise<CatalogOption> {
+  const res = await apiFetch<CatalogOption>(`/api/v1/catalogs/contact-types/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  if (!res) throw new Error("Failed to update contact type");
+  return res;
+}
+
+/** DELETE /api/v1/catalogs/contact-types/:id */
+export async function deleteContactType(id: string): Promise<boolean> {
+  await apiFetch(`/api/v1/catalogs/contact-types/${id}`, { method: "DELETE" });
+  return true;
 }
 
 // ── Service Catalog & Hierarchy ──
@@ -194,4 +325,79 @@ export async function createServiceCatalog(payload: {
     body: JSON.stringify(payload),
   });
 }
+
+/** POST /api/v1/catalogs/service-groups — Creates group in master.mst_service_groups */
+export async function createServiceGroup(payload: {
+  name: string;
+  code?: string;
+}): Promise<ServiceGroupOption | null> {
+  return await apiFetch<ServiceGroupOption>("/api/v1/catalogs/service-groups", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export interface BackendProjectMasterDto {
+  id: string;
+  contractType: string;
+  group: string;
+  department: string;
+  subDepartment?: string;
+  service: string;
+  tools: string;
+  duration: string;
+  unitPrice: number;
+  createdAtUtc: string;
+}
+
+/** GET /api/v1/catalogs/project-masters — Fetch all project masters directly from PostgreSQL */
+export async function fetchProjectMasters(): Promise<BackendProjectMasterDto[]> {
+  return (await apiFetch<BackendProjectMasterDto[]>("/api/v1/catalogs/project-masters")) ?? [];
+}
+
+/** POST /api/v1/catalogs/project-masters — Create project master and store in PostgreSQL */
+export async function createProjectMaster(payload: {
+  contractType: string;
+  department: string;
+  subDepartment?: string;
+  service: string;
+  tools: string;
+  duration: string;
+  unitPrice: number;
+}): Promise<BackendProjectMasterDto> {
+  return await apiFetch<BackendProjectMasterDto>("/api/v1/catalogs/project-masters", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/** PUT /api/v1/catalogs/project-masters/:id — Update existing project master in PostgreSQL */
+export async function updateProjectMaster(
+  id: string,
+  payload: {
+    contractType?: string;
+    department?: string;
+    subDepartment?: string;
+    service?: string;
+    tools?: string;
+    duration?: string;
+    unitPrice?: number;
+  },
+): Promise<BackendProjectMasterDto> {
+  return await apiFetch<BackendProjectMasterDto>(`/api/v1/catalogs/project-masters/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/** DELETE /api/v1/catalogs/project-masters/:id — Delete project master from PostgreSQL */
+export async function deleteProjectMaster(id: string): Promise<boolean> {
+  return await apiFetch<boolean>(`/api/v1/catalogs/project-masters/${id}`, {
+    method: "DELETE",
+  });
+}
+
 

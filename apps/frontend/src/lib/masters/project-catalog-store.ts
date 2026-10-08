@@ -5,6 +5,7 @@ import {
   createServiceDepartment,
   createServiceSubDepartment,
   createServiceCatalog,
+  createServiceGroup,
   type ServiceHierarchyGroup,
 } from "@/lib/api/catalogs";
 
@@ -312,11 +313,16 @@ export function useProjectCatalogStore() {
         return { success: false, error: `Contract Type "${trimmed}" already exists.` };
       }
 
+      // Persist to master.mst_service_groups in PostgreSQL
+      createServiceGroup({ name: trimmed }).catch((err) => {
+        console.warn("Backend save to master.mst_service_groups failed:", err);
+      });
+
       const next = [...contractTypes, trimmed];
       inMemoryContractTypes = next;
       setContractTypes(next);
       saveStorage(STORAGE_KEY_CONTRACT_TYPES, next);
-      toast.success(`Contract Type "${trimmed}" added`);
+      toast.success(`Contract Type "${trimmed}" added and saved`);
       return { success: true };
     },
     [contractTypes],

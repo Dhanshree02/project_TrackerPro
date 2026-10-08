@@ -2,7 +2,16 @@ namespace PMS.API.Modules.Catalogs.DTOs;
 
 public sealed record CatalogOptionDto(Guid Id, string Code, string Name, string? PhoneCode = null, int? PhoneDigits = null);
 
-public sealed record CityCatalogOptionDto(Guid Id, string Code, string Name, Guid CountryId);
+public sealed record CityCatalogOptionDto(Guid Id, string Code, string Name, Guid CountryId, string? CountryName = null);
+
+public sealed record CreateCountryRequest(string Name, string? Code = null, string? PhoneCode = null, int? PhoneDigits = null);
+public sealed record UpdateCountryRequest(string? Name = null, string? Code = null, string? PhoneCode = null, int? PhoneDigits = null);
+
+public sealed record CreateCustomerCityRequest(string Name, Guid CountryId, string? Code = null);
+public sealed record UpdateCustomerCityRequest(string? Name = null, Guid? CountryId = null, string? Code = null);
+
+public sealed record CreateCatalogItemRequest(string Name, string? Code = null);
+public sealed record UpdateCatalogItemRequest(string? Name = null, string? Code = null);
 
 public sealed record ServiceGroupDto(Guid Id, string Code, string Name, int SortOrder);
 
@@ -77,3 +86,38 @@ public sealed record CreateServiceCatalogRequest(
     decimal? DefaultUnitPrice = null,
     int? DefaultDurationDays = null,
     string? Description = null);
+
+public sealed record CreateServiceGroupRequest(
+    string Name,
+    string? Code = null);
+
+public sealed record CreateProjectMasterRequest(
+    string ContractType,
+    string Department,
+    string? SubDepartment,
+    string Service,
+    string Tools,
+    string Duration,
+    decimal UnitPrice);
+
+public sealed record UpdateProjectMasterRequest(
+    string? ContractType,
+    string? Department,
+    string? SubDepartment,
+    string? Service,
+    string? Tools,
+    string? Duration,
+    decimal? UnitPrice);
+
+public sealed record ProjectMasterDto(
+    Guid Id,
+    string ContractType,
+    string Group,
+    string Department,
+    string? SubDepartment,
+    string Service,
+    string Tools,
+    string Duration,
+    decimal UnitPrice,
+    DateTime CreatedAtUtc);
+

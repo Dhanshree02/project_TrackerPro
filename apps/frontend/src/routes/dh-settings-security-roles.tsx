@@ -70,7 +70,6 @@ function SecurityRolesPage() {
 
   const canManageRoles =
     isAdmin ||
-    isDhanshree ||
     hasAny(
       "settings.manage_roles",
       "roles:manage",
@@ -506,23 +505,113 @@ function cloneNodes(nodes: RbacNode[]): RbacNode[] {
   return nodes.map((node) => ({ ...node, children: cloneNodes(node.children ?? []) }));
 }
 
-function updateNode(nodes: RbacNode[], permissionId: string, patch: Partial<RbacNode>): RbacNode[] {
+function setAllDescendants(nodes: RbacNode[], view: number, manage: number): RbacNode[] {
+  return nodes.map((node) => ({
+    ...node,
+    canView: view,
+    canManage: manage,
+    children: setAllDescendants(node.children ?? [], view, manage),
+  }));
+}
+
+function setAllDescendantsManage(nodes: RbacNode[], manage: number): RbacNode[] {
+  return nodes.map((node) => ({
+    ...node,
+    canManage: manage,
+    children: setAllDescendantsManage(node.children ?? [], manage),
+  }));
+}
+
+function cascadeNodeUpdate(
+  nodes: RbacNode[],
+  permissionId: string,
+  field: "canView" | "canManage",
+  on: boolean,
+): RbacNode[] {
   return nodes.map((node) => {
-    if (node.permissionId === permissionId) return { ...node, ...patch, children: node.children };
-    return { ...node, children: updateNode(node.children ?? [], permissionId, patch) };
+    if (node.permissionId === permissionId) {
+      if (field === "canView") {
+        if (!on) {
+          // Turning View OFF turns OFF Manage on this node AND all descendants
+          return {
+            ...node,
+            canView: 0,
+            canManage: 0,
+            children: setAllDescendants(node.children ?? [], 0, 0),
+          };
+        } else {
+          // Turning View ON enables this node
+          return {
+            ...node,
+            canView: 1,
+            children: cloneNodes(node.children ?? []),
+          };
+        }
+      } else {
+        // field === "canManage"
+        if (!on) {
+          // Turning Manage OFF turns OFF Manage on this node AND all descendants
+          return {
+            ...node,
+            canManage: 0,
+            children: setAllDescendantsManage(node.children ?? [], 0),
+          };
+        } else {
+          // Turning Manage ON also turns ON View on this node
+          return {
+            ...node,
+            canView: 1,
+            canManage: 1,
+            children: cloneNodes(node.children ?? []),
+          };
+        }
+      }
+    }
+    return {
+      ...node,
+      children: cascadeNodeUpdate(node.children ?? [], permissionId, field, on),
+    };
   });
 }
 
-function collectGrants(nodes: RbacNode[], into: { id: string; canView: number; canManage: number }[]) {
+function enforceHierarchy(
+  nodes: RbacNode[],
+  parentAllowsView = true,
+  parentAllowsManage = true,
+): RbacNode[] {
+  return nodes.map((node) => {
+    const rawView = node.canView === 1 ? 1 : 0;
+    const rawManage = node.canManage === 1 ? 1 : 0;
+
+    const canView = parentAllowsView ? rawView : 0;
+    const canManage = parentAllowsManage && canView === 1 ? rawManage : 0;
+
+    return {
+      ...node,
+      canView,
+      canManage,
+      children: enforceHierarchy(node.children ?? [], canView === 1, canManage === 1),
+    };
+  });
+}
+
+function collectGrants(
+  nodes: RbacNode[],
+  into: { id: string; canView: number; canManage: number }[],
+  parentAllowsView = true,
+  parentAllowsManage = true,
+) {
   for (const node of nodes) {
+    const canView = parentAllowsView && node.canView === 1 ? 1 : 0;
+    const canManage = canView === 1 && parentAllowsManage && node.canManage === 1 ? 1 : 0;
     if (node.permissionId) {
       into.push({
         id: node.permissionId,
-        canView: node.canView === 1 ? 1 : 0,
-        canManage: node.canView === 1 && node.canManage === 1 ? 1 : 0,
+        canView,
+        canManage,
       });
     }
-    collectGrants(node.children ?? [], into);
+    collectGrants(node.children ?? [], into, canView === 1, canManage === 1);
   }
 }
 
@@ -545,7 +634,7 @@ function ModuleAccessTab({ canManageRoles = true }: { canManageRoles?: boolean }
     if (!roleName) return;
     setIsLoading(true);
     apiFetch<RbacMatrix>(`/api/v1/rbac/matrix?roleName=${encodeURIComponent(roleName)}`)
-      .then((matrix) => setNodes(cloneNodes(matrix.nodes ?? [])))
+      .then((matrix) => setNodes(enforceHierarchy(cloneNodes(matrix.nodes ?? []))))
       .catch((error: Error) => toast.error(error.message || "Could not load the access matrix."))
       .finally(() => setIsLoading(false));
   };
@@ -566,16 +655,7 @@ function ModuleAccessTab({ canManageRoles = true }: { canManageRoles?: boolean }
 
   const setFlag = (permissionId: string, field: "canView" | "canManage", on: boolean) => {
     if (!canManageRoles) return;
-    setNodes((current) => {
-      const node = findNode(current, permissionId);
-      if (!node) return current;
-      const canView = field === "canView" ? (on ? 1 : 0) : node.canView === 1 || on ? 1 : 0;
-      const canManage = field === "canManage" ? (on ? 1 : 0) : on ? node.canManage ?? 0 : 0;
-      return updateNode(current, permissionId, {
-        canView: field === "canView" && !on ? 0 : canView,
-        canManage: field === "canView" && !on ? 0 : canManage,
-      });
-    });
+    setNodes((current) => cascadeNodeUpdate(current, permissionId, field, on));
   };
 
   const selectedLabel = roles.find((role) => role.name === selectedRole)?.displayName || selectedRole;
@@ -720,13 +800,33 @@ function ModuleAccessTab({ canManageRoles = true }: { canManageRoles?: boolean }
   );
 }
 
-function visibleAccessRows(nodes: RbacNode[], open: Record<string, boolean>, depth = 0, parentKey = ""): AccessRowModel[] {
+function visibleAccessRows(
+  nodes: RbacNode[],
+  open: Record<string, boolean>,
+  depth = 0,
+  parentKey = "",
+  parentAllowsView = true,
+  parentAllowsManage = true,
+): AccessRowModel[] {
   const rows: AccessRowModel[] = [];
   for (const node of nodes) {
     const key = `${parentKey}/${node.level}:${node.name}`;
-    rows.push({ node, depth, key });
+    rows.push({ node, depth, key, parentAllowsView, parentAllowsManage });
     const expanded = open[key] === true;
-    if (expanded && node.children?.length) rows.push(...visibleAccessRows(node.children, open, depth + 1, key));
+    if (expanded && node.children?.length) {
+      const childAllowsView = parentAllowsView && node.canView === 1;
+      const childAllowsManage = parentAllowsManage && node.canManage === 1;
+      rows.push(
+        ...visibleAccessRows(
+          node.children,
+          open,
+          depth + 1,
+          key,
+          childAllowsView,
+          childAllowsManage,
+        ),
+      );
+    }
   }
   return rows;
 }
@@ -735,6 +835,8 @@ interface AccessRowModel {
   node: RbacNode;
   depth: number;
   key: string;
+  parentAllowsView: boolean;
+  parentAllowsManage: boolean;
 }
 
 const LEVEL_LABEL: Record<string, string> = {
@@ -767,22 +869,43 @@ function AccessRow({
   onToggle: () => void;
   onFlag: (permissionId: string, field: "canView" | "canManage", on: boolean) => void;
 }) {
-  const { node, depth } = row;
+  const { node, depth, parentAllowsView, parentAllowsManage } = row;
   const hasChildren = (node.children?.length ?? 0) > 0;
-  const viewOn = node.canView === 1;
-  const manageOn = viewOn && node.canManage === 1;
+  const viewOn = parentAllowsView && node.canView === 1;
+  const manageOn = viewOn && parentAllowsManage && node.canManage === 1;
+
+  const viewDisabled = !canManageRoles || !node.permissionId || !parentAllowsView;
+  const manageDisabled = !canManageRoles || !node.permissionId || !parentAllowsManage || !viewOn;
+
+  const viewTooltip = !parentAllowsView
+    ? "Cannot grant View: parent module does not have View access"
+    : undefined;
+
+  const manageTooltip = !parentAllowsManage
+    ? "Cannot grant Manage: parent module does not have Manage access"
+    : !viewOn
+      ? "Cannot grant Manage: View access must be granted first"
+      : undefined;
+
   return (
     <tr className={cn("transition-colors hover:bg-accent/30", depth === 0 && "bg-muted/30")}>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2" style={{ paddingLeft: depth * 20 }}>
           {hasChildren ? (
-            <button type="button" onClick={onToggle} className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label={open ? "Collapse" : "Expand"}>
+            <button
+              type="button"
+              onClick={onToggle}
+              className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label={open ? "Collapse" : "Expand"}
+            >
               <ChevronDown className={cn("h-4 w-4 transition-transform", !open && "-rotate-90")} />
             </button>
           ) : (
             <span className="inline-block w-5" />
           )}
-          <span className={cn("truncate", depth === 0 ? "font-semibold" : "font-medium")}>{node.name}</span>
+          <span className={cn("truncate", depth === 0 ? "font-semibold" : "font-medium")}>
+            {node.name}
+          </span>
         </div>
       </td>
       <td className="px-4 py-3">
@@ -790,18 +913,18 @@ function AccessRow({
           {LEVEL_LABEL[node.level] ?? node.level}
         </span>
       </td>
-      <td className="px-4 py-3 text-center">
+      <td className="px-4 py-3 text-center" title={viewTooltip}>
         <AccessCheck
           checked={viewOn}
-          disabled={!canManageRoles || !node.permissionId}
+          disabled={viewDisabled}
           onChange={(on) => node.permissionId && onFlag(node.permissionId, "canView", on)}
           label={`View ${node.name}`}
         />
       </td>
-      <td className="px-4 py-3 text-center">
+      <td className="px-4 py-3 text-center" title={manageTooltip}>
         <AccessCheck
           checked={manageOn}
-          disabled={!canManageRoles || !node.permissionId}
+          disabled={manageDisabled}
           onChange={(on) => node.permissionId && onFlag(node.permissionId, "canManage", on)}
           label={`Manage ${node.name}`}
         />

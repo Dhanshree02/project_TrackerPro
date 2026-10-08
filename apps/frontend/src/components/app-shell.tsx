@@ -46,11 +46,11 @@ export function AppShell({
   }
 
   // Route-level RBAC guard: direct URL access to a module the user has no
-  // permission for shows the 403 page instead of rendering the module.
+  // permission for safely redirects to home/dashboard instead of a 403 page.
   const required = resolveRoutePermission(pathname);
   if (required !== null) {
     const keys = Array.isArray(required) ? required : [required];
-    if (!hasAny(...keys)) return <Navigate to="/access-denied" replace />;
+    if (!hasAny(...keys)) return <Navigate to="/" replace />;
   }
 
   const canManageProjects = hasAny(
