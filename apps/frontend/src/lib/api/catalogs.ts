@@ -175,6 +175,33 @@ export async function deleteContactType(id: string): Promise<boolean> {
   return true;
 }
 
+/** Current Address - City row from master.mst_address_cities. */
+export interface AddressCityOption {
+  id: string;
+  code: string;
+  name: string;
+  line?: string | null;
+  sortOrder: number;
+}
+
+/** GET /api/v1/catalogs/address-cities */
+export async function fetchAddressCities(): Promise<AddressCityOption[]> {
+  return (await apiFetch<AddressCityOption[]>("/api/v1/catalogs/address-cities")) ?? [];
+}
+
+/** POST /api/v1/catalogs/address-cities */
+export async function createAddressCity(name: string, line?: string): Promise<AddressCityOption> {
+  return apiFetch<AddressCityOption>("/api/v1/catalogs/address-cities", {
+    method: "POST",
+    body: JSON.stringify({ name, line: line?.trim() || null }),
+  });
+}
+
+/** DELETE /api/v1/catalogs/address-cities/{id} */
+export async function deleteAddressCity(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/address-cities/${id}`, { method: "DELETE" });
+}
+
 // ── Service Catalog & Hierarchy ──
 
 export interface ServiceGroupOption {

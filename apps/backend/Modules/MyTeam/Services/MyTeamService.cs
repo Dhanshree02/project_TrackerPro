@@ -14,7 +14,11 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
 {
     private static readonly short[] DefaultWorkingDays = [1, 2, 3, 4, 5];
 
-    public async Task<TeamCalendarDto> GetCalendarAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+    public async Task<TeamCalendarDto> GetCalendarAsync(
+        DateOnly from,
+        DateOnly to,
+        bool allEmployees = false,
+        CancellationToken ct = default)
     {
         EnsureRange(from, to);
         var caller = await CallerEmployeeAsync(ct);
@@ -23,7 +27,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             return new TeamCalendarDto([], [], []);
         }
 
-        var members = await TeamQuery(caller.Id)
+        var members = await TeamQuery(caller.Id, allEmployees)
             .Include(e => e.Department)
             .Include(e => e.Designation)
             .OrderBy(e => e.FirstName)
@@ -53,7 +57,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             .ToDictionary(g => g.Key, g => g.ToList());
 
         return new TeamCalendarDto(
-            members.Select(MapMember).ToList(),
+            members.Select(m => MapMember(m, m.ReportingManagerId == caller.Id)).ToList(),
             entries.Select(e => new TeamDayEntryDto(e.EmployeeId, e.WorkDate, e.Attendance, e.Shift)).ToList(),
             members.Select(m => MapSchedule(
                 m.Id,
@@ -198,11 +202,12 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
     }
 
     /// <summary>
-    /// Direct reports of the signed-in employee. The user switch identifies that
-    /// person, and the list is every employee whose reporting manager is them.
+    /// Direct reports of the signed-in employee, or every employee when the All Employees tab is open.
     /// </summary>
-    private IQueryable<Employee> TeamQuery(Guid callerId) =>
-        db.Employees.Where(e => e.ReportingManagerId == callerId);
+    private IQueryable<Employee> TeamQuery(Guid callerId, bool allEmployees) =>
+        allEmployees
+            ? db.Employees
+            : db.Employees.Where(e => e.ReportingManagerId == callerId);
 
     private async Task<Employee> RequireTeamMemberAsync(Guid employeeId, CancellationToken ct)
     {
@@ -212,7 +217,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
         var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId, ct)
             ?? throw new NotFoundException("Employee not found.");
 
-        var onTeam = await TeamQuery(caller.Id).AnyAsync(e => e.Id == employee.Id, ct);
+        var onTeam = await TeamQuery(caller.Id, allEmployees: false).AnyAsync(e => e.Id == employee.Id, ct);
         if (!onTeam)
         {
             throw new ForbiddenException("This employee is not on your team.");
@@ -261,7 +266,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
         return value.Trim().ToLowerInvariant();
     }
 
-    private static TeamMemberDto MapMember(Employee employee)
+    private static TeamMemberDto MapMember(Employee employee, bool directReport)
     {
         var name = $"{employee.FirstName} {employee.LastName}".Trim();
         return new TeamMemberDto(
@@ -269,7 +274,8 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             name,
             Initials(employee.FirstName, employee.LastName),
             employee.Designation?.Name ?? "",
-            employee.Department?.Name ?? "");
+            employee.Department?.Name ?? "",
+            directReport);
     }
 
     private static TeamMemberScheduleDto MapSchedule(

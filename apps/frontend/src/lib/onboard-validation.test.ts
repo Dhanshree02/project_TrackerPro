@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { setLiveAddressCities } from "@/lib/mumbai-stations";
 import {
   EMPTY_DOCS,
   EMPTY_ONBOARD,
@@ -80,6 +81,18 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       expect(
         validateOnboardField("address", { ...EMPTY_ONBOARD, address: "101, Suvidha Square, Andheri" }),
       ).toBe("Select a city from the list");
+    });
+
+    it("should accept a city added to the address-city master", () => {
+      setLiveAddressCities([{ value: "Pune", label: "Pune", subLabel: "", line: "" }]);
+      try {
+        expect(validateOnboardField("address", { ...EMPTY_ONBOARD, address: "Pune" })).toBeUndefined();
+        expect(
+          validateOnboardField("address", { ...EMPTY_ONBOARD, address: "Andheri (Western Line)" }),
+        ).toBe("Select a city from the list");
+      } finally {
+        setLiveAddressCities(null);
+      }
     });
 
     it("should require emergency contact name and phone", () => {

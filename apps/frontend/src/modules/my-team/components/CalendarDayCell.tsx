@@ -28,6 +28,8 @@ interface CalendarDayCellProps {
   isOpen: boolean;
   isFocused: boolean;
   isPast: boolean;
+  /** View only. Used for employees who do not report to the signed-in user. */
+  readOnly?: boolean;
   /** This date has been declared a holiday for this employee */
   isHoliday: boolean;
   /** Name of the holiday to show on hover */
@@ -90,6 +92,7 @@ export function CalendarDayCell({
   isOpen,
   isFocused,
   isPast,
+  readOnly = false,
   isHoliday,
   holidayName,
   holidayComment,
@@ -115,7 +118,7 @@ export function CalendarDayCell({
   const isLeave = attendanceType === "leave" || rawAttendanceType === "leave";
   // On leave, people have NO shift data ("G" is removed)
   const displayShift = isLeave ? undefined : (event?.shift ?? DEFAULT_SHIFT);
-  const isLocked = isPast || isHoliday;
+  const isLocked = isPast || isHoliday || readOnly;
 
   const attendanceLabel = attendanceType
     ? event?.title ?? attendanceMeta[attendanceType].label
@@ -136,14 +139,7 @@ export function CalendarDayCell({
   // Prefer opening to the side that has the most room (left if late in month, right otherwise)
   const preferredSide = date.getDate() > 18 ? "left" : "right";
 
-  return (
-    <Popover
-      open={isOpen && !isLocked}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <PopoverAnchor asChild>
+  const cell = (
         <div
           style={{ width: "100%", height: CALENDAR_ROW_PX }}
           className={`relative flex flex-col items-center justify-center overflow-visible border-r border-[#edf0f4] dark:border-slate-800 ${
@@ -215,7 +211,18 @@ export function CalendarDayCell({
             <span className="mt-1 h-3.5" aria-hidden="true" />
           )}
         </div>
-      </PopoverAnchor>
+  );
+
+  if (!isOpen || isLocked) return cell;
+
+  return (
+    <Popover
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <PopoverAnchor asChild>{cell}</PopoverAnchor>
 
       {/* Screen-aware Portal Popover: opens side-by-side or best fit, no scrollbars */}
       <PopoverContent

@@ -30,6 +30,19 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
         return week is null ? null : Map(week, employee.Id);
     }
 
+    public async Task<IReadOnlyList<TimesheetWeekDto>> ListMineAsync(CancellationToken ct = default)
+    {
+        var caller = await RequireCallerAsync(ct);
+        var weeks = await db.TimesheetWeeks
+            .Include(w => w.Employee)
+            .Include(w => w.Entries.Where(e => e.DeletedAtUtc == null))
+            .ThenInclude(e => e.Days.Where(d => d.DeletedAtUtc == null))
+            .Where(w => w.EmployeeId == caller.Id)
+            .OrderByDescending(w => w.WeekStart)
+            .ToListAsync(ct);
+        return weeks.Select(w => Map(w, caller.Id)).ToList();
+    }
+
     public Task<TimesheetWeekDto> SaveDraftAsync(SaveTimesheetRequest request, CancellationToken ct = default) =>
         UpsertAsync(request, submit: false, ct);
 
@@ -46,7 +59,8 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
             .Where(w =>
                 w.Status != "draft"
                 && w.Employee != null
-                && (w.EmployeeId == caller.Id || w.Employee.ReportingManagerId == caller.Id))
+                && w.EmployeeId != caller.Id
+                && w.Employee.ReportingManagerId == caller.Id)
             .OrderByDescending(w => w.SubmittedAtUtc)
             .ToListAsync(ct);
         return weeks.Select(w => Map(w, caller.Id)).ToList();

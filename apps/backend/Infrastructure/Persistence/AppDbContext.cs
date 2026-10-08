@@ -39,6 +39,8 @@ public class AppDbContext(
 
     public DbSet<MstContactType> ContactTypes => Set<MstContactType>();
 
+    public DbSet<MstAddressCity> AddressCities => Set<MstAddressCity>();
+
     public DbSet<MstIndustry> Industries => Set<MstIndustry>();
 
     public DbSet<MstCountry> Countries => Set<MstCountry>();

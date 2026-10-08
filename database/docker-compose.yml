@@ -4,7 +4,7 @@ services:
     container_name: trackerpro-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: trackerpro_development
+      POSTGRES_DB: pms_development
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: clockit
     ports:
@@ -13,7 +13,7 @@ services:
       - trackerpro_pgdata:/var/lib/postgresql/data
       - ./trackerpro-final.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d trackerpro_development" ]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d pms_development" ]
       interval: 5s
       timeout: 5s
       retries: 10

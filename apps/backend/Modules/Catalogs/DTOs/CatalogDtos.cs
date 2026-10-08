@@ -2,6 +2,9 @@ namespace PMS.API.Modules.Catalogs.DTOs;
 
 public sealed record CatalogOptionDto(Guid Id, string Code, string Name, string? PhoneCode = null, int? PhoneDigits = null);
 
+public sealed record AddressCityDto(Guid Id, string Code, string Name, string? Line, int SortOrder);
+public sealed record CreateAddressCityRequest(string Name, string? Line);
+
 public sealed record CityCatalogOptionDto(Guid Id, string Code, string Name, Guid CountryId, string? CountryName = null);
 
 public sealed record CreateCountryRequest(string Name, string? Code = null, string? PhoneCode = null, int? PhoneDigits = null);
@@ -12,6 +15,7 @@ public sealed record UpdateCustomerCityRequest(string? Name = null, Guid? Countr
 
 public sealed record CreateCatalogItemRequest(string Name, string? Code = null);
 public sealed record UpdateCatalogItemRequest(string? Name = null, string? Code = null);
+
 
 public sealed record ServiceGroupDto(Guid Id, string Code, string Name, int SortOrder);
 

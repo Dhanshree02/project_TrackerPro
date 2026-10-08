@@ -1,0 +1,106 @@
+# UAT stack. This file owns the one Postgres used by every environment.
+#
+#   docker compose -f docker-compose.uat.yml -p pms_uat up -d
+#   docker compose -f docker-compose.uat.yml -p pms_uat down
+#
+# UAT app:  http://localhost:3001   API http://localhost:5195/swagger
+# pgAdmin:  http://localhost:5050   admin@admin.com / clockit
+# Postgres: localhost:5432
+#   databases on pms_uat_db: pms_development, pms_uat, pms_deployment
+
+name: pms_uat
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pms_uat_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clockit
+      POSTGRES_DB: postgres
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    command: >
+      postgres
+      -c max_connections=500
+      -c shared_buffers=256MB
+      -c idle_session_timeout=300000
+      -c idle_in_transaction_session_timeout=60000
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/pms_development.sql:/sql/pms_development.sql:ro
+      - ./database/pms_uat.sql:/sql/pms_uat.sql:ro
+      - ./database/pms_deployment.sql:/sql/pms_deployment.sql:ro
+      - ./database/init-databases.sh:/docker-entrypoint-initdb.d/02_init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pms_development"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    networks:
+      - pms_shared
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pms_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: clockit
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - pms_shared
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    image: pms-backend:uat
+    container_name: pms_uat_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=pms_uat_db;Port=5432;Database=pms_uat;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
+      - Database__AutoMigrate=false
+      - Database__Seed=false
+      - Database__SyncSystemRoleBaselines=false
+      - Storage__RootPath=/app/storage
+    ports:
+      - "${UAT_BACKEND_PORT:-5195}:8080"
+    volumes:
+      - backend_storage:/app/storage
+    networks:
+      - pms_shared
+
+  frontend:
+    image: pms-frontend:uat
+    container_name: pms_uat_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - VITE_BACKEND_URL=http://pms_uat_backend:8080
+      - VITE_API_URL=
+    ports:
+      - "${UAT_FRONTEND_PORT:-3001}:3000"
+    networks:
+      - pms_shared
+
+networks:
+  pms_shared:
+    name: pms_shared
+
+volumes:
+  postgres_data:
+    name: pms_project_postgres_data
+  backend_storage:
+    name: pms_project_backend_uat_storage

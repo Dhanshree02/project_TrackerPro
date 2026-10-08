@@ -1,11 +1,11 @@
 {
   "Servers": {
     "1": {
-      "Name": "TrackerPro (postgres_db)",
+      "Name": "PMS shared Postgres",
       "Group": "Servers",
-      "Host": "postgres_db",
+      "Host": "pms_uat_db",
       "Port": 5432,
-      "MaintenanceDB": "trackerpro",
+      "MaintenanceDB": "pms_development",
       "Username": "postgres",
       "Password": "clockit",
       "SSLMode": "prefer"

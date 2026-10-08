@@ -86,7 +86,7 @@ internal static class EmployeeBulkWorkbook
         "Exp / Fresher",
     };
 
-    private static readonly string[] MumbaiStations =
+    internal static readonly string[] MumbaiStations =
     [
         // Western Line
         "Churchgate (Western Line)",
@@ -438,8 +438,17 @@ internal static class EmployeeBulkWorkbook
             return items.Count;
         }
 
+        var stations = await db.AddressCities
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.Name)
+            .Select(c => c.Name)
+            .ToListAsync(ct);
+        if (stations.Count == 0)
+            stations = AddressCityCatalog.Names.ToList();
+
         var lCol = 1;
-        var countStations = WriteLookupColumn(lCol++, "CurrentAddressCity", MumbaiStations);
+        var countStations = WriteLookupColumn(lCol++, "CurrentAddressCity", stations);
         var countRelations = WriteLookupColumn(lCol++, "EmergencyRelation", emergencyRelations);
 
         // Each designation has its own department in the cell immediately to the left.
@@ -618,7 +627,7 @@ internal static class EmployeeBulkWorkbook
             "4. Required Fields (18): TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher.",
             "5. Reporting Manager: Select from the dropdown ('TK-XXXX - Manager Name'). You can also provide just the Employee Code (e.g. TK-0001). Employee code is used as the primary identifier to prevent confusion between employees with identical or similar names.",
             "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel. Designation only lists titles under the Department selected on that same row.",
-            "7. Dynamic Masters: The Lookups sheet reflects live masters from the system (Departments, Designations, Roles, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Downloading a fresh template always includes current values. On Lookups, the cell to the left of each designation is that designation's department.",
+            "7. Dynamic Masters: The Lookups sheet reflects live masters from the system (Current Address - City, Departments, Designations, Roles, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Downloading a fresh template always includes current values. Add a city under Settings → Masters → Resource Masters before using it here. On Lookups, the cell to the left of each designation is that designation's department.",
             "8. Date Format: Dates must be formatted as dd-mm-yyyy (e.g. 18-09-2026), the same way dates appear in the web app.",
             "9. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
             "10. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
@@ -717,6 +726,13 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             var managers = await db.Employees
                 .Select(e => new { e.Id, e.EmployeeCode, Name = e.FirstName + " " + e.LastName })
                 .ToListAsync(ct);
+            var addressCityRows = await db.AddressCities
+                .Where(c => c.IsActive)
+                .Select(c => c.Name)
+                .ToListAsync(ct);
+            var addressCities = new HashSet<string>(
+                addressCityRows.Count > 0 ? addressCityRows : AddressCityCatalog.Names,
+                StringComparer.OrdinalIgnoreCase);
 
             var snapshot = await EmployeeIdentityGuard.LoadBulkSnapshotAsync(db, ct);
             var errors = new List<EmployeeBulkRowError>();
@@ -765,6 +781,12 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 var phone = GetValue(values, "phone");
                 if (!string.IsNullOrWhiteSpace(phone) && !PhoneRules.IsValid(phone))
                     rowErrors.Add("Phone must be a valid 10-digit Indian mobile number.");
+
+                var address = GetValue(values, "address");
+                if (string.IsNullOrWhiteSpace(address))
+                    rowErrors.Add("Current Address - City is required.");
+                else if (!addressCities.Contains(address.Trim()))
+                    rowErrors.Add($"Current Address - City '{address.Trim()}' is not in the master list. Add it under Settings → Masters → Resource Masters.");
                 var altPhone = GetValue(values, "altphone");
                 if (!string.IsNullOrWhiteSpace(altPhone) && !PhoneRules.IsValid(altPhone))
                     rowErrors.Add("Alternate Phone must be a valid 10-digit Indian mobile number.");

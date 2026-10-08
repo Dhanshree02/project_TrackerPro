@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.Catalogs.DTOs;
 using PMS.API.Modules.Projects.Models;
+using PMS.API.Modules.Resources;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Shared.Exceptions;
 
@@ -71,6 +72,73 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
             .ThenBy(t => t.Name)
             .Select(t => new CatalogOptionDto(t.Id, t.Code, t.Name, null, null))
             .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<AddressCityDto>> GetAddressCitiesAsync(CancellationToken ct = default)
+    {
+        return await db.AddressCities
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.Name)
+            .Select(c => new AddressCityDto(c.Id, c.Code, c.Name, c.Line, c.SortOrder))
+            .ToListAsync(ct);
+    }
+
+    public async Task<AddressCityDto> CreateAddressCityAsync(
+        string name,
+        string? line,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ConflictException("City name is required.");
+
+        var (storedName, storedLine) = AddressCityCatalog.Compose(name, line);
+        if (storedName.Length > 200)
+            throw new ConflictException("City name must be 200 characters or less.");
+
+        var existing = await db.AddressCities
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.Name.ToLower() == storedName.ToLower(), ct);
+        if (existing is not null)
+        {
+            if (existing.DeletedAtUtc is null && existing.IsActive)
+                throw new ConflictException($"\"{existing.Name}\" is already in Current Address - City.");
+
+            existing.DeletedAtUtc = null;
+            existing.IsActive = true;
+            existing.Line = storedLine;
+            existing.UpdatedAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            return new AddressCityDto(existing.Id, existing.Code, existing.Name, existing.Line, existing.SortOrder);
+        }
+
+        var used = await db.AddressCities
+            .IgnoreQueryFilters()
+            .Select(c => c.Code)
+            .ToListAsync(ct);
+        var codes = new HashSet<string>(used, StringComparer.OrdinalIgnoreCase);
+        var sort = await db.AddressCities.IgnoreQueryFilters().MaxAsync(c => (int?)c.SortOrder, ct) ?? 0;
+
+        var entity = new MstAddressCity
+        {
+            Code = AddressCityCatalog.CodeFor(storedName, codes),
+            Name = storedName,
+            Line = storedLine,
+            IsActive = true,
+            SortOrder = sort + 1,
+        };
+        db.AddressCities.Add(entity);
+        await db.SaveChangesAsync(ct);
+        return new AddressCityDto(entity.Id, entity.Code, entity.Name, entity.Line, entity.SortOrder);
+    }
+
+    public async Task DeleteAddressCityAsync(Guid id, CancellationToken ct = default)
+    {
+        var row = await db.AddressCities.FirstOrDefaultAsync(c => c.Id == id, ct)
+            ?? throw new NotFoundException("Address city not found.");
+        row.IsActive = false;
+        db.AddressCities.Remove(row);
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task<IReadOnlyList<ServiceGroupDto>> GetServiceGroupsAsync(CancellationToken ct = default)
