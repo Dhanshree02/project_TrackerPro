@@ -18,6 +18,8 @@ public static class SwaggerExtensions
                 Description = "Pulse PMO backend — project lifecycle, resource management, timesheets, approvals, finance.",
             });
 
+            c.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
+
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",
