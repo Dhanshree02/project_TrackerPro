@@ -25,7 +25,7 @@ public record CreateResourceHierarchyRequest(
     string? DesignationCode,
     string? OnFloorRoleName,
     string? OnFloorRoleCode,
-    Guid? AssignedRbacRoleId,
+    string? AssignedRbacRoleId,
     string? AssignedRbacRoleName,
     string? AssignedRbacRoleCode
 );
@@ -37,7 +37,7 @@ public record UpdateResourceHierarchyRequest(
     string? DesignationCode,
     string? OnFloorRoleName,
     string? OnFloorRoleCode,
-    Guid? AssignedRbacRoleId,
+    string? AssignedRbacRoleId,
     string? AssignedRbacRoleName,
     string? AssignedRbacRoleCode,
     bool? IsActive

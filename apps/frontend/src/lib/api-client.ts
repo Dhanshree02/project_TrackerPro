@@ -52,7 +52,25 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   const result = await rawFetch<ApiEnvelope<T>>(path, init);
 
   if (!result.ok) {
-    const message = result.envelope?.errors?.[0]?.message ?? `Request failed (${result.status})`;
+    let message = `Request failed (${result.status})`;
+    const env = result.envelope as any;
+    if (env) {
+      if (Array.isArray(env.errors) && env.errors.length > 0) {
+        message = env.errors[0]?.message || message;
+      } else if (env.errors && typeof env.errors === "object") {
+        // Handle ASP.NET ValidationProblemDetails: { errors: { field: ["msg1", "msg2"] } }
+        const allMsgs = Object.values(env.errors).flat().filter(Boolean);
+        if (allMsgs.length > 0) {
+          message = allMsgs.join("; ");
+        } else if (env.title) {
+          message = env.title;
+        }
+      } else if (env.message) {
+        message = env.message;
+      } else if (env.title) {
+        message = env.title;
+      }
+    }
     const error = new Error(message) as Error & { status?: number };
     error.status = result.status;
     throw error;

@@ -64,6 +64,7 @@ import {
   MASTER_ON_FLOOR_ROLES_LIST,
   MASTER_ALL_RBAC_ROLES,
 } from "@/lib/masters/resource-mock-data";
+import { fetchRbacRoles } from "@/lib/api/resource-masters";
 
 export interface ResourceMastersSectionProps {
   canManage?: boolean;
@@ -434,6 +435,23 @@ function DepartmentHierarchyCard({
   const [customDesignationsByDept, setCustomDesignationsByDept] = useState<Record<string, string[]>>({});
   const [customFloorRolesByDesig, setCustomFloorRolesByDesig] = useState<Record<string, string[]>>({});
   const [customRbacRoles, setCustomRbacRoles] = useState<Array<{ id: string; name: string; displayName: string }>>([]);
+  const [dbRbacRoles, setDbRbacRoles] = useState<Array<{ id: string; name: string; displayName: string }>>([]);
+
+  useEffect(() => {
+    fetchRbacRoles()
+      .then((roles) => {
+        if (roles && roles.length > 0) {
+          setDbRbacRoles(
+            roles.map((r) => ({
+              id: r.id,
+              name: r.name,
+              displayName: r.displayName || r.name,
+            })),
+          );
+        }
+      })
+      .catch((err) => console.warn("Failed to load live RBAC roles:", err));
+  }, []);
 
   // ── Modal 1: Add Department ──────────────────────────────────────────────
   const [showAddDeptModal, setShowAddDeptModal] = useState(false);
@@ -553,18 +571,26 @@ function DepartmentHierarchyCard({
   const availableRbacRoles = useMemo(() => {
     const map = new Map<string, { id: string; name: string; displayName: string }>();
 
+    // 1. Static seed fallback
     MASTER_ALL_RBAC_ROLES.forEach((r) => {
       map.set(r.displayName.trim().toLowerCase(), r);
     });
 
+    // 2. Live DB roles (take precedence over static mock values)
+    dbRbacRoles.forEach((r) => {
+      map.set(r.displayName.trim().toLowerCase(), r);
+    });
+
+    // 3. In-session custom roles
     customRbacRoles.forEach((r) => {
       map.set(r.displayName.trim().toLowerCase(), r);
     });
 
+    // 4. Any roles existing on hierarchy items
     items.forEach((item) => {
       if (item.assignedRbacRoleName && !map.has(item.assignedRbacRoleName.trim().toLowerCase())) {
         map.set(item.assignedRbacRoleName.trim().toLowerCase(), {
-          id: item.assignedRbacRoleId || `rbac-${Date.now()}`,
+          id: item.assignedRbacRoleId || "",
           name: item.assignedRbacRoleCode || item.assignedRbacRoleName,
           displayName: item.assignedRbacRoleName.trim(),
         });
@@ -572,7 +598,7 @@ function DepartmentHierarchyCard({
     });
 
     return Array.from(map.values()).sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [items, customRbacRoles]);
+  }, [dbRbacRoles, items, customRbacRoles]);
 
   const rbacSelectOptions = useMemo(() => {
     return availableRbacRoles.map((r) => ({
@@ -780,7 +806,7 @@ function DepartmentHierarchyCard({
     const autoCode = dispTrim.replace(/[^a-zA-Z0-9]/g, "") || `Role_${Date.now()}`;
 
     const newRoleObj = {
-      id: `rbac-custom-${Date.now()}`,
+      id: "",
       name: autoCode,
       displayName: dispTrim,
     };
@@ -842,8 +868,8 @@ function DepartmentHierarchyCard({
       designationName: selectedDesignation.trim(),
       onFloorRoleName: selectedFloorRole.trim(),
       assignedRbacRoleName: selectedRbacRole.trim(),
-      assignedRbacRoleId: rbacMeta?.id,
-      assignedRbacRoleCode: rbacMeta?.name,
+      assignedRbacRoleId: rbacMeta?.id || undefined,
+      assignedRbacRoleCode: rbacMeta?.name || undefined,
       isActive: true,
     });
 
@@ -881,8 +907,8 @@ function DepartmentHierarchyCard({
       designationName: editDesignation.trim(),
       onFloorRoleName: editFloorRole.trim(),
       assignedRbacRoleName: editRbacRole.trim(),
-      assignedRbacRoleId: rbacMeta?.id,
-      assignedRbacRoleCode: rbacMeta?.name,
+      assignedRbacRoleId: rbacMeta?.id || undefined,
+      assignedRbacRoleCode: rbacMeta?.name || undefined,
     });
 
     if (!res.success) {

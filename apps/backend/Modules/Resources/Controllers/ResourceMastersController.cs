@@ -143,6 +143,8 @@ public class ResourceMastersController(AppDbContext db) : ControllerBase
         var desigName = request.DesignationName.Trim();
         var roleName = !string.IsNullOrWhiteSpace(request.OnFloorRoleName) ? request.OnFloorRoleName.Trim() : desigName;
 
+        var rbacRoleId = await ResolveRbacRoleIdAsync(request.AssignedRbacRoleId, request.AssignedRbacRoleCode, request.AssignedRbacRoleName, ct);
+
         // 1. Department
         var dept = await db.Departments.IgnoreQueryFilters().FirstOrDefaultAsync(d => d.Name.ToLower() == deptName.ToLower(), ct);
         if (dept == null)
@@ -174,7 +176,7 @@ public class ResourceMastersController(AppDbContext db) : ControllerBase
             {
                 Name = desigName,
                 DepartmentId = dept.Id,
-                DefaultRoleId = request.AssignedRbacRoleId,
+                DefaultRoleId = rbacRoleId,
                 Code = !string.IsNullOrWhiteSpace(request.DesignationCode)
                     ? request.DesignationCode.Trim()
                     : await UniqueCodeAsync($"{dept.Code}_{Slug(desigName)}", c => db.Designations.IgnoreQueryFilters().AnyAsync(x => x.Code == c, ct), 80),
@@ -193,9 +195,9 @@ public class ResourceMastersController(AppDbContext db) : ControllerBase
                 desig.UpdatedAtUtc = DateTime.UtcNow;
                 needsSave = true;
             }
-            if (request.AssignedRbacRoleId.HasValue && desig.DefaultRoleId != request.AssignedRbacRoleId)
+            if (rbacRoleId.HasValue && desig.DefaultRoleId != rbacRoleId)
             {
-                desig.DefaultRoleId = request.AssignedRbacRoleId;
+                desig.DefaultRoleId = rbacRoleId;
                 desig.UpdatedAtUtc = DateTime.UtcNow;
                 needsSave = true;
             }
@@ -279,8 +281,9 @@ public class ResourceMastersController(AppDbContext db) : ControllerBase
             {
                 if (!string.IsNullOrWhiteSpace(request.DesignationName))
                     role.Designation.Name = request.DesignationName.Trim();
-                if (request.AssignedRbacRoleId.HasValue)
-                    role.Designation.DefaultRoleId = request.AssignedRbacRoleId;
+                var resolvedRoleId = await ResolveRbacRoleIdAsync(request.AssignedRbacRoleId, request.AssignedRbacRoleCode, request.AssignedRbacRoleName, ct);
+                if (resolvedRoleId.HasValue)
+                    role.Designation.DefaultRoleId = resolvedRoleId;
 
                 if (role.Designation.Department != null && !string.IsNullOrWhiteSpace(request.DepartmentName))
                     role.Designation.Department.Name = request.DepartmentName.Trim();
@@ -322,8 +325,9 @@ public class ResourceMastersController(AppDbContext db) : ControllerBase
         {
             if (!string.IsNullOrWhiteSpace(request.DesignationName))
                 desig.Name = request.DesignationName.Trim();
-            if (request.AssignedRbacRoleId.HasValue)
-                desig.DefaultRoleId = request.AssignedRbacRoleId;
+            var resolvedRoleId = await ResolveRbacRoleIdAsync(request.AssignedRbacRoleId, request.AssignedRbacRoleCode, request.AssignedRbacRoleName, ct);
+            if (resolvedRoleId.HasValue)
+                desig.DefaultRoleId = resolvedRoleId;
             if (request.IsActive.HasValue)
                 desig.IsActive = request.IsActive.Value;
             if (desig.Department != null && !string.IsNullOrWhiteSpace(request.DepartmentName))
@@ -1057,5 +1061,45 @@ public class ResourceMastersController(AppDbContext db) : ControllerBase
             if (!await existsAsync(next)) return next;
             i++;
         }
+    }
+
+    private async Task<Guid?> ResolveRbacRoleIdAsync(string? roleIdStr, string? roleCode, string? roleName, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(roleIdStr) && Guid.TryParse(roleIdStr, out var parsedGuid))
+        {
+            var exists = await db.Roles.AnyAsync(r => r.Id == parsedGuid && r.DeletedAtUtc == null, ct);
+            if (exists) return parsedGuid;
+        }
+
+        if (!string.IsNullOrWhiteSpace(roleCode))
+        {
+            var normCode = roleCode.Trim().ToLower();
+            var matched = await db.Roles.FirstOrDefaultAsync(r => r.DeletedAtUtc == null && r.Name.ToLower() == normCode, ct);
+            if (matched != null) return matched.Id;
+        }
+
+        if (!string.IsNullOrWhiteSpace(roleName))
+        {
+            var normName = roleName.Trim().ToLower();
+            var matched = await db.Roles.FirstOrDefaultAsync(r => r.DeletedAtUtc == null && (r.DisplayName.ToLower() == normName || r.Name.ToLower() == normName), ct);
+            if (matched != null) return matched.Id;
+
+            // Auto-provision in auth.tbl_roles if user created a new custom role
+            var autoCode = !string.IsNullOrWhiteSpace(roleCode)
+                ? roleCode.Trim()
+                : Slug(roleName);
+            var newRole = new Role
+            {
+                Name = autoCode,
+                DisplayName = roleName.Trim(),
+                Description = $"Operational RBAC role: {roleName.Trim()}",
+                IsActive = true
+            };
+            db.Roles.Add(newRole);
+            await db.SaveChangesAsync(ct);
+            return newRole.Id;
+        }
+
+        return null;
     }
 }

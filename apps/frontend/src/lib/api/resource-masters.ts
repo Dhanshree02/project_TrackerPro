@@ -100,21 +100,21 @@ export async function fetchResourceHierarchy(): Promise<DepartmentHierarchyItem[
   }));
 }
 
+const isValidGuid = (val?: string | null): boolean =>
+  !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
 export async function createResourceHierarchy(
   item: Omit<DepartmentHierarchyItem, "id" | "createdAt">,
 ): Promise<DepartmentHierarchyItem> {
   const res = await apiFetch<BackendResourceHierarchyDto>("/api/v1/resource-masters/hierarchy", {
     method: "POST",
     body: JSON.stringify({
-      departmentName: item.departmentName,
-      departmentCode: item.departmentId,
-      designationName: item.designationName,
-      designationCode: item.designationId,
-      onFloorRoleName: item.onFloorRoleName,
-      onFloorRoleCode: item.onFloorRoleId,
-      assignedRbacRoleId: item.assignedRbacRoleId,
-      assignedRbacRoleName: item.assignedRbacRoleName,
-      assignedRbacRoleCode: item.assignedRbacRoleCode,
+      departmentName: item.departmentName?.trim(),
+      designationName: item.designationName?.trim(),
+      onFloorRoleName: item.onFloorRoleName?.trim(),
+      assignedRbacRoleId: isValidGuid(item.assignedRbacRoleId) ? item.assignedRbacRoleId : undefined,
+      assignedRbacRoleName: item.assignedRbacRoleName?.trim(),
+      assignedRbacRoleCode: item.assignedRbacRoleCode?.trim(),
     }),
   });
   return {
@@ -140,12 +140,12 @@ export async function updateResourceHierarchy(
   const res = await apiFetch<BackendResourceHierarchyDto>(`/api/v1/resource-masters/hierarchy/${id}`, {
     method: "PUT",
     body: JSON.stringify({
-      departmentName: item.departmentName,
-      designationName: item.designationName,
-      onFloorRoleName: item.onFloorRoleName,
-      assignedRbacRoleId: item.assignedRbacRoleId,
-      assignedRbacRoleName: item.assignedRbacRoleName,
-      assignedRbacRoleCode: item.assignedRbacRoleCode,
+      departmentName: item.departmentName?.trim(),
+      designationName: item.designationName?.trim(),
+      onFloorRoleName: item.onFloorRoleName?.trim(),
+      assignedRbacRoleId: isValidGuid(item.assignedRbacRoleId) ? item.assignedRbacRoleId : undefined,
+      assignedRbacRoleName: item.assignedRbacRoleName?.trim(),
+      assignedRbacRoleCode: item.assignedRbacRoleCode?.trim(),
       isActive: item.isActive,
     }),
   });
