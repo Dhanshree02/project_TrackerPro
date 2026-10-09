@@ -138,15 +138,24 @@ function isBeforeDay(day: Date, boundary: Date): boolean {
   return new Date(day.getFullYear(), day.getMonth(), day.getDate()) < boundary;
 }
 
+function isAfterDay(day: Date, boundary: Date): boolean {
+  const left = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  const right = new Date(boundary.getFullYear(), boundary.getMonth(), boundary.getDate());
+  return left > right;
+}
+
 function DateRangePicker({
   value,
   onChange,
   disablePastStart = false,
+  maxEndDate,
 }: {
   value: string;
   onChange: (val: string) => void;
   /** Add Team Member: start date is today or later. End date rules are unchanged. */
   disablePastStart?: boolean;
+  /** Allocation end date cannot be after the project end date. */
+  maxEndDate?: string;
 }) {
   // Parse "DD/MM/YYYY → DD/MM/YYYY" (formatDate output). Do NOT use
   // `new Date("24/09/2026")` — browsers treat slash dates as invalid/US-only.
@@ -182,6 +191,8 @@ function DateRangePicker({
     };
   }, [value]);
 
+  const projectEnd = parseStoredDate(maxEndDate?.slice(0, 10));
+
   // Single shared month — both calendars always show the same month
   const [currentMonth, setCurrentMonth] = useState<Date>(parsedRange.from ?? new Date());
 
@@ -216,6 +227,10 @@ function DateRangePicker({
   // Click on start calendar
   const handleFromDay = (day: Date) => {
     if (disablePastStart && isBeforeDay(day, startOfToday())) return;
+    if (projectEnd && isAfterDay(day, projectEnd)) {
+      toast.error("Start date cannot be after the project end date");
+      return;
+    }
     setFromInput(toInputFmt(day));
     // If picked start > current end, clear end
     const newTo = parsedRange.to && day > parsedRange.to ? undefined : parsedRange.to;
@@ -226,6 +241,10 @@ function DateRangePicker({
   // Click on end calendar
   const handleToDay = (day: Date) => {
     if (disablePastStart && isBeforeDay(day, startOfToday())) return;
+    if (projectEnd && isAfterDay(day, projectEnd)) {
+      toast.error("End date cannot be after the project end date");
+      return;
+    }
     const from = parsedRange.from ?? parseInputFmt(fromInput);
     // end must not be before start
     if (from && day < from) {
@@ -243,6 +262,10 @@ function DateRangePicker({
       toast.error("Start date cannot be in the past");
       return;
     }
+    if (d && projectEnd && isAfterDay(d, projectEnd)) {
+      toast.error("Start date cannot be after the project end date");
+      return;
+    }
     setFromInput(next);
     if (d) { setCurrentMonth(d); commit(d, parsedRange.to); }
   };
@@ -252,6 +275,10 @@ function DateRangePicker({
     const d = parseInputFmt(next);
     if (d && disablePastStart && isBeforeDay(d, startOfToday())) {
       toast.error("End date cannot be in the past");
+      return;
+    }
+    if (d && projectEnd && isAfterDay(d, projectEnd)) {
+      toast.error("End date cannot be after the project end date");
       return;
     }
     setToInput(next);
@@ -278,7 +305,12 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
-            disabled={disablePastStart ? { before: startOfToday() } : undefined}
+            disabled={(() => {
+              const matchers: Array<{ before: Date } | { after: Date }> = [];
+              if (disablePastStart) matchers.push({ before: startOfToday() });
+              if (projectEnd) matchers.push({ after: projectEnd });
+              return matchers.length > 0 ? matchers : undefined;
+            })()}
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -293,18 +325,17 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
-            disabled={
-              disablePastStart
-                ? {
-                    before:
-                      parsedRange.from && parsedRange.from > startOfToday()
-                        ? parsedRange.from
-                        : startOfToday(),
-                  }
-                : parsedRange.from
-                  ? { before: parsedRange.from }
-                  : undefined
-            }
+            disabled={(() => {
+              const matchers: Array<{ before: Date } | { after: Date }> = [];
+              const earliest = disablePastStart
+                ? parsedRange.from && parsedRange.from > startOfToday()
+                  ? parsedRange.from
+                  : startOfToday()
+                : parsedRange.from;
+              if (earliest) matchers.push({ before: earliest });
+              if (projectEnd) matchers.push({ after: projectEnd });
+              return matchers.length > 0 ? matchers : undefined;
+            })()}
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -5477,7 +5508,12 @@ function TeamActionModal({
       <Modal title={`Edit Allocation — ${person.name}`} onClose={onClose}>
         <div className="space-y-3">
           <Field label="Allocation Duration">
-            <DateRangePicker value={editState.duration} onChange={(val) => setEditState((s) => ({ ...s, duration: val }))} />
+            <DateRangePicker
+              value={editState.duration}
+              onChange={(val) => setEditState((s) => ({ ...s, duration: val }))}
+              disablePastStart
+              maxEndDate={project.endDate ? String(project.endDate).slice(0, 10) : undefined}
+            />
           </Field>
 
           <Field label="Billability">
@@ -5803,6 +5839,7 @@ function AddTeamMemberModal({
             value={duration}
             onChange={setDuration}
             disablePastStart
+            maxEndDate={project.endDate ? String(project.endDate).slice(0, 10) : undefined}
           />
         </Field>
 

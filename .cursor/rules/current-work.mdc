@@ -5,8 +5,17 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-03
+**Last updated:** 2026-10-06
 
+- **Working branch is `sahil-project-backend-local`.** It matches `origin/development` at `db7de71` (`feat: apply module schemas, RBAC, and all-or-nothing bulk upload`). The dashboard MIS graphs stay on this branch.
+- **Team Utilization - Onsite does not list project names.** The non-billable row shows the count and percentage only.
+- **Team Allocation Onsite/Offsite is the role-wise graph.** `GET /api/v1/dashboard/role-allocation` uses the same onsite/offsite service task assignments. Onsite shows Onsite TM and Onsite Leads. Offsite shows Offsite - TM, Offsite - Leads, and Offsite - PM. PM and Senior PM are not on a service, so Offsite - PM is 0 until that assignment rule is decided. Offsite - Jr Leads is not shown. Hybrid and Remote services are not in either side.
+- **Team allocation Start Date is today through the project end date.** Past days and days after `project.endDate` are disabled on the Start Date calendar for Add Team Member and Edit Allocation. The End Date still cannot be after the project end date.
+- **An onsite-service task assignment counts for the service months even when the team allocation dates sit outside the service dates.** `cust test(sub cust 1)_Mixed_03` runs 6–13 Oct 2026, so it appears in Q3 October, not in Q4 (Jan–Mar 2027).
+- **Team Utilization - Onsite counts people assigned to onsite services.** Offsite, Remote, and Hybrid services are ignored. The link is `project.tbl_project_task_assignments` → `project.tbl_project_tasks."ProjectServiceId"` → `project.tbl_project_services."Location" = Onsite`. Billable or not is `project.tbl_project_team_members."Billability"`. A person is counted once per month even if they are on several onsite services. The month must fall inside the service dates (or the project dates) and the member’s allocation dates. Two onsite services exist, but nobody is assigned to their tasks yet, so the graph is 0.
+- **Notice period stays on the team until the last working day.** `resource.tbl_exited_employees."LastWorkingDay"` is the exit date. While today in IST is before that date, the person stays in Total, Onsite, and Offsite and is not counted as offboarding. On that date they leave the team and that month’s offboarding increases by one. Joining date is `resource.tbl_employees."JoiningDate"`.
+- **Dashboard MIS graphs are still on this branch.** Total Team Size and Resource Boarding sit after Project status and Pending approvals. Quarter changes do not scroll the page. `GET /api/v1/dashboard/team-summary` reads `resource.tbl_employees` and `resource.tbl_exited_employees`.
+- **API is connected to `pms_development` on `10.50.30.189`.** Root `.env` and `appsettings.Development.json` use that database. `Database__AutoMigrate` is false. PostgreSQL shows `PMS.API` on `pms_development`.
 - **`database/trackerpro-final.sql` was dumped from the Docker database on port 5433.** It is a full schema and data dump of `trackerpro` (PostgreSQL 16): module schemas `auth`, `master`, `resource`, `customer`, `project`, `timesheet`, and `repository`, with `__EFMigrationsHistory` still in `public`. Table ownership is left unset.
 - **Bulk upload saves a file only when every row is valid.** If 9 of 10 rows pass and 1 fails, none of the 10 are created. The upload shows an error with the failing rows.
 - **Bulk sample Designation follows the row's Department.** The Employees sheet designation list is only the titles mapped to that department on Lookups. A designation from another department is rejected on upload. Success and error toasts stay for 10 seconds.
@@ -132,7 +141,6 @@ alwaysApply: true
 - **Customer list + KYC row polish.** Customer Information KYC row is label + View/Download only (filename removed so buttons no longer overlap the card edge). List view: the row itself is not a link — only Customer name and Total / New / Ongoing / Completed / On Hold / Archived counts are clickable. Table headers are centered.
 
 - **Local branch `Sahil-backend-testing2`** created from `origin/deployment-phase1` (`0fa7099`, tracks that remote). API restarted on this code: health + clients + employees 200. Shared Postgres `10.50.30.189` `trackerpro` is up (16 clients, 27 employees).
->>>>>>> origin/sahil-project-backend
 
 
 
