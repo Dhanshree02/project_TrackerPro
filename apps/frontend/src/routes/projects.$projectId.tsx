@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate, notFound } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -60,7 +60,7 @@ import { findProjectByWbsId, isRenewedProject } from "@/lib/project-renewal";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
-import { fetchEmployees, type ApiEmployeeListItem } from "@/lib/api/employees";
+import { fetchEmployees, loadEmployeesWithOnFloorRole, matchesOnFloorRole, type ApiEmployeeListItem } from "@/lib/api/employees";
 
 // Helper function for consistent date formatting in DD/MM/YYYY (date/month/year)
 function formatDate(dateInput: Date | string | undefined | null): string {
@@ -431,21 +431,41 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
   );
 }
 
-function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
-  const toAssignee = (member: ApiProjectTeamMember) => ({
-    employeeId: member.employeeId,
-    name: (member.employeeName || "").trim(),
-  });
-  return {
-    projectManagers: items
-      .filter((member) => member.memberRole === "ProjectManager")
-      .map(toAssignee)
-      .filter((person) => person.employeeId && person.name),
-    seniorProjectManagers: items
-      .filter((member) => member.memberRole === "SeniorProjectManager")
-      .map(toAssignee)
-      .filter((person) => person.employeeId && person.name),
-  };
+const ON_FLOOR_PROJECT_MANAGER = "Manager (Mng.)";
+const ON_FLOOR_SENIOR_PROJECT_MANAGER = "Sr. Manager (Sr.Mng.)";
+
+function isStoredManager(member: ApiProjectTeamMember): boolean {
+  return member.memberRole === "ProjectManager" || member.memberRole === "SeniorProjectManager";
+}
+
+/**
+ * Assigned managers are placed by On Floor Role (mst_roles.Name).
+ * Manager (Mng.) → Project Managers. Sr. Manager (Sr.Mng.) → Senior Project Managers.
+ */
+async function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
+  const employees = await loadEmployeesWithOnFloorRole();
+  const byId = new Map(employees.map((emp) => [emp.id.toLowerCase(), emp]));
+  const projectManagers: { employeeId: string; name: string }[] = [];
+  const seniorProjectManagers: { employeeId: string; name: string }[] = [];
+  // Team Leads are Project Team rows marked Team Lead on the Team tab.
+  const teamLeads = items
+    .filter((member) => member.isTeamLead && (member.memberRole === "ProjectTeam" || (!member.memberRole && !member.isShadowTeam)))
+    .map((member) => ({ employeeId: member.employeeId, name: (member.employeeName || "").trim() }))
+    .filter((person) => person.employeeId && person.name);
+  for (const member of items) {
+    if (!isStoredManager(member)) continue;
+    const name = (member.employeeName || "").trim();
+    if (!member.employeeId || !name) continue;
+    const employee = byId.get(member.employeeId.toLowerCase());
+    const onFloorRole = employee?.jobRoleName || null;
+    const person = { employeeId: member.employeeId, name };
+    if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_PROJECT_MANAGER)) {
+      projectManagers.push(person);
+    } else if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_SENIOR_PROJECT_MANAGER)) {
+      seniorProjectManagers.push(person);
+    }
+  }
+  return { projectManagers, seniorProjectManagers, teamLeads };
 }
 
 function ProjectDetail() {
@@ -472,7 +492,10 @@ function ProjectDetail() {
   const poDocuments = useDhStore((s) => s.poDocuments);
 
   const [dbProject, setDbProject] = useState<ApiProject | null>(null);
-  const [dbLeaders, setDbLeaders] = useState<ReturnType<typeof managersFromTeamMembers> | null>(null);
+  const [dbLeaders, setDbLeaders] = useState<Awaited<ReturnType<typeof managersFromTeamMembers>> | null>(null);
+  const applyLeadershipRows = useCallback((items: ApiProjectTeamMember[]) => {
+    managersFromTeamMembers(items).then(setDbLeaders).catch(() => {});
+  }, []);
   const [liveServiceDates, setLiveServiceDates] = useState<Array<{ startDate?: string | null; endDate?: string | null }> | null>(null);
   const [dbServices, setDbServices] = useState<ApiProjectService[] | null>(null);
   useEffect(() => {
@@ -483,16 +506,18 @@ function ProjectDetail() {
     const rawIsGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
     if (rawId && (rawIsGuid || rawId.length > 20)) {
       if (rawIsGuid) {
-        fetchProjectTeamMembers(rawId).then((items) => {
-          if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
+        fetchProjectTeamMembers(rawId).then(async (items) => {
+          const leaders = await managersFromTeamMembers(items);
+          if (!cancelled) setDbLeaders(leaders);
         }).catch(() => {});
       }
       fetchProject(rawId).then(async (p) => {
         if (cancelled || !p) return;
         setDbProject(p);
         if (!rawIsGuid) {
-          fetchProjectTeamMembers(p.id).then((items) => {
-            if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
+          fetchProjectTeamMembers(p.id).then(async (items) => {
+            const leaders = await managersFromTeamMembers(items);
+            if (!cancelled) setDbLeaders(leaders);
           }).catch(() => {});
         }
         try {
@@ -562,8 +587,20 @@ function ProjectDetail() {
           ...withManagers,
           projectManagers: dbLeaders.projectManagers,
           seniorProjectManagers: dbLeaders.seniorProjectManagers,
+          teamLeads: dbLeaders.teamLeads,
+          teamLeadId: dbLeaders.teamLeads[0]?.employeeId,
+          teamLeadName: dbLeaders.teamLeads[0]?.name,
         }
-      : withManagers;
+      : dbProject
+        ? {
+            ...withManagers,
+            projectManagers: [],
+            seniorProjectManagers: [],
+            teamLeads: [],
+            teamLeadId: undefined,
+            teamLeadName: undefined,
+          }
+        : withManagers;
     const dateSource = liveServiceDates?.length ? liveServiceDates : withLeaders.wbsDetails?.services;
     const dated = !dateSource?.length
       ? withLeaders
@@ -697,20 +734,28 @@ function ProjectDetail() {
     if (!isApiGuid(project.id)) return;
     let active = true;
     fetchProjectTeamMembers(project.id)
-      .then((items) => {
+      .then(async (items) => {
         if (!active) return;
-        if (items.length > 0 && items.every((m) => !m.memberRole)) return;
-        const managers = items.filter((m) => isManagerRole(m.memberRole));
+        const leaders = await managersFromTeamMembers(items);
+        if (!active) return;
         dhStore.assignPMsWithPeople(
           project.id,
-          managers.filter((m) => m.memberRole === "ProjectManager").map((m) => m.employeeId),
-          managers.filter((m) => m.memberRole === "SeniorProjectManager").map((m) => m.employeeId),
-          managers.map((m) => ({
-            id: m.employeeId,
-            name: m.employeeName,
-            role: m.memberRole === "SeniorProjectManager" ? "Senior Project Manager" : "Project Manager",
-            email: m.employeeEmail || "",
-          })),
+          leaders.projectManagers.map((person) => person.employeeId),
+          leaders.seniorProjectManagers.map((person) => person.employeeId),
+          [
+            ...leaders.projectManagers.map((person) => ({
+              id: person.employeeId,
+              name: person.name,
+              role: "Project Manager",
+              email: "",
+            })),
+            ...leaders.seniorProjectManagers.map((person) => ({
+              id: person.employeeId,
+              name: person.name,
+              role: "Senior Project Manager",
+              email: "",
+            })),
+          ],
         );
       })
       .catch(() => {});
@@ -1176,7 +1221,7 @@ function ProjectDetail() {
               tl={tl}
               team={team}
               customerRouteId={customerRouteId}
-              onLeadershipSaved={(items) => setDbLeaders(managersFromTeamMembers(items))}
+              onLeadershipSaved={applyLeadershipRows}
             />
           )}
 
@@ -1184,7 +1229,7 @@ function ProjectDetail() {
             <WbsTab
               project={project}
               client={client}
-              onLeadershipSaved={(items) => setDbLeaders(managersFromTeamMembers(items))}
+              onLeadershipSaved={applyLeadershipRows}
               onRaiseInvoice={(invoiceId) => {
                 setRaiseInvoiceId(invoiceId);
                 const existing = snapshotInvoices.find((i) => i.id === invoiceId);
@@ -2301,6 +2346,17 @@ function OverviewTab({
   }, [leadershipAssignment, prereq, project, knownPeople]);
 
   const tls: Person[] = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.teamLeads ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({
+          id: person.employeeId,
+          name: person.name.trim(),
+          role: "Team Lead",
+          avatar: person.name.trim().slice(0, 2).toUpperCase(),
+          email: "",
+        }));
+    }
     if (leadershipAssignment?.tlIds?.length) {
       const list = leadershipAssignment.tlIds.map(getPerson).filter(Boolean) as Person[];
       if (list.length > 0) return list;
@@ -2529,6 +2585,7 @@ function OverviewTab({
               unassigned={tls.length === 0}
               project={project}
               viewOnly={!isDhanshree && !isSeniorPm && !isProjectManager}
+              onLeadershipSaved={onLeadershipSaved}
             />
           </div>
         )}
@@ -2790,9 +2847,9 @@ function LeadershipBlock({
       {!viewOnly && !hideChange && (
         <button
           onClick={() => setShowPanel(true)}
-          className="mt-auto w-full h-7 rounded-md border border-primary/40 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 transition-colors"
+          className="mt-auto w-full min-h-7 rounded-md border border-primary/40 bg-primary/5 px-2 py-1 text-primary text-[11px] font-semibold leading-tight hover:bg-primary/10 transition-colors"
         >
-          Change Leader
+          Change {role}
         </button>
       )}
       {showPanel && (
@@ -2809,13 +2866,6 @@ function LeadershipBlock({
 }
 
 // ---------- Database Leader Roster & Workload Stats Helpers ----------
-export interface ManagerRosterItem {
-  id: string;
-  name: string;
-  role: string;
-  designation: string;
-}
-
 export interface ManagerWorkloadStats {
   total: number;
   ongoing: number;
@@ -2824,37 +2874,18 @@ export interface ManagerWorkloadStats {
   projectCodes: string[];
 }
 
-export const DB_PM_FALLBACK: ManagerRosterItem[] = [
-  { id: "00000000-0000-4000-8000-000000000006", name: "Divya Rao", role: "PM", designation: "Associate Project Manager" },
-  { id: "00000000-0000-4000-8000-000000000011", name: "Harsh Nair", role: "PM", designation: "Associate PMO - I" },
-  { id: "00000000-0000-4000-8000-000000000003", name: "Rohan Mehta", role: "PM", designation: "DevSecOps Practitioner - II" },
-];
-
-export const DB_SPM_FALLBACK: ManagerRosterItem[] = [
-  { id: "00000000-0000-4000-8000-000000000017", name: "Vikram Gupta", role: "Senior PM", designation: "Senior PMO - I" },
-  { id: "00000000-0000-4000-8000-000000000004", name: "Sneha Iyer", role: "Senior PM", designation: "SOC Lead - I" },
-];
-
-export function isEmployeePM(emp: { id: string; fullName: string; designation?: string | null }): boolean {
-  const name = (emp.fullName || "").trim();
-  const id = emp.id;
-  const des = (emp.designation || "").toLowerCase();
-  if (id === "00000000-0000-4000-8000-000000000006" || name === "Divya Rao") return true;
-  if (id === "00000000-0000-4000-8000-000000000011" || name === "Harsh Nair") return true;
-  if (id === "00000000-0000-4000-8000-000000000003" || name === "Rohan Mehta") return true;
-  if (des.includes("project manager") && !des.includes("senior")) return true;
-  if (des.includes("associate pmo")) return true;
-  return false;
+function isActiveEmployeeStatus(status?: string | null): boolean {
+  return (status || "").trim().toLowerCase() === "active";
 }
 
-export function isEmployeeSPM(emp: { id: string; fullName: string; designation?: string | null }): boolean {
-  const name = (emp.fullName || "").trim();
-  const id = emp.id;
-  const des = (emp.designation || "").toLowerCase();
-  if (id === "00000000-0000-4000-8000-000000000017" || name === "Vikram Gupta") return true;
-  if (id === "00000000-0000-4000-8000-000000000004" || name === "Sneha Iyer") return true;
-  if (des.includes("senior project manager") || des.includes("senior pmo")) return true;
-  return false;
+/** On Floor Role from mst_roles.Name: Manager (Mng.). */
+export function isEmployeePM(emp: { jobRoleName?: string | null; role?: string | null }): boolean {
+  return matchesOnFloorRole(emp, "Manager (Mng.)");
+}
+
+/** On Floor Role from mst_roles.Name: Sr. Manager (Sr.Mng.). */
+export function isEmployeeSPM(emp: { jobRoleName?: string | null; role?: string | null }): boolean {
+  return matchesOnFloorRole(emp, "Sr. Manager (Sr.Mng.)");
 }
 
 export function calculateManagerStats(
@@ -2929,8 +2960,9 @@ function ChangeLeaderPanel({
     useDhStore((s) => s.projectTeamAdditions[project.id]) ?? EMPTY_ID_LIST;
   const storeTlIds =
     useDhStore((s) => s.leadershipAssignments[project.id]?.tlIds) ?? EMPTY_ID_LIST;
-  const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
+  const [dbProjects, setDbProjects] = useState<any[]>([]);
   const [dbEmployees, setDbEmployees] = useState<ApiEmployeeListItem[]>([]);
+  const [employeesReady, setEmployeesReady] = useState(false);
   const [projectTeamMembers, setProjectTeamMembers] = useState<ApiProjectTeamMember[]>([]);
 
   useEffect(() => {
@@ -2943,21 +2975,25 @@ function ChangeLeaderPanel({
       })
       .catch((err) => console.warn("Failed to fetch projects for ChangeLeaderPanel", err));
 
-    fetchEmployees({ perPage: 100 })
-      .then((res) => {
-        if (active && res?.items && res.items.length > 0) {
-          setDbEmployees(res.items);
-          dhStore.registerPeople(
-            res.items.map((emp) => ({
-              id: emp.id,
-              name: emp.fullName,
-              role: emp.designation || emp.role || "User",
-              email: emp.workEmail || "",
-            })),
-          );
-        }
+    loadEmployeesWithOnFloorRole()
+      .then((items) => {
+        if (!active) return;
+        setEmployeesReady(true);
+        if (items.length === 0) return;
+        setDbEmployees(items);
+        dhStore.registerPeople(
+          items.map((emp) => ({
+            id: emp.id,
+            name: emp.fullName,
+            role: emp.jobRoleName || emp.role || emp.designation || "User",
+            email: emp.workEmail || "",
+          })),
+        );
       })
-      .catch((err) => console.warn("Failed to fetch employees for ChangeLeaderPanel", err));
+      .catch((err) => {
+        if (active) setEmployeesReady(true);
+        console.warn("Failed to fetch employees for ChangeLeaderPanel", err);
+      });
 
     return () => {
       active = false;
@@ -2990,23 +3026,29 @@ function ChangeLeaderPanel({
   }, [role, project.id]);
 
   const candidatePool = useMemo(() => {
+    const managerSubtitle = (emp: ApiEmployeeListItem, fallbackRole: string) =>
+      [emp.employeeCode, emp.department, emp.jobRoleName || fallbackRole].filter(Boolean).join(" · ");
     if (role === "Project Manager") {
-      const fromApi = dbEmployees.filter(isEmployeePM).map((emp) => ({
-        id: emp.id,
-        name: emp.fullName,
-        role: "Project Manager",
-        designation: emp.designation || "Project Manager",
-      }));
-      return fromApi.length > 0 ? fromApi : DB_PM_FALLBACK;
+      return dbEmployees
+        .filter((emp) => isActiveEmployeeStatus(emp.status) && isEmployeePM(emp))
+        .map((emp) => ({
+          id: emp.id,
+          name: emp.fullName,
+          role: "Project Manager",
+          designation: managerSubtitle(emp, "Manager (Mng.)"),
+          email: emp.workEmail || "",
+        }));
     }
     if (role === "Senior Project Manager") {
-      const fromApi = dbEmployees.filter(isEmployeeSPM).map((emp) => ({
-        id: emp.id,
-        name: emp.fullName,
-        role: "Senior Project Manager",
-        designation: emp.designation || "Senior Project Manager",
-      }));
-      return fromApi.length > 0 ? fromApi : DB_SPM_FALLBACK;
+      return dbEmployees
+        .filter((emp) => isActiveEmployeeStatus(emp.status) && isEmployeeSPM(emp))
+        .map((emp) => ({
+          id: emp.id,
+          name: emp.fullName,
+          role: "Senior Project Manager",
+          designation: managerSubtitle(emp, "Sr. Manager (Sr.Mng.)"),
+          email: emp.workEmail || "",
+        }));
     }
     if (role === "Engagement Manager") {
       const fromApi = dbEmployees.filter(
@@ -3092,6 +3134,7 @@ function ChangeLeaderPanel({
             await apiUpdateProjectTeamMember(project.id, m.id, { isTeamLead: shouldBeLead });
           }),
         );
+        onLeadershipSaved?.(await fetchProjectTeamMembers(project.id));
       }
 
       if ((role === "Project Manager" || role === "Senior Project Manager") && isApiGuid(project.id)) {
@@ -3122,7 +3165,7 @@ function ChangeLeaderPanel({
   };
 
   return (
-    <Modal title={`Change Leader — ${role}`} onClose={onClose} draggable>
+    <Modal title={`Change ${role}`} onClose={onClose} draggable>
       <div className="space-y-3">
         {/* Currently assigned chips */}
         <div>
@@ -3157,9 +3200,9 @@ function ChangeLeaderPanel({
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
               {role === "Project Manager"
-                ? "Database Project Managers"
+                ? "On Floor Role: Manager (Mng.)"
                 : role === "Senior Project Manager"
-                  ? "Database Senior Project Managers"
+                  ? "On Floor Role: Sr. Manager (Sr.Mng.)"
                   : role === "Team Lead"
                     ? "Project Team members"
                     : "All Leaders"}
@@ -3176,8 +3219,8 @@ function ChangeLeaderPanel({
               placeholder={
                 role === "Team Lead"
                   ? "Search project team by name…"
-                  : role === "Project Manager"
-                    ? "Search PM by name or designation…"
+                  : role === "Project Manager" || role === "Senior Project Manager"
+                    ? "Search by name or department…"
                     : "Search by name or role…"
               }
               className="h-8 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -3247,7 +3290,15 @@ function ChangeLeaderPanel({
               <li className="px-3 py-6 text-center text-xs text-muted-foreground">
                 {role === "Team Lead"
                   ? "No project team members yet — add them on the Team tab first"
-                  : "No match"}
+                  : !employeesReady
+                    ? "Loading employees…"
+                    : search.trim()
+                      ? "No match"
+                      : role === "Project Manager"
+                        ? "No Active employees with On Floor Role Manager (Mng.)"
+                        : role === "Senior Project Manager"
+                          ? "No Active employees with On Floor Role Sr. Manager (Sr.Mng.)"
+                          : "No match"}
               </li>
             )}
           </ul>
@@ -7326,7 +7377,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
   const { user, isSales, isViewOnly } = useRoleContext();
   const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
 
-  const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
+  const [dbProjects, setDbProjects] = useState<any[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -7390,6 +7441,28 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
       auditTrail: []
     };
   }, [prereqData, defaultPmIds, defaultSpmIds, project.id]);
+
+  const assignedProjectManagers = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.projectManagers ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({ employeeId: person.employeeId, name: person.name.trim() }));
+    }
+    return prereq.assignedPmIds
+      .map((id) => ({ employeeId: id, name: getPerson(id).name }))
+      .filter((person) => person.name?.trim());
+  }, [project.id, project.projectManagers, prereq.assignedPmIds, knownPeople]);
+
+  const assignedSeniorProjectManagers = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.seniorProjectManagers ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({ employeeId: person.employeeId, name: person.name.trim() }));
+    }
+    return prereq.assignedSpmIds
+      .map((id) => ({ employeeId: id, name: getPerson(id).name }))
+      .filter((person) => person.name?.trim());
+  }, [project.id, project.seniorProjectManagers, prereq.assignedSpmIds, knownPeople]);
 
   const servicesList: DhServicePrereq[] = useMemo(() => {
     const rawServices: any[] = project.wbsDetails?.services ?? [];
@@ -7641,30 +7714,24 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                 <div>
                   <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Project Managers</p>
                   <div className="flex flex-wrap gap-1.5" key={`pm-${Object.keys(knownPeople).length}`}>
-                    {prereq.assignedPmIds.map((id) => {
-                      const p = getPerson(id);
-                      return (
-                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
-                          <Avatar name={p.name} size={14} /> {p.name}
-                        </span>
-                      );
-                    })}
-                    {prereq.assignedPmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
+                    {assignedProjectManagers.map((person) => (
+                      <span key={person.employeeId} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
+                        <Avatar name={person.name} size={14} /> {person.name}
+                      </span>
+                    ))}
+                    {assignedProjectManagers.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
                   </div>
                 </div>
 
                 <div>
                   <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Senior PMs</p>
                   <div className="flex flex-wrap gap-1.5" key={`spm-${Object.keys(knownPeople).length}`}>
-                    {prereq.assignedSpmIds.map((id) => {
-                      const p = getPerson(id);
-                      return (
-                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
-                          <Avatar name={p.name} size={14} /> {p.name}
-                        </span>
-                      );
-                    })}
-                    {prereq.assignedSpmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
+                    {assignedSeniorProjectManagers.map((person) => (
+                      <span key={person.employeeId} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
+                        <Avatar name={person.name} size={14} /> {person.name}
+                      </span>
+                    ))}
+                    {assignedSeniorProjectManagers.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
                   </div>
                 </div>
               </div>
@@ -8115,8 +8182,9 @@ function WbsAssignmentModal({
   const [spmQuery, setSpmQuery] = useState("");
 
   const allPrereqs = useDhStore((s) => s.prereqs);
-  const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
+  const [dbProjects, setDbProjects] = useState<any[]>([]);
   const [dbEmployees, setDbEmployees] = useState<ApiEmployeeListItem[]>([]);
+  const [employeesReady, setEmployeesReady] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -8128,21 +8196,24 @@ function WbsAssignmentModal({
       })
       .catch((err) => console.warn("Failed to fetch projects for assign modal", err));
 
-    fetchEmployees({ perPage: 100 })
-      .then((res) => {
-        if (active && res?.items && res.items.length > 0) {
-          setDbEmployees(res.items);
-          dhStore.registerPeople(
-            res.items.map((emp) => ({
-              id: emp.id,
-              name: emp.fullName,
-              role: emp.designation || emp.role || "User",
-              email: emp.workEmail || "",
-            })),
-          );
-        }
+    loadEmployeesWithOnFloorRole()
+      .then((items) => {
+        if (!active) return;
+        setDbEmployees(items);
+        setEmployeesReady(true);
+        dhStore.registerPeople(
+          items.map((emp) => ({
+            id: emp.id,
+            name: emp.fullName,
+            role: emp.jobRoleName || emp.role || emp.designation || "User",
+            email: emp.workEmail || "",
+          })),
+        );
       })
-      .catch((err) => console.warn("Failed to fetch employees for assign modal", err));
+      .catch((err) => {
+        if (active) setEmployeesReady(true);
+        console.warn("Failed to fetch employees for assign modal", err);
+      });
 
     return () => {
       active = false;
@@ -8150,32 +8221,38 @@ function WbsAssignmentModal({
   }, []);
 
   const pmPool = useMemo(() => {
-    const fromApi = dbEmployees.filter(isEmployeePM).map((emp) => ({
+    return dbEmployees.filter((emp) => isActiveEmployeeStatus(emp.status) && isEmployeePM(emp)).map((emp) => ({
       id: emp.id,
       name: emp.fullName,
+      code: emp.employeeCode,
+      department: emp.department || "",
       role: "PM",
-      designation: emp.designation || "Project Manager",
+      designation: emp.jobRoleName || "Manager (Mng.)",
     }));
-    return fromApi.length > 0 ? fromApi : DB_PM_FALLBACK;
   }, [dbEmployees]);
 
   const spmPool = useMemo(() => {
-    const fromApi = dbEmployees.filter(isEmployeeSPM).map((emp) => ({
+    return dbEmployees.filter((emp) => isActiveEmployeeStatus(emp.status) && isEmployeeSPM(emp)).map((emp) => ({
       id: emp.id,
       name: emp.fullName,
+      code: emp.employeeCode,
+      department: emp.department || "",
       role: "Senior PM",
-      designation: emp.designation || "Senior Project Manager",
+      designation: emp.jobRoleName || "Sr. Manager (Sr.Mng.)",
     }));
-    return fromApi.length > 0 ? fromApi : DB_SPM_FALLBACK;
   }, [dbEmployees]);
 
+  const matchesQuery = (person: { name: string; code?: string; department?: string; designation: string }, query: string) => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return true;
+    return [person.name, person.code, person.department, person.designation]
+      .some((value) => (value || "").toLowerCase().includes(needle));
+  };
   const pmVisiblePool = pmPool.filter(p =>
-    !selectedSPMs.includes(p.id) &&
-    (!pmQuery.trim() || p.name.toLowerCase().includes(pmQuery.toLowerCase()) || p.designation.toLowerCase().includes(pmQuery.toLowerCase()))
+    !selectedSPMs.includes(p.id) && matchesQuery(p, pmQuery)
   );
   const spmVisiblePool = spmPool.filter(p =>
-    !selectedPMs.includes(p.id) &&
-    (!spmQuery.trim() || p.name.toLowerCase().includes(spmQuery.toLowerCase()) || p.designation.toLowerCase().includes(spmQuery.toLowerCase()))
+    !selectedPMs.includes(p.id) && matchesQuery(p, spmQuery)
   );
 
   const selectedPMPeople = pmPool.filter(p => selectedPMs.includes(p.id));
@@ -8301,7 +8378,7 @@ function WbsAssignmentModal({
                             </span>
                           </div>
                           <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
-                            <span className="truncate">{p.designation}</span>
+                            <span className="truncate">{[p.code, p.department, p.designation].filter(Boolean).join(" · ")}</span>
                             <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
                           </div>
                           <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
@@ -8317,7 +8394,7 @@ function WbsAssignmentModal({
                 })}
                 {pmVisiblePool.length === 0 && (
                   <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    {pmQuery ? "No match" : "No available members"}
+                    {!employeesReady ? "Loading employees…" : pmQuery ? "No match" : "No employees with On Floor Role Manager (Mng.)"}
                   </li>
                 )}
               </ul>
@@ -8368,7 +8445,7 @@ function WbsAssignmentModal({
                             </span>
                           </div>
                           <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
-                            <span className="truncate">{p.designation}</span>
+                            <span className="truncate">{[p.code, p.department, p.designation].filter(Boolean).join(" · ")}</span>
                             <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
                           </div>
                           <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
@@ -8384,7 +8461,7 @@ function WbsAssignmentModal({
                 })}
                 {spmVisiblePool.length === 0 && (
                   <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    {spmQuery ? "No match" : "No available members"}
+                    {!employeesReady ? "Loading employees…" : spmQuery ? "No match" : "No employees with On Floor Role Sr. Manager (Sr.Mng.)"}
                   </li>
                 )}
               </ul>

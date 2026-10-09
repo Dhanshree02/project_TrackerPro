@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Storage;
+using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
 using PMS.API.Shared.Common.Wrappers;
@@ -526,7 +527,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var clientPos = clientIndex.IndexOf(clientId);
         var clientSeq = clientPos >= 0 ? clientPos + 1 : 1;
         await db.Database.ExecuteSqlRawAsync(
-            """ALTER TABLE clients ADD COLUMN IF NOT EXISTS "ClientCode" character varying(20);""",
+            $"""ALTER TABLE {db.TableName<Client>()} ADD COLUMN IF NOT EXISTS "ClientCode" character varying(20);""",
             ct);
         var storedClientCode = await db.Clients
             .IgnoreQueryFilters()

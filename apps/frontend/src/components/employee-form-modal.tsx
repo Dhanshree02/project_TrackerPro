@@ -118,6 +118,22 @@ const FIELD_LABELS: Record<string, string> = {
   clientEngManagerMapping: "Client Engagement Manager",
 };
 
+/**
+ * RBAC role for a designation. The designation carries its mapped role name, so the
+ * roles list (which needs role-management rights) is only used to confirm the id match.
+ */
+function resolveDesignationRbacRoleName(
+  designation: ApiMetaOption | undefined,
+  rbacRoles: ApiRole[],
+): string | null {
+  if (!designation) return null;
+  if (designation.defaultRoleId && rbacRoles.length > 0) {
+    const matched = rbacRoles.find((r) => r.id === designation.defaultRoleId);
+    if (matched) return matched.name;
+  }
+  return designation.defaultRoleName?.trim() || null;
+}
+
 function FormField({
   id,
   label,
@@ -596,18 +612,15 @@ export function EmployeeFormModal({
       return;
     }
 
-    // Auto-map RBAC Role if designation has defaultRoleId (Approach 1)
+    // RBAC Role is mapped from the designation (mst_designations.DefaultRoleId).
     const matchedDesig = desigOptions.find((d) => d.id === form.designationId);
-    if (matchedDesig?.defaultRoleId && rbacRoleOptions.length > 0) {
-      const matchedRole = rbacRoleOptions.find(
-        (r) => r.id === matchedDesig.defaultRoleId || r.name.toLowerCase() === matchedDesig.defaultRoleId?.toLowerCase(),
-      );
-      if (matchedRole) {
-        setForm((prev) => {
-          if (prev.role && mode === "edit" && prev.designationId === initialEmployee?.designationId) return prev;
-          return { ...prev, role: matchedRole.name };
-        });
-      }
+    const mappedRoleName = resolveDesignationRbacRoleName(matchedDesig, rbacRoleOptions);
+    if (mappedRoleName) {
+      setForm((prev) => {
+        if (prev.role && mode === "edit" && prev.designationId === initialEmployee?.designationId) return prev;
+        if (prev.role === mappedRoleName) return prev;
+        return { ...prev, role: mappedRoleName };
+      });
     }
 
     let cancelled = false;
@@ -848,7 +861,6 @@ export function EmployeeFormModal({
       }
 
       let resolvedJobRoleId = form.jobRoleId || null;
-      let resolvedRoleName = roleOptions.find((r) => r.id === form.jobRoleId)?.name ?? null;
       if (resolvedJobRoleId && resolvedJobRoleId.startsWith("__new__")) {
         const rawName = resolvedJobRoleId.replace(/^__new__/, "");
         if (!resolvedDesignationId) {
@@ -858,7 +870,6 @@ export function EmployeeFormModal({
         }
         const createdRole = await createJobRoleOption(rawName, resolvedDesignationId);
         resolvedJobRoleId = createdRole.id;
-        resolvedRoleName = createdRole.name;
         setRoleOptions((prev) =>
           prev.map((r) => (r.id === form.jobRoleId ? createdRole : r)),
         );
@@ -965,7 +976,9 @@ export function EmployeeFormModal({
         departmentId: resolvedDepartmentId,
         designationId: resolvedDesignationId,
         jobRoleId: resolvedJobRoleId,
-        role: form.role || resolvedRoleName,
+        // RBAC role is the designation's mapped role. The API derives it from the designation
+        // as well, so an On Floor Role name is never sent here in its place.
+        role: form.role || null,
         reportingManagerId: resolvedReportingManagerId,
         businessUnit: resolvedBusinessUnit,
         workLocation: resolvedWorkLocation,
@@ -1316,14 +1329,8 @@ export function EmployeeFormModal({
                 onSelect={(id) => {
                   setField("designationId", id);
                   const matchedDesig = desigOptions.find((d) => d.id === id);
-                  if (matchedDesig?.defaultRoleId && rbacRoleOptions.length > 0) {
-                    const matchedRole = rbacRoleOptions.find(
-                      (r) => r.id === matchedDesig.defaultRoleId || r.name.toLowerCase() === matchedDesig.defaultRoleId?.toLowerCase(),
-                    );
-                    if (matchedRole) {
-                      setField("role", matchedRole.name);
-                    }
-                  }
+                  const mappedRoleName = resolveDesignationRbacRoleName(matchedDesig, rbacRoleOptions);
+                  setField("role", mappedRoleName ?? "");
                 }}
                 onCreate={async (name) => {
                   const trimmed = name.trim();
@@ -1336,45 +1343,28 @@ export function EmployeeFormModal({
                   return temp;
                 }}
               />
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="form-role" className="text-xs font-medium text-foreground flex items-center justify-between">
-                  <span>Assigned RBAC Role <span className="text-destructive">*</span></span>
-                  <span className="text-[10px] text-muted-foreground font-normal">Auto-mapped</span>
-                </label>
-                <select
-                  id="form-role"
-                  value={form.role}
-                  onChange={(e) => setField("role", e.target.value)}
-                  disabled={!form.designationId}
-                  className={cn(
-                    "h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                    "disabled:cursor-not-allowed disabled:opacity-50",
-                    errors.role && "border-destructive focus-visible:ring-destructive/30",
-                  )}
-                  aria-invalid={Boolean(errors.role)}
-                >
-                  <option value="">Select RBAC Role...</option>
-                  {rbacRoleOptions.map((r) => (
-                    <option key={r.id} value={r.name}>
-                      {r.displayName || r.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.role ? <p className={FORM_ERROR_CLS}>{errors.role}</p> : null}
-                <span className="text-[10px] text-muted-foreground">
-                  Default software permissions from catalog (overridable)
-                </span>
-              </div>
+              <FormField
+                id="form-role"
+                label="Assigned RBAC Role"
+                required
+                readOnly
+                value={
+                  rbacRoleOptions.find((r) => r.name === form.role)?.displayName
+                  || desigOptions.find((d) => d.id === form.designationId && d.defaultRoleName === form.role)?.defaultRoleDisplayName
+                  || form.role
+                  || (form.designationId ? "No RBAC role is mapped to this designation" : "Select a designation first")
+                }
+                error={errors.role}
+              />
               <CreatableCatalogSelect
                 id="form-jobRoleId"
                 label="On Floor Role"
                 options={roleOptions}
                 valueId={form.jobRoleId}
-                disabled={!form.designationId}
-                disabledHint="Select a designation first"
-                placeholder="Select on floor role"
-                onSelect={(id) => setField("jobRoleId", id)}
+                disabled
+                disabledHint={form.designationId ? "Mapped from designation" : "Select a designation first"}
+                placeholder="Mapped from designation"
+                onSelect={() => undefined}
                 onCreate={async (name) => {
                   const trimmed = name.trim();
                   const existing = roleOptions.find(

@@ -6,33 +6,71 @@ import {
   type ApiEmployeeListItem,
 } from "@/lib/api/employees";
 
-/** Active employees whose designation is Engagement Manager (from mst_designations / employees). */
-export async function fetchEngagementManagers(): Promise<ApiEmployeeListItem[]> {
-  const designations = await fetchDesignationOptions();
-  const emDesignationIds = designations
-    .filter((d) => (d.name ?? "").trim().toLowerCase() === "engagement manager")
-    .map((d) => d.id);
+export const ENGAGEMENT_MANAGER_DESIGNATIONS = [
+  "Delivery Account Manager - I",
+  "Delivery Account Manager - II",
+  "Senior Delivery Account Manager - I",
+  "Senior Delivery Account Manager - II",
+] as const;
 
-  let items: ApiEmployeeListItem[] = [];
-  if (emDesignationIds.length > 0) {
-    const pages = await Promise.all(
-      emDesignationIds.map((designationId) =>
-        fetchEmployees({ designationId, perPage: 100, status: "Active" }).then((p) => p.items),
-      ),
-    );
-    const byId = new Map<string, ApiEmployeeListItem>();
-    for (const item of pages.flat()) byId.set(item.id, item);
-    items = [...byId.values()];
+export function isEngagementManagerDesignation(designationName: string | null | undefined): boolean {
+  if (!designationName) return false;
+  const normalized = designationName
+    .trim()
+    .toLowerCase()
+    .replace(/\s*-\s*/g, " - ")
+    .replace(/\s+/g, " ");
+  return (
+    normalized === "delivery account manager - i" ||
+    normalized === "delivery account manager - ii" ||
+    normalized === "senior delivery account manager - i" ||
+    normalized === "senior delivery account manager - ii"
+  );
+}
+
+/** Active employees whose designation is one of the Delivery Account Manager designations. */
+export async function fetchEngagementManagers(): Promise<ApiEmployeeListItem[]> {
+  const byId = new Map<string, ApiEmployeeListItem>();
+
+  try {
+    const designations = await fetchDesignationOptions();
+    const emDesignationIds = (Array.isArray(designations) ? designations : [])
+      .filter((d) => isEngagementManagerDesignation(d.name))
+      .map((d) => d.id);
+
+    if (emDesignationIds.length > 0) {
+      const pages = await Promise.all(
+        emDesignationIds.map((designationId) =>
+          fetchEmployees({ designationId, perPage: 100, status: "Active" })
+            .then((p) => p.items ?? [])
+            .catch(() => [] as ApiEmployeeListItem[]),
+        ),
+      );
+      for (const item of pages.flat()) {
+        if (item?.id) byId.set(item.id, item);
+      }
+    }
+  } catch (err) {
+    console.warn("fetchEngagementManagers: designation query failed", err);
   }
 
-  const all = await fetchAllEmployees();
-  for (const e of all) {
-    if ((e.designation ?? "").trim().toLowerCase() === "engagement manager") {
-      if (!items.some((x) => x.id === e.id)) items.push(e);
+  // Augmentation / directory fallback
+  try {
+    const all = await fetchAllEmployees();
+    for (const e of all) {
+      if (isEngagementManagerDesignation(e.designation)) {
+        if ((!e.status || e.status === "Active") && !byId.has(e.id)) {
+          byId.set(e.id, e);
+        }
+      }
+    }
+  } catch (err) {
+    if (byId.size === 0) {
+      console.warn("fetchEngagementManagers: fetchAllEmployees fallback also failed", err);
     }
   }
 
-  return items.sort((a, b) => a.fullName.localeCompare(b.fullName));
+  return [...byId.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));
 }
 
 export function filterEngagementManagers(

@@ -5,6 +5,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Infrastructure.Persistence.Configurations;
+using PMS.API.Modules.Resources.Models;
 
 namespace PMS.API.Infrastructure.Persistence.Seeding;
 
@@ -29,17 +31,30 @@ public sealed class DbInitializerHostedService(
         try
         {
             await db.Database.MigrateAsync(cancellationToken);
+
+            // Schema-qualified names from the EF model (master.*, resource.*, …).
+            var countries = db.TableName<MstCountry>();
+            var employeeStatuses = db.TableName<MstEmployeeStatus>();
+            var employees = db.TableName<Employee>();
+            var exitedEmployees = db.TableName<ExitedEmployee>();
+            var certifications = db.TableName<MstCertification>();
+            var graduationDegrees = db.TableName<MstGraduationDegree>();
+            var postGraduationDegrees = db.TableName<MstPostGraduationDegree>();
+            var designations = db.TableName<MstDesignation>();
+            var employeeActivityLogs = db.TableName<EmployeeActivityLog>();
+            var resourceSchema = DbSchemas.Resource;
+
             // Dump-initialized DBs can lag the model (PhoneCode was added in code before a migration ran).
             await db.Database.ExecuteSqlRawAsync(
-                """ALTER TABLE mst_countries ADD COLUMN IF NOT EXISTS "PhoneCode" character varying(8) NOT NULL DEFAULT '+91';""",
+                $"""ALTER TABLE {countries} ADD COLUMN IF NOT EXISTS "PhoneCode" character varying(8) NOT NULL DEFAULT '+91';""",
                 cancellationToken);
             await db.Database.ExecuteSqlRawAsync(
-                """ALTER TABLE mst_countries ADD COLUMN IF NOT EXISTS "PhoneDigits" integer NOT NULL DEFAULT 10;""",
+                $"""ALTER TABLE {countries} ADD COLUMN IF NOT EXISTS "PhoneDigits" integer NOT NULL DEFAULT 10;""",
                 cancellationToken);
             // Dump-initialized DBs can lag the model (employee status catalog added after dump).
             await db.Database.ExecuteSqlRawAsync(
-                """
-                CREATE TABLE IF NOT EXISTS mst_employee_statuses (
+                $"""
+                CREATE TABLE IF NOT EXISTS {employeeStatuses} (
                     "Id" uuid NOT NULL,
                     "Code" character varying(80) NOT NULL,
                     "Name" character varying(150) NOT NULL,
@@ -54,21 +69,20 @@ public sealed class DbInitializerHostedService(
                 );
 
                 CREATE UNIQUE INDEX IF NOT EXISTS "IX_mst_employee_statuses_Code"
-                    ON mst_employee_statuses ("Code")
+                    ON {employeeStatuses} ("Code")
                     WHERE "DeletedAtUtc" IS NULL;
 
                 DO $$
                 BEGIN
                     IF NOT EXISTS (
                         SELECT 1 FROM pg_constraint c
-                        JOIN pg_class t ON c.conrelid = t.oid
-                        WHERE t.relname = 'mst_employee_statuses' AND c.contype = 'p'
+                        WHERE c.conrelid = '{employeeStatuses}'::regclass AND c.contype = 'p'
                     ) THEN
-                        ALTER TABLE mst_employee_statuses ADD PRIMARY KEY ("Id");
+                        ALTER TABLE {employeeStatuses} ADD PRIMARY KEY ("Id");
                     END IF;
                 END $$;
 
-                ALTER TABLE employees
+                ALTER TABLE {employees}
                     ADD COLUMN IF NOT EXISTS "EmployeeStatusId" uuid,
                     ADD COLUMN IF NOT EXISTS "BondDelivered" character varying(10),
                     ADD COLUMN IF NOT EXISTS "BondDurationMonths" integer,
@@ -79,14 +93,14 @@ public sealed class DbInitializerHostedService(
                     IF NOT EXISTS (
                         SELECT 1 FROM pg_constraint WHERE conname = 'FK_employees_mst_employee_statuses_EmployeeStatusId'
                     ) THEN
-                        ALTER TABLE employees
+                        ALTER TABLE {employees}
                             ADD CONSTRAINT "FK_employees_mst_employee_statuses_EmployeeStatusId"
-                            FOREIGN KEY ("EmployeeStatusId") REFERENCES mst_employee_statuses ("Id")
+                            FOREIGN KEY ("EmployeeStatusId") REFERENCES {employeeStatuses} ("Id")
                             ON DELETE SET NULL;
                     END IF;
                 END $$;
 
-                CREATE TABLE IF NOT EXISTS mst_certifications (
+                CREATE TABLE IF NOT EXISTS {certifications} (
                     "Id" uuid NOT NULL,
                     "Code" character varying(100) NOT NULL,
                     "Name" character varying(200) NOT NULL,
@@ -102,14 +116,13 @@ public sealed class DbInitializerHostedService(
                 BEGIN
                     IF NOT EXISTS (
                         SELECT 1 FROM pg_constraint c
-                        JOIN pg_class t ON c.conrelid = t.oid
-                        WHERE t.relname = 'mst_certifications' AND c.contype = 'p'
+                        WHERE c.conrelid = '{certifications}'::regclass AND c.contype = 'p'
                     ) THEN
-                        ALTER TABLE mst_certifications ADD PRIMARY KEY ("Id");
+                        ALTER TABLE {certifications} ADD PRIMARY KEY ("Id");
                     END IF;
                 END $$;
 
-                CREATE TABLE IF NOT EXISTS mst_graduation_degrees (
+                CREATE TABLE IF NOT EXISTS {graduationDegrees} (
                     "Id" uuid NOT NULL,
                     "Code" character varying(100) NOT NULL,
                     "Name" character varying(200) NOT NULL,
@@ -125,14 +138,13 @@ public sealed class DbInitializerHostedService(
                 BEGIN
                     IF NOT EXISTS (
                         SELECT 1 FROM pg_constraint c
-                        JOIN pg_class t ON c.conrelid = t.oid
-                        WHERE t.relname = 'mst_graduation_degrees' AND c.contype = 'p'
+                        WHERE c.conrelid = '{graduationDegrees}'::regclass AND c.contype = 'p'
                     ) THEN
-                        ALTER TABLE mst_graduation_degrees ADD PRIMARY KEY ("Id");
+                        ALTER TABLE {graduationDegrees} ADD PRIMARY KEY ("Id");
                     END IF;
                 END $$;
 
-                CREATE TABLE IF NOT EXISTS mst_post_graduation_degrees (
+                CREATE TABLE IF NOT EXISTS {postGraduationDegrees} (
                     "Id" uuid NOT NULL,
                     "Code" character varying(100) NOT NULL,
                     "Name" character varying(200) NOT NULL,
@@ -148,26 +160,25 @@ public sealed class DbInitializerHostedService(
                 BEGIN
                     IF NOT EXISTS (
                         SELECT 1 FROM pg_constraint c
-                        JOIN pg_class t ON c.conrelid = t.oid
-                        WHERE t.relname = 'mst_post_graduation_degrees' AND c.contype = 'p'
+                        WHERE c.conrelid = '{postGraduationDegrees}'::regclass AND c.contype = 'p'
                     ) THEN
-                        ALTER TABLE mst_post_graduation_degrees ADD PRIMARY KEY ("Id");
+                        ALTER TABLE {postGraduationDegrees} ADD PRIMARY KEY ("Id");
                     END IF;
                 END $$;
 
-                ALTER TABLE mst_designations
+                ALTER TABLE {designations}
                     ADD COLUMN IF NOT EXISTS "SubDepartment" text;
 
                 DO $$
                 BEGIN
-                    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'projectsite') THEN
-                        ALTER TABLE employees RENAME COLUMN projectsite TO "ProjectSite";
-                    ELSIF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'ProjectSite') THEN
-                        ALTER TABLE employees ADD COLUMN "ProjectSite" character varying(80);
+                    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = '{resourceSchema}' AND table_name = 'tbl_employees' AND column_name = 'projectsite') THEN
+                        ALTER TABLE {employees} RENAME COLUMN projectsite TO "ProjectSite";
+                    ELSIF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = '{resourceSchema}' AND table_name = 'tbl_employees' AND column_name = 'ProjectSite') THEN
+                        ALTER TABLE {employees} ADD COLUMN "ProjectSite" character varying(80);
                     END IF;
                 END $$;
 
-                ALTER TABLE employees
+                ALTER TABLE {employees}
                     ADD COLUMN IF NOT EXISTS "GradDegree" text,
                     ADD COLUMN IF NOT EXISTS "GradYear" text,
                     ADD COLUMN IF NOT EXISTS "PostGradDegree" text,
@@ -184,7 +195,7 @@ public sealed class DbInitializerHostedService(
                     ADD COLUMN IF NOT EXISTS "ProjectAllocated" text,
                     ADD COLUMN IF NOT EXISTS "ClientEngManagerMapping" text;
 
-                CREATE TABLE IF NOT EXISTS employee_activity_logs (
+                CREATE TABLE IF NOT EXISTS {employeeActivityLogs} (
                     "Id" uuid NOT NULL PRIMARY KEY,
                     "EmployeeId" uuid NOT NULL,
                     "Action" character varying(50) NOT NULL,
@@ -199,27 +210,27 @@ public sealed class DbInitializerHostedService(
                 );
 
                 CREATE INDEX IF NOT EXISTS "IX_employee_activity_logs_EmployeeId"
-                    ON employee_activity_logs ("EmployeeId");
+                    ON {employeeActivityLogs} ("EmployeeId");
 
                 CREATE INDEX IF NOT EXISTS "IX_employee_activity_logs_CreatedAtUtc"
-                    ON employee_activity_logs ("CreatedAtUtc" DESC);
+                    ON {employeeActivityLogs} ("CreatedAtUtc" DESC);
                 """,
                 cancellationToken);
             await db.Database.ExecuteSqlRawAsync(
-                """
-                ALTER TABLE exited_employees
+                $"""
+                ALTER TABLE {exitedEmployees}
                     ADD COLUMN IF NOT EXISTS "ClearanceCompleted" boolean NOT NULL DEFAULT false,
                     ADD COLUMN IF NOT EXISTS "ExitRating" numeric(3, 1);
 
-                UPDATE exited_employees
+                UPDATE {exitedEmployees}
                 SET "ClearanceCompleted" = true
                 WHERE "ClearanceCompleted" = false
                   AND "LastWorkingDay" IS NOT NULL
                   AND "LastWorkingDay" < CURRENT_DATE;
 
-                UPDATE exited_employees e
+                UPDATE {exitedEmployees} e
                 SET "ExitRating" = emp."AnnualRating"
-                FROM employees emp
+                FROM {employees} emp
                 WHERE e."OriginalEmployeeId" = emp."Id"
                   AND e."ExitRating" IS NULL
                   AND emp."AnnualRating" IS NOT NULL

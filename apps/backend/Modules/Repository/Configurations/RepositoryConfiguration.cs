@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using PMS.API.Infrastructure.Persistence.Configurations;
 using PMS.API.Modules.Repository.Models;
 
 namespace PMS.API.Modules.Repository.Configurations;
@@ -8,7 +9,7 @@ public class RepositoryItemConfiguration : IEntityTypeConfiguration<RepositoryIt
 {
     public void Configure(EntityTypeBuilder<RepositoryItem> builder)
     {
-        builder.ToTable("repository");
+        builder.ToTable("tbl_repository_items", DbSchemas.Repository);
 
         builder.HasKey(r => r.Id);
 
@@ -48,7 +49,7 @@ public class RepositoryDepartmentConfiguration : IEntityTypeConfiguration<Reposi
 {
     public void Configure(EntityTypeBuilder<RepositoryDepartment> builder)
     {
-        builder.ToTable("repository_departments");
+        builder.ToTable("tbl_repository_departments", DbSchemas.Repository);
 
         builder.HasKey(d => new { d.RepositoryItemId, d.DepartmentId });
 
@@ -65,7 +66,7 @@ public class RepositoryActivityLogConfiguration : IEntityTypeConfiguration<Repos
 {
     public void Configure(EntityTypeBuilder<RepositoryActivityLog> builder)
     {
-        builder.ToTable("repository_activity_logs");
+        builder.ToTable("log_repository_activity", DbSchemas.Repository);
 
         builder.HasKey(l => l.Id);
 

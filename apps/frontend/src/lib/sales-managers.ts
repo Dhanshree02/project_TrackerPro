@@ -1,48 +1,78 @@
 import { useEffect, useState } from "react";
 import {
   fetchAllEmployees,
-  fetchDepartmentOptions,
+  fetchDesignationOptions,
   fetchEmployees,
   type ApiEmployeeListItem,
 } from "@/lib/api/employees";
 
+export const SALES_MANAGER_DESIGNATIONS = [
+  "Business Development Associate - I",
+  "Customer Success Representative - II",
+] as const;
+
 export const FUNCTIONAL_SALES_DEPARTMENT = "Functional - Sales";
 
-/** Matches mst_departments name/code for the Sales org unit. */
+/** Matches mst_departments name/code for the Sales org unit (legacy fallback). */
 export function isFunctionalSalesDepartment(nameOrCode: string | null | undefined): boolean {
   const n = (nameOrCode ?? "").trim().toLowerCase().replace(/\s+/g, " ");
   return n === "functional - sales" || n === "functional-sales" || n === "functional_sales";
 }
 
-async function fetchEmployeesByDepartment(departmentId: string): Promise<ApiEmployeeListItem[]> {
-  const first = await fetchEmployees({ departmentId, perPage: 100, status: "Active" });
-  const all = [...(first.items ?? [])];
-  for (let p = 2; p <= (first.totalPages || 1); p++) {
-    const next = await fetchEmployees({
-      departmentId,
-      page: p,
-      perPage: 100,
-      status: "Active",
-    });
-    all.push(...(next.items ?? []));
-  }
-  return all;
+/** Matches the 2 designated Sales Manager designations from the database. */
+export function isSalesManagerDesignation(designationName: string | null | undefined): boolean {
+  if (!designationName) return false;
+  const normalized = designationName
+    .trim()
+    .toLowerCase()
+    .replace(/\s*-\s*/g, " - ")
+    .replace(/\s+/g, " ");
+  return (
+    normalized === "business development associate - i" ||
+    normalized === "customer success representative - ii"
+  );
 }
 
-/** Active employees whose department is Functional - Sales. */
+/** Active employees whose designation is Business Development Associate - I or Customer Success Representative - II. */
 export async function fetchSalesManagers(): Promise<ApiEmployeeListItem[]> {
-  const departments = await fetchDepartmentOptions();
-  const salesDeptIds = departments.filter((d) => isFunctionalSalesDepartment(d.name) || isFunctionalSalesDepartment(d.code)).map((d) => d.id);
-
   const byId = new Map<string, ApiEmployeeListItem>();
-  if (salesDeptIds.length > 0) {
-    const pages = await Promise.all(salesDeptIds.map((id) => fetchEmployeesByDepartment(id)));
-    for (const item of pages.flat()) byId.set(item.id, item);
+
+  try {
+    const designations = await fetchDesignationOptions();
+    const targetDesignationIds = (Array.isArray(designations) ? designations : [])
+      .filter((d) => isSalesManagerDesignation(d.name))
+      .map((d) => d.id);
+
+    if (targetDesignationIds.length > 0) {
+      const pages = await Promise.all(
+        targetDesignationIds.map((designationId) =>
+          fetchEmployees({ designationId, perPage: 100, status: "Active" })
+            .then((p) => p.items ?? [])
+            .catch(() => [] as ApiEmployeeListItem[]),
+        ),
+      );
+      for (const item of pages.flat()) {
+        if (item?.id) byId.set(item.id, item);
+      }
+    }
+  } catch (err) {
+    console.warn("fetchSalesManagers: designation query failed", err);
   }
 
-  const all = await fetchAllEmployees();
-  for (const e of all) {
-    if (isFunctionalSalesDepartment(e.department)) byId.set(e.id, e);
+  // Augmentation / directory fallback
+  try {
+    const all = await fetchAllEmployees();
+    for (const e of all) {
+      if (isSalesManagerDesignation(e.designation)) {
+        if ((!e.status || e.status === "Active") && !byId.has(e.id)) {
+          byId.set(e.id, e);
+        }
+      }
+    }
+  } catch (err) {
+    if (byId.size === 0) {
+      console.warn("fetchSalesManagers: fetchAllEmployees fallback also failed", err);
+    }
   }
 
   return [...byId.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));

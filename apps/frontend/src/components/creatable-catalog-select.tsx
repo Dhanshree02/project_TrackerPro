@@ -215,10 +215,10 @@ export function SearchableSelect({
           aria-invalid={Boolean(error)}
         >
           <span className="truncate">
-            {disabled
-              ? disabledHint ?? placeholder
-              : selectedOption
-                ? selectedOption.label
+            {selectedOption
+              ? selectedOption.label
+              : disabled
+                ? disabledHint ?? placeholder
                 : value || placeholder}
           </span>
           <div className="flex shrink-0 items-center gap-1">

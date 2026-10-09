@@ -8,7 +8,7 @@ public sealed class ProjectDocumentConfiguration : IEntityTypeConfiguration<Proj
 {
     public void Configure(EntityTypeBuilder<ProjectDocument> builder)
     {
-        builder.ToTable("project_documents");
+        builder.ToTable("tbl_project_documents", DbSchemas.Project);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.DocumentType).HasMaxLength(80).IsRequired();

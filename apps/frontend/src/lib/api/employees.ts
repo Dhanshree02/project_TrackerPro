@@ -43,6 +43,8 @@ export interface ApiEmployeeListItem {
   projectType?: string | null;
   projectAllocated?: string | null;
   clientEngManagerMapping?: string | null;
+  /** On Floor Role: mst_roles.Name */
+  jobRoleName?: string | null;
 }
 
 export interface ApiEmployeeDetail {
@@ -150,6 +152,9 @@ export interface ApiMetaOption {
   name: string;
   parentId?: string | null;
   defaultRoleId?: string | null;
+  /** RBAC role mapped to a designation (mst_designations.DefaultRoleId → roles.Name). */
+  defaultRoleName?: string | null;
+  defaultRoleDisplayName?: string | null;
 }
 
 interface PagedEnvelope<T> {
@@ -167,6 +172,8 @@ export async function fetchEmployees(params: {
   departmentId?: string;
   designationId?: string;
   status?: string;
+  /** Exact On Floor Role name from mst_roles.Name */
+  onFloorRole?: string;
 } = {}): Promise<PagedEnvelope<ApiEmployeeListItem>> {
   const query = new URLSearchParams();
   if (params.page) query.set("page", String(params.page));
@@ -175,7 +182,61 @@ export async function fetchEmployees(params: {
   if (params.departmentId) query.set("departmentId", params.departmentId);
   if (params.designationId) query.set("designationId", params.designationId);
   if (params.status) query.set("status", params.status);
+  if (params.onFloorRole) query.set("onFloorRole", params.onFloorRole);
   return apiFetch<PagedEnvelope<ApiEmployeeListItem>>(`/api/v1/employees?${query.toString()}`);
+}
+
+function normalizeOnFloorRole(value?: string | null): string {
+  return (value || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function isActiveEmployee(emp: { status?: string | null }): boolean {
+  return (emp.status || "").trim().toLowerCase() === "active";
+}
+
+let onFloorRoleEmployees: Promise<ApiEmployeeListItem[]> | null = null;
+
+/**
+ * Same employee rows as Resources → Directory, then only Active.
+ * On Floor Role is mst_roles.Name (jobRoleName). Deleted rows are already omitted by the API.
+ */
+export function loadEmployeesWithOnFloorRole(): Promise<ApiEmployeeListItem[]> {
+  if (!onFloorRoleEmployees) {
+    onFloorRoleEmployees = loadEmployeesWithOnFloorRoleOnce().catch((error) => {
+      onFloorRoleEmployees = null;
+      throw error;
+    });
+  }
+  return onFloorRoleEmployees;
+}
+
+async function loadEmployeesWithOnFloorRoleOnce(): Promise<ApiEmployeeListItem[]> {
+  const items = (await fetchAllEmployees()).filter(isActiveEmployee);
+  if (items.some((emp) => emp.jobRoleName)) return items;
+  const roles: string[] = [];
+  const batchSize = 8;
+  for (let start = 0; start < items.length; start += batchSize) {
+    const batch = items.slice(start, start + batchSize);
+    const resolved = await Promise.all(
+      batch.map(async (emp) => {
+        try {
+          const detail = await fetchEmployee(emp.id);
+          return detail.role || "";
+        } catch {
+          return "";
+        }
+      }),
+    );
+    roles.push(...resolved);
+  }
+  return items.map((emp, index) => ({
+    ...emp,
+    jobRoleName: roles[index] || null,
+  }));
+}
+
+export function matchesOnFloorRole(emp: { jobRoleName?: string | null }, roleName: string): boolean {
+  return normalizeOnFloorRole(emp.jobRoleName) === normalizeOnFloorRole(roleName);
 }
 
 export async function fetchEmployee(id: string): Promise<ApiEmployeeDetail> {

@@ -8,7 +8,7 @@ public sealed class ProjectTaskAssignmentHistoryConfiguration : IEntityTypeConfi
 {
     public void Configure(EntityTypeBuilder<ProjectTaskAssignmentHistory> builder)
     {
-        builder.ToTable("project_task_assignment_history");
+        builder.ToTable("log_project_task_assignments", DbSchemas.Project);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Action).HasMaxLength(20).IsRequired();

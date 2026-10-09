@@ -26,6 +26,7 @@ import { usePermissions } from "@/lib/permissions";
 import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { fetchClient, mapApiClient, updateClient, formatCustomerId, getSubVentureKycUrl } from "@/lib/api/clients";
+import { fetchEngagementManagers, filterEngagementManagers } from "@/lib/engagement-managers";
 import { fetchSalesManagers, filterSalesManagers } from "@/lib/sales-managers";
 import { fetchClientForRoute } from "@/lib/client-route-id";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
@@ -40,15 +41,6 @@ import { fetchProjects, mapApiProjectToProject } from "@/lib/api/projects";
 import { type Client, type Project } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-async function fetchEmployeesByDesignation(designationId: string): Promise<ApiEmployeeListItem[]> {
-  const page = await fetchEmployees({
-    designationId,
-    perPage: 100,
-    status: "Active",
-  });
-  return page.items;
-}
 
 // Small inline avatar bubble (initials)
 function AvatarBubble({ name, size = 22 }: { name: string; size?: number }) {
@@ -204,32 +196,8 @@ function CustomerDetailPage() {
   const loadEngagementManagers = async () => {
     setEmLoading(true);
     try {
-      const designations = await fetchDesignationOptions();
-      const list = Array.isArray(designations) ? designations : [];
-      const emDesignationIds = list
-        .filter((d) => (d.name ?? "").trim().toLowerCase() === "engagement manager")
-        .map((d) => d.id);
-
-      let items: ApiEmployeeListItem[] = [];
-      if (emDesignationIds.length > 0) {
-        const pages = await Promise.all(
-          emDesignationIds.map((designationId) => fetchEmployeesByDesignation(designationId)),
-        );
-        const byId = new Map<string, ApiEmployeeListItem>();
-        for (const item of pages.flat()) byId.set(item.id, item);
-        items = [...byId.values()];
-      }
-
-      // Always merge a full-directory filter so we never miss EMs if the
-      // designationId filter is empty/stale.
-      const all = await fetchAllEmployees();
-      for (const e of all) {
-        if ((e.designation ?? "").trim().toLowerCase() === "engagement manager") {
-          items = items.some((x) => x.id === e.id) ? items : [...items, e];
-        }
-      }
-
-      setEmPool(items.sort((a, b) => a.fullName.localeCompare(b.fullName)));
+      const items = await fetchEngagementManagers();
+      setEmPool(items);
     } catch {
       setEmPool([]);
       toast.error("Could not load Engagement Managers");
@@ -243,15 +211,7 @@ function CustomerDetailPage() {
   }, []);
 
   const filteredEmPool = useMemo(() => {
-    const q = emSearch.trim().toLowerCase();
-    if (!q) return emPool;
-    return emPool.filter(
-      (p) =>
-        p.fullName.toLowerCase().includes(q) ||
-        (p.designation ?? "").toLowerCase().includes(q) ||
-        (p.workEmail ?? "").toLowerCase().includes(q) ||
-        (p.employeeCode ?? "").toLowerCase().includes(q),
-    );
+    return filterEngagementManagers(emPool, emSearch);
   }, [emPool, emSearch]);
 
   const openEmPicker = () => {

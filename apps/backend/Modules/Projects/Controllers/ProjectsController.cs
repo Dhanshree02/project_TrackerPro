@@ -488,12 +488,11 @@ public class ProjectsController(
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<ProjectDocumentDto>>> UploadProjectDocument(
         Guid projectId,
-        [FromForm] IFormFile file,
-        [FromForm] string? documentType,
-        [FromForm] string? description,
+        [FromForm] UploadProjectDocumentRequest request,
         CancellationToken ct)
     {
-        var doc = await projectService.UploadProjectDocumentAsync(projectId, documentType, description, file, ct);
+        var docType = !string.IsNullOrWhiteSpace(request.DocumentType) ? request.DocumentType : request.Category;
+        var doc = await projectService.UploadProjectDocumentAsync(projectId, docType, request.Description, request.File, ct);
         return CreatedAtAction(nameof(GetProjectDocumentById), new { projectId, documentId = doc.Id }, ApiResponse<ProjectDocumentDto>.Ok(doc));
     }
 

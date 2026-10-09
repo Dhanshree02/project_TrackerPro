@@ -8,7 +8,7 @@ public sealed class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectT
 {
     public void Configure(EntityTypeBuilder<ProjectTask> builder)
     {
-        builder.ToTable("project_tasks");
+        builder.ToTable("tbl_project_tasks", DbSchemas.Project);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Title).HasMaxLength(255).IsRequired();

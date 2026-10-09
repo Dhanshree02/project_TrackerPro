@@ -8,7 +8,7 @@ public sealed class MstDepartmentConfiguration : IEntityTypeConfiguration<MstDep
 {
     public void Configure(EntityTypeBuilder<MstDepartment> builder)
     {
-        builder.ToTable("mst_departments");
+        builder.ToTable("mst_departments", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name).IsUnique();
@@ -21,7 +21,7 @@ public sealed class MstDesignationConfiguration : IEntityTypeConfiguration<MstDe
 {
     public void Configure(EntityTypeBuilder<MstDesignation> builder)
     {
-        builder.ToTable("mst_designations");
+        builder.ToTable("mst_designations", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => new { x.DepartmentId, x.Name }).IsUnique();
@@ -45,7 +45,7 @@ public sealed class MstContactDesignationConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<MstContactDesignation> builder)
     {
-        builder.ToTable("mst_contact_designations");
+        builder.ToTable("mst_contact_designations", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name).IsUnique();
@@ -58,7 +58,7 @@ public sealed class MstContactTypeConfiguration : IEntityTypeConfiguration<MstCo
 {
     public void Configure(EntityTypeBuilder<MstContactType> builder)
     {
-        builder.ToTable("mst_contact_types");
+        builder.ToTable("mst_contact_types", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name).IsUnique();
@@ -71,7 +71,7 @@ public sealed class MstIndustryConfiguration : IEntityTypeConfiguration<MstIndus
 {
     public void Configure(EntityTypeBuilder<MstIndustry> builder)
     {
-        builder.ToTable("mst_industries");
+        builder.ToTable("mst_industries", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name).IsUnique();
@@ -84,7 +84,7 @@ public sealed class MstCountryConfiguration : IEntityTypeConfiguration<MstCountr
 {
     public void Configure(EntityTypeBuilder<MstCountry> builder)
     {
-        builder.ToTable("mst_countries");
+        builder.ToTable("mst_countries", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name).IsUnique();
@@ -99,7 +99,7 @@ public sealed class MstCityConfiguration : IEntityTypeConfiguration<MstCity>
 {
     public void Configure(EntityTypeBuilder<MstCity> builder)
     {
-        builder.ToTable("mst_cities");
+        builder.ToTable("mst_cities", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => new { x.CountryId, x.Name }).IsUnique();
@@ -117,7 +117,7 @@ public sealed class MstNationalityConfiguration : IEntityTypeConfiguration<MstNa
 {
     public void Configure(EntityTypeBuilder<MstNationality> builder)
     {
-        builder.ToTable("mst_nationalities");
+        builder.ToTable("mst_nationalities", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name).IsUnique();
@@ -130,7 +130,7 @@ public sealed class MstSalaryBandConfiguration : IEntityTypeConfiguration<MstSal
 {
     public void Configure(EntityTypeBuilder<MstSalaryBand> builder)
     {
-        builder.ToTable("mst_salary_bands");
+        builder.ToTable("mst_salary_bands", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => x.Name).IsUnique();
@@ -143,7 +143,7 @@ public sealed class MstRoleConfiguration : IEntityTypeConfiguration<MstRole>
 {
     public void Configure(EntityTypeBuilder<MstRole> builder)
     {
-        builder.ToTable("mst_roles");
+        builder.ToTable("mst_roles", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.HasIndex(x => new { x.DesignationId, x.Name }).IsUnique();
@@ -161,7 +161,7 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
 {
     public void Configure(EntityTypeBuilder<Employee> builder)
     {
-        builder.ToTable("employees");
+        builder.ToTable("tbl_employees", DbSchemas.Resource);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.EmployeeCode).IsUnique();
         builder.HasIndex(x => x.WorkEmail).IsUnique();
@@ -267,7 +267,7 @@ public sealed class ExitedEmployeeConfiguration : IEntityTypeConfiguration<Exite
 {
     public void Configure(EntityTypeBuilder<ExitedEmployee> builder)
     {
-        builder.ToTable("exited_employees");
+        builder.ToTable("tbl_exited_employees", DbSchemas.Resource);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.OriginalEmployeeId);
         builder.HasIndex(x => x.EmployeeCode);
@@ -295,7 +295,7 @@ public sealed class MstEmailDomainConfiguration : IEntityTypeConfiguration<MstEm
 {
     public void Configure(EntityTypeBuilder<MstEmailDomain> builder)
     {
-        builder.ToTable("mst_email_domains");
+        builder.ToTable("mst_email_domains", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.DomainName).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
@@ -308,7 +308,7 @@ public sealed class MstReportingManagerConfiguration : IEntityTypeConfiguration<
 {
     public void Configure(EntityTypeBuilder<MstReportingManager> builder)
     {
-        builder.ToTable("mst_reporting_managers");
+        builder.ToTable("mst_reporting_managers", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
@@ -327,7 +327,7 @@ public sealed class MstBusinessUnitConfiguration : IEntityTypeConfiguration<MstB
 {
     public void Configure(EntityTypeBuilder<MstBusinessUnit> builder)
     {
-        builder.ToTable("mst_business_units");
+        builder.ToTable("mst_business_units", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
@@ -339,7 +339,7 @@ public sealed class MstWorkLocationConfiguration : IEntityTypeConfiguration<MstW
 {
     public void Configure(EntityTypeBuilder<MstWorkLocation> builder)
     {
-        builder.ToTable("mst_work_locations");
+        builder.ToTable("mst_work_locations", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
@@ -351,7 +351,7 @@ public sealed class MstOfficeConfiguration : IEntityTypeConfiguration<MstOffice>
 {
     public void Configure(EntityTypeBuilder<MstOffice> builder)
     {
-        builder.ToTable("mst_offices");
+        builder.ToTable("mst_offices", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
@@ -368,7 +368,7 @@ public sealed class MstEmployeeStatusConfiguration : IEntityTypeConfiguration<Ms
 {
     public void Configure(EntityTypeBuilder<MstEmployeeStatus> builder)
     {
-        builder.ToTable("mst_employee_statuses");
+        builder.ToTable("mst_employee_statuses", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
@@ -380,7 +380,7 @@ public sealed class MstCertificationConfiguration : IEntityTypeConfiguration<Mst
 {
     public void Configure(EntityTypeBuilder<MstCertification> builder)
     {
-        builder.ToTable("mst_certifications");
+        builder.ToTable("mst_certifications", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(100).IsRequired();
@@ -392,7 +392,7 @@ public sealed class MstGraduationDegreeConfiguration : IEntityTypeConfiguration<
 {
     public void Configure(EntityTypeBuilder<MstGraduationDegree> builder)
     {
-        builder.ToTable("mst_graduation_degrees");
+        builder.ToTable("mst_graduation_degrees", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(100).IsRequired();
@@ -404,7 +404,7 @@ public sealed class MstPostGraduationDegreeConfiguration : IEntityTypeConfigurat
 {
     public void Configure(EntityTypeBuilder<MstPostGraduationDegree> builder)
     {
-        builder.ToTable("mst_post_graduation_degrees");
+        builder.ToTable("mst_post_graduation_degrees", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(100).IsRequired();
@@ -416,7 +416,7 @@ public sealed class EmployeeActivityLogConfiguration : IEntityTypeConfiguration<
 {
     public void Configure(EntityTypeBuilder<EmployeeActivityLog> builder)
     {
-        builder.ToTable("employee_activity_logs");
+        builder.ToTable("log_employee_activity", DbSchemas.Resource);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Action).HasMaxLength(50).IsRequired();
         builder.Property(x => x.PerformedByEmail).HasMaxLength(255).IsRequired();

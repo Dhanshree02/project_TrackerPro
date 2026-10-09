@@ -273,10 +273,11 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     private async Task EnsureClientCodeColumnAsync(CancellationToken ct)
     {
+        var clients = db.TableName<Client>();
         await db.Database.ExecuteSqlRawAsync(
-            """
-            ALTER TABLE clients ADD COLUMN IF NOT EXISTS "ClientCode" character varying(20);
-            CREATE UNIQUE INDEX IF NOT EXISTS "IX_clients_ClientCode" ON clients ("ClientCode");
+            $"""
+            ALTER TABLE {clients} ADD COLUMN IF NOT EXISTS "ClientCode" character varying(20);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_clients_ClientCode" ON {clients} ("ClientCode");
             """,
             ct);
     }
@@ -542,7 +543,12 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
                 (e.FirstName + " " + e.LastName).Trim().ToLower() == trimmed.ToLower() ||
                 (e.FirstName == first && (last.Length == 0 || e.LastName == last)))
             .OrderByDescending(e =>
-                e.Designation != null && e.Designation.Name == "Engagement Manager")
+                e.Designation != null && (
+                    e.Designation.Name == "Delivery Account Manager - I" ||
+                    e.Designation.Name == "Delivery Account Manager - II" ||
+                    e.Designation.Name == "Senior Delivery Account Manager - I" ||
+                    e.Designation.Name == "Senior Delivery Account Manager - II" ||
+                    e.Designation.Name == "Engagement Manager"))
             .FirstOrDefaultAsync(ct);
 
         return employee?.Id;
@@ -563,7 +569,11 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
                 (e.FirstName + " " + e.LastName).Trim().ToLower() == trimmed.ToLower() ||
                 (e.FirstName == first && (last.Length == 0 || e.LastName == last)))
             .OrderByDescending(e =>
-                e.Designation != null && (e.Designation.Name == "Sales Manager" || e.Designation.Name.Contains("Sales")))
+                e.Designation != null && (
+                    e.Designation.Name == "Business Development Associate - I" ||
+                    e.Designation.Name == "Customer Success Representative - II" ||
+                    e.Designation.Name == "Sales Manager" ||
+                    e.Designation.Name.Contains("Sales")))
             .FirstOrDefaultAsync(ct);
 
         return employee?.Id;

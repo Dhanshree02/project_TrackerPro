@@ -8,7 +8,7 @@ public sealed class ProjectInvoiceConfiguration : IEntityTypeConfiguration<Proje
 {
     public void Configure(EntityTypeBuilder<ProjectInvoice> builder)
     {
-        builder.ToTable("project_invoices");
+        builder.ToTable("tbl_project_invoices", DbSchemas.Project);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.MilestoneName).HasMaxLength(255).IsRequired();

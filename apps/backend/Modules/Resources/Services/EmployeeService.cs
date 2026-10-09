@@ -27,6 +27,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         Guid? departmentId,
         Guid? designationId,
         string? status,
+        string? onFloorRole = null,
         CancellationToken ct = default)
     {
         await CompleteEndedNoticePeriodsAsync(ct);
@@ -65,6 +66,11 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             query = query.Where(e => e.DesignationId == designationId.Value);
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(e => e.Status == status);
+        if (!string.IsNullOrWhiteSpace(onFloorRole))
+        {
+            var roleName = onFloorRole.Trim().ToLowerInvariant();
+            query = query.Where(e => e.JobRole != null && e.JobRole.Name.ToLower() == roleName);
+        }
 
         var total = await query.CountAsync(ct);
         var items = await query
@@ -113,7 +119,8 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.ClientLocation,
                 e.ProjectType,
                 e.ProjectAllocated,
-                e.ClientEngManagerMapping))
+                e.ClientEngManagerMapping,
+                e.JobRole != null ? e.JobRole.Name : null))
             .ToListAsync(ct);
 
         return new PagedResult<EmployeeListItemDto>(items, page, perPage, total);
@@ -959,9 +966,18 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         if (departmentId is not null)
             query = query.Where(d => d.DepartmentId == departmentId);
 
+        // The RBAC role travels with the designation so the onboarding form can show it
+        // with resources-read access alone (the roles endpoint needs role management rights).
         return await query
             .OrderBy(d => d.Name)
-            .Select(d => new MetaOptionDto(d.Id, d.Code, d.Name, d.DepartmentId, d.DefaultRoleId))
+            .Select(d => new MetaOptionDto(
+                d.Id,
+                d.Code,
+                d.Name,
+                d.DepartmentId,
+                d.DefaultRoleId,
+                d.DefaultRole != null ? d.DefaultRole.Name : null,
+                d.DefaultRole != null ? d.DefaultRole.DisplayName : null))
             .ToListAsync(ct);
     }
 
@@ -1460,12 +1476,35 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             entity.NationalityId = await ResolveNationalityIdAsync(entity.Nationality, ct);
         }
 
+        // Department → Designation → On Floor Role → RBAC Role is one chain.
+        // The designation decides the other three, so a stale or mismatched value
+        // sent by a client (or an older row) is replaced with the designation's mapping.
         if (entity.DesignationId is Guid desigId)
         {
-            var desig = await db.Designations.Include(d => d.DefaultRole).FirstOrDefaultAsync(d => d.Id == desigId, ct);
-            if (desig?.DefaultRole is not null && (string.IsNullOrWhiteSpace(entity.Role) || entity.Role == "Employee" || entity.Role == desig.Name))
+            var desig = await db.Designations
+                .Include(d => d.DefaultRole)
+                .Include(d => d.Roles)
+                .FirstOrDefaultAsync(d => d.Id == desigId, ct);
+            if (desig is not null)
             {
-                entity.Role = desig.DefaultRole.Name;
+                if (desig.DepartmentId is Guid desigDeptId)
+                {
+                    entity.DepartmentId = desigDeptId;
+                }
+
+                var onFloorRole = desig.Roles
+                    .Where(r => r.IsActive && r.DeletedAtUtc == null)
+                    .OrderBy(r => r.CreatedAtUtc)
+                    .FirstOrDefault();
+                if (onFloorRole is not null)
+                {
+                    entity.JobRoleId = onFloorRole.Id;
+                }
+
+                if (desig.DefaultRole is not null)
+                {
+                    entity.Role = desig.DefaultRole.Name;
+                }
             }
         }
 

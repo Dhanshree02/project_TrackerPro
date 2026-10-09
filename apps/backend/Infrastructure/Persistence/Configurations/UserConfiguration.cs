@@ -9,7 +9,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("users");
+        builder.ToTable("tbl_users", DbSchemas.Auth);
 
         builder.HasKey(u => u.Id);
         builder.HasIndex(u => u.Email).IsUnique();
@@ -31,7 +31,7 @@ public sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
 {
     public void Configure(EntityTypeBuilder<Role> builder)
     {
-        builder.ToTable("roles");
+        builder.ToTable("tbl_roles", DbSchemas.Auth);
 
         builder.HasKey(r => r.Id);
         builder.HasIndex(r => r.Name).IsUnique();
@@ -52,7 +52,7 @@ public sealed class RolePermissionAuditConfiguration : IEntityTypeConfiguration<
 {
     public void Configure(EntityTypeBuilder<RolePermissionAudit> builder)
     {
-        builder.ToTable("role_permission_audits");
+        builder.ToTable("log_role_permission_audits", DbSchemas.Auth);
 
         builder.HasKey(a => a.Id);
         builder.HasIndex(a => a.RoleId);
@@ -81,7 +81,7 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
 {
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
     {
-        builder.ToTable("refresh_tokens");
+        builder.ToTable("tbl_refresh_tokens", DbSchemas.Auth);
 
         builder.HasKey(t => t.Id);
         builder.HasIndex(t => t.TokenHash).IsUnique();

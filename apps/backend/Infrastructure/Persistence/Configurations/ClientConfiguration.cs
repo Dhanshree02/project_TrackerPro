@@ -8,14 +8,15 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
 {
     public void Configure(EntityTypeBuilder<Client> builder)
     {
-        builder.ToTable("clients");
+        builder.ToTable("tbl_clients", DbSchemas.Customer);
 
         builder.HasKey(c => c.Id);
         builder.HasIndex(c => c.Name);
 
         builder.Property(c => c.Name).HasMaxLength(255).IsRequired();
         builder.Property(c => c.ClientCode).HasMaxLength(20);
-        builder.HasIndex(c => c.ClientCode).IsUnique();
+        // Same name the AddClientCode migration and ClientService.EnsureClientCodeColumnAsync create.
+        builder.HasIndex(c => c.ClientCode).IsUnique().HasDatabaseName("IX_clients_ClientCode");
         builder.Property(c => c.Industry).HasMaxLength(100).IsRequired();
         builder.Property(c => c.Logo).HasMaxLength(10);
         builder.Property(c => c.ContactEmail).HasMaxLength(255);
@@ -74,7 +75,7 @@ public sealed class ClientAssignmentConfiguration : IEntityTypeConfiguration<Cli
 {
     public void Configure(EntityTypeBuilder<ClientAssignment> builder)
     {
-        builder.ToTable("client_assignments");
+        builder.ToTable("tbl_client_assignments", DbSchemas.Customer);
 
         builder.HasKey(a => new { a.ClientId, a.UserId });
 

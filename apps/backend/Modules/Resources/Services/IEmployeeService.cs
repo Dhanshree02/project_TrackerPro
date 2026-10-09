@@ -12,6 +12,7 @@ public interface IEmployeeService
         Guid? departmentId,
         Guid? designationId,
         string? status,
+        string? onFloorRole = null,
         CancellationToken ct = default);
 
     Task<EmployeeDetailDto?> GetEmployeeAsync(string idOrCode, CancellationToken ct = default);

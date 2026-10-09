@@ -1112,21 +1112,24 @@ function NewClientModal({
 
   const [previewKyc, setPreviewKyc] = useState(false);
   const { pool: emPool, loading: emLoading } = useEngagementManagers();
-  const emOptions = useMemo(
-    () =>
-      emPool.map((p) => ({
-        value: p.fullName,
-        label: p.fullName,
-        subLabel: [p.designation ?? "Engagement Manager", p.workEmail].filter(Boolean).join(" · "),
-      })),
-    [emPool],
-  );
+  const emOptions = useMemo(() => {
+    const opts = emPool.map((p) => ({
+      value: p.fullName,
+      label: p.fullName,
+      subLabel: [p.designation ?? "Delivery Account Manager", p.workEmail].filter(Boolean).join(" · "),
+    }));
+    const stored = s.engagementManager.trim();
+    if (stored && !opts.some((o) => o.value === stored)) {
+      opts.unshift({ value: stored, label: stored, subLabel: "On record" });
+    }
+    return opts;
+  }, [emPool, s.engagementManager]);
   const { pool: smPool, loading: smLoading } = useSalesManagers();
   const smOptions = useMemo(() => {
     const opts = smPool.map((p) => ({
       value: p.fullName,
       label: p.fullName,
-      subLabel: [p.designation ?? "Functional - Sales", p.workEmail].filter(Boolean).join(" · "),
+      subLabel: [p.designation ?? "Sales Manager", p.workEmail].filter(Boolean).join(" · "),
     }));
     const stored = s.salesManager.trim();
     if (stored && !opts.some((o) => o.value === stored)) {
