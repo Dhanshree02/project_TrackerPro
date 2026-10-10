@@ -683,6 +683,17 @@ export function useMastersStore() {
 
       try {
         const created = await createResourceHierarchy(item);
+        try {
+          const fresh = await fetchResourceHierarchy();
+          if (fresh && fresh.length > 0) {
+            setResourceMasters((prev) => ({
+              ...prev,
+              departmentHierarchy: fresh,
+            }));
+            toast.success(`Saved hierarchy mapping: ${created.departmentName} → ${created.designationName}`);
+            return { success: true };
+          }
+        } catch {}
         setResourceMasters((prev) => ({
           ...prev,
           departmentHierarchy: [created, ...prev.departmentHierarchy.filter((h) => h.id !== created.id)],
@@ -703,6 +714,17 @@ export function useMastersStore() {
     async (id: string, item: Partial<Omit<DepartmentHierarchyItem, "id" | "createdAt">>): Promise<{ success: boolean; error?: string }> => {
       try {
         const updated = await updateResourceHierarchy(id, item);
+        try {
+          const fresh = await fetchResourceHierarchy();
+          if (fresh && fresh.length > 0) {
+            setResourceMasters((prev) => ({
+              ...prev,
+              departmentHierarchy: fresh,
+            }));
+            toast.success("Updated hierarchy mapping in database");
+            return { success: true };
+          }
+        } catch {}
         setResourceMasters((prev) => ({
           ...prev,
           departmentHierarchy: prev.departmentHierarchy.map((h) => (h.id === id ? updated : h)),
@@ -723,6 +745,17 @@ export function useMastersStore() {
     async (id: string): Promise<void> => {
       try {
         await deleteResourceHierarchy(id);
+        try {
+          const fresh = await fetchResourceHierarchy();
+          if (fresh) {
+            setResourceMasters((prev) => ({
+              ...prev,
+              departmentHierarchy: fresh,
+            }));
+            toast.success("Hierarchy mapping deleted from database");
+            return;
+          }
+        } catch {}
         setResourceMasters((prev) => ({
           ...prev,
           departmentHierarchy: prev.departmentHierarchy.filter((h) => h.id !== id),

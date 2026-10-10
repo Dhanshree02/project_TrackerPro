@@ -31,7 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { SearchableSelect } from "@/components/creatable-catalog-select";
+import { SearchableSelect, type SearchableSelectOption } from "@/components/creatable-catalog-select";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -65,6 +65,7 @@ import {
   MASTER_ALL_RBAC_ROLES,
 } from "@/lib/masters/resource-mock-data";
 import { fetchRbacRoles } from "@/lib/api/resource-masters";
+import { fetchDepartmentOptions } from "@/lib/api/employees";
 
 export interface ResourceMastersSectionProps {
   canManage?: boolean;
@@ -436,6 +437,7 @@ function DepartmentHierarchyCard({
   const [customFloorRolesByDesig, setCustomFloorRolesByDesig] = useState<Record<string, string[]>>({});
   const [customRbacRoles, setCustomRbacRoles] = useState<Array<{ id: string; name: string; displayName: string }>>([]);
   const [dbRbacRoles, setDbRbacRoles] = useState<Array<{ id: string; name: string; displayName: string }>>([]);
+  const [dbDepartments, setDbDepartments] = useState<string[]>([]);
 
   useEffect(() => {
     fetchRbacRoles()
@@ -451,6 +453,14 @@ function DepartmentHierarchyCard({
         }
       })
       .catch((err) => console.warn("Failed to load live RBAC roles:", err));
+
+    fetchDepartmentOptions()
+      .then((depts) => {
+        if (depts && depts.length > 0) {
+          setDbDepartments(depts.map((d) => d.name));
+        }
+      })
+      .catch((err) => console.warn("Failed to load live departments:", err));
   }, []);
 
   // ── Modal 1: Add Department ──────────────────────────────────────────────
@@ -496,6 +506,9 @@ function DepartmentHierarchyCard({
     MASTER_DEPARTMENTS_LIST.forEach((d) => {
       if (d) map.set(d.trim().toLowerCase(), d.trim());
     });
+    dbDepartments.forEach((d) => {
+      if (d) map.set(d.trim().toLowerCase(), d.trim());
+    });
     items.forEach((item) => {
       if (item.departmentName) {
         map.set(item.departmentName.trim().toLowerCase(), item.departmentName.trim());
@@ -505,7 +518,7 @@ function DepartmentHierarchyCard({
       if (d) map.set(d.trim().toLowerCase(), d.trim());
     });
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
-  }, [items, customDepartments]);
+  }, [items, customDepartments, dbDepartments]);
 
   // ── Level 2: Available Designations (Dependent on Selected Department) ────
   const availableDesignationsForDept = useMemo(() => {
@@ -534,13 +547,13 @@ function DepartmentHierarchyCard({
   }, [items, selectedDepartment, customDesignationsByDept]);
 
   // ── Level 3: Available On Floor Roles (Dependent on Selected Designation) ─
-  const availableFloorRolesForDesig = useMemo(() => {
+  const availableFloorRolesForDesig = useMemo<SearchableSelectOption[]>(() => {
     if (!selectedDesignation) return [];
-    const map = new Map<string, string>();
     const deptNorm = (selectedDepartment || "").trim().toLowerCase();
     const desigNorm = selectedDesignation.trim().toLowerCase();
 
     // 1. Existing mappings for this dept & designation
+    const mappedSet = new Set<string>();
     items.forEach((item) => {
       if (
         item.departmentName &&
@@ -549,22 +562,57 @@ function DepartmentHierarchyCard({
         item.designationName.trim().toLowerCase() === desigNorm &&
         item.onFloorRoleName
       ) {
-        map.set(item.onFloorRoleName.trim().toLowerCase(), item.onFloorRoleName.trim());
+        mappedSet.add(item.onFloorRoleName.trim());
       }
     });
 
     // 2. Custom floor roles added for this designation
     const customRoles = customFloorRolesByDesig[selectedDesignation] || [];
+    const customSet = new Set<string>();
     customRoles.forEach((role) => {
-      if (role) map.set(role.trim().toLowerCase(), role.trim());
+      if (role && !mappedSet.has(role.trim())) {
+        customSet.add(role.trim());
+      }
     });
 
-    // 3. Always provide standard operational on-floor roles so choices are immediately available
+    // 3. Other standard operational on-floor roles
+    const standardSet = new Set<string>();
     MASTER_ON_FLOOR_ROLES_LIST.forEach((r) => {
-      if (r) map.set(r.trim().toLowerCase(), r.trim());
+      if (r && !mappedSet.has(r.trim()) && !customSet.has(r.trim())) {
+        standardSet.add(r.trim());
+      }
     });
 
-    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+    const result: SearchableSelectOption[] = [];
+
+    // Mapped roles first with clear indicator
+    Array.from(mappedSet).sort().forEach((role) => {
+      result.push({
+        value: role,
+        label: role,
+        subLabel: "✓ Mapped in Master",
+      });
+    });
+
+    // Custom roles
+    Array.from(customSet).sort().forEach((role) => {
+      result.push({
+        value: role,
+        label: role,
+        subLabel: "New Custom Role",
+      });
+    });
+
+    // Standard fallback roles
+    Array.from(standardSet).sort().forEach((role) => {
+      result.push({
+        value: role,
+        label: role,
+        subLabel: "Standard Role",
+      });
+    });
+
+    return result;
   }, [items, selectedDepartment, selectedDesignation, customFloorRolesByDesig]);
 
   // ── Level 4: Available RBAC Roles (Dependent on On Floor Role) ────────────
@@ -600,13 +648,45 @@ function DepartmentHierarchyCard({
     return Array.from(map.values()).sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [dbRbacRoles, items, customRbacRoles]);
 
-  const rbacSelectOptions = useMemo(() => {
-    return availableRbacRoles.map((r) => ({
-      value: r.displayName,
-      label: r.displayName,
-      subLabel: r.name ? `Code: ${r.name}` : undefined,
-    }));
-  }, [availableRbacRoles]);
+  const rbacSelectOptions = useMemo<SearchableSelectOption[]>(() => {
+    const deptNorm = (selectedDepartment || "").trim().toLowerCase();
+    const desigNorm = (selectedDesignation || "").trim().toLowerCase();
+    const roleNorm = (selectedFloorRole || "").trim().toLowerCase();
+
+    // Find the mapped RBAC role for the current selection
+    const match = items.find(
+      (item) =>
+        item.departmentName &&
+        item.departmentName.trim().toLowerCase() === deptNorm &&
+        item.designationName &&
+        item.designationName.trim().toLowerCase() === desigNorm &&
+        item.onFloorRoleName &&
+        item.onFloorRoleName.trim().toLowerCase() === roleNorm &&
+        item.assignedRbacRoleName,
+    ) || items.find(
+      (item) =>
+        item.departmentName &&
+        item.departmentName.trim().toLowerCase() === deptNorm &&
+        item.designationName &&
+        item.designationName.trim().toLowerCase() === desigNorm &&
+        item.assignedRbacRoleName,
+    );
+
+    const mappedName = match?.assignedRbacRoleName?.trim().toLowerCase();
+
+    return availableRbacRoles.map((r) => {
+      const isMapped = mappedName && r.displayName.trim().toLowerCase() === mappedName;
+      return {
+        value: r.displayName,
+        label: r.displayName,
+        subLabel: isMapped
+          ? "✓ Mapped Default for this role"
+          : r.name
+          ? `Code: ${r.name}`
+          : undefined,
+      };
+    });
+  }, [availableRbacRoles, items, selectedDepartment, selectedDesignation, selectedFloorRole]);
 
   // ── Designations for Edit Dialog (Dependent on Edit Department) ───────────
   const editDesignationsForDept = useMemo(() => {
@@ -637,26 +717,56 @@ function DepartmentHierarchyCard({
   }, [items, editDepartment, customDesignationsByDept, editDesignation]);
 
   // ── On Floor Roles for Edit Dialog (Dependent on Edit Designation) ────────
-  const editFloorRolesForDesig = useMemo(() => {
+  const editFloorRolesForDesig = useMemo<SearchableSelectOption[]>(() => {
     if (!editDesignation) return [];
-    const map = new Map<string, string>();
+    const deptNorm = (editDepartment || "").trim().toLowerCase();
+    const desigNorm = editDesignation.trim().toLowerCase();
 
-    MASTER_ON_FLOOR_ROLES_LIST.forEach((r) => {
-      if (r) map.set(r.trim().toLowerCase(), r.trim());
-    });
-
+    const mappedSet = new Set<string>();
     items.forEach((item) => {
-      if (item.onFloorRoleName) {
-        map.set(item.onFloorRoleName.trim().toLowerCase(), item.onFloorRoleName.trim());
+      if (
+        item.departmentName &&
+        item.departmentName.trim().toLowerCase() === deptNorm &&
+        item.designationName &&
+        item.designationName.trim().toLowerCase() === desigNorm &&
+        item.onFloorRoleName
+      ) {
+        mappedSet.add(item.onFloorRoleName.trim());
       }
     });
 
-    if (editFloorRole) {
-      map.set(editFloorRole.trim().toLowerCase(), editFloorRole.trim());
+    const customList = customFloorRolesByDesig[editDesignation] || [];
+    const customSet = new Set<string>();
+    customList.forEach((r) => {
+      if (r && !mappedSet.has(r.trim())) {
+        customSet.add(r.trim());
+      }
+    });
+
+    const standardSet = new Set<string>();
+    MASTER_ON_FLOOR_ROLES_LIST.forEach((r) => {
+      if (r && !mappedSet.has(r.trim()) && !customSet.has(r.trim())) {
+        standardSet.add(r.trim());
+      }
+    });
+
+    if (editFloorRole && !mappedSet.has(editFloorRole) && !customSet.has(editFloorRole) && !standardSet.has(editFloorRole)) {
+      standardSet.add(editFloorRole);
     }
 
-    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
-  }, [items, editDesignation, editFloorRole]);
+    const result: SearchableSelectOption[] = [];
+    Array.from(mappedSet).sort().forEach((role) => {
+      result.push({ value: role, label: role, subLabel: "✓ Mapped in Master" });
+    });
+    Array.from(customSet).sort().forEach((role) => {
+      result.push({ value: role, label: role, subLabel: "New Custom Role" });
+    });
+    Array.from(standardSet).sort().forEach((role) => {
+      result.push({ value: role, label: role, subLabel: "Standard Role" });
+    });
+
+    return result;
+  }, [items, editDepartment, editDesignation, editFloorRole, customFloorRolesByDesig]);
 
   // ── Step Completion Status ────────────────────────────────────────────────
   const isStep1Done = Boolean(selectedDepartment);
@@ -676,20 +786,173 @@ function DepartmentHierarchyCard({
 
   const handleDesignationChange = (desig: string) => {
     setSelectedDesignation(desig);
-    setSelectedFloorRole("");
-    setSelectedRbacRole("");
     setFormError(null);
+
+    if (!desig) {
+      setSelectedFloorRole("");
+      setSelectedRbacRole("");
+      return;
+    }
+
+    const deptNorm = (selectedDepartment || "").trim().toLowerCase();
+    const desigNorm = desig.trim().toLowerCase();
+
+    // 1. Existing mappings for this department + designation
+    const mappedItems = items.filter(
+      (item) =>
+        item.departmentName &&
+        item.departmentName.trim().toLowerCase() === deptNorm &&
+        item.designationName &&
+        item.designationName.trim().toLowerCase() === desigNorm,
+    );
+
+    if (mappedItems.length > 0) {
+      const firstWithRole = mappedItems.find((i) => i.onFloorRoleName) || mappedItems[0];
+      const autoFloorRole = firstWithRole?.onFloorRoleName || "";
+      setSelectedFloorRole(autoFloorRole);
+
+      const autoRbacRole = firstWithRole?.assignedRbacRoleName || "";
+      setSelectedRbacRole(autoRbacRole);
+    } else {
+      // Check if this designation exists anywhere in items with a mapped RBAC role
+      const anyMatch = items.find(
+        (item) =>
+          item.designationName &&
+          item.designationName.trim().toLowerCase() === desigNorm &&
+          item.assignedRbacRoleName,
+      );
+      if (anyMatch) {
+        if (anyMatch.onFloorRoleName) setSelectedFloorRole(anyMatch.onFloorRoleName);
+        if (anyMatch.assignedRbacRoleName) setSelectedRbacRole(anyMatch.assignedRbacRoleName);
+      } else {
+        setSelectedFloorRole("");
+        setSelectedRbacRole("");
+      }
+    }
   };
 
   const handleFloorRoleChange = (role: string) => {
     setSelectedFloorRole(role);
-    setSelectedRbacRole("");
     setFormError(null);
+
+    if (!role) {
+      setSelectedRbacRole("");
+      return;
+    }
+
+    const deptNorm = (selectedDepartment || "").trim().toLowerCase();
+    const desigNorm = (selectedDesignation || "").trim().toLowerCase();
+    const roleNorm = role.trim().toLowerCase();
+
+    // Exact match: dept + desig + on-floor role
+    const exactMatch = items.find(
+      (item) =>
+        item.departmentName &&
+        item.departmentName.trim().toLowerCase() === deptNorm &&
+        item.designationName &&
+        item.designationName.trim().toLowerCase() === desigNorm &&
+        item.onFloorRoleName &&
+        item.onFloorRoleName.trim().toLowerCase() === roleNorm &&
+        item.assignedRbacRoleName,
+    );
+
+    if (exactMatch?.assignedRbacRoleName) {
+      setSelectedRbacRole(exactMatch.assignedRbacRoleName);
+      return;
+    }
+
+    // Fallback: designation default in same department
+    const desigMatch = items.find(
+      (item) =>
+        item.departmentName &&
+        item.departmentName.trim().toLowerCase() === deptNorm &&
+        item.designationName &&
+        item.designationName.trim().toLowerCase() === desigNorm &&
+        item.assignedRbacRoleName,
+    );
+
+    if (desigMatch?.assignedRbacRoleName) {
+      setSelectedRbacRole(desigMatch.assignedRbacRoleName);
+      return;
+    }
+
+    // Global designation fallback
+    const globalMatch = items.find(
+      (item) =>
+        item.designationName &&
+        item.designationName.trim().toLowerCase() === desigNorm &&
+        item.assignedRbacRoleName,
+    );
+
+    if (globalMatch?.assignedRbacRoleName) {
+      setSelectedRbacRole(globalMatch.assignedRbacRoleName);
+    }
   };
 
   const handleRbacRoleChange = (role: string) => {
     setSelectedRbacRole(role);
     setFormError(null);
+  };
+
+  // ── Edit Modal Cascading Handlers ─────────────────────────────────────────
+  const handleEditDepartmentChange = (dept: string) => {
+    setEditDepartment(dept);
+    setEditDesignation("");
+    setEditFloorRole("");
+    setEditRbacRole("");
+  };
+
+  const handleEditDesignationChange = (desig: string) => {
+    setEditDesignation(desig);
+    if (!desig) {
+      setEditFloorRole("");
+      setEditRbacRole("");
+      return;
+    }
+
+    const deptNorm = (editDepartment || "").trim().toLowerCase();
+    const desigNorm = desig.trim().toLowerCase();
+
+    const matches = items.filter(
+      (item) =>
+        item.departmentName &&
+        item.departmentName.trim().toLowerCase() === deptNorm &&
+        item.designationName &&
+        item.designationName.trim().toLowerCase() === desigNorm,
+    );
+
+    if (matches.length > 0) {
+      const firstWithRole = matches.find((i) => i.onFloorRoleName) || matches[0];
+      setEditFloorRole(firstWithRole?.onFloorRoleName || "");
+      setEditRbacRole(firstWithRole?.assignedRbacRoleName || "");
+    } else {
+      setEditFloorRole("");
+      setEditRbacRole("");
+    }
+  };
+
+  const handleEditFloorRoleChange = (role: string) => {
+    setEditFloorRole(role);
+    if (!role) return;
+
+    const deptNorm = (editDepartment || "").trim().toLowerCase();
+    const desigNorm = (editDesignation || "").trim().toLowerCase();
+    const roleNorm = role.trim().toLowerCase();
+
+    const match = items.find(
+      (item) =>
+        item.departmentName &&
+        item.departmentName.trim().toLowerCase() === deptNorm &&
+        item.designationName &&
+        item.designationName.trim().toLowerCase() === desigNorm &&
+        item.onFloorRoleName &&
+        item.onFloorRoleName.trim().toLowerCase() === roleNorm &&
+        item.assignedRbacRoleName,
+    );
+
+    if (match?.assignedRbacRoleName) {
+      setEditRbacRole(match.assignedRbacRoleName);
+    }
   };
 
   // ── Modal Submissions ─────────────────────────────────────────────────────
@@ -774,9 +1037,24 @@ function DepartmentHierarchyCard({
 
     if (editingItem) {
       setEditFloorRole(trimmed);
+      const match = items.find(
+        (i) =>
+          i.designationName.toLowerCase() === (editDesignation || "").trim().toLowerCase() &&
+          i.assignedRbacRoleName,
+      );
+      if (match?.assignedRbacRoleName && !editRbacRole) {
+        setEditRbacRole(match.assignedRbacRoleName);
+      }
     } else {
       setSelectedFloorRole(trimmed);
-      setSelectedRbacRole("");
+      const match = items.find(
+        (i) =>
+          i.designationName.toLowerCase() === (selectedDesignation || "").trim().toLowerCase() &&
+          i.assignedRbacRoleName,
+      );
+      if (match?.assignedRbacRoleName && !selectedRbacRole) {
+        setSelectedRbacRole(match.assignedRbacRoleName);
+      }
     }
 
     setFormError(null);
@@ -1878,11 +2156,7 @@ function DepartmentHierarchyCard({
                 <SearchableSelect
                   options={availableDepartments}
                   value={editDepartment}
-                  onChange={(d) => {
-                    setEditDepartment(d);
-                    setEditDesignation("");
-                    setEditFloorRole("");
-                  }}
+                  onChange={handleEditDepartmentChange}
                   placeholder="Select Department"
                   searchPlaceholder="Search department..."
                   showSearch={true}
@@ -1918,10 +2192,7 @@ function DepartmentHierarchyCard({
                 <SearchableSelect
                   options={editDesignationsForDept}
                   value={editDesignation}
-                  onChange={(desig) => {
-                    setEditDesignation(desig);
-                    setEditFloorRole("");
-                  }}
+                  onChange={handleEditDesignationChange}
                   placeholder={editDepartment ? "Select Designation" : "Select Department first"}
                   searchPlaceholder="Search designation..."
                   showSearch={true}
@@ -1960,7 +2231,7 @@ function DepartmentHierarchyCard({
                 <SearchableSelect
                   options={editFloorRolesForDesig}
                   value={editFloorRole}
-                  onChange={setEditFloorRole}
+                  onChange={handleEditFloorRoleChange}
                   placeholder={editDesignation ? "Select On Floor Role" : "Select Designation first"}
                   searchPlaceholder="Search on floor role..."
                   showSearch={true}

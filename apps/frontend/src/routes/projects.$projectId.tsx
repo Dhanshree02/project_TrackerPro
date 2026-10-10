@@ -7629,7 +7629,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
           </div>
 
           {/* PM/SPM ASSIGNMENT FLOW */}
-          {!isSales && (
+          {(!isSales || !isViewOnly) && (
           <div className="lg:col-span-5 xl:col-span-4 rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full">
             <div className="space-y-3">
               <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -7706,7 +7706,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
         </div>
 
         {/* STEP 3 & 4: SERVICE WISE TRACKING TABLE */}
-        {!isSales && (
+        {(!isSales || !isViewOnly) && (
         <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div className="md:col-span-4 rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
             <div className="flex items-center gap-2 border-b border-border pb-2">
