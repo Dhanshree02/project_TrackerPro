@@ -25,6 +25,7 @@ services:
       - "${DEV_BACKEND_PORT:-5194}:8080"
     volumes:
       - backend_storage:/app/storage
+      - ./apps/backend/Log:/app/Log
     networks:
       - pms_shared
 
