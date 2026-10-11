@@ -53,7 +53,7 @@ public sealed class DbInitializerHostedService(
                     "DeletedAtUtc" timestamp with time zone
                 );
 
-                CREATE UNIQUE INDEX IF NOT EXISTS master."IX_mst_employee_statuses_Code"
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_mst_employee_statuses_Code"
                     ON master.mst_employee_statuses ("Code")
                     WHERE "DeletedAtUtc" IS NULL;
 
@@ -198,10 +198,10 @@ public sealed class DbInitializerHostedService(
                     "DeletedAtUtc" timestamp with time zone
                 );
 
-                CREATE INDEX IF NOT EXISTS resource."IX_employee_activity_logs_EmployeeId"
+                CREATE INDEX IF NOT EXISTS "IX_employee_activity_logs_EmployeeId"
                     ON resource.log_employee_activity ("EmployeeId");
 
-                CREATE INDEX IF NOT EXISTS resource."IX_employee_activity_logs_CreatedAtUtc"
+                CREATE INDEX IF NOT EXISTS "IX_employee_activity_logs_CreatedAtUtc"
                     ON resource.log_employee_activity ("CreatedAtUtc" DESC);
                 """,
                 cancellationToken);

@@ -35,7 +35,7 @@ internal static class EmployeeBulkWorkbook
         "Relation with Emergency Contact", // 10 (Dropdown: Emergency Relations)
         "Department",                      // 11 (Dropdown: Live db.Departments)
         "Designation",                     // 12 (Dropdown: Live db.Designations)
-        "On Floor Role",                   // 13 (Dropdown: Live db.JobRoles)
+        "Sub-Department",                  // 13 (Dropdown: Live Sub-Departments)
         "Business Unit",                   // 14 (Dropdown: Live db.BusinessUnits)
         "Reporting Manager Code",          // 15 (Dropdown: Live manager codes)
         "Work Location",                   // 16 (Dropdown: Live db.WorkLocations)
@@ -236,36 +236,40 @@ internal static class EmployeeBulkWorkbook
         var designationPairs = await (
             from designation in db.Designations
             where designation.DeletedAtUtc == null && designation.IsActive && designation.DepartmentId != null
-            join department in db.Departments.Where(d => d.DeletedAtUtc == null)
+            join department in db.Departments.Where(d => d.DeletedAtUtc == null && d.IsActive)
                 on designation.DepartmentId equals department.Id
             select new
             {
                 Department = department.Name,
                 Name = designation.Name,
+                SubDepartment = designation.SubDepartment,
             }).ToListAsync(ct);
         var orderedDesignations = designationPairs
             .OrderBy(row => row.Department, StringComparer.OrdinalIgnoreCase)
             .ThenBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(row => (row.Department, row.Name))
+            .Select(row => (row.Department, row.Name, row.SubDepartment))
             .ToList();
         if (orderedDesignations.Count == 0)
         {
             orderedDesignations =
             [
-                ("Services - Testing", "PenTester - I"),
-                ("Services - Testing", "Senior PenTester"),
-                ("Services - Consulting", "Consultant"),
-                ("PMO", "Lead"),
+                ("Services - Testing", "PenTester - I", "Service - Testing - AppSec"),
+                ("Services - Testing", "Senior Pentester - I", "Service - Testing - AppSec"),
+                ("Services - Consulting", "GRC Auditor - I", "Services - Consulting"),
+                ("Functional - Project Management", "Associate PMO - I", "PMO (Project Management Office)"),
             ];
         }
 
-        var roles = await db.JobRoles
-            .Where(r => r.DeletedAtUtc == null && r.IsActive)
-            .OrderBy(r => r.Name)
-            .Select(r => r.Name)
-            .ToListAsync(ct);
-        if (roles.Count == 0)
-            roles = ["Employee", "Team Lead", "Project Manager"];
+        var uniqueSubDepartments = orderedDesignations
+            .Where(d => !string.IsNullOrWhiteSpace(d.SubDepartment))
+            .SelectMany(d => d.SubDepartment!.Split(','))
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s)
+            .ToList();
+        if (uniqueSubDepartments.Count == 0)
+            uniqueSubDepartments = ["Functional - IT Administration", "PMO (Project Management Office)", "EM (Engagement Manager)", "Service - Testing - AppSec"];
 
         var workLocations = await db.WorkLocations
             .Where(w => w.DeletedAtUtc == null && w.IsActive)
@@ -381,8 +385,8 @@ internal static class EmployeeBulkWorkbook
             "9811099999",                                             // 9. Emergency Contact Number
             "Father",                                                 // 10. Relation with Emergency Contact
             orderedDesignations[0].Department,                        // 11. Department
-            orderedDesignations[0].Name,                               // 12. Designation
-            roles.FirstOrDefault() ?? "Employee",                     // 13. On Floor Role
+            orderedDesignations[0].Name,                              // 12. Designation
+            orderedDesignations[0].SubDepartment?.Split(',')[0].Trim() ?? "Service - Testing - AppSec", // 13. Sub-Department
             businessUnits.FirstOrDefault() ?? "Talakunchi Networks Private Limited", // 14. Business Unit
             managerCodes.FirstOrDefault() ?? "TK-0001 - Default Manager", // 15. Reporting Manager Code
             workLocations.FirstOrDefault() ?? "Suvidha Square, Andheri",             // 16. Work Location
@@ -464,7 +468,7 @@ internal static class EmployeeBulkWorkbook
             lookups.Cell(r + 2, designationCol).Value = orderedDesignations[r].Name;
         }
 
-        var countRoles = WriteLookupColumn(lCol++, "OnFloorRole", roles);
+        var countSubDepartments = WriteLookupColumn(lCol++, "SubDepartment", uniqueSubDepartments);
         var countBusinessUnits = WriteLookupColumn(lCol++, "BusinessUnit", businessUnits);
         var countManagers = WriteLookupColumn(lCol++, "ReportingManagerCode", managerCodes);
         var countWorkLocations = WriteLookupColumn(lCol++, "WorkLocation", workLocations);
@@ -576,7 +580,7 @@ internal static class EmployeeBulkWorkbook
             designationValidation.InputTitle = "Designation";
             designationValidation.InputMessage = "Choose the department in this row first. The list then shows only that department's designations.";
         }
-        SetListValidation(13, 5, countRoles, "On Floor Role");
+        SetListValidation(13, 5, countSubDepartments, "Sub-Department");
         SetListValidation(14, 6, countBusinessUnits, "Business Unit");
         SetListValidation(15, 7, countManagers, "Reporting Manager Code");
         SetListValidation(16, 8, countWorkLocations, "Work Location");
@@ -627,7 +631,7 @@ internal static class EmployeeBulkWorkbook
             "4. Required Fields (18): TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher.",
             "5. Reporting Manager: Select from the dropdown ('TK-XXXX - Manager Name'). You can also provide just the Employee Code (e.g. TK-0001). Employee code is used as the primary identifier to prevent confusion between employees with identical or similar names.",
             "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel. Designation only lists titles under the Department selected on that same row.",
-            "7. Dynamic Masters: The Lookups sheet reflects live masters from the system (Current Address - City, Departments, Designations, Roles, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Downloading a fresh template always includes current values. Add a city under Settings → Masters → Resource Masters before using it here. On Lookups, the cell to the left of each designation is that designation's department.",
+            "7. Dynamic Masters & Automatic Role Mapping: The Lookups sheet reflects live masters from the system (Current Address - City, Departments, Designations, Sub-Departments, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Roles (On Floor Role and RBAC Role) are automatically mapped based on Department & Designation according to company master hierarchy. Sub-Department is optional and auto-assigned if omitted.",
             "8. Date Format: Dates must be formatted as dd-mm-yyyy (e.g. 18-09-2026), the same way dates appear in the web app.",
             "9. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
             "10. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
@@ -720,7 +724,10 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             }
 
             var departments = await db.Departments.ToListAsync(ct);
-            var designations = await db.Designations.ToListAsync(ct);
+            var designations = await db.Designations
+                .Include(d => d.DefaultRole)
+                .Include(d => d.Roles)
+                .ToListAsync(ct);
             var roles = await db.JobRoles.ToListAsync(ct);
             var employeeStatuses = await db.EmployeeStatuses.ToListAsync(ct);
             var managers = await db.Employees
@@ -814,31 +821,64 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
 
                 Guid? designationId = null;
+                MstDesignation? matchedDesig = null;
                 var designationName = GetValue(values, "designation");
                 if (!string.IsNullOrWhiteSpace(designationName))
                 {
                     var matches = designations.Where(d =>
                         d.Name.Equals(designationName, StringComparison.OrdinalIgnoreCase));
-                    var desig = departmentId is Guid deptId
+                    matchedDesig = departmentId is Guid deptId
                         ? matches.FirstOrDefault(d => d.DepartmentId == deptId)
                         : matches.FirstOrDefault();
-                    if (desig is null && departmentId is not null && matches.Any())
+                    if (matchedDesig is null && departmentId is not null && matches.Any())
                         rowErrors.Add($"Designation '{designationName}' is not under department '{departmentName}'.");
-                    else if (desig is null)
+                    else if (matchedDesig is null)
                         rowErrors.Add($"Designation '{designationName}' was not found.");
-                    else designationId = desig.Id;
+                    else designationId = matchedDesig.Id;
                 }
 
                 Guid? jobRoleId = null;
                 var roleName = GetValue(values, "role");
-                if (!string.IsNullOrWhiteSpace(roleName))
+                if (matchedDesig is not null)
+                {
+                    // Automatic mapping of On Floor Role & RBAC Role from Book 3.xlsx linkage
+                    var activeJobRole = matchedDesig.Roles.FirstOrDefault(r => r.IsActive);
+                    if (activeJobRole is not null)
+                    {
+                        jobRoleId = activeJobRole.Id;
+                    }
+                    if (matchedDesig.DefaultRole is not null)
+                    {
+                        roleName = matchedDesig.DefaultRole.Name;
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(roleName))
                 {
                     var matches = roles.Where(r => r.Name.Equals(roleName, StringComparison.OrdinalIgnoreCase));
-                    var role = designationId is Guid desigId
-                        ? matches.FirstOrDefault(r => r.DesignationId == desigId) ?? matches.FirstOrDefault()
-                        : matches.FirstOrDefault();
-                    if (role is null) rowErrors.Add($"Role '{roleName}' was not found.");
-                    else jobRoleId = role.Id;
+                    var role = matches.FirstOrDefault();
+                    if (role is not null) jobRoleId = role.Id;
+                }
+
+                var subDepartmentVal = GetValue(values, "subdepartment");
+                if (matchedDesig is not null && !string.IsNullOrWhiteSpace(matchedDesig.SubDepartment))
+                {
+                    var allowedSubDepts = matchedDesig.SubDepartment.Split(',').Select(s => s.Trim()).ToList();
+                    if (string.IsNullOrWhiteSpace(subDepartmentVal))
+                    {
+                        subDepartmentVal = allowedSubDepts[0];
+                    }
+                    else
+                    {
+                        var matchedSub = allowedSubDepts.FirstOrDefault(s => s.Equals(subDepartmentVal.Trim(), StringComparison.OrdinalIgnoreCase));
+                        if (matchedSub is not null)
+                        {
+                            subDepartmentVal = matchedSub;
+                        }
+                        else if (allowedSubDepts.Count == 1)
+                        {
+                            subDepartmentVal = allowedSubDepts[0];
+                        }
+                    }
                 }
 
                 Guid? reportingManagerId = null;
@@ -1028,7 +1068,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     BondExpiryDate: bondExpiryDate,
                     EmergencyContactRelation: NullIfEmpty(GetValue(values, "emergencycontactrelation")),
                     PmoDepartment: null,
-                    SubDepartment: null,
+                    SubDepartment: NullIfEmpty(subDepartmentVal),
                     BillableStatus: null,
                     ClientLocation: null,
                     ProjectType: null,
@@ -1292,6 +1332,9 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
         if (map.TryGetValue("emergencyphone", out var epCol)) map.TryAdd("emergencycontact", epCol);
         if (map.TryGetValue("relationwithemergencycontact", out var rweCol)) map.TryAdd("emergencycontactrelation", rweCol);
         if (map.TryGetValue("emergencyrelation", out var erCol)) map.TryAdd("emergencycontactrelation", erCol);
+        if (map.TryGetValue("subdepartment", out var subCol)) map.TryAdd("subdepartment", subCol);
+        if (map.TryGetValue("subdept", out var subCol2)) map.TryAdd("subdepartment", subCol2);
+        if (map.TryGetValue("subdepartmentname", out var subCol3)) map.TryAdd("subdepartment", subCol3);
         if (map.TryGetValue("onfloorrole", out var onFloorCol)) map.TryAdd("role", onFloorCol);
         if (map.TryGetValue("reportingmanagercode", out var rmcCol)) map.TryAdd("reportingmanagercode", rmcCol);
         if (map.TryGetValue("reportingmanagertkid", out var mgrTkCol)) map.TryAdd("reportingmanagercode", mgrTkCol);

@@ -954,7 +954,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         return await query
             .OrderBy(d => d.Name)
-            .Select(d => new MetaOptionDto(d.Id, d.Code, d.Name, d.DepartmentId, d.DefaultRoleId))
+            .Select(d => new MetaOptionDto(d.Id, d.Code, d.Name, d.DepartmentId, d.DefaultRoleId, d.SubDepartment))
             .ToListAsync(ct);
     }
 
@@ -1214,7 +1214,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 existing.DefaultRoleId = defaultRoleId;
                 await db.SaveChangesAsync(ct);
             }
-            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.DepartmentId, existing.DefaultRoleId);
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.DepartmentId, existing.DefaultRoleId, existing.SubDepartment);
         }
 
         var entity = new MstDesignation
@@ -1229,7 +1229,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         };
         db.Designations.Add(entity);
         await db.SaveChangesAsync(ct);
-        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DepartmentId, entity.DefaultRoleId);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DepartmentId, entity.DefaultRoleId, entity.SubDepartment);
     }
 
     public async Task<MetaOptionDto> CreateJobRoleAsync(
