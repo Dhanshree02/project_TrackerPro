@@ -78,6 +78,7 @@ services:
       - "${UAT_BACKEND_PORT:-5195}:8080"
     volumes:
       - backend_storage:/app/storage
+      - ./apps/backend/Log:/app/Log
     networks:
       - pms_shared
 

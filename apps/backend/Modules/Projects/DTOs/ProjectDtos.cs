@@ -152,6 +152,7 @@ public sealed record NextProjectCodeDto(
 public sealed class ProjectQueryParameters
 {
     public Guid? ClientId { get; set; }
+    public Guid? EmployeeId { get; set; }
     public string? Status { get; set; }
     public string? WbsStatus { get; set; }
     public string? Search { get; set; }

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate, notFound } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown } from "lucide-react";
+import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
@@ -3060,37 +3060,40 @@ export interface ManagerWorkloadStats {
   projectCodes: string[];
 }
 
-export const DB_PM_FALLBACK: ManagerRosterItem[] = [
-  { id: "00000000-0000-4000-8000-000000000006", name: "Divya Rao", role: "PM", designation: "Associate Project Manager" },
-  { id: "00000000-0000-4000-8000-000000000011", name: "Harsh Nair", role: "PM", designation: "Associate PMO - I" },
-  { id: "00000000-0000-4000-8000-000000000003", name: "Rohan Mehta", role: "PM", designation: "DevSecOps Practitioner - II" },
-];
+export const DB_PM_FALLBACK: ManagerRosterItem[] = [];
 
-export const DB_SPM_FALLBACK: ManagerRosterItem[] = [
-  { id: "00000000-0000-4000-8000-000000000017", name: "Vikram Gupta", role: "Senior PM", designation: "Senior PMO - I" },
-  { id: "00000000-0000-4000-8000-000000000004", name: "Sneha Iyer", role: "Senior PM", designation: "SOC Lead - I" },
-];
+export const DB_SPM_FALLBACK: ManagerRosterItem[] = [];
 
-export function isEmployeePM(emp: { id: string; fullName: string; designation?: string | null }): boolean {
-  const name = (emp.fullName || "").trim();
-  const id = emp.id;
-  const des = (emp.designation || "").toLowerCase();
-  if (id === "00000000-0000-4000-8000-000000000006" || name === "Divya Rao") return true;
-  if (id === "00000000-0000-4000-8000-000000000011" || name === "Harsh Nair") return true;
-  if (id === "00000000-0000-4000-8000-000000000003" || name === "Rohan Mehta") return true;
-  if (des.includes("project manager") && !des.includes("senior")) return true;
-  if (des.includes("associate pmo")) return true;
-  return false;
+export function isEmployeePM(emp: {
+  id: string;
+  fullName?: string;
+  name?: string;
+  designation?: string | null;
+  role?: string | null;
+  jobRole?: string | null;
+}): boolean {
+  const onFloorRole = (emp.jobRole || emp.role || "").trim().toLowerCase();
+  return (
+    onFloorRole === "manager (mng.)" ||
+    onFloorRole === "manager (mng)" ||
+    (onFloorRole.includes("manager") && onFloorRole.includes("mng") && !onFloorRole.includes("sr"))
+  );
 }
 
-export function isEmployeeSPM(emp: { id: string; fullName: string; designation?: string | null }): boolean {
-  const name = (emp.fullName || "").trim();
-  const id = emp.id;
-  const des = (emp.designation || "").toLowerCase();
-  if (id === "00000000-0000-4000-8000-000000000017" || name === "Vikram Gupta") return true;
-  if (id === "00000000-0000-4000-8000-000000000004" || name === "Sneha Iyer") return true;
-  if (des.includes("senior project manager") || des.includes("senior pmo")) return true;
-  return false;
+export function isEmployeeSPM(emp: {
+  id: string;
+  fullName?: string;
+  name?: string;
+  designation?: string | null;
+  role?: string | null;
+  jobRole?: string | null;
+}): boolean {
+  const onFloorRole = (emp.jobRole || emp.role || "").trim().toLowerCase();
+  return (
+    onFloorRole === "sr. manager (sr.mng.)" ||
+    onFloorRole === "sr. manager (sr.mng)" ||
+    (onFloorRole.includes("sr") && onFloorRole.includes("manager") && onFloorRole.includes("mng"))
+  );
 }
 
 export function calculateManagerStats(
@@ -3168,32 +3171,38 @@ function ChangeLeaderPanel({
   const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
   const [dbEmployees, setDbEmployees] = useState<ApiEmployeeListItem[]>([]);
   const [projectTeamMembers, setProjectTeamMembers] = useState<ApiProjectTeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    fetchProjects({ perPage: 100 })
-      .then((res) => {
-        if (active && res?.items && res.items.length > 0) {
-          setDbProjects(res.items);
-        }
-      })
-      .catch((err) => console.warn("Failed to fetch projects for ChangeLeaderPanel", err));
-
-    fetchEmployees({ perPage: 100 })
-      .then((res) => {
-        if (active && res?.items && res.items.length > 0) {
-          setDbEmployees(res.items);
-          dhStore.registerPeople(
-            res.items.map((emp) => ({
-              id: emp.id,
-              name: emp.fullName,
-              role: emp.designation || emp.role || "User",
-              email: emp.workEmail || "",
-            })),
-          );
-        }
-      })
-      .catch((err) => console.warn("Failed to fetch employees for ChangeLeaderPanel", err));
+    setLoading(true);
+    Promise.all([
+      fetchProjects({ perPage: 100 }).catch((err) => {
+        console.warn("Failed to fetch projects for ChangeLeaderPanel", err);
+        return { items: [] };
+      }),
+      fetchEmployees({ perPage: 100 }).catch((err) => {
+        console.warn("Failed to fetch employees for ChangeLeaderPanel", err);
+        return { items: [] };
+      }),
+    ]).then(([projRes, empRes]) => {
+      if (!active) return;
+      if (projRes?.items?.length) {
+        setDbProjects(projRes.items);
+      }
+      if (empRes?.items?.length) {
+        setDbEmployees(empRes.items);
+        dhStore.registerPeople(
+          empRes.items.map((emp) => ({
+            id: emp.id,
+            name: emp.fullName,
+            role: emp.designation || emp.role || "User",
+            email: emp.workEmail || "",
+          })),
+        );
+      }
+      setLoading(false);
+    });
 
     return () => {
       active = false;
@@ -3227,22 +3236,20 @@ function ChangeLeaderPanel({
 
   const candidatePool = useMemo(() => {
     if (role === "Project Manager") {
-      const fromApi = dbEmployees.filter(isEmployeePM).map((emp) => ({
+      return dbEmployees.filter(isEmployeePM).map((emp) => ({
         id: emp.id,
         name: emp.fullName,
         role: "Project Manager",
-        designation: emp.designation || "Project Manager",
+        designation: emp.designation || "Manager (Mng.)",
       }));
-      return fromApi.length > 0 ? fromApi : DB_PM_FALLBACK;
     }
     if (role === "Senior Project Manager") {
-      const fromApi = dbEmployees.filter(isEmployeeSPM).map((emp) => ({
+      return dbEmployees.filter(isEmployeeSPM).map((emp) => ({
         id: emp.id,
         name: emp.fullName,
         role: "Senior Project Manager",
-        designation: emp.designation || "Senior Project Manager",
+        designation: emp.designation || "Sr. Manager (Sr.Mng.)",
       }));
-      return fromApi.length > 0 ? fromApi : DB_SPM_FALLBACK;
     }
     if (role === "Engagement Manager") {
       const fromApi = dbEmployees.filter(
@@ -3401,7 +3408,7 @@ function ChangeLeaderPanel({
                     : "All Leaders"}
             </p>
             <span className="text-[10px] text-muted-foreground">
-              {visible.length} available
+              {loading ? "Loading…" : `${visible.length} available`}
             </span>
           </div>
           <div className="relative mb-2">
@@ -3421,72 +3428,85 @@ function ChangeLeaderPanel({
             />
           </div>
 
-          <ul className="max-h-64 overflow-y-auto divide-y divide-border rounded-md border border-border">
-            {visible.map((p) => {
-              const isAssigned = assignedIds.includes(p.id);
-              const designationText = (p as any).designation || p.role;
-              const showWorkload = role !== "Team Lead";
-              const stats = showWorkload ? calculateManagerStats(p, dbProjects, allPrereqs) : null;
-              const freeColor = stats
-                ? stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive"
-                : "";
-              const barColor = stats
-                ? stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive"
-                : "";
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground border rounded-md border-border">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-xs">Loading employees from database...</span>
+            </div>
+          ) : (
+            <ul className="max-h-64 overflow-y-auto divide-y divide-border rounded-md border border-border">
+              {visible.map((p) => {
+                const isAssigned = assignedIds.includes(p.id);
+                const designationText = (p as any).designation || p.role;
+                const showWorkload = role !== "Team Lead";
+                const stats = showWorkload ? calculateManagerStats(p, dbProjects, allPrereqs) : null;
+                const freeColor = stats
+                  ? stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive"
+                  : "";
+                const barColor = stats
+                  ? stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive"
+                  : "";
 
-              return (
-                <li key={p.id}>
-                  <button
-                    onClick={() => toggle(p.id)}
-                    className={cn(
-                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-accent/40",
-                      isAssigned && "bg-primary/5"
-                    )}
-                  >
-                    <Avatar name={p.name} size={24} />
-                    <div className="flex-1 min-w-0 space-y-0.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-gray-800 truncate">{p.name}</span>
-                        {showWorkload && stats && (
-                          <span className={cn("font-bold text-[10px] tabular-nums shrink-0", freeColor)}>
-                            {stats.freePct}% free
-                          </span>
+                return (
+                  <li key={p.id}>
+                    <button
+                      onClick={() => toggle(p.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-accent/40",
+                        isAssigned && "bg-primary/5"
+                      )}
+                    >
+                      <Avatar name={p.name} size={24} />
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-gray-800 truncate">{p.name}</span>
+                          {showWorkload && stats && (
+                            <span className={cn("font-bold text-[10px] tabular-nums shrink-0", freeColor)}>
+                              {stats.freePct}% free
+                            </span>
+                          )}
+                        </div>
+                        {showWorkload && stats ? (
+                          <>
+                            <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
+                              <span className="truncate">{designationText}</span>
+                              <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
+                            </div>
+                            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                              <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-[10px] text-muted-foreground truncate">{designationText}</div>
                         )}
                       </div>
-                      {showWorkload && stats ? (
-                        <>
-                          <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
-                            <span className="truncate">{designationText}</span>
-                            <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
-                          </div>
-                          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                            <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-[10px] text-muted-foreground truncate">{designationText}</div>
-                      )}
-                    </div>
-                    <div className={cn(
-                      "shrink-0 h-4 w-4 rounded border flex items-center justify-center transition-colors ml-1",
-                      isAssigned
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : "border-input bg-card"
-                    )}>
-                      {isAssigned && <Check className="h-2.5 w-2.5" />}
-                    </div>
-                  </button>
+                      <div className={cn(
+                        "shrink-0 h-4 w-4 rounded border flex items-center justify-center transition-colors ml-1",
+                        isAssigned
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-input bg-card"
+                      )}>
+                        {isAssigned && <Check className="h-2.5 w-2.5" />}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+              {visible.length === 0 && (
+                <li className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  {role === "Team Lead"
+                    ? "No project team members yet — add them on the Team tab first"
+                    : search
+                      ? "No match"
+                      : role === "Project Manager"
+                        ? "No employees with On Floor Role 'Manager (Mng.)' found in database"
+                        : role === "Senior Project Manager"
+                          ? "No employees with On Floor Role 'Sr. Manager (Sr.Mng.)' found in database"
+                          : "No available members"}
                 </li>
-              );
-            })}
-            {visible.length === 0 && (
-              <li className="px-3 py-6 text-center text-xs text-muted-foreground">
-                {role === "Team Lead"
-                  ? "No project team members yet — add them on the Team tab first"
-                  : "No match"}
-              </li>
-            )}
-          </ul>
+              )}
+            </ul>
+          )}
         </div>
 
         {/* Actions */}
@@ -8496,32 +8516,38 @@ function WbsAssignmentModal({
   const allPrereqs = useDhStore((s) => s.prereqs);
   const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
   const [dbEmployees, setDbEmployees] = useState<ApiEmployeeListItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    fetchProjects({ perPage: 100 })
-      .then((res) => {
-        if (active && res?.items && res.items.length > 0) {
-          setDbProjects(res.items);
-        }
-      })
-      .catch((err) => console.warn("Failed to fetch projects for assign modal", err));
-
-    fetchEmployees({ perPage: 100 })
-      .then((res) => {
-        if (active && res?.items && res.items.length > 0) {
-          setDbEmployees(res.items);
-          dhStore.registerPeople(
-            res.items.map((emp) => ({
-              id: emp.id,
-              name: emp.fullName,
-              role: emp.designation || emp.role || "User",
-              email: emp.workEmail || "",
-            })),
-          );
-        }
-      })
-      .catch((err) => console.warn("Failed to fetch employees for assign modal", err));
+    setLoading(true);
+    Promise.all([
+      fetchProjects({ perPage: 100 }).catch((err) => {
+        console.warn("Failed to fetch projects for assign modal", err);
+        return { items: [] };
+      }),
+      fetchEmployees({ perPage: 100 }).catch((err) => {
+        console.warn("Failed to fetch employees for assign modal", err);
+        return { items: [] };
+      }),
+    ]).then(([projRes, empRes]) => {
+      if (!active) return;
+      if (projRes?.items?.length) {
+        setDbProjects(projRes.items);
+      }
+      if (empRes?.items?.length) {
+        setDbEmployees(empRes.items);
+        dhStore.registerPeople(
+          empRes.items.map((emp) => ({
+            id: emp.id,
+            name: emp.fullName,
+            role: emp.designation || emp.role || "User",
+            email: emp.workEmail || "",
+          })),
+        );
+      }
+      setLoading(false);
+    });
 
     return () => {
       active = false;
@@ -8529,23 +8555,21 @@ function WbsAssignmentModal({
   }, []);
 
   const pmPool = useMemo(() => {
-    const fromApi = dbEmployees.filter(isEmployeePM).map((emp) => ({
+    return dbEmployees.filter(isEmployeePM).map((emp) => ({
       id: emp.id,
       name: emp.fullName,
       role: "PM",
-      designation: emp.designation || "Project Manager",
+      designation: emp.designation || "Manager (Mng.)",
     }));
-    return fromApi.length > 0 ? fromApi : DB_PM_FALLBACK;
   }, [dbEmployees]);
 
   const spmPool = useMemo(() => {
-    const fromApi = dbEmployees.filter(isEmployeeSPM).map((emp) => ({
+    return dbEmployees.filter(isEmployeeSPM).map((emp) => ({
       id: emp.id,
       name: emp.fullName,
       role: "Senior PM",
-      designation: emp.designation || "Senior Project Manager",
+      designation: emp.designation || "Sr. Manager (Sr.Mng.)",
     }));
-    return fromApi.length > 0 ? fromApi : DB_SPM_FALLBACK;
   }, [dbEmployees]);
 
   const pmVisiblePool = pmPool.filter(p =>
@@ -8633,143 +8657,150 @@ function WbsAssignmentModal({
             : "Select one or more Senior Project Managers to assign to this project based on their workload."}
         </p>
 
-        <div>
-          {mode === "pm" ? (
-            /* Project Managers Selection */
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Project Managers</label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={pmQuery}
-                  onChange={(e) => setPmQuery(e.target.value)}
-                  placeholder="Search PM..."
-                  className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-              {selectedPMPeople.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedPMPeople.map(p => (
-                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
-                      <Avatar name={p.name} size={16} /> {p.name}
-                      <button onClick={() => togglePM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground border rounded-md border-border">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="text-xs">Loading employees from database...</span>
+          </div>
+        ) : (
+          <div>
+            {mode === "pm" ? (
+              /* Project Managers Selection */
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Project Managers</label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={pmQuery}
+                    onChange={(e) => setPmQuery(e.target.value)}
+                    placeholder="Search PM..."
+                    className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
                 </div>
-              )}
-              <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
-                {pmVisiblePool.map(p => {
-                  const isSel = selectedPMs.includes(p.id);
-                  const stats = calculateManagerStats(p, dbProjects, allPrereqs);
-                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
-                  const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
-                  return (
-                    <li key={p.id}>
-                      <button
-                        onClick={() => togglePM(p.id)}
-                        className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
-                      >
-                        <Avatar name={p.name} size={24} />
-                        <div className="flex-1 min-w-0 space-y-0.5">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-gray-800">{p.name}</span>
-                            <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
-                              {stats.freePct}% free
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
-                            <span className="truncate">{p.designation}</span>
-                            <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
-                          </div>
-                          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                            <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
-                          </div>
-                        </div>
-                        <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                          {isSel && <Check className="h-4 w-4 text-primary" />}
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-                {pmVisiblePool.length === 0 && (
-                  <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    {pmQuery ? "No match" : "No available members"}
-                  </li>
+                {selectedPMPeople.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedPMPeople.map(p => (
+                      <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
+                        <Avatar name={p.name} size={16} /> {p.name}
+                        <button onClick={() => togglePM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 )}
-              </ul>
-            </div>
-          ) : (
-            /* Senior PMs Selection */
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Senior Project Managers</label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={spmQuery}
-                  onChange={(e) => setSpmQuery(e.target.value)}
-                  placeholder="Search SPM..."
-                  className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
+                <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
+                  {pmVisiblePool.map(p => {
+                    const isSel = selectedPMs.includes(p.id);
+                    const stats = calculateManagerStats(p, dbProjects, allPrereqs);
+                    const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                    const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
+                    return (
+                      <li key={p.id}>
+                        <button
+                          onClick={() => togglePM(p.id)}
+                          className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
+                        >
+                          <Avatar name={p.name} size={24} />
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-gray-800">{p.name}</span>
+                              <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
+                                {stats.freePct}% free
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
+                              <span className="truncate">{p.designation}</span>
+                              <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
+                            </div>
+                            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                              <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
+                            </div>
+                          </div>
+                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                            {isSel && <Check className="h-4 w-4 text-primary" />}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {pmVisiblePool.length === 0 && (
+                    <li className="px-3 py-4 text-center text-xs text-muted-foreground">
+                      {pmQuery ? "No match" : "No employees with On Floor Role 'Manager (Mng.)' found in database"}
+                    </li>
+                  )}
+                </ul>
               </div>
-              {selectedSPMPeople.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedSPMPeople.map(p => (
-                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
-                      <Avatar name={p.name} size={16} /> {p.name}
-                      <button onClick={() => toggleSPM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
+            ) : (
+              /* Senior PMs Selection */
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Senior Project Managers</label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={spmQuery}
+                    onChange={(e) => setSpmQuery(e.target.value)}
+                    placeholder="Search SPM..."
+                    className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
                 </div>
-              )}
-              <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
-                {spmVisiblePool.map(p => {
-                  const isSel = selectedSPMs.includes(p.id);
-                  const stats = calculateManagerStats(p, dbProjects, allPrereqs);
-                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
-                  const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
-                  return (
-                    <li key={p.id}>
-                      <button
-                        onClick={() => toggleSPM(p.id)}
-                        className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
-                      >
-                        <Avatar name={p.name} size={24} />
-                        <div className="flex-1 min-w-0 space-y-0.5">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-gray-800">{p.name}</span>
-                            <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
-                              {stats.freePct}% free
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
-                            <span className="truncate">{p.designation}</span>
-                            <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
-                          </div>
-                          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                            <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
-                          </div>
-                        </div>
-                        <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                          {isSel && <Check className="h-4 w-4 text-primary" />}
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-                {spmVisiblePool.length === 0 && (
-                  <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    {spmQuery ? "No match" : "No available members"}
-                  </li>
+                {selectedSPMPeople.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedSPMPeople.map(p => (
+                      <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
+                        <Avatar name={p.name} size={16} /> {p.name}
+                        <button onClick={() => toggleSPM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 )}
-              </ul>
-            </div>
-          )}
-        </div>
+                <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
+                  {spmVisiblePool.map(p => {
+                    const isSel = selectedSPMs.includes(p.id);
+                    const stats = calculateManagerStats(p, dbProjects, allPrereqs);
+                    const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                    const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
+                    return (
+                      <li key={p.id}>
+                        <button
+                          onClick={() => toggleSPM(p.id)}
+                          className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
+                        >
+                          <Avatar name={p.name} size={24} />
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-gray-800">{p.name}</span>
+                              <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
+                                {stats.freePct}% free
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
+                              <span className="truncate">{p.designation}</span>
+                              <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
+                            </div>
+                            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                              <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
+                            </div>
+                          </div>
+                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                            {isSel && <Check className="h-4 w-4 text-primary" />}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {spmVisiblePool.length === 0 && (
+                    <li className="px-3 py-4 text-center text-xs text-muted-foreground">
+                      {spmQuery ? "No match" : "No employees with On Floor Role 'Sr. Manager (Sr.Mng.)' found in database"}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 border-t border-border pt-3">
           <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">

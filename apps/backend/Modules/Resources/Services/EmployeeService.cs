@@ -27,6 +27,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         Guid? departmentId,
         Guid? designationId,
         string? status,
+        string? role = null,
         CancellationToken ct = default)
     {
         await CompleteEndedNoticePeriodsAsync(ct);
@@ -35,6 +36,8 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             .Include(e => e.Department)
             .Include(e => e.Designation)
             .Include(e => e.ReportingManager)
+            .Include(e => e.JobRole)
+            .Include(e => e.User).ThenInclude(u => u!.Role)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -65,6 +68,16 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             query = query.Where(e => e.DesignationId == designationId.Value);
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(e => e.Status == status);
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var roleNeedle = role.Trim().ToLowerInvariant();
+            query = query.Where(e =>
+                (e.Role != null && e.Role.ToLower().Contains(roleNeedle)) ||
+                (e.JobRole != null && e.JobRole.Name != null && e.JobRole.Name.ToLower().Contains(roleNeedle)) ||
+                (e.User != null && e.User.Role != null &&
+                    ((e.User.Role.Name != null && e.User.Role.Name.ToLower().Contains(roleNeedle)) ||
+                     (e.User.Role.DisplayName != null && e.User.Role.DisplayName.ToLower().Contains(roleNeedle)))));
+        }
 
         var total = await query.CountAsync(ct);
         var items = await query
@@ -102,7 +115,9 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.Skills,
                 e.Certifications,
                 e.Languages,
-                e.Role,
+                !string.IsNullOrWhiteSpace(e.Role)
+                    ? e.Role
+                    : (e.User != null && e.User.Role != null ? (e.User.Role.DisplayName ?? e.User.Role.Name) : null),
                 e.BusinessUnit,
                 e.Team,
                 e.Experience,
@@ -113,7 +128,8 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.ClientLocation,
                 e.ProjectType,
                 e.ProjectAllocated,
-                e.ClientEngManagerMapping))
+                e.ClientEngManagerMapping,
+                e.JobRole != null ? e.JobRole.Name : null))
             .ToListAsync(ct);
 
         return new PagedResult<EmployeeListItemDto>(items, page, perPage, total);
@@ -954,7 +970,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         return await query
             .OrderBy(d => d.Name)
-            .Select(d => new MetaOptionDto(d.Id, d.Code, d.Name, d.DepartmentId, d.DefaultRoleId))
+            .Select(d => new MetaOptionDto(d.Id, d.Code, d.Name, d.DepartmentId, d.DefaultRoleId, d.SubDepartment))
             .ToListAsync(ct);
     }
 
@@ -1214,7 +1230,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 existing.DefaultRoleId = defaultRoleId;
                 await db.SaveChangesAsync(ct);
             }
-            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.DepartmentId, existing.DefaultRoleId);
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.DepartmentId, existing.DefaultRoleId, existing.SubDepartment);
         }
 
         var entity = new MstDesignation
@@ -1229,7 +1245,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         };
         db.Designations.Add(entity);
         await db.SaveChangesAsync(ct);
-        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DepartmentId, entity.DefaultRoleId);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DepartmentId, entity.DefaultRoleId, entity.SubDepartment);
     }
 
     public async Task<MetaOptionDto> CreateJobRoleAsync(

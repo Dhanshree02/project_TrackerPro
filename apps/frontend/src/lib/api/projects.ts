@@ -67,6 +67,7 @@ export interface NextProjectCodeResult {
 
 export interface ProjectQueryParams {
   clientId?: string;
+  employeeId?: string;
   status?: string;
   wbsStatus?: string;
   search?: string;
@@ -399,6 +400,7 @@ export interface WbsPublishResult {
 export async function fetchProjects(params?: ProjectQueryParams): Promise<PagedResult<ApiProject>> {
   const query = new URLSearchParams();
   if (params?.clientId) query.set("clientId", params.clientId);
+  if (params?.employeeId) query.set("employeeId", params.employeeId);
   if (params?.status) query.set("status", params.status);
   if (params?.wbsStatus) query.set("wbsStatus", params.wbsStatus);
   if (params?.search) query.set("search", params.search);

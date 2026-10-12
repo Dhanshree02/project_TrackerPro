@@ -20,11 +20,13 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=pms_uat_db;Port=5432;Database=pms_development;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
+      - Database__AutoMigrate=true
       - Storage__RootPath=/app/storage
     ports:
       - "${DEV_BACKEND_PORT:-5194}:8080"
     volumes:
       - backend_storage:/app/storage
+      - ./apps/backend/Log:/app/Log
     networks:
       - pms_shared
 

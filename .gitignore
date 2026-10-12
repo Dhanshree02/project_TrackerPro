@@ -35,9 +35,10 @@ dist-ssr/
 apps/backend/.env
 apps/backend/**/bin/
 apps/backend/**/obj/
-apps/backend/**/logs/
-apps/backend/Log/**/*
+apps/backend/Log/**
+!apps/backend/Log/**/
 !apps/backend/Log/**/.gitkeep
+.vs/
 apps/backend/.vs/
 apps/backend/.idea/
 apps/backend/storage/**
