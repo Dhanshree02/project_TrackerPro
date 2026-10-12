@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
@@ -258,8 +259,8 @@ function FilterSelect({
 
 function ExitSummaryPage() {
   const { status: authStatus } = useAuth();
-  const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
-    useRoleContext();
+  const { isDhanshree, isAdmin } = useRoleContext();
+  const { hasPermission, hasAny } = usePermissions();
 
   const [q, setQ] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
@@ -300,8 +301,16 @@ function ExitSummaryPage() {
       .catch(() => undefined);
   }, [authStatus]);
 
-  const hasAccess = isDhanshree || isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  if (!hasAccess) return <Navigate to="/" />;
+  const hasAccess =
+    isDhanshree ||
+    isAdmin ||
+    hasAny(
+      "Resource|Exit Summary:view",
+      "resources.exit_summary",
+      "resources.exit-summary.view",
+      "resources.exit_summary.view",
+    );
+  if (!hasAccess) return <Navigate to="/" replace />;
 
   const departments = useMemo(() => {
     const fromCatalog = deptCatalog.map((d) => d.name).filter(Boolean);

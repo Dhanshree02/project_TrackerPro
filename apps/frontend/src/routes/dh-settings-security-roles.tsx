@@ -50,7 +50,40 @@ function SecurityRolesPage() {
   const { can, isDhanshree, isAdmin } = useRoleContext();
   const { hasAny } = usePermissions();
   const { permissionsReady } = useAuth();
+  const canViewModuleswise =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Settings|Roles & Permission|Moduleswise Access:view",
+      "settings.manage_roles",
+      "roles:manage",
+      "settings.roles.view"
+    );
+
+  const canViewUserRoleAccess =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Settings|Roles & Permission|User Role Access:view",
+      "settings.manage_roles",
+      "roles:manage",
+      "settings.roles.view"
+    );
+
+  const availableTabs = useMemo(() => {
+    const tabs: ("modules" | "users")[] = [];
+    if (canViewModuleswise) tabs.push("modules");
+    if (canViewUserRoleAccess) tabs.push("users");
+    return tabs;
+  }, [canViewModuleswise, canViewUserRoleAccess]);
+
   const [activeTab, setActiveTab] = useState<"users" | "modules">("modules");
+
+  useEffect(() => {
+    if (availableTabs.length > 0 && !availableTabs.includes(activeTab)) {
+      setActiveTab(availableTabs[0]);
+    }
+  }, [availableTabs, activeTab]);
 
   if (!permissionsReady) return null;
 
@@ -66,7 +99,7 @@ function SecurityRolesPage() {
       "Settings|Roles & Permission:view",
       "settings.view"
     );
-  if (!allowed) return <Navigate to="/" />;
+  if (!allowed || availableTabs.length === 0) return <Navigate to="/" />;
 
   const canManageRoles =
     isAdmin ||
@@ -82,30 +115,34 @@ function SecurityRolesPage() {
   return (
     <AppShell title="Roles & Permissions" subtitle="Who can see and do what — across every module">
       <div className="mb-5 flex items-center border-b border-border">
-        <button
-          onClick={() => setActiveTab("modules")}
-          className={cn(
-            "relative px-4 py-2.5 text-sm font-medium transition-colors",
-            activeTab === "modules" ? "text-primary" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          Module Access
-          {activeTab === "modules" && (
-            <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab("users")}
-          className={cn(
-            "relative px-4 py-2.5 text-sm font-medium transition-colors",
-            activeTab === "users" ? "text-primary" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          User Role Access
-          {activeTab === "users" && (
-            <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-          )}
-        </button>
+        {canViewModuleswise && (
+          <button
+            onClick={() => setActiveTab("modules")}
+            className={cn(
+              "relative px-4 py-2.5 text-sm font-medium transition-colors",
+              activeTab === "modules" ? "text-primary" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Module Access
+            {activeTab === "modules" && (
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+            )}
+          </button>
+        )}
+        {canViewUserRoleAccess && (
+          <button
+            onClick={() => setActiveTab("users")}
+            className={cn(
+              "relative px-4 py-2.5 text-sm font-medium transition-colors",
+              activeTab === "users" ? "text-primary" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            User Role Access
+            {activeTab === "users" && (
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+            )}
+          </button>
+        )}
       </div>
 
       {activeTab === "users" ? (

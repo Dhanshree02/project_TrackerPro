@@ -76,23 +76,51 @@ const tabs = ["Bucket List", "Approvals", "Alerts", "Notifications"] as const;
 type Tab = (typeof tabs)[number];
 
 function ActionCentrePage() {
-  const { isDhanshree, user, isEmployee, isPmoFamily, isSales } = useRoleContext();
+  const { isDhanshree, isAdmin, user, isEmployee, isPmoFamily, isSales } = useRoleContext();
   const { hasPermission } = usePermissions();
   const store = useDhStore((s) => s);
   const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
 
-  const visibleTabs: Tab[] = isEmployee
-    ? ["Bucket List", "Notifications"]
-    : isSales
-      ? ["Alerts", "Notifications"]
-      : isPmoFamily
-        ? ["Approvals", "Alerts", "Notifications"]
-        : ["Bucket List", "Approvals", "Alerts", "Notifications"];
+  const visibleTabs: Tab[] = useMemo(() => {
+    return tabs.filter((t) => {
+      if (isAdmin || isDhanshree) return true;
+      if (t === "Bucket List") {
+        return (
+          hasPermission("action.bucket_list") ||
+          hasPermission("Action Center|Bucket List:view") ||
+          hasPermission("action-center.bucket-list.view") ||
+          hasPermission("action-center.view")
+        );
+      }
+      if (t === "Approvals") {
+        return (
+          hasPermission("action.approvals") ||
+          hasPermission("Action Center|Approvals:view") ||
+          hasPermission("action-center.approvals.view")
+        );
+      }
+      if (t === "Alerts") {
+        return (
+          hasPermission("action.alerts") ||
+          hasPermission("Action Center|Alerts:view") ||
+          hasPermission("action-center.alerts.view")
+        );
+      }
+      if (t === "Notifications") {
+        return (
+          hasPermission("action.notifications") ||
+          hasPermission("Action Center|Notifications:view") ||
+          hasPermission("action-center.notifications.view")
+        );
+      }
+      return false;
+    });
+  }, [isAdmin, isDhanshree, hasPermission]);
 
-  const [tab, setTab] = useState<Tab>(visibleTabs[0]);
-  const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
+  const [tab, setTab] = useState<Tab>(() => visibleTabs[0] ?? "Bucket List");
+  const activeTab = visibleTabs.includes(tab) ? tab : (visibleTabs[0] ?? "Bucket List");
 
-  if (!isDhanshree && !hasPermission("action-center.view")) return <Navigate to="/" />;
+  if (!isAdmin && !isDhanshree && !hasPermission("action-center.view")) return <Navigate to="/" />;
 
   return (
     <AppShell
@@ -135,18 +163,19 @@ function ActionCentrePage() {
 // ---------- Bucket List ----------
 import { type DhBucketTask } from "@/lib/dh-store";
 
-function BucketListRow({ r }: { r: DhBucketTask }) {
+function BucketListRow({ r, canViewTimer }: { r: DhBucketTask; canViewTimer: boolean }) {
   const by = getPerson(r.assignedById);
   const [now, setNow] = useState(Date.now());
   const { hasPermission } = usePermissions();
   const { isDhanshree, isAdmin } = useRoleContext();
 
   const canManageTimer =
-    isAdmin ||
-    isDhanshree ||
-    hasPermission("action-center.bucket-list.manage") ||
-    hasPermission("Action Center|Bucket List:manage") ||
-    hasPermission("Action Center|Bucket List|Start timer:manage");
+    canViewTimer &&
+    (isAdmin ||
+      isDhanshree ||
+      hasPermission("Action Center|Bucket List|Start timer:manage") ||
+      hasPermission("action-center.start-timer.manage") ||
+      hasPermission("action-center.bucket-list.timer.manage"));
 
   useEffect(() => {
     if (!r.timerRunning) return;
@@ -250,126 +279,128 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
           <span className="text-xs font-semibold text-gray-700">{by.name}</span>
         </div>
       </td>
-      <td className="px-3 py-2.5">
-        <div className="flex flex-col gap-1.5 min-w-[210px] bg-muted/20 p-2 rounded-lg border border-border/80">
-          {(r.status === "Ongoing" ||
-            r.status === "Paused" ||
-            r.status === "Stopped" ||
-            r.status === "Completed") && (
-            <div className="text-[10px] text-muted-foreground flex flex-col gap-0.5 font-medium">
-              {r.startedAt && (
-                <div>
-                  <span className="font-semibold text-gray-500">Started:</span>{" "}
-                  {new Date(r.startedAt).toLocaleString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+      {canViewTimer && (
+        <td className="px-3 py-2.5">
+          <div className="flex flex-col gap-1.5 min-w-[210px] bg-muted/20 p-2 rounded-lg border border-border/80">
+            {(r.status === "Ongoing" ||
+              r.status === "Paused" ||
+              r.status === "Stopped" ||
+              r.status === "Completed") && (
+              <div className="text-[10px] text-muted-foreground flex flex-col gap-0.5 font-medium">
+                {r.startedAt && (
+                  <div>
+                    <span className="font-semibold text-gray-500">Started:</span>{" "}
+                    {new Date(r.startedAt).toLocaleString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                )}
+                <div className="flex items-center justify-between font-mono font-bold text-gray-800 border-t border-border/50 mt-1 pt-1">
+                  <span>Working Time:</span>
+                  <span
+                    className={cn(
+                      "text-xs font-bold",
+                      r.timerRunning ? "text-blue-600 animate-pulse" : "text-gray-600",
+                    )}
+                  >
+                    {formatTimer(workingTimeSeconds)}
+                  </span>
                 </div>
-              )}
-              <div className="flex items-center justify-between font-mono font-bold text-gray-800 border-t border-border/50 mt-1 pt-1">
-                <span>Working Time:</span>
-                <span
-                  className={cn(
-                    "text-xs font-bold",
-                    r.timerRunning ? "text-blue-600 animate-pulse" : "text-gray-600",
-                  )}
-                >
-                  {formatTimer(workingTimeSeconds)}
-                </span>
+                {r.status === "Stopped" && (
+                  <div className="text-rose-600 font-semibold border-t border-border/50 mt-1 pt-1 flex items-center gap-1">
+                    Timer Frozen
+                  </div>
+                )}
+                {r.status === "Completed" && r.completedAt && (
+                  <div className="text-success font-semibold border-t border-border/50 mt-1 pt-1">
+                    Completed:{" "}
+                    {new Date(r.completedAt).toLocaleString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                )}
               </div>
-              {r.status === "Stopped" && (
-                <div className="text-rose-600 font-semibold border-t border-border/50 mt-1 pt-1 flex items-center gap-1">
-                  Timer Frozen
-                </div>
-              )}
-              {r.status === "Completed" && r.completedAt && (
-                <div className="text-success font-semibold border-t border-border/50 mt-1 pt-1">
-                  Completed:{" "}
-                  {new Date(r.completedAt).toLocaleString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+            )}
 
-          {canManageTimer && (
-            <div className="flex gap-1.5">
-              {r.status === "Not Started" && (
-                <button
-                  onClick={handleStart}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm cursor-pointer"
-                >
-                  <Clock className="h-3.5 w-3.5" /> Start Task
-                </button>
-              )}
-              {r.status === "Ongoing" && (
-                <>
+            {canManageTimer && (
+              <div className="flex gap-1.5">
+                {r.status === "Not Started" && (
                   <button
-                    onClick={handlePause}
-                    className="inline-flex items-center justify-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-2xs cursor-pointer"
+                    onClick={handleStart}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm cursor-pointer"
                   >
-                    Pause
+                    <Clock className="h-3.5 w-3.5" /> Start Task
                   </button>
-                  <button
-                    onClick={handleStop}
-                    className="inline-flex items-center justify-center gap-1 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
-                  >
-                    Stop
-                  </button>
-                </>
-              )}
-              {r.status === "Paused" && (
-                <>
-                  <button
-                    onClick={handleResume}
-                    className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
-                  >
-                    Resume
-                  </button>
-                  <button
-                    onClick={handleStop}
-                    className="inline-flex items-center justify-center gap-1 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
-                  >
-                    Stop
-                  </button>
-                </>
-              )}
-              {r.status === "Stopped" && (
-                <>
-                  <button
-                    onClick={handleResume}
-                    className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
-                  >
-                    Resume
-                  </button>
-                  <button
-                    disabled
-                    className="inline-flex items-center justify-center gap-1 rounded-md bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground border border-border cursor-not-allowed"
-                  >
-                    Stopped
-                  </button>
-                </>
-              )}
-              {r.status === "Completed" && (
-                <span className="text-xs font-bold text-success flex items-center gap-1 py-1">
-                  <CheckCircle2 className="h-4.5 w-4.5 text-success" /> Task Completed
-                </span>
-              )}
-            </div>
-          )}
-          {!canManageTimer && r.status === "Completed" && (
-            <span className="text-xs font-bold text-success flex items-center gap-1 py-1">
-              <CheckCircle2 className="h-4.5 w-4.5 text-success" /> Task Completed
-            </span>
-          )}
-        </div>
-      </td>
+                )}
+                {r.status === "Ongoing" && (
+                  <>
+                    <button
+                      onClick={handlePause}
+                      className="inline-flex items-center justify-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-2xs cursor-pointer"
+                    >
+                      Pause
+                    </button>
+                    <button
+                      onClick={handleStop}
+                      className="inline-flex items-center justify-center gap-1 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
+                    >
+                      Stop
+                    </button>
+                  </>
+                )}
+                {r.status === "Paused" && (
+                  <>
+                    <button
+                      onClick={handleResume}
+                      className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
+                    >
+                      Resume
+                    </button>
+                    <button
+                      onClick={handleStop}
+                      className="inline-flex items-center justify-center gap-1 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
+                    >
+                      Stop
+                    </button>
+                  </>
+                )}
+                {r.status === "Stopped" && (
+                  <>
+                    <button
+                      onClick={handleResume}
+                      className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
+                    >
+                      Resume
+                    </button>
+                    <button
+                      disabled
+                      className="inline-flex items-center justify-center gap-1 rounded-md bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground border border-border cursor-not-allowed"
+                    >
+                      Stopped
+                    </button>
+                  </>
+                )}
+                {r.status === "Completed" && (
+                  <span className="text-xs font-bold text-success flex items-center gap-1 py-1">
+                    <CheckCircle2 className="h-4.5 w-4.5 text-success" /> Task Completed
+                  </span>
+                )}
+              </div>
+            )}
+            {!canManageTimer && r.status === "Completed" && (
+              <span className="text-xs font-bold text-success flex items-center gap-1 py-1">
+                <CheckCircle2 className="h-4.5 w-4.5 text-success" /> Task Completed
+              </span>
+            )}
+          </div>
+        </td>
+      )}
     </tr>
   );
 }
@@ -380,12 +411,21 @@ function BucketList() {
   const store = useDhStore((s) => s);
   const bucketTasks = store.bucketTasks || [];
 
+  const canViewTimer =
+    isAdmin ||
+    isDhanshree ||
+    hasPermission("Action Center|Bucket List|Start timer:view") ||
+    hasPermission("action-center.start-timer.view") ||
+    hasPermission("action-center.start-timer") ||
+    hasPermission("action-center.bucket-list.timer.view");
+
   const canRaiseIssue =
     isAdmin ||
     isDhanshree ||
+    hasPermission("Action Center|Bucket List|Raise issues:manage") ||
+    hasPermission("action-center.raise-issues.manage") ||
     hasPermission("action-center.bucket-list.manage") ||
-    hasPermission("Action Center|Bucket List:manage") ||
-    hasPermission("Action Center|Bucket List|Raise issues:manage");
+    hasPermission("Action Center|Bucket List:manage");
 
   // Default to employee's own ID or fallback to "u7" (Arjun Singh) so bucket list tasks are populated by default
   const viewUserId =
@@ -560,16 +600,16 @@ function BucketList() {
               <th className="px-3 py-2 font-bold">Due Date</th>
               <th className="px-3 py-2 font-bold">Status</th>
               <th className="px-3 py-2 font-bold">Assigned By</th>
-              <th className="px-3 py-2 font-bold">Actions & Timer</th>
+              {canViewTimer && <th className="px-3 py-2 font-bold">Actions & Timer</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {filtered.map((r) => (
-              <BucketListRow key={r.id} r={r} />
+              <BucketListRow key={r.id} r={r} canViewTimer={canViewTimer} />
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={canViewTimer ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   No tasks match your filters
                 </td>
               </tr>
@@ -1749,7 +1789,18 @@ function AlertsTab() {
 
 function NotificationsTab() {
   const store = useDhStore((s) => s);
-  const { user, isBO } = useRoleContext();
+  const { user, isBO, isAdmin, isDhanshree } = useRoleContext();
+  const { hasAny } = usePermissions();
+  const canManageApprovals =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "action-center.approvals.manage",
+      "approvals.manage",
+      "approvals:write",
+      "action-center.notifications.manage",
+    ) ||
+    !isBO;
   const [subTab, setSubTab] = useState<"Current" | "Archived">("Current");
 
   // Search state

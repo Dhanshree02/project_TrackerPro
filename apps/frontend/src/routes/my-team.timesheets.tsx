@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -20,6 +20,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { TimesheetStatusPill, Avatar } from "@/components/pills";
 import { allProjects } from "@/lib/dh-store";
 import { cn, formatDateDMY } from "@/lib/utils";
@@ -53,7 +54,28 @@ export const Route = createFileRoute("/my-team/timesheets")({
 
 function TimesheetsRoute() {
   const { status: authStatus } = useAuth();
+  const { isDhanshree, isAdmin } = useRoleContext();
+  const { hasAny } = usePermissions();
+
+  const canAccess =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "My team|Timesheets:view",
+      "My team|Timesheets|My timsheet:view",
+      "My team|Timesheets|Timesheet Approval:view",
+      "timesheet.my",
+      "timesheet.approve",
+      "timesheets.submit",
+      "timesheets.monitor",
+      "timesheets.view",
+    );
+
   if (authStatus === "loading") return null;
+  if (!canAccess && !isAdmin && !isDhanshree) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <AppShell title="Timesheets" subtitle="My Team · timesheets and approvals">
       <TimesheetTab />
@@ -114,11 +136,45 @@ function thisMonday() {
 
 // ── TimesheetTab ─────────────────────────────────────────────────────────────
 function TimesheetTab() {
-  const [subTab, setSubTab] = useState<"My Timesheet" | "Timesheet History" | "Timesheet Approval">("My Timesheet");
+  const { isDhanshree, isAdmin } = useRoleContext();
+  const { hasAny } = usePermissions();
+
+  const canViewMyTimesheet =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("My team|Timesheets|My timsheet:view", "timesheet.my", "timesheets.submit");
+
+  const canViewApproval =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("My team|Timesheets|Timesheet Approval:view", "timesheet.approve", "timesheets.monitor");
+
+  const availableTabs = useMemo(() => {
+    const list: Array<"My Timesheet" | "Timesheet History" | "Timesheet Approval"> = [];
+    if (canViewMyTimesheet) {
+      list.push("My Timesheet", "Timesheet History");
+    }
+    if (canViewApproval) {
+      list.push("Timesheet Approval");
+    }
+    return list;
+  }, [canViewMyTimesheet, canViewApproval]);
+
+  const [subTabState, setSubTab] = useState<"My Timesheet" | "Timesheet History" | "Timesheet Approval">("My Timesheet");
+  const subTab = availableTabs.includes(subTabState) ? subTabState : (availableTabs[0] ?? "My Timesheet");
+
+  if (availableTabs.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-12 text-center text-sm text-muted-foreground">
+        You do not have permission to view timesheets.
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-4 flex gap-1 rounded-lg border border-border bg-card p-1 text-sm shadow-sm w-fit">
-        {(["My Timesheet", "Timesheet History", "Timesheet Approval"] as const).map((st) => (
+        {availableTabs.map((st) => (
           <button
             key={st}
             type="button"
@@ -779,6 +835,21 @@ function TimesheetHistoryView() {
 
 // ── TimesheetApprovalView ────────────────────────────────────────────────────
 function TimesheetApprovalView() {
+  const { isDhanshree, isAdmin } = useRoleContext();
+  const { hasAny } = usePermissions();
+
+  const canManageApproval =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "My team|Timesheets|Timesheet Approval:manage",
+      "My team|Timesheets:manage",
+      "My team:manage",
+      "timesheet.approve",
+      "timesheets.approve",
+      "approvals.manage",
+    );
+
   const [sheets, setSheets] = useState<ApprovalSheet[]>([]);
   const [sortKey, setSortKey] = useState<ApprovalSortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -1251,7 +1322,7 @@ function TimesheetApprovalView() {
                 </table>
               </div>
             </div>
-            {selectedTs.viewerCanReview ? (
+            {selectedTs.viewerCanReview && canManageApproval ? (
               <>
             <div className="space-y-2 border-t border-border pt-3">
               <label className="text-xs font-semibold text-gray-700 block">

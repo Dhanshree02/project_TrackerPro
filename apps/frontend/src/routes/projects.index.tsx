@@ -54,9 +54,20 @@ const tabs = ["Active Projects", "Archived Projects", "All Projects"] as const;
 type Tab = (typeof tabs)[number];
 
 function ProjectsPage() {
-  const { isDhanshree, isEmployee, assignedProjects } = useRoleContext();
+  const { isDhanshree, isEmployee, assignedProjects, isPMO, isEngagementManager, isAdmin } = useRoleContext();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
+
+  const canCreateProject =
+    (isAdmin || isDhanshree || hasPermission("projects.create")) &&
+    !isPMO &&
+    !isEngagementManager;
+
+  const canViewDrafts =
+    (isAdmin || isDhanshree || hasPermission("projects.drafts") || hasPermission("projects.create")) &&
+    !isEmployee &&
+    !isPMO &&
+    !isEngagementManager;
   const [tab, setTab] = useState<Tab>("Active Projects");
   const [view, setViewState] = useState<"card" | "list">(() => {
     if (typeof window !== "undefined") {
@@ -129,8 +140,8 @@ function ProjectsPage() {
 
     Promise.all([
       fetchProjects({ perPage: 500 }),
-      fetchClients(1, 200),
-      fetchEmployees({ perPage: 200 }),
+      fetchClients(1, 200).catch(() => [] as ApiClient[]),
+      fetchEmployees({ perPage: 200 }).catch(() => null),
     ])
       .then(([projRes, clientRes, empRes]) => {
         if (!active) return;
@@ -186,8 +197,25 @@ function ProjectsPage() {
   }, [extraCount]);
 
   const clients = useMemo(() => {
-    return dbClients.map(mapApiClient);
-  }, [dbClients]);
+    if (dbClients.length > 0) return dbClients.map(mapApiClient);
+    const map = new Map<string, ReturnType<typeof mapApiClient>>();
+    for (const p of dbProjects) {
+      if (p.clientId && !map.has(p.clientId)) {
+        map.set(p.clientId, {
+          id: p.clientId,
+          name: p.clientName || "Client",
+          companyName: p.clientName || "Client",
+          email: "",
+          phone: "",
+          avatar: (p.clientName || "C").slice(0, 2).toUpperCase(),
+          address: "",
+          projectsCount: 0,
+          totalBilled: 0,
+        } as any);
+      }
+    }
+    return Array.from(map.values());
+  }, [dbClients, dbProjects]);
 
   const projects = useMemo(() => {
     return dbProjects.map((p) => {
@@ -204,6 +232,7 @@ function ProjectsPage() {
         id: p.id,
         name: p.name,
         clientId: p.clientId,
+        clientName: p.clientName ?? undefined,
         wbsId: p.wbsId ?? undefined,
         subVenture: p.subVentureName ?? undefined,
         status: (p.status as any) || "ongoing",
@@ -304,8 +333,8 @@ function ProjectsPage() {
           />
         </div>
         <div className="ml-auto flex items-center gap-2">
-          {/* Drafts button — hidden for Employees (no project creation) */}
-          {!isEmployee && (
+          {/* Drafts button — hidden for PMO, Engagement Manager, and Employees (no project onboarding access) */}
+          {canViewDrafts && (
             <button
               onClick={() => setDraftsOpen(true)}
               className={cn(
@@ -348,7 +377,7 @@ function ProjectsPage() {
               <List className="h-3.5 w-3.5" /> List
             </button>
           </div>
-          {hasPermission("projects.create") && (
+          {canCreateProject && (
             <button
               onClick={() => navigate({ to: "/projects/new" })}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"
@@ -1008,6 +1037,7 @@ function NewWBSProjectModal({ onClose }: { onClose: () => void }) {
 
   const [showServicePicker, setShowServicePicker] = useState(false);
   const [tempService, setTempService] = useState({ dept: "Creative", service: "Brand Design" });
+  const [submitting, setSubmitting] = useState(false);
 
   const updateProj = (k: keyof NewProjectState["proj"], v: string) =>
     setS((p) => ({ ...p, proj: { ...p.proj, [k]: v } }));

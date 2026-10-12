@@ -1169,8 +1169,18 @@ function UploadAssignmentModal({
 // ─── Main Page Component ──────────────────────────────────────────────────────
 
 function MyOrgPage() {
-  const { isEmployee, isHr, isDhanshree, user } = useRoleContext();
-  const isReadOnlyViewer = isEmployee || isHr;
+  const { isEmployee, isHr, isDhanshree, isAdmin, user } = useRoleContext();
+  const { hasPermission, hasAny } = usePermissions();
+
+  const canManageRepository =
+    isAdmin ||
+    isDhanshree ||
+    hasPermission("repository.manage") ||
+    hasPermission("Repository:manage") ||
+    hasPermission("repository.upload") ||
+    hasPermission("Repository|Upload:manage");
+
+  const isReadOnlyViewer = !canManageRepository;
 
   const [categories, setCategories] = useState<CategoryMeta[]>(DEFAULT_CATEGORIES);
   const [documents, setDocuments] = useState<RepositoryItem[]>([]);
@@ -1375,7 +1385,18 @@ function MyOrgPage() {
   };
 
   const canDeleteDoc = (doc: RepositoryItem) =>
-    isDhanshree || doc.uploadedBy === user?.name || doc.uploadedBy === user?.email;
+    isAdmin ||
+    isDhanshree ||
+    hasPermission("repository.delete") ||
+    hasPermission("Repository:manage") ||
+    hasPermission("repository.manage");
+
+  const canDownloadDoc =
+    isAdmin ||
+    isDhanshree ||
+    hasPermission("repository.download") ||
+    hasPermission("Repository:manage") ||
+    hasPermission("repository.manage");
 
   const totalRepoDocuments = categories.reduce((sum, c) => sum + c.count, 0);
 
@@ -1540,14 +1561,16 @@ function MyOrgPage() {
                               </button>
 
                               {/* 3. Download button */}
-                              <button
-                                type="button"
-                                title="Download document"
-                                onClick={() => handleDownload(doc.id, doc.fileName)}
-                                className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400"
-                              >
-                                <Download className="h-4 w-4" />
-                              </button>
+                              {canDownloadDoc && (
+                                <button
+                                  type="button"
+                                  title="Download document"
+                                  onClick={() => handleDownload(doc.id, doc.fileName)}
+                                  className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </button>
+                              )}
 
                               {/* 4. Delete button */}
                               {canDeleteDoc(doc) && (

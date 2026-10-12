@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { MyTeamPage } from "@/modules/my-team";
+import { usePermissions } from "@/lib/permissions";
+import { useRoleContext } from "@/lib/role-context";
 
 export const Route = createFileRoute("/my-team/")({
   head: () => ({
@@ -15,5 +17,17 @@ export const Route = createFileRoute("/my-team/")({
 });
 
 function MyTeamRoute() {
+  const { isAdmin, isDhanshree } = useRoleContext();
+  const { hasAny } = usePermissions();
+
+  const canViewTeamDashboard =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("My team|Team Dashboard:view", "my-team.team-dashboard.view");
+
+  if (!canViewTeamDashboard) {
+    return <Navigate to="/my-team/timesheets" replace />;
+  }
+
   return <MyTeamPage />;
 }

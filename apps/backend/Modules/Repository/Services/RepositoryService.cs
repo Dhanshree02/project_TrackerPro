@@ -71,6 +71,11 @@ public class RepositoryService(
         IReadOnlyList<Guid>? departmentIds = null,
         CancellationToken ct = default)
     {
+        if (!CanManageRepository())
+        {
+            throw new UnauthorizedAccessException("You do not have manage access to upload documents in the repository.");
+        }
+
         if (file == null || file.Length == 0)
         {
             throw new ArgumentException("No file provided for upload.");
@@ -240,6 +245,7 @@ public class RepositoryService(
     {
         var doc = await db.RepositoryItems.FirstOrDefaultAsync(r => r.Id == id, ct);
         if (doc == null) return false;
+        if (!CanManageRepository()) return false;
         if (!await CanAccessDocumentAsync(id, ct)) return false;
 
         // Try physical file deletion by category and filename
@@ -445,6 +451,21 @@ public class RepositoryService(
         }
 
         return "Dhanshree Pansare";
+    }
+
+    private bool CanManageRepository()
+    {
+        var role = currentUser.Role ?? "";
+        if (string.Equals(role, nameof(UserRole.Admin), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, nameof(UserRole.Dhanshree), StringComparison.OrdinalIgnoreCase)
+            || currentUser.HasPermission("repository.manage")
+            || currentUser.HasPermission("Repository:manage")
+            || currentUser.HasPermission("repository.upload")
+            || currentUser.HasPermission("repository.delete"))
+        {
+            return true;
+        }
+        return false;
     }
 
     private sealed record ViewerScope(bool Unrestricted, Guid? DepartmentId);

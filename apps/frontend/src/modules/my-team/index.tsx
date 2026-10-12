@@ -9,7 +9,10 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
+import { Navigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
+import { usePermissions } from "@/lib/permissions";
+import { useRoleContext } from "@/lib/role-context";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import { formatDateDMY } from "@/lib/utils";
@@ -61,6 +64,21 @@ function rosterCacheKey(month: Date, scope: Roster) {
 }
 
 export function MyTeamPage() {
+  const { isAdmin, isDhanshree } = useRoleContext();
+  const { hasAny } = usePermissions();
+
+  const canViewTeam =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("My team|Team Dashboard:view", "my-team.team-dashboard.view");
+
+  const canManageTeam =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("My team|Team Dashboard:manage", "my-team.team-dashboard.manage");
+
+  const viewOnly = !canManageTeam;
+
   const [roster, setRoster] = useState<Roster>("reportees");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -309,6 +327,7 @@ export function MyTeamPage() {
   };
 
   const handleSaveMemberSchedule = (memberId: string, updatedConfig: MemberScheduleConfig) => {
+    if (viewOnly) return;
     setMemberConfigs((prev) => ({
       ...prev,
       [memberId]: updatedConfig,
@@ -370,6 +389,7 @@ export function MyTeamPage() {
   };
 
   const writeShift = (memberId: string, dateKeys: string[], shift: ShiftType | undefined) => {
+    if (viewOnly) return;
     setTeamSchedule((current) =>
       applyShiftToMemberDates(current, memberId, dateKeys, shift, (dateKey) =>
         isLockedMemberKey(memberId, dateKey),
@@ -382,6 +402,7 @@ export function MyTeamPage() {
   };
 
   const handleCellToggle = (memberId: string, date: Date, shiftKey: boolean) => {
+    if (viewOnly) return;
     const dateKey = makeDateKeyFromDate(date);
     if (isLockedMemberKey(memberId, dateKey)) return;
 
@@ -407,6 +428,7 @@ export function MyTeamPage() {
     date: Date,
     type: SelectableAttendanceType,
   ) => {
+    if (viewOnly) return;
     const dateKey = makeDateKeyFromDate(date);
     const existing = teamSchedule[memberId]?.[dateKey];
     setTeamSchedule((current) => {
@@ -460,6 +482,7 @@ export function MyTeamPage() {
     date: Date,
     shift: ShiftType | "clear",
   ) => {
+    if (viewOnly) return;
     const dateKey = makeDateKeyFromDate(date);
     const currentEvent = teamSchedule[memberId]?.[dateKey];
     // If user assigns a shift to a day that was on leave, clear leave so it becomes active
@@ -487,6 +510,7 @@ export function MyTeamPage() {
   };
 
   const handleApplyWeek = (memberId: string, date: Date) => {
+    if (viewOnly) return;
     const keys = getMonFriKeys(date);
     const existingShift = teamSchedule[memberId]?.[makeDateKeyFromDate(date)]?.shift;
     const shift = existingShift ?? lastUsedShift ?? DEFAULT_SHIFT;
@@ -495,7 +519,7 @@ export function MyTeamPage() {
   };
 
   useEffect(() => {
-    if (!focusedCell) return;
+    if (!focusedCell || viewOnly) return;
 
     const handler = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
@@ -551,6 +575,10 @@ export function MyTeamPage() {
   }, [focusedCell, visibleMembers, daysInMonth, year, monthIndex, memberConfigs, today, reportSaveError]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
+  if (!canViewTeam && !isAdmin && !isDhanshree) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <AppShell
       title="Team Dashboard"

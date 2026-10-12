@@ -5,10 +5,11 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person, type WbsService } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType, people as dhPeople } from "@/lib/dh-helpers";
-import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/dh-store";
+import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhServicePrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/dh-store";
 import { Modal } from "@/routes/projects.index";
 import { Field } from "@/components/form-row";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
@@ -296,11 +297,11 @@ function DateRangePicker({
             disabled={
               disablePastStart
                 ? {
-                    before:
-                      parsedRange.from && parsedRange.from > startOfToday()
-                        ? parsedRange.from
-                        : startOfToday(),
-                  }
+                  before:
+                    parsedRange.from && parsedRange.from > startOfToday()
+                      ? parsedRange.from
+                      : startOfToday(),
+                }
                 : parsedRange.from
                   ? { before: parsedRange.from }
                   : undefined
@@ -453,8 +454,10 @@ function ProjectDetail() {
   const loaderData = Route.useLoaderData() as { project?: Project; client?: Client } | undefined;
   const rawId = params.projectId ? decodeURIComponent(params.projectId).trim() : "";
 
+  const { hasAny, hasPermission } = usePermissions();
   const {
     user,
+    isAdmin,
     isDhanshree,
     isEmployee,
     isPmFamily,
@@ -485,7 +488,7 @@ function ProjectDetail() {
       if (rawIsGuid) {
         fetchProjectTeamMembers(rawId).then((items) => {
           if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
-        }).catch(() => {});
+        }).catch(() => { });
       }
       fetchProject(rawId).then(async (p) => {
         if (cancelled || !p) return;
@@ -493,7 +496,7 @@ function ProjectDetail() {
         if (!rawIsGuid) {
           fetchProjectTeamMembers(p.id).then((items) => {
             if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
-          }).catch(() => {});
+          }).catch(() => { });
         }
         try {
           const rows = await fetchProjectServices(p.id);
@@ -540,37 +543,37 @@ function ProjectDetail() {
       ? (!dbProject
         ? fromStore
         : {
-            ...fromStore,
-            renewedFromProjectId: fromStore.renewedFromProjectId || dbProject.renewedFromProjectId || undefined,
-            renewedFromWbsId: fromStore.renewedFromWbsId || dbProject.renewedFromWbsId || undefined,
-          })
+          ...fromStore,
+          renewedFromProjectId: fromStore.renewedFromProjectId || dbProject.renewedFromProjectId || undefined,
+          renewedFromWbsId: fromStore.renewedFromWbsId || dbProject.renewedFromWbsId || undefined,
+        })
       : dbProject
         ? mapApiProjectToProject(dbProject)
         : loaderData?.project;
     if (!base) return base;
     const withManagers = dbProject
       ? {
-          ...base,
-          projectManagers: dbProject.projectManagers ?? base.projectManagers ?? [],
-          seniorProjectManagers: dbProject.seniorProjectManagers ?? base.seniorProjectManagers ?? [],
-          projectManagerId: dbProject.projectManagerId ?? base.projectManagerId,
-          projectManagerName: dbProject.projectManagerName ?? base.projectManagerName,
-        }
+        ...base,
+        projectManagers: dbProject.projectManagers ?? base.projectManagers ?? [],
+        seniorProjectManagers: dbProject.seniorProjectManagers ?? base.seniorProjectManagers ?? [],
+        projectManagerId: dbProject.projectManagerId ?? base.projectManagerId,
+        projectManagerName: dbProject.projectManagerName ?? base.projectManagerName,
+      }
       : base;
     const withLeaders = dbLeaders
       ? {
-          ...withManagers,
-          projectManagers: dbLeaders.projectManagers,
-          seniorProjectManagers: dbLeaders.seniorProjectManagers,
-        }
+        ...withManagers,
+        projectManagers: dbLeaders.projectManagers,
+        seniorProjectManagers: dbLeaders.seniorProjectManagers,
+      }
       : withManagers;
     const dateSource = liveServiceDates?.length ? liveServiceDates : withLeaders.wbsDetails?.services;
     const dated = !dateSource?.length
       ? withLeaders
       : (() => {
-          const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
-          return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
-        })();
+        const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
+        return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
+      })();
     if (!dbProject || !dbServices?.length) return dated;
     const mapped = mapApiProjectToProject(dbProject, dbServices);
     return {
@@ -598,14 +601,14 @@ function ProjectDetail() {
     };
     return allClients().find((c) => c.id === project.clientId) ?? loaderData?.client ?? {
       id: project.clientId,
-      name: "Client",
+      name: (project as any).clientName || "Client",
       industry: "General",
       status: "active",
       health: "green",
       projectCount: 1,
       totalRevenue: 0,
       accountManagerId: "u1",
-      logo: "",
+      logo: ((project as any).clientName || "C").slice(0, 2).toUpperCase(),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.clientId, extraCount, loaderData?.client]);
@@ -665,33 +668,136 @@ function ProjectDetail() {
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
   const [invoiceNumberInput, setInvoiceNumberInput] = useState("");
-  // Employees only get Team / Tasks / Health — every other submodule is hidden.
-  // PM family get everything except Invoices.
-  // Accounts: Overview, WBS, Invoices only.
-  const visibleTabs: Tab[] = isEmployee
-    ? ["Team", "Tasks", "Health"]
-    : isPmFamily
-      ? tabs.filter((t) => t !== "Invoices")
-      : isAccounts
-        ? ["Overview", "WBS", "Invoices"]
-        : [...tabs];
-  const useDhWorkspace = isDhanshree || isPmFamily || isPmoFamily || isSales;
-  const invoiceEditable = isDhanshree || isAccounts;
-  const invoicePmoColumns = isPmoFamily;
+  // Dynamic tabs driven purely by 0/1 permissions
+  const canViewOverview =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Overview:view",
+      "Projects|projects Cards|Overview|Budget:view",
+      "Projects|projects Cards|Overview|Extension Request:view",
+      "Projects|projects Cards|Overview|Sr.project Manger:view",
+      "Projects|projects Cards|Overview|Project manager:view",
+      "Projects|projects Cards|Overview|Team leads:view",
+      "projects.overview.view",
+      "projects.tab.overview",
+    );
+
+  const canViewWbs =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|WBS:view",
+      "Projects|projects Cards|WBS|Billing Information:view",
+      "Projects|projects Cards|WBS|PMO Intake & Prerequiste Workflow:view",
+      "Projects|projects Cards|WBS|Invoice:view",
+      "projects.wbs:read",
+      "projects.wbs.view",
+      "projects.tab.wbs",
+    );
+
+  const canViewTeam =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Team:view",
+      "projects.team.view",
+      "projects.tab.team",
+    );
+
+  const canViewTasks =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Task:view",
+      "projects.task.view",
+      "projects.tasks.view",
+      "projects.tab.tasks",
+    );
+
+  const canViewHealth =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Health:view",
+      "Projects|projects Cards|Health|Issues:view",
+      "Projects|projects Cards|Health|Aletrs:view",
+      "Projects|projects Cards|Health|Escalation:view",
+      "Projects|projects Cards|Health|Appreciation:view",
+      "Projects|projects Cards|Health|Customer Engagment:view",
+      "projects.health.view",
+      "projects.tab.health",
+    );
+
+  const canViewInvoices =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Invoice:view",
+      "Projects|projects Cards|WBS|Invoice:view",
+      "invoices:read",
+      "invoices.view",
+      "projects.tab.invoices",
+    );
+
+  const visibleTabs: Tab[] = tabs.filter((t) => {
+    if (t === "Overview") return canViewOverview;
+    if (t === "WBS") return canViewWbs;
+    if (t === "Team") return canViewTeam;
+    if (t === "Tasks") return canViewTasks;
+    if (t === "Health") return canViewHealth;
+    if (t === "Invoices") return canViewInvoices;
+    return false;
+  });
+  const canManageTeam =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("Projects|projects Cards|Team:manage", "projects.team.manage", "projects.tab.team.manage");
+
+  const canManageTasks =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("Projects|projects Cards|Task:manage", "projects.task.manage", "projects.tasks.manage", "projects.tab.tasks.manage");
+
+  const canManagePmoIntake =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|WBS|PMO Intake & Prerequiste Workflow:manage",
+      "projects.wbs.pmo_intake.manage",
+      "projects.pmo.manage",
+    );
+
+  const canManageInvoice =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("Projects|projects Cards|Invoice:manage", "invoices.manage", "invoices:write");
+
+  const useDhWorkspace = true;
+  const invoiceEditable = canManageInvoice && !isViewOnly;
+  const invoicePmoColumns = !isViewOnly;
 
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window !== "undefined") {
       const h = window.location.hash;
-      if (h === "#health" || h.startsWith("#health-")) {
+      if ((h === "#health" || h.startsWith("#health-")) && canViewHealth) {
         return "Health";
       }
       // Deep link from the Action Centre bucket list — land on the task list.
-      if (isEmployee && h) {
+      if (isEmployee && h && canViewTasks) {
         return "Tasks";
       }
     }
-    return isEmployee ? "Team" : "Overview";
+    if (isEmployee && canViewTeam) return "Team";
+    if (canViewOverview) return "Overview";
+    return visibleTabs[0] || "Overview";
   });
+
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.includes(tab)) {
+      setTab(visibleTabs[0]);
+    }
+  }, [visibleTabs, tab]);
 
   useEffect(() => {
     if (!isApiGuid(project.id)) return;
@@ -713,7 +819,7 @@ function ProjectDetail() {
           })),
         );
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       active = false;
     };
@@ -1042,12 +1148,14 @@ function ProjectDetail() {
     };
   }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
 
-  // Scope project detail to the role's assigned portfolio.
-  if (isEmployee && employeeProjectIds && !employeeProjectIds.has(project.id)) {
-    return <Navigate to="/access-denied" />;
-  }
-  if (!isDhanshree && assignedProjects.length > 0 && !assignedProjects.some((p) => p.id === project.id)) {
-    return <Navigate to="/access-denied" />;
+  // Scope project detail: check dynamic RBAC view permission.
+  if (
+    !isDhanshree &&
+    !isAdmin &&
+    !hasPermission("projects.view") &&
+    !hasAny("projects.view", "Projects:view", "projects:read")
+  ) {
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -1211,14 +1319,14 @@ function ProjectDetail() {
 
           {tab === "Tasks" &&
             (useDhWorkspace ? (
-              <DhTasksTab project={project} readOnly={isViewOnly} />
+              <DhTasksTab project={project} readOnly={!canManageTasks} />
             ) : (
               <DefaultTasksTab project={project} />
             ))}
 
           {tab === "Team" &&
             (useDhWorkspace ? (
-              <DhTeamTab project={project} readOnly={isViewOnly} />
+              <DhTeamTab project={project} readOnly={!canManageTeam} />
             ) : (
               <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />
             ))}
@@ -1423,27 +1531,27 @@ function ProjectDetail() {
 
               {/* Project Closure Section */}
               {(isDhanshree || isAccounts) && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm mt-4">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-                  <span>Project closure requires all 4 project stages to be completed and all invoice payments to be received.</span>
-                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm mt-4">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <span>Project closure requires all 4 project stages to be completed and all invoice payments to be received.</span>
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={handleProjectClosure}
-                  disabled={project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold shadow-sm transition-all",
-                    project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"
-                      ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer"
-                  )}
-                >
-                  <Archive className="h-4 w-4" />
-                  {project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived" ? "Project Archived" : "Project Closure"}
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleProjectClosure}
+                    disabled={project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold shadow-sm transition-all",
+                      project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"
+                        ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                        : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer"
+                    )}
+                  >
+                    <Archive className="h-4 w-4" />
+                    {project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived" ? "Project Archived" : "Project Closure"}
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -1623,9 +1731,39 @@ function WbsTab({
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const snapshotInvoices = useDhStore((s) => s.invoices);
-  const { user, isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
-  const hideAmounts = isPmFamily || hideBudget;
-  const hidePrereq = isPmFamily || isAccounts;
+  const { user, isDhanshree, isPmFamily, isAccounts, hideBudget, isAdmin } = useRoleContext();
+  const { hasAny } = usePermissions();
+  const canViewPrereq =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|WBS|PMO Intake & Prerequiste Workflow:view",
+      "projects.wbs.pmo_intake.view"
+    );
+  const canViewBudget =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Overview|Budget:view",
+      "projects.overview.budget",
+      "projects.budget.view",
+    );
+  const canViewBilling =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|WBS|Billing Information:view",
+      "projects.wbs.billing"
+    );
+  const canViewInvoiceSchedule =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|WBS|Invoice Schedule:view",
+      "projects.wbs.invoice_schedule"
+    );
+  const hideAmounts = !canViewBudget;
+  const hidePrereq = !canViewPrereq;
   const canRaise = isDhanshree || isAccounts;
   const [apiWbsServices, setApiWbsServices] = useState<WbsService[] | null>(null);
   const [confirmPaidId, setConfirmPaidId] = useState<string | null>(null);
@@ -1694,17 +1832,19 @@ function WbsTab({
               <InfoRow label="Sales Person" value={project.salesPerson || wbsDetails.salesPerson || "—"} />
             </div>
           </div>
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
-            <div className="space-y-2">
-              <InfoRow label="Billing Model" value={wbsDetails.accounts?.billingModel || (project as any).billingModel || "—"} />
-              <InfoRow label="Payment Terms" value={wbsDetails.accounts?.paymentTerms || (project as any).paymentTerms || "—"} />
-              {!hideAmounts && (
-                <InfoRow label="Total Services Value" value={`${currency} ${(totalServices || project.budget || 0).toLocaleString()}`} />
-              )}
-              <InfoRow label="Currency" value={currency} />
+          {canViewBilling && (
+            <div className="rounded-lg border border-border bg-card p-4">
+              <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
+              <div className="space-y-2">
+                <InfoRow label="Billing Model" value={wbsDetails.accounts?.billingModel || (project as any).billingModel || "—"} />
+                <InfoRow label="Payment Terms" value={wbsDetails.accounts?.paymentTerms || (project as any).paymentTerms || "—"} />
+                {!hideAmounts && (
+                  <InfoRow label="Total Services Value" value={`${currency} ${(totalServices || project.budget || 0).toLocaleString()}`} />
+                )}
+                <InfoRow label="Currency" value={currency} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {!hidePrereq && (
@@ -1935,15 +2075,17 @@ function WbsTab({
             <InfoRow label="Sales Person" value={project.salesPerson || "—"} />
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
-          <div className="space-y-2">
-            <InfoRow label="Project Type" value={project.projectType || "—"} />
-            <InfoRow label="Billing Model" value={(project as any).billingModel || "—"} />
-            {!hideAmounts && <InfoRow label="Total Amount" value={`${project.currency || "INR"} ${(project.budget || 0).toLocaleString()}`} />}
-            <InfoRow label="Currency" value={project.currency || "INR"} />
+        {canViewBilling && (
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
+            <div className="space-y-2">
+              <InfoRow label="Project Type" value={project.projectType || "—"} />
+              <InfoRow label="Billing Model" value={(project as any).billingModel || "—"} />
+              {!hideAmounts && <InfoRow label="Total Amount" value={`${project.currency || "INR"} ${(project.budget || 0).toLocaleString()}`} />}
+              <InfoRow label="Currency" value={project.currency || "INR"} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* PMO Intake & Prerequisite Workflow — hidden for PM family and Accounts */}
@@ -2028,8 +2170,8 @@ function WbsTab({
         </div>
       </div>
 
-      {/* Invoice Schedule — hidden when budget is not visible */}
-      {!hideAmounts && (
+      {/* Invoice Schedule — hidden when budget or invoice schedule is not permitted */}
+      {canViewInvoiceSchedule && !hideAmounts && (
         <div>
           <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
           <div className="overflow-x-auto rounded-lg border border-border">
@@ -2211,10 +2353,96 @@ function OverviewTab({
   customerRouteId: string | null;
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
-  const { isDhanshree, isProjectManager, isSeniorPm, isPmFamily, isPmoFamily, isAccounts, isSales, hideBudget } =
+  const { isDhanshree, isAdmin, isProjectManager, isSeniorPm, isPmFamily, isPmoFamily, isAccounts, isSales, hideBudget } =
     useRoleContext();
-  const showLeadership = isDhanshree || isPmFamily || isPmoFamily || isAccounts || isSales;
-  const hideAmounts = isPmFamily || hideBudget;
+  const { hasAny } = usePermissions();
+
+  const canViewBudget =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Overview|Budget:view",
+      "projects.overview.budget",
+      "projects.budget.view",
+    );
+  const hideAmounts = !canViewBudget;
+
+  const canViewSpm =
+    hasAny(
+      "Projects|projects Cards|Overview|Sr.project Manger:view",
+      "Projects|projects Cards|Overview|Sr.project Manger:manage",
+      "projects.overview.view_spm",
+      "projects.overview.edit_spm",
+    ) || isDhanshree || isAdmin || isPmFamily;
+  const canManageSpm =
+    hasAny("Projects|projects Cards|Overview|Sr.project Manger:manage", "projects.overview.edit_spm") ||
+    isDhanshree ||
+    isAdmin;
+
+  const canViewPm =
+    hasAny(
+      "Projects|projects Cards|Overview|Project manager:view",
+      "Projects|projects Cards|Overview|Project manager:manage",
+      "projects.overview.view_pm",
+      "projects.overview.edit_pm",
+    ) || isDhanshree || isAdmin || isPmFamily;
+  const canManagePm =
+    hasAny("Projects|projects Cards|Overview|Project manager:manage", "projects.overview.edit_pm") ||
+    isDhanshree ||
+    isAdmin ||
+    isSeniorPm;
+
+  const canViewTl =
+    hasAny(
+      "Projects|projects Cards|Overview|Team leads:view",
+      "Projects|projects Cards|Overview|Team leads:manage",
+      "projects.overview.view_tl",
+      "projects.overview.edit_tl",
+    ) || isDhanshree || isAdmin || isPmFamily;
+  const canManageTl =
+    hasAny("Projects|projects Cards|Overview|Team leads:manage", "projects.overview.edit_tl") ||
+    isDhanshree ||
+    isAdmin ||
+    isSeniorPm ||
+    isProjectManager;
+
+  const canViewExtension =
+    hasAny(
+      "Projects|projects Cards|Overview|Extension Request:view",
+      "Projects|projects Cards|Overview|Extension Request:manage",
+      "projects.overview.extension.view",
+      "projects.overview.extension",
+    ) || isDhanshree || isAdmin;
+  const canManageExtension =
+    hasAny("Projects|projects Cards|Overview|Extension Request:manage", "projects.overview.extension") ||
+    isDhanshree ||
+    isAdmin;
+
+  const canViewCustomer =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Customers|Customers Card|Customer profile:view",
+      "Customers|Customers Card:view",
+      "customers.view",
+      "Customers:view",
+    );
+
+  const showLeadership =
+    isAdmin ||
+    isDhanshree ||
+    isPmFamily ||
+    isPmoFamily ||
+    isAccounts ||
+    isSales ||
+    canViewSpm ||
+    canManageSpm ||
+    canViewPm ||
+    canManagePm ||
+    canViewTl ||
+    canManageTl;
+
+  const showSidebar = canViewCustomer || canManageExtension || canViewExtension;
   // Reactive leadership assignments from store (Dhanshree overrides)
   const leadershipAssignment = useDhStore((s) => s.leadershipAssignments[project.id] ?? null);
   const prereq = useDhStore((s) => s.prereqs[project.id]);
@@ -2236,7 +2464,7 @@ function OverviewTab({
           })),
         );
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       active = false;
     };
@@ -2400,7 +2628,7 @@ function OverviewTab({
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <div className={cn("space-y-4", showLeadership ? "md:col-span-2" : "md:col-span-3")}>
+      <div className={cn("space-y-4", showSidebar ? "md:col-span-2" : "md:col-span-3")}>
         <div>
           <h3 className="text-sm font-semibold">Project Description</h3>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -2467,7 +2695,7 @@ function OverviewTab({
                   <DetailField key={f.label} label={f.label} value={f.value} />
                 ))}
             </div>
-            {totalServices > 0 && (
+            {totalServices > 0 && !hideAmounts && (
               <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
                 <div>
                   <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Services Subtotal</div>
@@ -2504,77 +2732,85 @@ function OverviewTab({
 
         {showLeadership && (
           <div className="grid gap-3 sm:grid-cols-3 items-stretch">
-            <LeadershipBlock
-              title="Senior Project Managers"
-              role="Senior Project Manager"
-              people={spms}
-              unassigned={spms.length === 0}
-              project={project}
-              viewOnly={!isDhanshree}
-              onLeadershipSaved={onLeadershipSaved}
-            />
-            <LeadershipBlock
-              title="Project Managers"
-              role="Project Manager"
-              people={pms}
-              unassigned={pms.length === 0}
-              project={project}
-              viewOnly={!isDhanshree && !isSeniorPm}
-              onLeadershipSaved={onLeadershipSaved}
-            />
-            <LeadershipBlock
-              title="Team Leads"
-              role="Team Lead"
-              people={tls}
-              unassigned={tls.length === 0}
-              project={project}
-              viewOnly={!isDhanshree && !isSeniorPm && !isProjectManager}
-            />
+            {canViewSpm && (
+              <LeadershipBlock
+                title="Senior Project Managers"
+                role="Senior Project Manager"
+                people={spms}
+                unassigned={spms.length === 0}
+                project={project}
+                viewOnly={!canManageSpm}
+                onLeadershipSaved={onLeadershipSaved}
+              />
+            )}
+            {canViewPm && (
+              <LeadershipBlock
+                title="Project Managers"
+                role="Project Manager"
+                people={pms}
+                unassigned={pms.length === 0}
+                project={project}
+                viewOnly={!canManagePm}
+                onLeadershipSaved={onLeadershipSaved}
+              />
+            )}
+            {canViewTl && (
+              <LeadershipBlock
+                title="Team Leads"
+                role="Team Lead"
+                people={tls}
+                unassigned={tls.length === 0}
+                project={project}
+                viewOnly={!canManageTl}
+              />
+            )}
           </div>
         )}
       </div>
-      {showLeadership && (
+      {showSidebar && (
         <aside className="space-y-3">
-          <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border pb-2">
-              <Building2 className="h-3.5 w-3.5 text-muted-foreground" /> Customer Information
-            </h3>
-            <div className="space-y-2 text-xs">
-              <div>
-                <span className="text-muted-foreground font-medium block mb-0.5">Customer ID</span>
-                <span className="font-semibold text-primary block font-mono">
-                  {formatCustomerId(client?.id || project.clientId)}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground font-medium block mb-0.5">Customer Name</span>
-                {customerRouteId ? (
-                  <Link
-                    to="/customers/$clientId"
-                    params={{ clientId: customerRouteId }}
-                    className="font-semibold text-primary hover:underline block truncate"
-                  >
-                    {client?.name || "Customer"}
-                  </Link>
-                ) : (
-                  <span className="font-semibold text-foreground block truncate">{client?.name || "Customer"}</span>
-                )}
-              </div>
-              <div>
-                <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Name</span>
-                <span className="font-medium text-foreground block truncate">{client?.groupSpocName || client?.contactName || "—"}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Contact</span>
-                <span className="font-medium text-foreground block truncate">{client?.groupSpocContact || client?.contactPhone || "—"}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground font-medium block mb-0.5">Country / Region</span>
-                <span className="font-medium text-foreground block truncate">{[client?.city, client?.country].filter(Boolean).join(", ") || client?.country || "—"}</span>
+          {canViewCustomer && (
+            <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border pb-2">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" /> Customer Information
+              </h3>
+              <div className="space-y-2 text-xs">
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Customer ID</span>
+                  <span className="font-semibold text-primary block font-mono">
+                    {formatCustomerId(client?.id || project.clientId)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Customer Name</span>
+                  {customerRouteId ? (
+                    <Link
+                      to="/customers/$clientId"
+                      params={{ clientId: customerRouteId }}
+                      className="font-semibold text-primary hover:underline block truncate"
+                    >
+                      {client?.name || "Customer"}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-foreground block truncate">{client?.name || "Customer"}</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Name</span>
+                  <span className="font-medium text-foreground block truncate">{client?.groupSpocName || client?.contactName || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Contact</span>
+                  <span className="font-medium text-foreground block truncate">{client?.groupSpocContact || client?.contactPhone || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground font-medium block mb-0.5">Country / Region</span>
+                  <span className="font-medium text-foreground block truncate">{[client?.city, client?.country].filter(Boolean).join(", ") || client?.country || "—"}</span>
+                </div>
               </div>
             </div>
-          </div>
-          {isDhanshree && (
+          )}
+          {(canManageExtension || canViewExtension) && (
             <div className="rounded-lg border border-border bg-accent/30 p-4">
               <ExtensionRequestCard project={project} />
             </div>
@@ -3718,18 +3954,18 @@ function applyPersistedTasks(
     ...svc,
     quarters: svc.quarters
       ? svc.quarters.map((q) => ({
-          ...q,
-          aps: q.aps.map((ap) => ({
-            ...ap,
-            tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, ap.label)),
-          })),
-        }))
+        ...q,
+        aps: q.aps.map((ap) => ({
+          ...ap,
+          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, ap.label)),
+        })),
+      }))
       : null,
     aps: svc.aps
       ? svc.aps.map((ap) => ({
-          ...ap,
-          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, "", ap.label)),
-        }))
+        ...ap,
+        tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, "", ap.label)),
+      }))
       : null,
   }));
 }
@@ -4243,12 +4479,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                 if (useApiTasks && t.dbId) {
                                                   setDbTasks((prev) => prev.map((row) => row.id === t.dbId
                                                     ? {
-                                                        ...row,
-                                                        actualStartDate: newStart,
-                                                        actualEndDate: autoEndDate || row.actualEndDate,
-                                                        stage: nextStage,
-                                                        utilizedHours: nextStage === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0,
-                                                      }
+                                                      ...row,
+                                                      actualStartDate: newStart,
+                                                      actualEndDate: autoEndDate || row.actualEndDate,
+                                                      stage: nextStage,
+                                                      utilizedHours: nextStage === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0,
+                                                    }
                                                     : row));
                                                   updateProjectTask(project.id, t.dbId, {
                                                     actualStartDate: newStart || null,
@@ -4257,12 +4493,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                   }).then((saved) => {
                                                     setDbTasks((prev) => prev.map((row) => row.id === t.dbId
                                                       ? {
-                                                          ...row,
-                                                          actualStartDate: (saved.actualStartDate || "").slice(0, 10),
-                                                          actualEndDate: (saved.actualEndDate || "").slice(0, 10),
-                                                          stage: saved.stage,
-                                                          utilizedHours: saved.utilizedHours,
-                                                        }
+                                                        ...row,
+                                                        actualStartDate: (saved.actualStartDate || "").slice(0, 10),
+                                                        actualEndDate: (saved.actualEndDate || "").slice(0, 10),
+                                                        stage: saved.stage,
+                                                        utilizedHours: saved.utilizedHours,
+                                                      }
                                                       : row));
                                                   }).catch((err) => toast.error(err instanceof Error ? err.message : "Could not save start date"));
                                                   return;
@@ -4307,103 +4543,103 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                         <td className="px-3 py-2 align-middle text-center">
                                           <div className="flex items-center justify-center h-8">
                                             {!readOnly && (
-                                            <button
-                                              onClick={async () => {
-                                                if (useApiTasks) {
-                                                  try {
-                                                    const [projectMembers, shadowMembers] = await Promise.all([
-                                                      fetchProjectTeamMembers(project.id),
-                                                      fetchProjectTeamMembers(project.id, { shadow: true }),
-                                                    ]);
-                                                    const named = [...projectMembers, ...shadowMembers].filter(
-                                                      (m) => m.employeeId && m.employeeName?.trim() && m.employeeName !== "Unknown User" && !isManagerRole(m.memberRole),
-                                                    );
-                                                    dhStore.registerPeople(named.map((m) => ({
-                                                      id: m.employeeId,
-                                                      name: m.employeeName,
-                                                      role: m.employeeRole || "Team Member",
-                                                      email: m.employeeEmail || "",
-                                                    })));
-                                                    setApiPool(named.map((m) => ({
-                                                      person: {
+                                              <button
+                                                onClick={async () => {
+                                                  if (useApiTasks) {
+                                                    try {
+                                                      const [projectMembers, shadowMembers] = await Promise.all([
+                                                        fetchProjectTeamMembers(project.id),
+                                                        fetchProjectTeamMembers(project.id, { shadow: true }),
+                                                      ]);
+                                                      const named = [...projectMembers, ...shadowMembers].filter(
+                                                        (m) => m.employeeId && m.employeeName?.trim() && m.employeeName !== "Unknown User" && !isManagerRole(m.memberRole),
+                                                      );
+                                                      dhStore.registerPeople(named.map((m) => ({
                                                         id: m.employeeId,
                                                         name: m.employeeName,
                                                         role: m.employeeRole || "Team Member",
-                                                        avatar: m.employeeName.slice(0, 2).toUpperCase(),
                                                         email: m.employeeEmail || "",
-                                                      },
-                                                      isProjectTeam: m.memberRole ? m.memberRole === "ProjectTeam" : !m.isShadowTeam,
-                                                      isShadowTeam: m.memberRole ? m.memberRole === "ShadowTeam" : m.isShadowTeam,
-                                                    })));
-                                                  } catch (err) {
-                                                    toast.error(err instanceof Error ? err.message : "Could not load team members");
+                                                      })));
+                                                      setApiPool(named.map((m) => ({
+                                                        person: {
+                                                          id: m.employeeId,
+                                                          name: m.employeeName,
+                                                          role: m.employeeRole || "Team Member",
+                                                          avatar: m.employeeName.slice(0, 2).toUpperCase(),
+                                                          email: m.employeeEmail || "",
+                                                        },
+                                                        isProjectTeam: m.memberRole ? m.memberRole === "ProjectTeam" : !m.isShadowTeam,
+                                                        isShadowTeam: m.memberRole ? m.memberRole === "ShadowTeam" : m.isShadowTeam,
+                                                      })));
+                                                    } catch (err) {
+                                                      toast.error(err instanceof Error ? err.message : "Could not load team members");
+                                                    }
                                                   }
-                                                }
-                                                if (useApiTasks && t.dbId) {
-                                                  try {
-                                                    const [resources, history] = await Promise.all([
-                                                      fetchAssignableTaskResources(project.id, t.dbId),
-                                                      fetchTaskAssignmentHistory(project.id, t.dbId),
-                                                    ]);
-                                                    setAssignHistory(history);
-                                                    const namedResources = resources.filter(
-                                                      (r) => r.employeeId && r.employeeName?.trim() && r.employeeName !== "Unknown User",
-                                                    );
-                                                    dhStore.registerPeople(namedResources.map((r) => ({
-                                                      id: r.employeeId,
-                                                      name: r.employeeName,
-                                                      role: r.employeeRole || "Team Member",
-                                                      email: "",
-                                                    })));
-                                                    setApiPool(namedResources.map((r) => ({
-                                                      person: {
+                                                  if (useApiTasks && t.dbId) {
+                                                    try {
+                                                      const [resources, history] = await Promise.all([
+                                                        fetchAssignableTaskResources(project.id, t.dbId),
+                                                        fetchTaskAssignmentHistory(project.id, t.dbId),
+                                                      ]);
+                                                      setAssignHistory(history);
+                                                      const namedResources = resources.filter(
+                                                        (r) => r.employeeId && r.employeeName?.trim() && r.employeeName !== "Unknown User",
+                                                      );
+                                                      dhStore.registerPeople(namedResources.map((r) => ({
                                                         id: r.employeeId,
                                                         name: r.employeeName,
                                                         role: r.employeeRole || "Team Member",
-                                                        avatar: r.employeeName.slice(0, 2).toUpperCase(),
                                                         email: "",
-                                                      },
-                                                      isProjectTeam: r.teamType !== "Shadow Team",
-                                                      isShadowTeam: r.teamType === "Shadow Team",
-                                                    })));
-                                                    const selectedIds = resources.filter((r) => r.isAssigned).map((r) => r.employeeId);
-                                                    setDbTasks((prev) => prev.map((row) => {
-                                                      if (row.id !== t.dbId) return row;
-                                                      const previous = new Map((row.assignments ?? []).map((a) => [a.employeeId, a]));
-                                                      return {
-                                                        ...row,
-                                                        assignments: resources.filter((r) => r.isAssigned).map((r) => {
-                                                          const kept = previous.get(r.employeeId);
-                                                          return {
-                                                            id: kept?.id || r.employeeId,
-                                                            taskId: t.dbId!,
-                                                            employeeId: r.employeeId,
-                                                            employeeName: r.employeeName,
-                                                            employeeCode: r.employeeCode,
-                                                            workEmail: kept?.workEmail || "",
-                                                            role: r.employeeRole || kept?.role || "Contributor",
-                                                            allocatedHours: kept?.allocatedHours,
-                                                            utilizedHours: kept?.utilizedHours ?? 0,
-                                                            timerAccumulatedSeconds: kept?.timerAccumulatedSeconds ?? 0,
-                                                            isTimerRunning: kept?.isTimerRunning ?? false,
-                                                            currentElapsedSeconds: kept?.currentElapsedSeconds ?? 0,
-                                                            isActive: true,
-                                                          };
-                                                        }),
-                                                      };
-                                                    }));
-                                                    setAssignFor({ ...t, assigneeIds: selectedIds });
-                                                  } catch (err) {
-                                                    toast.error(err instanceof Error ? err.message : "Could not load team members");
+                                                      })));
+                                                      setApiPool(namedResources.map((r) => ({
+                                                        person: {
+                                                          id: r.employeeId,
+                                                          name: r.employeeName,
+                                                          role: r.employeeRole || "Team Member",
+                                                          avatar: r.employeeName.slice(0, 2).toUpperCase(),
+                                                          email: "",
+                                                        },
+                                                        isProjectTeam: r.teamType !== "Shadow Team",
+                                                        isShadowTeam: r.teamType === "Shadow Team",
+                                                      })));
+                                                      const selectedIds = resources.filter((r) => r.isAssigned).map((r) => r.employeeId);
+                                                      setDbTasks((prev) => prev.map((row) => {
+                                                        if (row.id !== t.dbId) return row;
+                                                        const previous = new Map((row.assignments ?? []).map((a) => [a.employeeId, a]));
+                                                        return {
+                                                          ...row,
+                                                          assignments: resources.filter((r) => r.isAssigned).map((r) => {
+                                                            const kept = previous.get(r.employeeId);
+                                                            return {
+                                                              id: kept?.id || r.employeeId,
+                                                              taskId: t.dbId!,
+                                                              employeeId: r.employeeId,
+                                                              employeeName: r.employeeName,
+                                                              employeeCode: r.employeeCode,
+                                                              workEmail: kept?.workEmail || "",
+                                                              role: r.employeeRole || kept?.role || "Contributor",
+                                                              allocatedHours: kept?.allocatedHours,
+                                                              utilizedHours: kept?.utilizedHours ?? 0,
+                                                              timerAccumulatedSeconds: kept?.timerAccumulatedSeconds ?? 0,
+                                                              isTimerRunning: kept?.isTimerRunning ?? false,
+                                                              currentElapsedSeconds: kept?.currentElapsedSeconds ?? 0,
+                                                              isActive: true,
+                                                            };
+                                                          }),
+                                                        };
+                                                      }));
+                                                      setAssignFor({ ...t, assigneeIds: selectedIds });
+                                                    } catch (err) {
+                                                      toast.error(err instanceof Error ? err.message : "Could not load team members");
+                                                    }
+                                                    return;
                                                   }
-                                                  return;
-                                                }
-                                                setAssignFor(t);
-                                              }}
-                                              className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
-                                            >
-                                              <UserPlus className="h-3.5 w-3.5" /> Assign
-                                            </button>
+                                                  setAssignFor(t);
+                                                }}
+                                                className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
+                                              >
+                                                <UserPlus className="h-3.5 w-3.5" /> Assign
+                                              </button>
                                             )}
                                           </div>
                                         </td>
@@ -4425,12 +4661,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                     updateTaskStage(project.id, t.dbId, v).then((saved) => {
                                                       setDbTasks((prev) => prev.map((row) => row.id === t.dbId
                                                         ? {
-                                                            ...row,
-                                                            stage: saved.stage,
-                                                            utilizedHours: saved.utilizedHours,
-                                                            actualStartDate: (saved.actualStartDate || row.actualStartDate || "").slice(0, 10),
-                                                            actualEndDate: (saved.actualEndDate || row.actualEndDate || "").slice(0, 10),
-                                                          }
+                                                          ...row,
+                                                          stage: saved.stage,
+                                                          utilizedHours: saved.utilizedHours,
+                                                          actualStartDate: (saved.actualStartDate || row.actualStartDate || "").slice(0, 10),
+                                                          actualEndDate: (saved.actualEndDate || row.actualEndDate || "").slice(0, 10),
+                                                        }
                                                         : row));
                                                     }).catch((err) => {
                                                       toast.error(err instanceof Error ? err.message : "Could not update stage");
@@ -4519,7 +4755,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
 
             dhStore.assignResourcesToTreeTask(project.id, assignFor.id, ids, taskTitle, dueDate, "medium");
             ids.forEach((resId) => {
-              addTaskAssignment(project.id, assignFor.id, { resourceId: resId, role: "Member" }).catch(() => {});
+              addTaskAssignment(project.id, assignFor.id, { resourceId: resId, role: "Member" }).catch(() => { });
             });
             toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
             setAssignFor(null);
@@ -4558,56 +4794,56 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
             </p>
           </div>
         ) : (
-        <>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search team member…"
-            className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-        </div>
-        {sel.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
-            {sel.map((id) => {
-              const p = getPerson(id);
-              const teamInfo = pool.find(item => item.person.id === id);
-              const teamLabel = teamInfo?.isShadowTeam ? "(Shadow Team)" : "(Project Team)";
-              return (
-                <span key={id} className={cn("inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-1 pr-2 text-xs font-medium shadow-sm",
-                  teamInfo?.isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
-                  <Avatar name={p.name} size={18} /> {p.name} <span className="text-[10px] text-muted-foreground">{teamLabel}</span>
-                  <button onClick={() => toggle(id)} className="ml-1 text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
-                </span>
-              );
-            })}
-          </div>
-        )}
-        <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-md border border-border">
-          {visible.map(({ person: p, isProjectTeam, isShadowTeam }) => {
-            const isSel = sel.includes(p.id);
-            const teamLabel = isShadowTeam ? "Shadow Team" : "Project Team";
-            return (
-              <li key={p.id}>
-                <button onClick={() => toggle(p.id)}
-                  className={cn("flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent/40", isSel && "bg-primary/5")}>
-                  <Avatar name={p.name} size={26} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">{p.name}</div>
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                      <span>{p.role}</span>
-                      <span>·</span>
-                      <span className={cn("inline-flex px-1.5 py-0.2 rounded text-[9px] font-semibold border",
-                        isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
-                        {teamLabel}
-                      </span>
-                    </div>
-                  </div>
-                  {isSel && <Check className="h-4 w-4 text-primary" />}
-                </button>
-              </li>
-            );
-          })}
-          {visible.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted-foreground">No match</li>}
-        </ul>
-        </>
+          <>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search team member…"
+                className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </div>
+            {sel.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
+                {sel.map((id) => {
+                  const p = getPerson(id);
+                  const teamInfo = pool.find(item => item.person.id === id);
+                  const teamLabel = teamInfo?.isShadowTeam ? "(Shadow Team)" : "(Project Team)";
+                  return (
+                    <span key={id} className={cn("inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-1 pr-2 text-xs font-medium shadow-sm",
+                      teamInfo?.isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
+                      <Avatar name={p.name} size={18} /> {p.name} <span className="text-[10px] text-muted-foreground">{teamLabel}</span>
+                      <button onClick={() => toggle(id)} className="ml-1 text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-md border border-border">
+              {visible.map(({ person: p, isProjectTeam, isShadowTeam }) => {
+                const isSel = sel.includes(p.id);
+                const teamLabel = isShadowTeam ? "Shadow Team" : "Project Team";
+                return (
+                  <li key={p.id}>
+                    <button onClick={() => toggle(p.id)}
+                      className={cn("flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent/40", isSel && "bg-primary/5")}>
+                      <Avatar name={p.name} size={26} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium">{p.name}</div>
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                          <span>{p.role}</span>
+                          <span>·</span>
+                          <span className={cn("inline-flex px-1.5 py-0.2 rounded text-[9px] font-semibold border",
+                            isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
+                            {teamLabel}
+                          </span>
+                        </div>
+                      </div>
+                      {isSel && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                  </li>
+                );
+              })}
+              {visible.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted-foreground">No match</li>}
+            </ul>
+          </>
         )}
 
         {/* Assignment History Log */}
@@ -5036,12 +5272,12 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
           ))}
         </div>
         {!readOnly && (
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="h-3.5 w-3.5" /> Add Team Member
-        </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add Team Member
+          </button>
         )}
       </div>
       <div className="rounded-lg border border-border overflow-x-auto">
@@ -5068,171 +5304,171 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                 ? formatAllocationDuration(String(project.startDate).slice(0, 10), String(project.endDate).slice(0, 10))
                 : (r.duration || "—");
               return (
-              <tr key={r.person.id} className="hover:bg-accent/30">
-                {/* Resource — left aligned with avatar */}
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar name={r.person.name} size={28} />
-                    <div>
-                      <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
-                        {r.person.name}
-                        {managerLabel && (
-                          <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
-                            <Crown className="h-2.5 w-2.5" /> {managerLabel}
-                          </span>
-                        )}
-                        {teamTab === "project" && !managerLabel && teamLeadIds.has(r.person.id) && (
-                          <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
-                            <Crown className="h-2.5 w-2.5" /> Team Lead
-                          </span>
-                        )}
+                <tr key={r.person.id} className="hover:bg-accent/30">
+                  {/* Resource — left aligned with avatar */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={r.person.name} size={28} />
+                      <div>
+                        <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
+                          {r.person.name}
+                          {managerLabel && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
+                              <Crown className="h-2.5 w-2.5" /> {managerLabel}
+                            </span>
+                          )}
+                          {teamTab === "project" && !managerLabel && teamLeadIds.has(r.person.id) && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
+                              <Crown className="h-2.5 w-2.5" /> Team Lead
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground leading-tight">{r.person.role}</div>
                       </div>
-                      <div className="text-[11px] text-muted-foreground leading-tight">{r.person.role}</div>
                     </div>
-                  </div>
-                </td>
-                {/* Department — center */}
-                <td className="px-3 py-3 text-center text-sm align-middle">
-                  {teamTab === "project" && "department" in r && r.department
-                    ? r.department
-                    : getDept(r.person)}
-                </td>
-                {/* Sub Department — center */}
-                <td className="px-3 py-3 text-center text-sm text-muted-foreground align-middle">
-                  {teamTab === "project" && "subDepartment" in r && r.subDepartment
-                    ? r.subDepartment
-                    : getSubDept(r.person)}
-                </td>
-                {/* Allocation Duration — center, monospaced */}
-                <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{allocationLabel}</td>
-                {/* Billability — center pill */}
-                <td className="px-3 py-3 text-center align-middle">
-                  <span className={cn(
-                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
-                    r.billability === "Billable"
-                      ? "bg-success/10 border-success/30 text-success"
-                      : "bg-muted border-border text-muted-foreground"
-                  )}>
-                    {r.billability}
-                  </span>
-                </td>
-                {/* Resource Type — center pill */}
-                <td className="px-3 py-3 text-center align-middle">
-                  <span className={cn(
-                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
-                    r.resourceType === "Dedicated"
-                      ? "bg-primary/10 border-primary/30 text-primary"
-                      : "bg-info/10 border-info/30 text-info"
-                  )}>
-                    {r.resourceType}
-                  </span>
-                </td>
-                {/* Actions — center */}
-                <td className="px-3 py-3 text-center align-middle">
-                  <div className="inline-flex items-center gap-1">
-                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "View"} disabled={actionsLocked} onClick={() => setAction({ type: "view", person: r.person })}
-                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Eye className="h-3.5 w-3.5" /></button>
-                    {!readOnly && (
-                    <>
-                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Edit"} disabled={actionsLocked} onClick={() => setAction({ type: "edit", person: r.person })}
-                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Pencil className="h-3.5 w-3.5" /></button>
-                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Remove"} disabled={actionsLocked} onClick={() => setAction({ type: "remove", person: r.person })}
-                      className={cn("rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Trash2 className="h-3.5 w-3.5" /></button>
-                    <button
-                      title={actionsLocked ? "Assigned from WBS Project Allocation" : "More"}
-                      disabled={actionsLocked}
-                      onClick={(e) => {
-                        if (menuOpen === r.person.id) {
-                          setMenuOpen(null);
-                          setMenuPos(null);
-                          return;
-                        }
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        const menuWidth = 192;
-                        const menuHeight = teamTab === "project" && isWbsCreated ? 168 : 132;
-                        const openUp = rect.bottom + menuHeight > window.innerHeight - 8;
-                        const top = openUp ? Math.max(8, rect.top - menuHeight - 4) : rect.bottom + 4;
-                        const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
-                        setMenuPos({ top, left });
-                        setMenuOpen(r.person.id);
-                      }}
-                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}
-                    >
-                      <MoreHorizontal className="h-3.5 w-3.5" />
-                    </button>
-                    </>
-                    )}
-                    {menuOpen === r.person.id && menuPos && !actionsLocked && (
-                      <div
-                        className="fixed z-[9999] w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg"
-                        style={{ top: menuPos.top, left: menuPos.left }}
-                        onMouseLeave={() => { setMenuOpen(null); setMenuPos(null); }}
-                      >
-                        {teamTab === "project" && isWbsCreated && (
+                  </td>
+                  {/* Department — center */}
+                  <td className="px-3 py-3 text-center text-sm align-middle">
+                    {teamTab === "project" && "department" in r && r.department
+                      ? r.department
+                      : getDept(r.person)}
+                  </td>
+                  {/* Sub Department — center */}
+                  <td className="px-3 py-3 text-center text-sm text-muted-foreground align-middle">
+                    {teamTab === "project" && "subDepartment" in r && r.subDepartment
+                      ? r.subDepartment
+                      : getSubDept(r.person)}
+                  </td>
+                  {/* Allocation Duration — center, monospaced */}
+                  <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{allocationLabel}</td>
+                  {/* Billability — center pill */}
+                  <td className="px-3 py-3 text-center align-middle">
+                    <span className={cn(
+                      "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+                      r.billability === "Billable"
+                        ? "bg-success/10 border-success/30 text-success"
+                        : "bg-muted border-border text-muted-foreground"
+                    )}>
+                      {r.billability}
+                    </span>
+                  </td>
+                  {/* Resource Type — center pill */}
+                  <td className="px-3 py-3 text-center align-middle">
+                    <span className={cn(
+                      "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+                      r.resourceType === "Dedicated"
+                        ? "bg-primary/10 border-primary/30 text-primary"
+                        : "bg-info/10 border-info/30 text-info"
+                    )}>
+                      {r.resourceType}
+                    </span>
+                  </td>
+                  {/* Actions — center */}
+                  <td className="px-3 py-3 text-center align-middle">
+                    <div className="inline-flex items-center gap-1">
+                      <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "View"} disabled={actionsLocked} onClick={() => setAction({ type: "view", person: r.person })}
+                        className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Eye className="h-3.5 w-3.5" /></button>
+                      {!readOnly && (
+                        <>
+                          <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Edit"} disabled={actionsLocked} onClick={() => setAction({ type: "edit", person: r.person })}
+                            className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Pencil className="h-3.5 w-3.5" /></button>
+                          <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Remove"} disabled={actionsLocked} onClick={() => setAction({ type: "remove", person: r.person })}
+                            className={cn("rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Trash2 className="h-3.5 w-3.5" /></button>
                           <button
-                            onClick={async () => {
-                              setMenuOpen(null);
-                              setMenuPos(null);
-                              const isLead = teamLeadIds.has(r.person.id);
-                              if (useApiTeam && apiTeamRows) {
-                                const row = apiTeamRows.find((x) => x.person.id === r.person.id);
-                                if (!row?.memberId) return;
-                                try {
-                                  const updated = await apiUpdateProjectTeamMember(project.id, row.memberId, {
-                                    isTeamLead: !isLead,
-                                  });
-                                  const nextRows = (apiTeamRows ?? []).map((x) =>
-                                    x.memberId === updated.id ? mapApiTeamMemberToRow(updated) : x,
-                                  );
-                                  setApiTeamRows(nextRows);
-                                  syncTeamLeadsToStore(project.id, nextRows);
-                                  toast.success(
-                                    isLead ? "Team Lead removed" : "Team Lead assigned",
-                                    { description: r.person.name },
-                                  );
-                                } catch (err) {
-                                  toast.error("Could not update Team Lead", {
-                                    description: err instanceof Error ? err.message : "API error",
-                                  });
-                                }
+                            title={actionsLocked ? "Assigned from WBS Project Allocation" : "More"}
+                            disabled={actionsLocked}
+                            onClick={(e) => {
+                              if (menuOpen === r.person.id) {
+                                setMenuOpen(null);
+                                setMenuPos(null);
                                 return;
                               }
-                              const current = snapshot.leadershipAssignments[project.id]?.tlIds ?? [];
-                              const next = current.includes(r.person.id)
-                                ? current.filter((id) => id !== r.person.id)
-                                : [...current, r.person.id];
-                              dhStore.updateLeadershipAssignment(project.id, "Team Lead", next, [{
-                                id: r.person.id,
-                                name: r.person.name,
-                                role: r.person.role,
-                                email: r.person.email || "",
-                              }]);
-                              toast.success(
-                                current.includes(r.person.id) ? "Team Lead removed" : "Team Lead assigned",
-                                { description: r.person.name },
-                              );
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              const menuWidth = 192;
+                              const menuHeight = teamTab === "project" && isWbsCreated ? 168 : 132;
+                              const openUp = rect.bottom + menuHeight > window.innerHeight - 8;
+                              const top = openUp ? Math.max(8, rect.top - menuHeight - 4) : rect.bottom + 4;
+                              const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+                              setMenuPos({ top, left });
+                              setMenuOpen(r.person.id);
                             }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent"
+                            className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}
                           >
-                            <Crown className="h-3.5 w-3.5 text-muted-foreground" />
-                            {teamLeadIds.has(r.person.id) ? "Remove Team Lead" : "Set as Team Lead"}
+                            <MoreHorizontal className="h-3.5 w-3.5" />
                           </button>
-                        )}
-                        {[
-                          { k: "praise", label: "Give Praise", icon: Star },
-                          { k: "feedback", label: "Give Feedback", icon: MessageSquare },
-                          { k: "request", label: "Request Feedback", icon: Send },
-                        ].map((o) => (
-                          <button key={o.k} onClick={() => { setMenuOpen(null); setMenuPos(null); setAction({ type: o.k as ActionType, person: r.person }); }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent">
-                            <o.icon className="h-3.5 w-3.5 text-muted-foreground" /> {o.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
+                        </>
+                      )}
+                      {menuOpen === r.person.id && menuPos && !actionsLocked && (
+                        <div
+                          className="fixed z-[9999] w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg"
+                          style={{ top: menuPos.top, left: menuPos.left }}
+                          onMouseLeave={() => { setMenuOpen(null); setMenuPos(null); }}
+                        >
+                          {teamTab === "project" && isWbsCreated && (
+                            <button
+                              onClick={async () => {
+                                setMenuOpen(null);
+                                setMenuPos(null);
+                                const isLead = teamLeadIds.has(r.person.id);
+                                if (useApiTeam && apiTeamRows) {
+                                  const row = apiTeamRows.find((x) => x.person.id === r.person.id);
+                                  if (!row?.memberId) return;
+                                  try {
+                                    const updated = await apiUpdateProjectTeamMember(project.id, row.memberId, {
+                                      isTeamLead: !isLead,
+                                    });
+                                    const nextRows = (apiTeamRows ?? []).map((x) =>
+                                      x.memberId === updated.id ? mapApiTeamMemberToRow(updated) : x,
+                                    );
+                                    setApiTeamRows(nextRows);
+                                    syncTeamLeadsToStore(project.id, nextRows);
+                                    toast.success(
+                                      isLead ? "Team Lead removed" : "Team Lead assigned",
+                                      { description: r.person.name },
+                                    );
+                                  } catch (err) {
+                                    toast.error("Could not update Team Lead", {
+                                      description: err instanceof Error ? err.message : "API error",
+                                    });
+                                  }
+                                  return;
+                                }
+                                const current = snapshot.leadershipAssignments[project.id]?.tlIds ?? [];
+                                const next = current.includes(r.person.id)
+                                  ? current.filter((id) => id !== r.person.id)
+                                  : [...current, r.person.id];
+                                dhStore.updateLeadershipAssignment(project.id, "Team Lead", next, [{
+                                  id: r.person.id,
+                                  name: r.person.name,
+                                  role: r.person.role,
+                                  email: r.person.email || "",
+                                }]);
+                                toast.success(
+                                  current.includes(r.person.id) ? "Team Lead removed" : "Team Lead assigned",
+                                  { description: r.person.name },
+                                );
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent"
+                            >
+                              <Crown className="h-3.5 w-3.5 text-muted-foreground" />
+                              {teamLeadIds.has(r.person.id) ? "Remove Team Lead" : "Set as Team Lead"}
+                            </button>
+                          )}
+                          {[
+                            { k: "praise", label: "Give Praise", icon: Star },
+                            { k: "feedback", label: "Give Feedback", icon: MessageSquare },
+                            { k: "request", label: "Request Feedback", icon: Send },
+                          ].map((o) => (
+                            <button key={o.k} onClick={() => { setMenuOpen(null); setMenuPos(null); setAction({ type: o.k as ActionType, person: r.person }); }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent">
+                              <o.icon className="h-3.5 w-3.5 text-muted-foreground" /> {o.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
               );
             })}
             {!teamLoading && (teamTab === "project" ? rows : shadowRows).length === 0 && (
@@ -5526,11 +5762,11 @@ function TeamActionModal({
               onClick={() => onSaveEdit(teamType === "shadow"
                 ? { duration: editState.duration, billability: "Non-Billable", resourceType: "Shared Resource" }
                 : {
-                    billability: editState.billability,
-                    resourceType: editState.resourceType,
-                    duration: editState.duration,
-                    ...(canSetTeamLead ? { isTeamLead: editState.asTeamLead } : {}),
-                  }
+                  billability: editState.billability,
+                  resourceType: editState.resourceType,
+                  duration: editState.duration,
+                  ...(canSetTeamLead ? { isTeamLead: editState.asTeamLead } : {}),
+                }
               )}
               className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
@@ -5713,12 +5949,12 @@ function AddTeamMemberModal({
 
     const selectedPerson = useApiResources && selectedCandidate
       ? {
-          id: selectedCandidate.id,
-          name: selectedCandidate.fullName,
-          role: selectedCandidate.role || selectedCandidate.designation || "Team Member",
-          avatar: selectedCandidate.fullName.slice(0, 2).toUpperCase(),
-          email: selectedCandidate.workEmail,
-        }
+        id: selectedCandidate.id,
+        name: selectedCandidate.fullName,
+        role: selectedCandidate.role || selectedCandidate.designation || "Team Member",
+        avatar: selectedCandidate.fullName.slice(0, 2).toUpperCase(),
+        email: selectedCandidate.workEmail,
+      }
       : getPerson(selectedPersonId);
 
     const newRow: ReturnType<typeof getProjectTeam>[number] = {
@@ -5921,7 +6157,8 @@ function PersonRow({ label, person, unassigned }: { label: string; person: Perso
 // ---------- Health Tab ----------
 function HealthTab({ project }: { project: Project }) {
   const store = useDhStore((s) => s);
-  const { user, isDhanshree, isPmFamily, isEngagementManager, isSales, isViewOnly, isPmoFamily } = useRoleContext();
+  const { hasAny } = usePermissions();
+  const { user, isDhanshree, isPmFamily, isEngagementManager, isSales, isViewOnly, isPmoFamily, isAdmin } = useRoleContext();
   const isEmployee = user.role === "Employee";
   const [healthTab, setHealthTab] = useState<string>(() => {
     let initial: string = "Issues";
@@ -5964,15 +6201,41 @@ function HealthTab({ project }: { project: Project }) {
   }, [store.escalations, store.alerts, project.id]);
   const projectAppreciations = store.appreciations.filter((a) => a.projectId === project.id);
 
-  const canRaiseIssue =
-    !isViewOnly &&
-    (isEmployee ||
-      isPmFamily ||
-      isSales ||
-      isDhanshree ||
-      user.role === "Team Member" ||
-      user.role === "Team Lead" ||
-      user.role === "Dhanshree");
+  const canManageIssues =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Health|Issues:manage",
+      "projects.health.issues.manage",
+      "projects.health.issues",
+    );
+
+  const canManageAlerts =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Health|Aletrs:manage",
+      "projects.health.alerts.manage",
+      "projects.health.alerts",
+    );
+
+  const canManageEscalations =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Health|Escalation:manage",
+      "projects.health.escalations.manage",
+      "projects.health.escalation",
+    );
+
+  const canManageAppreciation =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Health|Appreciation:manage",
+      "projects.health.appreciations.manage",
+      "projects.health.appreciation",
+    );
 
   // Check if user has access to Client Communication
   const canAccessClientComm = ["Dhanshree", "PMO", "Project Manager", "Engagement Manager", "Senior Project Manager", "Head of Delivery", "Business Operations"].includes(user.role);
@@ -5988,16 +6251,20 @@ function HealthTab({ project }: { project: Project }) {
     logo: "",
   };
 
-  // Employee: Health shows only Issues / Alerts / Appreciation — all view-only
-  // apart from raising an issue and writing an appreciation.
-  // Project Manager: full Health except customer engagement / communication.
-  const tabsList = isEmployee
-    ? (["Issues", "Alerts", "Appreciation"] as const)
-    : isDhanshree || isEngagementManager
-      ? (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Engagement"] as const)
-      : isPmFamily || isSales || isPmoFamily
-        ? (["Issues", "Alerts", "Escalations", "Appreciation"] as const)
-        : (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Communication"] as const);
+  const canViewIssues = hasAny("Projects|projects Cards|Health|Issues:view", "projects.view");
+  const canViewAlerts = hasAny("Projects|projects Cards|Health|Aletrs:view", "projects.view");
+  const canViewEscalations = hasAny("Projects|projects Cards|Health|Escalation:view", "projects.view");
+  const canViewAppreciation = hasAny("Projects|projects Cards|Health|Appreciation:view", "projects.view");
+  const canViewCustomerEngagement = hasAny("Projects|projects Cards|Health|Customer Engagment:view");
+
+  const allHealthOptions = [
+    { name: "Issues", allowed: canViewIssues },
+    { name: "Alerts", allowed: canViewAlerts },
+    { name: "Escalations", allowed: canViewEscalations },
+    { name: "Appreciation", allowed: canViewAppreciation },
+    { name: "Customer Engagement", allowed: canViewCustomerEngagement },
+  ];
+  const tabsList = allHealthOptions.filter((o) => o.allowed).map((o) => o.name);
 
   return (
     <div className="space-y-4">
@@ -6013,12 +6280,12 @@ function HealthTab({ project }: { project: Project }) {
         ))}
       </div>
 
-      {healthTab === "Issues" && <HealthIssuesPanel issues={projectIssues} project={project} canRaise={canRaiseIssue} />}
-      {healthTab === "Alerts" && <HealthAlertsPanel alerts={projectAlerts} />}
-      {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} canRaise={canRaiseIssue} />}
-      {healthTab === "Appreciation" && <HealthAppreciationPanel appreciations={projectAppreciations} project={project} />}
+      {healthTab === "Issues" && <HealthIssuesPanel issues={projectIssues} project={project} canRaise={canManageIssues} />}
+      {healthTab === "Alerts" && <HealthAlertsPanel alerts={projectAlerts} canManage={canManageAlerts} />}
+      {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} canRaise={canManageEscalations} />}
+      {healthTab === "Appreciation" && <HealthAppreciationPanel appreciations={projectAppreciations} project={project} canAppreciate={canManageAppreciation} />}
 
-      {(isDhanshree || isEngagementManager) && healthTab === "Customer Engagement" && (
+      {healthTab === "Customer Engagement" && (
         <DhClientEngagementTab project={project} clientName={client.name} />
       )}
 
@@ -6135,7 +6402,29 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="text-sm font-medium">{issue.title}</h4>
                       <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", priorityColors[issue.priority])}>{issue.priority}</span>
-                      <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{issue.status}</span>
+                      {canRaise ? (
+                        <select
+                          value={issue.status}
+                          onChange={(e) => {
+                            dhStore.updateIssueStatus(issue.id, e.target.value as DhIssueStatus, user.name);
+                            toast.success(`Issue status updated to ${e.target.value}`);
+                          }}
+                          className={cn(
+                            "h-6 rounded-md border px-2 text-[10px] font-bold shadow-xs transition-colors cursor-pointer outline-none",
+                            issue.status === "resolved" || issue.status === "closed"
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                              : issue.status === "in_progress"
+                                ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                                : "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                          )}
+                        >
+                          {(["open", "in_progress", "resolved", "closed"] as DhIssueStatus[]).map((st) => (
+                            <option key={st} value={st}>{st.replace("_", " ")}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground capitalize">{issue.status.replace("_", " ")}</span>
+                      )}
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{issue.description}</p>
                     <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
@@ -6155,7 +6444,7 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
   );
 }
 
-function HealthAlertsPanel({ alerts }: { alerts: DhAlert[] }) {
+function HealthAlertsPanel({ alerts, canManage }: { alerts: DhAlert[]; canManage?: boolean }) {
   if (alerts.length === 0) {
     return <div className="rounded-lg border border-border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">No active alerts</p></div>;
   }
@@ -6163,12 +6452,38 @@ function HealthAlertsPanel({ alerts }: { alerts: DhAlert[] }) {
     <div className="space-y-2">
       {alerts.map((alert) => (
         <div key={alert.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <h4 className="text-sm font-medium">{alert.title}</h4>
               <p className="mt-1 text-xs text-muted-foreground">Raised by {alert.raisedByName} · {new Date(alert.createdAt).toLocaleDateString()}</p>
             </div>
-            <span className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">{alert.status}</span>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">{alert.status}</span>
+              {canManage && alert.status !== "Resolved" && (
+                <div className="flex items-center gap-1.5">
+                  {alert.status !== "Acknowledged" && (
+                    <button
+                      onClick={() => {
+                        dhStore.ackAlert(alert.id);
+                        toast.success("Alert acknowledged");
+                      }}
+                      className="rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-bold hover:bg-accent text-foreground transition-colors"
+                    >
+                      Acknowledge
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      dhStore.resolveAlert(alert.id);
+                      toast.success("Alert resolved");
+                    }}
+                    className="rounded-md bg-emerald-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-700 transition-colors"
+                  >
+                    Resolve
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ))}
@@ -6414,10 +6729,11 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
                 <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Resolution & Outcome Notes</span>
                 <textarea
                   value={resDetails}
+                  disabled={!canRaise}
                   onChange={(e) => setResDetails(e.target.value)}
-                  placeholder="Document resolution steps, technical outcomes, or action plan here..."
+                  placeholder={canRaise ? "Document resolution steps, technical outcomes, or action plan here..." : "No resolution notes."}
                   rows={3}
-                  className="w-full rounded-md border border-border bg-card p-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full rounded-md border border-border bg-card p-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:bg-muted/50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -6475,9 +6791,10 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
                   <span className="font-semibold text-[9px] text-muted-foreground uppercase block">Set Status</span>
                   <select
                     value={selectedStatus}
+                    disabled={!canRaise}
                     onChange={(e) => setSelectedStatus(e.target.value as any)}
                     className={cn(
-                      "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                      "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-75",
                       selectedStatus === "Resolved" || selectedStatus === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
                         selectedStatus === "Open" ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100" :
                           selectedStatus === "In Progress" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
@@ -6508,13 +6825,15 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
                       <span className="text-muted-foreground italic text-[9px]">No chat messages yet.</span>
                     )}
                   </div>
-                  <textarea
-                    value={newChatMsg}
-                    onChange={(e) => setNewChatMsg(e.target.value)}
-                    placeholder="Type a message or reply to conversation thread..."
-                    rows={2}
-                    className="w-full rounded-md border border-border p-1.5 text-xs bg-card outline-none focus-visible:ring-1 focus-visible:ring-ring mt-2"
-                  />
+                  {canRaise && (
+                    <textarea
+                      value={newChatMsg}
+                      onChange={(e) => setNewChatMsg(e.target.value)}
+                      placeholder="Type a message or reply to conversation thread..."
+                      rows={2}
+                      className="w-full rounded-md border border-border p-1.5 text-xs bg-card outline-none focus-visible:ring-1 focus-visible:ring-ring mt-2"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -6522,12 +6841,14 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
                 <button onClick={() => setSelectedEscId(null)} className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-semibold hover:bg-accent">
                   Cancel
                 </button>
-                <button
-                  onClick={handleUpdateEscalation}
-                  className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                >
-                  Save Changes
-                </button>
+                {canRaise && (
+                  <button
+                    onClick={handleUpdateEscalation}
+                    className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                  >
+                    Save Changes
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -6596,27 +6917,19 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
   );
 }
 
-function HealthAppreciationPanel({ appreciations, project }: { appreciations: DhAppreciation[]; project: Project }) {
+function HealthAppreciationPanel({
+  appreciations,
+  project,
+  canAppreciate = false,
+}: {
+  appreciations: DhAppreciation[];
+  project: Project;
+  canAppreciate?: boolean;
+}) {
   const store = useDhStore((s) => s);
-  const { user, isEmployee, isPmFamily, isDhanshree, isSales, isViewOnly } = useRoleContext();
+  const { user } = useRoleContext();
   const [showAppreciateModal, setShowAppreciateModal] = useState(false);
   const [formData, setFormData] = useState({ toUserId: project.teamIds[0] || "u5", badge: "Star Performer" as const, note: "" });
-  const canAppreciate =
-    !isViewOnly &&
-    (isEmployee ||
-      isPmFamily ||
-      isSales ||
-      isDhanshree ||
-      user.role === "Employee" ||
-      user.role === "ProjectManager" ||
-      user.role === "Project Manager" ||
-      user.role === "Senior Project Manager" ||
-      user.role === "SeniorPm" ||
-      user.role === "Team Lead" ||
-      user.role === "TeamLead" ||
-      user.role === "Engagement Manager" ||
-      user.role === "EngagementManager" ||
-      user.role === "Dhanshree");
 
   const teamPool = useMemo(() => {
     const ids = [project.pmId, project.tlId, ...project.teamIds];
@@ -6694,12 +7007,20 @@ function HealthAppreciationPanel({ appreciations, project }: { appreciations: Dh
 // ---------- Dhanshree Client Engagement Tab ----------
 function DhClientEngagementTab({ project, clientName }: { project: Project; clientName: string }) {
   const store = useDhStore((s) => s);
-  const { user } = useRoleContext();
+  const { user, isAdmin } = useRoleContext();
+  const { hasAny } = usePermissions();
   const [commTab, setCommTab] = useState<"Interview Scheduling" | "Additional Customer Requirement">("Interview Scheduling");
 
   const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
   const projectRequirements = store.requirements.filter((r) => r.projectId === project.id);
-  const isEM = user.role === "Engagement Manager" || user.role === "Dhanshree";
+  const isEM =
+    user.role === "Engagement Manager" ||
+    user.role === "Dhanshree" ||
+    isAdmin ||
+    hasAny(
+      "Projects|projects Cards|Health|Customer Engagment|Interview Scheduling:manage",
+      "projects.health.interviews.manage",
+    );
 
   return (
     <div className="space-y-4">
@@ -6726,6 +7047,16 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
 }
 
 function AdditionalRequirementsPanel({ requirements, project, clientName }: { requirements: DhAdditionalRequirement[]; project: Project; clientName: string }) {
+  const { isAdmin, isDhanshree } = useRoleContext();
+  const { hasAny } = usePermissions();
+  const canManageRequirement =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Projects|projects Cards|Health|Customer Engagment|Additional customer Requirement:manage",
+      "projects.health.requirements.manage",
+    );
+
   const [showModal, setShowModal] = useState(false);
   const [selectedReq, setSelectedReq] = useState<DhAdditionalRequirement | null>(null);
 
@@ -6807,12 +7138,14 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Additional Requirements ({requirements.length})</h4>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="h-3.5 w-3.5" /> Log Requirement
-        </button>
+        {canManageRequirement && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" /> Log Requirement
+          </button>
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -6941,6 +7274,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
       {selectedReq && (
         <RequirementDetailsModal
           requirement={selectedReq}
+          canManage={canManageRequirement}
           onClose={() => setSelectedReq(null)}
         />
       )}
@@ -6948,7 +7282,15 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
   );
 }
 
-function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAdditionalRequirement; onClose: () => void }) {
+function RequirementDetailsModal({
+  requirement,
+  canManage = true,
+  onClose,
+}: {
+  requirement: DhAdditionalRequirement;
+  canManage?: boolean;
+  onClose: () => void;
+}) {
   const [commentText, setCommentText] = useState("");
   const store = useDhStore(s => s);
 
@@ -6984,26 +7326,28 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
               <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold", statusColors[req.status])}>
                 {req.status}
               </span>
-              <select
-                value={req.status}
-                onChange={(e) => {
-                  const s = e.target.value as RequirementStatus;
-                  dhStore.updateRequirementStatus(req.id, s, "dhanshree", "Dhanshree");
-                  toast.success(`Status updated to ${s}`);
-                }}
-                className={cn(
-                  "h-8 rounded-md border px-2.5 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  req.status === "Approved" || req.status === "Implemented" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
-                    req.status === "Open" ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100" :
-                      req.status === "Under Review" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-                        req.status === "Rejected" ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" :
-                          "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                )}
-              >
-                {["Open", "Under Review", "Approved", "Rejected", "Implemented"].map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+              {canManage && (
+                <select
+                  value={req.status}
+                  onChange={(e) => {
+                    const s = e.target.value as RequirementStatus;
+                    dhStore.updateRequirementStatus(req.id, s, "dhanshree", "Dhanshree");
+                    toast.success(`Status updated to ${s}`);
+                  }}
+                  className={cn(
+                    "h-8 rounded-md border px-2.5 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    req.status === "Approved" || req.status === "Implemented" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
+                      req.status === "Open" ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100" :
+                        req.status === "Under Review" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
+                          req.status === "Rejected" ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" :
+                            "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                  )}
+                >
+                  {["Open", "Under Review", "Approved", "Rejected", "Implemented"].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
@@ -7073,22 +7417,24 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
             </div>
           </div>
 
-          <div className="border-t border-border pt-3 flex gap-2">
-            <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Add a remark, feedback, or update to the thread..."
-              rows={2}
-              className="flex-1 resize-none rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            <button
-              onClick={handleComment}
-              disabled={!commentText.trim()}
-              className="inline-flex items-center gap-1.5 self-end rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              <Send className="h-3.5 w-3.5" /> Post
-            </button>
-          </div>
+          {canManage && (
+            <div className="border-t border-border pt-3 flex gap-2">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Add a remark, feedback, or update to the thread..."
+                rows={2}
+                className="flex-1 resize-none rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <button
+                onClick={handleComment}
+                disabled={!commentText.trim()}
+                className="inline-flex items-center gap-1.5 self-end rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                <Send className="h-3.5 w-3.5" /> Post
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </Modal>
@@ -7098,12 +7444,20 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
 // ---------- Client Communication Tab ----------
 function ClientCommTab({ project }: { project: Project }) {
   const store = useDhStore((s) => s);
-  const { user } = useRoleContext();
+  const { user, isAdmin } = useRoleContext();
+  const { hasAny } = usePermissions();
   const [commTab, setCommTab] = useState<"Interview Scheduling" | "Prerequisite Validation">("Interview Scheduling");
 
   const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
   const projectPrereq = store.prereqs[project.id];
-  const isEM = user.role === "Engagement Manager" || user.role === "Dhanshree";
+  const isEM =
+    user.role === "Engagement Manager" ||
+    user.role === "Dhanshree" ||
+    isAdmin ||
+    hasAny(
+      "Projects|projects Cards|Health|Customer Engagment|Interview Scheduling:manage",
+      "projects.health.interviews.manage",
+    );
 
   return (
     <div className="space-y-4">
@@ -7290,8 +7644,8 @@ function getClientInfo(clientId: string, clientProp?: Client | null, subVentureN
   const svName = (subVentureName ?? "").trim();
   const matchedSv = svName
     ? client.subVentures?.find(
-        (sv: any) => sv.name.trim().toLowerCase() === svName.toLowerCase() || sv.id === svName
-      )
+      (sv: any) => sv.name.trim().toLowerCase() === svName.toLowerCase() || sv.id === svName
+    )
     : client.subVentures?.[0];
 
   let contacts: any[] = [];
@@ -7323,7 +7677,25 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
   const prereqData = allPrereqs[project.id];
   const knownPeople = useDhStore((s) => s.knownPeople);
   const alerts = useDhStore((s) => s.alerts);
-  const { user, isSales, isViewOnly } = useRoleContext();
+  const { user, isSales, isViewOnly, isAdmin, isDhanshree } = useRoleContext();
+  const { hasAny } = usePermissions();
+  const canManagePmoIntake =
+    !isViewOnly &&
+    (isAdmin ||
+      isDhanshree ||
+      hasAny(
+        "Projects|projects Cards|WBS|PMO Intake & Prerequiste Workflow:manage",
+        "projects.wbs.pmo_intake.manage",
+        "projects.pmo.manage",
+      ));
+  const canManageEscalations =
+    !isViewOnly &&
+    (isAdmin ||
+      isDhanshree ||
+      hasAny(
+        "Projects|projects Cards|Health|Escalation:manage",
+        "projects.health.escalations.manage"
+      ));
   const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
 
   const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
@@ -7531,7 +7903,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
   };
 
   const handleServiceChange = (serviceId: string, field: "collectionStatus" | "validationStatus" | "billingStatus", value: string) => {
-    if (isViewOnly) return;
+    if (!canManagePmoIntake || isViewOnly) return;
     dhStore.setServicePrereqStatus(project.id, serviceId, field, value, user.id, user.name);
     toast.success("Service status updated successfully");
     if (isApiGuid(project.id) && isApiGuid(serviceId)) {
@@ -7554,9 +7926,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch mb-4">
 
           {/* CLIENT PROFILE INFORMATION */}
-          <div className={cn("rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full",
-            isSales ? "lg:col-span-12" : "lg:col-span-7 xl:col-span-8"
-          )}>
+          <div className="lg:col-span-7 xl:col-span-8 rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full">
             <div className="flex items-center gap-2 border-b border-border pb-2">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
               <h4 className="text-xs font-bold text-gray-800">Customer Profile Information</h4>
@@ -7602,8 +7972,8 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                 </div>
                 <div className={cn("grid gap-2",
                   subVentureContacts.slice(0, 3).length === 1 ? "grid-cols-1 max-w-sm" :
-                  subVentureContacts.slice(0, 3).length === 2 ? "grid-cols-1 sm:grid-cols-2" :
-                  "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    subVentureContacts.slice(0, 3).length === 2 ? "grid-cols-1 sm:grid-cols-2" :
+                      "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                 )}>
                   {subVentureContacts.slice(0, 3).map((spoc: any, idx: number) => (
                     <div key={idx} className="rounded-md border border-border bg-muted/20 p-2 text-xs space-y-1">
@@ -7629,7 +7999,6 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
           </div>
 
           {/* PM/SPM ASSIGNMENT FLOW */}
-          {(!isSales || !isViewOnly) && (
           <div className="lg:col-span-5 xl:col-span-4 rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full">
             <div className="space-y-3">
               <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -7670,43 +8039,43 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
               </div>
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-border/50">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setAssignModalMode("pm")}
-                  disabled={!canShowAssignment || isViewOnly}
-                  className={cn(
-                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-                    canShowAssignment
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                  )}
-                >
-                  <UserPlus className="h-3.5 w-3.5" /> Assign PM
-                </button>
-                <button
-                  onClick={() => setAssignModalMode("spm")}
-                  disabled={!canShowAssignment || isViewOnly}
-                  className={cn(
-                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-                    canShowAssignment
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                  )}
-                >
-                  <UserPlus className="h-3.5 w-3.5" /> Assign SPM
-                </button>
+            {canManagePmoIntake && !isViewOnly && (
+              <div className="space-y-2 pt-2 border-t border-border/50">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAssignModalMode("pm")}
+                    disabled={!canShowAssignment}
+                    className={cn(
+                      "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                      canShowAssignment
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                    )}
+                  >
+                    <UserPlus className="h-3.5 w-3.5" /> Assign PM
+                  </button>
+                  <button
+                    onClick={() => setAssignModalMode("spm")}
+                    disabled={!canShowAssignment}
+                    className={cn(
+                      "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                      canShowAssignment
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                    )}
+                  >
+                    <UserPlus className="h-3.5 w-3.5" /> Assign SPM
+                  </button>
+                </div>
+                {!canShowAssignment && (
+                  <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
+                )}
               </div>
-              {!canShowAssignment && (
-                <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
-              )}
-            </div>
+            )}
           </div>
-          )}
         </div>
 
         {/* STEP 3 & 4: SERVICE WISE TRACKING TABLE */}
-        {(!isSales || !isViewOnly) && (
         <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div className="md:col-span-4 rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
             <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -7746,15 +8115,15 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                         <td className="px-3 py-2.5 text-center align-middle">
                           <select
                             value={isResourceDept ? "NA" : svc.collectionStatus}
-                            disabled={isResourceDept}
+                            disabled={isResourceDept || !canManagePmoIntake || isViewOnly}
                             onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
                             className={cn(
-                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                              isResourceDept
-                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
+                              isResourceDept || !canManagePmoIntake || isViewOnly
+                                ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
                                 : svc.collectionStatus === "Collected"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
                             )}
                           >
                             {isResourceDept ? (
@@ -7770,15 +8139,15 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                         <td className="px-3 py-2.5 text-center align-middle">
                           <select
                             value={isResourceDept ? "NA" : svc.validationStatus}
-                            disabled={isResourceDept || !isCollected}
+                            disabled={isResourceDept || !isCollected || !canManagePmoIntake || isViewOnly}
                             onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
                             className={cn(
-                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                              (isResourceDept || !isCollected)
-                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
+                              isResourceDept || !isCollected || !canManagePmoIntake || isViewOnly
+                                ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
                                 : svc.validationStatus === "Validated"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
                             )}
                           >
                             {isResourceDept ? (
@@ -7794,14 +8163,17 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                         <td className="px-3 py-2.5 text-center align-middle">
                           <select
                             value={svc.billingStatus ?? "Advance Pending"}
+                            disabled={!canManagePmoIntake || isViewOnly}
                             onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
                             className={cn(
-                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                              svc.billingStatus === "Advance Received"
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                : svc.billingStatus === "Advance Not Required"
-                                  ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                                  : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
+                              !canManagePmoIntake || isViewOnly
+                                ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
+                                : svc.billingStatus === "Advance Received"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                                  : svc.billingStatus === "Advance Not Required"
+                                    ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
+                                    : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 cursor-pointer"
                             )}
                           >
                             <option value="Advance Pending">Advance Pending</option>
@@ -7817,8 +8189,9 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                               </span>
                             ) : (
                               <button
-                                disabled={!canStart}
+                                disabled={!canStart || !canManagePmoIntake || isViewOnly}
                                 onClick={() => {
+                                  if (!canManagePmoIntake || isViewOnly) return;
                                   dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
                                   toast.success("Service marked as Ready to Start", { description: svc.serviceName });
                                   if (isApiGuid(project.id) && isApiGuid(svc.serviceId)) {
@@ -7829,11 +8202,17 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                                 }}
                                 className={cn(
                                   "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
-                                  canStart
+                                  canStart && canManagePmoIntake && !isViewOnly
                                     ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
                                     : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
                                 )}
-                                title={!canStart ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Mark this service as Ready to Start"}
+                                title={
+                                  !canManagePmoIntake || isViewOnly
+                                    ? "View only permission"
+                                    : !canStart
+                                      ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first")
+                                      : "Mark this service as Ready to Start"
+                                }
                               >
                                 Ready
                               </button>
@@ -7857,7 +8236,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                             >
                               ⚠️ {activeEsc.status} ({activeEsc.priority})
                             </button>
-                          ) : (
+                          ) : canManageEscalations ? (
                             <button
                               onClick={() => {
                                 setEscalationModalSvc(svc);
@@ -7867,6 +8246,8 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                             >
                               Raise Escalation
                             </button>
+                          ) : (
+                            <span className="text-muted-foreground text-[11px]">—</span>
                           )}
                         </td>
                       </tr>
@@ -7876,9 +8257,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
               </table>
             </div>
           </div>
-
         </div>
-        )}
       </div>
 
       {/* Raise Escalation Modal */}

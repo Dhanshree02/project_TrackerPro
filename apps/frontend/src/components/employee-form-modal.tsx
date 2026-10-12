@@ -50,6 +50,8 @@ import {
 } from "@/lib/api/employees";
 import { fetchRoles, type ApiRole } from "@/lib/api/users";
 import { fetchAddressCities } from "@/lib/api/catalogs";
+import { usePermissions } from "@/lib/permissions";
+import { useRoleContext } from "@/lib/role-context";
 import {
   EMPTY_ONBOARD,
   validateOnboardField,
@@ -218,11 +220,34 @@ function FormSelect({
   );
 }
 
-function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+function FormSection({
+  title,
+  disabled,
+  children,
+}: {
+  title: string;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="rounded-lg border border-border bg-card p-5">
-      <h3 className="mb-4 text-sm font-semibold text-foreground">{title}</h3>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{children}</div>
+    <section className={cn("rounded-lg border border-border bg-card p-5 relative transition-opacity", disabled && "bg-muted/10 opacity-75")}>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {disabled && (
+          <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground border border-border">
+            View Only
+          </span>
+        )}
+      </div>
+      <fieldset
+        disabled={disabled}
+        className={cn(
+          "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3",
+          disabled && "pointer-events-none opacity-60",
+        )}
+      >
+        {children}
+      </fieldset>
     </section>
   );
 }
@@ -327,6 +352,62 @@ export function EmployeeFormModal({
   managers,
   onSuccess,
 }: EmployeeFormModalProps) {
+  const { isAdmin, isDhanshree, isProjectManager, isPmFamily, isPMO, isEngagementManager, isHOD, isSeniorPm, isEmployee } = useRoleContext();
+  const { hasAny } = usePermissions();
+
+  const isFullManager = isAdmin || isDhanshree;
+  const isLimitedEditor = isProjectManager || isPmFamily || isPMO || isEngagementManager || isHOD || isSeniorPm || isEmployee;
+
+  const canManagePersonal =
+    isFullManager ||
+    (!isLimitedEditor &&
+      hasAny(
+        "resources.manage",
+        "Resource:manage",
+        "Resource|Resource Directory|Resource Detailes|Personal Information:manage",
+        "resources.profile.edit",
+      ));
+
+  const canManageOrg =
+    isFullManager ||
+    (!isLimitedEditor &&
+      hasAny(
+        "resources.manage",
+        "Resource:manage",
+        "Resource|Resource Directory|Resource Detailes|orgnization deatile:manage",
+        "resources.profile.edit",
+      ));
+
+  const canManageEmployment =
+    isFullManager ||
+    (!isLimitedEditor &&
+      hasAny(
+        "resources.manage",
+        "Resource:manage",
+        "Resource|Resource Directory|Resource Detailes|employment and bond:manage",
+        "resources.profile.edit",
+      ));
+
+  const canManageEducation =
+    isFullManager ||
+    isLimitedEditor ||
+    hasAny(
+      "resources.manage",
+      "Resource:manage",
+      "Resource|Resource Directory|Resource Detailes|Eduacation and experience:manage",
+      "resources.profile.edit",
+    );
+
+  const canManagePmo =
+    isFullManager ||
+    (!isLimitedEditor &&
+      hasAny(
+        "resources.manage",
+        "Resource:manage",
+        "Resource|Resource Directory|Resource Detailes|Pmo information:manage",
+        "resources.profile.edit",
+      ));
+
   const [form, setForm] = useState<OnboardValues>(EMPTY_ONBOARD);
   const [errors, setErrors] = useState<OnboardErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -765,6 +846,48 @@ export function EmployeeFormModal({
     const validationOpts = { isEdit: mode === "edit" };
     const excludeCodes = mode === "edit" && initialEmployee ? existingCodes.filter((c) => c !== initialEmployee.id) : existingCodes;
     const nextErrors = validateOnboardForm(form, excludeCodes, validationOpts);
+    // If sections are view-only/disabled, remove their errors so PM is not blocked by historical unmanaged data
+    if (mode === "edit") {
+      if (!canManagePersonal) {
+        delete nextErrors.firstName;
+        delete nextErrors.lastName;
+        delete nextErrors.workEmail;
+        delete nextErrors.phone;
+        delete nextErrors.altPhone;
+        delete nextErrors.address;
+        delete nextErrors.emergencyContactName;
+        delete nextErrors.emergencyContact;
+        delete nextErrors.emergencyContactRelation;
+      }
+      if (!canManageOrg) {
+        delete nextErrors.employeeCode;
+        delete nextErrors.departmentId;
+        delete nextErrors.designationId;
+        delete nextErrors.role;
+        delete nextErrors.jobRoleId;
+        delete nextErrors.businessUnit;
+        delete nextErrors.reportingManagerId;
+        delete nextErrors.workLocation;
+        delete nextErrors.projectSite;
+      }
+      if (!canManageEmployment) {
+        delete nextErrors.joiningDate;
+        delete nextErrors.assetId;
+        delete nextErrors.employeeStatusId;
+        delete nextErrors.probationStatus;
+        delete nextErrors.workerType;
+        delete nextErrors.bondDelivered;
+        delete nextErrors.bondDurationMonths;
+      }
+      if (!canManagePmo) {
+        delete nextErrors.pmoDepartment;
+        delete nextErrors.billableStatus;
+        delete nextErrors.clientLocation;
+        delete nextErrors.projectType;
+        delete nextErrors.projectAllocated;
+        delete nextErrors.clientEngManagerMapping;
+      }
+    }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       toast.error("Please complete all mandatory fields");
@@ -1021,7 +1144,7 @@ export function EmployeeFormModal({
 
           {/* scrollable body */}
           <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
-            <FormSection title="1. Personal Information">
+            <FormSection title="1. Personal Information" disabled={mode === "edit" && !canManagePersonal}>
               <FormField
                 label="First Name"
                 name="firstName"
@@ -1181,7 +1304,7 @@ export function EmployeeFormModal({
               />
             </FormSection>
 
-            <FormSection title="2. Organization Assignment">
+            <FormSection title="2. Organization Assignment" disabled={mode === "edit" && !canManageOrg}>
               <TkIdField
                 required
                 prefix={tkPrefix}
@@ -1380,7 +1503,7 @@ export function EmployeeFormModal({
               />
             </FormSection>
 
-            <FormSection title="3. Employment Information">
+            <FormSection title="3. Employment Information" disabled={mode === "edit" && !canManageEmployment}>
               <FormField
                 label="Date of Joining"
                 type="date"
@@ -1454,7 +1577,7 @@ export function EmployeeFormModal({
               />
             </FormSection>
 
-            <FormSection title="4. Education & Experience">
+            <FormSection title="4. Education & Experience" disabled={mode === "edit" && !canManageEducation}>
               <CreatableCatalogSelect
                 label="Graduation Degree Name"
                 options={gradDegreeOptions}
@@ -1645,7 +1768,7 @@ export function EmployeeFormModal({
             </FormSection>
 
             {mode === "edit" && (
-              <FormSection title="5. PMO Section">
+              <FormSection title="5. PMO Section" disabled={mode === "edit" && !canManagePmo}>
                 <FormSelect
                   label="Department"
                   options={PMO_DEPARTMENT_OPTIONS}

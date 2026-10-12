@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LayoutGrid,
@@ -43,6 +43,7 @@ import {
 } from "@/lib/api/clients";
 import { fetchCities, fetchContactDesignations, fetchContactTypes, fetchCountries, fetchIndustries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
 import { useAuth } from "@/lib/auth-context";
+import { usePermissions } from "@/lib/permissions";
 import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
 import { Modal } from "@/routes/projects.index";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
@@ -292,16 +293,30 @@ function CustomersPage() {
     void refreshApiClients();
   }, [refreshApiClients]);
 
-  // Only users holding customers.create or clients:write (or Admins) may onboard new customers (RBAC).
-  const canCreateClient =
+  const { hasPermission, hasAny } = usePermissions();
+  const canAccessCustomers =
     isAdmin ||
     isDhanshree ||
-    (can ? can("customers.create") : false) ||
-    Boolean(
-      authUser?.permissions?.some(
-        (p) => p === "customers.create" || p === "clients:write",
-      ),
-    );
+    hasPermission("customers.view") ||
+    hasAny("customers.view", "Customers:view", "Customers|Customers Card:view");
+
+  const canManageCustomers =
+    isAdmin ||
+    isDhanshree ||
+    hasPermission("customers.manage") ||
+    hasAny("customers.manage", "Customers:manage", "Customers|Customers Card:manage");
+
+  // Only users holding customers.create or clients:write (or Admins) with manage permission may onboard new customers (RBAC).
+  const canCreateClient =
+    canManageCustomers &&
+    (isAdmin ||
+      isDhanshree ||
+      (can ? can("customers.create") : false) ||
+      Boolean(
+        authUser?.permissions?.some(
+          (p) => p === "customers.create" || p === "clients:write",
+        ),
+      ));
 
   // Subscribe to store so newly created projects appear immediately
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
@@ -398,6 +413,10 @@ function CustomersPage() {
   }, [filtered, sortKey, sortDir]);
 
   const open = openId ? clients.find((c) => c.id === openId) : null;
+
+  if (!canAccessCustomers && !isAdmin && !isDhanshree) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <AppShell title="Customers" subtitle="Customer directory with active and completed engagements">

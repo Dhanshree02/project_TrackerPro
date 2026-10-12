@@ -8,6 +8,8 @@ import { ProgressBar } from "@/components/pills";
 import { Kpi } from "@/components/kpi-card";
 import { cn } from "@/lib/utils";
 
+import { usePermissions } from "@/lib/permissions";
+
 export const Route = createFileRoute("/dh-reports")({
   head: () => ({
     meta: [
@@ -28,16 +30,29 @@ const tabIcons: Record<Tab, typeof BarChart3> = {
 };
 
 function DhReportsPage() {
-  const { isDhanshree, isAccounts, isSales } = useRoleContext();
-  const visibleTabs: Tab[] = isAccounts
-    ? ["PO Tracker", "Invoice Tracker"]
-    : isSales
-      ? ["Sales Reports", "WBS Tracker"]
-      : [...tabs];
-  const [tab, setTab] = useState<Tab>(visibleTabs[0]);
-  const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
+  const { isDhanshree, isAdmin } = useRoleContext();
+  const { hasPermission, hasAny } = usePermissions();
 
-  if (!isDhanshree && !isAccounts && !isSales) return <Navigate to="/" />;
+  const tabPermMap: Record<Tab, string[]> = {
+    "Sales Reports": ["reports.sales", "Reports|Sales Report:view"],
+    "WBS Tracker": ["reports.wbs_tracker", "reports.wbs-tracker", "Reports|WBS Tracker:view"],
+    "PO Tracker": ["reports.po_tracker", "reports.po-tracker", "Reports|PO Tracker:view"],
+    "Invoice Tracker": ["reports.invoice_tracker", "reports.invoice-tracker", "Reports|Invoice tracker:view"],
+  };
+
+  const visibleTabs = useMemo<Tab[]>(() => {
+    return tabs.filter((t) => {
+      if (isAdmin || isDhanshree) return true;
+      return hasAny(...tabPermMap[t]);
+    });
+  }, [isAdmin, isDhanshree, hasAny]);
+
+  const [tab, setTab] = useState<Tab>(() => visibleTabs[0] ?? "Sales Reports");
+  const activeTab = visibleTabs.includes(tab) ? tab : (visibleTabs[0] ?? "Sales Reports");
+
+  if (!isDhanshree && !isAdmin && !hasPermission("reports.view") && !hasAny("reports.view", "Reports:view")) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <AppShell title="Reports" subtitle="Sales, delivery, finance and PO tracking">

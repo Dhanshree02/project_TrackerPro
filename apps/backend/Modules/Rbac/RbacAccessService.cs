@@ -149,6 +149,7 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
 
     public async Task ResetToDefaultAsync(string roleName, CancellationToken ct = default)
     {
+        roleName = NormalizeRoleName(roleName);
         var baseline = await LoadBaselineAsync(ct);
         var roleId = await RoleIdAsync(roleName, ct);
         var grants = DefaultGrants(baseline, roleName);
@@ -200,6 +201,7 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
 
     public async Task<RbacMatrix> GetMatrixAsync(string roleName, CancellationToken ct = default)
     {
+        roleName = NormalizeRoleName(roleName);
         var roleId = await RoleIdAsync(roleName, ct);
         var modules = await db.Database.SqlQueryRaw<ModuleRow>(
             """
@@ -298,6 +300,7 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
 
     public async Task SaveAsync(string roleName, IReadOnlyList<RbacGrantUpdate> updates, CancellationToken ct = default)
     {
+        roleName = NormalizeRoleName(roleName);
         var roleId = await RoleIdAsync(roleName, ct);
         foreach (var update in updates)
         {
@@ -325,6 +328,7 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
 
     public async Task<IReadOnlyList<string>> GetClaimsAsync(string roleName, CancellationToken ct = default)
     {
+        roleName = NormalizeRoleName(roleName);
         if (roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase))
             return RoleBaselines.For("Admin");
 
@@ -358,7 +362,7 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
                 claims.Add(row.WidgetKey + ":view");
             if (row.CanManage == 1)
                 claims.Add(row.WidgetKey + ":manage");
-            Bridge(claims, module, row.Leaf, row.CanView, row.CanManage);
+            Bridge(claims, module, row.Leaf, row.CanView, row.CanManage, roleName);
         }
 
         return claims.ToList();
@@ -605,7 +609,7 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
         return "module";
     }
 
-    private static void Bridge(HashSet<string> claims, string module, string leaf, int view, int manage)
+    private static void Bridge(HashSet<string> claims, string module, string leaf, int view, int manage, string roleName)
     {
         if (view == 1)
         {
@@ -631,7 +635,13 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
                     claims.Add(Permissions.ClientsRead);
                     break;
                 case "Repository": claims.Add("repository.view"); break;
-                case "My team": claims.Add(Permissions.MyTeamDashboardView); break;
+                case "My team":
+                    if (leaf.Equals("Team Dashboard", StringComparison.OrdinalIgnoreCase))
+                    {
+                        claims.Add(Permissions.MyTeamDashboardView);
+                        claims.Add("my-team.team-dashboard.view");
+                    }
+                    break;
                 case "Settings": claims.Add("settings.view"); break;
             }
 
@@ -702,15 +712,31 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
                     if (leaf.Equals("projects Cards", StringComparison.OrdinalIgnoreCase) ||
                         leaf.Equals("Projects", StringComparison.OrdinalIgnoreCase))
                     {
-                        claims.Add(Permissions.ProjectsWrite);
-                        claims.Add(Permissions.WbsAllocate);
-                        claims.Add("projects.create");
-                        claims.Add("projects.manage");
-                        claims.Add("projects.drafts");
+                        var baseRoleClaims = RoleBaselines.For(roleName);
+                        if (baseRoleClaims.Contains(Permissions.ProjectsWrite) || baseRoleClaims.Contains("projects.manage"))
+                        {
+                            claims.Add(Permissions.ProjectsWrite);
+                            claims.Add(Permissions.WbsAllocate);
+                            claims.Add("projects.manage");
+                        }
+
+                        if (baseRoleClaims.Contains("projects.create") ||
+                            roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+                            roleName.Equals("CEO", StringComparison.OrdinalIgnoreCase) ||
+                            roleName.Equals("COO", StringComparison.OrdinalIgnoreCase) ||
+                            roleName.Equals("CTO", StringComparison.OrdinalIgnoreCase))
+                        {
+                            claims.Add("projects.create");
+                            claims.Add("projects.drafts");
+                        }
                     }
                     else if (leaf.Equals("WBS", StringComparison.OrdinalIgnoreCase))
                     {
-                        claims.Add(Permissions.WbsAllocate);
+                        var baseRoleClaims = RoleBaselines.For(roleName);
+                        if (baseRoleClaims.Contains(Permissions.WbsAllocate) || baseRoleClaims.Contains(Permissions.ProjectsWrite))
+                        {
+                            claims.Add(Permissions.WbsAllocate);
+                        }
                     }
                     break;
                 case "Resource": claims.Add(Permissions.ResourcesManage); break;
@@ -773,8 +799,97 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
         }
     }
 
+    private static string NormalizeRoleName(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName)) return roleName;
+        var trimmed = roleName.Trim();
+        if (trimmed.Equals("Engagement Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("engagement_manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("EM", StringComparison.OrdinalIgnoreCase))
+            return "EngagementManager";
+        if (trimmed.Equals("Project Management Office", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("pmo", StringComparison.OrdinalIgnoreCase))
+            return "PMO";
+        if (trimmed.Equals("Senior Project Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("senior_pm", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SPM", StringComparison.OrdinalIgnoreCase))
+            return "SeniorPm";
+        if (trimmed.Equals("Project Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("pm", StringComparison.OrdinalIgnoreCase))
+            return "ProjectManager";
+        if (trimmed.Equals("R&D Team Member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("R&D — Team Member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("R&D -Team member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("R&D", StringComparison.OrdinalIgnoreCase))
+            return "R&D - Team member";
+        if (trimmed.Equals("SOC Team Member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC Operations — Team Member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC - Team Member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC Operations - Team Member", StringComparison.OrdinalIgnoreCase))
+            return "SOC-Team Member";
+        if (trimmed.Equals("SOC Shift / Team Leader", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC Team Leader", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC - Team Leader", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC-TL", StringComparison.OrdinalIgnoreCase))
+            return "SOC-Team Leader";
+        if (trimmed.Equals("Consulting -Team member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting - Team member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting Team Member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting - Team Member", StringComparison.OrdinalIgnoreCase))
+            return "Consulting-Team member";
+        if (trimmed.Equals("Consulting - Team Leader", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting Team Leader", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting -Team Leader", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting-TL", StringComparison.OrdinalIgnoreCase))
+            return "Consulting-Team Leader";
+        if (trimmed.Equals("Testing - Team Member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing Team Member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing -Team Member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing -Team member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing - Team member", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing-Team member", StringComparison.OrdinalIgnoreCase))
+            return "Testing-Team Member";
+        if (trimmed.Equals("Testing - Team Leader", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing Team Leader", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing -Team Leader", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing-TL", StringComparison.OrdinalIgnoreCase))
+            return "Testing-Team Leader";
+        if (trimmed.Equals("SOC - Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC Manager", StringComparison.OrdinalIgnoreCase))
+            return "SOC-Manager";
+        if (trimmed.Equals("SOC - Senior Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC Senior Manager", StringComparison.OrdinalIgnoreCase))
+            return "SOC-Senior Manager";
+        if (trimmed.Equals("SOC - HOD", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC HOD", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("SOC Head of Department", StringComparison.OrdinalIgnoreCase))
+            return "SOC-HOD";
+        if (trimmed.Equals("Consulting - Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting Manager", StringComparison.OrdinalIgnoreCase))
+            return "Consulting-Manager";
+        if (trimmed.Equals("Consulting - Senior Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting Senior Manager", StringComparison.OrdinalIgnoreCase))
+            return "Consulting-Senior Manager";
+        if (trimmed.Equals("Consulting - HOD", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting HOD", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Consulting Head of Dept", StringComparison.OrdinalIgnoreCase))
+            return "Consulting-HOD";
+        if (trimmed.Equals("Testing - Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing Manager", StringComparison.OrdinalIgnoreCase))
+            return "Testing-Manager";
+        if (trimmed.Equals("Testing - Senior Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing-Senior Manager", StringComparison.OrdinalIgnoreCase))
+            return "Testing Senior Manager";
+        if (trimmed.Equals("Testing - HOD", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing-HOD", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Testing Head of Department", StringComparison.OrdinalIgnoreCase))
+            return "Testing HOD";
+        return trimmed;
+    }
+
     private async Task<Guid> RoleIdAsync(string roleName, CancellationToken ct)
     {
+        roleName = NormalizeRoleName(roleName);
         var ids = await db.Database.SqlQueryRaw<Guid>(
             """SELECT "Id" AS "Value" FROM auth.tbl_roles WHERE lower("Name") = lower({0}) AND "DeletedAtUtc" IS NULL""",
             roleName).ToListAsync(ct);

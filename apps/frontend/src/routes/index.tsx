@@ -9,6 +9,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { usePermissions } from "@/lib/permissions";
 import { useRoleContext, roleLabels } from "@/lib/role-context";
 import {
   HealthPill,
@@ -76,6 +77,7 @@ function Stat({
 }
 
 function Dashboard() {
+  const { hasAny, hasPermission } = usePermissions();
   const {
     user,
     role,
@@ -123,82 +125,42 @@ function Dashboard() {
   return (
     <AppShell
       title={`Welcome back, ${user.name.split(" ")[0]}`}
-      subtitle={`${isEmployee ? "Employee" : isAccounts ? "Accounts & Finance" : isSales ? "Sales & BD" : roleLabels[role]} · ${assignedProjects.length} projects across ${new Set(assignedProjects.map((p) => p.clientId)).size} customers${isBO ? " · executive overview" : isHOD ? " · department view" : isPMO ? " · governance + allocation view" : ""}`}
+      subtitle={`${user.role || roleLabels[role] || "User"} · ${assignedProjects.length} projects across ${new Set(assignedProjects.map((p) => p.clientId)).size} customers`}
     >
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat
-          label="Ongoing projects"
-          value={ongoing}
-          sub={`${completed} completed · ${onHold} on hold`}
-          icon={Briefcase}
-          tone="info"
-        />
-        <Stat
-          label="At Risk + Critical"
-          value={red + amber}
-          sub={`${red} critical · ${amber} at risk · ${green} healthy`}
-          icon={AlertTriangle}
-          tone={red > 0 ? "danger" : "warn"}
-        />
-        <Stat
-          label={
-            isEmployee
-              ? "Pending Approvals"
-              : isBO
-                ? "Open escalations"
-                : isAccounts
-                  ? "Invoices · raised"
-                  : isSales
-                    ? "Customers"
-                    : showExec
-                      ? "Pending approvals (all)"
-                      : "Pending Approvals"
-          }
-          value={
-            isBO && !isEmployee
-              ? openIssues
-              : isAccounts
-                ? invRaised
-                : isSales
-                  ? assignedClients.length
-                  : pendingTimesheets.length
-          }
-          sub={
-            isEmployee
-              ? "Timesheets awaiting review"
-              : isBO
-                ? "Strategic issues to review"
-                : isAccounts
-                  ? `${invPaid} paid · ${invOverdue} overdue`
-                  : isSales
-                    ? "Active customer accounts"
-                    : isPMO || isHOD
-                      ? "PM/TL/Employee timesheets in flow"
-                      : "PM timesheets awaiting review"
-          }
-          icon={CheckCircle2}
-          tone="warn"
-        />
-        <Stat
-          label={
-            isAccounts
-              ? "People on the project"
-              : showExec && !isEmployee
-                ? "Invoices · raised"
-                : "People on the project"
-          }
-          value={showExec && !isEmployee && !isAccounts ? invRaised : teamSet.size}
-          sub={
-            showExec && !isEmployee && !isAccounts
-              ? `${invPaid} paid · ${invOverdue} overdue`
-              : "Across PM, TL and engineers"
-          }
-          icon={showExec && !isEmployee && !isAccounts ? CheckCircle2 : Users}
-          tone={showExec && !isEmployee && !isAccounts && invOverdue > 0 ? "danger" : "default"}
-        />
-      </div>
+      {hasPermission("Dashboard|KPI'S:view") && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Stat
+            label="Ongoing projects"
+            value={ongoing}
+            sub={`${completed} completed · ${onHold} on hold`}
+            icon={Briefcase}
+            tone="info"
+          />
+          <Stat
+            label="At Risk + Critical"
+            value={red + amber}
+            sub={`${red} critical · ${amber} at risk · ${green} healthy`}
+            icon={AlertTriangle}
+            tone={red > 0 ? "danger" : "warn"}
+          />
+          <Stat
+            label="Pending Approvals"
+            value={pendingTimesheets.length}
+            sub="Timesheets awaiting review"
+            icon={CheckCircle2}
+            tone="warn"
+          />
+          <Stat
+            label="People on the project"
+            value={teamSet.size}
+            sub="Across PM, TL and engineers"
+            icon={Users}
+            tone="default"
+          />
+        </div>
+      )}
 
-      {showExec && !isAccounts && (
+      {(hasAny("projects.wbs.allocate", "projects.manage") || hasAny("resources.view", "Resource:view") || hasAny("Projects|projects Cards|Invoice:view", "Reports|Invoice tracker:view")) && (
         <div className="mt-4 grid gap-3 lg:grid-cols-3">
           <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
@@ -268,6 +230,7 @@ function Dashboard() {
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        {hasPermission("Dashboard|Assigned Projects:view") && (
         <section className="lg:col-span-2 rounded-xl border border-border bg-card shadow-sm">
           <header className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
@@ -348,7 +311,9 @@ function Dashboard() {
             </ul>
           )}
         </section>
+        )}
 
+        {hasPermission("Dashboard|Pending issues:view") && (
         <section className="rounded-xl border border-border bg-card shadow-sm">
           <header className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
@@ -387,9 +352,11 @@ function Dashboard() {
             )}
           </ul>
         </section>
+        )}
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {hasPermission("Dashboard|Project stauts:view") && (
         <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Project status</h2>
@@ -416,7 +383,9 @@ function Dashboard() {
             })}
           </div>
         </section>
+        )}
 
+        {hasPermission("Dashboard|Pending approvals:view") && (
         <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Pending approvals</h2>
@@ -447,6 +416,7 @@ function Dashboard() {
             )}
           </ul>
         </section>
+        )}
       </div>
     </AppShell>
   );

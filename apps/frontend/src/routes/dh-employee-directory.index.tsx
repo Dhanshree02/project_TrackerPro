@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { Avatar, ProgressBar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
@@ -779,18 +780,84 @@ function RequestAllocationModal({
 // -- Main page ----------------------------------------
 function EmployeeDirectoryPage() {
   const { status: authStatus } = useAuth();
-  const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
-    useRoleContext();
+  const {
+    isDhanshree,
+    isAdmin,
+    isHr,
+    isEmployee,
+    isPmFamily,
+    isPmoFamily,
+    isAccounts,
+    isSales,
+    isPMO,
+    isEngagementManager,
+  } = useRoleContext();
+  const { hasPermission, hasAny } = usePermissions();
+
+  const canViewDirectory =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("Resource|Resource Directory:view", "resources.directory.view");
+
+  const canViewPool =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("Resource|Reource Pool:view", "Resource|Resource Pool:view", "resources.pool.view", "resources.pool");
+
+  const canManagePool =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("Resource|Reource Pool:manage", "Resource|Resource Pool:manage", "resources.pool.manage");
+
+  const canManageDirectory =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "Resource|Resource Directory:manage",
+      "resources.manage",
+      "Resource:manage",
+      "resources.profile.create",
+      "resources.profile.edit",
+    );
+
+  const canOnboardEmployee =
+    isAdmin ||
+    isDhanshree ||
+    (!isPMO &&
+      !isEngagementManager &&
+      hasAny(
+        "Resource|Resource Directory|Resource Detailes|Personal Information:manage",
+        "resources.add_employee",
+        "resources.profile.create",
+      ));
+
   const { tab: searchTab } = Route.useSearch();
+  const [tabState, setTabState] = useState<"directory" | "pool">(() => {
+    if (searchTab === "pool" && canViewPool) return "pool";
+    if (canViewDirectory) return "directory";
+    if (canViewPool) return "pool";
+    return "directory";
+  });
+
+  const tab: "directory" | "pool" =
+    canViewDirectory && canViewPool
+      ? (searchTab === "pool" ? "pool" : tabState)
+      : canViewPool
+        ? "pool"
+        : "directory";
+
   const basicDirectoryView =
-    isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  const [tab, setTabState] = useState<"directory" | "pool">("directory");
+    !canManageDirectory && (isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales);
+
   const navigate = useNavigate({ from: Route.fullPath });
 
   useEffect(() => {
-    if (!searchTab) return;
-    void navigate({ search: (prev) => ({ ...prev, tab: undefined }), replace: true });
-  }, [searchTab, navigate]);
+    if (searchTab === "pool" && canViewPool) {
+      setTabState("pool");
+    } else if (searchTab === "directory" && canViewDirectory) {
+      setTabState("directory");
+    }
+  }, [searchTab, canViewPool, canViewDirectory]);
 
   const [q, setQ] = useState("");
   const [dept, setDept] = useState("");
@@ -816,8 +883,8 @@ function EmployeeDirectoryPage() {
   const [allocReqEmployee, setAllocReqEmployee] = useState<Employee | null>(null);
 
   const setTab = (newTab: "directory" | "pool") => {
-    if (!ENABLE_RESOURCE_POOL && newTab === "pool") return;
-    if (basicDirectoryView) return;
+    if (newTab === "pool" && !canViewPool) return;
+    if (newTab === "directory" && !canViewDirectory) return;
     setTabState(newTab);
   };
 
@@ -973,11 +1040,17 @@ function EmployeeDirectoryPage() {
     setPage(1);
   }, [q, dept, desig, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
 
-  // Admin and HR both manage the full employee directory (HR uses it for
-  // onboarding); every other role is redirected.
-  if (!isDhanshree && !basicDirectoryView) return <Navigate to="/" />;
+  // Access Guard: If user has neither Directory nor Resource Pool access, redirect to /
+  if (!canViewDirectory && !canViewPool && !isAdmin && !isDhanshree) {
+    return <Navigate to="/" replace />;
+  }
 
-  const title = basicDirectoryView ? "Directory" : "Directory & Resource Pool";
+  const title =
+    canViewDirectory && canViewPool
+      ? "Directory & Resource Pool"
+      : tab === "pool"
+        ? "Resource Pool"
+        : "Directory";
   const subtitle =
     tab === "directory"
       ? `${activeRows.length} of ${dbEmployees.length} employees`
@@ -997,7 +1070,7 @@ function EmployeeDirectoryPage() {
       <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Left: [Directory] / [Resource Pool] view switcher */}
         <div>
-          {!basicDirectoryView && ENABLE_RESOURCE_POOL && (
+          {canViewDirectory && canViewPool && ENABLE_RESOURCE_POOL && (
             <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
               <button
                 onClick={() => setTab("directory")}
@@ -1029,8 +1102,8 @@ function EmployeeDirectoryPage() {
           )}
         </div>
 
-        {/* Right: Bulk upload menu (ðŸ“¥) and [+ Add Employee] button */}
-        {(isDhanshree || isHr) && (
+        {/* Right: Bulk upload menu and [+ Add Employee] button */}
+        {canOnboardEmployee && (
           <div className="flex items-center gap-2.5 shrink-0">
             <EmployeeBulkUploadMenu
               onImported={() => {
@@ -1330,25 +1403,45 @@ function EmployeeDirectoryPage() {
                   return (
                     <tr
                       key={e.id}
-                      onClick={() =>
-                        navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } })
-                      }
+                      onClick={() => {
+                        if (canViewDirectory) {
+                          navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } });
+                        } else {
+                          setSelectedEmployee(e);
+                        }
+                      }}
                       className="cursor-pointer transition-colors hover:bg-accent/30"
                     >
                       <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3.5 font-semibold text-foreground/90 truncate" title={e.department}>
                         {dash(e.department)}
                       </td>
                       <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3.5">
-                        <Link
-                          to="/dh-employee-directory/$id"
-                          params={{ id: e.id }}
-                          className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
-                        >
-                          <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                          <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
-                            {e.firstName} {e.lastName}
-                          </span>
-                        </Link>
+                        {canViewDirectory ? (
+                          <Link
+                            to="/dh-employee-directory/$id"
+                            params={{ id: e.id }}
+                            className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
+                          >
+                            <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
+                            <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
+                              {e.firstName} {e.lastName}
+                            </span>
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(evt) => {
+                              evt.stopPropagation();
+                              setSelectedEmployee(e);
+                            }}
+                            className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0 text-left cursor-pointer"
+                          >
+                            <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
+                            <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
+                              {e.firstName} {e.lastName}
+                            </span>
+                          </button>
+                        )}
                       </td>
                       <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
                         {dash(e.reportingManager)}
@@ -1369,22 +1462,24 @@ function EmployeeDirectoryPage() {
                         )}
                       </td>
                       <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5 text-right">
-                        <button
-                          onClick={(evt) => {
-                            evt.stopPropagation();
-                            setAllocReqEmployee(e);
-                          }}
-                          title="Request Allocation"
-                          className="mr-1.5 inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-primary/20 bg-primary/5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
-                        >
-                          <UserPlus className="h-3.5 w-3.5" />
-                        </button>
+                        {canManagePool && (
+                          <button
+                            onClick={(evt) => {
+                              evt.stopPropagation();
+                              setAllocReqEmployee(e);
+                            }}
+                            title="Request Allocation"
+                            className="mr-1.5 inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-primary/20 bg-primary/5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                          >
+                            <UserPlus className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={(evt) => {
                             evt.stopPropagation();
                             setSelectedEmployee(e);
                           }}
-                          className="inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-input bg-card text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                          className="inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-input bg-card text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </button>

@@ -582,12 +582,13 @@ interface InvoiceRow {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 function WbsNewProjectPage() {
-  const { isDhanshree } = useRoleContext();
+  const { isDhanshree, isAdmin, isPMO, isEngagementManager } = useRoleContext();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
 
-  if (!isDhanshree && !hasPermission("projects.create")) return <Navigate to="/" />;
+  const canCreate = (isAdmin || isDhanshree || hasPermission("projects.create")) && !isPMO && !isEngagementManager;
+  if (!canCreate) return <Navigate to="/" />;
 
   // ── Working-day calculation helpers (Excludes Saturday & Sunday) ──
   function parseIsoDate(iso: string): Date | null {

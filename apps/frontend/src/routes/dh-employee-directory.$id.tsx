@@ -1,10 +1,11 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, AlertTriangle, Clock, History, Mail, RefreshCw, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
@@ -391,13 +392,39 @@ function OffboardConfirmDialog({
 // ── Profile Tabs Config ────────────────────────────
 
 const tabs = [
-  { id: "personal", label: "Personal Information" },
-  { id: "org", label: "Organization Details" },
-  { id: "employment", label: "Employment & Bond" },
-  { id: "education", label: "Education & Experience" },
-  { id: "pmo", label: "PMO Information" },
-  { id: "logs", label: "Activity Logs" },
+  {
+    id: "personal",
+    label: "Personal Information",
+    permKey: "Resource|Resource Directory|Resource Detailes|Personal Information:view",
+  },
+  {
+    id: "org",
+    label: "Organization Details",
+    permKey: "Resource|Resource Directory|Resource Detailes|orgnization deatile:view",
+  },
+  {
+    id: "employment",
+    label: "Employment & Bond",
+    permKey: "Resource|Resource Directory|Resource Detailes|employment and bond:view",
+  },
+  {
+    id: "education",
+    label: "Education & Experience",
+    permKey: "Resource|Resource Directory|Resource Detailes|Eduacation and experience:view",
+  },
+  {
+    id: "pmo",
+    label: "PMO Information",
+    permKey: "Resource|Resource Directory|Resource Detailes|Pmo information:view",
+  },
+  {
+    id: "logs",
+    label: "Activity Logs",
+    permKey: "Resource|Resource Directory|Resource Detailes|Activity Logs:view",
+  },
 ] as const;
+
+type ProfileTab = (typeof tabs)[number];
 
 // ── Main Page ──────────────────────────────────────
 
@@ -405,8 +432,29 @@ function EmployeeProfilePage() {
   const { status: authStatus } = useAuth();
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
-    useRoleContext();
+  const { isDhanshree, isAdmin } = useRoleContext();
+  const { hasPermission, hasAny } = usePermissions();
+
+  const canEditProfile =
+    isAdmin ||
+    isDhanshree ||
+    hasAny(
+      "resources.manage",
+      "Resource:manage",
+      "resources.profile.edit",
+      "Resource|Resource Directory|Resource Detailes|Personal Information:manage",
+      "Resource|Resource Directory|Resource Detailes|orgnization deatile:manage",
+      "Resource|Resource Directory|Resource Detailes|employment and bond:manage",
+      "Resource|Resource Directory|Resource Detailes|Eduacation and experience:manage",
+      "Resource|Resource Directory|Resource Detailes|Pmo information:manage",
+    );
+
+  const canOffboard =
+    isAdmin ||
+    isDhanshree ||
+    hasAny("Resource|Exit Summary:manage", "resources.profile.offboard");
+
+  const basicOnly = !canEditProfile;
 
   const [emp, setEmp] = useState<Employee | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -417,6 +465,21 @@ function EmployeeProfilePage() {
 
   const [logs, setLogs] = useState<EmployeeActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+
+  const visibleTabs = useMemo<ProfileTab[]>(() => {
+    if (isAdmin || isDhanshree) return [...tabs];
+    const hasAnyGranular = tabs.some((t) => hasPermission(t.permKey));
+    return tabs.filter((t: ProfileTab) => {
+      if (hasAnyGranular) {
+        return hasAny(t.permKey, `resources.${t.id}.view`);
+      }
+      return hasPermission("resources.view");
+    });
+  }, [isAdmin, isDhanshree, hasAny, hasPermission]);
+
+  const activeTab = visibleTabs.some((t: ProfileTab) => t.id === tab)
+    ? tab
+    : (visibleTabs[0]?.id ?? "personal");
 
   const employeeId = decodeURIComponent(id ?? "").trim();
 
@@ -458,8 +521,18 @@ function EmployeeProfilePage() {
   }, [authStatus, employeeId]);
 
 
-  const basicDirectory = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  if (!isDhanshree && !isHr && !basicDirectory) return <Navigate to="/" />;
+  const canViewDirectoryDetail =
+    isDhanshree ||
+    isAdmin ||
+    hasAny(
+      "Resource|Resource Directory:view",
+      "Resource|Resource Directory|Resource Detailes:view",
+      "resources.directory.view",
+    );
+
+  if (!canViewDirectoryDetail) {
+    return <Navigate to="/dh-employee-directory" search={{ tab: "pool" }} replace />;
+  }
 
   if (loadError) {
     return (
@@ -519,9 +592,6 @@ function EmployeeProfilePage() {
     }
   };
 
-  const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "personal") : tabs;
-
   return (
     <AppShell
       title={`${emp.firstName} ${emp.lastName}`}
@@ -555,7 +625,7 @@ function EmployeeProfilePage() {
               </div>
             </div>
           </div>
-          {!basicOnly && (
+          {canEditProfile && (
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
@@ -564,14 +634,16 @@ function EmployeeProfilePage() {
               >
                 Edit Profile
               </button>
-              <button
-                type="button"
-                onClick={() => setOffboardConfirmOpen(true)}
-                disabled={isOffboarding || emp.status === "Notice Period"}
-                className="rounded-md bg-destructive px-3.5 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60 transition-colors shadow-2xs"
-              >
-                {emp.status === "Notice Period" ? "On Notice Period" : "Offboard Employee"}
-              </button>
+              {canOffboard && (
+                <button
+                  type="button"
+                  onClick={() => setOffboardConfirmOpen(true)}
+                  disabled={isOffboarding || emp.status === "Notice Period"}
+                  className="rounded-md bg-destructive px-3.5 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60 transition-colors shadow-2xs"
+                >
+                  {emp.status === "Notice Period" ? "On Notice Period" : "Offboard Employee"}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -580,13 +652,13 @@ function EmployeeProfilePage() {
       {/* Tabs */}
       <div className="mt-6">
         <div className="flex flex-wrap gap-1 border-b border-border">
-          {visibleTabs.map((t) => (
+          {visibleTabs.map((t: ProfileTab) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn(
                 "relative -mb-px whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors",
-                tab === t.id
+                activeTab === t.id
                   ? "border-b-2 border-primary text-foreground font-semibold"
                   : "text-muted-foreground hover:text-foreground",
               )}
@@ -596,9 +668,15 @@ function EmployeeProfilePage() {
           ))}
         </div>
 
+        {visibleTabs.length === 0 && (
+          <div className="mt-5 rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            You do not have permission to view any details in this profile.
+          </div>
+        )}
+
         <div className="mt-5">
           {/* ── 1. Personal Information ── */}
-          {tab === "personal" && (
+          {activeTab === "personal" && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="TK ID" value={emp.id} />
@@ -616,7 +694,7 @@ function EmployeeProfilePage() {
           )}
 
           {/* ── 2. Organization Assignment ── */}
-          {tab === "org" && (
+          {activeTab === "org" && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="Business Unit" value={emp.businessUnit} />
@@ -633,7 +711,7 @@ function EmployeeProfilePage() {
           )}
 
           {/* ── 3. Employment & Bond Details ── */}
-          {tab === "employment" && (
+          {activeTab === "employment" && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="Date of Joining" value={formatDateDMY(emp.joiningDate)} />
@@ -677,7 +755,7 @@ function EmployeeProfilePage() {
           )}
 
           {/* ── 4. Education & Experience ── */}
-          {tab === "education" && (
+          {activeTab === "education" && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="Graduation Degree" value={emp.gradDegree || "—"} />
@@ -726,7 +804,7 @@ function EmployeeProfilePage() {
           )}
 
           {/* ── 5. PMO Information ── */}
-          {tab === "pmo" && (
+          {activeTab === "pmo" && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="PMO Department" value={emp.pmoDepartment} />
@@ -741,7 +819,7 @@ function EmployeeProfilePage() {
 
 
           {/* ── 6. Activity Logs ── */}
-          {tab === "logs" && (
+          {activeTab === "logs" && (
             <div className="rounded-xl border border-border bg-card p-6 shadow-2xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
                 <div>

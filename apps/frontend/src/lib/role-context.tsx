@@ -113,19 +113,62 @@ const roleFromBackend: Record<string, Role> = {
   "Testing HOD": "Testing HOD",
   "Testing Senior Manager": "Testing Senior Manager",
   "Testing-Manager": "Testing-Manager",
+  "Testing - Manager": "Testing-Manager",
+  "Testing Manager": "Testing-Manager",
   "Testing-Team Leader": "Testing-Team Leader",
+  "Testing - Team Leader": "Testing-Team Leader",
+  "Testing Team Leader": "Testing-Team Leader",
+  "Testing -Team Leader": "Testing-Team Leader",
   "Testing-Team Member": "Testing-Team Member",
+  "Testing - Team Member": "Testing-Team Member",
+  "Testing Team Member": "Testing-Team Member",
+  "Testing -Team Member": "Testing-Team Member",
+  "Testing -Team member": "Testing-Team Member",
+  "Testing - Team member": "Testing-Team Member",
+  "Testing-Team member": "Testing-Team Member",
   "Consulting-HOD": "Consulting-HOD",
   "Consulting-Senior Manager": "Consulting-Senior Manager",
   "Consulting-Manager": "Consulting-Manager",
+  "Consulting - Manager": "Consulting-Manager",
+  "Consulting Manager": "Consulting-Manager",
   "Consulting-Team Leader": "Consulting-Team Leader",
+  "Consulting Team Leader": "Consulting-Team Leader",
+  "Consulting - Team Leader": "Consulting-Team Leader",
+  "Consulting -Team Leader": "Consulting-Team Leader",
   "Consulting-Team member": "Consulting-Team member",
+  "Consulting -Team member": "Consulting-Team member",
+  "Consulting - Team member": "Consulting-Team member",
+  "Consulting Team Member": "Consulting-Team member",
   "SOC-HOD": "SOC-HOD",
+  "SOC - HOD": "SOC-HOD",
+  "SOC HOD": "SOC-HOD",
+  "SOC Head of Department": "SOC-HOD",
   "SOC-Senior Manager": "SOC-Senior Manager",
+  "SOC - Senior Manager": "SOC-Senior Manager",
+  "SOC Senior Manager": "SOC-Senior Manager",
+  "Consulting - Senior Manager": "Consulting-Senior Manager",
+  "Consulting Senior Manager": "Consulting-Senior Manager",
+  "Consulting - HOD": "Consulting-HOD",
+  "Consulting HOD": "Consulting-HOD",
+  "Testing - Senior Manager": "Testing Senior Manager",
+  "Testing-Senior Manager": "Testing Senior Manager",
+  "Testing - HOD": "Testing HOD",
+  "Testing-HOD": "Testing HOD",
   "SOC-Manager": "SOC-Manager",
+  "SOC - Manager": "SOC-Manager",
+  "SOC Manager": "SOC-Manager",
   "SOC-Team Leader": "SOC-Team Leader",
+  "SOC Team Leader": "SOC-Team Leader",
+  "SOC Shift / Team Leader": "SOC-Team Leader",
+  "SOC - Team Leader": "SOC-Team Leader",
   "SOC-Team Member": "SOC-Team Member",
+  "SOC Team Member": "SOC-Team Member",
+  "SOC Operations — Team Member": "SOC-Team Member",
+  "SOC - Team Member": "SOC-Team Member",
   "R&D - Team member": "R&D - Team member",
+  "R&D Team Member": "R&D - Team member",
+  "R&D — Team Member": "R&D - Team member",
+  "R&D -Team member": "R&D - Team member",
   // Legacy aliases
   SeniorPm: "Consulting-Senior Manager",
   ProjectManager: "Testing-Manager",
@@ -217,11 +260,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const isDhanshree =
     !!authUser &&
     status === "authed" &&
-    (backendRole === "CEO" ||
-      backendRole === "COO" ||
-      backendRole === "CTO" ||
-      backendRole === "Admin" ||
-      backendRole === "Dhanshree");
+    (backendRole === "Admin" || backendRole === "Dhanshree");
 
   const isAdmin =
     role === "Admin" ||
@@ -242,17 +281,31 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const isHOD =
     !!authUser &&
     status === "authed" &&
-    (backendRole === "Testing HOD" ||
+    (role === "Testing HOD" ||
+      role === "Consulting-HOD" ||
+      role === "SOC-HOD" ||
+      backendRole === "Testing HOD" ||
+      backendRole === "Testing - HOD" ||
+      backendRole === "Testing-HOD" ||
       backendRole === "Consulting-HOD" ||
+      backendRole === "Consulting - HOD" ||
       backendRole === "SOC-HOD" ||
+      backendRole === "SOC - HOD" ||
       backendRole === "Hod");
 
   const isSeniorPm =
     !!authUser &&
     status === "authed" &&
-    (backendRole === "Testing Senior Manager" ||
+    (role === "Testing Senior Manager" ||
+      role === "Consulting-Senior Manager" ||
+      role === "SOC-Senior Manager" ||
+      backendRole === "Testing Senior Manager" ||
+      backendRole === "Testing - Senior Manager" ||
+      backendRole === "Testing-Senior Manager" ||
       backendRole === "Consulting-Senior Manager" ||
+      backendRole === "Consulting - Senior Manager" ||
       backendRole === "SOC-Senior Manager" ||
+      backendRole === "SOC - Senior Manager" ||
       backendRole === "SeniorPm");
 
   const isProjectManager =

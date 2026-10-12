@@ -55,10 +55,7 @@ function ResourcesPage() {
     return map;
   }, []);
 
-  if (isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales)
-    return <Navigate to="/dh-employee-directory" replace />;
-
-  if (!isPMO && !isHOD && !isBO && !hasPermission("resources.view")) return <Navigate to="/" />;
+  return <Navigate to="/dh-employee-directory" replace />;
 
   const filtered = people.filter((p) => {
     if (filter !== "All" && p.role !== filter) return false;
