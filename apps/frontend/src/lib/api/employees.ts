@@ -43,6 +43,7 @@ export interface ApiEmployeeListItem {
   projectType?: string | null;
   projectAllocated?: string | null;
   clientEngManagerMapping?: string | null;
+  jobRole?: string | null;
 }
 
 export interface ApiEmployeeDetail {
@@ -168,6 +169,7 @@ export async function fetchEmployees(params: {
   departmentId?: string;
   designationId?: string;
   status?: string;
+  role?: string;
 } = {}): Promise<PagedEnvelope<ApiEmployeeListItem>> {
   const query = new URLSearchParams();
   if (params.page) query.set("page", String(params.page));
@@ -176,6 +178,7 @@ export async function fetchEmployees(params: {
   if (params.departmentId) query.set("departmentId", params.departmentId);
   if (params.designationId) query.set("designationId", params.designationId);
   if (params.status) query.set("status", params.status);
+  if (params.role) query.set("role", params.role);
   return apiFetch<PagedEnvelope<ApiEmployeeListItem>>(`/api/v1/employees?${query.toString()}`);
 }
 

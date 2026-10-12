@@ -27,6 +27,17 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             query = query.Where(p => p.ClientId == queryParams.ClientId.Value);
         }
 
+        if (queryParams.EmployeeId.HasValue)
+        {
+            var empId = queryParams.EmployeeId.Value;
+            query = query.Where(p =>
+                p.ProjectManagerId == empId ||
+                p.TeamLeadId == empId ||
+                p.EngagementManagerId == empId ||
+                db.ProjectTeamMembers.Any(tm => tm.ProjectId == p.Id && tm.EmployeeId == empId) ||
+                db.ProjectTasks.Any(t => t.ProjectId == p.Id && db.ProjectTaskAssignments.Any(ta => ta.TaskId == t.Id && ta.EmployeeId == empId)));
+        }
+
         if (!string.IsNullOrWhiteSpace(queryParams.Status))
         {
             var status = queryParams.Status.Trim();

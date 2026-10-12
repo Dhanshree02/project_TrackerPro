@@ -40,7 +40,8 @@ public sealed record EmployeeListItemDto(
     string? ClientLocation = null,
     string? ProjectType = null,
     string? ProjectAllocated = null,
-    string? ClientEngManagerMapping = null);
+    string? ClientEngManagerMapping = null,
+    string? JobRole = null);
 
 public sealed record EmployeeDetailDto(
     Guid Id,

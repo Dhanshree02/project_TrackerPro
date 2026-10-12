@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   Clock,
@@ -21,7 +21,7 @@ import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { TimesheetStatusPill, Avatar } from "@/components/pills";
-import { allProjects } from "@/lib/dh-store";
+import { fetchProjects, fetchProjectTasks } from "@/lib/api/projects";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "./projects.index";
@@ -147,28 +147,89 @@ function TimesheetTab() {
 
 // ── MyTimesheetView ──────────────────────────────────────────────────────────
 function MyTimesheetView() {
-  const { user } = useRoleContext();
+  const { user: authUser } = useAuth();
+  const { user, employeePersonId } = useRoleContext();
+  const effectiveEmployeeId = authUser?.employeeId || employeePersonId || (user as any)?.employeeId;
+
   const [weekStart, setWeekStart] = useState(thisMonday());
   const [weekStatus, setWeekStatus] = useState<TimesheetWeek["status"]>("draft");
   const [showDraft, setShowDraft] = useState(false);
   const [saving, setSaving] = useState(false);
-  const projectsList = allProjects();
+
+  const [dbProjects, setDbProjects] = useState<Array<{ id: string; name: string; projectCode?: string }>>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [tasksByProject, setTasksByProject] = useState<Record<string, Array<{ id: string; title: string; stage?: string; estimatedHours?: number }>>>({});
+  const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
 
   const [rows, setRows] = useState<TsRow[]>(() => [emptyRow()]);
-
   const [commentOpen, setCommentOpen] = useState<{ row: string; day: number } | null>(null);
-
-  const tasksByProject = useMemo(() => {
-    const map: Record<string, (typeof projectsList)[number]["tasks"]> = {};
-    projectsList.forEach((p) => {
-      map[p.id] = p.tasks;
-    });
-    return map;
-  }, [projectsList]);
 
   const dayTotals = days.map((_, di) => rows.reduce((s, r) => s + (Number(r.hours[di]) || 0), 0));
   const total = dayTotals.reduce((a, b) => a + b, 0);
 
+  // Load real tasks for a specific project from backend DB
+  const loadTasksForProject = useCallback(async (projectId: string) => {
+    if (!projectId) return;
+    setLoadingTasks((prev) => ({ ...prev, [projectId]: true }));
+    try {
+      const apiTasks = await fetchProjectTasks(projectId);
+      setTasksByProject((prev) => ({
+        ...prev,
+        [projectId]: apiTasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          stage: t.stage,
+          estimatedHours: t.estimatedHours ?? undefined,
+        })),
+      }));
+    } catch (err) {
+      console.error(`Failed to load tasks for project ${projectId}:`, err);
+    } finally {
+      setLoadingTasks((prev) => ({ ...prev, [projectId]: false }));
+    }
+  }, []);
+
+  // Load real projects from database (filtered to assigned employee, falling back to all active)
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingProjects(true);
+
+    async function loadProjects() {
+      try {
+        let res = effectiveEmployeeId
+          ? await fetchProjects({ employeeId: effectiveEmployeeId, status: "active", perPage: 200 })
+          : null;
+
+        // If no assigned projects found, fallback to active projects so timesheet is loggable
+        if (!res || !res.items || res.items.length === 0) {
+          res = await fetchProjects({ status: "active", perPage: 200 });
+        }
+
+        if (!res || !res.items || res.items.length === 0) {
+          res = await fetchProjects({ perPage: 200 });
+        }
+
+        if (!cancelled && res?.items) {
+          setDbProjects(res.items.map((p) => ({
+            id: p.id,
+            name: p.name,
+            projectCode: p.projectCode,
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to load real projects from DB:", err);
+      } finally {
+        if (!cancelled) setLoadingProjects(false);
+      }
+    }
+
+    loadProjects();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveEmployeeId]);
+
+  // Load this week's timesheet from backend
   useEffect(() => {
     let cancelled = false;
     getMyTimesheet(weekStart)
@@ -176,7 +237,15 @@ function MyTimesheetView() {
         if (cancelled) return;
         setWeekStatus(week?.status ?? "draft");
         setShowDraft(week?.status === "draft");
-        setRows(week && week.entries.length > 0 ? rowsFromWeek(week) : [emptyRow()]);
+        const loadedRows = week && week.entries.length > 0 ? rowsFromWeek(week) : [emptyRow()];
+        setRows(loadedRows);
+
+        // Preload tasks for all projects present in this week's timesheet
+        loadedRows.forEach((r) => {
+          if (r.projectId) {
+            loadTasksForProject(r.projectId);
+          }
+        });
       })
       .catch(() => {
         if (!cancelled) toast.error("Could not load this week's timesheet.");
@@ -184,12 +253,12 @@ function MyTimesheetView() {
     return () => {
       cancelled = true;
     };
-  }, [weekStart]);
+  }, [weekStart, loadTasksForProject]);
 
   function toSaveLines() {
     return rows.filter((row) => row.projectId && row.taskId).map((row) => {
-      const project = projectsList.find((item) => item.id === row.projectId);
-      const task = project?.tasks.find((item) => item.id === row.taskId);
+      const project = dbProjects.find((item) => item.id === row.projectId);
+      const task = tasksByProject[row.projectId]?.find((item) => item.id === row.taskId);
       return {
         projectKey: row.projectId,
         projectName: project?.name || "Project",
@@ -235,12 +304,18 @@ function MyTimesheetView() {
         toast.error("No timesheet found for last week.");
         return;
       }
-      setRows(rowsFromWeek(previous).map((row) => ({
+      const loaded = rowsFromWeek(previous).map((row) => ({
         ...row,
         id: `r${crypto.randomUUID()}`,
         hours: row.hours.map((hours, index) => (isTimesheetDayOpen(weekStart, index) ? hours : 0)),
         notes: row.notes.map((note, index) => (isTimesheetDayOpen(weekStart, index) ? note : "")),
-      })));
+      }));
+      setRows(loaded);
+      loaded.forEach((r) => {
+        if (r.projectId) {
+          loadTasksForProject(r.projectId);
+        }
+      });
       toast.success("Copied hours and comments from last week.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not copy last week.");
@@ -361,28 +436,54 @@ function MyTimesheetView() {
                 <tr key={r.id}>
                   <td className="px-3 py-2 align-top">
                     <SearchableSelect
-                      options={projectsList.map((p) => ({ value: p.id, label: p.name }))}
+                      options={dbProjects.map((p) => ({
+                        value: p.id,
+                        label: p.name,
+                        subLabel: p.projectCode,
+                      }))}
                       value={r.projectId}
-                      onChange={(projectId) =>
+                      onChange={(projectId) => {
                         update(r.id, {
                           projectId,
                           taskId: "",
-                        })
-                      }
-                      placeholder="Select project"
+                        });
+                        if (projectId) {
+                          loadTasksForProject(projectId);
+                        }
+                      }}
+                      placeholder={loadingProjects ? "Loading projects…" : "Select project"}
                       searchPlaceholder="Search projects…"
                       clearable={false}
                     />
                   </td>
                   <td className="px-3 py-2 align-top">
-                    <SearchableSelect
-                      options={tasks.map((t) => ({ value: t.id, label: t.title }))}
-                      value={r.taskId}
-                      onChange={(taskId) => update(r.id, { taskId })}
-                      placeholder="Select task"
-                      searchPlaceholder="Search tasks…"
-                      clearable={false}
-                    />
+                    {(() => {
+                      const pTasks = tasksByProject[r.projectId] ?? [];
+                      const isTaskLoading = loadingTasks[r.projectId];
+                      return (
+                        <SearchableSelect
+                          options={pTasks.map((t) => ({
+                            value: t.id,
+                            label: t.title,
+                            subLabel: t.stage ? `${t.stage}${t.estimatedHours ? ` · ${t.estimatedHours}h` : ""}` : undefined,
+                          }))}
+                          value={r.taskId}
+                          onChange={(taskId) => update(r.id, { taskId })}
+                          placeholder={
+                            !r.projectId
+                              ? "Select a project first"
+                              : isTaskLoading
+                                ? "Loading tasks…"
+                                : pTasks.length === 0
+                                  ? "No tasks in this project"
+                                  : "Select task"
+                          }
+                          searchPlaceholder="Search tasks…"
+                          disabled={!r.projectId || isTaskLoading || pTasks.length === 0}
+                          clearable={false}
+                        />
+                      );
+                    })()}
                   </td>
                   {r.hours.map((h, di) => {
                     const open = isTimesheetDayOpen(weekStart, di);

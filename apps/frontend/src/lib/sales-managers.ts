@@ -1,48 +1,49 @@
 import { useEffect, useState } from "react";
 import {
   fetchAllEmployees,
-  fetchDepartmentOptions,
   fetchEmployees,
   type ApiEmployeeListItem,
 } from "@/lib/api/employees";
 
-export const FUNCTIONAL_SALES_DEPARTMENT = "Functional - Sales";
-
-/** Matches mst_departments name/code for the Sales org unit. */
-export function isFunctionalSalesDepartment(nameOrCode: string | null | undefined): boolean {
-  const n = (nameOrCode ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-  return n === "functional - sales" || n === "functional-sales" || n === "functional_sales";
+/** Normalizes role / designation strings to check if employee has RBAC 'Sales Manager' */
+export function isSalesManagerRole(roleOrDesignation?: string | null): boolean {
+  if (!roleOrDesignation) return false;
+  const r = roleOrDesignation.trim().toLowerCase();
+  return (
+    r === "sales manager" ||
+    r === "sales_manager" ||
+    r === "salesmanager" ||
+    r === "sales manger" ||
+    r === "functional - sales manager" ||
+    r.includes("sales manager") ||
+    r.includes("sales manger")
+  );
 }
 
-async function fetchEmployeesByDepartment(departmentId: string): Promise<ApiEmployeeListItem[]> {
-  const first = await fetchEmployees({ departmentId, perPage: 100, status: "Active" });
-  const all = [...(first.items ?? [])];
-  for (let p = 2; p <= (first.totalPages || 1); p++) {
-    const next = await fetchEmployees({
-      departmentId,
-      page: p,
-      perPage: 100,
-      status: "Active",
-    });
-    all.push(...(next.items ?? []));
-  }
-  return all;
-}
-
-/** Active employees whose department is Functional - Sales. */
+/** Active employees whose RBAC is 'Sales Manager' / 'Sales Manger' in the database. */
 export async function fetchSalesManagers(): Promise<ApiEmployeeListItem[]> {
-  const departments = await fetchDepartmentOptions();
-  const salesDeptIds = departments.filter((d) => isFunctionalSalesDepartment(d.name) || isFunctionalSalesDepartment(d.code)).map((d) => d.id);
-
   const byId = new Map<string, ApiEmployeeListItem>();
-  if (salesDeptIds.length > 0) {
-    const pages = await Promise.all(salesDeptIds.map((id) => fetchEmployeesByDepartment(id)));
-    for (const item of pages.flat()) byId.set(item.id, item);
+
+  // 1. Try server-side query with role
+  try {
+    const res = await fetchEmployees({ role: "Sales Manager", perPage: 100 });
+    for (const item of res.items ?? []) {
+      byId.set(item.id, item);
+    }
+  } catch (err) {
+    console.warn("fetchEmployees with role query failed, falling back to full directory", err);
   }
 
-  const all = await fetchAllEmployees();
-  for (const e of all) {
-    if (isFunctionalSalesDepartment(e.department)) byId.set(e.id, e);
+  // 2. Fetch full directory to ensure no active employee with Sales Manager role or designation is missed
+  try {
+    const all = await fetchAllEmployees();
+    for (const e of all) {
+      if (isSalesManagerRole(e.role) || isSalesManagerRole(e.designation)) {
+        byId.set(e.id, e);
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load employees for Sales Managers pool", err);
   }
 
   return [...byId.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -54,6 +55,7 @@ export function filterSalesManagers(pool: ApiEmployeeListItem[], query: string):
   return pool.filter(
     (p) =>
       p.fullName.toLowerCase().includes(q) ||
+      (p.role ?? "").toLowerCase().includes(q) ||
       (p.designation ?? "").toLowerCase().includes(q) ||
       (p.department ?? "").toLowerCase().includes(q) ||
       (p.workEmail ?? "").toLowerCase().includes(q) ||

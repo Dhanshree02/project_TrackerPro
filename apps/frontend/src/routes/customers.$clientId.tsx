@@ -27,6 +27,7 @@ import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { fetchClient, mapApiClient, updateClient, formatCustomerId, getSubVentureKycUrl } from "@/lib/api/clients";
 import { fetchSalesManagers, filterSalesManagers } from "@/lib/sales-managers";
+import { fetchEngagementManagers, filterEngagementManagers } from "@/lib/engagement-managers";
 import { fetchClientForRoute } from "@/lib/client-route-id";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import {
@@ -204,32 +205,8 @@ function CustomerDetailPage() {
   const loadEngagementManagers = async () => {
     setEmLoading(true);
     try {
-      const designations = await fetchDesignationOptions();
-      const list = Array.isArray(designations) ? designations : [];
-      const emDesignationIds = list
-        .filter((d) => (d.name ?? "").trim().toLowerCase() === "engagement manager")
-        .map((d) => d.id);
-
-      let items: ApiEmployeeListItem[] = [];
-      if (emDesignationIds.length > 0) {
-        const pages = await Promise.all(
-          emDesignationIds.map((designationId) => fetchEmployeesByDesignation(designationId)),
-        );
-        const byId = new Map<string, ApiEmployeeListItem>();
-        for (const item of pages.flat()) byId.set(item.id, item);
-        items = [...byId.values()];
-      }
-
-      // Always merge a full-directory filter so we never miss EMs if the
-      // designationId filter is empty/stale.
-      const all = await fetchAllEmployees();
-      for (const e of all) {
-        if ((e.designation ?? "").trim().toLowerCase() === "engagement manager") {
-          items = items.some((x) => x.id === e.id) ? items : [...items, e];
-        }
-      }
-
-      setEmPool(items.sort((a, b) => a.fullName.localeCompare(b.fullName)));
+      const items = await fetchEngagementManagers();
+      setEmPool(items);
     } catch {
       setEmPool([]);
       toast.error("Could not load Engagement Managers");
@@ -243,15 +220,7 @@ function CustomerDetailPage() {
   }, []);
 
   const filteredEmPool = useMemo(() => {
-    const q = emSearch.trim().toLowerCase();
-    if (!q) return emPool;
-    return emPool.filter(
-      (p) =>
-        p.fullName.toLowerCase().includes(q) ||
-        (p.designation ?? "").toLowerCase().includes(q) ||
-        (p.workEmail ?? "").toLowerCase().includes(q) ||
-        (p.employeeCode ?? "").toLowerCase().includes(q),
-    );
+    return filterEngagementManagers(emPool, emSearch);
   }, [emPool, emSearch]);
 
   const openEmPicker = () => {
@@ -1206,7 +1175,7 @@ function CustomerDetailPage() {
                         <div className="min-w-0 flex-1">
                           <div className="font-medium text-foreground truncate">{p.fullName}</div>
                           <div className="text-[11px] text-muted-foreground truncate">
-                            {p.designation ?? "Engagement Manager"}
+                            {p.role === "EngagementManager" ? "EM (Engagement Manager)" : (p.role ?? p.designation ?? "Engagement Manager")}
                             {p.workEmail ? ` · ${p.workEmail}` : ""}
                           </div>
                         </div>
@@ -1307,7 +1276,7 @@ function CustomerDetailPage() {
                         <div className="min-w-0 flex-1">
                           <div className="font-medium text-foreground truncate">{p.fullName}</div>
                           <div className="text-[11px] text-muted-foreground truncate">
-                            {p.designation ?? "Sales Manager"}
+                            {p.role ?? p.designation ?? "Sales Manager"}
                             {p.workEmail ? ` · ${p.workEmail}` : ""}
                           </div>
                         </div>

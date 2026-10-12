@@ -1133,21 +1133,29 @@ function NewClientModal({
   }, [selectedExisting]);
   const [previewKyc, setPreviewKyc] = useState(false);
   const { pool: emPool, loading: emLoading } = useEngagementManagers();
-  const emOptions = useMemo(
-    () =>
-      emPool.map((p) => ({
-        value: p.fullName,
-        label: p.fullName,
-        subLabel: [p.designation ?? "Engagement Manager", p.workEmail].filter(Boolean).join(" · "),
-      })),
-    [emPool],
-  );
+  const emOptions = useMemo(() => {
+    const opts = emPool.map((p) => ({
+      value: p.fullName,
+      label: p.fullName,
+      subLabel: [
+        p.role === "EngagementManager" ? "EM (Engagement Manager)" : (p.role ?? p.designation ?? "Engagement Manager"),
+        p.workEmail,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    }));
+    const stored = s.engagementManager.trim();
+    if (stored && !opts.some((o) => o.value === stored)) {
+      opts.unshift({ value: stored, label: stored, subLabel: "On record" });
+    }
+    return opts;
+  }, [emPool, s.engagementManager]);
   const { pool: smPool, loading: smLoading } = useSalesManagers();
   const smOptions = useMemo(() => {
     const opts = smPool.map((p) => ({
       value: p.fullName,
       label: p.fullName,
-      subLabel: [p.designation ?? "Functional - Sales", p.workEmail].filter(Boolean).join(" · "),
+      subLabel: [p.role ?? p.designation ?? "Sales Manager", p.workEmail].filter(Boolean).join(" · "),
     }));
     const stored = s.salesManager.trim();
     if (stored && !opts.some((o) => o.value === stored)) {
@@ -1933,9 +1941,10 @@ function NewClientModal({
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Customer ID">
                 <input
-                  className={cn(readOnlyCls, "font-mono")}
+                  className={cn(readOnlyCls, "font-mono font-semibold text-primary")}
                   value={s.customerId || "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0")}
                   readOnly
+                  title="Auto-assigned sequential Customer ID"
                 />
               </Field>
               <Field label="Billing Medium" required>
@@ -2016,14 +2025,6 @@ function NewClientModal({
                     }}
                   />
                 </div>
-              </Field>
-              <Field label="Customer ID">
-                <input
-                  className={cn(readOnlyCls, "font-mono font-semibold text-primary")}
-                  value={s.customerId}
-                  readOnly
-                  title="Auto-assigned sequential Customer ID"
-                />
               </Field>
               <SearchableSelect
                 label="Industry"
