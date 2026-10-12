@@ -141,6 +141,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/", () => Results.Redirect("http://localhost:6002/"))
+        .AllowAnonymous();
+}
 
 app.Run();
 

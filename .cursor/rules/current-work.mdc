@@ -5,9 +5,11 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-06
+**Last updated:** 2026-10-09
 
-- **Working branch is `sahil-project-backend-local`.** It matches `origin/development` at `db7de71` (`feat: apply module schemas, RBAC, and all-or-nothing bulk upload`). The dashboard MIS graphs stay on this branch.
+- **Opening `http://localhost:5194/` in Development redirects to the frontend at `http://localhost:6002/`.** The API has no home page; Swagger stays at `/swagger`.
+- **Local database `trackerpro_development` was created from `database/trackerpro-development.sql`.** It is on PostgreSQL 18 at `localhost:5432`, owned by `trackerpro`, with 59 tables. Root `.env` and `appsettings.Development.json` point the API at it. Backend `http://localhost:5194` and frontend `http://localhost:6002` are running against it.
+- **Working branch is `sahil-dashboard-backend-local`.** Created locally from `origin/sahil-project-backend-local` at `fec344c` (`feat: add MIS dashboard graphs and limit team allocation to project dates`). It matches that commit and does not track a remote yet. `sahil-project-backend-local` is unchanged.
 - **Team Utilization - Onsite does not list project names.** The non-billable row shows the count and percentage only.
 - **Team Allocation Onsite/Offsite is the role-wise graph.** `GET /api/v1/dashboard/role-allocation` uses the same onsite/offsite service task assignments. Onsite shows Onsite TM and Onsite Leads. Offsite shows Offsite - TM, Offsite - Leads, and Offsite - PM. PM and Senior PM are not on a service, so Offsite - PM is 0 until that assignment rule is decided. Offsite - Jr Leads is not shown. Hybrid and Remote services are not in either side.
 - **Team allocation Start Date is today through the project end date.** Past days and days after `project.endDate` are disabled on the Start Date calendar for Add Team Member and Edit Allocation. The End Date still cannot be after the project end date.
