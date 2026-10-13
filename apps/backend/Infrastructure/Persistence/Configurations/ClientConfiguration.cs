@@ -14,9 +14,6 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.HasIndex(c => c.Name);
 
         builder.Property(c => c.Name).HasMaxLength(255).IsRequired();
-        builder.Property(c => c.ClientCode).HasMaxLength(20);
-        // Same name the AddClientCode migration and ClientService.EnsureClientCodeColumnAsync create.
-        builder.HasIndex(c => c.ClientCode).IsUnique().HasDatabaseName("IX_clients_ClientCode");
         builder.Property(c => c.Industry).HasMaxLength(100).IsRequired();
         builder.Property(c => c.Logo).HasMaxLength(10);
         builder.Property(c => c.ContactEmail).HasMaxLength(255);
@@ -32,6 +29,13 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.BillingMedium).HasMaxLength(40);
         builder.Property(c => c.GroupSpocName).HasMaxLength(150);
         builder.Property(c => c.GroupSpocContact).HasMaxLength(40);
+        builder.Property(c => c.GroupSpocPhoneCode).HasMaxLength(16);
+        builder.Property(c => c.ClientCode).HasMaxLength(20);
+        builder.Property(c => c.CreatedByName).HasMaxLength(150);
+        builder.HasIndex(c => c.ClientCode)
+            .IsUnique()
+            .HasDatabaseName("IX_clients_ClientCode")
+            .HasFilter("\"ClientCode\" IS NOT NULL");
         builder.Property(c => c.Notes).HasMaxLength(2000);
         builder.Property(c => c.KycDocumentName).HasMaxLength(255);
         builder.Property(c => c.KycDocumentPath).HasMaxLength(500);

@@ -13,7 +13,7 @@
 - Implement RBAC middleware with permission guards
 - Create user management with password hashing
 - Seed initial users from `mock-data.ts` people array
-- Replace frontend role switcher with login flow
+- Flexible Topbar User Switcher for development; M365 authentication planned post-development
 
 ### Dependencies
 - PostgreSQL database running (local install or Docker)
@@ -76,10 +76,9 @@ CREATE TABLE refresh_tokens (
 - Most complex part: mapping existing 6 roles to permission sets
 
 ### Frontend Integration
-- Replace `role-context.tsx` role switcher with login form
-- Store JWT in httpOnly cookie or localStorage
-- Add `Authorization: Bearer` header to all API calls
-- Redirect to `/login` when 401 received
+- Flexible Topbar User Switcher enabling instant role and employee persona switching
+- Development auth bypass attaching user context (`X-User-Email` / `X-User-Role`)
+- Microsoft 365 OAuth/SSO login to be integrated after full application development
 
 ---
 

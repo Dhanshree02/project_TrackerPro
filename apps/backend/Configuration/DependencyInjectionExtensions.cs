@@ -7,12 +7,12 @@ using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Infrastructure.Storage;
-using PMS.API.Modules.Auth.Services;
 using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Modules.Customers.Services;
 using PMS.API.Modules.MyTeam.Services;
 using PMS.API.Modules.Timesheets.Services;
 using PMS.API.Modules.Projects.Services;
+using PMS.API.Modules.Rbac;
 using PMS.API.Modules.Repository.Services;
 using PMS.API.Modules.Resources.Services;
 using PMS.API.Modules.Users.Services;
@@ -36,15 +36,10 @@ public static class DependencyInjectionExtensions
         // ---- Storage (Local Modular File Storage) ----
         services.AddSingleton<IFileStorageService, FileStorageService>();
 
-        // ---- Security / Authentication ----
+        // ---- Security / Authentication (M365 Transition) ----
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
-        services.Configure<RefreshCookieOptions>(configuration.GetSection(RefreshCookieOptions.SectionName));
         services.AddSingleton<JwtTokenService>();
-        services.AddSingleton<RefreshTokenCookie>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
-        services.AddScoped<IAuthService, AuthService>();
-        // Brute-force mitigation on /auth/* (10 attempts / 15 min per IP).
-        services.AddSingleton(_ => new LoginRateLimiter(TimeSpan.FromMinutes(15), 10));
 
         // ---- Authorization ----
         services.AddHttpContextAccessor();
@@ -62,6 +57,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectDraftService, ProjectDraftService>();
         services.AddScoped<IProjectTeamMemberService, ProjectTeamMemberService>();
         services.AddScoped<IProjectTaskService, ProjectTaskService>();
+        services.AddScoped<IRbacAccessService, RbacAccessService>();
+        services.AddHostedService<RbacBaselineHostedService>();
 
         // ---- FluentValidation validators (scanned from this assembly) ----
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);

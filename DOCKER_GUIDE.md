@@ -262,7 +262,7 @@ Get-Content ./database/trackerpro-final.sql | docker exec -i pms_postgres psql -
 ### B. For QA / Testing Team (Code Completely Hidden)
 Testers simply open their browser to:
 - **Application URL:** `http://10.50.30.189:3000` *(or `http://10.50.30.189`)*
-- **Demo Login:** `dhanshree@acme.co` / `Password@123`
+- **User Switching:** Use the flexible **User Switcher** dropdown in the top bar to switch between any employee or role instantly (M365 authentication will be integrated post-development).
 
 ---
 

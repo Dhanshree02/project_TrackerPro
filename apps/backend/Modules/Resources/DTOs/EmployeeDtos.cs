@@ -41,7 +41,8 @@ public sealed record EmployeeListItemDto(
     string? ProjectType = null,
     string? ProjectAllocated = null,
     string? ClientEngManagerMapping = null,
-    string? JobRoleName = null);
+    string? JobRoleName = null,
+    string? JobRole = null);
 
 public sealed record EmployeeDetailDto(
     Guid Id,
@@ -155,6 +156,7 @@ public sealed record MetaOptionDto(
     string Name,
     Guid? ParentId = null,
     Guid? DefaultRoleId = null,
+    string? SubDepartment = null,
     string? DefaultRoleName = null,
     string? DefaultRoleDisplayName = null);
 

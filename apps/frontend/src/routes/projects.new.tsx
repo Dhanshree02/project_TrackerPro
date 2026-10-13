@@ -3,7 +3,7 @@
  * Exact layout from wbs-form 2.html, wired to dh-store.
  */
 import { createFileRoute, Navigate, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -17,8 +17,14 @@ import {
   buildProjectDisplayId,
   buildWbsId,
 } from "@/lib/dh-store";
+import { composeWbsId } from "@/lib/wbs-id";
 import { fetchClients, mapApiClient, formatCustomerId, type ApiClient } from "@/lib/api/clients";
-import { fetchServiceHierarchy, type ServiceHierarchyGroup } from "@/lib/api/catalogs";
+import {
+  fetchServiceHierarchy,
+  fetchServiceGroups,
+  type ServiceHierarchyGroup,
+  type ServiceGroupOption,
+} from "@/lib/api/catalogs";
 import {
   fetchProjects,
   fetchNextProjectCode,
@@ -366,20 +372,33 @@ const DEPT_SERVICES: Record<string, CatalogService[]> = {
   ],
 };
 
-function findCatalogService(svcId: string): CatalogService | undefined {
+function isResourceContract(ct?: string | null): boolean {
+  if (!ct) return false;
+  const norm = ct.trim().toLowerCase();
+  return norm === "resource" || norm === "resource based" || norm.startsWith("resource");
+}
+
+function isScopeContract(ct?: string | null): boolean {
+  if (!ct) return false;
+  const norm = ct.trim().toLowerCase();
+  return norm === "scope" || norm === "scope based" || norm.startsWith("scope");
+}
+
+function findCatalogService(
+  svcId: string,
+  dynamicMap?: Record<string, CatalogService[]>,
+): CatalogService | undefined {
+  if (dynamicMap) {
+    for (const svcs of Object.values(dynamicMap)) {
+      const hit = svcs.find((s) => s.id === svcId);
+      if (hit) return hit;
+    }
+  }
   for (const svcs of Object.values(DEPT_SERVICES)) {
     const hit = svcs.find((s) => s.id === svcId);
     if (hit) return hit;
   }
   return undefined;
-}
-
-function subDeptsForDept(dept: string): string[] {
-  const seen: string[] = [];
-  for (const s of DEPT_SERVICES[dept] || []) {
-    if (s.subDept && !seen.includes(s.subDept)) seen.push(s.subDept);
-  }
-  return seen;
 }
 
 const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
@@ -393,6 +412,8 @@ const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
   "Forensics & Incident Response": "Resource",
   "Network & Infrastructure": "Scope",
   "Threat Intelligence & Modeling": "Resource",
+  Audit: "Resource",
+  Testing: "Resource",
 };
 
 const BILLING_MODELS: Record<string, string[]> = {
@@ -706,7 +727,14 @@ function WbsNewProjectPage() {
   const [dbProjects, setDbProjects] = useState<ApiProject[]>([]);
   const [dbClients, setDbClients] = useState<ApiClient[]>([]);
   const [dbServiceHierarchy, setDbServiceHierarchy] = useState<ServiceHierarchyGroup[]>([]);
-  const [nextCodeData, setNextCodeData] = useState<{ projectSeqId: string; wbsId: string; clientProjectCount: number } | null>(null);
+  const [dbServiceGroups, setDbServiceGroups] = useState<ServiceGroupOption[]>([]);
+  const [nextCodeData, setNextCodeData] = useState<{
+    projectSeqId: string;
+    wbsId: string;
+    financialYear: string;
+    clientProjectCount: number;
+    formattedClientProjectCount?: string;
+  } | null>(null);
 
   // Load clients, projects, and service hierarchy on mount
   useEffect(() => {
@@ -729,6 +757,12 @@ function WbsNewProjectPage() {
       }
     }).catch(console.error);
 
+    fetchServiceGroups().then((res) => {
+      if (active && res && res.length > 0) {
+        setDbServiceGroups(res);
+      }
+    }).catch(console.error);
+
     return () => { active = false; };
   }, [extraCount]);
 
@@ -740,34 +774,7 @@ function WbsNewProjectPage() {
     return allClients();
   }, [dbClients, extraCount]);
 
-  // Transform dbServiceHierarchy into dynamic DEPT_SERVICES catalog map if loaded
-  const dynamicDeptServices = useMemo(() => {
-    if (!dbServiceHierarchy || dbServiceHierarchy.length === 0) {
-      return DEPT_SERVICES;
-    }
-    const map: Record<string, CatalogService[]> = {};
-    for (const group of dbServiceHierarchy) {
-      for (const dept of group.departments) {
-        const deptList: CatalogService[] = [];
-        for (const subDept of dept.subDepartments) {
-          for (const svc of subDept.services) {
-            deptList.push({
-              id: svc.code,
-              name: svc.name,
-              tool: svc.defaultTools ?? "",
-              unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
-              days: svc.defaultDurationDays ?? 5,
-              subDept: subDept.name,
-            });
-          }
-        }
-        if (deptList.length > 0) {
-          map[dept.name] = deptList;
-        }
-      }
-    }
-    return Object.keys(map).length > 0 ? map : DEPT_SERVICES;
-  }, [dbServiceHierarchy]);
+
 
   // Unfinished form kept in the browser. A saved draft (?draftId=) still loads from the API.
   const { draftId } = useSearch({ from: "/projects/new" });
@@ -859,15 +866,18 @@ function WbsNewProjectPage() {
   const [clientDropOpen, setClientDropOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState("");
   const selectedClient = clients.find((c) => c.id === selectedClientId) ?? null;
+  const [selectedSubVenture, setSelectedSubVenture] = useState("");
 
-  // Fetch sequential Next Project Code & WBS ID from API whenever selectedClientId changes
+  // Fetch sequential Next Project Code & WBS ID from API whenever the client or sub-venture changes.
+  // Project sequencing stays global. The WBS segment uses the selected sub-venture when one is chosen.
   useEffect(() => {
     if (!selectedClientId) {
       setNextCodeData(null);
       return;
     }
+    const subVentureId = selectedClient?.subVentures?.find((sv) => sv.name === selectedSubVenture)?.id;
     let active = true;
-    fetchNextProjectCode(selectedClientId).then((res) => {
+    fetchNextProjectCode(selectedClientId, subVentureId).then((res) => {
       if (active && res) {
         setNextCodeData(res);
       }
@@ -875,14 +885,15 @@ function WbsNewProjectPage() {
       if (active) setNextCodeData(null);
     });
     return () => { active = false; };
-  }, [selectedClientId]);
+  }, [selectedClientId, selectedSubVenture, selectedClient]);
 
   // ── Sub-venture (searchable, depends on selected client) ──
   const [svSearch, setSvSearch] = useState("");
   const [svDropOpen, setSvDropOpen] = useState(false);
-  const [selectedSubVenture, setSelectedSubVenture] = useState("");
 
   const clientSubVentures = selectedClient?.subVentures ?? [];
+  const selectedSubVentureRecord =
+    clientSubVentures.find((sv) => sv.name === selectedSubVenture) ?? null;
   const filteredSubVentures = clientSubVentures.filter(
     (sv) => svSearch.trim() === "" || sv.name.toLowerCase().includes(svSearch.toLowerCase()),
   );
@@ -895,15 +906,157 @@ function WbsNewProjectPage() {
       c.industry.toLowerCase().includes(clientSearch.toLowerCase()),
   );
 
-  // Sequential Project ID and WBS ID (e.g. Project ID: P045, WBS ID: IN-2026-27-C042-P045)
-  // Ensures the selected customer ID (e.g. C042) is always directly reflected in the WBS ID
+  // Project ID stays on the existing global sequence. WBS ID uses the selected sub-venture.
   const projectId = nextCodeData?.projectSeqId ?? buildProjectDisplayId();
-  const wbsId = nextCodeData?.wbsId ?? (selectedClient ? buildWbsId(selectedClient.id, projectId) : "—");
+  const subVentureDisplayId = selectedSubVentureRecord?.subVentureCode || "—";
+  const wbsId = selectedSubVentureRecord?.subVentureCode
+    ? (nextCodeData?.financialYear
+        ? composeWbsId(nextCodeData.financialYear, selectedSubVentureRecord.subVentureCode, projectId)
+        : buildWbsId(selectedClient?.id ?? "", projectId, selectedSubVentureRecord.subVentureCode))
+    : "—";
 
   // ── Project Catalog Store (Contract Types) ──
   const {
     contractTypes: catalogContractTypes,
   } = useProjectCatalogStore();
+
+  const contractTypeOptions = useMemo(() => {
+    if (dbServiceGroups.length > 0) {
+      return dbServiceGroups.map((g) => g.name);
+    }
+    if (dbServiceHierarchy.length > 0) {
+      return dbServiceHierarchy.map((g) => g.name);
+    }
+    return catalogContractTypes;
+  }, [dbServiceGroups, dbServiceHierarchy, catalogContractTypes]);
+
+  const selectedHierarchyGroup = useMemo(() => {
+    if (!dbServiceHierarchy || dbServiceHierarchy.length === 0) return null;
+    if (isResourceContract(contractType)) {
+      return (
+        dbServiceHierarchy.find(
+          (g) => g.code.toUpperCase() === "RESOURCE" || g.name.toLowerCase().includes("resource"),
+        ) ?? null
+      );
+    }
+    if (isScopeContract(contractType)) {
+      return (
+        dbServiceHierarchy.find(
+          (g) => g.code.toUpperCase() === "SCOPE" || g.name.toLowerCase().includes("scope"),
+        ) ?? null
+      );
+    }
+    return null;
+  }, [dbServiceHierarchy, contractType]);
+
+  const dynamicDeptServices = useMemo(() => {
+    if (!dbServiceHierarchy || dbServiceHierarchy.length === 0) {
+      return DEPT_SERVICES;
+    }
+    const targetGroups = selectedHierarchyGroup
+      ? [selectedHierarchyGroup]
+      : dbServiceHierarchy;
+
+    const map: Record<string, CatalogService[]> = {};
+    for (const group of targetGroups) {
+      for (const dept of group.departments) {
+        const deptList: CatalogService[] = [];
+        for (const subDept of dept.subDepartments) {
+          for (const svc of subDept.services) {
+            deptList.push({
+              id: svc.code,
+              name: svc.name,
+              tool: svc.defaultTools ?? "",
+              unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
+              days: svc.defaultDurationDays ?? 5,
+              subDept: subDept.name,
+            });
+          }
+        }
+        if (deptList.length > 0) {
+          map[dept.name] = deptList;
+        }
+      }
+    }
+    return Object.keys(map).length > 0 ? map : DEPT_SERVICES;
+  }, [dbServiceHierarchy, selectedHierarchyGroup]);
+
+  const isResourceDept = useCallback(
+    (deptName: string, ct?: string | null): boolean => {
+      const activeCt = ct || contractType;
+      if (activeCt && isResourceContract(activeCt)) return true;
+      if (activeCt && isScopeContract(activeCt)) return false;
+
+      if (selectedHierarchyGroup) {
+        return (
+          selectedHierarchyGroup.code.toUpperCase() === "RESOURCE" ||
+          selectedHierarchyGroup.name.toLowerCase().includes("resource")
+        );
+      }
+
+      if (dbServiceHierarchy && dbServiceHierarchy.length > 0) {
+        for (const group of dbServiceHierarchy) {
+          if (group.departments.some((d) => d.name === deptName)) {
+            return (
+              group.code.toUpperCase() === "RESOURCE" ||
+              group.name.toLowerCase().includes("resource")
+            );
+          }
+        }
+      }
+
+      return DEPT_GROUPS[deptName] === "Resource";
+    },
+    [contractType, selectedHierarchyGroup, dbServiceHierarchy],
+  );
+
+  const getDeptGroup = useCallback(
+    (deptName: string): "Resource" | "Scope" => {
+      return isResourceDept(deptName, contractType) ? "Resource" : "Scope";
+    },
+    [isResourceDept, contractType],
+  );
+
+  const subDeptsForDept = useCallback(
+    (deptName: string): string[] => {
+      if (selectedHierarchyGroup) {
+        const d = selectedHierarchyGroup.departments.find((dept) => dept.name === deptName);
+        if (d && d.subDepartments.length > 0) {
+          return d.subDepartments.map((s) => s.name);
+        }
+      }
+
+      if (dbServiceHierarchy && dbServiceHierarchy.length > 0) {
+        for (const group of dbServiceHierarchy) {
+          if (
+            contractType &&
+            isResourceContract(contractType) !==
+              (group.code.toUpperCase() === "RESOURCE" || group.name.toLowerCase().includes("resource"))
+          ) {
+            continue;
+          }
+          const d = group.departments.find((dept) => dept.name === deptName);
+          if (d && d.subDepartments.length > 0) {
+            return d.subDepartments.map((s) => s.name);
+          }
+        }
+        for (const group of dbServiceHierarchy) {
+          const d = group.departments.find((dept) => dept.name === deptName);
+          if (d && d.subDepartments.length > 0) {
+            return d.subDepartments.map((s) => s.name);
+          }
+        }
+      }
+
+      const services = dynamicDeptServices[deptName] || DEPT_SERVICES[deptName] || [];
+      const seen: string[] = [];
+      for (const s of services) {
+        if (s.subDept && !seen.includes(s.subDept)) seen.push(s.subDept);
+      }
+      return seen;
+    },
+    [selectedHierarchyGroup, dbServiceHierarchy, contractType, dynamicDeptServices],
+  );
 
   // ── Service picker ──
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -1070,7 +1223,7 @@ function WbsNewProjectPage() {
       if (snap.serviceRows?.length) {
         const sanitizedRows = snap.serviceRows.map((r: any) => {
           let updated = { ...r };
-          if (DEPT_GROUPS[r.dept] === "Resource") {
+          if (isResourceDept(r.dept, snap.contractType)) {
             updated.serviceModel = "NA";
           }
           if (snap.projectType === "Short term (Ad-hoc)") {
@@ -1078,8 +1231,9 @@ function WbsNewProjectPage() {
           }
           if (!updated.subDept) {
             updated.subDept =
+              dynamicDeptServices[r.dept]?.find((s) => s.id === r.rowId)?.subDept ||
               DEPT_SERVICES[r.dept]?.find((s) => s.id === r.rowId)?.subDept ||
-              findCatalogService(r.rowId)?.subDept ||
+              findCatalogService(r.rowId, dynamicDeptServices)?.subDept ||
               "";
           }
           return updated;
@@ -1382,7 +1536,7 @@ function WbsNewProjectPage() {
             ...existing,
             subDept: existing.subDept || svc.subDept,
           };
-          if (DEPT_GROUPS[dept] === "Resource" && updatedExisting.serviceModel !== "NA") {
+          if (isResourceDept(dept, contractType) && updatedExisting.serviceModel !== "NA") {
             updatedExisting.serviceModel = "NA";
           }
           if (projectType === "Short term (Ad-hoc)" && updatedExisting.frequency !== "Once") {
@@ -1396,7 +1550,7 @@ function WbsNewProjectPage() {
           }
           rows.push(updatedExisting);
         } else {
-          const isResource = DEPT_GROUPS[dept] === "Resource";
+          const isResource = isResourceDept(dept, contractType);
           let nextNum = 1;
           const taken = new Set(rows.map((row) => row.taskId));
           while (taken.has(`WBS-${String(nextNum).padStart(2, "0")}`)) nextNum++;
@@ -1716,22 +1870,29 @@ function WbsNewProjectPage() {
   }, [onboardingReady, billingModel, currency, servicesDependency, JSON.stringify(customPayments)]);
 
   // Filter departments based on Contract Type
-  const allowedDepts = Object.keys(dynamicDeptServices).filter((dept) => {
-    const group = DEPT_GROUPS[dept];
-    if (contractType === "Resource Based") return group === "Resource";
-    if (contractType === "Scope Based") return group === "Scope";
-    return true;
-  });
+  const allowedDepts = useMemo(() => {
+    if (selectedHierarchyGroup) {
+      return selectedHierarchyGroup.departments.map((d) => d.name);
+    }
+    return Object.keys(dynamicDeptServices).filter((dept) => {
+      const group = getDeptGroup(dept);
+      if (isResourceContract(contractType)) return group === "Resource";
+      if (isScopeContract(contractType)) return group === "Scope";
+      return true;
+    });
+  }, [selectedHierarchyGroup, dynamicDeptServices, getDeptGroup, contractType]);
 
-  const deptsByGroup = allowedDepts.reduce(
-    (acc, dept) => {
-      const group = DEPT_GROUPS[dept] || "Scope";
-      if (!acc[group]) acc[group] = [];
-      acc[group].push(dept);
-      return acc;
-    },
-    {} as Record<string, string[]>,
-  );
+  const deptsByGroup = useMemo(() => {
+    return allowedDepts.reduce(
+      (acc, dept) => {
+        const group = getDeptGroup(dept);
+        if (!acc[group]) acc[group] = [];
+        acc[group].push(dept);
+        return acc;
+      },
+      {} as Record<string, string[]>,
+    );
+  }, [allowedDepts, getDeptGroup]);
   const pickerGroupNames = Object.keys(deptsByGroup);
   const pickerSingleGroup = pickerGroupNames.length === 1 ? pickerGroupNames[0] : null;
 
@@ -3166,6 +3327,21 @@ function WbsNewProjectPage() {
                       textTransform: "uppercase",
                     }}
                   >
+                    Sub-Venture ID
+                  </div>
+                  <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
+                    {subVentureDisplayId}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      color: "#6b7280",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                    }}
+                  >
                     Project ID
                   </div>
                   <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
@@ -3261,7 +3437,7 @@ function WbsNewProjectPage() {
                     });
                   }
                   setContractType(val);
-                  if (val === "Resource Based") {
+                  if (isResourceContract(val)) {
                     setProjectType("Long Term");
                   } else {
                     setProjectType("");
@@ -3272,7 +3448,7 @@ function WbsNewProjectPage() {
                 style={selectStyle(false, !!contractType)}
               >
                 <option value="">Select Contract Type</option>
-                {catalogContractTypes.map((ct) => (
+                {contractTypeOptions.map((ct) => (
                   <option key={ct} value={ct}>
                     {ct}
                   </option>
@@ -3304,7 +3480,7 @@ function WbsNewProjectPage() {
             <FormGroup label="Project Type" required>
               <select
                 value={projectType}
-                disabled={contractType === "Resource Based" || !contractType}
+                disabled={isResourceContract(contractType) || !contractType}
                 onChange={(e) => {
                   const val = e.target.value;
                   setProjectType(val);
@@ -3320,12 +3496,12 @@ function WbsNewProjectPage() {
                     );
                   }
                 }}
-                style={selectStyle(contractType === "Resource Based" || !contractType, !!projectType)}
+                style={selectStyle(isResourceContract(contractType) || !contractType, !!projectType)}
                 title={!contractType ? "Select a Contract Type first" : ""}
               >
                 {!contractType ? (
                   <option value="">Select Contract Type first</option>
-                ) : contractType === "Resource Based" ? (
+                ) : isResourceContract(contractType) ? (
                   <option value="Long Term">Long Term</option>
                 ) : (
                   <>
@@ -3577,7 +3753,7 @@ function WbsNewProjectPage() {
                         )}
                       </td>
                       <td style={tdStyle}>
-                        {DEPT_GROUPS[r.dept] === "Resource" ? (
+                        {isResourceDept(r.dept, contractType) ? (
                           <input
                             type="text"
                             value="NA"
@@ -4662,7 +4838,12 @@ function WbsNewProjectPage() {
                                   setPickerExpanded((prev) => ({ ...prev, [dept]: nextOpen }));
                                   if (nextOpen) {
                                     setPickerDept(dept);
-                                    setPickerSubDept("");
+                                    const subs = subDeptsForDept(dept);
+                                    if (subs.length === 1) {
+                                      setPickerSubDept(subs[0]);
+                                    } else {
+                                      setPickerSubDept("");
+                                    }
                                   } else if (pickerDept === dept) {
                                     setPickerSubDept("");
                                   }

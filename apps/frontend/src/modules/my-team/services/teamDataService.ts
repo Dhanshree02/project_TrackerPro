@@ -24,6 +24,7 @@ interface CalendarResponse {
     initials: string;
     designation: string;
     department: string;
+    directReport?: boolean;
   }>;
   entries: Array<{
     employeeId: string;
@@ -54,9 +55,10 @@ function isShift(value: string | null | undefined): value is ShiftType {
 }
 
 export const teamDataService = {
-  async getCalendar(from: string, to: string): Promise<TeamCalendarPayload> {
+  async getCalendar(from: string, to: string, allEmployees = false): Promise<TeamCalendarPayload> {
+    const scope = allEmployees ? "&all=true" : "";
     const data = await apiFetch<CalendarResponse>(
-      `/api/v1/my-team/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      `/api/v1/my-team/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${scope}`,
     );
 
     const members: TeamMember[] = data.members.map((member) => ({
@@ -67,6 +69,7 @@ export const teamDataService = {
       department: member.department,
       status: "Active",
       avatarColor: avatarColor(member.id),
+      directReport: member.directReport !== false,
     }));
 
     const schedule: TeamSchedule = {};
@@ -83,9 +86,10 @@ export const teamDataService = {
       };
     }
 
+    const scheduleByEmployee = new Map(data.schedules.map((row) => [row.employeeId, row]));
     const configs: Record<string, MemberScheduleConfig> = {};
     for (const member of members) {
-      const saved = data.schedules.find((row) => row.employeeId === member.id);
+      const saved = scheduleByEmployee.get(member.id);
       configs[member.id] = {
         workingDays: saved?.workingDays?.length ? saved.workingDays : [1, 2, 3, 4, 5],
         notes: saved?.notes ?? "",

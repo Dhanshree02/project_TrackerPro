@@ -18,8 +18,8 @@ internal static class EmployeeBulkWorkbook
     public const long MaxBytes = 5 * 1024 * 1024;
 
     /// <summary>
-    /// Fields present in Sections 1–4 of the Employee Onboarding Form.
-    /// On Floor Role and Assigned RBAC Role are mapped from Department and Designation.
+    /// Exact 35 fields present in Sections 1–4 of the Employee Onboarding Form.
+    /// Excludes PMO section (Section 5) and non-onboarding profile fields.
     /// </summary>
     public static readonly string[] Headers =
     [
@@ -35,7 +35,8 @@ internal static class EmployeeBulkWorkbook
         "Relation with Emergency Contact", // 10 (Dropdown: Emergency Relations)
         "Department",                      // 11 (Dropdown: Live db.Departments)
         "Designation",                     // 12 (Dropdown: Live db.Designations)
-        "Business Unit",                   // 13 (Dropdown: Live db.BusinessUnits)
+        "Sub-Department",                  // 13 (Dropdown: Live Sub-Departments)
+        "Business Unit",                   // 14 (Dropdown: Live db.BusinessUnits)
         "Reporting Manager Code",          // 15 (Dropdown: Live manager codes)
         "Work Location",                   // 16 (Dropdown: Live db.WorkLocations)
         "Location (Onsite)",               // 17
@@ -85,7 +86,7 @@ internal static class EmployeeBulkWorkbook
         "Exp / Fresher",
     };
 
-    private static readonly string[] MumbaiStations =
+    internal static readonly string[] MumbaiStations =
     [
         // Western Line
         "Churchgate (Western Line)",
@@ -235,28 +236,40 @@ internal static class EmployeeBulkWorkbook
         var designationPairs = await (
             from designation in db.Designations
             where designation.DeletedAtUtc == null && designation.IsActive && designation.DepartmentId != null
-            join department in db.Departments.Where(d => d.DeletedAtUtc == null)
+            join department in db.Departments.Where(d => d.DeletedAtUtc == null && d.IsActive)
                 on designation.DepartmentId equals department.Id
             select new
             {
                 Department = department.Name,
                 Name = designation.Name,
+                SubDepartment = designation.SubDepartment,
             }).ToListAsync(ct);
         var orderedDesignations = designationPairs
             .OrderBy(row => row.Department, StringComparer.OrdinalIgnoreCase)
             .ThenBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(row => (row.Department, row.Name))
+            .Select(row => (row.Department, row.Name, row.SubDepartment))
             .ToList();
         if (orderedDesignations.Count == 0)
         {
             orderedDesignations =
             [
-                ("Services - Testing", "PenTester - I"),
-                ("Services - Testing", "Senior PenTester"),
-                ("Services - Consulting", "Consultant"),
-                ("PMO", "Lead"),
+                ("Services - Testing", "PenTester - I", "Service - Testing - AppSec"),
+                ("Services - Testing", "Senior Pentester - I", "Service - Testing - AppSec"),
+                ("Services - Consulting", "GRC Auditor - I", "Services - Consulting"),
+                ("Functional - Project Management", "Associate PMO - I", "PMO (Project Management Office)"),
             ];
         }
+
+        var uniqueSubDepartments = orderedDesignations
+            .Where(d => !string.IsNullOrWhiteSpace(d.SubDepartment))
+            .SelectMany(d => d.SubDepartment!.Split(','))
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s)
+            .ToList();
+        if (uniqueSubDepartments.Count == 0)
+            uniqueSubDepartments = ["Functional - IT Administration", "PMO (Project Management Office)", "EM (Engagement Manager)", "Service - Testing - AppSec"];
 
         var workLocations = await db.WorkLocations
             .Where(w => w.DeletedAtUtc == null && w.IsActive)
@@ -372,8 +385,9 @@ internal static class EmployeeBulkWorkbook
             "9811099999",                                             // 9. Emergency Contact Number
             "Father",                                                 // 10. Relation with Emergency Contact
             orderedDesignations[0].Department,                        // 11. Department
-            orderedDesignations[0].Name,                               // 12. Designation
-            businessUnits.FirstOrDefault() ?? "Talakunchi Networks Private Limited", // 13. Business Unit
+            orderedDesignations[0].Name,                              // 12. Designation
+            orderedDesignations[0].SubDepartment?.Split(',')[0].Trim() ?? "Service - Testing - AppSec", // 13. Sub-Department
+            businessUnits.FirstOrDefault() ?? "Talakunchi Networks Private Limited", // 14. Business Unit
             managerCodes.FirstOrDefault() ?? "TK-0001 - Default Manager", // 15. Reporting Manager Code
             workLocations.FirstOrDefault() ?? "Suvidha Square, Andheri",             // 16. Work Location
             "",                                                       // 17. Location (Onsite)
@@ -399,13 +413,13 @@ internal static class EmployeeBulkWorkbook
 
         sheet.Row(2).Height = 22;
         sheet.Row(2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-        sheet.Range(2, 17, MaxRows, 17).Style.DateFormat.Format = "dd-MM-yyyy";
-        sheet.Range(2, 23, MaxRows, 23).Style.DateFormat.Format = "dd-MM-yyyy";
+        sheet.Range(2, 18, MaxRows, 18).Style.DateFormat.Format = "dd-MM-yyyy";
+        sheet.Range(2, 24, MaxRows, 24).Style.DateFormat.Format = "dd-MM-yyyy";
         for (var i = 0; i < example.Length; i++)
         {
             var cell = sheet.Cell(2, i + 1);
             cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            if ((i == 16 || i == 22)
+            if ((i == 17 || i == 23)
                 && DateOnly.TryParseExact(example[i], "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var sampleDate))
             {
                 cell.Value = sampleDate.ToDateTime(TimeOnly.MinValue);
@@ -428,8 +442,17 @@ internal static class EmployeeBulkWorkbook
             return items.Count;
         }
 
+        var stations = await db.AddressCities
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.Name)
+            .Select(c => c.Name)
+            .ToListAsync(ct);
+        if (stations.Count == 0)
+            stations = AddressCityCatalog.Names.ToList();
+
         var lCol = 1;
-        var countStations = WriteLookupColumn(lCol++, "CurrentAddressCity", MumbaiStations);
+        var countStations = WriteLookupColumn(lCol++, "CurrentAddressCity", stations);
         var countRelations = WriteLookupColumn(lCol++, "EmergencyRelation", emergencyRelations);
 
         // Each designation has its own department in the cell immediately to the left.
@@ -445,34 +468,20 @@ internal static class EmployeeBulkWorkbook
             lookups.Cell(r + 2, designationCol).Value = orderedDesignations[r].Name;
         }
 
-        var countDesignations = orderedDesignations.Count;
-        var businessUnitCol = lCol;
+        var countSubDepartments = WriteLookupColumn(lCol++, "SubDepartment", uniqueSubDepartments);
         var countBusinessUnits = WriteLookupColumn(lCol++, "BusinessUnit", businessUnits);
-        var managerCol = lCol;
         var countManagers = WriteLookupColumn(lCol++, "ReportingManagerCode", managerCodes);
-        var workLocationCol = lCol;
         var countWorkLocations = WriteLookupColumn(lCol++, "WorkLocation", workLocations);
-        var statusCol = lCol;
         var countStatuses = WriteLookupColumn(lCol++, "EmployeeStatus", employeeStatuses);
-        var workerTypeCol = lCol;
         var countWorkerTypes = WriteLookupColumn(lCol++, "WorkerType", workerTypes);
-        var bondDeliveredCol = lCol;
         var countBondDelivered = WriteLookupColumn(lCol++, "BondDelivered", bondDeliveredOptions);
-        var bondDurationCol = lCol;
         var countBondDurations = WriteLookupColumn(lCol++, "BondDurationMonths", bondDurationOptions);
-        var bondStatusCol = lCol;
         var countBondStatuses = WriteLookupColumn(lCol++, "BondStatus", bondStatusOptions);
-        var gradDegreeCol = lCol;
         var countGradDegrees = WriteLookupColumn(lCol++, "GraduationDegree", gradDegrees);
-        var gradYearCol = lCol;
         var countGradYears = WriteLookupColumn(lCol++, "GraduationPassingYear", gradYears);
-        var postGradDegreeCol = lCol;
         var countPostGradDegrees = WriteLookupColumn(lCol++, "PostGraduationDegree", postGradDegrees);
-        var postGradYearCol = lCol;
         var countPostGradYears = WriteLookupColumn(lCol++, "PostGraduationPassingYear", postGradYears);
-        var expTypeCol = lCol;
         var countExpTypes = WriteLookupColumn(lCol++, "ExpFresher", expTypes);
-        var expMonthCol = lCol;
         var countExpMonths = WriteLookupColumn(lCol++, "ExpMonths", expMonthOptions);
 
         // Unique department names for the Employees dropdown. The visible Department
@@ -480,6 +489,46 @@ internal static class EmployeeBulkWorkbook
         var departmentListCol = lCol;
         var countDepartments = WriteLookupColumn(departmentListCol, "DepartmentList", departments);
         lookups.Column(departmentListCol).Hide();
+
+        // One hidden list of designations per department, plus a name map so the
+        // Employees sheet can show only that department's designations.
+        var usedRangeNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var departmentRanges = orderedDesignations
+            .GroupBy(row => row.Department, StringComparer.OrdinalIgnoreCase)
+            .Select(group => (
+                Department: group.First().Department,
+                Names: group.Select(row => row.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList()))
+            .Where(group => group.Names.Count > 0)
+            .ToList();
+
+        var hiddenCol = departmentListCol + 1;
+        var rangeByDepartment = new List<(string Department, string RangeName)>();
+        foreach (var group in departmentRanges)
+        {
+            var rangeName = DesignationRangeName(group.Department, usedRangeNames);
+            for (var r = 0; r < group.Names.Count; r++)
+                lookups.Cell(r + 2, hiddenCol).Value = group.Names[r];
+            workbook.DefinedNames.Add(
+                rangeName,
+                lookups.Range(2, hiddenCol, group.Names.Count + 1, hiddenCol));
+            lookups.Column(hiddenCol).Hide();
+            rangeByDepartment.Add((group.Department, rangeName));
+            hiddenCol++;
+        }
+
+        var mapNameCol = hiddenCol;
+        var mapRangeCol = hiddenCol + 1;
+        lookups.Cell(1, mapNameCol).Value = "DepartmentName";
+        lookups.Cell(1, mapRangeCol).Value = "DesignationRange";
+        lookups.Cell(1, mapNameCol).Style.Font.Bold = true;
+        lookups.Cell(1, mapRangeCol).Style.Font.Bold = true;
+        for (var i = 0; i < rangeByDepartment.Count; i++)
+        {
+            lookups.Cell(i + 2, mapNameCol).Value = rangeByDepartment[i].Department;
+            lookups.Cell(i + 2, mapRangeCol).Value = rangeByDepartment[i].RangeName;
+        }
+        lookups.Column(mapNameCol).Hide();
+        lookups.Column(mapRangeCol).Hide();
 
         lookups.Columns().AdjustToContents();
 
@@ -506,26 +555,51 @@ internal static class EmployeeBulkWorkbook
 
         // 2. Organization Assignment dropdowns
         SetListValidation(11, departmentListCol, countDepartments, "Department");
-        SetListValidation(12, designationCol, countDesignations, "Designation");
-        SetListValidation(13, businessUnitCol, countBusinessUnits, "Business Unit");
-        SetListValidation(14, managerCol, countManagers, "Reporting Manager Code");
-        SetListValidation(15, workLocationCol, countWorkLocations, "Work Location");
+        if (rangeByDepartment.Count > 0)
+        {
+            const int designationHelperCol = 36;
+            var mapNameLetter = lookups.Column(mapNameCol).ColumnLetter();
+            var mapRangeLetter = lookups.Column(mapRangeCol).ColumnLetter();
+            var mapLastRow = rangeByDepartment.Count + 1;
+            for (var row = 2; row <= MaxRows; row++)
+            {
+                sheet.Cell(row, designationHelperCol).FormulaA1 =
+                    $"IF(K{row}=\"\",\"\",IFERROR(VLOOKUP(K{row},Lookups!${mapNameLetter}$2:${mapRangeLetter}${mapLastRow},2,FALSE),\"\"))";
+            }
+
+            sheet.Column(designationHelperCol).Hide();
+            var helperLetter = sheet.Column(designationHelperCol).ColumnLetter();
+            var designationCells = sheet.Range(2, 12, MaxRows, 12);
+            var designationValidation = designationCells.CreateDataValidation();
+            designationValidation.List($"=INDIRECT({helperLetter}2)", true);
+            designationValidation.ErrorStyle = XLErrorStyle.Stop;
+            designationValidation.ErrorTitle = "Invalid Designation";
+            designationValidation.ErrorMessage = "Select a department first. Designation only lists titles under that department.";
+            designationValidation.ShowErrorMessage = true;
+            designationValidation.ShowInputMessage = true;
+            designationValidation.InputTitle = "Designation";
+            designationValidation.InputMessage = "Choose the department in this row first. The list then shows only that department's designations.";
+        }
+        SetListValidation(13, 5, countSubDepartments, "Sub-Department");
+        SetListValidation(14, 6, countBusinessUnits, "Business Unit");
+        SetListValidation(15, 7, countManagers, "Reporting Manager Code");
+        SetListValidation(16, 8, countWorkLocations, "Work Location");
 
         // 3. Employment Information dropdowns
-        SetListValidation(19, statusCol, countStatuses, "Employee Status");
-        SetListValidation(20, workerTypeCol, countWorkerTypes, "Worker Type");
-        SetListValidation(21, bondDeliveredCol, countBondDelivered, "Bond Delivered");
-        SetListValidation(22, bondDurationCol, countBondDurations, "Bond Duration (Months)");
-        SetListValidation(24, bondStatusCol, countBondStatuses, "Bond Status");
+        SetListValidation(20, 9, countStatuses, "Employee Status");
+        SetListValidation(21, 10, countWorkerTypes, "Worker Type");
+        SetListValidation(22, 11, countBondDelivered, "Bond Delivered");
+        SetListValidation(23, 12, countBondDurations, "Bond Duration (Months)");
+        SetListValidation(25, 13, countBondStatuses, "Bond Status");
 
         // 4. Education & Experience dropdowns
-        SetListValidation(25, gradDegreeCol, countGradDegrees, "Graduation Degree Name");
-        SetListValidation(26, gradYearCol, countGradYears, "Graduation - Passing Year");
-        SetListValidation(27, postGradDegreeCol, countPostGradDegrees, "Post Graduation Degree Name");
-        SetListValidation(28, postGradYearCol, countPostGradYears, "Post Graduation - Passing Year");
-        SetListValidation(29, expTypeCol, countExpTypes, "Exp / Fresher");
-        SetListValidation(31, expMonthCol, countExpMonths, "Prior Total Exp (Months)");
-        SetListValidation(33, expMonthCol, countExpMonths, "Prior Relevant Exp (Months)");
+        SetListValidation(26, 14, countGradDegrees, "Graduation Degree Name");
+        SetListValidation(27, 15, countGradYears, "Graduation - Passing Year");
+        SetListValidation(28, 16, countPostGradDegrees, "Post Graduation Degree Name");
+        SetListValidation(29, 17, countPostGradYears, "Post Graduation - Passing Year");
+        SetListValidation(30, 18, countExpTypes, "Exp / Fresher");
+        SetListValidation(32, 19, countExpMonths, "Prior Total Exp (Months)");
+        SetListValidation(34, 19, countExpMonths, "Prior Relevant Exp (Months)");
 
         sheet.SheetView.FreezeRows(1);
         sheet.Range(1, 1, 1, Headers.Length).SetAutoFilter();
@@ -556,8 +630,8 @@ internal static class EmployeeBulkWorkbook
             "3. Form Sections: The template strictly reflects the 4 canonical sections of the Onboarding Form (Personal Info, Organization Assignment, Employment Info, Education & Experience).",
             "4. Required Fields (18): TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher.",
             "5. Reporting Manager: Select from the dropdown ('TK-XXXX - Manager Name'). You can also provide just the Employee Code (e.g. TK-0001). Employee code is used as the primary identifier to prevent confusion between employees with identical or similar names.",
-            "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel.",
-            "7. Dynamic Masters: The Lookups sheet reflects live masters from the system (Departments, Designations, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Downloading a fresh template always includes current values. On Lookups, the cell to the left of each designation is that designation's department. On Floor Role and Assigned RBAC Role are filled from that department and designation. Do not add those columns.",
+            "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel. Designation only lists titles under the Department selected on that same row.",
+            "7. Dynamic Masters & Automatic Role Mapping: The Lookups sheet reflects live masters from the system (Current Address - City, Departments, Designations, Sub-Departments, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Roles (On Floor Role and RBAC Role) are automatically mapped based on Department & Designation according to company master hierarchy. Sub-Department is optional and auto-assigned if omitted.",
             "8. Date Format: Dates must be formatted as dd-mm-yyyy (e.g. 18-09-2026), the same way dates appear in the web app.",
             "9. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
             "10. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
@@ -576,6 +650,25 @@ internal static class EmployeeBulkWorkbook
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
         return stream.ToArray();
+    }
+
+    /// <summary>Excel named range for one department's designation list. Names cannot contain spaces.</summary>
+    private static string DesignationRangeName(string department, HashSet<string> used)
+    {
+        var builder = new StringBuilder("Desig_");
+        foreach (var ch in department.Trim())
+            builder.Append(char.IsLetterOrDigit(ch) ? ch : '_');
+        var name = builder.ToString();
+        while (name.Contains("__", StringComparison.Ordinal))
+            name = name.Replace("__", "_", StringComparison.Ordinal);
+        name = name.Trim('_');
+        if (name.Length < 6) name = "Desig_Department";
+        if (name.Length > 200) name = name[..200];
+        var candidate = name;
+        var suffix = 2;
+        while (!used.Add(candidate))
+            candidate = $"{name}_{suffix++}";
+        return candidate;
     }
 }
 
@@ -631,17 +724,26 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             }
 
             var departments = await db.Departments.ToListAsync(ct);
-            var designations = await db.Designations.ToListAsync(ct);
+            var designations = await db.Designations
+                .Include(d => d.DefaultRole)
+                .Include(d => d.Roles)
+                .ToListAsync(ct);
             var roles = await db.JobRoles.ToListAsync(ct);
-            var rbacRoles = await db.Roles.Where(r => r.DeletedAtUtc == null).ToListAsync(ct);
             var employeeStatuses = await db.EmployeeStatuses.ToListAsync(ct);
             var managers = await db.Employees
                 .Select(e => new { e.Id, e.EmployeeCode, Name = e.FirstName + " " + e.LastName })
                 .ToListAsync(ct);
+            var addressCityRows = await db.AddressCities
+                .Where(c => c.IsActive)
+                .Select(c => c.Name)
+                .ToListAsync(ct);
+            var addressCities = new HashSet<string>(
+                addressCityRows.Count > 0 ? addressCityRows : AddressCityCatalog.Names,
+                StringComparer.OrdinalIgnoreCase);
 
             var snapshot = await EmployeeIdentityGuard.LoadBulkSnapshotAsync(db, ct);
             var errors = new List<EmployeeBulkRowError>();
-            var created = 0;
+            var pending = new List<(int ExcelRow, string Code, CreateEmployeeRequest Request)>();
             var dataRows = 0;
 
             for (var excelRow = 2; excelRow <= lastRow; excelRow++)
@@ -672,25 +774,29 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
 
                 var rowErrors = new List<string>();
-                void AddField(string header, string detail) => rowErrors.Add($"{header}: {detail}");
-
-                if (string.IsNullOrWhiteSpace(code)) AddField("TK ID", "TK ID is required.");
-                else if (!EmployeeCodeRules.IsValid(code)) AddField("TK ID", EmployeeCodeRules.FormatMessage + ".");
-                if (string.IsNullOrWhiteSpace(firstName)) AddField("First Name", "First Name is required.");
-                if (string.IsNullOrWhiteSpace(lastName)) AddField("Last Name", "Last Name is required.");
-                if (string.IsNullOrWhiteSpace(workEmail)) AddField("Work Email", "Work Email is required.");
-                else if (!EmailRules.IsValid(workEmail)) AddField("Work Email", "Work Email is not a valid email address.");
+                if (string.IsNullOrWhiteSpace(code)) rowErrors.Add("TK ID is required.");
+                else if (!EmployeeCodeRules.IsValid(code)) rowErrors.Add(EmployeeCodeRules.FormatMessage + ".");
+                if (string.IsNullOrWhiteSpace(firstName)) rowErrors.Add("First Name is required.");
+                if (string.IsNullOrWhiteSpace(lastName)) rowErrors.Add("Last Name is required.");
+                if (string.IsNullOrWhiteSpace(workEmail)) rowErrors.Add("Work Email is required.");
+                else if (!EmailRules.IsValid(workEmail)) rowErrors.Add("Work Email is not a valid email address.");
 
                 var personalEmail = GetValue(values, "personalemail");
                 if (!string.IsNullOrWhiteSpace(personalEmail) && !EmailRules.IsValid(personalEmail))
-                    AddField("Personal Email", "Personal Email is not a valid email address.");
+                    rowErrors.Add("Personal Email is not a valid email address.");
 
                 var phone = GetValue(values, "phone");
                 if (!string.IsNullOrWhiteSpace(phone) && !PhoneRules.IsValid(phone))
-                    AddField("Phone (Personal)", "Phone must be a valid 10-digit Indian mobile number.");
+                    rowErrors.Add("Phone must be a valid 10-digit Indian mobile number.");
+
+                var address = GetValue(values, "address");
+                if (string.IsNullOrWhiteSpace(address))
+                    rowErrors.Add("Current Address - City is required.");
+                else if (!addressCities.Contains(address.Trim()))
+                    rowErrors.Add($"Current Address - City '{address.Trim()}' is not in the master list. Add it under Settings → Masters → Resource Masters.");
                 var altPhone = GetValue(values, "altphone");
                 if (!string.IsNullOrWhiteSpace(altPhone) && !PhoneRules.IsValid(altPhone))
-                    AddField("Alternate Contact Number", "Alternate Phone must be a valid 10-digit Indian mobile number.");
+                    rowErrors.Add("Alternate Phone must be a valid 10-digit Indian mobile number.");
 
                 var identity = new EmployeeIdentity(
                     code,
@@ -702,15 +808,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     null,
                     null);
 
-                foreach (var conflict in snapshot.BulkConflicts(identity))
-                {
-                    var header = conflict.Contains("email", StringComparison.OrdinalIgnoreCase)
-                        ? "Work Email"
-                        : conflict.Contains("phone", StringComparison.OrdinalIgnoreCase)
-                            ? "Phone (Personal)"
-                            : "TK ID";
-                    AddField(header, conflict);
-                }
+                rowErrors.AddRange(snapshot.BulkConflicts(identity));
 
                 Guid? departmentId = null;
                 var departmentName = GetValue(values, "department");
@@ -718,47 +816,68 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 {
                     var dept = departments.FirstOrDefault(d =>
                         d.Name.Equals(departmentName, StringComparison.OrdinalIgnoreCase));
-                    if (dept is null) AddField("Department", $"'{departmentName}' was not found.");
+                    if (dept is null) rowErrors.Add($"Department '{departmentName}' was not found.");
                     else departmentId = dept.Id;
                 }
 
                 Guid? designationId = null;
-                MstDesignation? desig = null;
+                MstDesignation? matchedDesig = null;
                 var designationName = GetValue(values, "designation");
                 if (!string.IsNullOrWhiteSpace(designationName))
                 {
                     var matches = designations.Where(d =>
-                        d.Name.Equals(designationName, StringComparison.OrdinalIgnoreCase)
-                        && d.DeletedAtUtc == null);
-                    desig = departmentId is Guid deptId
+                        d.Name.Equals(designationName, StringComparison.OrdinalIgnoreCase));
+                    matchedDesig = departmentId is Guid deptId
                         ? matches.FirstOrDefault(d => d.DepartmentId == deptId)
                         : matches.FirstOrDefault();
-                    if (desig is null) AddField("Designation", $"'{designationName}' was not found for this department.");
-                    else designationId = desig.Id;
+                    if (matchedDesig is null && departmentId is not null && matches.Any())
+                        rowErrors.Add($"Designation '{designationName}' is not under department '{departmentName}'.");
+                    else if (matchedDesig is null)
+                        rowErrors.Add($"Designation '{designationName}' was not found.");
+                    else designationId = matchedDesig.Id;
                 }
 
                 Guid? jobRoleId = null;
-                string? rbacRoleName = null;
-                if (desig is not null)
+                var roleName = GetValue(values, "role");
+                if (matchedDesig is not null)
                 {
-                    var mappedRole = roles.FirstOrDefault(r =>
-                        r.DesignationId == desig.Id && r.DeletedAtUtc == null && r.IsActive);
-                    if (mappedRole is null)
-                        AddField("On Floor Role", $"no on floor role is mapped for designation '{desig.Name}'.");
-                    else
-                        jobRoleId = mappedRole.Id;
-
-                    if (desig.DefaultRoleId is Guid defaultRoleId)
+                    // Automatic mapping of On Floor Role & RBAC Role from Book 3.xlsx linkage
+                    var activeJobRole = matchedDesig.Roles.FirstOrDefault(r => r.IsActive);
+                    if (activeJobRole is not null)
                     {
-                        var rbac = rbacRoles.FirstOrDefault(r => r.Id == defaultRoleId);
-                        if (rbac is null)
-                            AddField("Assigned RBAC Role", $"the mapped role for designation '{desig.Name}' was not found.");
-                        else
-                            rbacRoleName = rbac.Name;
+                        jobRoleId = activeJobRole.Id;
+                    }
+                    if (matchedDesig.DefaultRole is not null)
+                    {
+                        roleName = matchedDesig.DefaultRole.Name;
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(roleName))
+                {
+                    var matches = roles.Where(r => r.Name.Equals(roleName, StringComparison.OrdinalIgnoreCase));
+                    var role = matches.FirstOrDefault();
+                    if (role is not null) jobRoleId = role.Id;
+                }
+
+                var subDepartmentVal = GetValue(values, "subdepartment");
+                if (matchedDesig is not null && !string.IsNullOrWhiteSpace(matchedDesig.SubDepartment))
+                {
+                    var allowedSubDepts = matchedDesig.SubDepartment.Split(',').Select(s => s.Trim()).ToList();
+                    if (string.IsNullOrWhiteSpace(subDepartmentVal))
+                    {
+                        subDepartmentVal = allowedSubDepts[0];
                     }
                     else
                     {
-                        AddField("Assigned RBAC Role", $"no RBAC role is mapped for designation '{desig.Name}'.");
+                        var matchedSub = allowedSubDepts.FirstOrDefault(s => s.Equals(subDepartmentVal.Trim(), StringComparison.OrdinalIgnoreCase));
+                        if (matchedSub is not null)
+                        {
+                            subDepartmentVal = matchedSub;
+                        }
+                        else if (allowedSubDepts.Count == 1)
+                        {
+                            subDepartmentVal = allowedSubDepts[0];
+                        }
                     }
                 }
 
@@ -775,7 +894,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                         || m.EmployeeCode.Equals(managerCodePart, StringComparison.OrdinalIgnoreCase)
                         || m.Name.Equals(managerCode, StringComparison.OrdinalIgnoreCase)
                         || $"{m.EmployeeCode} - {m.Name}".Equals(managerCode, StringComparison.OrdinalIgnoreCase));
-                    if (manager is null) AddField("Reporting Manager Code", $"'{managerCode}' was not found.");
+                    if (manager is null) rowErrors.Add($"Reporting manager '{managerCode}' was not found.");
                     else reportingManagerId = manager.Id;
                 }
 
@@ -794,10 +913,12 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
 
                 if (rowErrors.Count > 0)
                 {
-                    var who = string.IsNullOrWhiteSpace(code) ? $"Row {excelRow}" : code.Trim();
-                    errors.Add(new EmployeeBulkRowError(excelRow, NullIfEmpty(code), $"{who} | {string.Join(" ", rowErrors)}"));
+                    errors.Add(new EmployeeBulkRowError(excelRow, NullIfEmpty(code), string.Join(" ", rowErrors)));
+                    snapshot.AddBulkKeys(identity.EmployeeCode, identity.WorkEmail, identity.Phone);
                     continue;
                 }
+
+                snapshot.AddBulkKeys(identity.EmployeeCode, identity.WorkEmail, identity.Phone);
 
                 // Experience mapping
                 var totalYearsStr = GetValue(values, "priortotalexpyears");
@@ -898,7 +1019,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     NationalityId: null,
                     DepartmentId: departmentId,
                     DesignationId: designationId,
-                    Role: rbacRoleName,
+                    Role: NullIfEmpty(roleName),
                     JobRoleId: jobRoleId,
                     ReportingManagerId: reportingManagerId,
                     BusinessUnit: NullIfEmpty(GetValue(values, "businessunit")),
@@ -947,7 +1068,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     BondExpiryDate: bondExpiryDate,
                     EmergencyContactRelation: NullIfEmpty(GetValue(values, "emergencycontactrelation")),
                     PmoDepartment: null,
-                    SubDepartment: null,
+                    SubDepartment: NullIfEmpty(subDepartmentVal),
                     BillableStatus: null,
                     ClientLocation: null,
                     ProjectType: null,
@@ -961,13 +1082,27 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     PriorTotalExp: priorTotalExp,
                     PriorRelevantExp: priorRelevantExp);
 
-                try
+                pending.Add((excelRow, code.Trim(), request));
+            }
+
+            // One invalid row rejects the file. Valid rows are not saved.
+            if (errors.Count > 0)
+            {
+                stopwatch.Stop();
+                WriteAuditLog(originalFileName, dataRows, 0, errors, createdEntries, stopwatch.Elapsed);
+                return new EmployeeBulkUploadResult(0, errors.Count, errors);
+            }
+
+            var created = 0;
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            try
+            {
+                foreach (var item in pending)
                 {
-                    var createdEmp = await employees.CreateEmployeeAsync(request, checkIdentity: false, ct);
-                    snapshot.AddBulkKeys(identity.EmployeeCode, identity.WorkEmail, identity.Phone);
+                    var createdEmp = await employees.CreateEmployeeAsync(item.Request, checkIdentity: false, ct);
                     created++;
                     createdEntries.Add(new BulkCreatedEmployeeEntry(
-                        excelRow,
+                        item.ExcelRow,
                         createdEmp.Id,
                         createdEmp.EmployeeCode,
                         $"{createdEmp.FirstName} {createdEmp.LastName}".Trim(),
@@ -976,24 +1111,26 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                         createdEmp.Designation ?? "N/A",
                         createdEmp.Role ?? "N/A",
                         createdEmp.Status ?? "Active"));
-                    managers.Add(new
-                    {
-                        createdEmp.Id,
-                        createdEmp.EmployeeCode,
-                        Name = createdEmp.FirstName + " " + createdEmp.LastName,
-                    });
                 }
-                catch (ConflictException ex)
-                {
-                    var who = string.IsNullOrWhiteSpace(code) ? $"Row {excelRow}" : code.Trim();
-                    errors.Add(new EmployeeBulkRowError(excelRow, NullIfEmpty(code), $"{who} | {ex.Message}"));
-                }
-                catch (Exception ex)
-                {
-                    var who = string.IsNullOrWhiteSpace(code) ? $"Row {excelRow}" : code.Trim();
-                    errors.Add(new EmployeeBulkRowError(
-                        excelRow, NullIfEmpty(code), $"{who} | {ex.InnerException?.Message ?? ex.Message}"));
-                }
+
+                await tx.CommitAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync(ct);
+                var failedIndex = created;
+                created = 0;
+                createdEntries.Clear();
+                var failed = failedIndex >= 0 && failedIndex < pending.Count
+                    ? pending[failedIndex]
+                    : pending.FirstOrDefault();
+                var message = ex is ConflictException conflict
+                    ? conflict.Message
+                    : ex.InnerException?.Message ?? ex.Message;
+                errors.Add(new EmployeeBulkRowError(
+                    failed.ExcelRow == 0 ? 0 : failed.ExcelRow,
+                    failed.Code,
+                    "Nothing was saved. " + message));
             }
 
             stopwatch.Stop();
@@ -1195,6 +1332,9 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
         if (map.TryGetValue("emergencyphone", out var epCol)) map.TryAdd("emergencycontact", epCol);
         if (map.TryGetValue("relationwithemergencycontact", out var rweCol)) map.TryAdd("emergencycontactrelation", rweCol);
         if (map.TryGetValue("emergencyrelation", out var erCol)) map.TryAdd("emergencycontactrelation", erCol);
+        if (map.TryGetValue("subdepartment", out var subCol)) map.TryAdd("subdepartment", subCol);
+        if (map.TryGetValue("subdept", out var subCol2)) map.TryAdd("subdepartment", subCol2);
+        if (map.TryGetValue("subdepartmentname", out var subCol3)) map.TryAdd("subdepartment", subCol3);
         if (map.TryGetValue("onfloorrole", out var onFloorCol)) map.TryAdd("role", onFloorCol);
         if (map.TryGetValue("reportingmanagercode", out var rmcCol)) map.TryAdd("reportingmanagercode", rmcCol);
         if (map.TryGetValue("reportingmanagertkid", out var mgrTkCol)) map.TryAdd("reportingmanagercode", mgrTkCol);

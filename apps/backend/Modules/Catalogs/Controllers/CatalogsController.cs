@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using PMS.API.Infrastructure.Authorization;
 using PMS.API.Modules.Catalogs.DTOs;
 using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Shared.Common.Wrappers;
+using PMS.API.Shared.Constants;
 
 namespace PMS.API.Modules.Catalogs.Controllers;
 
@@ -57,6 +59,32 @@ public class CatalogsController(ICatalogService catalogs) : ControllerBase
     {
         return Ok(ApiResponse<IReadOnlyList<CatalogOptionDto>>.Ok(
             await catalogs.GetContactTypesAsync(ct)));
+    }
+
+    [HttpGet("address-cities")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AddressCityDto>>>> AddressCities(
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<AddressCityDto>>.Ok(
+            await catalogs.GetAddressCitiesAsync(ct)));
+    }
+
+    [HttpPost("address-cities")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public async Task<ActionResult<ApiResponse<AddressCityDto>>> CreateAddressCity(
+        CreateAddressCityRequest request,
+        CancellationToken ct)
+    {
+        var created = await catalogs.CreateAddressCityAsync(request.Name, request.Line, ct);
+        return Ok(ApiResponse<AddressCityDto>.Ok(created));
+    }
+
+    [HttpDelete("address-cities/{id:guid}")]
+    [RequirePermission(Permissions.ResourcesManage)]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteAddressCity(Guid id, CancellationToken ct)
+    {
+        await catalogs.DeleteAddressCityAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
     }
 
     [HttpGet("service-groups")]

@@ -4,6 +4,7 @@
 // Uses useSyncExternalStore for reactive updates across modules.
 
 import { useSyncExternalStore } from "react";
+import { composeWbsId } from "@/lib/wbs-id";
 import {
   clients as baseClients,
   projects as baseProjects,
@@ -2311,7 +2312,7 @@ function getNextProjectSeqNum(): string {
       }
     }
     if (p.wbsId) {
-      const wbsMatch = /-P(\d+)$/i.exec(p.wbsId);
+      const wbsMatch = /[/-]P(\d+)$/i.exec(p.wbsId);
       if (wbsMatch && wbsMatch[1]) {
         const num = parseInt(wbsMatch[1], 10);
         if (num > maxNum) maxNum = num;
@@ -2322,20 +2323,18 @@ function getNextProjectSeqNum(): string {
   return "P" + String(nextNum).padStart(3, "0");
 }
 
-// Build WBS ID: IN-YYYY-YY-CLIENTID-PROJECTID
-// e.g. IN-2026-27-C042-P045
-// - FY derived from today's date (April 1 boundary)
-// - ClientID = Formatted Customer ID e.g. C042, C011, C001
-// - ProjectID = Sequential Project ID e.g. P044, P045
-export function buildWbsId(clientId: string, projectSeqIdParam?: string): string {
+// Build WBS ID. With a sub-venture id: IN-2026-27/C013-01/P056.
+// Without one, the previous hyphen form is kept for local fallback only.
+export function buildWbsId(clientId: string, projectSeqIdParam?: string, subVentureCode?: string): string {
   const fyStartYear = getCurrentFYStart();
   const fyEnd = String(fyStartYear + 1).slice(-2); // last 2 digits of next year
-  
+  const fy = `${fyStartYear}-${fyEnd}`;
+  const projSeq = projectSeqIdParam || getNextProjectSeqNum();
+  if (subVentureCode) return composeWbsId(fy, subVentureCode, projSeq);
+
   const paddedClientId = formatCustomerId(clientId);
   const safeCustCode = (paddedClientId && paddedClientId !== "—") ? paddedClientId : "C001";
-
-  const projSeq = projectSeqIdParam || getNextProjectSeqNum();
-  return `IN-${fyStartYear}-${fyEnd}-${safeCustCode}-${projSeq}`;
+  return `IN-${fy}-${safeCustCode}-${projSeq}`;
 }
 
 // Build the display Project ID: P044, P045… (system sequential)

@@ -1,3 +1,4 @@
+using PMS.API.Infrastructure.Logging;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -12,48 +13,17 @@ DotEnvLoader.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---- Serilog (structured logging) ----
+// ---- Serilog (modular structured logging with auto-archiving) ----
 builder.Host.UseSerilog((context, services, config) =>
 {
     var logRoot = Path.Combine(context.HostingEnvironment.ContentRootPath, "Log");
-    var debugDir = Path.Combine(logRoot, "Debug log");
-    var errorDir = Path.Combine(logRoot, "Error log");
-    Directory.CreateDirectory(debugDir);
-    Directory.CreateDirectory(errorDir);
-
-    const string banner =
-        "===========================================================================================";
-    const string debugTemplate =
-        banner + "{NewLine}" +
-        "Time : {Timestamp:dd-MM-yyyy HH:mm:ss} | PMS_DEBUG{NewLine}" +
-        "Message : {Message:lj}{NewLine}{Exception}" +
-        banner + "{NewLine}";
-    const string errorTemplate =
-        banner + "{NewLine}" +
-        "Time : {Timestamp:dd-MM-yyyy HH:mm:ss} | PMS_ERROR{NewLine}" +
-        "Message : {Message:lj}{NewLine}{Exception}" +
-        banner + "{NewLine}";
 
     config
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .WriteTo.Logger(debug => debug
-            .Filter.ByIncludingOnly(e => e.Level < LogEventLevel.Error)
-            .WriteTo.File(
-                Path.Combine(debugDir, "debug-.log"),
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 14,
-                shared: true,
-                outputTemplate: debugTemplate))
-        .WriteTo.Logger(error => error
-            .Filter.ByIncludingOnly(e => e.Level >= LogEventLevel.Error)
-            .WriteTo.File(
-                Path.Combine(errorDir, "error-.log"),
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 30,
-                shared: true,
-                outputTemplate: errorTemplate));
+        .WriteTo.Console()
+        .WriteTo.ModularArchivingFile(logRoot);
 });
 
 // ---- Controllers ----

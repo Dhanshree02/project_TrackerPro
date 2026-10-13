@@ -1,16 +1,9 @@
 import {
-  LayoutDashboard,
-  ListChecks,
   FolderKanban,
   BarChart3,
   Users,
   Building2,
   Building,
-  Activity,
-  CheckCircle2,
-  Inbox,
-  Layers,
-  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -44,13 +37,6 @@ export interface NavItem {
 
 // ─── Generic (non-Dhanshree) navigation ─────────────────────────────────────
 export const NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard.view" },
-  {
-    to: "/action-centre",
-    label: "Action Centre",
-    icon: ListChecks,
-    permission: "action-center.view",
-  },
   { to: "/projects", label: "Projects", icon: FolderKanban, permission: "projects.view" },
   { to: "/reports", label: "Reports", icon: BarChart3, permission: "reports.view" },
   { to: "/resources", label: "Resources", icon: Users, permission: "resources.view" },
@@ -67,26 +53,10 @@ export const NAV_ITEMS: NavItem[] = [
       },
     ],
   },
-  {
-    label: "Settings",
-    icon: Settings,
-    permission: "settings.view",
-    subItems: [
-      { to: "/dh-settings-security-roles", label: "Roles & Permissions", permission: "settings.view" },
-      { to: "/dh-settings-masters", label: "Masters", permission: "settings.view" },
-    ],
-  },
 ];
 
 // ─── Dhanshree / Admin (super-admin workspace) navigation ───────────────────
 export const DH_NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard.view" },
-  {
-    to: "/action-centre",
-    label: "Action Centre",
-    icon: ListChecks,
-    permission: "action-center.view",
-  },
   { to: "/projects", label: "Projects", icon: FolderKanban, permission: "projects.view" },
   { to: "/dh-reports", label: "Reports", icon: BarChart3, permission: "reports.view" },
   {
@@ -109,15 +79,6 @@ export const DH_NAV_ITEMS: NavItem[] = [
         to: "/my-team/timesheets",
         label: "Timesheets",
       },
-    ],
-  },
-  {
-    label: "Settings",
-    icon: Settings,
-    permission: "settings.view",
-    subItems: [
-      { to: "/dh-settings-security-roles", label: "Roles & Permissions" },
-      { to: "/dh-settings-masters", label: "Masters" },
     ],
   },
 ];
@@ -285,7 +246,6 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] 
   { prefix: "/wbs-allocation", permission: "wbs.allocate" },
   { prefix: "/allocation", permission: "wbs.allocate" },
   { prefix: "/portfolio", permission: "portfolio.view" },
-  { prefix: "/change-password", permission: null },
   { prefix: "/access-denied", permission: null },
   { prefix: "/", permission: "dashboard.view" },
 ];

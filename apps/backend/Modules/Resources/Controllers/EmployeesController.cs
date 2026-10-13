@@ -21,11 +21,12 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         [FromQuery] Guid? designationId = null,
         [FromQuery] string? status = null,
         [FromQuery] string? onFloorRole = null,
+        [FromQuery] string? role = null,
         CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         perPage = Math.Clamp(perPage, 1, 100);
-        var result = await employees.GetEmployeesAsync(page, perPage, search, departmentId, designationId, status, onFloorRole, ct);
+        var result = await employees.GetEmployeesAsync(page, perPage, search, departmentId, designationId, status, onFloorRole, role, ct);
         return Ok(ApiResponse<PagedResult<EmployeeListItemDto>>.Ok(result, new ApiMeta
         {
             Total = result.Total,

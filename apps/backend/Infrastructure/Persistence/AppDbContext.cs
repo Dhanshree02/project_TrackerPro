@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Shared.Common.Models;
-using PMS.API.Modules.Auth.Models;
 using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.MyTeam.Models;
 using PMS.API.Modules.Timesheets.Models;
@@ -39,6 +38,8 @@ public class AppDbContext(
     public DbSet<MstContactDesignation> ContactDesignations => Set<MstContactDesignation>();
 
     public DbSet<MstContactType> ContactTypes => Set<MstContactType>();
+
+    public DbSet<MstAddressCity> AddressCities => Set<MstAddressCity>();
 
     public DbSet<MstIndustry> Industries => Set<MstIndustry>();
 

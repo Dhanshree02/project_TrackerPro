@@ -8,6 +8,8 @@ public interface ITimesheetService
 
     Task<TimesheetWeekDto?> GetPreviousAsync(DateOnly weekStart, CancellationToken ct = default);
 
+    Task<IReadOnlyList<TimesheetWeekDto>> ListMineAsync(CancellationToken ct = default);
+
     Task<TimesheetWeekDto> SaveDraftAsync(SaveTimesheetRequest request, CancellationToken ct = default);
 
     Task<TimesheetWeekDto> SubmitAsync(SaveTimesheetRequest request, CancellationToken ct = default);

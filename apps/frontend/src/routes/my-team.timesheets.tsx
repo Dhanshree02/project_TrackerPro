@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   Clock,
@@ -21,7 +21,7 @@ import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { TimesheetStatusPill, Avatar } from "@/components/pills";
-import { allProjects } from "@/lib/dh-store";
+import { fetchProjects, fetchProjectTasks } from "@/lib/api/projects";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "./projects.index";
@@ -34,6 +34,7 @@ import {
   decideTimesheet,
   getMyTimesheet,
   getPreviousTimesheet,
+  listMyTimesheetHistory,
   listTimesheetApprovals,
   saveTimesheetDraft,
   submitTimesheet,
@@ -66,8 +67,19 @@ interface TsRow {
   id: string;
   projectId: string;
   taskId: string;
+  taskName: string;
   hours: number[];
   notes: string[];
+}
+
+function taskChoiceLabel(title: string, serviceName?: string) {
+  return serviceName ? `${title} · ${serviceName}` : title;
+}
+
+function savedTaskLabel(taskName: string | undefined, taskId: string) {
+  const name = taskName?.trim();
+  if (!name || name === taskId || name.includes("-svc-")) return "";
+  return name;
 }
 
 function emptyRow(): TsRow {
@@ -75,6 +87,7 @@ function emptyRow(): TsRow {
     id: `r${Date.now()}`,
     projectId: "",
     taskId: "",
+    taskName: "",
     hours: [0, 0, 0, 0, 0, 0, 0],
     notes: ["", "", "", "", "", "", ""],
   };
@@ -92,6 +105,7 @@ function rowsFromWeek(week: TimesheetWeek): TsRow[] {
       id: entry.id,
       projectId: entry.projectKey,
       taskId: entry.taskKey,
+      taskName: entry.taskName || "",
       hours,
       notes,
     };
@@ -113,11 +127,11 @@ function thisMonday() {
 
 // ── TimesheetTab ─────────────────────────────────────────────────────────────
 function TimesheetTab() {
-  const [subTab, setSubTab] = useState<"My Timesheet" | "Timesheet Approval">("My Timesheet");
+  const [subTab, setSubTab] = useState<"My Timesheet" | "Timesheet History" | "Timesheet Approval">("My Timesheet");
   return (
     <div>
       <div className="mb-4 flex gap-1 rounded-lg border border-border bg-card p-1 text-sm shadow-sm w-fit">
-        {(["My Timesheet", "Timesheet Approval"] as const).map((st) => (
+        {(["My Timesheet", "Timesheet History", "Timesheet Approval"] as const).map((st) => (
           <button
             key={st}
             type="button"
@@ -133,35 +147,103 @@ function TimesheetTab() {
           </button>
         ))}
       </div>
-      {subTab === "My Timesheet" ? <MyTimesheetView /> : <TimesheetApprovalView />}
+      {subTab === "My Timesheet" ? (
+        <MyTimesheetView />
+      ) : subTab === "Timesheet History" ? (
+        <TimesheetHistoryView />
+      ) : (
+        <TimesheetApprovalView />
+      )}
     </div>
   );
 }
 
 // ── MyTimesheetView ──────────────────────────────────────────────────────────
 function MyTimesheetView() {
-  const { user } = useRoleContext();
+  const { user: authUser } = useAuth();
+  const { user, employeePersonId } = useRoleContext();
+  const effectiveEmployeeId = authUser?.employeeId || employeePersonId || (user as any)?.employeeId;
+
   const [weekStart, setWeekStart] = useState(thisMonday());
   const [weekStatus, setWeekStatus] = useState<TimesheetWeek["status"]>("draft");
   const [showDraft, setShowDraft] = useState(false);
   const [saving, setSaving] = useState(false);
-  const projectsList = allProjects();
+
+  const [dbProjects, setDbProjects] = useState<Array<{ id: string; name: string; projectCode?: string }>>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [tasksByProject, setTasksByProject] = useState<Record<string, Array<{ id: string; title: string; serviceName?: string; stage?: string; estimatedHours?: number }>>>({});
+  const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
 
   const [rows, setRows] = useState<TsRow[]>(() => [emptyRow()]);
-
   const [commentOpen, setCommentOpen] = useState<{ row: string; day: number } | null>(null);
-
-  const tasksByProject = useMemo(() => {
-    const map: Record<string, (typeof projectsList)[number]["tasks"]> = {};
-    projectsList.forEach((p) => {
-      map[p.id] = p.tasks;
-    });
-    return map;
-  }, [projectsList]);
 
   const dayTotals = days.map((_, di) => rows.reduce((s, r) => s + (Number(r.hours[di]) || 0), 0));
   const total = dayTotals.reduce((a, b) => a + b, 0);
 
+  // Load real tasks for a specific project from backend DB
+  const loadTasksForProject = useCallback(async (projectId: string) => {
+    if (!projectId) return;
+    setLoadingTasks((prev) => ({ ...prev, [projectId]: true }));
+    try {
+      const apiTasks = await fetchProjectTasks(projectId);
+      setTasksByProject((prev) => ({
+        ...prev,
+        [projectId]: apiTasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          serviceName: t.serviceName?.trim() || undefined,
+          stage: t.stage,
+          estimatedHours: t.estimatedHours ?? undefined,
+        })),
+      }));
+    } catch (err) {
+      console.error(`Failed to load tasks for project ${projectId}:`, err);
+    } finally {
+      setLoadingTasks((prev) => ({ ...prev, [projectId]: false }));
+    }
+  }, []);
+
+  // Load real projects from database (filtered to assigned employee, falling back to all active)
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingProjects(true);
+
+    async function loadProjects() {
+      try {
+        let res = effectiveEmployeeId
+          ? await fetchProjects({ employeeId: effectiveEmployeeId, status: "active", perPage: 200 })
+          : null;
+
+        // If no assigned projects found, fallback to active projects so timesheet is loggable
+        if (!res || !res.items || res.items.length === 0) {
+          res = await fetchProjects({ status: "active", perPage: 200 });
+        }
+
+        if (!res || !res.items || res.items.length === 0) {
+          res = await fetchProjects({ perPage: 200 });
+        }
+
+        if (!cancelled && res?.items) {
+          setDbProjects(res.items.map((p) => ({
+            id: p.id,
+            name: p.name,
+            projectCode: p.projectCode,
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to load real projects from DB:", err);
+      } finally {
+        if (!cancelled) setLoadingProjects(false);
+      }
+    }
+
+    loadProjects();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveEmployeeId]);
+
+  // Load this week's timesheet from backend
   useEffect(() => {
     let cancelled = false;
     getMyTimesheet(weekStart)
@@ -169,7 +251,15 @@ function MyTimesheetView() {
         if (cancelled) return;
         setWeekStatus(week?.status ?? "draft");
         setShowDraft(week?.status === "draft");
-        setRows(week && week.entries.length > 0 ? rowsFromWeek(week) : [emptyRow()]);
+        const loadedRows = week && week.entries.length > 0 ? rowsFromWeek(week) : [emptyRow()];
+        setRows(loadedRows);
+
+        // Preload tasks for all projects present in this week's timesheet
+        loadedRows.forEach((r) => {
+          if (r.projectId) {
+            loadTasksForProject(r.projectId);
+          }
+        });
       })
       .catch(() => {
         if (!cancelled) toast.error("Could not load this week's timesheet.");
@@ -177,17 +267,17 @@ function MyTimesheetView() {
     return () => {
       cancelled = true;
     };
-  }, [weekStart]);
+  }, [weekStart, loadTasksForProject]);
 
   function toSaveLines() {
     return rows.filter((row) => row.projectId && row.taskId).map((row) => {
-      const project = projectsList.find((item) => item.id === row.projectId);
-      const task = project?.tasks.find((item) => item.id === row.taskId);
+      const project = dbProjects.find((item) => item.id === row.projectId);
+      const task = tasksByProject[row.projectId]?.find((item) => item.id === row.taskId);
       return {
         projectKey: row.projectId,
         projectName: project?.name || "Project",
         taskKey: row.taskId,
-        taskName: task?.title || "Task",
+        taskName: task ? taskChoiceLabel(task.title, task.serviceName) : (row.taskName || "Task"),
         days: row.hours.map((hours, dayIndex) => ({
           dayIndex,
           hours: Number(hours) || 0,
@@ -228,12 +318,18 @@ function MyTimesheetView() {
         toast.error("No timesheet found for last week.");
         return;
       }
-      setRows(rowsFromWeek(previous).map((row) => ({
+      const loaded = rowsFromWeek(previous).map((row) => ({
         ...row,
         id: `r${crypto.randomUUID()}`,
         hours: row.hours.map((hours, index) => (isTimesheetDayOpen(weekStart, index) ? hours : 0)),
         notes: row.notes.map((note, index) => (isTimesheetDayOpen(weekStart, index) ? note : "")),
-      })));
+      }));
+      setRows(loaded);
+      loaded.forEach((r) => {
+        if (r.projectId) {
+          loadTasksForProject(r.projectId);
+        }
+      });
       toast.success("Copied hours and comments from last week.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not copy last week.");
@@ -354,28 +450,66 @@ function MyTimesheetView() {
                 <tr key={r.id}>
                   <td className="px-3 py-2 align-top">
                     <SearchableSelect
-                      options={projectsList.map((p) => ({ value: p.id, label: p.name }))}
+                      options={dbProjects.map((p) => ({
+                        value: p.id,
+                        label: p.name,
+                        subLabel: p.projectCode,
+                      }))}
                       value={r.projectId}
-                      onChange={(projectId) =>
+                      onChange={(projectId) => {
                         update(r.id, {
                           projectId,
                           taskId: "",
-                        })
-                      }
-                      placeholder="Select project"
+                          taskName: "",
+                        });
+                        if (projectId) {
+                          loadTasksForProject(projectId);
+                        }
+                      }}
+                      placeholder={loadingProjects ? "Loading projects…" : "Select project"}
                       searchPlaceholder="Search projects…"
                       clearable={false}
                     />
                   </td>
                   <td className="px-3 py-2 align-top">
-                    <SearchableSelect
-                      options={tasks.map((t) => ({ value: t.id, label: t.title }))}
-                      value={r.taskId}
-                      onChange={(taskId) => update(r.id, { taskId })}
-                      placeholder="Select task"
-                      searchPlaceholder="Search tasks…"
-                      clearable={false}
-                    />
+                    {(() => {
+                      const pTasks = tasksByProject[r.projectId] ?? [];
+                      const isTaskLoading = loadingTasks[r.projectId];
+                      const options = pTasks.map((t) => ({
+                        value: t.id,
+                        label: taskChoiceLabel(t.title, t.serviceName),
+                        subLabel: t.stage ? `${t.stage}${t.estimatedHours ? ` · ${t.estimatedHours}h` : ""}` : undefined,
+                      }));
+                      const savedLabel = savedTaskLabel(r.taskName, r.taskId);
+                      if (r.taskId && savedLabel && !options.some((option) => option.value === r.taskId)) {
+                        options.unshift({ value: r.taskId, label: savedLabel, subLabel: undefined });
+                      }
+                      return (
+                        <SearchableSelect
+                          options={options}
+                          value={r.taskId}
+                          onChange={(taskId) => {
+                            const task = pTasks.find((item) => item.id === taskId);
+                            update(r.id, {
+                              taskId,
+                              taskName: task ? taskChoiceLabel(task.title, task.serviceName) : savedLabel,
+                            });
+                          }}
+                          placeholder={
+                            !r.projectId
+                              ? "Select a project first"
+                              : isTaskLoading
+                                ? "Loading tasks…"
+                                : pTasks.length === 0
+                                  ? "No tasks in this project"
+                                  : "Select task"
+                          }
+                          searchPlaceholder="Search tasks…"
+                          disabled={!r.projectId || isTaskLoading || pTasks.length === 0}
+                          clearable={false}
+                        />
+                      );
+                    })()}
                   </td>
                   {r.hours.map((h, di) => {
                     const open = isTimesheetDayOpen(weekStart, di);
@@ -674,6 +808,102 @@ function ApprovalSortTh({
   );
 }
 
+// ── TimesheetHistoryView ─────────────────────────────────────────────────────
+function TimesheetHistoryView() {
+  const [sheets, setSheets] = useState<ApprovalSheet[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    listMyTimesheetHistory()
+      .then((weeks) => setSheets(weeks.map(toApprovalSheet)))
+      .catch(() => toast.error("Could not load your timesheet history."));
+  }, []);
+
+  const open = sheets.find((sheet) => sheet.id === openId) ?? null;
+
+  return (
+    <section className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="overflow-auto max-h-[calc(100vh-220px)] min-h-[420px]">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700">
+            <tr>
+              <th className="px-4 py-3 font-semibold">Week</th>
+              <th className="px-4 py-3 font-semibold">Projects</th>
+              <th className="px-4 py-3 font-semibold">Submitted</th>
+              <th className="px-4 py-3 font-semibold">Hours</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold">Approval note</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {sheets.map((sheet) => {
+              const projects = Array.from(
+                new Set(sheet.entries.map((entry) => entry.projectName).filter(Boolean)),
+              ).join(", ") || "—";
+              return (
+                <tr
+                  key={sheet.id}
+                  onClick={() => setOpenId(sheet.id)}
+                  className="cursor-pointer hover:bg-accent/30"
+                >
+                  <td className="whitespace-nowrap px-4 py-3.5 tabular-nums">{formatDateDMY(sheet.weekStart)}</td>
+                  <td className="px-4 py-3.5 text-muted-foreground truncate" title={projects}>{projects}</td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">
+                    {sheet.submittedAt ? formatDateDMY(sheet.submittedAt.slice(0, 10)) : "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3.5 font-medium tabular-nums">{sheet.totalHours}h</td>
+                  <td className="whitespace-nowrap px-4 py-3.5">
+                    <TimesheetStatusPill status={sheet.status} />
+                  </td>
+                  <td className="px-4 py-3.5 text-muted-foreground truncate" title={sheet.reviewComment ?? ""}>
+                    {sheet.reviewComment?.trim() || "—"}
+                  </td>
+                </tr>
+              );
+            })}
+            {sheets.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  No timesheet history yet
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {open && (
+        <div className="border-t border-border bg-muted/20 px-4 py-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold">Week of {formatDateDMY(open.weekStart)}</p>
+            <button
+              type="button"
+              onClick={() => setOpenId(null)}
+              className="rounded-md p-1 text-muted-foreground hover:bg-accent"
+              aria-label="Close week details"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <ul className="space-y-1 text-sm">
+            {open.entries.map((entry) => (
+              <li key={entry.id} className="flex items-center justify-between gap-3">
+                <span className="truncate">{entry.projectName} · {entry.taskName}</span>
+                <span className="shrink-0 tabular-nums text-muted-foreground">
+                  {entry.hours.reduce((sum, hours) => sum + hours, 0)}h
+                  {entry.reviewDecision ? ` · ${entry.reviewDecision.replace("_", " ")}` : ""}
+                </span>
+              </li>
+            ))}
+            {open.entries.length === 0 && (
+              <li className="text-muted-foreground">No project rows on this week.</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ── TimesheetApprovalView ────────────────────────────────────────────────────
 function TimesheetApprovalView() {
   const [sheets, setSheets] = useState<ApprovalSheet[]>([]);
@@ -755,8 +985,13 @@ function TimesheetApprovalView() {
   }, [selectedTs]);
 
   const askAction = (action: ReviewAction) => {
-    if (!actionComment.trim()) {
+    const comment = actionComment.trim();
+    if (!comment) {
       toast.error("A comment is mandatory for all timesheet approval actions!");
+      return;
+    }
+    if (comment.length > 200) {
+      toast.error("Comment must be 200 characters or fewer.");
       return;
     }
     if (selectedEntries.length === 0) {
@@ -1151,11 +1386,15 @@ function TimesheetApprovalView() {
               </label>
               <textarea
                 value={actionComment}
-                onChange={(e) => setActionComment(e.target.value)}
+                maxLength={200}
+                onChange={(e) => setActionComment(e.target.value.slice(0, 200))}
                 placeholder="Provide approval, rejection, or change request reason comments..."
                 rows={3}
                 className="w-full rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
               />
+              <p className={cn("text-right text-[11px]", actionComment.length >= 200 ? "text-destructive" : "text-muted-foreground")}>
+                {actionComment.length}/200
+              </p>
             </div>
             <div className="flex justify-end gap-2 border-t border-border pt-3">
               <button

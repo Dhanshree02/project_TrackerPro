@@ -26,8 +26,9 @@ import { usePermissions } from "@/lib/permissions";
 import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { fetchClient, mapApiClient, updateClient, formatCustomerId, getSubVentureKycUrl } from "@/lib/api/clients";
-import { fetchEngagementManagers, filterEngagementManagers } from "@/lib/engagement-managers";
+import { NewClientModal } from "@/routes/customers.index";
 import { fetchSalesManagers, filterSalesManagers } from "@/lib/sales-managers";
+import { fetchEngagementManagers, filterEngagementManagers } from "@/lib/engagement-managers";
 import { fetchClientForRoute } from "@/lib/client-route-id";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import {
@@ -41,6 +42,15 @@ import { fetchProjects, mapApiProjectToProject } from "@/lib/api/projects";
 import { type Client, type Project } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+async function fetchEmployeesByDesignation(designationId: string): Promise<ApiEmployeeListItem[]> {
+  const page = await fetchEmployees({
+    designationId,
+    perPage: 100,
+    status: "Active",
+  });
+  return page.items;
+}
 
 // Small inline avatar bubble (initials)
 function AvatarBubble({ name, size = 22 }: { name: string; size?: number }) {
@@ -117,6 +127,7 @@ function CustomerDetailPage() {
   const [selectedSpoc, setSelectedSpoc] = useState<number | null>(null);
   const [svFilter, setSvFilter] = useState<string>("all");
   const [kycPreviewOpen, setKycPreviewOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (searchParams.status) {
@@ -417,7 +428,7 @@ function CustomerDetailPage() {
             // Group SPOC has no email — Company step only stores name + phone.
             email: "",
             phone: client.groupSpocContact || client.contactPhone || "—",
-            phoneCode: undefined as string | undefined,
+            phoneCode: client.groupSpocPhoneCode,
             designation: "Group SPOC",
             type: "Group SPOC",
           },
@@ -997,14 +1008,26 @@ function CustomerDetailPage() {
         <aside className="xl:col-span-1 flex min-h-0 flex-col gap-3">
           {/* Customer Information */}
           <div className="shrink-0 rounded-xl border border-border bg-card shadow-sm">
-            <div className="border-b border-border px-4 py-3">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <Building2 className="h-3.5 w-3.5" /> Customer Information
               </h2>
+              {hasPermission("clients:write") && (
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
+                >
+                  <Pencil className="h-3 w-3" /> Edit
+                </button>
+              )}
             </div>
             <dl className="divide-y divide-border">
               {[
-                { label: "Customer ID", value: formatCustomerId(client.id), mono: true },
+                { label: "Customer ID", value: client.clientCode || formatCustomerId(client.id), mono: true },
+                ...(activeSubVenture
+                  ? [{ label: "Sub-Venture ID", value: activeSubVenture.subVentureCode || "—", mono: true }]
+                  : []),
                 { label: "Customer Name", value: client.name },
                 { label: "Industry", value: client.industry },
                 { label: "Billing Medium", value: client.billingMedium || "—" },
@@ -1020,6 +1043,7 @@ function CustomerDetailPage() {
                 { label: "City", value: client.city || "—" },
                 { label: "Country", value: client.country || "—" },
                 { label: "Business Type", value: client.businessType || "—" },
+                { label: "Created By", value: client.createdByName || "—" },
               ].map(({ label, value, mono }) => (
                 <div key={label} className="grid grid-cols-2 gap-2 px-4 py-2.5 text-xs">
                   <dt className="font-medium text-muted-foreground">{label}</dt>
@@ -1166,7 +1190,7 @@ function CustomerDetailPage() {
                         <div className="min-w-0 flex-1">
                           <div className="font-medium text-foreground truncate">{p.fullName}</div>
                           <div className="text-[11px] text-muted-foreground truncate">
-                            {p.designation ?? "Engagement Manager"}
+                            {p.role === "EngagementManager" ? "EM (Engagement Manager)" : (p.role ?? p.designation ?? "Engagement Manager")}
                             {p.workEmail ? ` · ${p.workEmail}` : ""}
                           </div>
                         </div>
@@ -1267,7 +1291,7 @@ function CustomerDetailPage() {
                         <div className="min-w-0 flex-1">
                           <div className="font-medium text-foreground truncate">{p.fullName}</div>
                           <div className="text-[11px] text-muted-foreground truncate">
-                            {p.designation ?? "Sales Manager"}
+                            {p.role ?? p.designation ?? "Sales Manager"}
                             {p.workEmail ? ` · ${p.workEmail}` : ""}
                           </div>
                         </div>
@@ -1280,6 +1304,31 @@ function CustomerDetailPage() {
             </ul>
           </div>
         </div>
+      )}
+
+      {client && editOpen && (
+        <NewClientModal
+          apiClients={[client]}
+          editing={{ client, subVentureId: activeSubVenture?.id ?? null }}
+          onClose={() => setEditOpen(false)}
+          onCreated={() => {
+            const editedId = activeSubVenture?.id;
+            setEditOpen(false);
+            fetchClient(client.id)
+              .then((fresh) => {
+                if (!fresh) return;
+                const mapped = mapApiClient(fresh);
+                setClient(mapped);
+                if (editedId) {
+                  const sv = mapped.subVentures?.find((item) => item.id === editedId);
+                  if (sv?.name) setSvFilter(sv.name);
+                }
+              })
+              .catch(() => {
+                toast.error("Saved, but the profile could not be refreshed.");
+              });
+          }}
+        />
       )}
 
       {client && (

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, redirect } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import {
   Search,
@@ -58,6 +58,9 @@ import { Modal } from "./projects.index";
 import { Field } from "@/components/form-row";
 
 export const Route = createFileRoute("/action-centre")({
+  beforeLoad: () => {
+    throw redirect({ to: "/projects" });
+  },
   head: () => ({
     meta: [
       { title: "Action Centre — Pulse PMO" },

@@ -27,7 +27,9 @@ public sealed record ClientDto(
     IReadOnlyList<ClientContactDto> Contacts,
     DateOnly? CustomerSince,
     DateTime CreatedAtUtc,
-    string? ClientCode = null);
+    string? ClientCode = null,
+    string? GroupSpocPhoneCode = null,
+    string? CreatedByName = null);
 
 public sealed record ClientContactDto(
     string? Name,
@@ -45,14 +47,16 @@ public sealed record SubVentureDto(
     IReadOnlyList<ClientContactDto> Contacts,
     string? Notes = null,
     string? KycDocumentName = null,
-    string? KycDocumentPath = null);
+    string? KycDocumentPath = null,
+    string? SubVentureCode = null);
 
 /// <summary>Sub-venture payload for create/update requests.</summary>
 public sealed record SubVentureInput(
     string Name,
     List<ClientContactDto>? Contacts,
     string? Notes = null,
-    string? KycDocumentName = null);
+    string? KycDocumentName = null,
+    Guid? Id = null);
 
 public sealed record CreateClientRequest(
     string Name,
@@ -76,7 +80,9 @@ public sealed record CreateClientRequest(
     string? BillingMedium = null,
     string? GroupSpocName = null,
     string? GroupSpocContact = null,
-    string? ClientCode = null);
+    string? ClientCode = null,
+    string? GroupSpocPhoneCode = null,
+    string? CreatedByName = null);
 
 public sealed record UpdateClientRequest(
     string? Name = null,
@@ -100,4 +106,6 @@ public sealed record UpdateClientRequest(
     List<ClientContactDto>? Contacts = null,
     string? BillingMedium = null,
     string? GroupSpocName = null,
-    string? GroupSpocContact = null);
+    string? GroupSpocContact = null,
+    string? GroupSpocPhoneCode = null,
+    string? CreatedByName = null);

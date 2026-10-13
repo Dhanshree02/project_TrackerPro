@@ -1,11 +1,12 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Plus, Send, Trash2, Clock } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
-import { people, projects, timesheets } from "@/lib/mock-data";
+import { people, timesheets } from "@/lib/mock-data";
+import { fetchProjects, fetchProjectTasks } from "@/lib/api/projects";
 import { TimesheetStatusPill } from "@/components/pills";
 import { cn } from "@/lib/utils";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
@@ -40,8 +41,9 @@ function thisMonday() {
 }
 
 function TimesheetPage() {
+  const { user: authUser, status: authStatus } = useAuth();
   const { user, employeePersonId } = useRoleContext();
-  const { status: authStatus } = useAuth();
+  const effectiveEmployeeId = authUser?.employeeId || employeePersonId || (user as any)?.employeeId;
   const { hasPermission } = usePermissions();
   const [tab, setTab] = useState<"current" | "history">("current");
   const [weekStart] = useState(thisMonday());
@@ -55,13 +57,70 @@ function TimesheetPage() {
     },
   ]);
 
-  const tasksByProject = useMemo(() => {
-    const map: Record<string, (typeof projects)[number]["tasks"]> = {};
-    projects.forEach((p) => {
-      map[p.id] = p.tasks;
-    });
-    return map;
+  const [dbProjects, setDbProjects] = useState<Array<{ id: string; name: string; projectCode?: string }>>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [tasksByProject, setTasksByProject] = useState<Record<string, Array<{ id: string; title: string; serviceName?: string; stage?: string; estimatedHours?: number }>>>({});
+  const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
+
+  const loadTasksForProject = useCallback(async (projectId: string) => {
+    if (!projectId) return;
+    setLoadingTasks((prev) => ({ ...prev, [projectId]: true }));
+    try {
+      const apiTasks = await fetchProjectTasks(projectId);
+      setTasksByProject((prev) => ({
+        ...prev,
+        [projectId]: apiTasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          serviceName: t.serviceName?.trim() || undefined,
+          stage: t.stage,
+          estimatedHours: t.estimatedHours ?? undefined,
+        })),
+      }));
+    } catch (err) {
+      console.error(`Failed to load tasks for project ${projectId}:`, err);
+    } finally {
+      setLoadingTasks((prev) => ({ ...prev, [projectId]: false }));
+    }
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingProjects(true);
+
+    async function loadProjects() {
+      try {
+        let res = effectiveEmployeeId
+          ? await fetchProjects({ employeeId: effectiveEmployeeId, status: "active", perPage: 200 })
+          : null;
+
+        if (!res || !res.items || res.items.length === 0) {
+          res = await fetchProjects({ status: "active", perPage: 200 });
+        }
+
+        if (!res || !res.items || res.items.length === 0) {
+          res = await fetchProjects({ perPage: 200 });
+        }
+
+        if (!cancelled && res?.items) {
+          setDbProjects(res.items.map((p) => ({
+            id: p.id,
+            name: p.name,
+            projectCode: p.projectCode,
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to load real projects from DB:", err);
+      } finally {
+        if (!cancelled) setLoadingProjects(false);
+      }
+    }
+
+    loadProjects();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveEmployeeId]);
 
   const history = useMemo(() => {
     const byEmail = people.find(
@@ -152,7 +211,7 @@ function TimesheetPage() {
                 const projectNames = [
                   ...new Set(
                     ts.entries.map(
-                      (e) => projects.find((p) => p.id === e.projectId)?.name ?? e.projectId,
+                      (e) => dbProjects.find((p) => p.id === e.projectId)?.name ?? e.projectId,
                     ),
                   ),
                 ];
@@ -236,30 +295,51 @@ function TimesheetPage() {
               <tbody className="divide-y divide-border">
                 {rows.map((r) => {
                   const tasks = tasksByProject[r.projectId] ?? [];
+                  const isTaskLoading = loadingTasks[r.projectId];
                   const rowTotal = r.hours.reduce((a, b) => a + b, 0);
                   return (
                     <tr key={r.id}>
                       <td className="px-3 py-2 align-top">
                         <div className="flex flex-col gap-1.5">
                           <SearchableSelect
-                            options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                            options={dbProjects.map((p) => ({
+                              value: p.id,
+                              label: p.name,
+                              subLabel: p.projectCode,
+                            }))}
                             value={r.projectId}
-                            onChange={(projectId) =>
+                            onChange={(projectId) => {
                               update(r.id, {
                                 projectId,
                                 taskId: "",
-                              })
-                            }
-                            placeholder="Select project"
+                              });
+                              if (projectId) {
+                                loadTasksForProject(projectId);
+                              }
+                            }}
+                            placeholder={loadingProjects ? "Loading projects…" : "Select project"}
                             searchPlaceholder="Search projects…"
                             clearable={false}
                           />
                           <SearchableSelect
-                            options={tasks.map((t) => ({ value: t.id, label: t.title }))}
+                            options={tasks.map((t) => ({
+                              value: t.id,
+                              label: t.serviceName ? `${t.title} · ${t.serviceName}` : t.title,
+                              subLabel: t.stage ? `${t.stage}${t.estimatedHours ? ` · ${t.estimatedHours}h` : ""}` : undefined,
+                            }))}
                             value={r.taskId}
                             onChange={(taskId) => update(r.id, { taskId })}
-                            placeholder="Select task"
+                            placeholder={
+                              !r.projectId
+                                ? "Select a project first"
+                                : isTaskLoading
+                                ? "Loading tasks…"
+                                : tasks.length === 0
+                                ? "No tasks found"
+                                : "Select task"
+                            }
                             searchPlaceholder="Search tasks…"
+                            disabled={!r.projectId || isTaskLoading}
                             clearable={false}
                           />
                         </div>

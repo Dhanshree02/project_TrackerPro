@@ -35,9 +35,9 @@ export type DemoRoleKey =
   | "R&D - Team member"
   | (string & {});
 
-export const DEMO_ROLE_STORAGE_KEY = "pulse-demo-role-v2";
+export const DEMO_ROLE_STORAGE_KEY = "pulse-demo-role";
+/** Admin User. Used until the browser can read the last switched employee. */
 export const DEFAULT_DEMO_ROLE = "TK-0004";
-export const DEMO_PASSWORD = "Password@123";
 
 export interface DemoPersona {
   key: string;
@@ -935,6 +935,7 @@ export function getDemoPersona(roleOrKey: string): DemoPersona {
         p.roleKey.toLowerCase() === normalized ||
         p.label.toLowerCase() === normalized,
     ) ??
+    DEMO_PERSONAS.find((p) => p.key === DEFAULT_DEMO_ROLE) ??
     DEMO_PERSONAS[0]
   );
 }

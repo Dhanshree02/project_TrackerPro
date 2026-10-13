@@ -22,54 +22,6 @@ namespace PMS.API.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("PMS.API.Modules.Auth.Models.RefreshToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ReplacedByTokenHash")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("RevokedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("tbl_refresh_tokens", "auth");
-                });
-
             modelBuilder.Entity("PMS.API.Modules.Customers.Models.Client", b =>
                 {
                     b.Property<Guid>("Id")
@@ -133,6 +85,10 @@ namespace PMS.API.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.Property<DateOnly?>("CustomerSince")
                         .HasColumnType("date");
 
@@ -153,6 +109,10 @@ namespace PMS.API.Migrations
                     b.Property<string>("GroupSpocName")
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
+
+                    b.Property<string>("GroupSpocPhoneCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
 
                     b.Property<string>("Industry")
                         .IsRequired()
@@ -207,7 +167,8 @@ namespace PMS.API.Migrations
 
                     b.HasIndex("ClientCode")
                         .IsUnique()
-                        .HasDatabaseName("IX_clients_ClientCode");
+                        .HasDatabaseName("IX_clients_ClientCode")
+                        .HasFilter("\"ClientCode\" IS NOT NULL");
 
                     b.HasIndex("CountryId");
 
@@ -342,6 +303,11 @@ namespace PMS.API.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("SubVentureCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -351,6 +317,9 @@ namespace PMS.API.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClientId");
+
+                    b.HasIndex("SubVentureCode")
+                        .IsUnique();
 
                     b.ToTable("tbl_sub_ventures", "customer");
                 });
@@ -2201,6 +2170,58 @@ namespace PMS.API.Migrations
                     b.ToTable("tbl_exited_employees", "resource");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstAddressCity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Line")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_address_cities", "master");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstBusinessUnit", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3260,6 +3281,54 @@ namespace PMS.API.Migrations
                     b.ToTable("tbl_timesheets", "timesheet");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Users.Models.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReplacedByTokenHash")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("tbl_refresh_tokens", "auth");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Users.Models.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3485,17 +3554,6 @@ namespace PMS.API.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("tbl_users", "auth");
-                });
-
-            modelBuilder.Entity("PMS.API.Modules.Auth.Models.RefreshToken", b =>
-                {
-                    b.HasOne("PMS.API.Modules.Users.Models.User", "User")
-                        .WithMany("RefreshTokens")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Customers.Models.Client", b =>
@@ -4017,6 +4075,17 @@ namespace PMS.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Users.Models.RefreshToken", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Users.Models.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Users.Models.RolePermissionAudit", b =>

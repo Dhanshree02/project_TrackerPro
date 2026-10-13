@@ -37,7 +37,9 @@ import {
   updateClient,
   uploadSubVentureKyc,
   formatCustomerId,
+  fetchNextClientCode,
   registerClientCode,
+  getSubVentureKycUrl,
   type CreateClientInput,
 } from "@/lib/api/clients";
 import { fetchCities, fetchContactDesignations, fetchContactTypes, fetchCountries, fetchIndustries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
@@ -1044,29 +1046,55 @@ const Row = ({ label, v }: { label: string; v: string }) => (
   </>
 );
 
-function normalizeCustomerId(raw: string): string {
-  const trimmed = raw.trim().toUpperCase();
-  const numbered = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(trimmed);
-  if (numbered?.[1]) return `C${numbered[1].padStart(3, "0")}`;
-  return trimmed;
+export type CustomerEditTarget = {
+  client: Client;
+  subVentureId?: string | null;
+};
+
+function contactEntriesForEdit(client: Client, subVentureId?: string | null): ContactEntry[] {
+  const sv = client.subVentures?.find((item) => item.id === subVentureId);
+  const country = client.country ?? "";
+  const source = (sv?.contacts ?? []).filter((c) => c.name?.trim());
+  if (source.length === 0) return [blankContact(country)];
+  return source.map((c) => ({
+    name: c.name ?? "",
+    email: c.email ?? "",
+    phone: (c.phone ?? "").replace(/\D/g, ""),
+    designation: c.designation ?? "",
+    contactType: c.contactType ?? "",
+    country: c.country || country,
+  }));
 }
 
-function NewClientModal({
+export function NewClientModal({
   apiClients,
   onClose,
   onCreated,
+  editing = null,
 }: {
   apiClients: Client[] | null;
   onClose: () => void;
   onCreated: () => void;
+  editing?: CustomerEditTarget | null;
 }) {
   const { user } = useRoleContext();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
+  const editClient = editing?.client;
+  const editSv = editClient?.subVentures?.find((sv) => sv.id === editing?.subVentureId);
+  const isEdit = Boolean(editClient);
+  const existingKycName =
+    (editSv?.kycDocumentName || "").trim() ||
+    (editSv?.kycDocumentPath ? editSv.kycDocumentPath.split(/[/\\]/).pop() || "" : "");
+  const existingKycUrl =
+    isEdit && editClient?.id && editSv?.id && editSv.kycDocumentPath
+      ? getSubVentureKycUrl(editClient.id, editSv.id)
+      : null;
+
   // ── TK Customer search state — API-backed clients only ──
   const existingClients = useMemo(() => apiClients ?? [], [apiClients]);
-  const [tkSearch, setTkSearch] = useState("");
+  const [tkSearch, setTkSearch] = useState(editClient?.name ?? "");
   const [tkDropOpen, setTkDropOpen] = useState(false);
   const [selectedExisting, setSelectedExisting] = useState<(typeof existingClients)[0] | null>(
     null,
@@ -1090,33 +1118,66 @@ function NewClientModal({
     (c) => tkSearch.trim() === "" || c.name.toLowerCase().includes(tkSearch.toLowerCase()),
   );
 
+  const computeNextCode = useCallback(() => {
+    if (apiClients && apiClients.length > 0) {
+      let maxSeq = apiClients.length;
+      for (const c of apiClients) {
+        const raw = c.clientCode || c.id;
+        const m = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(raw);
+        if (m && m[1]) {
+          const n = parseInt(m[1], 10);
+          if (n > maxSeq) maxSeq = n;
+        }
+      }
+      return "C" + String(maxSeq + 1).padStart(3, "0");
+    }
+    return "C001";
+  }, [apiClients]);
+
   const [s, setS] = useState<NewClientState>(() => ({
-    clientName: "",
-    subVentureName: "",
-    customerId: "",
-    engagementManager: "",
-    salesManager: "",
-    phoneNumber: "",
-    groupSpocName: "",
-    billingMedium: "",
-    city: "",
-    country: "",
-    industry: "",
-    businessType: "",
-    createdAt: new Date().toISOString(),
-    createdBy: user?.name ?? "Unknown",
+    clientName: editClient?.name ?? "",
+    subVentureName: editSv?.name ?? "",
+    customerId: editClient ? (editClient.clientCode || formatCustomerId(editClient.id)) : computeNextCode(),
+    engagementManager: editClient?.engagementManager ?? "",
+    salesManager: editClient?.salesManager ?? "",
+    phoneNumber: (editClient?.groupSpocContact || editClient?.contactPhone || "").replace(/\D/g, ""),
+    groupSpocName: editClient?.groupSpocName || editClient?.contactName || "",
+    billingMedium: editClient?.billingMedium ?? "",
+    city: editClient?.city ?? "",
+    country: editClient?.country ?? "",
+    industry: editClient?.industry ?? "",
+    businessType: editClient?.businessType ?? "",
+    createdAt: editClient?.customerSince ? `${editClient.customerSince}T00:00:00` : new Date().toISOString(),
+    createdBy: editClient?.createdByName || user?.name || "Unknown",
     kycFile: null,
-    contacts: [blankContact()],
-    notes: "",
+    contacts: editClient ? contactEntriesForEdit(editClient, editing?.subVentureId) : [blankContact()],
+    notes: editSv?.notes ?? "",
   }));
 
+  useEffect(() => {
+    if (isEdit) return;
+    let cancelled = false;
+    void fetchNextClientCode().then((code) => {
+      if (!cancelled && code && !selectedExisting) {
+        setS((p) => ({ ...p, customerId: code }));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedExisting]);
   const [previewKyc, setPreviewKyc] = useState(false);
   const { pool: emPool, loading: emLoading } = useEngagementManagers();
   const emOptions = useMemo(() => {
     const opts = emPool.map((p) => ({
       value: p.fullName,
       label: p.fullName,
-      subLabel: [p.designation ?? "Delivery Account Manager", p.workEmail].filter(Boolean).join(" · "),
+      subLabel: [
+        p.role === "EngagementManager" ? "EM (Engagement Manager)" : (p.role ?? p.designation ?? "Engagement Manager"),
+        p.workEmail,
+      ]
+        .filter(Boolean)
+        .join(" · "),
     }));
     const stored = s.engagementManager.trim();
     if (stored && !opts.some((o) => o.value === stored)) {
@@ -1129,7 +1190,7 @@ function NewClientModal({
     const opts = smPool.map((p) => ({
       value: p.fullName,
       label: p.fullName,
-      subLabel: [p.designation ?? "Sales Manager", p.workEmail].filter(Boolean).join(" · "),
+      subLabel: [p.role ?? p.designation ?? "Sales Manager", p.workEmail].filter(Boolean).join(" · "),
     }));
     const stored = s.salesManager.trim();
     if (stored && !opts.some((o) => o.value === stored)) {
@@ -1314,7 +1375,7 @@ function NewClientModal({
       country: "",
       industry: "",
       businessType: "",
-      customerId: "",
+      customerId: computeNextCode(),
     }));
   };
   const matchingExistingClient =
@@ -1330,14 +1391,22 @@ function NewClientModal({
   // Returns the first missing required field (top-to-bottom), or null if all valid
   const getStep1Error = (): string | null => {
     if (!selectedExisting && !s.clientName.trim()) return "TK Customer / Partner Name is required";
-    if (!s.subVentureName.trim()) return "End Customer / Sub-venture Name is required";
-    if (duplicatePairExists) return "Client and sub-venture already exist";
+    if (!(isEdit && !editing?.subVentureId) && !s.subVentureName.trim()) {
+      return "End Customer / Sub-venture Name is required";
+    }
+    if (isEdit && editing?.subVentureId) {
+      const clash = (editing.client.subVentures ?? []).some(
+        (sv) => sv.id !== editing.subVentureId && namesEq(sv.name, s.subVentureName),
+      );
+      if (clash) return "Another sub-venture already uses this name";
+    }
+    if (!isEdit && duplicatePairExists) return "Client and sub-venture already exist";
     if (!s.engagementManager.trim()) return "Engagement Manager is required";
     if (
       emPool.length > 0 &&
       !emPool.some((p) => p.fullName === s.engagementManager.trim())
     ) {
-      const storedEm = selectedExisting?.engagementManager?.trim();
+      const storedEm = (isEdit ? editing?.client.engagementManager : selectedExisting?.engagementManager)?.trim();
       if (!storedEm || storedEm !== s.engagementManager.trim()) {
         return "Select an Engagement Manager from the list";
       }
@@ -1347,28 +1416,15 @@ function NewClientModal({
       smPool.length > 0 &&
       !smPool.some((p) => p.fullName === s.salesManager.trim())
     ) {
-      const storedSm = selectedExisting?.salesManager?.trim();
+      const storedSm = (isEdit ? editing?.client.salesManager : selectedExisting?.salesManager)?.trim();
       if (!storedSm || storedSm !== s.salesManager.trim()) {
         return "Select a Sales Manager from the list";
       }
     }
-    if (!selectedExisting) {
-      const customerId = s.customerId.trim();
-      if (!customerId) return "Customer ID is required";
-      if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,19}$/.test(customerId)) {
-        return "Customer ID can use letters, numbers, and hyphens only";
-      }
-      const normalized = normalizeCustomerId(customerId);
-      const taken = existingClients.some((c) => {
-        const code = (c.clientCode || formatCustomerId(c.id) || "").trim();
-        return code.toLowerCase() === normalized.toLowerCase();
-      });
-      if (taken) return `Customer ID ${normalized} is already in use`;
-    }
-    if (!s.billingMedium.trim() && !selectedExisting?.billingMedium?.trim()) {
+    if (!s.billingMedium.trim() && !(isEdit ? editing?.client.billingMedium : selectedExisting?.billingMedium)?.trim()) {
       return "Billing Medium is required";
     }
-    if (selectedExisting) return null; // existing client — remaining company fields already on record
+    if (selectedExisting && !isEdit) return null; // existing client — remaining company fields already on record
     if (!s.country.trim()) return "Country is required";
     if (!s.city.trim()) return "City is required";
     if (!s.groupSpocName.trim()) return "Group SPOC Name is required";
@@ -1382,6 +1438,7 @@ function NewClientModal({
   };
 
   const getStep2Error = (): string | null => {
+    if (isEdit && !editing?.subVentureId) return null;
     for (let i = 0; i < s.contacts.length; i++) {
       const c = s.contacts[i];
       const n = s.contacts.length > 1 ? ` (Contact ${i + 1})` : "";
@@ -1398,7 +1455,7 @@ function NewClientModal({
       if (mailErr) return `Contact Email${n} — ${mailErr}`;
       if (!c.designation.trim()) return `Designation${n} is required`;
     }
-    if (!s.kycFile) return "KYC Document is required";
+    if (!s.kycFile && !(isEdit && editSv?.kycDocumentPath)) return "KYC Document is required";
     return null;
   };
 
@@ -1476,7 +1533,6 @@ function NewClientModal({
         billingMedium: s.billingMedium.trim() || null,
         groupSpocName: s.groupSpocName.trim() || null,
         groupSpocContact: s.phoneNumber.trim() || null,
-        clientCode: selectedExisting ? null : normalizeCustomerId(s.customerId),
         notes: null,
         kycDocumentName: s.kycFile?.name || null,
         engagementManager,
@@ -1511,9 +1567,85 @@ function NewClientModal({
     };
   };
 
+  const saveCustomerEdit = async () => {
+    if (!editing) return;
+    const validContacts = s.contacts
+      .filter((c) => c.name.trim() && c.email.trim())
+      .map((c) => {
+        const meta = countries.find((x) => x.name === c.country);
+        return {
+          name: c.name.trim(),
+          email: c.email.trim(),
+          phone: c.phone.trim(),
+          designation: c.designation.trim(),
+          contactType: c.contactType,
+          country: c.country.trim() || undefined,
+          phoneCode: meta?.phoneCode,
+        };
+      });
+    const subVentures: ClientSubVenture[] = (editing.client.subVentures ?? []).map((sv) => {
+      if (editing.subVentureId && sv.id === editing.subVentureId) {
+        return {
+          id: sv.id,
+          name: s.subVentureName.trim(),
+          contacts: validContacts,
+          notes: s.notes?.trim() || undefined,
+          kycDocumentName: sv.kycDocumentName,
+        };
+      }
+      return {
+        id: sv.id,
+        name: sv.name,
+        contacts: sv.contacts,
+        notes: sv.notes,
+        kycDocumentName: sv.kycDocumentName,
+      };
+    });
+    const updated = await updateClient(editing.client.id, {
+      name: s.clientName.trim(),
+      industry: (s.industry || editing.client.industry || "Other").trim(),
+      engagementManager: s.engagementManager.trim() || null,
+      salesManager: s.salesManager.trim() || null,
+      billingMedium: s.billingMedium.trim() || null,
+      country: s.country.trim() || null,
+      city: s.city.trim() || null,
+      businessType: s.businessType.trim() || null,
+      groupSpocName: s.groupSpocName.trim() || null,
+      groupSpocContact: s.phoneNumber.trim() || null,
+      groupSpocPhoneCode: countryDialCode,
+      contactName: s.groupSpocName.trim() || null,
+      contactPhone: s.phoneNumber.trim() || null,
+      subVentures,
+      contacts: editing.client.contacts,
+    });
+    if (s.kycFile && editing.subVentureId) {
+      try {
+        await uploadSubVentureKyc(editing.client.id, editing.subVentureId, s.kycFile);
+      } catch (kycErr) {
+        toast.warning("Details saved, but the KYC document didn't upload", {
+          description: kycErr instanceof Error ? kycErr.message : "Please re-upload the KYC document from the customer page.",
+        });
+      }
+    }
+    if (updated?.id) registerClientCode(updated.id, updated.clientCode || s.customerId);
+    toast.success(editing.subVentureId ? "Sub-venture updated" : "Customer updated", {
+      description: "The existing record was saved.",
+    });
+    onCreated();
+  };
+
   const submit = async () => {
     setSubmitting(true);
     try {
+      if (editing) {
+        const err = getStep1Error() || getStep2Error();
+        if (err) {
+          toast.error(err);
+          return;
+        }
+        await saveCustomerEdit();
+        return;
+      }
       const { api, store, managerPatch } = buildNewClientPayload();
 
       if (duplicatePairExists && matchingExistingClient) {
@@ -1638,7 +1770,12 @@ function NewClientModal({
 
   return (
     <>
-    <Modal title="New Customer Onboarding" onClose={onClose} wide draggable>
+    <Modal
+      title={isEdit ? (editing?.subVentureId ? "Edit Sub-venture" : "Edit Customer") : "New Customer Onboarding"}
+      onClose={onClose}
+      wide
+      draggable
+    >
       {/* Stepper */}
       <div className="mb-5 flex items-center gap-2 text-xs">
         {["Company", "Contact", "Review"].map((label, i) => {
@@ -1685,10 +1822,16 @@ function NewClientModal({
                 placeholder="Search existing TK customers or type a new name…"
                 maxLength={FIELD_MAX.clientName}
                 value={tkSearch}
-                onFocus={() => setTkDropOpen(true)}
+                onFocus={() => {
+                  if (!isEdit) setTkDropOpen(true);
+                }}
                 onChange={(e) => {
                   const filtered = e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.clientName);
                   setTkSearch(filtered);
+                  if (isEdit) {
+                    setS((p) => ({ ...p, clientName: filtered }));
+                    return;
+                  }
                   setTkDropOpen(true);
                   if (!filtered.trim() || (selectedExisting && filtered !== selectedExisting.name)) {
                     resetTkDependents(filtered);
@@ -1712,7 +1855,7 @@ function NewClientModal({
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
-              {tkDropOpen && (
+              {tkDropOpen && !isEdit && (
                 <div
                   className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto overscroll-contain rounded-md border border-border bg-popover shadow-lg"
                   onMouseDown={(e) => e.preventDefault()}
@@ -1881,9 +2024,9 @@ function NewClientModal({
           ) : (
             <Field
               label="End Customer Name / Sub-venture Name"
-              required
+              required={!isEdit || Boolean(editing?.subVentureId)}
               error={
-                duplicatePairExists && matchingExistingClient
+                !isEdit && duplicatePairExists && matchingExistingClient
                   ? `Client and sub-venture already exist under ${matchingExistingClient.name}.`
                   : undefined
               }
@@ -1891,9 +2034,14 @@ function NewClientModal({
               <input
                 className={inputCls}
                 value={s.subVentureName}
+                readOnly={isEdit && !editing?.subVentureId}
                 maxLength={FIELD_MAX.subVentureName}
                 onChange={(e) => u("subVentureName", e.target.value.slice(0, FIELD_MAX.subVentureName))}
-                placeholder="Enter sub-venture or end customer name…"
+                placeholder={
+                  isEdit && !editing?.subVentureId
+                    ? "Select a sub-venture on the profile to edit it"
+                    : "Enter sub-venture or end customer name…"
+                }
               />
             </Field>
           )}
@@ -1925,18 +2073,14 @@ function NewClientModal({
           </div>
 
           {/* ── New TK customer fields — only shown when not selecting existing ── */}
-          {!selectedExisting && (
+          {(!selectedExisting || isEdit) && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Customer ID" required>
+              <Field label="Customer ID">
                 <input
-                  className={cn(inputCls, "font-mono font-semibold text-primary")}
-                  value={s.customerId}
-                  maxLength={20}
-                  placeholder="Enter customer ID, e.g. C042"
-                  onChange={(e) => {
-                    const next = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20);
-                    u("customerId", next);
-                  }}
+                  className={cn(readOnlyCls, "font-mono font-semibold text-primary")}
+                  value={s.customerId || "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0")}
+                  readOnly
+                  title="Auto-assigned sequential Customer ID"
                 />
               </Field>
               <Field label="Billing Medium" required>
@@ -2085,7 +2229,12 @@ function NewClientModal({
       {/* Step 2 — Contacts + registration numbers */}
       {step === 2 && (
         <div className="space-y-3">
-          {s.contacts.map((ct, idx) => (
+          {isEdit && !editing?.subVentureId && (
+            <p className="text-xs text-muted-foreground">
+              Sub-venture contacts stay as they are. Select a sub-venture on the profile to edit that sub-venture.
+            </p>
+          )}
+          {!(isEdit && !editing?.subVentureId) && s.contacts.map((ct, idx) => (
             <div key={idx} className="rounded-lg border border-border bg-background p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">
@@ -2249,54 +2398,69 @@ function NewClientModal({
           <div className="mt-4 pt-4 border-t border-border">
             <Field label="KYC Document" required>
               <div className="relative">
-                <label
-                  className={cn(
-                    "flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-dashed border-input bg-card px-3 text-sm transition-colors hover:bg-accent",
-                    s.kycFile && "border-success/50 bg-success/5",
-                  )}
-                >
-                  <input
-                    type="file"
-                    accept="*/*"
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                    onChange={(e) => setS((p) => ({ ...p, kycFile: e.target.files?.[0] ?? null }))}
-                  />
-                  {s.kycFile ? (
-                    <>
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
-                        <Check className="h-3 w-3" />
-                      </span>
-                      <span className="flex-1 truncate text-xs font-medium text-foreground">
-                        {s.kycFile.name}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {(s.kycFile.size / 1024).toFixed(0)} KB
-                      </span>
+                {s.kycFile || existingKycName ? (
+                  <div
+                    className={cn(
+                      "flex h-9 w-full items-center gap-2 rounded-md border border-success/50 bg-success/5 px-3 text-sm",
+                    )}
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+                      <Check className="h-3 w-3" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
+                      {s.kycFile ? s.kycFile.name : existingKycName}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {s.kycFile ? `${(s.kycFile.size / 1024).toFixed(0)} KB` : "On file"}
+                    </span>
+                    {(s.kycFile || existingKycUrl) && (
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setS((p) => ({ ...p, kycFile: null }));
-                        }}
-                        className="ml-1 rounded p-0.5 hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                        onClick={() => setPreviewKyc(true)}
+                        className="shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/10"
+                      >
+                        Preview
+                      </button>
+                    )}
+                    <label className="relative shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground">
+                      Replace
+                      <input
+                        type="file"
+                        accept="*/*"
+                        className="absolute inset-0 cursor-pointer opacity-0"
+                        onChange={(e) => setS((p) => ({ ...p, kycFile: e.target.files?.[0] ?? null }))}
+                      />
+                    </label>
+                    {s.kycFile && (
+                      <button
+                        type="button"
+                        onClick={() => setS((p) => ({ ...p, kycFile: null }))}
+                        className="rounded p-0.5 hover:bg-destructive/10 hover:text-destructive"
                         aria-label="Remove file"
                       >
                         <X className="h-3 w-3" />
                       </button>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-muted-foreground">📎</span>
-                      <span className="text-xs text-muted-foreground">
-                        Click to attach KYC document — any format accepted
-                      </span>
-                    </>
-                  )}
-                </label>
+                    )}
+                  </div>
+                ) : (
+                  <label className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-dashed border-input bg-card px-3 text-sm transition-colors hover:bg-accent">
+                    <input
+                      type="file"
+                      accept="*/*"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      onChange={(e) => setS((p) => ({ ...p, kycFile: e.target.files?.[0] ?? null }))}
+                    />
+                    <span className="text-muted-foreground">📎</span>
+                    <span className="text-xs text-muted-foreground">
+                      Click to attach KYC document — any format accepted
+                    </span>
+                  </label>
+                )}
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Required · PDF, image, Word, or any other format
+                {existingKycName && !s.kycFile
+                  ? "Already saved for this sub-venture. Replace only if you want a different file."
+                  : "Required · PDF, image, Word, or any other format"}
               </p>
             </Field>
           </div>
@@ -2333,7 +2497,7 @@ function NewClientModal({
                   : s.customerId
               }
             />
-            {!selectedExisting && (
+            {(!selectedExisting || isEdit) && (
               <>
                 <Row label="Engagement Manager" v={s.engagementManager} />
                 <Row label="Sales Manager" v={s.salesManager} />
@@ -2362,10 +2526,10 @@ function NewClientModal({
                   <FileText className="h-3.5 w-3.5 text-primary" /> KYC Document
                 </dt>
                 <dd className="truncate font-mono font-medium text-foreground mt-0.5">
-                  {s.kycFile ? s.kycFile.name : "—"}
+                  {s.kycFile ? s.kycFile.name : existingKycName || "—"}
                 </dd>
               </div>
-              {s.kycFile && (
+              {(s.kycFile || existingKycUrl) && (
                 <button
                   type="button"
                   onClick={() => setPreviewKyc(true)}
@@ -2429,16 +2593,17 @@ function NewClientModal({
             onClick={() => void submit()}
             className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
           >
-            {submitting ? "Saving…" : "Save Customer"}
+            {submitting ? "Saving…" : isEdit ? "Save changes" : "Save Customer"}
           </button>
         )}
       </div>
     </Modal>
     <KycDocPreviewModal
-      open={previewKyc && Boolean(s.kycFile)}
+      open={previewKyc && Boolean(s.kycFile || existingKycUrl)}
       onClose={() => setPreviewKyc(false)}
       file={s.kycFile}
-      fileName={s.kycFile?.name}
+      previewUrl={s.kycFile ? null : existingKycUrl}
+      fileName={s.kycFile?.name || existingKycName}
       clientName={s.clientName || s.subVentureName || "New Customer"}
       subVentureName={s.subVentureName}
     />

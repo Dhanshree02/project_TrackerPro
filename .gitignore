@@ -35,9 +35,10 @@ dist-ssr/
 apps/backend/.env
 apps/backend/**/bin/
 apps/backend/**/obj/
-apps/backend/**/logs/
-apps/backend/Log/**/*
+apps/backend/Log/**
+!apps/backend/Log/**/
 !apps/backend/Log/**/.gitkeep
+.vs/
 apps/backend/.vs/
 apps/backend/.idea/
 *.user
@@ -57,6 +58,11 @@ apps/backend/.idea/
 backups/
 *.dump
 *.sql.gz
+database/*-backup*.sql
+database/*.sql.bak
+database/prune_uat.sql
+database/trackerpro-uat-seed-clean.sql
+
 
 # Local File Storage (Tracked in git)
 !storage/
@@ -95,12 +101,9 @@ Desktop.ini
 scratch/
 
 # =========================
-# UAT Deployment Packages & Dumps
+# Deployment Packages & Tarballs
 # =========================
-PMS_TrackerPro_UAT.zip
 PMS_TrackerPro_UAT/
+PMS_TrackerPro_UAT.zip
 *.tar
-*.bak
-database/*backup*.sql
-database/prune_uat.sql
-database/trackerpro-uat-seed-clean.sql
+*.zip

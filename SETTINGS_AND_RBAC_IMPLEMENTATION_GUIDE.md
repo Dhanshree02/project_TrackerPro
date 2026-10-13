@@ -669,8 +669,8 @@ apiClient.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      // Token expired → redirect to login
-      window.location.href = "/login";
+      // Unauthorized: In development, user-switcher provides identity; in production, M365 SSO handles re-auth.
+      console.warn("Unauthorized request");
     }
     if (err.response?.status === 403) {
       // Access denied → show toast
@@ -745,9 +745,9 @@ apiClient.interceptors.response.use(
 - [ ] Verify that action buttons (Add/Edit/Delete) are hidden or disabled based on permissions
 
 ### Testing Checklist
-- [ ] Login as `Employee` role → Settings pages redirect to `/access-denied`
-- [ ] Login as `Pmo` role → Settings read-only view, no Add/Edit buttons visible
-- [ ] Login as `Dhanshree` → Full access to all settings and role management
+- [ ] Switch to `Employee` role via Topbar User Switcher → Settings pages redirect to `/access-denied`
+- [ ] Switch to `Pmo` role → Settings read-only view, no Add/Edit buttons visible
+- [ ] Switch to `Dhanshree` / `Admin` → Full access to all settings and role management
 - [ ] Attempt `PUT /api/users/roles/{id}/permissions` without `settings.roles.manage` permission → `403 Forbidden`
 - [ ] Verify `role_permission_audits` row is inserted after every permission change
 - [ ] Verify `Accounts` role can only see Finance reports (no customer edit, no HR, no settings)

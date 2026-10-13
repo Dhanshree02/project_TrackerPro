@@ -28,6 +28,17 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             query = query.Where(p => p.ClientId == queryParams.ClientId.Value);
         }
 
+        if (queryParams.EmployeeId.HasValue)
+        {
+            var empId = queryParams.EmployeeId.Value;
+            query = query.Where(p =>
+                p.ProjectManagerId == empId ||
+                p.TeamLeadId == empId ||
+                p.EngagementManagerId == empId ||
+                db.ProjectTeamMembers.Any(tm => tm.ProjectId == p.Id && tm.EmployeeId == empId) ||
+                db.ProjectTasks.Any(t => t.ProjectId == p.Id && db.ProjectTaskAssignments.Any(ta => ta.TaskId == t.Id && ta.EmployeeId == empId)));
+        }
+
         if (!string.IsNullOrWhiteSpace(queryParams.Status))
         {
             var status = queryParams.Status.Trim();
@@ -119,7 +130,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             "SELECT pg_advisory_xact_lock(hashtext('project_seq_' || {0}));",
             request.ClientId.ToString());
 
-        var nextCodeDto = await CalculateNextCodesInternalAsync(request.ClientId, client.Name, ct);
+        var nextCodeDto = await CalculateNextCodesInternalAsync(request.ClientId, client.Name, request.SubVentureId, ct);
 
         // Project Name resolution
         var resolvedName = !string.IsNullOrWhiteSpace(request.Name)
@@ -152,7 +163,9 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var project = new Project
         {
             ProjectCode = !string.IsNullOrWhiteSpace(request.ProjectCode) ? request.ProjectCode : nextCodeDto.ProjectSeqId,
-            WbsId = !string.IsNullOrWhiteSpace(request.WbsId) ? request.WbsId : nextCodeDto.WbsId,
+            WbsId = request.SubVentureId.HasValue
+                ? nextCodeDto.WbsId
+                : (!string.IsNullOrWhiteSpace(request.WbsId) ? request.WbsId : nextCodeDto.WbsId),
             Name = resolvedName,
             Description = request.Description,
             ClientId = request.ClientId,
@@ -277,12 +290,12 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         return (await GetProjectByIdAsync(id, ct))!;
     }
 
-    public async Task<NextProjectCodeDto> GetNextProjectCodeAsync(Guid clientId, CancellationToken ct = default)
+    public async Task<NextProjectCodeDto> GetNextProjectCodeAsync(Guid clientId, Guid? subVentureId = null, CancellationToken ct = default)
     {
         var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == clientId, ct)
             ?? throw new NotFoundException($"Client with ID '{clientId}' was not found.");
 
-        return await CalculateNextCodesInternalAsync(clientId, client.Name, ct);
+        return await CalculateNextCodesInternalAsync(clientId, client.Name, subVentureId, ct);
     }
 
     // ── Project Services Methods ──
@@ -501,7 +514,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         }
     }
 
-    private async Task<NextProjectCodeDto> CalculateNextCodesInternalAsync(Guid clientId, string clientName, CancellationToken ct)
+    private async Task<NextProjectCodeDto> CalculateNextCodesInternalAsync(Guid clientId, string clientName, Guid? subVentureId, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var fyStartYear = now.Month >= 4 ? now.Year : now.Year - 1;
@@ -538,7 +551,22 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             ? "C" + clientSeq.ToString("D3")
             : storedClientCode.Trim();
 
-        var wbsId = $"IN-{fyStartYear}-{fyEndYear:D2}-{paddedClientId}-{projectSeqId}";
+        var financialYear = $"{fyStartYear}-{fyEndYear:D2}";
+        string wbsId;
+        if (subVentureId.HasValue)
+        {
+            var subVentureCode = await db.SubVentures
+                .Where(s => s.Id == subVentureId.Value && s.ClientId == clientId)
+                .Select(s => s.SubVentureCode)
+                .FirstOrDefaultAsync(ct);
+            if (string.IsNullOrWhiteSpace(subVentureCode))
+                throw new NotFoundException($"Sub-venture '{subVentureId}' was not found for this client.");
+            wbsId = BuildWbsId(financialYear, subVentureCode, projectSeqId);
+        }
+        else
+        {
+            wbsId = $"IN-{financialYear}-{paddedClientId}-{projectSeqId}";
+        }
 
         // Client-specific project count
         var clientProjectCount = await db.Projects
@@ -549,9 +577,24 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         return new NextProjectCodeDto(
             projectSeqId,
             wbsId,
-            $"{fyStartYear}-{fyEndYear:D2}",
+            financialYear,
             clientProjectCount,
             formattedClientProjectCount);
+    }
+
+    /// <summary>
+    /// IN-{financialYear}/{subVentureCode}/{projectSeqId}, e.g. IN-2026-27/C013-01/P056.
+    /// Financial year and project sequence are supplied by the existing generators.
+    /// </summary>
+    public static string BuildWbsId(string financialYear, string subVentureCode, string projectSeqId)
+    {
+        if (string.IsNullOrWhiteSpace(financialYear))
+            throw new ArgumentException("Financial year is required.", nameof(financialYear));
+        if (string.IsNullOrWhiteSpace(subVentureCode))
+            throw new ArgumentException("Sub-venture ID is required.", nameof(subVentureCode));
+        if (string.IsNullOrWhiteSpace(projectSeqId))
+            throw new ArgumentException("Project ID is required.", nameof(projectSeqId));
+        return $"IN-{financialYear.Trim()}/{subVentureCode.Trim()}/{projectSeqId.Trim()}";
     }
 
     public static string BuildProjectName(
@@ -1291,7 +1334,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             "SELECT pg_advisory_xact_lock(hashtext('project_seq_' || {0}));",
             orig.ClientId.ToString());
 
-        var nextCodeDto = await CalculateNextCodesInternalAsync(orig.ClientId, orig.Client?.Name ?? string.Empty, ct);
+        var nextCodeDto = await CalculateNextCodesInternalAsync(orig.ClientId, orig.Client?.Name ?? string.Empty, orig.SubVentureId, ct);
 
         var subDeptNames = await db.ProjectServices
             .Where(s => s.ProjectId == id && !string.IsNullOrWhiteSpace(s.SubDepartment))

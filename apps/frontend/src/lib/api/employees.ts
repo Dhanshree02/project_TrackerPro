@@ -45,6 +45,7 @@ export interface ApiEmployeeListItem {
   clientEngManagerMapping?: string | null;
   /** On Floor Role: mst_roles.Name */
   jobRoleName?: string | null;
+  jobRole?: string | null;
 }
 
 export interface ApiEmployeeDetail {
@@ -152,6 +153,7 @@ export interface ApiMetaOption {
   name: string;
   parentId?: string | null;
   defaultRoleId?: string | null;
+  subDepartment?: string | null;
   /** RBAC role mapped to a designation (mst_designations.DefaultRoleId → roles.Name). */
   defaultRoleName?: string | null;
   defaultRoleDisplayName?: string | null;
@@ -174,6 +176,7 @@ export async function fetchEmployees(params: {
   status?: string;
   /** Exact On Floor Role name from mst_roles.Name */
   onFloorRole?: string;
+  role?: string;
 } = {}): Promise<PagedEnvelope<ApiEmployeeListItem>> {
   const query = new URLSearchParams();
   if (params.page) query.set("page", String(params.page));
@@ -183,6 +186,7 @@ export async function fetchEmployees(params: {
   if (params.designationId) query.set("designationId", params.designationId);
   if (params.status) query.set("status", params.status);
   if (params.onFloorRole) query.set("onFloorRole", params.onFloorRole);
+  if (params.role) query.set("role", params.role);
   return apiFetch<PagedEnvelope<ApiEmployeeListItem>>(`/api/v1/employees?${query.toString()}`);
 }
 

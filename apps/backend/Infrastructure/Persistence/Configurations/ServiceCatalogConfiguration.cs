@@ -24,7 +24,7 @@ public sealed class MstServiceDepartmentConfiguration : IEntityTypeConfiguration
         builder.ToTable("mst_service_departments", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
-        builder.HasIndex(x => x.Name).IsUnique();
+        builder.HasIndex(x => new { x.GroupId, x.Name }).IsUnique();
         builder.HasIndex(x => x.GroupId);
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
         builder.Property(x => x.Name).HasMaxLength(150).IsRequired();

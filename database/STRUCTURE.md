@@ -2,6 +2,22 @@
 
 This document is the north-star schema map for module-by-module backend delivery.
 
+## Physical layout
+
+PostgreSQL schemas match product modules. `__EFMigrationsHistory` stays in `public`.
+
+| Schema | What lives there |
+| --- | --- |
+| `auth` | `tbl_users`, `tbl_roles`, `tbl_refresh_tokens`, `log_role_permission_audits`, `tbl_role_widget_permissions`, `vw_role_widget_matrix` |
+| `master` | every `mst_` catalog, including service catalog and the widget catalog |
+| `resource` | `tbl_employees`, `tbl_exited_employees`, `log_employee_activity` |
+| `customer` | `tbl_clients`, `tbl_sub_ventures`, `tbl_client_contacts`, `tbl_client_assignments` |
+| `project` | `tbl_projects` and the service, task, team, invoice, document, and draft tables. Assignment history is `log_project_task_assignments` |
+| `timesheet` | `tbl_timesheets`, entry tables, and team schedule tables |
+| `repository` | `tbl_repository_items`, `tbl_repository_departments`, `log_repository_activity` |
+
+Prefixes: `mst_` catalog, `tbl_` business table, `log_` activity or audit, `vw_` view, `fnc_` function. `auth.tbl_roles` is RBAC. `master.mst_roles` is the job-title catalog.
+
 ## Current implementation status
 
 - Implemented (Core & Auth): `users`, `roles`, `refresh_tokens`, `role_permission_audits`, `clients`, `sub_ventures`, `client_assignments`, `client_contacts`

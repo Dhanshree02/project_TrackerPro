@@ -42,9 +42,10 @@ public class ProjectsController(
     [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<NextProjectCodeDto>>> GetNextProjectCode(
         [FromQuery] Guid clientId,
+        [FromQuery] Guid? subVentureId,
         CancellationToken ct)
     {
-        var result = await projectService.GetNextProjectCodeAsync(clientId, ct);
+        var result = await projectService.GetNextProjectCodeAsync(clientId, subVentureId, ct);
         return Ok(ApiResponse<NextProjectCodeDto>.Ok(result));
     }
 

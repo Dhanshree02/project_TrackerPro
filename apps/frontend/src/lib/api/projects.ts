@@ -67,6 +67,7 @@ export interface NextProjectCodeResult {
 
 export interface ProjectQueryParams {
   clientId?: string;
+  employeeId?: string;
   status?: string;
   wbsStatus?: string;
   search?: string;
@@ -399,6 +400,7 @@ export interface WbsPublishResult {
 export async function fetchProjects(params?: ProjectQueryParams): Promise<PagedResult<ApiProject>> {
   const query = new URLSearchParams();
   if (params?.clientId) query.set("clientId", params.clientId);
+  if (params?.employeeId) query.set("employeeId", params.employeeId);
   if (params?.status) query.set("status", params.status);
   if (params?.wbsStatus) query.set("wbsStatus", params.wbsStatus);
   if (params?.search) query.set("search", params.search);
@@ -553,9 +555,14 @@ export async function fetchProject(id: string): Promise<ApiProject | null> {
   return apiFetch<ApiProject>(`/api/v1/projects/${id}`);
 }
 
-/** GET /api/v1/projects/next-code?clientId= */
-export async function fetchNextProjectCode(clientId: string): Promise<NextProjectCodeResult | null> {
-  return apiFetch<NextProjectCodeResult>(`/api/v1/projects/next-code?clientId=${encodeURIComponent(clientId)}`);
+/** GET /api/v1/projects/next-code?clientId=&subVentureId= */
+export async function fetchNextProjectCode(
+  clientId: string,
+  subVentureId?: string | null,
+): Promise<NextProjectCodeResult | null> {
+  const params = new URLSearchParams({ clientId });
+  if (subVentureId) params.set("subVentureId", subVentureId);
+  return apiFetch<NextProjectCodeResult>(`/api/v1/projects/next-code?${params.toString()}`);
 }
 
 /** POST /api/v1/projects */

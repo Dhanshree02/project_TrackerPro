@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import {
   Briefcase,
   AlertTriangle,
@@ -27,6 +27,9 @@ import {
 } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: () => {
+    throw redirect({ to: "/projects" });
+  },
   head: () => ({
     meta: [
       { title: "Dashboard — Pulse PMO" },

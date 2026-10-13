@@ -15,7 +15,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 {
     private (string Email, string Name) GetCurrentPerformer()
     {
-        var email = !string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email.Trim() : "admin@acme.co";
+        var email = !string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email.Trim() : "admin@talakunchi.com";
         var name = !string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name.Trim() : "Admin User";
         return (email, name);
     }
@@ -28,6 +28,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         Guid? designationId,
         string? status,
         string? onFloorRole = null,
+        string? role = null,
         CancellationToken ct = default)
     {
         await CompleteEndedNoticePeriodsAsync(ct);
@@ -36,6 +37,8 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             .Include(e => e.Department)
             .Include(e => e.Designation)
             .Include(e => e.ReportingManager)
+            .Include(e => e.JobRole)
+            .Include(e => e.User).ThenInclude(u => u!.Role)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -70,6 +73,16 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         {
             var roleName = onFloorRole.Trim().ToLowerInvariant();
             query = query.Where(e => e.JobRole != null && e.JobRole.Name.ToLower() == roleName);
+        }
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var roleNeedle = role.Trim().ToLowerInvariant();
+            query = query.Where(e =>
+                (e.Role != null && e.Role.ToLower().Contains(roleNeedle)) ||
+                (e.JobRole != null && e.JobRole.Name != null && e.JobRole.Name.ToLower().Contains(roleNeedle)) ||
+                (e.User != null && e.User.Role != null &&
+                    ((e.User.Role.Name != null && e.User.Role.Name.ToLower().Contains(roleNeedle)) ||
+                     (e.User.Role.DisplayName != null && e.User.Role.DisplayName.ToLower().Contains(roleNeedle)))));
         }
 
         var total = await query.CountAsync(ct);
@@ -108,7 +121,9 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.Skills,
                 e.Certifications,
                 e.Languages,
-                e.Role,
+                !string.IsNullOrWhiteSpace(e.Role)
+                    ? e.Role
+                    : (e.User != null && e.User.Role != null ? (e.User.Role.DisplayName ?? e.User.Role.Name) : null),
                 e.BusinessUnit,
                 e.Team,
                 e.Experience,
@@ -120,6 +135,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.ProjectType,
                 e.ProjectAllocated,
                 e.ClientEngManagerMapping,
+                e.JobRole != null ? e.JobRole.Name : null,
                 e.JobRole != null ? e.JobRole.Name : null))
             .ToListAsync(ct);
 
@@ -205,7 +221,9 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             AltPhone = PhoneRules.NullIfEmpty(request.AltPhone),
             Gender = request.Gender,
             DateOfBirth = request.DateOfBirth,
-            Address = request.Address,
+            Address = string.IsNullOrWhiteSpace(request.Address)
+                ? null
+                : await RequireAddressCityAsync(request.Address, ct),
             EmergencyContact = request.EmergencyContact,
             EmergencyContactName = request.EmergencyContactName,
             EmergencyContactRelation = request.EmergencyContactRelation,
@@ -377,8 +395,11 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.Address is not null)
         {
-            if (entity.Address != request.Address) changes.Add("Address");
-            entity.Address = request.Address;
+            var address = string.IsNullOrWhiteSpace(request.Address)
+                ? null
+                : await RequireAddressCityAsync(request.Address, ct);
+            if (entity.Address != address) changes.Add("Address");
+            entity.Address = address;
         }
         if (request.EmergencyContact is not null)
         {
@@ -810,32 +831,21 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
-        var statusAtExit = employee.ConfirmationStatus ?? employee.Status;
-
-        if (request.EmployeeStatusId.HasValue)
+        string? selectedStatusName = null;
+        if (request.EmployeeStatusId is Guid statusId)
         {
-            var empStatus = await db.EmployeeStatuses.FirstOrDefaultAsync(s => s.Id == request.EmployeeStatusId.Value, ct);
-            if (empStatus is not null)
+            var selectedStatus = await db.EmployeeStatuses
+                .FirstOrDefaultAsync(s => s.Id == statusId && s.IsActive, ct);
+            if (selectedStatus is not null)
             {
-                employee.EmployeeStatusId = empStatus.Id;
-                employee.ConfirmationStatus = empStatus.Name;
-                employee.Status = empStatus.Name.StartsWith("Inactive", StringComparison.OrdinalIgnoreCase)
-                    ? "Inactive"
-                    : empStatus.Name.StartsWith("Resignation", StringComparison.OrdinalIgnoreCase) || empStatus.Name.Equals("Resigned", StringComparison.OrdinalIgnoreCase)
-                        ? "Notice Period"
-                        : empStatus.Name;
-                statusAtExit = empStatus.Name;
-            }
-            else
-            {
-                employee.Status = "Notice Period";
+                employee.EmployeeStatusId = selectedStatus.Id;
+                employee.Status = selectedStatus.Name;
+                selectedStatusName = selectedStatus.Name;
             }
         }
-        else
-        {
+        if (selectedStatusName is null)
             employee.Status = "Notice Period";
-        }
-
+        var statusAtExit = employee.Status;
         employee.ExitType = request.ExitType ?? employee.ExitType;
         employee.ExitReason = request.ExitReason ?? employee.ExitReason;
         if (!string.IsNullOrWhiteSpace(request.NoticePeriodServed))
@@ -900,7 +910,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             Action = "Offboarded",
             PerformedByEmail = offboardPerformerEmail,
             PerformedByName = offboardPerformerName,
-            Details = $"Offboarded employee (Status: {statusAtExit}, Reason: {request.ReasonForLeaving ?? "N/A"}, Last Working Day: {request.LastWorkingDay?.ToString("yyyy-MM-dd") ?? "N/A"})",
+            Details = $"Offboarded employee (Status: {employee.Status}, Reason: {request.ReasonForLeaving ?? "N/A"}, Last Working Day: {request.LastWorkingDay?.ToString("yyyy-MM-dd") ?? "N/A"})",
             CreatedAtUtc = DateTime.UtcNow
         });
 
@@ -976,6 +986,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 d.Name,
                 d.DepartmentId,
                 d.DefaultRoleId,
+                d.SubDepartment,
                 d.DefaultRole != null ? d.DefaultRole.Name : null,
                 d.DefaultRole != null ? d.DefaultRole.DisplayName : null))
             .ToListAsync(ct);
@@ -1237,7 +1248,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 existing.DefaultRoleId = defaultRoleId;
                 await db.SaveChangesAsync(ct);
             }
-            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.DepartmentId, existing.DefaultRoleId);
+            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.DepartmentId, existing.DefaultRoleId, existing.SubDepartment);
         }
 
         var entity = new MstDesignation
@@ -1252,7 +1263,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         };
         db.Designations.Add(entity);
         await db.SaveChangesAsync(ct);
-        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DepartmentId, entity.DefaultRoleId);
+        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DepartmentId, entity.DefaultRoleId, entity.SubDepartment);
     }
 
     public async Task<MetaOptionDto> CreateJobRoleAsync(
@@ -1547,10 +1558,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             user.Designation = desigName;
             updated = true;
         }
-        if (!string.IsNullOrWhiteSpace(entity.Role))
+        // Access role is assigned in User Role Access. A profile save must not replace it.
+        // A login account with no role yet still takes the on-floor role the first time.
+        if (user.RoleId is null && !string.IsNullOrWhiteSpace(entity.Role))
         {
             var rbacRole = await db.Roles.FirstOrDefaultAsync(r => r.Name == entity.Role, ct);
-            if (rbacRole is not null && user.RoleId != rbacRole.Id)
+            if (rbacRole is not null)
             {
                 user.RoleId = rbacRole.Id;
                 updated = true;
@@ -1644,6 +1657,31 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is Npgsql.PostgresException { SqlState: "23505" };
+
+    private async Task<string> RequireAddressCityAsync(string address, CancellationToken ct)
+    {
+        var trimmed = address.Trim();
+        if (trimmed.Length == 0)
+            throw new ConflictException("Current Address - City is required.");
+
+        var match = await db.AddressCities
+            .Where(c => c.IsActive)
+            .FirstOrDefaultAsync(c => c.Name.ToLower() == trimmed.ToLower(), ct);
+        if (match is not null)
+            return match.Name;
+
+        var any = await db.AddressCities.AnyAsync(ct);
+        if (!any)
+        {
+            var seeded = AddressCityCatalog.Names.FirstOrDefault(n =>
+                n.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+            if (seeded is not null)
+                return seeded;
+        }
+
+        throw new ConflictException(
+            "Select a Current Address - City from the list. Add a new city under Settings → Masters → Resource Masters.");
+    }
 
     private static string RequireName(string name)
     {

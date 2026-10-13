@@ -49,6 +49,7 @@ import {
   type ApiMetaOption,
 } from "@/lib/api/employees";
 import { fetchRoles, type ApiRole } from "@/lib/api/users";
+import { fetchAddressCities } from "@/lib/api/catalogs";
 import {
   EMPTY_ONBOARD,
   validateOnboardField,
@@ -72,7 +73,7 @@ import {
   formatBondExpiryDisplay,
 } from "@/lib/employment-bond";
 import type { Employee } from "@/lib/employee-data";
-import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
+import { MUMBAI_RAILWAY_STATIONS, addressCityToOption, setLiveAddressCities } from "@/lib/mumbai-stations";
 import { allProjects, allClients } from "@/lib/dh-store";
 
 // ── Local Form Components ─────────────────────────
@@ -405,6 +406,7 @@ export function EmployeeFormModal({
   const [postGradDegreeOptions, setPostGradDegreeOptions] = useState<ApiMetaOption[]>([]);
   const [certOptions, setCertOptions] = useState<ApiMetaOption[]>([]);
   const [rbacRoleOptions, setRbacRoleOptions] = useState<ApiRole[]>([]);
+  const [addressCityOptions, setAddressCityOptions] = useState(MUMBAI_RAILWAY_STATIONS);
 
   // Split parts
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
@@ -576,6 +578,23 @@ export function EmployeeFormModal({
       })
       .catch(() => toast.error("Could not load reporting managers"));
 
+    void fetchAddressCities()
+      .then((rows) => {
+        const options = rows.length > 0 ? rows.map(addressCityToOption) : [...MUMBAI_RAILWAY_STATIONS];
+        setAddressCityOptions(options);
+        setLiveAddressCities(options);
+        if (mode === "edit" && initialEmployee?.address) {
+          const saved = initialEmployee.address.trim();
+          if (options.some((option) => option.value === saved)) {
+            setForm((prev) => (prev.address === saved ? prev : { ...prev, address: saved }));
+          }
+        }
+      })
+      .catch(() => {
+        setAddressCityOptions([...MUMBAI_RAILWAY_STATIONS]);
+        setLiveAddressCities(null);
+      });
+
     void fetchEmailDomainOptions()
       .then((domains) => {
         const filtered = (domains ?? []).filter((d) =>
@@ -601,11 +620,19 @@ export function EmployeeFormModal({
       return;
     }
     void fetchDesignationOptions(form.departmentId)
-      .then(setDesigOptions)
+      .then((options) => {
+        setDesigOptions(options);
+        setForm((prev) => {
+          if (!prev.designationId) return prev;
+          const stillValid = options.some((d) => d.id === prev.designationId);
+          if (stillValid) return prev;
+          return { ...prev, designationId: "", subDepartment: "", jobRoleId: "", role: "" };
+        });
+      })
       .catch(() => setDesigOptions([]));
   }, [open, form.departmentId]);
 
-  // Dynamic roles when designation changes
+  // Dynamic roles and subdepartment when designation changes
   useEffect(() => {
     if (!open || !form.designationId) {
       setRoleOptions([]);
@@ -621,6 +648,17 @@ export function EmployeeFormModal({
         if (prev.role === mappedRoleName) return prev;
         return { ...prev, role: mappedRoleName };
       });
+    }
+
+    // Auto-map Sub-Department
+    if (matchedDesig?.subDepartment) {
+      const subs = matchedDesig.subDepartment.split(",").map((s) => s.trim()).filter(Boolean);
+      if (subs.length > 0) {
+        setForm((prev) => {
+          if (prev.subDepartment && subs.includes(prev.subDepartment)) return prev;
+          return { ...prev, subDepartment: subs[0] };
+        });
+      }
     }
 
     let cancelled = false;
@@ -655,6 +693,13 @@ export function EmployeeFormModal({
     );
   }, [workLocOptions, form.workLocation]);
 
+  const availableSubDepts = useMemo(() => {
+    if (!form.designationId) return [];
+    const matched = desigOptions.find((d) => d.id === form.designationId);
+    if (!matched?.subDepartment) return [];
+    return matched.subDepartment.split(",").map((s) => s.trim()).filter(Boolean);
+  }, [desigOptions, form.designationId]);
+
   const bondExpiryDisplay = useMemo(
     () => formatBondExpiryDisplay(form.joiningDate, form.bondDelivered, form.bondDurationMonths),
     [form.joiningDate, form.bondDelivered, form.bondDurationMonths],
@@ -688,9 +733,28 @@ export function EmployeeFormModal({
     const updatedForm = { ...formRef.current, [field]: nextValue };
     if (field === "departmentId") {
       updatedForm.designationId = "";
+      updatedForm.subDepartment = "";
       updatedForm.jobRoleId = "";
+      updatedForm.role = "";
     }
-    if (field === "designationId") updatedForm.jobRoleId = "";
+    if (field === "designationId") {
+      updatedForm.jobRoleId = "";
+      const matchedDesig = desigOptions.find((d) => d.id === nextValue);
+      if (matchedDesig?.subDepartment) {
+        const subs = matchedDesig.subDepartment.split(",").map((s) => s.trim()).filter(Boolean);
+        updatedForm.subDepartment = subs[0] ?? "";
+      } else {
+        updatedForm.subDepartment = "";
+      }
+      if (matchedDesig?.defaultRoleId && rbacRoleOptions.length > 0) {
+        const matchedRole = rbacRoleOptions.find(
+          (r) => r.id === matchedDesig.defaultRoleId || r.name.toLowerCase() === matchedDesig.defaultRoleId?.toLowerCase(),
+        );
+        if (matchedRole) {
+          updatedForm.role = matchedRole.name;
+        }
+      }
+    }
     if (field === "bondDelivered" && nextValue === "No") {
       updatedForm.bondDurationMonths = "0";
     }
@@ -1231,7 +1295,7 @@ export function EmployeeFormModal({
                   label="Current Address - City"
                   required
                   error={errors.address}
-                  options={[...MUMBAI_RAILWAY_STATIONS]}
+                  options={addressCityOptions}
                   value={form.address}
                   onChange={(v) => setField("address", v)}
                   placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"
@@ -1343,6 +1407,33 @@ export function EmployeeFormModal({
                   return temp;
                 }}
               />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-foreground flex items-center justify-between">
+                  <span>Sub-Department</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Auto-mapped</span>
+                </label>
+                <SearchableSelect
+                  id="emp-field-sub-department"
+                  placeholder="Select Sub-Department..."
+                  searchPlaceholder="Search sub-departments..."
+                  options={
+                    availableSubDepts.length > 0
+                      ? availableSubDepts.map((s) => ({ value: s, label: s }))
+                      : form.subDepartment
+                        ? [{ value: form.subDepartment, label: form.subDepartment }]
+                        : []
+                  }
+                  value={form.subDepartment}
+                  onChange={(val) => setField("subDepartment", val)}
+                  disabled={!form.designationId}
+                  disabledHint="Select a designation first"
+                  className="w-full text-xs"
+                  buttonClassName={cn(
+                    "h-9 text-xs transition-all",
+                    !form.subDepartment && "text-muted-foreground",
+                  )}
+                />
+              </div>
               <FormField
                 id="form-role"
                 label="Assigned RBAC Role"
@@ -1769,7 +1860,7 @@ export function EmployeeFormModal({
                 <FormSelect
                   id="form-clientLocation"
                   label="Client Location"
-                  options={[...MUMBAI_RAILWAY_STATIONS]}
+                  options={addressCityOptions}
                   value={form.clientLocation}
                   onChange={(v) => setField("clientLocation", v)}
                   placeholder="Select railway station (Western, Central, Harbour, Trans-Harbour)…"

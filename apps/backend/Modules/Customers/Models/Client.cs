@@ -64,6 +64,12 @@ public class Client : BaseEntity
     /// <summary>Client-level Group SPOC name from onboarding (not a sub-venture contact).</summary>
     public string? GroupSpocName { get; set; }
 
+    /// <summary>Dial code shown with Group SPOC Contact, e.g. +91.</summary>
+    public string? GroupSpocPhoneCode { get; set; }
+
+    /// <summary>Name of the person who onboarded this customer.</summary>
+    public string? CreatedByName { get; set; }
+
     /// <summary>Client-level Group SPOC phone from onboarding (not a sub-venture contact).</summary>
     public string? GroupSpocContact { get; set; }
 

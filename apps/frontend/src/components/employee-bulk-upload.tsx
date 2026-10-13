@@ -34,7 +34,6 @@ export function EmployeeBulkUploadMenu({
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [downloadingSample, setDownloadingSample] = useState(false);
-  const [importErrors, setImportErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDownloadSample = async () => {
@@ -78,23 +77,22 @@ export function EmployeeBulkUploadMenu({
     try {
       const result = await uploadEmployeeBulk(selectedFile);
 
-      if (result.created > 0) {
+      if (result.errors && result.errors.length > 0) {
+        const detail = result.errors
+          .slice(0, 4)
+          .map((entry) => `Row ${entry.row}: ${entry.message}`)
+          .join(" ");
+        toast.error("Nothing was uploaded. Fix every row and try again.", {
+          description: detail || "One or more rows are not valid.",
+        });
+      } else if (result.created > 0) {
         onImported();
         toast.success(
           `${result.created} resource${result.created === 1 ? "" : "s"} successfully imported!`,
         );
       }
 
-      if (result.errors && result.errors.length > 0) {
-        setImportErrors(result.errors.map((error) => error.message));
-        if (result.created === 0) {
-          toast.error("Upload was not completed. Each line names the TK ID and the column to fix.");
-        } else {
-          toast.warning(
-            `${result.created} imported. ${result.errors.length} problem${result.errors.length === 1 ? "" : "s"} still need a fix.`,
-          );
-        }
-      } else if (result.created > 0) {
+      if (result.created > 0 || (result.errors && result.errors.length > 0)) {
         setIsOpen(false);
         resetModal();
       }
@@ -109,7 +107,6 @@ export function EmployeeBulkUploadMenu({
   const resetModal = () => {
     setSelectedFile(null);
     setIsDragging(false);
-    setImportErrors([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -294,21 +291,6 @@ export function EmployeeBulkUploadMenu({
                 )}
               </div>
             </div>
-
-            {importErrors.length > 0 && (
-              <div className="max-h-48 overflow-auto rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                <p className="mb-2 text-xs font-semibold text-destructive">
-                  Fix these columns, then upload the file again
-                </p>
-                <ul className="space-y-1.5">
-                  {importErrors.map((message, index) => (
-                    <li key={`${index}-${message}`} className="text-xs leading-snug text-destructive">
-                      {message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
 
           {/* Footer Action Bar */}

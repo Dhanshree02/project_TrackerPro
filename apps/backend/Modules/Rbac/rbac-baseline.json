@@ -1,0 +1,5738 @@
+{
+  "version": "excel-v01",
+  "leaves": [
+    {
+      "module": "Dashboard",
+      "submodule": null,
+      "subSubmodule": null,
+      "widget": "KPI'S",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Dashboard",
+      "submodule": null,
+      "subSubmodule": null,
+      "widget": "Assigned Projects",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Dashboard",
+      "submodule": null,
+      "subSubmodule": null,
+      "widget": "Pending issues",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Dashboard",
+      "submodule": null,
+      "subSubmodule": null,
+      "widget": "Project stauts",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Dashboard",
+      "submodule": null,
+      "subSubmodule": null,
+      "widget": "Pending approvals",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Action Center",
+      "submodule": "Bucket List",
+      "subSubmodule": null,
+      "widget": "Raise issues",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          1
+        ],
+        "Accounts": [
+          1,
+          1
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          1
+        ],
+        "Sales team member": [
+          1,
+          1
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          1,
+          1
+        ],
+        "SOC-Team Member": [
+          1,
+          1
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          1,
+          1
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          1,
+          1
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "module": "Action Center",
+      "submodule": "Bucket List",
+      "subSubmodule": null,
+      "widget": "Start timer",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          0,
+          0
+        ],
+        "COO": [
+          0,
+          0
+        ],
+        "CTO": [
+          0,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          0,
+          0
+        ],
+        "EngagementManager": [
+          0,
+          0
+        ],
+        "R&D - Team member": [
+          1,
+          1
+        ],
+        "SOC-Team Member": [
+          1,
+          1
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          0,
+          0
+        ],
+        "SOC-HOD": [
+          0,
+          0
+        ],
+        "Consulting-Team member": [
+          1,
+          1
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          0,
+          0
+        ],
+        "Consulting-HOD": [
+          0,
+          0
+        ],
+        "Testing-Team Member": [
+          1,
+          1
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          0,
+          0
+        ],
+        "Testing HOD": [
+          0,
+          0
+        ],
+        "Intern": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "module": "Action Center",
+      "submodule": "Approvals",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          0,
+          0
+        ],
+        "COO": [
+          0,
+          0
+        ],
+        "CTO": [
+          0,
+          0
+        ],
+        "IT Admin": [
+          1,
+          1
+        ],
+        "Accounts": [
+          1,
+          1
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          1
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Action Center",
+      "submodule": "Alerts",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          1
+        ],
+        "Accounts": [
+          1,
+          1
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          1
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          1,
+          1
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Action Center",
+      "submodule": "Notifications",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          1
+        ],
+        "Accounts": [
+          1,
+          1
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          1
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          1,
+          1
+        ],
+        "SOC-Team Member": [
+          1,
+          1
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          1,
+          1
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          1,
+          1
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Overview",
+      "widget": "Budget",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          1
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          0,
+          0
+        ],
+        "EngagementManager": [
+          0,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          0,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          0,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          0,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Overview",
+      "widget": "Extension Request",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          0,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          0,
+          0
+        ],
+        "SOC-HOD": [
+          0,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          0,
+          0
+        ],
+        "Consulting-HOD": [
+          0,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          0,
+          0
+        ],
+        "Testing HOD": [
+          0,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Overview",
+      "widget": "Sr.project Manger",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          1,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Overview",
+      "widget": "Project manager",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          1,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Overview",
+      "widget": "Team leads",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          1,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "WBS",
+      "widget": "Billing Information",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          1,
+          1
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          0,
+          0
+        ],
+        "EngagementManager": [
+          0,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          0,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          0,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          0,
+          0
+        ],
+        "Testing HOD": [
+          0,
+          0
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "WBS",
+      "widget": "PMO Intake & Prerequiste Workflow",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "WBS",
+      "widget": "Invoice Schedule",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          1,
+          1
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          0,
+          0
+        ],
+        "EngagementManager": [
+          0,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          0,
+          0
+        ],
+        "SOC-HOD": [
+          0,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          0,
+          0
+        ],
+        "Consulting-HOD": [
+          0,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          0,
+          0
+        ],
+        "Testing HOD": [
+          0,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Team",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Task",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Health",
+      "widget": "Issues",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Health",
+      "widget": "Aletrs",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Health",
+      "widget": "Escalation",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Health",
+      "widget": "Appreciation",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Health",
+      "widget": "Customer Engagment",
+      "tab": "Interview Scheduling",
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Health",
+      "widget": "Customer Engagment",
+      "tab": "Additional customer Requirement",
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          1
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Projects",
+      "submodule": "projects Cards",
+      "subSubmodule": "Invoice",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          1,
+          1
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          0,
+          0
+        ],
+        "EngagementManager": [
+          0,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          0,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          0,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          0,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Reports",
+      "submodule": "Sales Report",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          1
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          0,
+          0
+        ],
+        "EngagementManager": [
+          0,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          0,
+          0
+        ],
+        "SOC-HOD": [
+          0,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          0,
+          0
+        ],
+        "Consulting-HOD": [
+          0,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          0,
+          0
+        ],
+        "Testing HOD": [
+          0,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Reports",
+      "submodule": "WBS Tracker",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Reports",
+      "submodule": "PO Tracker",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Reports",
+      "submodule": "Invoice tracker",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          0,
+          0
+        ],
+        "EngagementManager": [
+          0,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          0,
+          0
+        ],
+        "SOC-HOD": [
+          0,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          0,
+          0
+        ],
+        "Consulting-HOD": [
+          0,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          0,
+          0
+        ],
+        "Testing HOD": [
+          0,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Resource",
+      "submodule": "Resource Directory",
+      "subSubmodule": "Resource Detailes",
+      "widget": "Personal Information",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          1,
+          1
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          1,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Resource",
+      "submodule": "Resource Directory",
+      "subSubmodule": "Resource Detailes",
+      "widget": "orgnization deatile",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          1,
+          1
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          1,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Resource",
+      "submodule": "Resource Directory",
+      "subSubmodule": "Resource Detailes",
+      "widget": "employment and bond",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          1,
+          1
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          1,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Resource",
+      "submodule": "Resource Directory",
+      "subSubmodule": "Resource Detailes",
+      "widget": "Eduacation and experience",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          1,
+          1
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          1,
+          1
+        ],
+        "SOC-Team Member": [
+          1,
+          1
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          1,
+          1
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          1,
+          1
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "module": "Resource",
+      "submodule": "Resource Directory",
+      "subSubmodule": "Resource Detailes",
+      "widget": "Pmo information",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          1,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          1,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Resource",
+      "submodule": "Resource Directory",
+      "subSubmodule": "Resource Detailes",
+      "widget": "Activity Logs",
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          1,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          0,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          0,
+          0
+        ],
+        "SOC-HOD": [
+          0,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          0,
+          0
+        ],
+        "Consulting-HOD": [
+          0,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          0,
+          0
+        ],
+        "Testing HOD": [
+          0,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Resource",
+      "submodule": "Reource Pool",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          1,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Resource",
+      "submodule": "Exit Summary",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          1,
+          1
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Customers",
+      "submodule": "Customers Card",
+      "subSubmodule": "Customer profile",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          1
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Repository",
+      "submodule": null,
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          1,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          0
+        ],
+        "SOC-Manager": [
+          1,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          0
+        ],
+        "Consulting-Manager": [
+          1,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          0
+        ],
+        "Testing-Manager": [
+          1,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "My team",
+      "submodule": "Team Dashboard",
+      "subSubmodule": null,
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "My team",
+      "submodule": "Timesheets",
+      "subSubmodule": "My timsheet",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          1
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          1,
+          1
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          1,
+          1
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "module": "My team",
+      "submodule": "Timesheets",
+      "subSubmodule": "Timesheet Approval",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          1,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          1
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          1,
+          0
+        ],
+        "SOC-Team Leader": [
+          1,
+          1
+        ],
+        "SOC-Manager": [
+          1,
+          1
+        ],
+        "SOC-Senior Manager": [
+          1,
+          1
+        ],
+        "SOC-HOD": [
+          1,
+          1
+        ],
+        "Consulting-Team member": [
+          1,
+          0
+        ],
+        "Consulting-Team Leader": [
+          1,
+          1
+        ],
+        "Consulting-Manager": [
+          1,
+          1
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          1
+        ],
+        "Consulting-HOD": [
+          1,
+          1
+        ],
+        "Testing-Team Member": [
+          1,
+          0
+        ],
+        "Testing-Team Leader": [
+          1,
+          1
+        ],
+        "Testing-Manager": [
+          1,
+          1
+        ],
+        "Testing Senior Manager": [
+          1,
+          1
+        ],
+        "Testing HOD": [
+          1,
+          1
+        ],
+        "Intern": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Settings",
+      "submodule": "Roles & Permission",
+      "subSubmodule": "Moduleswise Access",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Settings",
+      "submodule": "Roles & Permission",
+      "subSubmodule": "User Role Access",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Settings",
+      "submodule": "Masters",
+      "subSubmodule": "Project Masters",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          1
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Settings",
+      "submodule": "Masters",
+      "subSubmodule": "Customer Masters",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          1,
+          0
+        ],
+        "HR": [
+          0,
+          0
+        ],
+        "Sales Manager": [
+          1,
+          0
+        ],
+        "Sales team member": [
+          1,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "module": "Settings",
+      "submodule": "Masters",
+      "subSubmodule": "Resource Master",
+      "widget": null,
+      "tab": null,
+      "grants": {
+        "CEO": [
+          1,
+          0
+        ],
+        "COO": [
+          1,
+          0
+        ],
+        "CTO": [
+          1,
+          0
+        ],
+        "IT Admin": [
+          0,
+          0
+        ],
+        "Accounts": [
+          0,
+          0
+        ],
+        "HR": [
+          1,
+          1
+        ],
+        "Sales Manager": [
+          0,
+          0
+        ],
+        "Sales team member": [
+          0,
+          0
+        ],
+        "PMO": [
+          1,
+          0
+        ],
+        "EngagementManager": [
+          1,
+          0
+        ],
+        "R&D - Team member": [
+          0,
+          0
+        ],
+        "SOC-Team Member": [
+          0,
+          0
+        ],
+        "SOC-Team Leader": [
+          0,
+          0
+        ],
+        "SOC-Manager": [
+          0,
+          0
+        ],
+        "SOC-Senior Manager": [
+          1,
+          0
+        ],
+        "SOC-HOD": [
+          1,
+          0
+        ],
+        "Consulting-Team member": [
+          0,
+          0
+        ],
+        "Consulting-Team Leader": [
+          0,
+          0
+        ],
+        "Consulting-Manager": [
+          0,
+          0
+        ],
+        "Consulting-Senior Manager": [
+          1,
+          0
+        ],
+        "Consulting-HOD": [
+          1,
+          0
+        ],
+        "Testing-Team Member": [
+          0,
+          0
+        ],
+        "Testing-Team Leader": [
+          0,
+          0
+        ],
+        "Testing-Manager": [
+          0,
+          0
+        ],
+        "Testing Senior Manager": [
+          1,
+          0
+        ],
+        "Testing HOD": [
+          1,
+          0
+        ],
+        "Intern": [
+          0,
+          0
+        ]
+      }
+    }
+  ]
+}

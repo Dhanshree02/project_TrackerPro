@@ -29,6 +29,8 @@ export type TeamMember = {
   department: string;
   status: MemberStatus;
   avatarColor: string;
+  /** False on the All Employees tab when this person does not report to the signed-in user. */
+  directReport?: boolean;
 };
 
 export type CalendarEvent = {

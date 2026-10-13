@@ -13,11 +13,14 @@ public interface IEmployeeService
         Guid? designationId,
         string? status,
         string? onFloorRole = null,
+        string? role = null,
         CancellationToken ct = default);
 
     Task<EmployeeDetailDto?> GetEmployeeAsync(string idOrCode, CancellationToken ct = default);
 
     Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, CancellationToken ct = default);
+
+    Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, bool checkIdentity, CancellationToken ct = default);
 
     Task<string> GetNextEmployeeCodeAsync(bool isIntern, CancellationToken ct = default);
 
