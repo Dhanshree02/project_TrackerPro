@@ -1,5 +1,7 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/settings/masters")({
-  component: () => <Navigate to="/dh-settings-masters" replace />,
+  beforeLoad: () => {
+    throw redirect({ to: "/projects" });
+  },
 });

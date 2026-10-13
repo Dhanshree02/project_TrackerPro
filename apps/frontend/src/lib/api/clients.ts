@@ -35,6 +35,7 @@ export interface ApiSubVenture {
   notes?: string | null;
   kycDocumentName?: string | null;
   kycDocumentPath?: string | null;
+  subVentureCode?: string | null;
 }
 
 export interface ApiClient {
@@ -57,6 +58,8 @@ export interface ApiClient {
   billingMedium?: string | null;
   groupSpocName?: string | null;
   groupSpocContact?: string | null;
+  groupSpocPhoneCode?: string | null;
+  createdByName?: string | null;
   notes?: string | null;
   kycDocumentName?: string | null;
   kycDocumentPath?: string | null;
@@ -97,6 +100,8 @@ export function mapApiClient(c: ApiClient): Client {
     billingMedium: c.billingMedium ?? undefined,
     groupSpocName: c.groupSpocName ?? c.contactName ?? undefined,
     groupSpocContact: c.groupSpocContact ?? c.contactPhone ?? undefined,
+    groupSpocPhoneCode: c.groupSpocPhoneCode ?? undefined,
+    createdByName: c.createdByName ?? undefined,
     notes: c.notes ?? undefined,
     kycDocumentName: c.kycDocumentName ?? undefined,
     kycDocumentPath: c.kycDocumentPath ?? undefined,
@@ -105,6 +110,7 @@ export function mapApiClient(c: ApiClient): Client {
     subVentures: (c.subVentures ?? []).map((sv) => ({
       id: sv.id,
       name: sv.name,
+      subVentureCode: sv.subVentureCode ?? undefined,
       notes: sv.notes ?? undefined,
       kycDocumentName: sv.kycDocumentName ?? undefined,
       kycDocumentPath: sv.kycDocumentPath ?? undefined,
@@ -193,6 +199,7 @@ export interface CreateClientInput {
   billingMedium?: string | null;
   groupSpocName?: string | null;
   groupSpocContact?: string | null;
+  groupSpocPhoneCode?: string | null;
   notes?: string | null;
   kycDocumentName?: string | null;
   subVentures?: ClientSubVenture[];

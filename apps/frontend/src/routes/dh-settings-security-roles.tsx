@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Search, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Save, RotateCcw, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +13,9 @@ import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 
 export const Route = createFileRoute("/dh-settings-security-roles")({
+  beforeLoad: () => {
+    throw redirect({ to: "/projects" });
+  },
   head: () => ({
     meta: [
       { title: "Roles & Permissions — Settings — Pulse PMO" },

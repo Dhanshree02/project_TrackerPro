@@ -12,6 +12,12 @@ public class SubVenture : BaseEntity
 
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Persistent business id scoped to the parent client, e.g. C013-01.
+    /// Assigned once and reused for every project under this sub-venture.
+    /// </summary>
+    public string SubVentureCode { get; set; } = string.Empty;
+
     /// <summary>Free-text notes captured for this sub-venture during onboarding.</summary>
     public string? Notes { get; set; }
 

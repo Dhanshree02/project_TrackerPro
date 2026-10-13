@@ -67,8 +67,19 @@ interface TsRow {
   id: string;
   projectId: string;
   taskId: string;
+  taskName: string;
   hours: number[];
   notes: string[];
+}
+
+function taskChoiceLabel(title: string, serviceName?: string) {
+  return serviceName ? `${title} · ${serviceName}` : title;
+}
+
+function savedTaskLabel(taskName: string | undefined, taskId: string) {
+  const name = taskName?.trim();
+  if (!name || name === taskId || name.includes("-svc-")) return "";
+  return name;
 }
 
 function emptyRow(): TsRow {
@@ -76,6 +87,7 @@ function emptyRow(): TsRow {
     id: `r${Date.now()}`,
     projectId: "",
     taskId: "",
+    taskName: "",
     hours: [0, 0, 0, 0, 0, 0, 0],
     notes: ["", "", "", "", "", "", ""],
   };
@@ -93,6 +105,7 @@ function rowsFromWeek(week: TimesheetWeek): TsRow[] {
       id: entry.id,
       projectId: entry.projectKey,
       taskId: entry.taskKey,
+      taskName: entry.taskName || "",
       hours,
       notes,
     };
@@ -158,7 +171,7 @@ function MyTimesheetView() {
 
   const [dbProjects, setDbProjects] = useState<Array<{ id: string; name: string; projectCode?: string }>>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
-  const [tasksByProject, setTasksByProject] = useState<Record<string, Array<{ id: string; title: string; stage?: string; estimatedHours?: number }>>>({});
+  const [tasksByProject, setTasksByProject] = useState<Record<string, Array<{ id: string; title: string; serviceName?: string; stage?: string; estimatedHours?: number }>>>({});
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
 
   const [rows, setRows] = useState<TsRow[]>(() => [emptyRow()]);
@@ -178,6 +191,7 @@ function MyTimesheetView() {
         [projectId]: apiTasks.map((t) => ({
           id: t.id,
           title: t.title,
+          serviceName: t.serviceName?.trim() || undefined,
           stage: t.stage,
           estimatedHours: t.estimatedHours ?? undefined,
         })),
@@ -263,7 +277,7 @@ function MyTimesheetView() {
         projectKey: row.projectId,
         projectName: project?.name || "Project",
         taskKey: row.taskId,
-        taskName: task?.title || "Task",
+        taskName: task ? taskChoiceLabel(task.title, task.serviceName) : (row.taskName || "Task"),
         days: row.hours.map((hours, dayIndex) => ({
           dayIndex,
           hours: Number(hours) || 0,
@@ -446,6 +460,7 @@ function MyTimesheetView() {
                         update(r.id, {
                           projectId,
                           taskId: "",
+                          taskName: "",
                         });
                         if (projectId) {
                           loadTasksForProject(projectId);
@@ -460,15 +475,26 @@ function MyTimesheetView() {
                     {(() => {
                       const pTasks = tasksByProject[r.projectId] ?? [];
                       const isTaskLoading = loadingTasks[r.projectId];
+                      const options = pTasks.map((t) => ({
+                        value: t.id,
+                        label: taskChoiceLabel(t.title, t.serviceName),
+                        subLabel: t.stage ? `${t.stage}${t.estimatedHours ? ` · ${t.estimatedHours}h` : ""}` : undefined,
+                      }));
+                      const savedLabel = savedTaskLabel(r.taskName, r.taskId);
+                      if (r.taskId && savedLabel && !options.some((option) => option.value === r.taskId)) {
+                        options.unshift({ value: r.taskId, label: savedLabel, subLabel: undefined });
+                      }
                       return (
                         <SearchableSelect
-                          options={pTasks.map((t) => ({
-                            value: t.id,
-                            label: t.title,
-                            subLabel: t.stage ? `${t.stage}${t.estimatedHours ? ` · ${t.estimatedHours}h` : ""}` : undefined,
-                          }))}
+                          options={options}
                           value={r.taskId}
-                          onChange={(taskId) => update(r.id, { taskId })}
+                          onChange={(taskId) => {
+                            const task = pTasks.find((item) => item.id === taskId);
+                            update(r.id, {
+                              taskId,
+                              taskName: task ? taskChoiceLabel(task.title, task.serviceName) : savedLabel,
+                            });
+                          }}
                           placeholder={
                             !r.projectId
                               ? "Select a project first"

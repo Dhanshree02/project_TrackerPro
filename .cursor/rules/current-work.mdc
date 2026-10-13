@@ -5,7 +5,23 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-07
+**Last updated:** 2026-10-13
+
+- **Work only on `pms_uat`.** UAT app is http://localhost:39106, API http://localhost:52814, database `pms_uat` on host port 41763. pgAdmin is http://localhost:46382 (`osdpkvam@osdpkvam.com` / `Osdpkvam`). Do not change `pms_development` data.
+
+- **UAT sample data is one of each.** `pms_uat` keeps Admin User (`TK-0004`), MediCare Plus (`C006`), sub-venture MediCare Hospital Systems (`C006-04`), and project Hospital Management System. Current Address - City has the 128 Mumbai station names in `master.mst_address_cities`.
+
+- **Dashboard, Action Centre, and Settings are hidden.** They are out of the sidebar and those routes open Projects. The menus are hidden in the shared frontend source.
+
+- **My Timesheet opens with a blank project and task.** Admin’s week of 2026-10-12 had a draft line for `cust test(sub cust 1)_Mixed_01` / Web Application Penetration Testing with 0 hours. That line was removed on `pms_uat`, so the week starts empty until a project and task are chosen.
+
+- **Sub-venture IDs follow the stored customer ID.** Customer `C003` has `C003-01`, then `C003-02`, and the next sub-venture added under that customer takes the next number. `customer.tbl_clients."ClientCode"` and `customer.tbl_sub_ventures."SubVentureCode"` were aligned on `pms_uat`. Lumen Energy is `C003` with `C003-01` through `C003-05`. Existing project WBS IDs were left unchanged. New sub-ventures are numbered from that customer’s `ClientCode` in `AssignMissingSubVentureCodesAsync`.
+
+- **Customer profile Edit reuses onboarding.** Edit on Customer Information updates the existing client. When a sub-venture is selected, Edit updates that sub-venture by its id, including a rename, and leaves the others unchanged. Customer ID and Sub-Venture ID are not regenerated. `PUT /api/v1/clients/{id}`.
+
+- **Timesheet task dropdown shows the service.** On My Timesheet and My Team timesheets, each task option is `{task} · {service name}`. A saved row keeps that name after refresh instead of the stored task key.
+
+- **Sub-Venture IDs are stored on `customer.tbl_sub_ventures."SubVentureCode"`.** Each sub-venture keeps `{CustomerId}-{01}`, scoped to its client (cust test is `C013-01`, `C013-02`). New sub-ventures take the next number under that client. Project onboarding shows that id next to Customer ID. New WBS IDs are `IN-{FY}/{SubVentureCode}/{ProjectId}` (for example `IN-2026-27/C013-01/P056`). Existing project WBS IDs were left as they are. Migration `20261012130236_AddSubVentureCode` is applied on `pms_development`.
 
 - **Current Address - City comes from `master.mst_address_cities`.** Settings → Masters → Resource Masters adds a city, and Onboard New Employee (and Client Location) loads `GET /api/v1/catalogs/address-cities`. The saved value stays on `resource.tbl_employees."Address"`. The Mumbai station list is seeded into that table. Bulk upload rejects a city that is not in the master.
 

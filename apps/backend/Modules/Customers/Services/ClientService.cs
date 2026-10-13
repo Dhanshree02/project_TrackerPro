@@ -7,6 +7,7 @@ using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Shared.Exceptions;
 using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Customers.Services;
@@ -110,6 +111,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             BillingMedium = NormalizeBillingMedium(request.BillingMedium),
             GroupSpocName = NormalizeManagerName(request.GroupSpocName),
             GroupSpocContact = NormalizeManagerName(request.GroupSpocContact),
+            GroupSpocPhoneCode = NormalizeManagerName(request.GroupSpocPhoneCode),
+            CreatedByName = NormalizeManagerName(request.CreatedByName) ?? NormalizeManagerName(currentUser.Name),
             Notes = request.Notes,
             KycDocumentName = request.KycDocumentName,
             CustomerSince = TodayIst(),
@@ -125,10 +128,14 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             })
             .ToList();
 
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        client.ClientCode = await AllocateClientCodeAsync(ct);
         db.Clients.Add(client);
+        await AssignMissingSubVentureCodesAsync(client.Id, client.SubVentures, ct);
         await db.SaveChangesAsync(ct);
 
         await PersistContactsAsync(client, request.Contacts, subVentureInputs, ct);
+        await tx.CommitAsync(ct);
 
         var created = await LoadClientGraphAsync(client.Id, ct);
         var clientCodes = await GetAllClientCodesAsync(ct);
@@ -140,6 +147,8 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         var client = await ApplyClientGraphIncludes(BuildScopedQuery())
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         if (client is null) return null;
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         if (request.Name is not null)
         {
@@ -196,27 +205,44 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             client.GroupSpocContact = NormalizeManagerName(request.GroupSpocContact);
             client.ContactPhone = client.GroupSpocContact;
         }
+        if (request.GroupSpocPhoneCode is not null)
+            client.GroupSpocPhoneCode = NormalizeManagerName(request.GroupSpocPhoneCode);
+        if (request.CreatedByName is not null && string.IsNullOrWhiteSpace(client.CreatedByName))
+            client.CreatedByName = NormalizeManagerName(request.CreatedByName);
         if (request.Notes is not null) client.Notes = request.Notes;
         if (request.KycDocumentName is not null) client.KycDocumentName = request.KycDocumentName;
         if (request.SubVentures is not null)
         {
-            // Replace semantics: the incoming list is the full desired set (matched by
-            // name, case-insensitive). Soft-delete removed rows, add new ones.
+            // The incoming list is the full desired set. An id updates that row, including a rename.
+            // A row without an id is matched by name, or added when the name is new.
             var incoming = request.SubVentures;
             var existing = client.SubVentures.ToList();
 
+            bool Kept(SubVenture ex) => incoming.Any(i =>
+                (i.Id is Guid id && id == ex.Id) ||
+                (i.Id is null && string.Equals(i.Name, ex.Name, StringComparison.OrdinalIgnoreCase)));
+
             foreach (var ex in existing)
             {
-                if (!incoming.Any(i => string.Equals(i.Name, ex.Name, StringComparison.OrdinalIgnoreCase)))
-                {
+                if (!Kept(ex))
                     client.SubVentures.Remove(ex);
-                }
             }
 
             foreach (var input in incoming)
             {
-                var match = existing.FirstOrDefault(e =>
-                    string.Equals(e.Name, input.Name, StringComparison.OrdinalIgnoreCase));
+                SubVenture? match;
+                if (input.Id is Guid subVentureId)
+                {
+                    match = existing.FirstOrDefault(e => e.Id == subVentureId);
+                    if (match is null)
+                        throw new NotFoundException($"Sub-venture '{subVentureId}' was not found for this client.");
+                }
+                else
+                {
+                    match = existing.FirstOrDefault(e =>
+                        string.Equals(e.Name, input.Name, StringComparison.OrdinalIgnoreCase));
+                }
+
                 if (match is not null)
                 {
                     match.Name = input.Name.Trim();
@@ -225,10 +251,6 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
                 }
                 else
                 {
-                    // Add via the DbSet (not the nav collection) so EF marks the new
-                    // entity as Added. Adding a non-default-Guid entity directly to a
-                    // tracked (Unchanged) client's nav collection makes EF treat it as
-                    // an existing row (Modified), which then fails with a 0-row UPDATE.
                     var subVenture = new SubVenture
                     {
                         ClientId = client.Id,
@@ -240,12 +262,15 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             }
         }
 
+        await AssignMissingSubVentureCodesAsync(client.Id, client.SubVentures, ct);
         await db.SaveChangesAsync(ct);
 
         if (request.SubVentures is not null || request.Contacts is not null)
         {
             await PersistContactsAsync(client, request.Contacts, request.SubVentures, ct);
         }
+
+        await tx.CommitAsync(ct);
 
         var updated = await LoadClientGraphAsync(client.Id, ct);
         var clientCodes = await GetAllClientCodesAsync(ct);
@@ -264,23 +289,67 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<string> GetNextClientCodeAsync(CancellationToken ct = default)
     {
-        var count = await db.Clients.IgnoreQueryFilters().CountAsync(ct);
-        return "C" + (count + 1).ToString("D3");
+        var codes = await db.Clients.IgnoreQueryFilters()
+            .Where(c => c.ClientCode != null && c.ClientCode != "")
+            .Select(c => c.ClientCode!)
+            .ToListAsync(ct);
+        return NextClientCode(codes);
+    }
+
+    private async Task<string> AllocateClientCodeAsync(CancellationToken ct)
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "SELECT pg_advisory_xact_lock(hashtext('client_code_seq'));");
+        var codes = await db.Clients.IgnoreQueryFilters()
+            .Where(c => c.ClientCode != null && c.ClientCode != "")
+            .Select(c => c.ClientCode!)
+            .ToListAsync(ct);
+        return NextClientCode(codes);
+    }
+
+    private static string NextClientCode(IEnumerable<string> existing)
+    {
+        var max = 0;
+        foreach (var code in existing)
+        {
+            var digits = new string(code.Where(char.IsDigit).ToArray());
+            if (int.TryParse(digits, out var n) && n > max) max = n;
+        }
+        return "C" + (max + 1).ToString("D3");
     }
 
     private async Task<Dictionary<Guid, string>> GetAllClientCodesAsync(CancellationToken ct)
     {
-        var clientIds = await db.Clients
+        var rows = await db.Clients
             .IgnoreQueryFilters()
             .OrderBy(c => c.CreatedAtUtc)
-            .Select(c => c.Id)
+            .Select(c => new { c.Id, c.ClientCode })
             .ToListAsync(ct);
 
-        var dict = new Dictionary<Guid, string>(clientIds.Count);
-        for (var i = 0; i < clientIds.Count; i++)
+        var dict = new Dictionary<Guid, string>(rows.Count);
+        var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in rows)
         {
-            dict[clientIds[i]] = "C" + (i + 1).ToString("D3");
+            if (string.IsNullOrWhiteSpace(row.ClientCode)) continue;
+            dict[row.Id] = row.ClientCode;
+            used.Add(row.ClientCode);
         }
+
+        var next = 0;
+        foreach (var row in rows)
+        {
+            if (dict.ContainsKey(row.Id)) continue;
+            string code;
+            do
+            {
+                next++;
+                code = "C" + next.ToString("D3");
+            }
+            while (used.Contains(code));
+            dict[row.Id] = code;
+            used.Add(code);
+        }
+
         return dict;
     }
 
@@ -358,6 +427,91 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         Designation = c.Designation,
         ContactType = c.ContactType,
     };
+
+    /// <summary>
+    /// Fills <see cref="SubVenture.SubVentureCode"/> on rows that do not have one yet.
+    /// Holds a per-client advisory lock so two concurrent creates cannot take the same sequence.
+    /// Existing codes are left as they are.
+    /// </summary>
+    private async Task AssignMissingSubVentureCodesAsync(
+        Guid clientId,
+        IEnumerable<SubVenture> ventures,
+        CancellationToken ct)
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "SELECT pg_advisory_xact_lock(hashtext('subventure_seq_' || {0}));",
+            clientId.ToString());
+
+        var pending = ventures.ToList();
+        foreach (var entry in db.ChangeTracker.Entries<SubVenture>())
+        {
+            if (entry.Entity.ClientId == clientId
+                && entry.State == EntityState.Added
+                && !pending.Contains(entry.Entity))
+            {
+                pending.Add(entry.Entity);
+            }
+        }
+
+        var existing = await db.SubVentures
+            .IgnoreQueryFilters()
+            .Where(s => s.ClientId == clientId && s.SubVentureCode != null && s.SubVentureCode != "")
+            .Select(s => s.SubVentureCode!)
+            .ToListAsync(ct);
+
+        var clientCode = db.ChangeTracker.Entries<Client>()
+            .Select(e => e.Entity)
+            .FirstOrDefault(c => c.Id == clientId && !string.IsNullOrWhiteSpace(c.ClientCode))
+            ?.ClientCode;
+        if (string.IsNullOrWhiteSpace(clientCode))
+        {
+            clientCode = await db.Clients.IgnoreQueryFilters()
+                .Where(c => c.Id == clientId)
+                .Select(c => c.ClientCode)
+                .FirstOrDefaultAsync(ct);
+        }
+        if (string.IsNullOrWhiteSpace(clientCode))
+        {
+            var codes = await GetAllClientCodesAsync(ct);
+            clientCode = codes.GetValueOrDefault(clientId) ?? "C001";
+        }
+
+        var prefix = clientCode.Trim();
+        var max = 0;
+        foreach (var code in existing)
+        {
+            if (!string.Equals(SubVentureCodes.PrefixOf(code), prefix, StringComparison.OrdinalIgnoreCase))
+                continue;
+            var n = SubVentureCodes.ReadSequence(code);
+            if (n > max) max = n;
+        }
+        foreach (var sv in pending)
+        {
+            if (string.IsNullOrWhiteSpace(sv.SubVentureCode)) continue;
+            if (!string.Equals(SubVentureCodes.PrefixOf(sv.SubVentureCode), prefix, StringComparison.OrdinalIgnoreCase))
+                continue;
+            var n = SubVentureCodes.ReadSequence(sv.SubVentureCode);
+            if (n > max) max = n;
+        }
+
+        var used = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
+        foreach (var sv in pending)
+        {
+            if (!string.IsNullOrWhiteSpace(sv.SubVentureCode)) continue;
+
+            string code;
+            do
+            {
+                max++;
+                code = SubVentureCodes.Format(prefix, max);
+            }
+            while (used.Contains(code)
+                || await db.SubVentures.IgnoreQueryFilters().AnyAsync(s => s.SubVentureCode == code, ct));
+
+            used.Add(code);
+            sv.SubVentureCode = code;
+        }
+    }
 
     private static bool HasContactContent(ClientContactDto c) =>
         !string.IsNullOrWhiteSpace(c.Name) ||
@@ -645,11 +799,14 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             s.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType, x.Country, x.PhoneCode)).ToList(),
             s.Notes,
             s.KycDocumentName,
-            s.KycDocumentPath)).ToList(),
+            s.KycDocumentPath,
+            s.SubVentureCode)).ToList(),
         c.Contacts.Select(x => new ClientContactDto(x.Name, x.Email, x.Phone, x.Designation, x.ContactType, x.Country, x.PhoneCode)).ToList(),
         c.CustomerSince,
         c.CreatedAtUtc,
-        clientCode);
+        c.ClientCode ?? clientCode,
+        c.GroupSpocPhoneCode,
+        c.CreatedByName);
 
     private static DateOnly TodayIst()
     {

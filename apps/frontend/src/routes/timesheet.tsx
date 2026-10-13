@@ -59,7 +59,7 @@ function TimesheetPage() {
 
   const [dbProjects, setDbProjects] = useState<Array<{ id: string; name: string; projectCode?: string }>>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
-  const [tasksByProject, setTasksByProject] = useState<Record<string, Array<{ id: string; title: string; stage?: string; estimatedHours?: number }>>>({});
+  const [tasksByProject, setTasksByProject] = useState<Record<string, Array<{ id: string; title: string; serviceName?: string; stage?: string; estimatedHours?: number }>>>({});
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
 
   const loadTasksForProject = useCallback(async (projectId: string) => {
@@ -72,6 +72,7 @@ function TimesheetPage() {
         [projectId]: apiTasks.map((t) => ({
           id: t.id,
           title: t.title,
+          serviceName: t.serviceName?.trim() || undefined,
           stage: t.stage,
           estimatedHours: t.estimatedHours ?? undefined,
         })),
@@ -323,7 +324,7 @@ function TimesheetPage() {
                           <SearchableSelect
                             options={tasks.map((t) => ({
                               value: t.id,
-                              label: t.title,
+                              label: t.serviceName ? `${t.title} · ${t.serviceName}` : t.title,
                               subLabel: t.stage ? `${t.stage}${t.estimatedHours ? ` · ${t.estimatedHours}h` : ""}` : undefined,
                             }))}
                             value={r.taskId}

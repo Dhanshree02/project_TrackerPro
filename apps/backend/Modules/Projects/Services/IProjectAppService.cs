@@ -19,7 +19,7 @@ public interface IProjectAppService
 
     Task<ProjectDto> UpdateWbsStatusAsync(Guid id, string wbsStatus, string? wbsSubStatus = null, CancellationToken ct = default);
 
-    Task<NextProjectCodeDto> GetNextProjectCodeAsync(Guid clientId, CancellationToken ct = default);
+    Task<NextProjectCodeDto> GetNextProjectCodeAsync(Guid clientId, Guid? subVentureId = null, CancellationToken ct = default);
 
     Task<IReadOnlyList<ProjectServiceDto>> GetProjectServicesAsync(Guid projectId, CancellationToken ct = default);
 

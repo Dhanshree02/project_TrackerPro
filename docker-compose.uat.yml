@@ -3,9 +3,9 @@
 #   docker compose -f docker-compose.uat.yml -p pms_uat up -d
 #   docker compose -f docker-compose.uat.yml -p pms_uat down
 #
-# UAT app:  http://localhost:3001   API http://localhost:5195/swagger
-# pgAdmin:  http://localhost:5050   admin@admin.com / clockit
-# Postgres: localhost:5432
+# UAT app:  http://localhost:39106   API http://localhost:52814/swagger
+# pgAdmin:  http://localhost:46382   osdpkvam@osdpkvam.com / Osdpkvam
+# Postgres: localhost:41763
 #   databases on pms_uat_db: pms_development, pms_uat, pms_deployment
 
 name: pms_uat
@@ -20,7 +20,7 @@ services:
       POSTGRES_PASSWORD: clockit
       POSTGRES_DB: postgres
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-41763}:5432"
     command: >
       postgres
       -c max_connections=500
@@ -46,11 +46,11 @@ services:
     container_name: pms_pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: clockit
+      PGADMIN_DEFAULT_EMAIL: osdpkvam@osdpkvam.com
+      PGADMIN_DEFAULT_PASSWORD: Osdpkvam
       PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
     ports:
-      - "${PGADMIN_PORT:-5050}:80"
+      - "${PGADMIN_PORT:-46382}:80"
     volumes:
       - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
     networks:
@@ -75,7 +75,7 @@ services:
       - Database__SyncSystemRoleBaselines=false
       - Storage__RootPath=/app/storage
     ports:
-      - "${UAT_BACKEND_PORT:-5195}:8080"
+      - "${UAT_BACKEND_PORT:-52814}:8080"
     volumes:
       - backend_storage:/app/storage
       - ./apps/backend/Log:/app/Log
@@ -92,7 +92,10 @@ services:
       - VITE_BACKEND_URL=http://pms_uat_backend:8080
       - VITE_API_URL=
     ports:
-      - "${UAT_FRONTEND_PORT:-3001}:3000"
+      - "${UAT_FRONTEND_PORT:-39106}:3000"
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
     networks:
       - pms_shared
 
