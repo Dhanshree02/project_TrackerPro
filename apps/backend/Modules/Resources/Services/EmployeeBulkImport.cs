@@ -35,7 +35,7 @@ internal static class EmployeeBulkWorkbook
         "Relation with Emergency Contact", // 10 (Dropdown: Emergency Relations)
         "Department",                      // 11 (Dropdown: Live db.Departments)
         "Designation",                     // 12 (Dropdown: Live db.Designations)
-        "Sub-Department",                  // 13 (Dropdown: Live Sub-Departments)
+        "Sub-Department",                  // 13 (Dropdown: sub-departments of the row's department and designation)
         "Business Unit",                   // 14 (Dropdown: Live db.BusinessUnits)
         "Reporting Manager Code",          // 15 (Dropdown: Live manager codes)
         "Work Location",                   // 16 (Dropdown: Live db.WorkLocations)
@@ -260,17 +260,6 @@ internal static class EmployeeBulkWorkbook
             ];
         }
 
-        var uniqueSubDepartments = orderedDesignations
-            .Where(d => !string.IsNullOrWhiteSpace(d.SubDepartment))
-            .SelectMany(d => d.SubDepartment!.Split(','))
-            .Select(s => s.Trim())
-            .Where(s => !string.IsNullOrEmpty(s))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(s => s)
-            .ToList();
-        if (uniqueSubDepartments.Count == 0)
-            uniqueSubDepartments = ["Functional - IT Administration", "PMO (Project Management Office)", "EM (Engagement Manager)", "Service - Testing - AppSec"];
-
         var workLocations = await db.WorkLocations
             .Where(w => w.DeletedAtUtc == null && w.IsActive)
             .OrderBy(w => w.SortOrder).ThenBy(w => w.Name)
@@ -386,7 +375,7 @@ internal static class EmployeeBulkWorkbook
             "Father",                                                 // 10. Relation with Emergency Contact
             orderedDesignations[0].Department,                        // 11. Department
             orderedDesignations[0].Name,                              // 12. Designation
-            orderedDesignations[0].SubDepartment?.Split(',')[0].Trim() ?? "Service - Testing - AppSec", // 13. Sub-Department
+            SplitSubDepartments(orderedDesignations[0].SubDepartment).FirstOrDefault() ?? "", // 13. Sub-Department
             businessUnits.FirstOrDefault() ?? "Talakunchi Networks Private Limited", // 14. Business Unit
             managerCodes.FirstOrDefault() ?? "TK-0001 - Default Manager", // 15. Reporting Manager Code
             workLocations.FirstOrDefault() ?? "Suvidha Square, Andheri",             // 16. Work Location
@@ -455,20 +444,37 @@ internal static class EmployeeBulkWorkbook
         var countStations = WriteLookupColumn(lCol++, "CurrentAddressCity", stations);
         var countRelations = WriteLookupColumn(lCol++, "EmergencyRelation", emergencyRelations);
 
-        // Each designation has its own department in the cell immediately to the left.
+        // Department, Designation, and Sub-Department share a row so each
+        // sub-department is listed under the designation it belongs to.
+        var mappedOrgRows = new List<(string Department, string Designation, string SubDepartment)>();
+        foreach (var row in orderedDesignations)
+        {
+            var subs = SplitSubDepartments(row.SubDepartment);
+            if (subs.Count == 0)
+                mappedOrgRows.Add((row.Department, row.Name, ""));
+            else
+            {
+                foreach (var sub in subs)
+                    mappedOrgRows.Add((row.Department, row.Name, sub));
+            }
+        }
+
         var departmentCol = lCol++;
         var designationCol = lCol++;
+        var subDepartmentCol = lCol++;
         lookups.Cell(1, departmentCol).Value = "Department";
         lookups.Cell(1, departmentCol).Style.Font.Bold = true;
         lookups.Cell(1, designationCol).Value = "Designation";
         lookups.Cell(1, designationCol).Style.Font.Bold = true;
-        for (var r = 0; r < orderedDesignations.Count; r++)
+        lookups.Cell(1, subDepartmentCol).Value = "SubDepartment";
+        lookups.Cell(1, subDepartmentCol).Style.Font.Bold = true;
+        for (var r = 0; r < mappedOrgRows.Count; r++)
         {
-            lookups.Cell(r + 2, departmentCol).Value = orderedDesignations[r].Department;
-            lookups.Cell(r + 2, designationCol).Value = orderedDesignations[r].Name;
+            lookups.Cell(r + 2, departmentCol).Value = mappedOrgRows[r].Department;
+            lookups.Cell(r + 2, designationCol).Value = mappedOrgRows[r].Designation;
+            lookups.Cell(r + 2, subDepartmentCol).Value = mappedOrgRows[r].SubDepartment;
         }
 
-        var countSubDepartments = WriteLookupColumn(lCol++, "SubDepartment", uniqueSubDepartments);
         var countBusinessUnits = WriteLookupColumn(lCol++, "BusinessUnit", businessUnits);
         var countManagers = WriteLookupColumn(lCol++, "ReportingManagerCode", managerCodes);
         var countWorkLocations = WriteLookupColumn(lCol++, "WorkLocation", workLocations);
@@ -530,6 +536,46 @@ internal static class EmployeeBulkWorkbook
         lookups.Column(mapNameCol).Hide();
         lookups.Column(mapRangeCol).Hide();
 
+        // One hidden list of sub-departments per department + designation, so the
+        // Employees sheet can show only the sub-departments mapped to that pair.
+        var subGroups = mappedOrgRows
+            .Where(row => row.SubDepartment.Length > 0)
+            .GroupBy(row => $"{row.Department}||{row.Designation}", StringComparer.OrdinalIgnoreCase)
+            .Select(group => (
+                Key: $"{group.First().Department}||{group.First().Designation}",
+                Names: group.Select(row => row.SubDepartment).Distinct(StringComparer.OrdinalIgnoreCase).ToList()))
+            .Where(group => group.Names.Count > 0)
+            .ToList();
+
+        var subHiddenCol = mapRangeCol + 1;
+        var subRangeByKey = new List<(string Key, string RangeName)>();
+        foreach (var group in subGroups)
+        {
+            var rangeName = ExcelListName("Sub_", group.Key, usedRangeNames);
+            for (var r = 0; r < group.Names.Count; r++)
+                lookups.Cell(r + 2, subHiddenCol).Value = group.Names[r];
+            workbook.DefinedNames.Add(
+                rangeName,
+                lookups.Range(2, subHiddenCol, group.Names.Count + 1, subHiddenCol));
+            lookups.Column(subHiddenCol).Hide();
+            subRangeByKey.Add((group.Key, rangeName));
+            subHiddenCol++;
+        }
+
+        var subMapKeyCol = subHiddenCol;
+        var subMapRangeCol = subHiddenCol + 1;
+        lookups.Cell(1, subMapKeyCol).Value = "DepartmentDesignation";
+        lookups.Cell(1, subMapRangeCol).Value = "SubDepartmentRange";
+        lookups.Cell(1, subMapKeyCol).Style.Font.Bold = true;
+        lookups.Cell(1, subMapRangeCol).Style.Font.Bold = true;
+        for (var i = 0; i < subRangeByKey.Count; i++)
+        {
+            lookups.Cell(i + 2, subMapKeyCol).Value = subRangeByKey[i].Key;
+            lookups.Cell(i + 2, subMapRangeCol).Value = subRangeByKey[i].RangeName;
+        }
+        lookups.Column(subMapKeyCol).Hide();
+        lookups.Column(subMapRangeCol).Hide();
+
         lookups.Columns().AdjustToContents();
 
         // ── Apply Data Validations with Stop Style (Must pick from dropdown only) ──
@@ -580,7 +626,31 @@ internal static class EmployeeBulkWorkbook
             designationValidation.InputTitle = "Designation";
             designationValidation.InputMessage = "Choose the department in this row first. The list then shows only that department's designations.";
         }
-        SetListValidation(13, 5, countSubDepartments, "Sub-Department");
+        if (subRangeByKey.Count > 0)
+        {
+            const int subDepartmentHelperCol = 37;
+            var subMapKeyLetter = lookups.Column(subMapKeyCol).ColumnLetter();
+            var subMapRangeLetter = lookups.Column(subMapRangeCol).ColumnLetter();
+            var subMapLastRow = subRangeByKey.Count + 1;
+            for (var row = 2; row <= MaxRows; row++)
+            {
+                sheet.Cell(row, subDepartmentHelperCol).FormulaA1 =
+                    $"IF(OR(K{row}=\"\",L{row}=\"\"),\"\",IFERROR(VLOOKUP(K{row}&\"||\"&L{row},Lookups!${subMapKeyLetter}$2:${subMapRangeLetter}${subMapLastRow},2,FALSE),\"\"))";
+            }
+
+            sheet.Column(subDepartmentHelperCol).Hide();
+            var subHelperLetter = sheet.Column(subDepartmentHelperCol).ColumnLetter();
+            var subDepartmentCells = sheet.Range(2, 13, MaxRows, 13);
+            var subDepartmentValidation = subDepartmentCells.CreateDataValidation();
+            subDepartmentValidation.List($"=INDIRECT({subHelperLetter}2)", true);
+            subDepartmentValidation.ErrorStyle = XLErrorStyle.Stop;
+            subDepartmentValidation.ErrorTitle = "Invalid Sub-Department";
+            subDepartmentValidation.ErrorMessage = "Select a department and designation first. Sub-Department only lists values mapped to that pair.";
+            subDepartmentValidation.ShowErrorMessage = true;
+            subDepartmentValidation.ShowInputMessage = true;
+            subDepartmentValidation.InputTitle = "Sub-Department";
+            subDepartmentValidation.InputMessage = "Choose the department and designation in this row first. The list then shows only that designation's sub-departments.";
+        }
         SetListValidation(14, 6, countBusinessUnits, "Business Unit");
         SetListValidation(15, 7, countManagers, "Reporting Manager Code");
         SetListValidation(16, 8, countWorkLocations, "Work Location");
@@ -630,8 +700,8 @@ internal static class EmployeeBulkWorkbook
             "3. Form Sections: The template strictly reflects the 4 canonical sections of the Onboarding Form (Personal Info, Organization Assignment, Employment Info, Education & Experience).",
             "4. Required Fields (18): TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher.",
             "5. Reporting Manager: Select from the dropdown ('TK-XXXX - Manager Name'). You can also provide just the Employee Code (e.g. TK-0001). Employee code is used as the primary identifier to prevent confusion between employees with identical or similar names.",
-            "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel. Designation only lists titles under the Department selected on that same row.",
-            "7. Dynamic Masters & Automatic Role Mapping: The Lookups sheet reflects live masters from the system (Current Address - City, Departments, Designations, Sub-Departments, Business Units, Work Locations, Employee Statuses, Degrees, Managers). Roles (On Floor Role and RBAC Role) are automatically mapped based on Department & Designation according to company master hierarchy. Sub-Department is optional and auto-assigned if omitted.",
+            "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel. Designation only lists titles under the Department selected on that same row. Sub-Department only lists values mapped to that row's Department and Designation.",
+            "7. Dynamic Masters & Automatic Role Mapping: The Lookups sheet reflects live masters from the system. Department, Designation, and Sub-Department are written on the same row so each sub-department belongs to one designation. Roles (On Floor Role and RBAC Role) are automatically mapped based on Department & Designation according to company master hierarchy. Sub-Department is optional and auto-assigned if omitted.",
             "8. Date Format: Dates must be formatted as dd-mm-yyyy (e.g. 18-09-2026), the same way dates appear in the web app.",
             "9. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
             "10. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
@@ -652,23 +722,37 @@ internal static class EmployeeBulkWorkbook
         return stream.ToArray();
     }
 
-    /// <summary>Excel named range for one department's designation list. Names cannot contain spaces.</summary>
-    private static string DesignationRangeName(string department, HashSet<string> used)
+    /// <summary>Excel named range. Names cannot contain spaces or punctuation.</summary>
+    private static string ExcelListName(string prefix, string source, HashSet<string> used)
     {
-        var builder = new StringBuilder("Desig_");
-        foreach (var ch in department.Trim())
+        var builder = new StringBuilder(prefix);
+        foreach (var ch in source.Trim())
             builder.Append(char.IsLetterOrDigit(ch) ? ch : '_');
         var name = builder.ToString();
         while (name.Contains("__", StringComparison.Ordinal))
             name = name.Replace("__", "_", StringComparison.Ordinal);
         name = name.Trim('_');
-        if (name.Length < 6) name = "Desig_Department";
+        if (name.Length <= prefix.Trim('_').Length) name = prefix.Trim('_') + "_List";
         if (name.Length > 200) name = name[..200];
         var candidate = name;
         var suffix = 2;
         while (!used.Add(candidate))
             candidate = $"{name}_{suffix++}";
         return candidate;
+    }
+
+    /// <summary>Excel named range for one department's designation list. Names cannot contain spaces.</summary>
+    private static string DesignationRangeName(string department, HashSet<string> used) =>
+        ExcelListName("Desig_", department, used);
+
+    private static List<string> SplitSubDepartments(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return [];
+        return raw.Split(',')
+            .Select(part => part.Trim())
+            .Where(part => part.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }
 
@@ -862,21 +946,27 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 var subDepartmentVal = GetValue(values, "subdepartment");
                 if (matchedDesig is not null && !string.IsNullOrWhiteSpace(matchedDesig.SubDepartment))
                 {
-                    var allowedSubDepts = matchedDesig.SubDepartment.Split(',').Select(s => s.Trim()).ToList();
-                    if (string.IsNullOrWhiteSpace(subDepartmentVal))
+                    var allowedSubDepts = matchedDesig.SubDepartment
+                        .Split(',')
+                        .Select(s => s.Trim())
+                        .Where(s => s.Length > 0)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    if (allowedSubDepts.Count > 0)
                     {
-                        subDepartmentVal = allowedSubDepts[0];
-                    }
-                    else
-                    {
-                        var matchedSub = allowedSubDepts.FirstOrDefault(s => s.Equals(subDepartmentVal.Trim(), StringComparison.OrdinalIgnoreCase));
-                        if (matchedSub is not null)
-                        {
-                            subDepartmentVal = matchedSub;
-                        }
-                        else if (allowedSubDepts.Count == 1)
+                        if (string.IsNullOrWhiteSpace(subDepartmentVal))
                         {
                             subDepartmentVal = allowedSubDepts[0];
+                        }
+                        else
+                        {
+                            var matchedSub = allowedSubDepts.FirstOrDefault(s =>
+                                s.Equals(subDepartmentVal.Trim(), StringComparison.OrdinalIgnoreCase));
+                            if (matchedSub is not null)
+                                subDepartmentVal = matchedSub;
+                            else
+                                rowErrors.Add(
+                                    $"Sub-Department '{subDepartmentVal.Trim()}' is not mapped to designation '{matchedDesig.Name}'.");
                         }
                     }
                 }

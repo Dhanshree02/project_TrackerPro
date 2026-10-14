@@ -56,6 +56,7 @@ import {
   validateOnboardForm,
   blankToNull,
   csvToList,
+  directoryStatusFromEmployeeStatusName,
   EMERGENCY_RELATION_OPTIONS,
   BILLABLE_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
@@ -109,7 +110,7 @@ const FIELD_LABELS: Record<string, string> = {
   gradYear: "Graduation Passing Year",
   postGradDegree: "Post Graduation Degree Name",
   postGradYear: "Post Graduation Passing Year",
-  expType: "Exp / Fresher",
+  expType: "Experience / Fresher",
   priorTotalExp: "Total Prior Experience",
   priorTotalExpYears: "Total Prior Experience (Years)",
   priorTotalExpMonths: "Total Prior Experience (Months)",
@@ -1048,11 +1049,7 @@ export function EmployeeFormModal({
         workLocation: resolvedWorkLocation,
         category: calculatedCategory,
         joiningDate: blankToNull(form.joiningDate),
-        status: employeeStatusName.startsWith("Inactive")
-          ? "Inactive"
-          : employeeStatusName.startsWith("Resignation")
-            ? "Notice Period"
-            : "Active",
+        status: directoryStatusFromEmployeeStatusName(employeeStatusName),
         employeeStatusId: form.employeeStatusId || null,
         confirmationStatus: employeeStatusName,
         probationStatus,
@@ -1603,6 +1600,7 @@ export function EmployeeFormModal({
                 id="form-workerType"
                 label="Worker Type"
                 required
+                placeholder="Select worker type"
                 error={errors.workerType}
                 options={[...WORKER_TYPES]}
                 value={form.workerType}
@@ -1612,6 +1610,7 @@ export function EmployeeFormModal({
                 id="form-bondDelivered"
                 label="Bond Delivered"
                 required
+                placeholder="Select bond delivered"
                 error={errors.bondDelivered}
                 options={[...BOND_DELIVERED_OPTIONS]}
                 value={form.bondDelivered}
@@ -1626,7 +1625,7 @@ export function EmployeeFormModal({
                 placeholder="Months"
                 suffix="months"
                 disabled={form.bondDelivered !== "Yes"}
-                value={form.bondDelivered === "Yes" ? form.bondDurationMonths : "0"}
+                value={form.bondDelivered === "Yes" ? form.bondDurationMonths : ""}
                 onChange={(v) => setField("bondDurationMonths", v)}
                 onBlur={() => blurField("bondDurationMonths")}
                 error={errors.bondDurationMonths}
@@ -1634,12 +1633,12 @@ export function EmployeeFormModal({
               <FormField
                 label="Bond Expiry Date"
                 readOnly
-                value={bondExpiryDisplay}
+                value={form.bondDelivered ? bondExpiryDisplay : ""}
               />
               <FormField
                 label="Bond Status"
                 readOnly
-                value={bondStatusDisplay}
+                value={form.bondDelivered ? bondStatusDisplay : ""}
               />
             </FormSection>
 
@@ -1729,12 +1728,13 @@ export function EmployeeFormModal({
 
               <FormSelect
                 id="form-expType"
-                label="Exp / Fresher"
+                label="Experience / Fresher"
+                placeholder="Select experience"
                 options={[
                   { value: "Fresher", label: "Fresher" },
                   { value: "Experienced", label: "Experienced" },
                 ]}
-                value={form.expType || "Fresher"}
+                value={form.expType}
                 onChange={(v) => {
                   setForm((prev) => ({
                     ...prev,
@@ -1750,12 +1750,12 @@ export function EmployeeFormModal({
               />
 
               <div id="form-priorTotalExpMonths" className="space-y-1">
-                <span className={FORM_LABEL_CLS}>Total exp prior to Talakunchi</span>
+                <span className={FORM_LABEL_CLS}>Total experience prior to Talakunchi</span>
                 <div className="grid grid-cols-2 gap-2">
                   <FormField
                     label=""
                     placeholder="0"
-                    suffix="yrs"
+                    suffix="years"
                     inputMode="numeric"
                     maxLength={2}
                     disabled={form.expType === "Fresher"}
@@ -1787,12 +1787,12 @@ export function EmployeeFormModal({
               </div>
 
               <div id="form-priorRelevantExpMonths" className="space-y-1">
-                <span className={FORM_LABEL_CLS}>Relevant exp prior to Talakunchi</span>
+                <span className={FORM_LABEL_CLS}>Relevant experience prior to Talakunchi</span>
                 <div className="grid grid-cols-2 gap-2">
                   <FormField
                     label=""
                     placeholder="0"
-                    suffix="yrs"
+                    suffix="years"
                     inputMode="numeric"
                     maxLength={2}
                     disabled={form.expType === "Fresher"}

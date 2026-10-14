@@ -1,7 +1,13 @@
 // Employee Directory data layer
 // ---------------------------------------------------
 
-export type EmployeeStatus = "Active" | "Probation" | "Notice Period" | "Inactive" | "On Leave";
+export type EmployeeStatus =
+  | "Active"
+  | "Probation"
+  | "Resignation Under Review"
+  | "Notice Period"
+  | "Inactive"
+  | "On Leave";
 export type ConfirmationStatus = "Active - Probation" | "Active" | "Resignation - Under Review" | "Resignation - Accepted" | "Inactive - After Onboarding";
 export type ComplianceStatus = "Compliant" | "Pending" | "Non-Compliant";
 
@@ -71,6 +77,12 @@ export interface Employee {
   projectType?: string;
   projectAllocated?: string;
   clientEngManagerMapping?: string;
+  todayAttendance?: string;
+  allocationStatus?: "Occupied" | "Free" | "On Leave";
+  allocationType?: "Shared" | "Dedicated" | "";
+  allocationStartDate?: string;
+  allocationEndDate?: string;
+  allocatedProjectName?: string;
   // skills
   education: string;
   skills: string[];
@@ -254,7 +266,7 @@ export const employees: Employee[] = Array.from({ length: 48 }, (_, i) => {
   if (confirmationStatus === "Active - Probation") {
     status = "Probation";
   } else if (confirmationStatus === "Resignation - Under Review") {
-    status = "Notice Period";
+    status = "Resignation Under Review";
   } else if (confirmationStatus === "Resignation - Accepted") {
     status = pick(["Notice Period", "Inactive"]);
   } else if (confirmationStatus === "Inactive - After Onboarding") {

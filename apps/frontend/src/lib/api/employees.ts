@@ -46,6 +46,12 @@ export interface ApiEmployeeListItem {
   /** On Floor Role: mst_roles.Name */
   jobRoleName?: string | null;
   jobRole?: string | null;
+  todayAttendance?: string | null;
+  allocationStatus?: string | null;
+  allocationType?: string | null;
+  allocationStartDate?: string | null;
+  allocationEndDate?: string | null;
+  allocatedProjectName?: string | null;
 }
 
 export interface ApiEmployeeDetail {
@@ -532,8 +538,26 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     billableStatus: item.billableStatus ?? "",
     clientLocation: item.clientLocation ?? "",
     projectType: item.projectType ?? "",
-    projectAllocated: item.projectAllocated ?? "",
+    projectAllocated: item.projectAllocated ?? item.allocatedProjectName ?? "",
     clientEngManagerMapping: item.clientEngManagerMapping ?? "",
+    todayAttendance: item.todayAttendance ?? "",
+    allocationStatus:
+      item.allocationStatus === "On Leave" ||
+      item.allocationStatus === "Occupied" ||
+      item.allocationStatus === "Free"
+        ? item.allocationStatus
+        : undefined,
+    allocationType:
+      item.allocationType === "Shared" || item.allocationType === "Dedicated"
+        ? item.allocationType
+        : item.allocationType?.toLowerCase().startsWith("shared")
+          ? "Shared"
+          : item.allocationType?.toLowerCase().startsWith("dedicated")
+            ? "Dedicated"
+            : "",
+    allocationStartDate: toDateInputValue(item.allocationStartDate),
+    allocationEndDate: toDateInputValue(item.allocationEndDate),
+    allocatedProjectName: item.allocatedProjectName ?? "",
     complianceStatus: "Pending",
   };
 }

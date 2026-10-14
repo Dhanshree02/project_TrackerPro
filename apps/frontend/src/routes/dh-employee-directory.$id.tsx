@@ -9,6 +9,9 @@ import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import {
+  employeeStatusDisplayLabel,
+} from "@/lib/onboard-validation";
+import {
   fetchEmployee,
   fetchEmployeeLogs,
   fetchEmployeeStatusOptions,
@@ -563,6 +566,8 @@ function EmployeeProfilePage() {
 
   const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
   const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "personal") : tabs;
+  const statusLabel = employeeStatusDisplayLabel(emp);
+  const onNoticePeriod = emp.status === "Notice Period";
 
   return (
     <AppShell
@@ -590,7 +595,7 @@ function EmployeeProfilePage() {
                 <h1 className="text-xl font-semibold tracking-tight text-foreground">
                   {emp.firstName} {emp.lastName}
                 </h1>
-                <EmpStatusBadge status={emp.confirmationStatus || emp.status} />
+                <EmpStatusBadge status={statusLabel} />
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
                 {emp.designation || "—"} · {emp.department || "—"}
@@ -609,10 +614,10 @@ function EmployeeProfilePage() {
               <button
                 type="button"
                 onClick={() => setOffboardConfirmOpen(true)}
-                disabled={isOffboarding || emp.status === "Notice Period"}
+                disabled={isOffboarding || onNoticePeriod}
                 className="rounded-md bg-destructive px-3.5 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60 transition-colors shadow-2xs"
               >
-                {emp.status === "Notice Period" ? "On Notice Period" : "Offboard Employee"}
+                {onNoticePeriod ? "On Notice Period" : "Offboard Employee"}
               </button>
             </div>
           )}
@@ -664,6 +669,7 @@ function EmployeeProfilePage() {
                 <Row label="Business Unit" value={emp.businessUnit} />
                 <Row label="Department" value={emp.department} />
                 <Row label="Designation" value={emp.designation} />
+                <Row label="Sub-Department" value={emp.subDepartment} />
                 <Row label="On Floor Role" value={emp.role} />
                 <Row label="Reporting Manager" value={emp.reportingManager} />
                 <Row label="Work Location" value={emp.workLocation} />
@@ -681,7 +687,7 @@ function EmployeeProfilePage() {
                 <Row label="Date of Joining" value={formatDateDMY(emp.joiningDate)} />
                 <Row
                   label="Employment Status"
-                  value={<EmpStatusBadge status={emp.confirmationStatus || emp.status} />}
+                  value={<EmpStatusBadge status={statusLabel} />}
                 />
                 <Row
                   label="Probation Status"

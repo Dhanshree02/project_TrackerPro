@@ -56,9 +56,6 @@ export const PMO_DEPARTMENT_SUB_DEPARTMENTS: Record<string, string[]> = {
     "Services - Testing - Red Team",
     "Services - Testing - Cloud & AI",
   ],
-  "Internship Program": [
-    "Across all Sub Departments",
-  ],
 };
 
 export const PMO_DEPARTMENT_OPTIONS = Object.keys(PMO_DEPARTMENT_SUB_DEPARTMENTS);
@@ -188,22 +185,22 @@ export const EMPTY_ONBOARD: OnboardValues = {
   officeBranch: "",
   assetId: "",
   employeeStatusId: "",
-  workerType: "Permanent",
-  bondDelivered: "No",
-  bondDurationMonths: "0",
+  workerType: "",
+  bondDelivered: "",
+  bondDurationMonths: "",
   exitType: "NA",
   exitReason: "",
   gradDegree: "",
   gradYear: "",
-  postGradDegree: "NA",
-  postGradYear: "NA",
-  expType: "Fresher",
-  priorTotalExp: "0",
-  priorTotalExpYears: "0",
-  priorTotalExpMonths: "0",
-  priorRelevantExp: "0",
-  priorRelevantExpYears: "0",
-  priorRelevantExpMonths: "0",
+  postGradDegree: "",
+  postGradYear: "",
+  expType: "",
+  priorTotalExp: "",
+  priorTotalExpYears: "",
+  priorTotalExpMonths: "",
+  priorRelevantExp: "",
+  priorRelevantExpYears: "",
+  priorRelevantExpMonths: "",
   education: "",
   certifications: "",
   technicalSkills: "",
@@ -707,18 +704,40 @@ export function blankToNull(value: string): string | null {
   return trimmed ? trimmed : null;
 }
 
-export function toDirectoryStatus(employmentStatus: string): string {
-  switch (employmentStatus) {
-    case "Active - Probation":
-      return "Probation";
-    case "Resignation - Under Review":
-    case "Resignation - Accepted":
-      return "Notice Period";
-    case "Inactive - After Onboarding":
-      return "Inactive";
-    default:
-      return "Active";
+export function directoryStatusFromEmployeeStatusName(name: string): string {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return "Active";
+  if (trimmed.startsWith("Inactive")) return "Inactive";
+  if (trimmed === "Active - Probation") return "Probation";
+  if (trimmed === "Resignation Under Review" || trimmed === "Resignation - Under Review") {
+    return "Resignation Under Review";
   }
+  if (trimmed === "Resignation - Accepted") return "Notice Period";
+  if (trimmed === "Resigned" || trimmed === "Terminated" || trimmed === "Absconded") return trimmed;
+  if (trimmed === "Active") return "Active";
+  return trimmed;
+}
+
+export function toDirectoryStatus(employmentStatus: string): string {
+  return directoryStatusFromEmployeeStatusName(employmentStatus);
+}
+
+export function isResignationUnderReviewStatus(status?: string | null): boolean {
+  const trimmed = (status || "").trim();
+  return trimmed === "Resignation Under Review" || trimmed === "Resignation - Under Review";
+}
+
+/** Prefer catalog employee status (confirmation) over legacy directory status for display. */
+export function employeeStatusDisplayLabel(employee: {
+  status?: string;
+  confirmationStatus?: string;
+}): string {
+  const stored = (employee.status || "").trim();
+  const catalog = (employee.confirmationStatus || "").trim();
+  const catalogIsListPlaceholder =
+    catalog === "Active" && stored.length > 0 && stored !== "Active" && stored !== "Probation";
+  if (catalog && !catalogIsListPlaceholder) return catalog;
+  return stored || "Active";
 }
 
 export function validateOnboardForm(

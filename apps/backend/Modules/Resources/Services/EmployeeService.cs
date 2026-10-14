@@ -139,6 +139,73 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.JobRole != null ? e.JobRole.Name : null))
             .ToListAsync(ct);
 
+        if (items.Count > 0)
+        {
+            var todayIst = TodayInIst();
+            var employeeIds = items.Select(i => i.Id).ToList();
+
+            var todayEntries = await db.TeamDayEntries
+                .AsNoTracking()
+                .Where(t => employeeIds.Contains(t.EmployeeId) && t.WorkDate == todayIst)
+                .ToListAsync(ct);
+            var attendanceByEmp = todayEntries
+                .GroupBy(t => t.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.First().Attendance);
+
+            var activeAllocations = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Include(m => m.Project)
+                .Where(m => employeeIds.Contains(m.EmployeeId)
+                    && m.Project != null
+                    && m.Project.DeletedAtUtc == null
+                    && m.AllocationEndDate >= todayIst)
+                .ToListAsync(ct);
+
+            var allocationByEmp = activeAllocations
+                .GroupBy(m => m.EmployeeId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g
+                        .OrderBy(m => m.MemberRole is "ProjectTeam" or "ShadowTeam" ? 0 : 1)
+                        .ThenBy(m => m.AllocationStartDate <= todayIst ? 0 : 1)
+                        .ThenByDescending(m => m.AllocationEndDate)
+                        .ThenByDescending(m => m.CreatedAtUtc)
+                        .First());
+
+            items = items.Select(item =>
+            {
+                attendanceByEmp.TryGetValue(item.Id, out var todayAttendance);
+                allocationByEmp.TryGetValue(item.Id, out var alloc);
+
+                var isOnLeave = string.Equals(todayAttendance, "leave", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(item.Status, "On Leave", StringComparison.OrdinalIgnoreCase);
+
+                var allocationStatus = isOnLeave
+                    ? "On Leave"
+                    : alloc is not null
+                        ? "Occupied"
+                        : "Free";
+
+                string? allocationType = null;
+                if (alloc is not null && !string.IsNullOrWhiteSpace(alloc.ResourceType))
+                {
+                    allocationType = alloc.ResourceType.StartsWith("Shared", StringComparison.OrdinalIgnoreCase)
+                        ? "Shared"
+                        : "Dedicated";
+                }
+
+                return item with
+                {
+                    TodayAttendance = todayAttendance,
+                    AllocationStatus = allocationStatus,
+                    AllocationType = allocationType,
+                    AllocationStartDate = alloc?.AllocationStartDate,
+                    AllocationEndDate = alloc?.AllocationEndDate,
+                    AllocatedProjectName = alloc?.Project?.Name,
+                };
+            }).ToList();
+        }
+
         return new PagedResult<EmployeeListItemDto>(items, page, perPage, total);
     }
 
@@ -197,8 +264,10 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             ?? BondRules.ComputeBondExpiry(request.JoiningDate, bondDelivered, bondDurationMonths);
         var bondStatus = BondRules.ComputeBondStatus(bondDelivered, bondExpiryDate);
         var confirmationStatus = employeeStatus?.Name ?? request.ConfirmationStatus;
-        var directoryStatus = request.Status
-            ?? (string.Equals(confirmationStatus, "Active", StringComparison.OrdinalIgnoreCase) ? "Active" : "Inactive");
+        var directoryStatus = employeeStatus is not null
+            ? MapDirectoryStatusFromEmployeeStatusName(employeeStatus.Name)
+            : request.Status
+              ?? (string.Equals(confirmationStatus, "Active", StringComparison.OrdinalIgnoreCase) ? "Active" : "Inactive");
 
         var subDepartment = request.SubDepartment;
         if (string.IsNullOrWhiteSpace(subDepartment) && request.DesignationId.HasValue)
@@ -515,15 +584,32 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             if (entity.JoiningDate != request.JoiningDate) changes.Add("Joining Date");
             entity.JoiningDate = request.JoiningDate;
         }
-        if (request.Status is not null)
+        if (request.EmployeeStatusId.HasValue)
         {
-            if (entity.Status != request.Status) changes.Add("Status");
-            entity.Status = request.Status;
+            var selectedStatus = await db.EmployeeStatuses
+                .FirstOrDefaultAsync(s => s.Id == request.EmployeeStatusId.Value && s.IsActive, ct);
+            if (selectedStatus is not null)
+            {
+                if (entity.EmployeeStatusId != selectedStatus.Id) changes.Add("Employee Status");
+                entity.EmployeeStatusId = selectedStatus.Id;
+                entity.ConfirmationStatus = selectedStatus.Name;
+                var mappedStatus = MapDirectoryStatusFromEmployeeStatusName(selectedStatus.Name);
+                if (entity.Status != mappedStatus) changes.Add("Status");
+                entity.Status = mappedStatus;
+            }
         }
-        if (request.ConfirmationStatus is not null)
+        else
         {
-            if (entity.ConfirmationStatus != request.ConfirmationStatus) changes.Add("Confirmation Status");
-            entity.ConfirmationStatus = request.ConfirmationStatus;
+            if (request.Status is not null)
+            {
+                if (entity.Status != request.Status) changes.Add("Status");
+                entity.Status = request.Status;
+            }
+            if (request.ConfirmationStatus is not null)
+            {
+                if (entity.ConfirmationStatus != request.ConfirmationStatus) changes.Add("Confirmation Status");
+                entity.ConfirmationStatus = request.ConfirmationStatus;
+            }
         }
         if (request.ProbationStatus is not null)
         {
@@ -773,12 +859,6 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             if (entity.BondExpiryDate != request.BondExpiryDate) changes.Add("Bond Expiry Date");
             entity.BondExpiryDate = request.BondExpiryDate;
         }
-        if (request.EmployeeStatusId.HasValue)
-        {
-            if (entity.EmployeeStatusId != request.EmployeeStatusId) changes.Add("Employee Status");
-            entity.EmployeeStatusId = request.EmployeeStatusId;
-        }
-
         await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), entity.Id, ct);
         await ApplyCatalogNamesAsync(entity, ct);
         try
@@ -1474,6 +1554,28 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.DepartmentId,
         e.DesignationId,
         e.JobRoleId);
+
+    private static string MapDirectoryStatusFromEmployeeStatusName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Active";
+        var trimmed = name.Trim();
+        if (trimmed.StartsWith("Inactive", StringComparison.OrdinalIgnoreCase)) return "Inactive";
+        if (trimmed.Equals("Active - Probation", StringComparison.OrdinalIgnoreCase)) return "Probation";
+        if (trimmed.Equals("Resignation Under Review", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("Resignation - Under Review", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Resignation Under Review";
+        }
+        if (trimmed.Equals("Resignation - Accepted", StringComparison.OrdinalIgnoreCase)) return "Notice Period";
+        if (trimmed.Equals("Resigned", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("Terminated", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("Absconded", StringComparison.OrdinalIgnoreCase))
+        {
+            return trimmed;
+        }
+        if (trimmed.Equals("Active", StringComparison.OrdinalIgnoreCase)) return "Active";
+        return trimmed;
+    }
 
     private async Task ApplyCatalogNamesAsync(Employee entity, CancellationToken ct)
     {

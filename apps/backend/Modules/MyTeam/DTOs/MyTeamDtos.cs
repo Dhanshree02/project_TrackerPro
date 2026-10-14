@@ -11,7 +11,25 @@ public sealed record TeamMemberDto(
     string Initials,
     string Designation,
     string Department,
-    bool DirectReport);
+    bool DirectReport,
+    string? EmployeeCode = null,
+    string? ReportingManagerName = null,
+    string? Status = null,
+    string? AllocationStatus = null,
+    string? AllocationType = null,
+    DateOnly? AllocationStartDate = null,
+    DateOnly? AllocationEndDate = null,
+    string? AllocatedProjectName = null,
+    IReadOnlyList<TeamMemberAllocationDto>? Allocations = null);
+
+public sealed record TeamMemberAllocationDto(
+    Guid ProjectId,
+    string ProjectName,
+    string AllocationType,
+    DateOnly AllocationStartDate,
+    DateOnly AllocationEndDate,
+    string Billability,
+    string MemberRole);
 
 public sealed record TeamDayEntryDto(
     Guid EmployeeId,

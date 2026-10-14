@@ -1070,7 +1070,7 @@ public static class DbSeeder
             var n = i + 1;
 
             var pmoDept = row.Code == "TK-0001" ? "Core"
-                : row.Code.StartsWith("TKI") ? "Internship Program"
+                : row.Code.StartsWith("TKI") ? row.Department
                 : row.Department.Contains("Testing") ? "Services - Testing"
                 : row.Department.Contains("Operations") ? "Services - Operations"
                 : row.Department.Contains("Consulting") ? "Services - Consulting"

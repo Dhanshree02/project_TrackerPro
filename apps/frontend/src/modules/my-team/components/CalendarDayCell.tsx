@@ -12,7 +12,14 @@ import {
   shiftChipClass,
 } from "../constants";
 import { getEventByDate, isWeekendDate } from "../utils";
-import type { AttendanceType, SelectableAttendanceType, ShiftType, TeamSchedule } from "../types";
+import type {
+  AttendanceType,
+  PoolAllocationType,
+  SelectableAttendanceType,
+  ShiftType,
+  TeamMemberProjectAllocation,
+  TeamSchedule,
+} from "../types";
 import {
   Popover,
   PopoverAnchor,
@@ -41,6 +48,8 @@ interface CalendarDayCellProps {
   isToday?: boolean;
   isLastRow?: boolean;
   weekRangeLabel?: string;
+  /** Active project allocation covering this calendar date */
+  dayAllocation?: TeamMemberProjectAllocation;
   onToggle: (shiftKey: boolean) => void;
   onClose: () => void;
   onFocusCell: () => void;
@@ -59,11 +68,16 @@ function buildTooltip(args: {
   isWeeklyOff?: boolean;
   attendanceLabel?: string;
   shift?: ShiftType;
+  dayAllocation?: TeamMemberProjectAllocation;
 }): string {
   const dmy = formatDateDMY(args.date);
+  const allocSuffix = args.dayAllocation
+    ? ` · Blocked: ${args.dayAllocation.projectName} (${args.dayAllocation.allocationType}: ${formatDateDMY(args.dayAllocation.allocationStartDate)} → ${formatDateDMY(args.dayAllocation.allocationEndDate)})`
+    : "";
+
   if (args.isHoliday && args.holidayName) {
     const commentPart = args.holidayComment ? ` (${args.holidayComment})` : "";
-    return `Holiday: ${args.holidayName}${commentPart} · ${dmy}`;
+    return `Holiday: ${args.holidayName}${commentPart} · ${dmy}${allocSuffix}`;
   }
 
   const shiftLabel = args.shift
@@ -78,10 +92,10 @@ function buildTooltip(args: {
         : "Available to schedule");
 
   if (args.isPast && !args.attendanceLabel && !args.shift) {
-    return `Past date (Read only) · ${dmy}`;
+    return `Past date (Read only) · ${dmy}${allocSuffix}`;
   }
 
-  return `${args.memberName} · ${dmy} · ${shiftLabel}${attendance}`;
+  return `${args.memberName} · ${dmy} · ${shiftLabel}${attendance}${allocSuffix}`;
 }
 
 export function CalendarDayCell({
@@ -100,6 +114,7 @@ export function CalendarDayCell({
   isToday = false,
   isLastRow = false,
   weekRangeLabel,
+  dayAllocation,
   onToggle,
   onClose,
   onFocusCell,
@@ -134,14 +149,18 @@ export function CalendarDayCell({
     isWeeklyOff: isWeekend,
     attendanceLabel,
     shift: displayShift,
+    dayAllocation,
   });
 
   // Prefer opening to the side that has the most room (left if late in month, right otherwise)
   const preferredSide = date.getDate() > 18 ? "left" : "right";
+  const allocType: PoolAllocationType | undefined = dayAllocation?.allocationType;
+  const isDedicatedAlloc = allocType === "Dedicated";
 
   const cell = (
         <div
           style={{ width: "100%", height: CALENDAR_ROW_PX }}
+          title={tooltipTitle}
           className={`relative flex flex-col items-center justify-center overflow-visible border-r border-[#edf0f4] dark:border-slate-800 ${
             !isLastRow ? "border-b border-[#edf0f4] dark:border-slate-800" : ""
           } ${
@@ -153,7 +172,11 @@ export function CalendarDayCell({
                   ? "bg-[#f1f3f8] dark:bg-slate-800/50"
                   : isWeekend
                     ? "bg-[#f3f4f7] dark:bg-slate-800/40"
-                    : "bg-white dark:bg-slate-900"
+                    : dayAllocation && !isLeave
+                      ? isDedicatedAlloc
+                        ? "bg-indigo-50/55 dark:bg-indigo-950/25"
+                        : "bg-sky-50/60 dark:bg-sky-950/25"
+                      : "bg-white dark:bg-slate-900"
           }`}
         >
           <div className="relative flex h-7 w-full items-center justify-center">
@@ -201,14 +224,28 @@ export function CalendarDayCell({
 
           {!isLeave && displayShift ? (
             <span
-              className={`mt-1 ${shiftChipClass} ${
+              className={`mt-0.5 ${shiftChipClass} ${
                 isPast ? "opacity-75 grayscale-[25%]" : ""
               }`}
             >
               {shiftMeta[displayShift].chip}
             </span>
           ) : (
-            <span className="mt-1 h-3.5" aria-hidden="true" />
+            <span className="mt-0.5 h-3.5" aria-hidden="true" />
+          )}
+
+          {dayAllocation && (
+            <div
+              className={`pointer-events-none absolute inset-x-0 bottom-0 flex h-[13px] items-center justify-center text-[8px] font-bold uppercase tracking-wider text-white ${
+                isLeave
+                  ? "bg-rose-500/75"
+                  : isDedicatedAlloc
+                    ? "bg-[#4f46e5]/90"
+                    : "bg-[#0284c7]/90"
+              }`}
+            >
+              {isLeave ? "LEAVE" : isDedicatedAlloc ? "DED" : "SHR"}
+            </div>
           )}
         </div>
   );
@@ -246,6 +283,25 @@ export function CalendarDayCell({
           <p className="text-[9.5px] font-medium text-[#64748b] leading-tight mt-0.5 truncate">
             {weekdayFormatter.format(date)} · {memberName}
           </p>
+          {dayAllocation && (
+            <div className="mt-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[9.5px]">
+              <div className="flex items-center justify-between gap-1 font-semibold text-[#1e293b] dark:text-white">
+                <span className="truncate" title={dayAllocation.projectName}>
+                  {dayAllocation.projectName}
+                </span>
+                <span
+                  className={`shrink-0 rounded-full px-1.5 py-0.2 text-[8.5px] font-bold uppercase text-white ${
+                    dayAllocation.allocationType === "Dedicated" ? "bg-[#4f46e5]" : "bg-[#0284c7]"
+                  }`}
+                >
+                  {dayAllocation.allocationType}
+                </span>
+              </div>
+              <div className="mt-0.5 text-[9px] text-[#475569] dark:text-slate-300 tabular-nums">
+                {formatDateDMY(dayAllocation.allocationStartDate)} → {formatDateDMY(dayAllocation.allocationEndDate)}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Attendance options */}

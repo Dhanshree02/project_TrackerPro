@@ -1,6 +1,7 @@
 import {
+  LayoutDashboard,
+  ListChecks,
   FolderKanban,
-  BarChart3,
   Users,
   Building2,
   Building,
@@ -35,10 +36,23 @@ export interface NavItem {
   subItems?: NavSubItem[];
 }
 
+/** Sidebar modules turned off for UAT (direct URLs redirect to Projects). */
+const HIDDEN_NAV_LABELS = new Set(["Reports"]);
+
+function stripHiddenNavItems(items: NavItem[]): NavItem[] {
+  return items.filter((item) => !HIDDEN_NAV_LABELS.has(item.label));
+}
+
 // ─── Generic (non-Dhanshree) navigation ─────────────────────────────────────
 export const NAV_ITEMS: NavItem[] = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard.view" },
+  {
+    to: "/action-centre",
+    label: "Action Centre",
+    icon: ListChecks,
+    permission: "action-center.view",
+  },
   { to: "/projects", label: "Projects", icon: FolderKanban, permission: "projects.view" },
-  { to: "/reports", label: "Reports", icon: BarChart3, permission: "reports.view" },
   { to: "/resources", label: "Resources", icon: Users, permission: "resources.view" },
   { to: "/customers", label: "Customers", icon: Building2, permission: "customers.view" },
   { to: "/my-org", label: "Repository", icon: Building, permission: "repository.view" },
@@ -57,14 +71,20 @@ export const NAV_ITEMS: NavItem[] = [
 
 // ─── Dhanshree / Admin (super-admin workspace) navigation ───────────────────
 export const DH_NAV_ITEMS: NavItem[] = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard.view" },
+  {
+    to: "/action-centre",
+    label: "Action Centre",
+    icon: ListChecks,
+    permission: "action-center.view",
+  },
   { to: "/projects", label: "Projects", icon: FolderKanban, permission: "projects.view" },
-  { to: "/dh-reports", label: "Reports", icon: BarChart3, permission: "reports.view" },
   {
     label: "Resources",
     icon: Users,
     permission: "resources.view",
     subItems: [
-      { to: "/dh-employee-directory", label: "Directory & Resource Pool" },
+      { to: "/dh-employee-directory", label: "Employee Directory" },
       { to: "/dh-exit-summary", label: "Exit Summary" },
     ],
   },
@@ -119,11 +139,13 @@ export function filterNavItems(
 
   // Admin has super-admin visibility into every module and submodule
   if (isAdmin) {
-    return items.map((item) => ({
-      ...item,
-      permission: undefined,
-      subItems: item.subItems?.map((s) => ({ ...s, permission: undefined })),
-    }));
+    return stripHiddenNavItems(
+      items.map((item) => ({
+        ...item,
+        permission: undefined,
+        subItems: item.subItems?.map((s) => ({ ...s, permission: undefined })),
+      })),
+    );
   }
 
   const allowed = (perm?: string | string[]): boolean => {
@@ -156,7 +178,7 @@ export function filterNavItems(
         icon: Users,
         permission: undefined,
         subItems: [
-          { to: "/dh-employee-directory", label: "Directory & Resource Pool", permission: "resources.view" },
+          { to: "/dh-employee-directory", label: "Employee Directory", permission: "resources.view" },
           { to: "/dh-exit-summary", label: "Exit Summary", permission: "resources.view" },
         ],
       };
@@ -193,19 +215,12 @@ export function filterNavItems(
     }
   }
 
-  if (isAccounts || isSales) {
-    const idx = result.findIndex((i) => i.label === "Reports");
-    if (idx >= 0) {
-      result[idx] = { ...result[idx], to: "/dh-reports" };
-    }
-  }
-
   const hideStandalone = isPmFamily || isPmoFamily || isAccounts || isSales;
   if (hideStandalone) {
-    return result.filter((i) => i.label !== "Settings");
+    return stripHiddenNavItems(result.filter((i) => i.label !== "Settings"));
   }
 
-  return result;
+  return stripHiddenNavItems(result);
 }
 
 // ─── Route guard map ─────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { BarChart3, TrendingUp, FileText, Receipt, Layers } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -9,6 +9,9 @@ import { Kpi } from "@/components/kpi-card";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dh-reports")({
+  beforeLoad: () => {
+    throw redirect({ to: "/projects" });
+  },
   head: () => ({
     meta: [
       { title: "Reports — Pulse PMO" },

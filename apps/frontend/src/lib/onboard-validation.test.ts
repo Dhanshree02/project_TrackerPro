@@ -11,6 +11,8 @@ import {
   isValidIfsc,
   isValidPan,
   toDirectoryStatus,
+  directoryStatusFromEmployeeStatusName,
+  isResignationUnderReviewStatus,
   validateOnboardDocs,
   validateOnboardField,
   validateOnboardFile,
@@ -224,7 +226,6 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       expect(PMO_DEPARTMENT_OPTIONS).toContain("Core");
       expect(PMO_DEPARTMENT_OPTIONS).toContain("Functional - Project Management");
       expect(PMO_DEPARTMENT_OPTIONS).toContain("Services - Testing");
-      expect(PMO_DEPARTMENT_OPTIONS).toContain("Internship Program");
 
       expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Core"]).toEqual([
         "Leading Sales & A/C Dept.",
@@ -244,10 +245,6 @@ describe("Onboarding Form Validation & Exception Handling", () => {
         "Services - Testing - DevSecOps",
         "Services - Testing - Red Team",
         "Services - Testing - Cloud & AI",
-      ]);
-
-      expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Internship Program"]).toEqual([
-        "Across all Sub Departments",
       ]);
 
       expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Functional - Accounts"]).toEqual(["-"]);
@@ -497,6 +494,19 @@ describe("Onboarding Form Validation & Exception Handling", () => {
 
       const errors = validateOnboardForm(validForm, ["TK-1001"]);
       expect(Object.keys(errors).length).toBe(0);
+    });
+  });
+
+  describe("Employee status → directory status", () => {
+    it("keeps Resignation Under Review separate from Notice Period", () => {
+      expect(directoryStatusFromEmployeeStatusName("Resignation Under Review")).toBe(
+        "Resignation Under Review",
+      );
+      expect(toDirectoryStatus("Resignation - Under Review")).toBe("Resignation Under Review");
+      expect(directoryStatusFromEmployeeStatusName("Resigned")).toBe("Resigned");
+      expect(toDirectoryStatus("Resignation - Accepted")).toBe("Notice Period");
+      expect(isResignationUnderReviewStatus("Resignation Under Review")).toBe(true);
+      expect(isResignationUnderReviewStatus("Notice Period")).toBe(false);
     });
   });
 });

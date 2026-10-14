@@ -42,7 +42,13 @@ public sealed record EmployeeListItemDto(
     string? ProjectAllocated = null,
     string? ClientEngManagerMapping = null,
     string? JobRoleName = null,
-    string? JobRole = null);
+    string? JobRole = null,
+    string? TodayAttendance = null,
+    string? AllocationStatus = null,
+    string? AllocationType = null,
+    DateOnly? AllocationStartDate = null,
+    DateOnly? AllocationEndDate = null,
+    string? AllocatedProjectName = null);
 
 public sealed record EmployeeDetailDto(
     Guid Id,

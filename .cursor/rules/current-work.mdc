@@ -5,7 +5,27 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-13
+**Last updated:** 2026-10-14
+
+- **Repo `Documents/` is tracked in git and mounted into UAT/dev Docker backends.** Compose sets `Storage__DocumentsPath=/app/Documents` with `./Documents:/app/Documents`. KYC and PO folders start empty (`.gitkeep`); repository sample files under Tech./PMS./IMP remain in the repo. Project/customer binary uploads under `/app/storage` stay on the named Docker volume.
+
+- **UAT customer/project file storage was wiped.** Docker volume `pms_project_backend_uat_storage` (`/app/storage/customers`, `/app/storage/projects`) and `Documents/KYC` + `Documents/PO` were cleared. Repository SOP/template folders unchanged.
+
+- **`pms_uat` customer and project data were wiped for a fresh start.** All rows in `customer.*` and `project.*` were truncated (including drafts). Timesheet lines that referenced projects by `ProjectKey` were removed. Employees, masters, auth, repository, and team schedule data are unchanged. `database/trackerpro-uat.sql` and `database/pms_uat.sql` were regenerated from the live `pms_uat` database (`pg_dump --no-owner --no-acl`). API lists: clients **0**, projects **0**.
+
+- **Resource Pool is integrated into My Team → Team Dashboard.** `GET /api/v1/my-team/calendar` returns each member’s live `AllocationStatus` (**Free**, **Occupied**, **On Leave**), `AllocationType` (**Dedicated** or **Shared**), and project `Allocations`. In the Team Dashboard calendar, each resource row shows their live allocation status badge (instantly overriding to **On Leave** when Leave is marked on today’s date) plus `Dedicated` / `Shared`, along with **Request Allocation** and **Workload & Tasks** actions. Calendar day cells within a project allocation range show a `DED` (Dedicated) or `SHR` (Shared) bar and project duration details in the tooltip and popover. Resources now keeps **Employee Directory** and **Exit Summary** only.
+
+- **Resource Pool shows live Allocation Status, Allocation Type, and Allocation Duration.** `GET /api/v1/employees` resolves today’s attendance from `timesheet.tbl_team_day_entries` and active project team allocations (`AllocationEndDate >= today`) from `project.tbl_project_team_members`. If an employee is marked Leave today (or has status On Leave), Allocation Status is **On Leave** on priority (overwriting Occupied and Free). Otherwise, if they have a project allocation whose end date is yet to finish, Allocation Status is **Occupied**; else **Free**. Allocation Type (**Dedicated** or **Shared**) and Allocation Duration (`dd-mm-yyyy → dd-mm-yyyy`) come from the project team member record. The Workload & Tasks modal no longer shows the unused Skills section.
+
+- **Resignation Under Review stays in the directory as its own status.** Editing Employee Status to Resignation Under Review no longer maps to Notice Period. The status bubble shows Resignation Under Review (wider Status column in the directory table). Offboard Employee stays available like Terminated and Absconded; only Notice Period disables offboarding.
+
+- **Bulk upload sample maps Sub-Department to Department and Designation.** The Lookups sheet lists them on the same row. The Employees sheet Sub-Department list only shows the values for the department and designation on that row. A sub-department from another designation is rejected on upload.
+
+- **Employee profile shows Sub-Department.** Organization Details lists it under Designation, from the employee’s stored `SubDepartment`.
+
+- **Intern is a designation on every active department.** Internship Program is inactive and unlinked on `pms_uat`, and it is no longer a department choice. Intern is active under Core, Functional, R&D, and Services departments, with On Floor Role Team Member (TM) and Assigned RBAC Role Intern. Onboard New Employee starts with Worker Type, Bond Delivered, Post Graduation Degree Name, and Experience / Fresher empty. Bond Expiry Date and Bond Status stay blank until Bond Delivered is chosen. Labels use full words: Experience, years.
+
+- **UAT Docker stack is running from this checkout.** App http://localhost:39106, API http://localhost:52814, pgAdmin http://localhost:46382, Postgres localhost:41763. Images `pms-backend:uat` and `pms-frontend:uat` were rebuilt from the merge. The existing `pms_project_postgres_data` volume was kept. Health and employees return 200; customers and projects start empty until re-onboarded. Development containers stay on ports 3000 and 5194.
 
 - **`origin/uat` is merged into local `uat` with the chosen conflict sides.** Remote notes, gitignore, auth bypass, EF snapshot, bulk upload, customer edit, auto Customer ID, offboard status save, demo storage key, SQL dump, and empty root compose were kept. Local table-name helpers, topbar Admin lookup, Delivery Account Manager and the two sales designations, offboard status dropdown, and PM/SPM On Floor Role picker were kept. Employee list accepts both `onFloorRole` and `role`, and returns both `jobRoleName` and `jobRole`. Onboarding keeps Sub-Department and a locked Assigned RBAC Role. pgAdmin maintenance database stays `pms_uat`.
 
@@ -13,7 +33,7 @@ alwaysApply: true
 
 - **UAT sample data is one of each.** `pms_uat` keeps Admin User (`TK-0004`), MediCare Plus (`C006`), sub-venture MediCare Hospital Systems (`C006-04`), and project Hospital Management System. Current Address - City has the 128 Mumbai station names in `master.mst_address_cities`.
 
-- **Dashboard, Action Centre, and Settings are hidden.** They are out of the sidebar and those routes open Projects. The menus are hidden in the shared frontend source.
+- **Dashboard and Action Centre are in the sidebar again; Reports is hidden.** `/` and `/action-centre` render normally. Reports is removed from nav; `/reports` and `/dh-reports` redirect to Projects. Settings stays hidden (routes still redirect to Projects).
 
 - **My Timesheet opens with a blank project and task.** Admin’s week of 2026-10-12 had a draft line for `cust test(sub cust 1)_Mixed_01` / Web Application Penetration Testing with 0 hours. That line was removed on `pms_uat`, so the week starts empty until a project and task are chosen.
 
@@ -26,6 +46,8 @@ alwaysApply: true
 - **Sub-Venture IDs are stored on `customer.tbl_sub_ventures."SubVentureCode"`.** Each sub-venture keeps `{CustomerId}-{01}`, scoped to its client (cust test is `C013-01`, `C013-02`). New sub-ventures take the next number under that client. Project onboarding shows that id next to Customer ID. New WBS IDs are `IN-{FY}/{SubVentureCode}/{ProjectId}` (for example `IN-2026-27/C013-01/P056`). Existing project WBS IDs were left as they are. Migration `20261012130236_AddSubVentureCode` is applied on `pms_development`.
 
 - **Current Address - City comes from `master.mst_address_cities`.** Settings → Masters → Resource Masters adds a city, and Onboard New Employee (and Client Location) loads `GET /api/v1/catalogs/address-cities`. The saved value stays on `resource.tbl_employees."Address"`. The Mumbai station list is seeded into that table. Bulk upload rejects a city that is not in the master.
+
+- **Team calendar filter bar matches Employee Directory.** Search, department, allocation status/type, and a reserved **Reset** column; Reset clears toolbar filters and presence/shift card filters.
 
 - **Team calendar scrolls under the page header.** The month bar and employee rows stay inside the calendar, so they no longer cover Team Dashboard, search, or the user menu.
 - **Team Dashboard tab switches reuse the calendar already loaded.** My Reportees and All Employees are kept in memory for the open month, and the other tab is loaded in the background. Day menus are built only when a day is opened.
