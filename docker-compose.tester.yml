@@ -62,8 +62,11 @@ services:
       - Database__AutoMigrate=false
       - Database__Seed=false
       - Storage__RootPath=/app/storage
+      - Storage__DocumentsPath=/app/Documents
     ports:
       - "5194:8080"
+    volumes:
+      - ./Documents:/app/Documents
     networks:
       - pms_tester_network
 

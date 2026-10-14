@@ -4,6 +4,7 @@
 #   docker compose -f docker-compose.uat.yml -p pms_uat down
 #
 # UAT app:  http://localhost:39106   API http://localhost:52814/swagger
+# Backend mounts ./Documents (KYC, PO, repository) from this checkout.
 # pgAdmin:  http://localhost:46382   osdpkvam@osdpkvam.com / Osdpkvam
 # Postgres: localhost:41763
 #   databases on pms_uat_db: pms_development, pms_uat, pms_deployment
@@ -74,10 +75,12 @@ services:
       - Database__Seed=false
       - Database__SyncSystemRoleBaselines=false
       - Storage__RootPath=/app/storage
+      - Storage__DocumentsPath=/app/Documents
     ports:
       - "${UAT_BACKEND_PORT:-52814}:8080"
     volumes:
       - backend_storage:/app/storage
+      - ./Documents:/app/Documents
       - ./apps/backend/Log:/app/Log
     networks:
       - pms_shared

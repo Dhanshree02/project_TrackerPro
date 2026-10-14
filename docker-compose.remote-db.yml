@@ -25,10 +25,12 @@ services:
       - Database__AutoMigrate=false
       - Database__Seed=false
       - Storage__RootPath=/app/storage
+      - Storage__DocumentsPath=/app/Documents
     ports:
       - "${BACKEND_PORT:-5194}:8080"
     volumes:
       - backend_storage:/app/storage
+      - ./Documents:/app/Documents
 
   frontend:
     build:
