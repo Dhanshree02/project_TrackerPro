@@ -8,6 +8,10 @@ public sealed class TeamSummaryQueryValidator : AbstractValidator<TeamSummaryQue
 {
     public TeamSummaryQueryValidator()
     {
+        RuleFor(x => x.Period)
+            .Must(p => string.IsNullOrWhiteSpace(p) || string.Equals(p.Trim(), "rolling", StringComparison.OrdinalIgnoreCase))
+            .WithMessage("Period must be rolling.");
+
         RuleFor(x => x.Quarter)
             .Must(q => string.IsNullOrWhiteSpace(q) || FinancialQuarter.IsValid(q))
             .WithMessage("Quarter must be Q1, Q2, Q3, or Q4.");

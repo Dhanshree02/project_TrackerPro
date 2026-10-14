@@ -26,6 +26,46 @@ public static class FinancialQuarter
         _ => "Q4",
     };
 
+    /// <summary>
+    /// Previous two calendar months plus the month that contains <paramref name="today"/>.
+    /// The range crosses quarter and year boundaries.
+    /// </summary>
+    public static IReadOnlyList<(int Year, int Month, string Label)> RollingMonths(DateOnly today)
+    {
+        var first = new DateOnly(today.Year, today.Month, 1).AddMonths(-2);
+        return Enumerable.Range(0, 3)
+            .Select(offset =>
+            {
+                var date = first.AddMonths(offset);
+                return (date.Year, date.Month, MonthLabels[date.Month]);
+            })
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Rolling three months unless a financial quarter is selected.
+    /// </summary>
+    public static (string Code, int FinancialYear, IReadOnlyList<(int Year, int Month, string Label)> Months) Resolve(
+        string? period,
+        string? quarter,
+        int? financialYear,
+        DateOnly today)
+    {
+        var rolling = string.Equals(period?.Trim(), "rolling", StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(quarter)
+            || !IsValid(quarter);
+        if (!rolling && IsValid(quarter))
+        {
+            var code = quarter!.Trim().ToUpperInvariant();
+            var year = financialYear ?? CurrentFinancialYearStart(today);
+            return (code, year, Months(code, year));
+        }
+
+        var months = RollingMonths(today);
+        var end = months[^1];
+        return ("ROLLING", CurrentFinancialYearStart(new DateOnly(end.Year, end.Month, 1)), months);
+    }
+
     public static IReadOnlyList<(int Year, int Month, string Label)> Months(string quarter, int financialYearStart)
     {
         var code = quarter.Trim().ToUpperInvariant();

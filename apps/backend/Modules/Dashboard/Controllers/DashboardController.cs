@@ -36,15 +36,6 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
         return Ok(ApiResponse<OnsiteProjectCountDto>.Ok(result));
     }
 
-    [HttpGet("offsite-service-activity")]
-    public async Task<ActionResult<ApiResponse<OffsiteServiceActivityDto>>> OffsiteServiceActivity(
-        [FromQuery] TeamSummaryQuery? query,
-        CancellationToken ct)
-    {
-        var result = await dashboard.GetOffsiteServiceActivityAsync(query ?? new TeamSummaryQuery(), ct);
-        return Ok(ApiResponse<OffsiteServiceActivityDto>.Ok(result));
-    }
-
     [HttpGet("offsite-utilization")]
     public async Task<ActionResult<ApiResponse<OffsiteTeamUtilizationDto>>> OffsiteUtilization(
         [FromQuery] TeamSummaryQuery? query,
@@ -52,6 +43,24 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
     {
         var result = await dashboard.GetOffsiteTeamUtilizationAsync(query ?? new TeamSummaryQuery(), ct);
         return Ok(ApiResponse<OffsiteTeamUtilizationDto>.Ok(result));
+    }
+
+    [HttpGet("resignation-counts")]
+    public async Task<ActionResult<ApiResponse<ResignationCountDto>>> ResignationCounts(
+        [FromQuery] TeamSummaryQuery? query,
+        CancellationToken ct)
+    {
+        var result = await dashboard.GetResignationCountsAsync(query ?? new TeamSummaryQuery(), ct);
+        return Ok(ApiResponse<ResignationCountDto>.Ok(result));
+    }
+
+    [HttpGet("offsite-capacity")]
+    public async Task<ActionResult<ApiResponse<OffsiteCapacityDto>>> OffsiteCapacity(
+        [FromQuery] TeamSummaryQuery? query,
+        CancellationToken ct)
+    {
+        var result = await dashboard.GetOffsiteCapacityAsync(query ?? new TeamSummaryQuery(), ct);
+        return Ok(ApiResponse<OffsiteCapacityDto>.Ok(result));
     }
 
     [HttpGet("role-allocation")]

@@ -9,8 +9,9 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
+  dashboardPeriodLabel,
   fetchOnsiteProjectCounts,
-  type DashboardQuarter,
+  type DashboardPeriod,
   type MisDashboardView,
   type OnsiteProjectCounts,
 } from "@/lib/api/dashboard";
@@ -18,10 +19,10 @@ import {
 const PAGE_SIZE = 8;
 
 export function OnsiteProjectCountSection({
-  quarter,
+  period,
   view,
 }: {
-  quarter: DashboardQuarter;
+  period: DashboardPeriod;
   view: MisDashboardView;
 }) {
   const [data, setData] = useState<OnsiteProjectCounts | null>(null);
@@ -39,7 +40,7 @@ export function OnsiteProjectCountSection({
     setData(null);
     setPage(1);
 
-    fetchOnsiteProjectCounts(quarter, controller.signal)
+    fetchOnsiteProjectCounts(period, controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -53,7 +54,7 @@ export function OnsiteProjectCountSection({
       });
 
     return () => controller.abort();
-  }, [quarter, reloadKey]);
+  }, [period, reloadKey]);
 
   const months = data?.months ?? [];
   const chartConfig = {
@@ -86,7 +87,7 @@ export function OnsiteProjectCountSection({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold">Team Utilization – Onsite: Project-wise Resource Count</h3>
-          <p className="text-xs text-muted-foreground">Onsite resources assigned to each project</p>
+          <p className="text-xs text-muted-foreground">People assigned to the project's onsite services</p>
         </div>
         {!loading && !error && data && data.projects.length > 0 && (
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -106,7 +107,7 @@ export function OnsiteProjectCountSection({
 
       {loading && (
         <div className="mt-4 rounded-lg border border-border px-4 py-10 text-center text-sm text-muted-foreground">
-          Loading {quarter}…
+          Loading {dashboardPeriodLabel(period)}…
         </div>
       )}
 
@@ -124,7 +125,7 @@ export function OnsiteProjectCountSection({
       )}
 
       {!loading && !error && data && filtered.length === 0 && (
-        <p className="mt-4 text-sm text-muted-foreground">No onsite project assignments for {quarter}.</p>
+        <p className="mt-4 text-sm text-muted-foreground">No onsite project assignments for {dashboardPeriodLabel(period)}.</p>
       )}
 
       {!loading && !error && data && filtered.length > 0 && (

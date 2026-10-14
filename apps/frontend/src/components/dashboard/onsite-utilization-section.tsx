@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/chart";
 import {
   fetchOnsiteUtilization,
-  type DashboardQuarter,
+  dashboardPeriodLabel,
+  type DashboardPeriod,
   type MisDashboardView,
   type OnsiteUtilization,
 } from "@/lib/api/dashboard";
@@ -22,10 +23,10 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function OnsiteUtilizationSection({
-  quarter,
+  period,
   view,
 }: {
-  quarter: DashboardQuarter;
+  period: DashboardPeriod;
   view: MisDashboardView;
 }) {
   const [data, setData] = useState<OnsiteUtilization | null>(null);
@@ -39,7 +40,7 @@ export function OnsiteUtilizationSection({
     setError(null);
     setData(null);
 
-    fetchOnsiteUtilization(quarter, controller.signal)
+    fetchOnsiteUtilization(period, controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -53,18 +54,18 @@ export function OnsiteUtilizationSection({
       });
 
     return () => controller.abort();
-  }, [quarter, reloadKey]);
+  }, [period, reloadKey]);
 
   const months = data?.months ?? [];
 
   return (
     <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <h3 className="text-sm font-semibold">Team Utilization - Onsite ({quarter})</h3>
-      <p className="text-xs text-muted-foreground">Resources assigned to onsite services</p>
+      <h3 className="text-sm font-semibold">Team Utilization - Onsite ({dashboardPeriodLabel(period)})</h3>
+      <p className="text-xs text-muted-foreground">Onsite employees by billable status</p>
 
       {loading && (
         <div className="mt-4 rounded-lg border border-border px-4 py-10 text-center text-sm text-muted-foreground">
-          Loading {quarter}…
+          Loading {dashboardPeriodLabel(period)}…
         </div>
       )}
 

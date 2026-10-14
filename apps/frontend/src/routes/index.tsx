@@ -126,6 +126,8 @@ function Dashboard() {
       title={`Welcome back, ${user.name.split(" ")[0]}`}
       subtitle={`${isEmployee ? "Employee" : isAccounts ? "Accounts & Finance" : isSales ? "Sales & BD" : roleLabels[role]} · ${assignedProjects.length} projects across ${new Set(assignedProjects.map((p) => p.clientId)).size} customers${isBO ? " · executive overview" : isHOD ? " · department view" : isPMO ? " · governance + allocation view" : ""}`}
     >
+      {false && (
+      <>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat
           label="Ongoing projects"
@@ -449,6 +451,8 @@ function Dashboard() {
           </ul>
         </section>
       </div>
+      </>
+      )}
 
       <TeamMisSection />
     </AppShell>

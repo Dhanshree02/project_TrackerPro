@@ -9,17 +9,18 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
+  dashboardPeriodLabel,
   fetchOffsiteTeamUtilization,
-  type DashboardQuarter,
+  type DashboardPeriod,
   type MisDashboardView,
   type OffsiteTeamUtilization,
 } from "@/lib/api/dashboard";
 
 export function OffsiteTeamUtilizationSection({
-  quarter,
+  period,
   view,
 }: {
-  quarter: DashboardQuarter;
+  period: DashboardPeriod;
   view: MisDashboardView;
 }) {
   const [data, setData] = useState<OffsiteTeamUtilization | null>(null);
@@ -33,7 +34,7 @@ export function OffsiteTeamUtilizationSection({
     setError(null);
     setData(null);
 
-    fetchOffsiteTeamUtilization(quarter, controller.signal)
+    fetchOffsiteTeamUtilization(period, controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -47,7 +48,7 @@ export function OffsiteTeamUtilizationSection({
       });
 
     return () => controller.abort();
-  }, [quarter, reloadKey]);
+  }, [period, reloadKey]);
 
   const months = data?.months ?? [];
   const strengthConfig = {
@@ -77,12 +78,12 @@ export function OffsiteTeamUtilizationSection({
     <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div>
         <h3 className="text-sm font-semibold">Team Utilization – Offsite</h3>
-        <p className="text-xs text-muted-foreground">Offsite team strength and timesheet utilization by employee department</p>
+        <p className="text-xs text-muted-foreground">Offsite team strength and timesheet utilization by employee sub-department</p>
       </div>
 
       {loading && (
         <div className="mt-4 rounded-lg border border-border px-4 py-10 text-center text-sm text-muted-foreground">
-          Loading {quarter}…
+          Loading {dashboardPeriodLabel(period)}…
         </div>
       )}
 
@@ -100,7 +101,7 @@ export function OffsiteTeamUtilizationSection({
       )}
 
       {!loading && !error && data && data.departments.length === 0 && (
-        <p className="mt-4 text-sm text-muted-foreground">No offsite employees for {quarter}.</p>
+        <p className="mt-4 text-sm text-muted-foreground">No offsite employees for {dashboardPeriodLabel(period)}.</p>
       )}
 
       {!loading && !error && data && data.departments.length > 0 && (

@@ -9,8 +9,9 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
+  dashboardPeriodLabel,
   fetchRoleAllocation,
-  type DashboardQuarter,
+  type DashboardPeriod,
   type MisDashboardView,
   type RoleAllocation,
 } from "@/lib/api/dashboard";
@@ -21,10 +22,10 @@ const onsiteChartConfig = {
 } satisfies ChartConfig;
 
 export function RoleAllocationSection({
-  quarter,
+  period,
   view,
 }: {
-  quarter: DashboardQuarter;
+  period: DashboardPeriod;
   view: MisDashboardView;
 }) {
   const [data, setData] = useState<RoleAllocation | null>(null);
@@ -38,7 +39,7 @@ export function RoleAllocationSection({
     setError(null);
     setData(null);
 
-    fetchRoleAllocation(quarter, controller.signal)
+    fetchRoleAllocation(period, controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -52,7 +53,7 @@ export function RoleAllocationSection({
       });
 
     return () => controller.abort();
-  }, [quarter, reloadKey]);
+  }, [period, reloadKey]);
 
   const months = data?.months ?? [];
   const offsiteChartConfig = {
@@ -84,12 +85,12 @@ export function RoleAllocationSection({
 
   return (
     <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <h3 className="text-sm font-semibold">Team Allocation Onsite/Offsite ({quarter})</h3>
+      <h3 className="text-sm font-semibold">Team Allocation Onsite/Offsite ({dashboardPeriodLabel(period)})</h3>
       <p className="text-xs text-muted-foreground">Role wise count</p>
 
       {loading && (
         <div className="mt-4 rounded-lg border border-border px-4 py-10 text-center text-sm text-muted-foreground">
-          Loading {quarter}…
+          Loading {dashboardPeriodLabel(period)}…
         </div>
       )}
 

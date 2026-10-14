@@ -2,6 +2,9 @@ namespace PMS.API.Modules.Dashboard.DTOs;
 
 public sealed class TeamSummaryQuery
 {
+    /// <summary>rolling = previous two months plus the current month. A quarter code selects that financial quarter instead.</summary>
+    public string? Period { get; set; }
+
     public string? Quarter { get; set; }
 
     /// <summary>Financial-year start year. April 2026–March 2027 is 2026.</summary>
@@ -53,17 +56,34 @@ public sealed record OffsiteTeamUtilizationRowDto(
     IReadOnlyList<int> TeamStrength,
     IReadOnlyList<int> Utilization);
 
-public sealed record OffsiteServiceActivityDto(
+public sealed record ResignationCountDto(
     string Quarter,
     int FinancialYear,
-    IReadOnlyList<OffsiteServiceActivityMonthDto> Months,
-    IReadOnlyList<OffsiteServiceActivityRowDto> Departments);
+    IReadOnlyList<ResignationCountRowDto> Offsite,
+    IReadOnlyList<ResignationCountRowDto> Onsite);
 
-public sealed record OffsiteServiceActivityMonthDto(string Month, int Year);
+public sealed record ResignationCountRowDto(
+    string Role,
+    int TotalCount,
+    int BondFree,
+    int OnPaper);
 
-public sealed record OffsiteServiceActivityRowDto(
-    string Department,
-    IReadOnlyList<int> MonthlyCounts);
+public sealed record OffsiteCapacityDto(
+    string Quarter,
+    int FinancialYear,
+    int CalendarDays,
+    IReadOnlyList<OffsiteCapacityMonthDto> Months,
+    IReadOnlyList<OffsiteCapacityRowDto> Departments);
+
+public sealed record OffsiteCapacityMonthDto(string Month, int Year);
+
+public sealed record OffsiteCapacityRowDto(
+    string SubDepartment,
+    string? Effort,
+    string? CapacityUnit,
+    IReadOnlyList<int> Tm,
+    IReadOnlyList<int> EffectiveDays,
+    IReadOnlyList<int?> MonthlyCapacity);
 
 public sealed record OnsiteUtilizationDto(
     string Quarter,

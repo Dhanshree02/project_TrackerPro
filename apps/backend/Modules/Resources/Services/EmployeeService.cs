@@ -531,9 +531,18 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             if (entity.BusinessUnit != request.BusinessUnit) changes.Add("Business Unit");
             entity.BusinessUnit = request.BusinessUnit;
         }
+        string? previousWorkLocation = null;
+        string? nextWorkLocation = null;
+        var workLocationChanged = false;
         if (request.WorkLocation is not null)
         {
-            if (entity.WorkLocation != request.WorkLocation) changes.Add("Work Location");
+            if (entity.WorkLocation != request.WorkLocation)
+            {
+                changes.Add("Work Location");
+                previousWorkLocation = entity.WorkLocation;
+                nextWorkLocation = request.WorkLocation;
+                workLocationChanged = true;
+            }
             entity.WorkLocation = request.WorkLocation;
         }
         if (request.OfficeBranch is not null)
@@ -784,9 +793,18 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 }
             }
         }
+        string? previousBillableStatus = null;
+        string? nextBillableStatus = null;
+        var billableStatusChanged = false;
         if (request.BillableStatus is not null)
         {
-            if (entity.BillableStatus != request.BillableStatus) changes.Add("Billable Status");
+            if (entity.BillableStatus != request.BillableStatus)
+            {
+                changes.Add("Billable Status");
+                previousBillableStatus = entity.BillableStatus;
+                nextBillableStatus = request.BillableStatus;
+                billableStatusChanged = true;
+            }
             entity.BillableStatus = request.BillableStatus;
         }
         if (request.ClientLocation is not null)
@@ -871,6 +889,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 ? $"Updated: {string.Join(", ", distinctChanges.Take(6))}{(distinctChanges.Count > 6 ? $" (+{distinctChanges.Count - 6} more)" : "")}"
                 : "Profile details updated";
 
+            var changedAt = DateTime.UtcNow;
             db.EmployeeActivityLogs.Add(new EmployeeActivityLog
             {
                 Id = Guid.NewGuid(),
@@ -879,8 +898,34 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 PerformedByEmail = performerEmail,
                 PerformedByName = performerName,
                 Details = changeDesc,
-                CreatedAtUtc = DateTime.UtcNow
+                CreatedAtUtc = changedAt
             });
+            if (workLocationChanged)
+            {
+                db.EmployeeActivityLogs.Add(new EmployeeActivityLog
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeId = entity.Id,
+                    Action = "WorkLocationChanged",
+                    PerformedByEmail = performerEmail,
+                    PerformedByName = performerName,
+                    Details = $"{previousWorkLocation} -> {nextWorkLocation}",
+                    CreatedAtUtc = changedAt
+                });
+            }
+            if (billableStatusChanged)
+            {
+                db.EmployeeActivityLogs.Add(new EmployeeActivityLog
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeId = entity.Id,
+                    Action = "BillableStatusChanged",
+                    PerformedByEmail = performerEmail,
+                    PerformedByName = performerName,
+                    Details = $"{previousBillableStatus} -> {nextBillableStatus}",
+                    CreatedAtUtc = changedAt
+                });
+            }
             await db.SaveChangesAsync(ct);
             await SyncLinkedUserAsync(entity, ct);
         }

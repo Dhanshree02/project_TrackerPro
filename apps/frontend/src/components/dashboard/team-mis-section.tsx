@@ -9,19 +9,26 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
-  currentDashboardQuarter,
+  dashboardPeriodLabel,
   fetchTeamSummary,
-  type DashboardQuarter,
+  type DashboardPeriod,
   type MisDashboardView,
   type TeamSummary,
 } from "@/lib/api/dashboard";
-import { OffsiteServiceActivitySection } from "@/components/dashboard/offsite-service-activity-section";
 import { OffsiteTeamUtilizationSection } from "@/components/dashboard/offsite-team-utilization-section";
 import { OnsiteProjectCountSection } from "@/components/dashboard/onsite-project-count-section";
 import { OnsiteUtilizationSection } from "@/components/dashboard/onsite-utilization-section";
+import { ResignationCountSection } from "@/components/dashboard/resignation-count-section";
+import { OffsiteCapacitySection } from "@/components/dashboard/offsite-capacity-section";
 import { RoleAllocationSection } from "@/components/dashboard/role-allocation-section";
 
-const QUARTERS: DashboardQuarter[] = ["Q1", "Q2", "Q3", "Q4"];
+const PERIODS: { id: DashboardPeriod; label: string }[] = [
+  { id: "rolling", label: "Last 3 Months" },
+  { id: "Q1", label: "Q1" },
+  { id: "Q2", label: "Q2" },
+  { id: "Q3", label: "Q3" },
+  { id: "Q4", label: "Q4" },
+];
 
 const VIEWS: { id: MisDashboardView; label: string }[] = [
   { id: "graph", label: "Graph View" },
@@ -41,7 +48,7 @@ const boardingChartConfig = {
 } satisfies ChartConfig;
 
 export function TeamMisSection() {
-  const [quarter, setQuarter] = useState<DashboardQuarter>(currentDashboardQuarter);
+  const [period, setPeriod] = useState<DashboardPeriod>("rolling");
   const [view, setView] = useState<MisDashboardView>("graph");
   const [summary, setSummary] = useState<TeamSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,10 +56,11 @@ export function TeamMisSection() {
   const [reloadKey, setReloadKey] = useState(0);
   const scrollLock = useRef<number | null>(null);
 
-  const changeQuarter = (next: DashboardQuarter) => {
-    if (next === quarter) return;
+  const changePeriod = (next: DashboardPeriod) => {
+    if (next === period) return;
     scrollLock.current = window.scrollY;
-    setQuarter(next);
+    setSummary(null);
+    setPeriod(next);
   };
 
   useLayoutEffect(() => {
@@ -67,7 +75,7 @@ export function TeamMisSection() {
     setLoading(true);
     setError(null);
 
-    fetchTeamSummary(quarter, controller.signal)
+    fetchTeamSummary(period, controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) setSummary(data);
       })
@@ -81,7 +89,7 @@ export function TeamMisSection() {
       });
 
     return () => controller.abort();
-  }, [quarter, reloadKey]);
+  }, [period, reloadKey]);
 
   const months = summary?.months ?? [];
   const fyLabel = summary
@@ -117,17 +125,17 @@ export function TeamMisSection() {
             ))}
           </div>
           <label htmlFor="mis-quarter" className="text-xs font-medium text-muted-foreground">
-            Quarter
+            Period
           </label>
           <select
             id="mis-quarter"
-            value={quarter}
-            onChange={(event) => changeQuarter(event.target.value as DashboardQuarter)}
-            className="h-9 w-24 rounded-md border border-input bg-card px-2 text-xs shadow-sm"
+            value={period}
+            onChange={(event) => changePeriod(event.target.value as DashboardPeriod)}
+            className="h-9 w-36 rounded-md border border-input bg-card px-2 text-xs shadow-sm"
           >
-            {QUARTERS.map((item) => (
-              <option key={item} value={item}>
-                {item}
+            {PERIODS.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
               </option>
             ))}
           </select>
@@ -136,7 +144,7 @@ export function TeamMisSection() {
 
       {loading && !summary && (
         <div className="rounded-xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-sm">
-          Loading {quarter}…
+          Loading {dashboardPeriodLabel(period)}…
         </div>
       )}
 
@@ -157,7 +165,7 @@ export function TeamMisSection() {
         <div className="relative">
           {loading && (
             <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/70 text-sm text-muted-foreground">
-              Loading {quarter}…
+              Loading {dashboardPeriodLabel(period)}…
             </div>
           )}
           {error && (
@@ -291,11 +299,12 @@ export function TeamMisSection() {
         </div>
       )}
 
-      <OnsiteUtilizationSection quarter={quarter} view={view} />
-      <OffsiteTeamUtilizationSection quarter={quarter} view={view} />
-      <OnsiteProjectCountSection quarter={quarter} view={view} />
-      <RoleAllocationSection quarter={quarter} view={view} />
-      <OffsiteServiceActivitySection quarter={quarter} view={view} />
+      <OnsiteUtilizationSection period={period} view={view} />
+      <OffsiteTeamUtilizationSection period={period} view={view} />
+      <OnsiteProjectCountSection period={period} view={view} />
+      <RoleAllocationSection period={period} view={view} />
+      <ResignationCountSection period={period} view={view} />
+      <OffsiteCapacitySection period={period} view={view} />
     </section>
   );
 }

@@ -2,6 +2,18 @@ import { apiFetch } from "@/lib/api-client";
 
 export type DashboardQuarter = "Q1" | "Q2" | "Q3" | "Q4";
 
+/** rolling = previous two months plus the current month. A quarter code selects that financial quarter. */
+export type DashboardPeriod = "rolling" | DashboardQuarter;
+
+export function dashboardPeriodLabel(period: DashboardPeriod): string {
+  return period === "rolling" ? "Last 3 Months" : period;
+}
+
+function dashboardQuery(period: DashboardPeriod): string {
+  const params = new URLSearchParams(period === "rolling" ? { period: "rolling" } : { quarter: period });
+  return params.toString();
+}
+
 /** Graph shows charts, list shows tables, both shows the tables and the charts together. */
 export type MisDashboardView = "graph" | "list" | "both";
 
@@ -49,9 +61,8 @@ export interface OnsiteUtilization {
   months: OnsiteUtilizationMonth[];
 }
 
-export function fetchTeamSummary(quarter: DashboardQuarter, signal?: AbortSignal): Promise<TeamSummary> {
-  const params = new URLSearchParams({ quarter });
-  return apiFetch<TeamSummary>(`/api/v1/dashboard/team-summary?${params.toString()}`, { signal });
+export function fetchTeamSummary(period: DashboardPeriod, signal?: AbortSignal): Promise<TeamSummary> {
+  return apiFetch<TeamSummary>(`/api/v1/dashboard/team-summary?${dashboardQuery(period)}`, { signal });
 }
 
 export interface RoleAllocationMonth {
@@ -89,28 +100,10 @@ export interface OnsiteProjectCounts {
 }
 
 export function fetchOnsiteProjectCounts(
-  quarter: DashboardQuarter,
+  period: DashboardPeriod,
   signal?: AbortSignal,
 ): Promise<OnsiteProjectCounts> {
-  const params = new URLSearchParams({ quarter });
-  return apiFetch<OnsiteProjectCounts>(`/api/v1/dashboard/onsite-project-counts?${params.toString()}`, { signal });
-}
-
-export interface OffsiteServiceActivityMonth {
-  month: string;
-  year: number;
-}
-
-export interface OffsiteServiceActivityRow {
-  department: string;
-  monthlyCounts: number[];
-}
-
-export interface OffsiteServiceActivity {
-  quarter: DashboardQuarter;
-  financialYear: number;
-  months: OffsiteServiceActivityMonth[];
-  departments: OffsiteServiceActivityRow[];
+  return apiFetch<OnsiteProjectCounts>(`/api/v1/dashboard/onsite-project-counts?${dashboardQuery(period)}`, { signal });
 }
 
 export interface OffsiteTeamUtilizationMonth {
@@ -132,33 +125,72 @@ export interface OffsiteTeamUtilization {
 }
 
 export function fetchOffsiteTeamUtilization(
-  quarter: DashboardQuarter,
+  period: DashboardPeriod,
   signal?: AbortSignal,
 ): Promise<OffsiteTeamUtilization> {
-  const params = new URLSearchParams({ quarter });
-  return apiFetch<OffsiteTeamUtilization>(`/api/v1/dashboard/offsite-utilization?${params.toString()}`, { signal });
-}
-
-export function fetchOffsiteServiceActivity(
-  quarter: DashboardQuarter,
-  signal?: AbortSignal,
-): Promise<OffsiteServiceActivity> {
-  const params = new URLSearchParams({ quarter });
-  return apiFetch<OffsiteServiceActivity>(`/api/v1/dashboard/offsite-service-activity?${params.toString()}`, { signal });
+  return apiFetch<OffsiteTeamUtilization>(`/api/v1/dashboard/offsite-utilization?${dashboardQuery(period)}`, { signal });
 }
 
 export function fetchRoleAllocation(
-  quarter: DashboardQuarter,
+  period: DashboardPeriod,
   signal?: AbortSignal,
 ): Promise<RoleAllocation> {
-  const params = new URLSearchParams({ quarter });
-  return apiFetch<RoleAllocation>(`/api/v1/dashboard/role-allocation?${params.toString()}`, { signal });
+  return apiFetch<RoleAllocation>(`/api/v1/dashboard/role-allocation?${dashboardQuery(period)}`, { signal });
+}
+
+export interface ResignationCountRow {
+  role: string;
+  totalCount: number;
+  bondFree: number;
+  onPaper: number;
+}
+
+export interface ResignationCounts {
+  quarter: string;
+  financialYear: number;
+  offsite: ResignationCountRow[];
+  onsite: ResignationCountRow[];
+}
+
+export function fetchResignationCounts(
+  period: DashboardPeriod,
+  signal?: AbortSignal,
+): Promise<ResignationCounts> {
+  return apiFetch<ResignationCounts>(`/api/v1/dashboard/resignation-counts?${dashboardQuery(period)}`, { signal });
+}
+
+export interface OffsiteCapacityMonth {
+  month: string;
+  year: number;
+}
+
+export interface OffsiteCapacityRow {
+  subDepartment: string;
+  effort: string | null;
+  capacityUnit: string | null;
+  tm: number[];
+  effectiveDays: number[];
+  monthlyCapacity: Array<number | null>;
+}
+
+export interface OffsiteCapacity {
+  quarter: string;
+  financialYear: number;
+  calendarDays: number;
+  months: OffsiteCapacityMonth[];
+  departments: OffsiteCapacityRow[];
+}
+
+export function fetchOffsiteCapacity(
+  period: DashboardPeriod,
+  signal?: AbortSignal,
+): Promise<OffsiteCapacity> {
+  return apiFetch<OffsiteCapacity>(`/api/v1/dashboard/offsite-capacity?${dashboardQuery(period)}`, { signal });
 }
 
 export function fetchOnsiteUtilization(
-  quarter: DashboardQuarter,
+  period: DashboardPeriod,
   signal?: AbortSignal,
 ): Promise<OnsiteUtilization> {
-  const params = new URLSearchParams({ quarter });
-  return apiFetch<OnsiteUtilization>(`/api/v1/dashboard/onsite-utilization?${params.toString()}`, { signal });
+  return apiFetch<OnsiteUtilization>(`/api/v1/dashboard/onsite-utilization?${dashboardQuery(period)}`, { signal });
 }
