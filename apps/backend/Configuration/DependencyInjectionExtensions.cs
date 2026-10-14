@@ -9,6 +9,7 @@ using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Infrastructure.Storage;
 using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Modules.Customers.Services;
+using PMS.API.Modules.Dashboard.Services;
 using PMS.API.Modules.MyTeam.Services;
 using PMS.API.Modules.Timesheets.Services;
 using PMS.API.Modules.Projects.Services;
@@ -59,6 +60,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectTaskService, ProjectTaskService>();
         services.AddScoped<IRbacAccessService, RbacAccessService>();
         services.AddHostedService<RbacBaselineHostedService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         // ---- FluentValidation validators (scanned from this assembly) ----
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);
