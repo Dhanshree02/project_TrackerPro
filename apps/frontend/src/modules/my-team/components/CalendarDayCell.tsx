@@ -1,5 +1,6 @@
 // ─── My Team — Calendar Day Cell ─────────────────────────────────────────────
 
+import { useEffect, useRef } from "react";
 import { formatDateDMY } from "@/lib/utils";
 import {
   attendanceMeta,
@@ -152,16 +153,18 @@ export function CalendarDayCell({
     dayAllocation,
   });
 
-  // Prefer opening to the side that has the most room (left if late in month, right otherwise)
-  const preferredSide = date.getDate() > 18 ? "left" : "right";
   const allocType: PoolAllocationType | undefined = dayAllocation?.allocationType;
   const isDedicatedAlloc = allocType === "Dedicated";
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const cell = (
-        <div
-          style={{ width: "100%", height: CALENDAR_ROW_PX }}
-          title={tooltipTitle}
-          className={`relative flex flex-col items-center justify-center overflow-visible border-r border-[#edf0f4] dark:border-slate-800 ${
+  /** Native `title` tooltips paint above the popover and overlap the name column — never use them on cells. */
+  useEffect(() => {
+    if (!isOpen) return;
+    buttonRef.current?.removeAttribute("title");
+    buttonRef.current?.closest("[data-calendar-day-cell]")?.removeAttribute("title");
+  }, [isOpen]);
+
+  const cellSurfaceClass = `relative flex flex-col items-center justify-center overflow-visible border-r border-[#edf0f4] dark:border-slate-800 ${
             !isLastRow ? "border-b border-[#edf0f4] dark:border-slate-800" : ""
           } ${
             isToday
@@ -177,21 +180,27 @@ export function CalendarDayCell({
                         ? "bg-indigo-50/55 dark:bg-indigo-950/25"
                         : "bg-sky-50/60 dark:bg-sky-950/25"
                       : "bg-white dark:bg-slate-900"
-          }`}
-        >
-          <div className="relative flex h-7 w-full items-center justify-center">
+          }`;
+
+  const dayButton = (
             <button
+              ref={buttonRef}
               type="button"
               data-cell={`${memberId}-${dateKey}`}
               aria-disabled={isLocked}
-              aria-label={`${memberName} ${formatDateDMY(date)}`}
+              aria-label={tooltipTitle}
+              aria-expanded={isOpen}
               onFocus={onFocusCell}
+              onMouseDown={(mouseEvent) => {
+                mouseEvent.currentTarget.removeAttribute("title");
+              }}
               onClick={(mouseEvent) => {
                 onFocusCell();
                 if (isLocked) return;
+                mouseEvent.currentTarget.removeAttribute("title");
+                mouseEvent.currentTarget.blur();
                 onToggle(mouseEvent.shiftKey);
               }}
-              title={tooltipTitle}
               className={`relative z-10 p-0 m-0 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold leading-none tabular-nums text-center focus:outline-none ${
                 isFocused
                   ? "ring-2 ring-[#5a49b8]/50 ring-offset-1"
@@ -220,6 +229,16 @@ export function CalendarDayCell({
                 {date.getDate()}
               </span>
             </button>
+  );
+
+  const cellBody = (
+          <>
+          <div className="relative flex h-7 w-full items-center justify-center">
+            {isOpen && !isLocked ? (
+              <PopoverAnchor asChild>{dayButton}</PopoverAnchor>
+            ) : (
+              dayButton
+            )}
           </div>
 
           {!isLeave && displayShift ? (
@@ -247,27 +266,38 @@ export function CalendarDayCell({
               {isLeave ? "LEAVE" : isDedicatedAlloc ? "DED" : "SHR"}
             </div>
           )}
-        </div>
+          </>
   );
 
-  if (!isOpen || isLocked) return cell;
+  const cellShell = (
+    <div
+      data-calendar-day-cell=""
+      style={{ width: "100%", height: CALENDAR_ROW_PX }}
+      className={cellSurfaceClass}
+    >
+      {cellBody}
+    </div>
+  );
+
+  if (!isOpen || isLocked) return cellShell;
 
   return (
     <Popover
       open
+      modal
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
     >
-      <PopoverAnchor asChild>{cell}</PopoverAnchor>
+      {cellShell}
 
-      {/* Screen-aware Portal Popover: opens side-by-side or best fit, no scrollbars */}
       <PopoverContent
-        side={preferredSide}
+        side="bottom"
         align="center"
-        sideOffset={10}
-        collisionPadding={16}
-        className="z-[200] w-[230px] rounded-2xl border border-white/60 bg-white/80 p-2.5 shadow-[0_20px_50px_rgba(15,23,42,0.22),0_0_0_1px_rgba(0,0,0,0.06)] backdrop-blur-[32px] backdrop-saturate-180 dark:bg-slate-900/85 dark:border-white/10 outline-none"
+        sideOffset={8}
+        collisionPadding={12}
+        avoidCollisions
+        className="z-40 w-[230px] rounded-2xl border border-white/60 bg-white/80 p-2.5 shadow-[0_20px_50px_rgba(15,23,42,0.22),0_0_0_1px_rgba(0,0,0,0.06)] backdrop-blur-[32px] backdrop-saturate-180 dark:bg-slate-900/85 dark:border-white/10 outline-none"
       >
         <PopoverPrimitive.Arrow
           className="fill-white/80 stroke-white/60 dark:fill-slate-900/85 dark:stroke-white/10"
@@ -286,9 +316,7 @@ export function CalendarDayCell({
           {dayAllocation && (
             <div className="mt-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[9.5px]">
               <div className="flex items-center justify-between gap-1 font-semibold text-[#1e293b] dark:text-white">
-                <span className="truncate" title={dayAllocation.projectName}>
-                  {dayAllocation.projectName}
-                </span>
+                <span className="truncate">{dayAllocation.projectName}</span>
                 <span
                   className={`shrink-0 rounded-full px-1.5 py-0.2 text-[8.5px] font-bold uppercase text-white ${
                     dayAllocation.allocationType === "Dedicated" ? "bg-[#4f46e5]" : "bg-[#0284c7]"
@@ -362,7 +390,7 @@ export function CalendarDayCell({
               <button
                 key={shift}
                 type="button"
-                title={`${meta.label} (${meta.hours})`}
+                aria-label={`${meta.label} (${meta.hours})`}
                 onClick={(clickEvent) => {
                   clickEvent.stopPropagation();
                   onSelectShift(shift);

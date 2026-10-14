@@ -582,6 +582,7 @@ export function MyTeamPage() {
 
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>({ kind: "all" });
   const [openCell, setOpenCell] = useState<OpenCell>(null);
+  const teamCalendarRef = useRef<HTMLDivElement>(null);
   const [focusedCell, setFocusedCell] = useState<CellRef | null>(null);
   const [rangeAnchor, setRangeAnchor] = useState<CellRef | null>(null);
   const [lastUsedShift, setLastUsedShift] = useState<ShiftType | null>(null);
@@ -592,6 +593,14 @@ export function MyTeamPage() {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const calendarMinWidth = CALENDAR_NAME_COL_PX + daysInMonth * CALENDAR_DAY_COL_PX + CALENDAR_END_PAD_PX;
   const dayGridTemplate = `repeat(${daysInMonth}, minmax(${CALENDAR_DAY_COL_PX}px, 1fr))`;
+
+  /** Hover `title` tooltips sit above the attendance popover and cover the name column. */
+  useEffect(() => {
+    if (!openCell) return;
+    const root = teamCalendarRef.current;
+    if (!root) return;
+    root.querySelectorAll("[title]").forEach((el) => el.removeAttribute("title"));
+  }, [openCell]);
 
   // today at midnight — locks past dates
   const today = useMemo(() => {
@@ -1335,12 +1344,18 @@ export function MyTeamPage() {
 
             <div className="overflow-x-auto">
             <div
+              ref={teamCalendarRef}
+              data-team-calendar=""
               className="w-full"
               style={{ minWidth: calendarMinWidth }}
             >
               <div className="flex w-full border-b border-[#edf0f4]">
                 <aside
-                  className="sticky left-0 z-10 flex shrink-0 flex-col border-r border-white/50 bg-white/45 shadow-[inset_1px_0_0_rgba(255,255,255,0.7)] backdrop-blur-[28px] backdrop-saturate-150"
+                  className={`sticky left-0 flex shrink-0 flex-col border-r border-white/50 shadow-[inset_1px_0_0_rgba(255,255,255,0.7)] backdrop-blur-[28px] backdrop-saturate-150 ${
+                    openCell
+                      ? "z-[560] bg-white/98 dark:bg-slate-950/98"
+                      : "z-10 bg-white/45"
+                  }`}
                   style={{ width: CALENDAR_NAME_COL_PX }}
                 >
                   <div
@@ -1350,12 +1365,14 @@ export function MyTeamPage() {
                   {visibleMembers.map((member, memberIdx) => {
                     const viewOnly = roster === "all" && member.directReport === false;
                     const liveStatus = getMemberLiveAllocationStatus(member, teamSchedule, todayKey);
+                    const isNameRowActive = openCell?.memberId === member.id;
+                    const suppressNativeTitle = Boolean(openCell);
                     return (
                     <div
                       key={member.id}
                       className={`flex items-center gap-2.5 px-3 ${
                         memberIdx < visibleMembers.length - 1 ? "border-b border-[#edf0f4]" : ""
-                      }`}
+                      } ${isNameRowActive ? "relative z-[561] bg-white/98 dark:bg-slate-950/98" : ""}`}
                       style={{ height: CALENDAR_ROW_PX }}
                     >
                       <div
@@ -1368,7 +1385,7 @@ export function MyTeamPage() {
                         <div className="flex items-center justify-between gap-1">
                           <p
                             className="truncate text-[13px] font-semibold text-[#3d3d5c] leading-tight"
-                            title={member.name}
+                            title={suppressNativeTitle ? undefined : member.name}
                           >
                             {member.name}
                           </p>
@@ -1404,7 +1421,10 @@ export function MyTeamPage() {
                             )}
                           </div>
                         </div>
-                        <p className="truncate text-[10.5px] text-[#8b93a3] leading-tight mt-0.5" title={member.designation}>
+                        <p
+                          className="truncate text-[10.5px] text-[#8b93a3] leading-tight mt-0.5"
+                          title={suppressNativeTitle ? undefined : member.designation}
+                        >
                           {member.designation}
                         </p>
                         <div className="mt-1 flex items-center gap-1 flex-wrap">

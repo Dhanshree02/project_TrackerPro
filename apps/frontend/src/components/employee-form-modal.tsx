@@ -507,7 +507,7 @@ export function EmployeeFormModal({
 
     // In edit mode, load ALL statuses; in create mode, load only onboarding statuses
     const onlyOnboarding = mode === "create";
-    void fetchEmployeeStatusOptions(onlyOnboarding)
+    void fetchEmployeeStatusOptions({ onboardingOnly: onlyOnboarding })
       .then((rows) => {
         const list = rows ?? [];
         setEmployeeStatusOptions(list);

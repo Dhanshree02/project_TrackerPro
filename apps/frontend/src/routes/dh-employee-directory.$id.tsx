@@ -10,6 +10,7 @@ import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   employeeStatusDisplayLabel,
+  isAbscondedEmployeeStatus,
 } from "@/lib/onboard-validation";
 import {
   fetchEmployee,
@@ -198,17 +199,27 @@ function OffboardConfirmDialog({
 
   useEffect(() => {
     let cancelled = false;
-    void fetchEmployeeStatusOptions(false)
+    void fetchEmployeeStatusOptions({ offboardOnly: true })
       .then((rows) => {
         if (cancelled) return;
         const list = rows ?? [];
         setStatusOptions(list);
         if (list.length > 0) {
-          const empStatus = (employee.confirmationStatus || employee.status || "").toLowerCase();
-          const matchedCurrent = list.find((s) => s.name.toLowerCase() === empStatus);
+          const empStatus = (employee.confirmationStatus || employee.status || "").trim();
+          const matchedCurrent = list.find(
+            (s) => s.name.toLowerCase() === empStatus.toLowerCase(),
+          );
           const resigned = list.find((s) => s.name.toLowerCase() === "resigned");
-          const resignationReview = list.find((s) => s.name.toLowerCase().includes("resignation"));
-          const selected = matchedCurrent?.id ?? resigned?.id ?? resignationReview?.id ?? list[0].id;
+          const terminated = list.find((s) => s.name.toLowerCase() === "terminated");
+          const resignationReview = list.find((s) =>
+            s.name.toLowerCase().includes("resignation under review"),
+          );
+          const selected =
+            matchedCurrent?.id ??
+            resigned?.id ??
+            terminated?.id ??
+            resignationReview?.id ??
+            list[0].id;
           setEmployeeStatusId(selected);
         }
       })
@@ -568,6 +579,9 @@ function EmployeeProfilePage() {
   const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "personal") : tabs;
   const statusLabel = employeeStatusDisplayLabel(emp);
   const onNoticePeriod = emp.status === "Notice Period";
+  const isAbsconded =
+    isAbscondedEmployeeStatus(statusLabel) || isAbscondedEmployeeStatus(emp.confirmationStatus);
+  const offboardBlocked = onNoticePeriod || isAbsconded;
 
   return (
     <AppShell
@@ -614,10 +628,14 @@ function EmployeeProfilePage() {
               <button
                 type="button"
                 onClick={() => setOffboardConfirmOpen(true)}
-                disabled={isOffboarding || onNoticePeriod}
+                disabled={isOffboarding || offboardBlocked}
                 className="rounded-md bg-destructive px-3.5 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60 transition-colors shadow-2xs"
               >
-                {onNoticePeriod ? "On Notice Period" : "Offboard Employee"}
+                {onNoticePeriod
+                  ? "On Notice Period"
+                  : isAbsconded
+                    ? "Absconded"
+                    : "Offboard Employee"}
               </button>
             </div>
           )}

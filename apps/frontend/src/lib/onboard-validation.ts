@@ -727,6 +727,10 @@ export function isResignationUnderReviewStatus(status?: string | null): boolean 
   return trimmed === "Resignation Under Review" || trimmed === "Resignation - Under Review";
 }
 
+export function isAbscondedEmployeeStatus(status?: string | null): boolean {
+  return (status || "").trim().toLowerCase() === "absconded";
+}
+
 /** Prefer catalog employee status (confirmation) over legacy directory status for display. */
 export function employeeStatusDisplayLabel(employee: {
   status?: string;

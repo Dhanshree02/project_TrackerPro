@@ -282,10 +282,11 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmployeeStatuses(
         [FromQuery] bool onboardingOnly = false,
+        [FromQuery] bool offboardOnly = false,
         CancellationToken ct = default)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(
-            await employees.GetEmployeeStatusesAsync(onboardingOnly, ct)));
+            await employees.GetEmployeeStatusesAsync(onboardingOnly, offboardOnly, ct)));
     }
 
     [HttpGet("bulk/sample")]

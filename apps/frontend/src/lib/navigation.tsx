@@ -5,6 +5,7 @@ import {
   Users,
   Building2,
   Building,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -67,6 +68,19 @@ export const NAV_ITEMS: NavItem[] = [
       },
     ],
   },
+  {
+    label: "Settings",
+    icon: Settings,
+    permission: "settings.view",
+    subItems: [
+      {
+        to: "/dh-settings-security-roles",
+        label: "Roles & Permissions",
+        permission: "settings.view",
+      },
+      { to: "/dh-settings-masters", label: "Masters", permission: "settings.view" },
+    ],
+  },
 ];
 
 // ─── Dhanshree / Admin (super-admin workspace) navigation ───────────────────
@@ -99,6 +113,15 @@ export const DH_NAV_ITEMS: NavItem[] = [
         to: "/my-team/timesheets",
         label: "Timesheets",
       },
+    ],
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    permission: "settings.view",
+    subItems: [
+      { to: "/dh-settings-security-roles", label: "Roles & Permissions" },
+      { to: "/dh-settings-masters", label: "Masters" },
     ],
   },
 ];

@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   FolderKanban,
@@ -20,9 +20,6 @@ import { CustomerMastersSection } from "@/components/masters/customer-masters-se
 import { ResourceMastersSection } from "@/components/masters/resource-masters-section";
 
 export const Route = createFileRoute("/dh-settings-masters")({
-  beforeLoad: () => {
-    throw redirect({ to: "/projects" });
-  },
   head: () => ({
     meta: [
       { title: "Masters — Settings — Pulse PMO" },

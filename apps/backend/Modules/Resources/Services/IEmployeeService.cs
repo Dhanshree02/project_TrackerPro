@@ -56,7 +56,10 @@ public interface IEmployeeService
 
     Task<IReadOnlyList<MetaOptionDto>> GetOfficesAsync(Guid? workLocationId = null, CancellationToken ct = default);
 
-    Task<IReadOnlyList<MetaOptionDto>> GetEmployeeStatusesAsync(bool onboardingOnly = false, CancellationToken ct = default);
+    Task<IReadOnlyList<MetaOptionDto>> GetEmployeeStatusesAsync(
+        bool onboardingOnly = false,
+        bool offboardOnly = false,
+        CancellationToken ct = default);
 
     Task<MetaOptionDto> CreateDepartmentAsync(string name, CancellationToken ct = default);
 

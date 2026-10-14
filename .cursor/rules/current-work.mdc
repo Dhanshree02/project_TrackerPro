@@ -17,6 +17,8 @@ alwaysApply: true
 
 - **Resource Pool shows live Allocation Status, Allocation Type, and Allocation Duration.** `GET /api/v1/employees` resolves today’s attendance from `timesheet.tbl_team_day_entries` and active project team allocations (`AllocationEndDate >= today`) from `project.tbl_project_team_members`. If an employee is marked Leave today (or has status On Leave), Allocation Status is **On Leave** on priority (overwriting Occupied and Free). Otherwise, if they have a project allocation whose end date is yet to finish, Allocation Status is **Occupied**; else **Free**. Allocation Type (**Dedicated** or **Shared**) and Allocation Duration (`dd-mm-yyyy → dd-mm-yyyy`) come from the project team member record. The Workload & Tasks modal no longer shows the unused Skills section.
 
+- **Offboard flow excludes Active and Absconded statuses.** Offboard dialog loads `GET …/employee-statuses?offboardOnly=true` (Terminated, Resigned, Resignation Under Review only). Profile **Offboard Employee** is disabled when the employee is **Absconded** or on **Notice Period**; Absconded is set via Edit Profile only.
+
 - **Resignation Under Review stays in the directory as its own status.** Editing Employee Status to Resignation Under Review no longer maps to Notice Period. The status bubble shows Resignation Under Review (wider Status column in the directory table). Offboard Employee stays available like Terminated and Absconded; only Notice Period disables offboarding.
 
 - **Bulk upload sample maps Sub-Department to Department and Designation.** The Lookups sheet lists them on the same row. The Employees sheet Sub-Department list only shows the values for the department and designation on that row. A sub-department from another designation is rejected on upload.
@@ -33,7 +35,7 @@ alwaysApply: true
 
 - **UAT sample data is one of each.** `pms_uat` keeps Admin User (`TK-0004`), MediCare Plus (`C006`), sub-venture MediCare Hospital Systems (`C006-04`), and project Hospital Management System. Current Address - City has the 128 Mumbai station names in `master.mst_address_cities`.
 
-- **Dashboard and Action Centre are in the sidebar again; Reports is hidden.** `/` and `/action-centre` render normally. Reports is removed from nav; `/reports` and `/dh-reports` redirect to Projects. Settings stays hidden (routes still redirect to Projects).
+- **Dashboard and Action Centre are in the sidebar again; Reports is hidden.** `/` and `/action-centre` render normally. Reports is removed from nav; `/reports` and `/dh-reports` redirect to Projects. **Settings** is visible again (Masters, Roles & Permissions); `/dh-settings*` routes load normally.
 
 - **My Timesheet opens with a blank project and task.** Admin’s week of 2026-10-12 had a draft line for `cust test(sub cust 1)_Mixed_01` / Web Application Penetration Testing with 0 hours. That line was removed on `pms_uat`, so the week starts empty until a project and task are chosen.
 
@@ -50,6 +52,7 @@ alwaysApply: true
 - **Team calendar filter bar matches Employee Directory.** Search, department, allocation status/type, and a reserved **Reset** column; Reset clears toolbar filters and presence/shift card filters.
 
 - **Team calendar scrolls under the page header.** The month bar and employee rows stay inside the calendar, so they no longer cover Team Dashboard, search, or the user menu.
+- **Team Dashboard day popover no longer covers employee names.** Day cells use `aria-label` only (no native `title`). While a cell is open, the sticky name column rises above the popover (`z-[560]`) and native `title` attributes in the calendar are cleared.
 - **Team Dashboard tab switches reuse the calendar already loaded.** My Reportees and All Employees are kept in memory for the open month, and the other tab is loaded in the background. Day menus are built only when a day is opened.
 - **Team Dashboard All Employees is paged like Resources.** The footer shows the range, per page (10, 15, 25, 50, 100, All), and previous/next. My Reportees stays one list. The presence cards still count everyone on the tab.
 - **Timesheets has three tabs.** My Timesheet is the week you fill and send to your manager. Timesheet History lists your own weeks and the approval note. Timesheet Approval lists only weeks sent to you. `GET /api/v1/timesheets/mine/history`.

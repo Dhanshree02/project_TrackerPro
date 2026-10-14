@@ -1185,11 +1185,14 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
     public async Task<IReadOnlyList<MetaOptionDto>> GetEmployeeStatusesAsync(
         bool onboardingOnly = false,
+        bool offboardOnly = false,
         CancellationToken ct = default)
     {
         var query = db.EmployeeStatuses.Where(s => s.IsActive);
         if (onboardingOnly)
             query = query.Where(s => s.AllowOnboarding);
+        else if (offboardOnly)
+            query = query.Where(s => !s.AllowOnboarding && s.Code.ToLower() != "absconded");
 
         return await query
             .OrderBy(s => s.SortOrder)
