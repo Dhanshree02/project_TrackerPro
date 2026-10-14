@@ -111,6 +111,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/", () => Results.Redirect("http://localhost:3000/"))
+        .AllowAnonymous();
+}
 
 app.Run();
 

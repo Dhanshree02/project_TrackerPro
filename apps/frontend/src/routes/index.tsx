@@ -25,6 +25,7 @@ import {
   benchResourceIds,
   pmBuckets,
 } from "@/lib/mock-data";
+import { TeamMisSection } from "@/components/dashboard/team-mis-section";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -448,6 +449,8 @@ function Dashboard() {
           </ul>
         </section>
       </div>
+
+      <TeamMisSection />
     </AppShell>
   );
 }
