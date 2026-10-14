@@ -11,6 +11,7 @@ import {
 import {
   fetchOnsiteUtilization,
   type DashboardQuarter,
+  type MisDashboardView,
   type OnsiteUtilization,
 } from "@/lib/api/dashboard";
 
@@ -20,7 +21,13 @@ const chartConfig = {
   nonBillable: { label: "Onsite Non-billable", color: "var(--chart-4)" },
 } satisfies ChartConfig;
 
-export function OnsiteUtilizationSection({ quarter }: { quarter: DashboardQuarter }) {
+export function OnsiteUtilizationSection({
+  quarter,
+  view,
+}: {
+  quarter: DashboardQuarter;
+  view: MisDashboardView;
+}) {
   const [data, setData] = useState<OnsiteUtilization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +82,8 @@ export function OnsiteUtilizationSection({ quarter }: { quarter: DashboardQuarte
       )}
 
       {!loading && !error && data && (
-        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+        <div className={`mt-4 grid gap-6 ${view === "both" ? "lg:grid-cols-2" : ""}`}>
+          {view !== "graph" && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[280px] text-sm">
               <thead>
@@ -118,6 +126,8 @@ export function OnsiteUtilizationSection({ quarter }: { quarter: DashboardQuarte
               </tbody>
             </table>
           </div>
+          )}
+          {view !== "list" && (
           <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full">
             <BarChart data={months} margin={{ left: 0, right: 8, top: 8 }}>
               <CartesianGrid vertical={false} />
@@ -130,6 +140,7 @@ export function OnsiteUtilizationSection({ quarter }: { quarter: DashboardQuarte
               <Bar dataKey="nonBillable" fill="var(--color-nonBillable)" radius={4} />
             </BarChart>
           </ChartContainer>
+          )}
         </div>
       )}
     </article>

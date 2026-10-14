@@ -11,6 +11,7 @@ import {
 import {
   fetchRoleAllocation,
   type DashboardQuarter,
+  type MisDashboardView,
   type RoleAllocation,
 } from "@/lib/api/dashboard";
 
@@ -19,7 +20,13 @@ const onsiteChartConfig = {
   onsiteLeads: { label: "Onsite Leads", color: "var(--chart-5)" },
 } satisfies ChartConfig;
 
-export function RoleAllocationSection({ quarter }: { quarter: DashboardQuarter }) {
+export function RoleAllocationSection({
+  quarter,
+  view,
+}: {
+  quarter: DashboardQuarter;
+  view: MisDashboardView;
+}) {
   const [data, setData] = useState<RoleAllocation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +109,7 @@ export function RoleAllocationSection({ quarter }: { quarter: DashboardQuarter }
       {!loading && !error && data && (
         <div className="mt-4 grid gap-6 lg:grid-cols-2">
           <div className="min-w-0 space-y-4">
+            {view !== "graph" && (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[280px] text-sm">
                 <thead>
@@ -134,6 +142,8 @@ export function RoleAllocationSection({ quarter }: { quarter: DashboardQuarter }
                 </tbody>
               </table>
             </div>
+            )}
+            {view !== "list" && (
             <ChartContainer config={onsiteChartConfig} className="aspect-auto h-[260px] w-full">
               <BarChart data={months} margin={{ left: 0, right: 8, top: 16 }}>
                 <CartesianGrid vertical={false} />
@@ -149,9 +159,11 @@ export function RoleAllocationSection({ quarter }: { quarter: DashboardQuarter }
                 </Bar>
               </BarChart>
             </ChartContainer>
+            )}
           </div>
 
           <div className="min-w-0 space-y-4">
+            {view !== "graph" && (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[280px] text-sm">
                 <thead>
@@ -192,6 +204,8 @@ export function RoleAllocationSection({ quarter }: { quarter: DashboardQuarter }
                 </tbody>
               </table>
             </div>
+            )}
+            {view !== "list" && (
             <ChartContainer config={offsiteChartConfig} className="aspect-auto h-[280px] w-full">
               <BarChart data={offsiteChartData} margin={{ left: 0, right: 8, top: 16 }}>
                 <CartesianGrid vertical={false} />
@@ -210,6 +224,7 @@ export function RoleAllocationSection({ quarter }: { quarter: DashboardQuarter }
                 </Bar>
               </BarChart>
             </ChartContainer>
+            )}
           </div>
         </div>
       )}

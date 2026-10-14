@@ -162,6 +162,121 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
         return new OnsiteUtilizationDto(quarter, financialYear, points);
     }
 
+    public async Task<OnsiteProjectCountDto> GetOnsiteProjectCountsAsync(TeamSummaryQuery query, CancellationToken ct = default)
+    {
+        var today = TodayInIst();
+        var quarter = string.IsNullOrWhiteSpace(query.Quarter)
+            ? FinancialQuarter.CurrentCode(today)
+            : query.Quarter.Trim().ToUpperInvariant();
+        var financialYear = query.FinancialYear ?? FinancialQuarter.CurrentFinancialYearStart(today);
+        var months = FinancialQuarter.Months(quarter, financialYear);
+
+        var people = await db.Database.SqlQueryRaw<PersonRow>(
+            """
+            SELECT "Id", "JoiningDate", "WorkLocation", "DeletedAtUtc"
+            FROM resource.tbl_employees
+            WHERE "JoiningDate" IS NOT NULL
+            """).ToListAsync(ct);
+
+        var exits = await db.Database.SqlQueryRaw<ExitRow>(
+            """
+            SELECT "OriginalEmployeeId", "LastWorkingDay", "ExitedAtUtc"
+            FROM resource.tbl_exited_employees
+            WHERE "DeletedAtUtc" IS NULL
+            """).ToListAsync(ct);
+
+        var links = await db.Database.SqlQueryRaw<OnsiteProjectLink>(
+            """
+            SELECT p."Id" AS "ProjectId",
+                   p."Name" AS "ProjectName",
+                   a."EmployeeId",
+                   m."AllocationStartDate",
+                   m."AllocationEndDate",
+                   s."StartDate" AS "ServiceStart",
+                   s."EndDate" AS "ServiceEnd",
+                   p."StartDate" AS "ProjectStart",
+                   p."EndDate" AS "ProjectEnd"
+            FROM project.tbl_project_task_assignments AS a
+            JOIN project.tbl_project_tasks AS t
+              ON t."Id" = a."TaskId" AND t."DeletedAtUtc" IS NULL
+            JOIN project.tbl_project_services AS s
+              ON s."Id" = t."ProjectServiceId" AND s."DeletedAtUtc" IS NULL
+            JOIN project.tbl_projects AS p
+              ON p."Id" = s."ProjectId" AND p."DeletedAtUtc" IS NULL
+            LEFT JOIN project.tbl_project_team_members AS m
+              ON m."ProjectId" = p."Id"
+             AND m."EmployeeId" = a."EmployeeId"
+             AND m."DeletedAtUtc" IS NULL
+            WHERE a."DeletedAtUtc" IS NULL
+              AND a."IsActive" = TRUE
+              AND lower(btrim(s."Location")) = 'onsite'
+            """).ToListAsync(ct);
+
+        var exitByEmployee = exits
+            .GroupBy(e => e.OriginalEmployeeId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.ExitedAtUtc).First());
+        var peopleById = people.ToDictionary(p => p.Id);
+
+        var rows = links
+            .Where(link => !string.IsNullOrWhiteSpace(link.ProjectName))
+            .GroupBy(link => link.ProjectId)
+            .Select(group =>
+            {
+                var name = group.First().ProjectName!.Trim();
+                var monthly = months.Select(month =>
+                {
+                    var monthStart = new DateOnly(month.Year, month.Month, 1);
+                    var monthEnd = FinancialQuarter.EndOfMonth(month.Year, month.Month);
+                    return DistinctOnsitePeople(group, peopleById, exitByEmployee, monthStart, monthEnd, today).Count;
+                }).ToArray();
+                // Peak onsite headcount in the quarter. Each month already closes on its last day,
+                // so a person who leaves in the next month lowers only that later month.
+                var peak = monthly.Length == 0 ? 0 : monthly.Max();
+                return new OnsiteProjectCountRowDto(name, peak, monthly);
+            })
+            .Where(row => row.OnsiteResourceCount > 0 || row.MonthlyCounts.Any(count => count > 0))
+            .OrderBy(row => row.ProjectName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return new OnsiteProjectCountDto(
+            quarter,
+            financialYear,
+            months.Select(month => new OnsiteProjectCountMonthDto(month.Label, month.Year)).ToList(),
+            rows);
+    }
+
+    private static HashSet<Guid> DistinctOnsitePeople(
+        IEnumerable<OnsiteProjectLink> links,
+        IReadOnlyDictionary<Guid, PersonRow> peopleById,
+        IReadOnlyDictionary<Guid, ExitRow> exits,
+        DateOnly rangeStart,
+        DateOnly rangeEnd,
+        DateOnly today)
+    {
+        var people = new HashSet<Guid>();
+        foreach (var link in links)
+        {
+            if (!peopleById.TryGetValue(link.EmployeeId, out var person)) continue;
+            if (!IsOnTeamForMonth(person, exits, rangeEnd, today)) continue;
+            if (!CoversMonth(ToServiceLink(link), rangeStart, rangeEnd)) continue;
+            people.Add(link.EmployeeId);
+        }
+
+        return people;
+    }
+
+    private static OnsiteServiceLink ToServiceLink(OnsiteProjectLink link) => new()
+    {
+        EmployeeId = link.EmployeeId,
+        AllocationStartDate = link.AllocationStartDate,
+        AllocationEndDate = link.AllocationEndDate,
+        ServiceStart = link.ServiceStart,
+        ServiceEnd = link.ServiceEnd,
+        ProjectStart = link.ProjectStart,
+        ProjectEnd = link.ProjectEnd,
+        ProjectName = link.ProjectName,
+    };
+
     public async Task<RoleAllocationDto> GetRoleAllocationAsync(TeamSummaryQuery query, CancellationToken ct = default)
     {
         var today = TodayInIst();
@@ -263,6 +378,242 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
 
         return new RoleAllocationDto(quarter, financialYear, points);
     }
+
+    public async Task<OffsiteServiceActivityDto> GetOffsiteServiceActivityAsync(TeamSummaryQuery query, CancellationToken ct = default)
+    {
+        var today = TodayInIst();
+        var quarter = string.IsNullOrWhiteSpace(query.Quarter)
+            ? FinancialQuarter.CurrentCode(today)
+            : query.Quarter.Trim().ToUpperInvariant();
+        var financialYear = query.FinancialYear ?? FinancialQuarter.CurrentFinancialYearStart(today);
+        var months = FinancialQuarter.Months(quarter, financialYear);
+
+        var people = await db.Database.SqlQueryRaw<PersonRow>(
+            """
+            SELECT "Id", "JoiningDate", "WorkLocation", "DeletedAtUtc"
+            FROM resource.tbl_employees
+            WHERE "JoiningDate" IS NOT NULL
+            """).ToListAsync(ct);
+
+        var exits = await db.Database.SqlQueryRaw<ExitRow>(
+            """
+            SELECT "OriginalEmployeeId", "LastWorkingDay", "ExitedAtUtc"
+            FROM resource.tbl_exited_employees
+            WHERE "DeletedAtUtc" IS NULL
+            """).ToListAsync(ct);
+
+        var links = await db.Database.SqlQueryRaw<OffsiteActivityLink>(
+            """
+            SELECT a."EmployeeId",
+                   m."Billability",
+                   m."AllocationStartDate",
+                   m."AllocationEndDate",
+                   s."Department",
+                   s."SubDepartment",
+                   s."ServiceName",
+                   s."StartDate" AS "ServiceStart",
+                   s."EndDate" AS "ServiceEnd",
+                   p."StartDate" AS "ProjectStart",
+                   p."EndDate" AS "ProjectEnd"
+            FROM project.tbl_project_task_assignments AS a
+            JOIN project.tbl_project_tasks AS t
+              ON t."Id" = a."TaskId" AND t."DeletedAtUtc" IS NULL
+            JOIN project.tbl_project_services AS s
+              ON s."Id" = t."ProjectServiceId" AND s."DeletedAtUtc" IS NULL
+            JOIN project.tbl_projects AS p
+              ON p."Id" = s."ProjectId" AND p."DeletedAtUtc" IS NULL
+            LEFT JOIN project.tbl_project_team_members AS m
+              ON m."ProjectId" = p."Id"
+             AND m."EmployeeId" = a."EmployeeId"
+             AND m."DeletedAtUtc" IS NULL
+            WHERE a."DeletedAtUtc" IS NULL
+              AND a."IsActive" = TRUE
+              AND lower(btrim(s."Location")) = 'offsite'
+            """).ToListAsync(ct);
+
+        var exitByEmployee = exits
+            .GroupBy(e => e.OriginalEmployeeId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.ExitedAtUtc).First());
+        var peopleById = people.ToDictionary(p => p.Id);
+
+        var catalog = await db.Database.SqlQueryRaw<ServiceDepartmentRow>(
+            """
+            SELECT "Name", "SortOrder"
+            FROM master.mst_service_departments
+            WHERE "DeletedAtUtc" IS NULL
+              AND "IsActive" = TRUE
+            ORDER BY "SortOrder", "Name"
+            """).ToListAsync(ct);
+
+        var departmentNames = catalog
+            .Select(row => row.Name?.Trim())
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(name => name!)
+            .ToList();
+        foreach (var extra in links.Select(link => link.Department?.Trim()).Where(name => !string.IsNullOrWhiteSpace(name)))
+        {
+            if (departmentNames.Any(name => string.Equals(name, extra, StringComparison.OrdinalIgnoreCase))) continue;
+            departmentNames.Add(extra!);
+        }
+
+        var rows = departmentNames.Select(department =>
+        {
+            var counts = months.Select(month =>
+            {
+                var monthStart = new DateOnly(month.Year, month.Month, 1);
+                var monthEnd = FinancialQuarter.EndOfMonth(month.Year, month.Month);
+                var people = new HashSet<Guid>();
+                foreach (var link in links)
+                {
+                    if (!string.Equals(link.Department?.Trim(), department, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!peopleById.TryGetValue(link.EmployeeId, out var person)) continue;
+                    if (!IsOnTeamForMonth(person, exitByEmployee, monthEnd, today)) continue;
+                    if (!CoversMonth(ToServiceLink(link), monthStart, monthEnd)) continue;
+                    people.Add(link.EmployeeId);
+                }
+
+                return people.Count;
+            }).ToArray();
+            return new OffsiteServiceActivityRowDto(department, counts);
+        }).Where(row => row.MonthlyCounts.Any(count => count > 0)).ToList();
+
+        return new OffsiteServiceActivityDto(
+            quarter,
+            financialYear,
+            months.Select(month => new OffsiteServiceActivityMonthDto(month.Label, month.Year)).ToList(),
+            rows);
+    }
+
+    public async Task<OffsiteTeamUtilizationDto> GetOffsiteTeamUtilizationAsync(TeamSummaryQuery query, CancellationToken ct = default)
+    {
+        var today = TodayInIst();
+        var quarter = string.IsNullOrWhiteSpace(query.Quarter)
+            ? FinancialQuarter.CurrentCode(today)
+            : query.Quarter.Trim().ToUpperInvariant();
+        var financialYear = query.FinancialYear ?? FinancialQuarter.CurrentFinancialYearStart(today);
+        var months = FinancialQuarter.Months(quarter, financialYear);
+
+        var people = await db.Database.SqlQueryRaw<OffsiteUtilEmployee>(
+            """
+            SELECT e."Id",
+                   e."JoiningDate",
+                   e."WorkLocation",
+                   e."DeletedAtUtc",
+                   d."Name" AS "DepartmentName"
+            FROM resource.tbl_employees AS e
+            LEFT JOIN master.mst_departments AS d
+              ON d."Id" = e."DepartmentId" AND d."DeletedAtUtc" IS NULL
+            WHERE e."JoiningDate" IS NOT NULL
+            """).ToListAsync(ct);
+
+        var exits = await db.Database.SqlQueryRaw<ExitRow>(
+            """
+            SELECT "OriginalEmployeeId", "LastWorkingDay", "ExitedAtUtc"
+            FROM resource.tbl_exited_employees
+            WHERE "DeletedAtUtc" IS NULL
+            """).ToListAsync(ct);
+
+        var workedRows = await db.Database.SqlQueryRaw<TimesheetWorkedDay>(
+            """
+            SELECT w."EmployeeId",
+                   w."WeekStart",
+                   d."DayIndex",
+                   d."Hours"
+            FROM timesheet.tbl_timesheet_entry_days AS d
+            JOIN timesheet.tbl_timesheet_entries AS en
+              ON en."Id" = d."TimesheetEntryId" AND en."DeletedAtUtc" IS NULL
+            JOIN timesheet.tbl_timesheets AS w
+              ON w."Id" = en."TimesheetWeekId" AND w."DeletedAtUtc" IS NULL
+            WHERE d."DeletedAtUtc" IS NULL
+              AND d."Hours" > 0
+            """).ToListAsync(ct);
+
+        var exitByEmployee = exits
+            .GroupBy(e => e.OriginalEmployeeId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.ExitedAtUtc).First());
+
+        var workedDates = new Dictionary<Guid, HashSet<DateOnly>>();
+        foreach (var row in workedRows)
+        {
+            if (row.DayIndex is < 0 or > 6) continue;
+            var date = row.WeekStart.AddDays(row.DayIndex);
+            if (!workedDates.TryGetValue(row.EmployeeId, out var dates))
+            {
+                dates = [];
+                workedDates[row.EmployeeId] = dates;
+            }
+
+            dates.Add(date);
+        }
+
+        var departmentNames = people
+            .Select(employee => employee.DepartmentName?.Trim())
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .Select(name => name!)
+            .ToList();
+
+        var rows = departmentNames.Select(department =>
+        {
+            var strength = new int[months.Count];
+            var utilization = new int[months.Count];
+            for (var i = 0; i < months.Count; i++)
+            {
+                var month = months[i];
+                var monthStart = new DateOnly(month.Year, month.Month, 1);
+                var monthEnd = FinancialQuarter.EndOfMonth(month.Year, month.Month);
+                var worked = 0;
+                var calendar = 0;
+                var count = 0;
+                foreach (var employee in people)
+                {
+                    if (!string.Equals(employee.DepartmentName?.Trim(), department, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (IsOnsite(employee.WorkLocation)) continue;
+                    var person = new PersonRow
+                    {
+                        Id = employee.Id,
+                        JoiningDate = employee.JoiningDate,
+                        WorkLocation = employee.WorkLocation,
+                        DeletedAtUtc = employee.DeletedAtUtc,
+                    };
+                    if (!IsOnTeamForMonth(person, exitByEmployee, monthEnd, today)) continue;
+
+                    var calStart = employee.JoiningDate > monthStart ? employee.JoiningDate : monthStart;
+                    if (calStart > monthEnd) continue;
+                    var days = monthEnd.DayNumber - calStart.DayNumber + 1;
+                    count++;
+                    calendar += days;
+                    if (workedDates.TryGetValue(employee.Id, out var dates))
+                        worked += dates.Count(date => date >= calStart && date <= monthEnd);
+                }
+
+                strength[i] = count;
+                utilization[i] = calendar == 0 ? 0 : (int)Math.Round(worked * 100d / calendar, MidpointRounding.AwayFromZero);
+            }
+
+            return new OffsiteTeamUtilizationRowDto(department, strength, utilization);
+        }).Where(row => row.TeamStrength.Any(count => count > 0)).ToList();
+
+        return new OffsiteTeamUtilizationDto(
+            quarter,
+            financialYear,
+            months.Select(month => new OffsiteTeamUtilizationMonthDto(month.Label, month.Year)).ToList(),
+            rows);
+    }
+
+    private static OnsiteServiceLink ToServiceLink(OffsiteActivityLink link) => new()
+    {
+        EmployeeId = link.EmployeeId,
+        Billability = link.Billability,
+        AllocationStartDate = link.AllocationStartDate,
+        AllocationEndDate = link.AllocationEndDate,
+        ServiceStart = link.ServiceStart,
+        ServiceEnd = link.ServiceEnd,
+        ProjectStart = link.ProjectStart,
+        ProjectEnd = link.ProjectEnd,
+    };
 
     /// <summary>
     /// A stored last working day is the exit date, not proof the person has already left.
@@ -411,6 +762,57 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
         public DateOnly? ProjectStart { get; set; }
         public DateOnly? ProjectEnd { get; set; }
         public string? ProjectName { get; set; }
+    }
+
+    private sealed class OnsiteProjectLink
+    {
+        public Guid ProjectId { get; set; }
+        public string? ProjectName { get; set; }
+        public Guid EmployeeId { get; set; }
+        public DateOnly? AllocationStartDate { get; set; }
+        public DateOnly? AllocationEndDate { get; set; }
+        public DateOnly? ServiceStart { get; set; }
+        public DateOnly? ServiceEnd { get; set; }
+        public DateOnly? ProjectStart { get; set; }
+        public DateOnly? ProjectEnd { get; set; }
+    }
+
+    private sealed class ServiceDepartmentRow
+    {
+        public string? Name { get; set; }
+        public int SortOrder { get; set; }
+    }
+
+    private sealed class OffsiteUtilEmployee
+    {
+        public Guid Id { get; set; }
+        public DateOnly JoiningDate { get; set; }
+        public string? WorkLocation { get; set; }
+        public DateTime? DeletedAtUtc { get; set; }
+        public string? DepartmentName { get; set; }
+    }
+
+    private sealed class TimesheetWorkedDay
+    {
+        public Guid EmployeeId { get; set; }
+        public DateOnly WeekStart { get; set; }
+        public int DayIndex { get; set; }
+        public decimal Hours { get; set; }
+    }
+
+    private sealed class OffsiteActivityLink
+    {
+        public Guid EmployeeId { get; set; }
+        public string? Billability { get; set; }
+        public DateOnly? AllocationStartDate { get; set; }
+        public DateOnly? AllocationEndDate { get; set; }
+        public string? Department { get; set; }
+        public string? SubDepartment { get; set; }
+        public string? ServiceName { get; set; }
+        public DateOnly? ServiceStart { get; set; }
+        public DateOnly? ServiceEnd { get; set; }
+        public DateOnly? ProjectStart { get; set; }
+        public DateOnly? ProjectEnd { get; set; }
     }
 
     private sealed class RoleServiceLink

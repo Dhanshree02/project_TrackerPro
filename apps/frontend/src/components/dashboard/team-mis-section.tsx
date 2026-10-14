@@ -12,12 +12,22 @@ import {
   currentDashboardQuarter,
   fetchTeamSummary,
   type DashboardQuarter,
+  type MisDashboardView,
   type TeamSummary,
 } from "@/lib/api/dashboard";
+import { OffsiteServiceActivitySection } from "@/components/dashboard/offsite-service-activity-section";
+import { OffsiteTeamUtilizationSection } from "@/components/dashboard/offsite-team-utilization-section";
+import { OnsiteProjectCountSection } from "@/components/dashboard/onsite-project-count-section";
 import { OnsiteUtilizationSection } from "@/components/dashboard/onsite-utilization-section";
 import { RoleAllocationSection } from "@/components/dashboard/role-allocation-section";
 
 const QUARTERS: DashboardQuarter[] = ["Q1", "Q2", "Q3", "Q4"];
+
+const VIEWS: { id: MisDashboardView; label: string }[] = [
+  { id: "graph", label: "Graph View" },
+  { id: "list", label: "List View" },
+  { id: "both", label: "Graph and List" },
+];
 
 const teamChartConfig = {
   totalTeamSize: { label: "Total Team Size", color: "var(--chart-1)" },
@@ -32,6 +42,7 @@ const boardingChartConfig = {
 
 export function TeamMisSection() {
   const [quarter, setQuarter] = useState<DashboardQuarter>(currentDashboardQuarter);
+  const [view, setView] = useState<MisDashboardView>("graph");
   const [summary, setSummary] = useState<TeamSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +98,24 @@ export function TeamMisSection() {
             {fyLabel ? ` · ${fyLabel}` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs" role="group" aria-label="Dashboard view">
+            {VIEWS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={view === item.id}
+                onClick={() => setView(item.id)}
+                className={
+                  view === item.id
+                    ? "rounded-md bg-card px-3 py-1.5 font-medium text-foreground shadow-sm"
+                    : "rounded-md px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground"
+                }
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
           <label htmlFor="mis-quarter" className="text-xs font-medium text-muted-foreground">
             Quarter
           </label>
@@ -148,6 +176,7 @@ export function TeamMisSection() {
           <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h3 className="text-sm font-semibold">Total Team Size</h3>
             <p className="text-xs text-muted-foreground">Onsite and offsite at each month end</p>
+            {view !== "graph" && (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[280px] text-sm">
                 <thead>
@@ -190,6 +219,8 @@ export function TeamMisSection() {
                 </tbody>
               </table>
             </div>
+            )}
+            {view !== "list" && (
             <ChartContainer config={teamChartConfig} className="mt-4 aspect-auto h-[260px] w-full">
               <BarChart data={months} margin={{ left: 0, right: 8, top: 8 }}>
                 <CartesianGrid vertical={false} />
@@ -202,11 +233,13 @@ export function TeamMisSection() {
                 <Bar dataKey="offsiteTeam" fill="var(--color-offsiteTeam)" radius={4} />
               </BarChart>
             </ChartContainer>
+            )}
           </article>
 
           <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h3 className="text-sm font-semibold">Resource Boarding Details</h3>
             <p className="text-xs text-muted-foreground">Joins and last working days in each month</p>
+            {view !== "graph" && (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[280px] text-sm">
                 <thead>
@@ -239,6 +272,8 @@ export function TeamMisSection() {
                 </tbody>
               </table>
             </div>
+            )}
+            {view !== "list" && (
             <ChartContainer config={boardingChartConfig} className="mt-4 aspect-auto h-[260px] w-full">
               <BarChart data={months} margin={{ left: 0, right: 8, top: 8 }}>
                 <CartesianGrid vertical={false} />
@@ -250,13 +285,17 @@ export function TeamMisSection() {
                 <Bar dataKey="offboarding" fill="var(--color-offboarding)" radius={4} />
               </BarChart>
             </ChartContainer>
+            )}
           </article>
         </div>
         </div>
       )}
 
-      <OnsiteUtilizationSection quarter={quarter} />
-      <RoleAllocationSection quarter={quarter} />
+      <OnsiteUtilizationSection quarter={quarter} view={view} />
+      <OffsiteTeamUtilizationSection quarter={quarter} view={view} />
+      <OnsiteProjectCountSection quarter={quarter} view={view} />
+      <RoleAllocationSection quarter={quarter} view={view} />
+      <OffsiteServiceActivitySection quarter={quarter} view={view} />
     </section>
   );
 }

@@ -27,6 +27,44 @@ public sealed record RoleAllocationMonthDto(
     int OffsiteLeads,
     int OffsitePm);
 
+public sealed record OnsiteProjectCountDto(
+    string Quarter,
+    int FinancialYear,
+    IReadOnlyList<OnsiteProjectCountMonthDto> Months,
+    IReadOnlyList<OnsiteProjectCountRowDto> Projects);
+
+public sealed record OnsiteProjectCountMonthDto(string Month, int Year);
+
+public sealed record OnsiteProjectCountRowDto(
+    string ProjectName,
+    int OnsiteResourceCount,
+    IReadOnlyList<int> MonthlyCounts);
+
+public sealed record OffsiteTeamUtilizationDto(
+    string Quarter,
+    int FinancialYear,
+    IReadOnlyList<OffsiteTeamUtilizationMonthDto> Months,
+    IReadOnlyList<OffsiteTeamUtilizationRowDto> Departments);
+
+public sealed record OffsiteTeamUtilizationMonthDto(string Month, int Year);
+
+public sealed record OffsiteTeamUtilizationRowDto(
+    string Department,
+    IReadOnlyList<int> TeamStrength,
+    IReadOnlyList<int> Utilization);
+
+public sealed record OffsiteServiceActivityDto(
+    string Quarter,
+    int FinancialYear,
+    IReadOnlyList<OffsiteServiceActivityMonthDto> Months,
+    IReadOnlyList<OffsiteServiceActivityRowDto> Departments);
+
+public sealed record OffsiteServiceActivityMonthDto(string Month, int Year);
+
+public sealed record OffsiteServiceActivityRowDto(
+    string Department,
+    IReadOnlyList<int> MonthlyCounts);
+
 public sealed record OnsiteUtilizationDto(
     string Quarter,
     int FinancialYear,

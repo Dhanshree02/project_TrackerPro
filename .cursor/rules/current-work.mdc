@@ -5,8 +5,12 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-13
 
+- **Team Utilization – Offsite** is `GET /api/v1/dashboard/offsite-utilization`. The department is the employee department on `master.mst_departments` through `resource.tbl_employees."DepartmentId"`. Offsite is every work location other than Onsite. Team Strength is the monthly headcount. Utilization is the sum of timesheet worked days divided by the sum of calendar days. There is no False Positive column.
+- **Service Activity Count – Offsite** is `GET /api/v1/dashboard/offsite-service-activity`. The department is the service department on `project.tbl_project_services."Department"`, matched to `master.mst_service_departments`. It counts distinct people assigned to offsite services in that department.
+- **Team Utilization – Onsite has a project-wise resource count.** `GET /api/v1/dashboard/onsite-project-counts` lists each project with one count per month of the selected quarter, closed on that month’s last day. Onsite Resource Count is the highest of those three months. A person is counted once per project. The graph can show the top 10, 20, 50, or all matching projects. The table pages through every matching project. There is no Remark column.
+- **MIS Dashboard view toggle has Graph View, List View, and Graph and List.** Graph View is charts only, List View is tables only, and Graph and List shows both. Graph View is still the default and is not stored. Offsite - Jr Leads is not shown.
 - **Opening `http://localhost:5194/` in Development redirects to the frontend at `http://localhost:6002/`.** The API has no home page; Swagger stays at `/swagger`.
 - **Local database `trackerpro_development` was created from `database/trackerpro-development.sql`.** It is on PostgreSQL 18 at `localhost:5432`, owned by `trackerpro`, with 59 tables. Root `.env` and `appsettings.Development.json` point the API at it. Backend `http://localhost:5194` and frontend `http://localhost:6002` are running against it.
 - **Working branch is `sahil-dashboard-backend-local`.** Created locally from `origin/sahil-project-backend-local` at `fec344c` (`feat: add MIS dashboard graphs and limit team allocation to project dates`). It matches that commit and does not track a remote yet. `sahil-project-backend-local` is unchanged.

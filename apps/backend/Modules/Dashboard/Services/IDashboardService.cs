@@ -9,4 +9,10 @@ public interface IDashboardService
     Task<OnsiteUtilizationDto> GetOnsiteUtilizationAsync(TeamSummaryQuery query, CancellationToken ct = default);
 
     Task<RoleAllocationDto> GetRoleAllocationAsync(TeamSummaryQuery query, CancellationToken ct = default);
+
+    Task<OnsiteProjectCountDto> GetOnsiteProjectCountsAsync(TeamSummaryQuery query, CancellationToken ct = default);
+
+    Task<OffsiteServiceActivityDto> GetOffsiteServiceActivityAsync(TeamSummaryQuery query, CancellationToken ct = default);
+
+    Task<OffsiteTeamUtilizationDto> GetOffsiteTeamUtilizationAsync(TeamSummaryQuery query, CancellationToken ct = default);
 }
