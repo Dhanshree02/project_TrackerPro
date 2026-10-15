@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Shared.Common.Models;
+using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.MyTeam.Models;
 using PMS.API.Modules.Timesheets.Models;
@@ -120,6 +121,14 @@ public class AppDbContext(
     public DbSet<ProjectDraft> ProjectDrafts => Set<ProjectDraft>();
 
     public DbSet<ProjectTeamMember> ProjectTeamMembers => Set<ProjectTeamMember>();
+
+    public DbSet<ProjectIssue> ProjectIssues => Set<ProjectIssue>();
+
+    public DbSet<Alert> Alerts => Set<Alert>();
+
+    public DbSet<BenchResourceSnapshot> BenchResourceSnapshots => Set<BenchResourceSnapshot>();
+
+    public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

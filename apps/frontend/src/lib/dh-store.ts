@@ -164,7 +164,8 @@ export interface DhCentralApproval {
     | "Resource Allocation Approval"
     | "Customer Requirement Approval"
     | "Timeline Extension Approval"
-    | "Leadership Change Approval";
+    | "Leadership Change Approval"
+    | "Scope Change Approval";
   requestedBy: string;
   requestedById: string;
   requestedDate: string;
@@ -178,6 +179,7 @@ export interface DhCentralApproval {
     comment: string;
   }[];
   acknowledgedAt?: string;
+  refId?: string;
 }
 
 // ---------- Leadership Change Request ----------
@@ -2980,6 +2982,25 @@ export const dhStore = {
         },
       ],
     });
+    // Create Scope Change central approval
+    const isCancellation = Boolean(req.scopeCancellationService);
+    const appId = uid("APP-SCP");
+    state.approvals.unshift({
+      id: appId,
+      projectId: req.projectId,
+      projectName: req.projectName,
+      requestType: "Scope Change Approval",
+      requestedBy: req.requestedBy,
+      requestedById: "u14",
+      requestedDate: req.requestedDate,
+      status: "Pending",
+      description: isCancellation
+        ? `Scope Cancellation Request: Service "${req.scopeCancellationService}". Reason: ${req.description}`
+        : `Scope Addition Request: ${req.title}. Description: ${req.description}`,
+      comments: [],
+      history: [],
+      refId: req.id,
+    });
     emit();
     return req;
   },
@@ -3968,7 +3989,7 @@ export const dhStore = {
     });
 
     // Timeline Update Logic: If it is an extension request, and it is approved, automatically update the project's endDate!
-    if (id.startsWith("APP-EXT-") && status === "Approved") {
+    if ((id.startsWith("APP-EXT-") || app.requestType === "Timeline Extension Approval") && status === "Approved") {
       const proj =
         state.extraProjects.find((p) => p.id === app.projectId) ||
         baseProjects.find((p) => p.id === app.projectId);
@@ -3996,6 +4017,37 @@ export const dhStore = {
             });
           }
         }
+      }
+    }
+
+    // Leadership Change Update Logic: Apply new leadership assignments if approved
+    if ((id.startsWith("APP-LDR-") || app.requestType === "Leadership Change Approval") && status === "Approved") {
+      const lcr = state.leadershipChangeRequests.find((l) => l.approvalId === app.id || l.id === app.id);
+      if (lcr) {
+        lcr.status = "Approved";
+        lcr.auditHistory.push({
+          previousLeaderNames: lcr.currentLeaderNames,
+          newLeaderNames: lcr.newLeaderNames,
+          changedBy: updatedBy,
+          effectiveDate: lcr.effectiveDate,
+          changeReason: comment || lcr.changeReason,
+          status: "Approved",
+        });
+        dhStore.updateLeadershipAssignment(lcr.projectId, lcr.role, lcr.newLeaderIds);
+      }
+    }
+
+    // Scope Change Update Logic: Mark requirement as approved
+    if ((id.startsWith("APP-SCP-") || app.requestType === "Scope Change Approval") && status === "Approved") {
+      const req = state.requirements.find((r) => r.id === app.refId || (r.projectId === app.projectId && app.description.includes(r.title)));
+      if (req) {
+        req.status = "Approved";
+        req.history.push({
+          status: "Approved",
+          at: now,
+          updatedBy: updatedById,
+          updatedByName: updatedBy,
+        });
       }
     }
 
@@ -5070,38 +5122,43 @@ export const dhStore = {
 
     if (!state.bucketTasks) state.bucketTasks = [];
 
-    // Remove bucket tasks for unassigned resources
+    const isApiProject = Boolean(projectId && projectId.includes("-") && projectId.length > 20);
+
+    // Remove bucket tasks for unassigned resources, or all bucket tasks for API projects (handled by backend DB)
     state.bucketTasks = state.bucketTasks.filter((bt) => {
       if (bt.taskId === taskId) {
+        if (isApiProject) return false;
         return selectedIds.includes(bt.employeeId);
       }
       return true;
     });
 
-    // Add new bucket tasks for assigned resources
-    selectedIds.forEach((empId) => {
-      const bucketTaskId = `${taskId}-${empId}`;
-      const exists = state.bucketTasks.some((bt) => bt.id === bucketTaskId);
-      if (!exists) {
-        state.bucketTasks.push({
-          id: bucketTaskId,
-          taskId,
-          taskTitle: taskTitle || "Execute Task",
-          projectId,
-          projectName,
-          priority: priority || "medium",
-          dueDate:
-            dueDate ||
-            proj?.endDate ||
-            new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-          employeeId: empId,
-          assignedById: updatedBy,
-          status: "Not Started",
-          elapsedTime: 0,
-          timerRunning: false,
-        });
-      }
-    });
+    // Add new bucket tasks for assigned resources only for mock/offline projects
+    if (!isApiProject) {
+      selectedIds.forEach((empId) => {
+        const bucketTaskId = `${taskId}-${empId}`;
+        const exists = state.bucketTasks.some((bt) => bt.id === bucketTaskId || (bt.taskId === taskId && bt.employeeId === empId));
+        if (!exists) {
+          state.bucketTasks.push({
+            id: bucketTaskId,
+            taskId,
+            taskTitle: taskTitle || "Execute Task",
+            projectId,
+            projectName,
+            priority: priority || "medium",
+            dueDate:
+              dueDate ||
+              proj?.endDate ||
+              new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+            employeeId: empId,
+            assignedById: updatedBy,
+            status: "Not Started",
+            elapsedTime: 0,
+            timerRunning: false,
+          });
+        }
+      });
+    }
 
     emit();
   },

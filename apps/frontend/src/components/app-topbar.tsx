@@ -1,5 +1,5 @@
 import { useState, useMemo, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { Search, Bell, ChevronDown, Check } from "lucide-react";
 import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
@@ -17,6 +17,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
   const { role, user, assignedIssues, pendingTimesheets } = useRoleContext();
   const { user: authUser, demoRole, switchDemoRole, status } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
   const [roleQuery, setRoleQuery] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
 
@@ -30,7 +31,11 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
   const onSwitchRole = async (next: DemoRoleKey) => {
     if (next === demoRole) return;
     await switchDemoRole(next);
-    await navigate({ to: "/" });
+    const pathname = router.state.location.pathname;
+    const stayPages = ["/action-centre", "/projects", "/timesheet", "/my-team"];
+    if (!stayPages.some((p) => pathname.startsWith(p))) {
+      await navigate({ to: "/" });
+    }
   };
 
   const activePersona = useMemo(() => {

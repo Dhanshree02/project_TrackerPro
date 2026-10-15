@@ -57,6 +57,11 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectDraftService, ProjectDraftService>();
         services.AddScoped<IProjectTeamMemberService, ProjectTeamMemberService>();
         services.AddScoped<IProjectTaskService, ProjectTaskService>();
+        services.AddScoped<IIssueService, IssueService>();
+        services.AddScoped<PMS.API.Modules.ActionCentre.Services.IBucketTaskService, PMS.API.Modules.ActionCentre.Services.BucketTaskService>();
+        services.AddScoped<PMS.API.Modules.ActionCentre.Services.IAlertService, PMS.API.Modules.ActionCentre.Services.AlertService>();
+        services.AddScoped<PMS.API.Modules.ActionCentre.Services.IApprovalService, PMS.API.Modules.ActionCentre.Services.ApprovalService>();
+        services.AddHostedService<PMS.API.Modules.ActionCentre.Services.AlertScannerHostedService>();
         services.AddScoped<IRbacAccessService, RbacAccessService>();
         services.AddHostedService<RbacBaselineHostedService>();
 

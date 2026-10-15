@@ -37,6 +37,12 @@ public static class Permissions
     // ---- Approvals ----
     public const string ApprovalsManage = "approvals:manage";
 
+    // ---- Action Centre ----
+    public const string ActionCenterView = "action-center.view";
+    public const string ActionCenterBucketListView = "Action Center|Bucket List:view";
+    public const string ActionCenterTimerManage = "Action Center|Bucket List|Start timer:manage";
+    public const string ActionCenterRaiseIssueManage = "Action Center|Bucket List|Raise issues:manage";
+
     // ---- My Team ----
     public const string MyTeamDashboardView = "my-team.dashboard.view";
 

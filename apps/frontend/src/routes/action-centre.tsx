@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Search,
   Filter,
@@ -28,9 +28,39 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { useAuth } from "@/lib/auth-context";
+import { getDemoPersona } from "@/lib/demo-roles";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
-import { startTaskTimer, stopTaskTimer } from "@/lib/api/projects";
+import { startTaskTimer, stopTaskTimer, fetchProjects, type ApiProject } from "@/lib/api/projects";
+import {
+  createIssueApi,
+  fetchIssueProjectOptionsApi,
+  type ProjectIssueApiItem,
+  type IssueProjectOption,
+} from "@/lib/api/issues";
+import {
+  fetchBucketTasks,
+  startBucketTimer,
+  pauseBucketTimer,
+  resumeBucketTimer,
+  completeBucketTask as completeBucketTaskApi,
+  type BucketTaskApiItem,
+} from "@/lib/api/bucket-tasks";
+import {
+  fetchAlertsApi,
+  fetchAlertMetricsApi,
+  acknowledgeAlertApi,
+  resolveAlertApi,
+  triggerAlertScanApi,
+  type AlertApiItem,
+  type AlertMetricsApi,
+} from "@/lib/api/alerts";
+import {
+  fetchApprovals,
+  submitApprovalAction,
+  type ApprovalApiItem,
+} from "@/lib/api/approvals";
 import {
   getPerson,
   people,
@@ -161,10 +191,16 @@ function ActionCentrePage() {
 }
 
 // ---------- Bucket List ----------
-import { type DhBucketTask } from "@/lib/dh-store";
-
-function BucketListRow({ r, canViewTimer }: { r: DhBucketTask; canViewTimer: boolean }) {
-  const by = getPerson(r.assignedById);
+function BucketListRow({
+  r,
+  canViewTimer,
+  onAction,
+}: {
+  r: BucketTaskApiItem;
+  canViewTimer: boolean;
+  onAction?: () => void;
+}) {
+  const by = { name: r.assignedByName || "Project Manager" };
   const [now, setNow] = useState(Date.now());
   const { hasPermission } = usePermissions();
   const { isDhanshree, isAdmin } = useRoleContext();
@@ -178,16 +214,16 @@ function BucketListRow({ r, canViewTimer }: { r: DhBucketTask; canViewTimer: boo
       hasPermission("action-center.bucket-list.timer.manage"));
 
   useEffect(() => {
-    if (!r.timerRunning) return;
+    if (!r.isTimerRunning) return;
     const interval = setInterval(() => {
       setNow(Date.now());
     }, 1000);
     return () => clearInterval(interval);
-  }, [r.timerRunning]);
+  }, [r.isTimerRunning]);
 
-  let workingTimeSeconds = r.elapsedTime;
-  if (r.timerRunning && r.lastStartedAt) {
-    const elapsedSinceStart = Math.floor((now - new Date(r.lastStartedAt).getTime()) / 1000);
+  let workingTimeSeconds = r.elapsedSeconds;
+  if (r.isTimerRunning && r.timerStartedAtUtc) {
+    const elapsedSinceStart = Math.floor((now - new Date(r.timerStartedAtUtc).getTime()) / 1000);
     workingTimeSeconds += Math.max(0, elapsedSinceStart);
   }
 
@@ -198,41 +234,54 @@ function BucketListRow({ r, canViewTimer }: { r: DhBucketTask; canViewTimer: boo
     return [h, m, s].map((v) => String(v).padStart(2, "0")).join(":");
   };
 
-  const handleStart = () => {
-    dhStore.startBucketTask(r.id);
-    if (r.projectId && r.taskId) {
-      startTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+  const handleStart = async () => {
+    try {
+      await startBucketTimer(r.assignmentId);
+      toast.success("Timer started", { description: r.taskTitle });
+      onAction?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not start timer");
     }
-    toast.success("Timer started", { description: r.taskTitle });
   };
 
-  const handlePause = () => {
-    dhStore.pauseBucketTask(r.id);
-    if (r.projectId && r.taskId) {
-      stopTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+  const handlePause = async () => {
+    try {
+      await pauseBucketTimer(r.assignmentId);
+      toast.info("Timer paused", { description: r.taskTitle });
+      onAction?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not pause timer");
     }
-    toast.info("Timer paused", { description: r.taskTitle });
   };
 
-  const handleResume = () => {
-    dhStore.resumeBucketTask(r.id);
-    if (r.projectId && r.taskId) {
-      startTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+  const handleResume = async () => {
+    try {
+      await resumeBucketTimer(r.assignmentId);
+      toast.success("Timer resumed", { description: r.taskTitle });
+      onAction?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not resume timer");
     }
-    toast.success("Timer resumed", { description: r.taskTitle });
   };
 
-  const handleStop = () => {
-    dhStore.stopBucketTask(r.id);
-    if (r.projectId && r.taskId) {
-      stopTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+  const handleStop = async () => {
+    try {
+      await pauseBucketTimer(r.assignmentId);
+      toast.warning("Timer stopped", { description: r.taskTitle });
+      onAction?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not stop timer");
     }
-    toast.warning("Timer stopped", { description: r.taskTitle });
   };
 
-  const handleComplete = () => {
-    dhStore.completeBucketTask(r.id);
-    toast.success("Task completed!", { description: r.taskTitle });
+  const handleComplete = async () => {
+    try {
+      await completeBucketTaskApi(r.assignmentId);
+      toast.success("Task completed!", { description: r.taskTitle });
+      onAction?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not complete task");
+    }
   };
 
   return (
@@ -252,11 +301,13 @@ function BucketListRow({ r, canViewTimer }: { r: DhBucketTask; canViewTimer: boo
         <PriorityPill priority={r.priority} />
       </td>
       <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground font-medium">
-        {new Date(r.dueDate).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })}
+        {r.dueDate
+          ? new Date(r.dueDate).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "—"}
       </td>
       <td className="px-3 py-2.5">
         <span
@@ -287,10 +338,10 @@ function BucketListRow({ r, canViewTimer }: { r: DhBucketTask; canViewTimer: boo
               r.status === "Stopped" ||
               r.status === "Completed") && (
               <div className="text-[10px] text-muted-foreground flex flex-col gap-0.5 font-medium">
-                {r.startedAt && (
+                {(r.startedAtUtc || r.timerStartedAtUtc) && (
                   <div>
                     <span className="font-semibold text-gray-500">Started:</span>{" "}
-                    {new Date(r.startedAt).toLocaleString("en-GB", {
+                    {new Date(r.startedAtUtc || r.timerStartedAtUtc!).toLocaleString("en-GB", {
                       day: "2-digit",
                       month: "short",
                       hour: "2-digit",
@@ -303,7 +354,7 @@ function BucketListRow({ r, canViewTimer }: { r: DhBucketTask; canViewTimer: boo
                   <span
                     className={cn(
                       "text-xs font-bold",
-                      r.timerRunning ? "text-blue-600 animate-pulse" : "text-gray-600",
+                      r.isTimerRunning ? "text-blue-600 animate-pulse" : "text-gray-600",
                     )}
                   >
                     {formatTimer(workingTimeSeconds)}
@@ -314,10 +365,10 @@ function BucketListRow({ r, canViewTimer }: { r: DhBucketTask; canViewTimer: boo
                     Timer Frozen
                   </div>
                 )}
-                {r.status === "Completed" && r.completedAt && (
+                {r.status === "Completed" && r.completedAtUtc && (
                   <div className="text-success font-semibold border-t border-border/50 mt-1 pt-1">
                     Completed:{" "}
-                    {new Date(r.completedAt).toLocaleString("en-GB", {
+                    {new Date(r.completedAtUtc).toLocaleString("en-GB", {
                       day: "2-digit",
                       month: "short",
                       hour: "2-digit",
@@ -406,11 +457,10 @@ function BucketListRow({ r, canViewTimer }: { r: DhBucketTask; canViewTimer: boo
 }
 
 function BucketList() {
-  const { user, isEmployee, employeePersonId, isDhanshree, isAdmin } = useRoleContext();
+  const { user, isDhanshree, isAdmin } = useRoleContext();
+  const { demoRole } = useAuth();
+  const currentPersona = useMemo(() => getDemoPersona(demoRole), [demoRole]);
   const { hasPermission } = usePermissions();
-  const store = useDhStore((s) => s);
-  const bucketTasks = store.bucketTasks || [];
-
   const canViewTimer =
     isAdmin ||
     isDhanshree ||
@@ -427,13 +477,9 @@ function BucketList() {
     hasPermission("action-center.bucket-list.manage") ||
     hasPermission("Action Center|Bucket List:manage");
 
-  // Default to employee's own ID or fallback to "u7" (Arjun Singh) so bucket list tasks are populated by default
-  const viewUserId =
-    isEmployee && employeePersonId
-      ? employeePersonId
-      : bucketTasks.some((bt) => bt.employeeId === user.id)
-        ? user.id
-        : "u7";
+  const [apiTasks, setApiTasks] = useState<BucketTaskApiItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -443,6 +489,7 @@ function BucketList() {
     "all" | "low" | "medium" | "high" | "critical"
   >("all");
   const [showRaiseModal, setShowRaiseModal] = useState(false);
+  const [projectOptions, setProjectOptions] = useState<IssueProjectOption[]>([]);
   const [formData, setFormData] = useState({
     projectId: "",
     title: "",
@@ -451,65 +498,123 @@ function BucketList() {
     priority: "Medium" as DhPriority,
   });
 
-  const rows = useMemo(() => {
-    return bucketTasks.filter((bt) => bt.employeeId === viewUserId);
-  }, [bucketTasks, viewUserId]);
+  const triggerRefresh = useCallback(() => {
+    setRefreshIndex((prev) => prev + 1);
+  }, []);
 
-  const userProjects = useMemo(() => {
-    const list = allProjects();
-    const taskProjectIds = Array.from(
-      new Set(rows.map((bt) => bt.projectId).filter(Boolean)),
-    );
-    const projs = list.filter((p) => taskProjectIds.includes(p.id));
-    return projs.length > 0 ? projs : list;
-  }, [rows]);
+  // Load real project options directly from backend (accessible to all roles including team members)
+  useEffect(() => {
+    fetchIssueProjectOptionsApi()
+      .then((opts) => {
+        if (Array.isArray(opts) && opts.length > 0) {
+          setProjectOptions(opts);
+        }
+      })
+      .catch((err) => console.warn("Could not load project options", err));
+  }, []);
 
-  const filtered = rows.filter((r) => {
-    if (statusFilter !== "all") {
-      if (statusFilter === "todo" && r.status !== "Not Started") return false;
-      if (statusFilter === "in_progress" && r.status !== "Ongoing" && r.status !== "Paused")
-        return false;
-      if (statusFilter === "done" && r.status !== "Completed") return false;
-      if (statusFilter === "review") return false;
-    }
-    if (priorityFilter !== "all" && r.priority !== priorityFilter) return false;
-    if (!q.trim()) return true;
-    return [r.taskTitle, r.projectName].some((v) => v.toLowerCase().includes(q.toLowerCase()));
-  });
+  // Load tasks directly from backend PostgreSQL database scoped to the active switched persona
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchBucketTasks({
+      employeeId: currentPersona?.id || currentPersona?.code || undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      priority: priorityFilter !== "all" ? priorityFilter : undefined,
+      search: q.trim() || undefined,
+    })
+      .then((res) => {
+        if (active && res && Array.isArray(res.items)) {
+          setApiTasks(res.items);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not fetch API bucket tasks", err);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-  const handleSubmitIssue = () => {
+    return () => {
+      active = false;
+    };
+  }, [demoRole, currentPersona, statusFilter, priorityFilter, q, refreshIndex]);
+
+  const availableProjects = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; projectCode?: string }>();
+
+    // 1. Projects loaded from backend database API
+    projectOptions.forEach((p) => {
+      map.set(p.id, { id: p.id, name: p.name, projectCode: p.projectCode });
+    });
+
+    // 2. Also incorporate projects from current employee's assigned tasks
+    apiTasks.forEach((t) => {
+      if (t.projectId && !map.has(t.projectId)) {
+        map.set(t.projectId, {
+          id: t.projectId,
+          name: t.projectName || "Assigned Project",
+          projectCode: t.projectCode || undefined,
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [projectOptions, apiTasks]);
+
+  const filtered = useMemo(() => {
+    return apiTasks.filter((r) => {
+      if (statusFilter !== "all") {
+        if (statusFilter === "todo" && r.status !== "Not Started") return false;
+        if (statusFilter === "in_progress" && r.status !== "Ongoing" && r.status !== "Paused")
+          return false;
+        if (statusFilter === "done" && r.status !== "Completed") return false;
+        if (statusFilter === "review") return false;
+      }
+      if (priorityFilter !== "all" && r.priority !== priorityFilter) return false;
+      if (!q.trim()) return true;
+      const term = q.toLowerCase();
+      return [r.taskTitle, r.projectName].some((v) => v.toLowerCase().includes(term));
+    });
+  }, [apiTasks, statusFilter, priorityFilter, q]);
+
+  const handleSubmitIssue = async () => {
     if (!formData.title.trim() || !formData.description.trim()) {
       toast.error("Fill all fields");
       return;
     }
-    const projectsList = allProjects();
-    const targetProjectId = formData.projectId || userProjects[0]?.id || projectsList[0]?.id || "p1";
-    const proj = projectsList.find((p) => p.id === targetProjectId);
-    const dottedLineMgr = proj ? getPerson(proj.pmId || proj.tlId || "u3") : getPerson("u3");
+    const targetProjectId = formData.projectId || availableProjects[0]?.id;
+    if (!targetProjectId) {
+      toast.error("Please select a project");
+      return;
+    }
 
-    dhStore.raiseIssue({
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      projectId: targetProjectId,
-      raisedById: user.id,
-      raisedByName: user.name,
-      raisedByRole: user.role,
-      category: formData.category,
-      priority: formData.priority,
-      audienceUserIds: [dottedLineMgr.id, "u1", "u3", "u4"],
-    });
+    try {
+      const issue = await createIssueApi({
+        projectId: targetProjectId,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        priority: formData.priority,
+        raisedByEmployeeId: currentPersona?.id || currentPersona?.code || undefined,
+        raisedByName: currentPersona?.name || user.name,
+        raisedByRole: currentPersona?.roleKey || user.role,
+      });
 
-    toast.success("Issue raised successfully", {
-      description: `Routed to Dotted Line Reporting Manager (${dottedLineMgr.name} · ${dottedLineMgr.role})`,
-    });
-    setShowRaiseModal(false);
-    setFormData({
-      projectId: userProjects[0]?.id || projectsList[0]?.id || "p1",
-      title: "",
-      description: "",
-      category: "Technical Related Issues",
-      priority: "Medium",
-    });
+      toast.success("Issue raised successfully", {
+        description: `Routed to Dotted-Line Reporting Manager (${issue.dottedLineManagerName || "PM"} · PM). 2-day escalation SLA started.`,
+      });
+      setShowRaiseModal(false);
+      setFormData({
+        projectId: availableProjects[0]?.id || "",
+        title: "",
+        description: "",
+        category: "Technical Related Issues",
+        priority: "Medium",
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not raise issue");
+    }
   };
 
   return (
@@ -525,6 +630,15 @@ function BucketList() {
             className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
+
+        {/* Refresh Button */}
+        <button
+          onClick={triggerRefresh}
+          title="Refresh Bucket List"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+        >
+          <RotateCcw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+        </button>
 
         {/* Status Filter Bar */}
         <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
@@ -575,7 +689,7 @@ function BucketList() {
             onClick={() => {
               setFormData((prev) => ({
                 ...prev,
-                projectId: prev.projectId || userProjects[0]?.id || allProjects()[0]?.id || "p1",
+                projectId: prev.projectId || availableProjects[0]?.id || "",
               }));
               setShowRaiseModal(true);
             }}
@@ -605,12 +719,12 @@ function BucketList() {
           </thead>
           <tbody className="divide-y divide-border">
             {filtered.map((r) => (
-              <BucketListRow key={r.id} r={r} canViewTimer={canViewTimer} />
+              <BucketListRow key={r.assignmentId} r={r} canViewTimer={canViewTimer} onAction={triggerRefresh} />
             ))}
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={canViewTimer ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                  No tasks match your filters
+                  {loading ? "Loading bucket tasks…" : "No tasks match your filters"}
                 </td>
               </tr>
             )}
@@ -624,13 +738,13 @@ function BucketList() {
           <div className="space-y-3">
             <Field label="Project">
               <select
-                value={formData.projectId || userProjects[0]?.id || allProjects()[0]?.id || "p1"}
+                value={formData.projectId || availableProjects[0]?.id || ""}
                 onChange={(e) => setFormData((s) => ({ ...s, projectId: e.target.value }))}
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {userProjects.map((p) => (
+                {availableProjects.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {p.name} {p.projectCode ? `(${p.projectCode})` : ""}
                   </option>
                 ))}
               </select>
@@ -702,6 +816,8 @@ function BucketList() {
 // ---------- Approvals ----------
 function ApprovalsTab() {
   const store = useDhStore((s) => s);
+  const [dbApprovals, setDbApprovals] = useState<ApprovalApiItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [appComment, setAppComment] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
@@ -717,40 +833,116 @@ function ApprovalsTab() {
     hasPermission("action-center.approvals.manage") ||
     hasPermission("Action Center|Approvals:manage");
 
-  const selectedApproval = useMemo(() => {
-    return store.approvals.find((a) => a.id === selectedAppId);
-  }, [store.approvals, selectedAppId]);
+  const loadApprovals = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetchApprovals();
+      if (res?.items) {
+        setDbApprovals(res.items);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch approvals from backend", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadApprovals();
+  }, [loadApprovals]);
 
   const approvalTypes = [
+    "Scope Change Approval",
+    "Leadership Change Approval",
+    "Timeline Extension Approval",
+    "Resource Allocation Approval",
+    "Profile Changes",
+    "Certification Validation",
     "WBS Approval",
     "Budget Approval",
     "PM Assignment Approval",
     "SPM Assignment Approval",
     "Project Ready To Start Approval",
-    "Resource Allocation Approval",
     "Customer Requirement Approval",
-    "Timeline Extension Approval",
   ];
 
+  // Merge database approvals into a single unified list
+  const mergedApprovals = useMemo(() => {
+    const list: (DhCentralApproval & { dbItem?: ApprovalApiItem })[] = store.approvals.map((a) => ({ ...a }));
+    for (const d of dbApprovals) {
+      if (!list.some((x) => x.id === d.requestCode || x.id === d.id)) {
+        let reqType: DhCentralApproval["requestType"] = "WBS Approval";
+        if (d.approvalType === "ScopeChange" || d.approvalType.includes("Scope")) reqType = "Scope Change Approval";
+        else if (d.approvalType === "LeadershipChange" || d.approvalType.includes("Leadership")) reqType = "Leadership Change Approval";
+        else if (d.approvalType === "ProjectExtension" || d.approvalType.includes("Extension")) reqType = "Timeline Extension Approval";
+        else if (d.approvalType === "ResourceAllocation") reqType = "Resource Allocation Approval";
+        else if (d.approvalType === "ProfileChanges" || d.approvalType === "CertificationValidation") reqType = "Customer Requirement Approval";
+
+        list.push({
+          id: d.requestCode || d.id,
+          projectId: d.projectId || "p1",
+          projectName: d.projectName || "General Project",
+          requestType: reqType,
+          requestedBy: d.requestedByName,
+          requestedById: d.requestedByEmployeeId,
+          requestedDate: d.createdAtUtc.slice(0, 10),
+          status: (d.status === "Approved" ? "Approved" : d.status === "Rejected" ? "Rejected" : d.status === "RequestChanges" ? "Request Changes" : d.status === "Hold" ? "Hold" : "Pending"),
+          description: d.description,
+          comments: d.decisionNotes ? [{ id: "c1", authorId: d.decidedByName || "Approver", authorName: d.decidedByName || "Approver", text: d.decisionNotes, at: d.decidedAtUtc || d.createdAtUtc }] : [],
+          history: (d.auditHistory || []).map((h) => ({
+            status: (h.action === "Approved" ? "Approved" : h.action === "Rejected" ? "Rejected" : "Pending") as any,
+            at: h.timestampUtc,
+            updatedBy: h.actorName || "System",
+            comment: h.details || "",
+          })),
+          refId: d.id,
+          dbItem: d,
+        });
+      }
+    }
+    return list;
+  }, [store.approvals, dbApprovals]);
+
+  const selectedApproval = useMemo(() => {
+    return mergedApprovals.find((a) => a.id === selectedAppId);
+  }, [mergedApprovals, selectedAppId]);
+
   const filteredApprovals = useMemo(() => {
-    return store.approvals.filter((a) => {
+    return mergedApprovals.filter((a) => {
       if (projectFilter !== "all" && a.projectId !== projectFilter) return false;
-      if (typeFilter !== "all" && a.requestType !== typeFilter) return false;
+      if (typeFilter !== "all") {
+        const matchesExact = a.requestType === typeFilter;
+        const matchesDb = a.dbItem?.approvalType === typeFilter;
+        const matchesScope = typeFilter === "Scope Change Approval" && (a.requestType === "Scope Change Approval" || a.dbItem?.approvalType === "ScopeChange");
+        const matchesLdr = typeFilter === "Leadership Change Approval" && (a.requestType === "Leadership Change Approval" || a.dbItem?.approvalType === "LeadershipChange");
+        const matchesExt = typeFilter === "Timeline Extension Approval" && (a.requestType === "Timeline Extension Approval" || a.dbItem?.approvalType === "ProjectExtension");
+        if (!matchesExact && !matchesDb && !matchesScope && !matchesLdr && !matchesExt) return false;
+      }
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
       return true;
     });
-  }, [store.approvals, projectFilter, typeFilter, statusFilter]);
+  }, [mergedApprovals, projectFilter, typeFilter, statusFilter]);
 
-  const handleAction = (status: DhCentralApproval["status"]) => {
+  const handleAction = async (status: DhCentralApproval["status"]) => {
     if (!selectedAppId) return;
     if (!appComment.trim()) {
       toast.error("Comments are mandatory for every central approval action!");
       return;
     }
+    const dbItem = dbApprovals.find((d) => d.requestCode === selectedAppId || d.id === selectedAppId);
+    if (dbItem) {
+      try {
+        const actionPayload = status === "Approved" ? "Approve" : status === "Rejected" ? "Reject" : status === "Request Changes" ? "RequestChanges" : "Hold";
+        await submitApprovalAction(dbItem.id, actionPayload, appComment);
+      } catch (err) {
+        console.warn("Backend action error", err);
+      }
+    }
     dhStore.updateCentralApprovalStatus(selectedAppId, status, appComment, user.name, user.id);
     toast.success(`Success: Approval Request marked as ${status}!`);
     setAppComment("");
     setSelectedAppId(null);
+    loadApprovals();
   };
 
   const handleAcknowledge = (appId: string) => {
@@ -947,6 +1139,73 @@ function ApprovalsTab() {
               </p>
             </div>
 
+            {selectedApproval.dbItem?.payloadJson && selectedApproval.dbItem.payloadJson !== "{}" && (
+              <div className="rounded-lg border border-border p-3 bg-muted/20 space-y-2">
+                <span className="text-xs font-bold text-muted-foreground uppercase">
+                  Technical Parameters & Proposed Changes
+                </span>
+                {(() => {
+                  try {
+                    const p = JSON.parse(selectedApproval.dbItem.payloadJson);
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                        {p.scopeAction && (
+                          <div className="p-2 rounded bg-card border border-border">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Scope Action</span>
+                            <span className="font-bold text-primary">{p.scopeAction}</span>
+                          </div>
+                        )}
+                        {(p.serviceName || p.scopeTitle) && (
+                          <div className="p-2 rounded bg-card border border-border">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Target Service / Item</span>
+                            <span className="font-medium text-foreground">{p.serviceName || p.scopeTitle}</span>
+                          </div>
+                        )}
+                        {p.leadershipRole && (
+                          <div className="p-2 rounded bg-card border border-border">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Designated Role</span>
+                            <span className="font-bold text-primary">{p.leadershipRole}</span>
+                          </div>
+                        )}
+                        {(p.targetEmployeeName || p.newLeaderNames) && (
+                          <div className="p-2 rounded bg-card border border-border">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">New Assigned Leader(s)</span>
+                            <span className="font-medium text-foreground">{p.targetEmployeeName || (Array.isArray(p.newLeaderNames) ? p.newLeaderNames.join(", ") : p.newLeaderNames)}</span>
+                          </div>
+                        )}
+                        {p.effectiveDate && (
+                          <div className="p-2 rounded bg-card border border-border">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Effective Date</span>
+                            <span className="font-medium text-foreground">{p.effectiveDate}</span>
+                          </div>
+                        )}
+                        {p.proposedEndDate && (
+                          <div className="p-2 rounded bg-card border border-border">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Proposed End Date</span>
+                            <span className="font-bold text-primary">{p.proposedEndDate}</span>
+                          </div>
+                        )}
+                        {p.daysExtended !== undefined && (
+                          <div className="p-2 rounded bg-card border border-border">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Days Extended</span>
+                            <span className="font-semibold text-foreground">+{p.daysExtended} days</span>
+                          </div>
+                        )}
+                        {p.reason && (
+                          <div className="p-2 rounded bg-card border border-border col-span-full">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Justification / Reason</span>
+                            <span className="text-foreground">{p.reason}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  } catch {
+                    return null;
+                  }
+                })()}
+              </div>
+            )}
+
             {selectedApproval.comments.length > 0 && (
               <div className="rounded-lg border border-border bg-card p-3 space-y-2">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -1061,22 +1320,30 @@ function MetricCard({ label, value, color }: { label: string; value: number; col
 }
 
 function AlertsTab() {
-  const store = useDhStore((s) => s);
-  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<AlertApiItem[]>([]);
+  const [metrics, setMetrics] = useState<AlertMetricsApi>({
+    total: 0,
+    open: 0,
+    critical: 0,
+    resolved: 0,
+    escalated: 0,
+  });
+  const [selectedAlert, setSelectedAlert] = useState<AlertApiItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Filters
+  const [searchFilter, setSearchFilter] = useState("");
   const [projFilter, setProjFilter] = useState("all");
-  const [clientFilter, setClientFilter] = useState("all");
   const [prioFilter, setPrioFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Modal states
-  const [newChatMsg, setNewChatMsg] = useState("");
-  const [selectedOwner, setSelectedOwner] = useState("");
-  const [selectedResOwner, setSelectedResOwner] = useState("");
-  const [selectedEscOwner, setSelectedEscOwner] = useState("");
+  // Modal action states
+  const [ackNotes, setAckNotes] = useState("");
   const [resDetails, setResDetails] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<AlertStatus>("Open");
-  const [approved, setApproved] = useState(false);
+
   const { user, isDhanshree, isAdmin } = useRoleContext();
   const { hasPermission } = usePermissions();
 
@@ -1086,85 +1353,132 @@ function AlertsTab() {
     hasPermission("action-center.alerts.manage") ||
     hasPermission("Action Center|Alerts:manage");
 
-  const allAlerts = store.alerts;
-  const projectsList = allProjects();
-  const clientsList = allClients();
+  // Real database project options loaded from PostgreSQL
+  const [projectOptions, setProjectOptions] = useState<IssueProjectOption[]>([]);
 
-  const filtered = useMemo(() => {
-    return allAlerts.filter((a) => {
-      const proj = projectsList.find((p) => p.id === a.projectId);
-      if (projFilter !== "all" && a.projectId !== projFilter) return false;
-      if (clientFilter !== "all" && proj?.clientId !== clientFilter) return false;
-      if (prioFilter !== "all" && a.priority !== prioFilter) return false;
-      if (typeFilter !== "all" && a.alertType !== typeFilter) return false;
-      if (statusFilter !== "all" && a.status !== statusFilter) return false;
-      return true;
+  useEffect(() => {
+    fetchIssueProjectOptionsApi()
+      .then((opts) => {
+        if (Array.isArray(opts)) setProjectOptions(opts);
+      })
+      .catch((err) => console.warn("Could not load project options for alerts filter", err));
+  }, []);
+
+  const availableProjects = useMemo(() => {
+    const map = new Map<string, string>();
+    // 1. Real projects loaded from backend database API
+    projectOptions.forEach((p) => {
+      if (p.id) map.set(p.id, p.name);
     });
-  }, [allAlerts, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, projectsList]);
+    // 2. Also incorporate projects directly referenced in live alerts
+    alerts.forEach((a) => {
+      if (a.projectId && !map.has(a.projectId)) {
+        map.set(a.projectId, a.projectName || "Assigned Project");
+      }
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [projectOptions, alerts]);
 
-  const metrics = useMemo(() => {
-    const total = allAlerts.length;
-    const open = allAlerts.filter((a) => a.status === "Open").length;
-    const critical = allAlerts.filter((a) => a.priority === "Critical").length;
-    const resolved = allAlerts.filter((a) => a.status === "Resolved").length;
-    const escalated = allAlerts.filter(
-      (a) => a.priority === "Critical" || a.status === "Closed",
-    ).length;
-    return { total, open, critical, resolved, escalated };
-  }, [allAlerts]);
+  const loadAlertData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [alertsRes, metricsRes] = await Promise.all([
+        fetchAlertsApi({ perPage: 100 }),
+        fetchAlertMetricsApi(),
+      ]);
+      setAlerts(alertsRes.items || []);
+      setMetrics(metricsRes);
+    } catch (err) {
+      console.error("Failed to load alerts from backend:", err);
+      toast.error("Could not load alerts from backend server.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  const selectedAlert = useMemo(() => {
-    return allAlerts.find((a) => a.id === selectedAlertId);
-  }, [allAlerts, selectedAlertId]);
+  useEffect(() => {
+    loadAlertData();
+  }, [loadAlertData]);
 
-  // Alerts raised by the Log Requirement flow (add service / scope cancellation)
-  const isRequirementAlert = !!selectedAlert?.alertId?.startsWith("REQ-AL-");
-
-  const openDetails = (id: string) => {
-    const alert = allAlerts.find((a) => a.id === id);
-    if (alert) {
-      setSelectedAlertId(id);
-      setSelectedOwner(alert.owner || "");
-      setSelectedResOwner(alert.resolutionOwner || "");
-      setSelectedEscOwner(alert.escalationOwner || "");
-      setResDetails(alert.resolutionDetails || "");
-      setSelectedStatus(alert.status);
-      setApproved(false);
+  const handleTriggerScan = async () => {
+    setIsScanning(true);
+    try {
+      const result = await triggerAlertScanApi();
+      toast.success("SLA & TAT scan complete", {
+        description: `${result.scannedCount} new/updated breach alerts processed.`,
+      });
+      await loadAlertData();
+    } catch (err) {
+      toast.error("Failed to execute alert evaluation scan.");
+    } finally {
+      setIsScanning(false);
     }
   };
 
-  const handleUpdateAlert = () => {
-    if (!selectedAlertId) return;
-    dhStore.updateGovernanceAlert(
-      selectedAlertId,
-      {
-        status: selectedStatus,
-        owner: selectedOwner,
-        resolutionOwner: selectedResOwner,
-        escalationOwner: selectedEscOwner,
-        resolutionDetails: resDetails,
-      },
-      newChatMsg,
-      user.id,
-      user.name,
-    );
-    toast.success("Alert Governance updated persistently!");
-    setNewChatMsg("");
-    setSelectedAlertId(null);
+  const handleAcknowledge = async () => {
+    if (!selectedAlert) return;
+    setIsSubmitting(true);
+    try {
+      const updated = await acknowledgeAlertApi(selectedAlert.id, ackNotes);
+      toast.success("Alert acknowledged successfully", { description: updated.alertCode });
+      setSelectedAlert(updated);
+      setAckNotes("");
+      await loadAlertData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to acknowledge alert");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const alertTypes = [
-    "Project Risk",
-    "Resource Risk",
-    "Technical Issue",
-    "Dependency Blocker",
-    "Escalation",
-    "Customer Concern",
-    "Budget Concern",
-    "Schedule Delay",
-    "Quality Concern",
-    "Governance Alert",
-  ];
+  const handleResolve = async () => {
+    if (!selectedAlert || !resDetails.trim()) {
+      toast.error("Please provide resolution details before resolving.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const updated = await resolveAlertApi(selectedAlert.id, resDetails.trim());
+      toast.success("Alert marked as resolved", { description: updated.alertCode });
+      setSelectedAlert(updated);
+      setResDetails("");
+      await loadAlertData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to resolve alert");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const categoryLabels: Record<string, string> = {
+    DeliveryTatBreach: "Delivery TAT / SLA",
+    EscalationTatBreach: "Escalation & Issues SLA",
+    ChangeManagementTatBreach: "Change Management SLA",
+    DailyOnBenchCount: "Daily On-Bench Count",
+    TimesheetTatBreach: "Timesheet SLA Breach",
+  };
+
+  const filteredAlerts = useMemo(() => {
+    return alerts.filter((a) => {
+      if (searchFilter.trim()) {
+        const q = searchFilter.toLowerCase();
+        const match =
+          a.alertCode.toLowerCase().includes(q) ||
+          a.title.toLowerCase().includes(q) ||
+          (a.projectName && a.projectName.toLowerCase().includes(q)) ||
+          (a.triggerCondition && a.triggerCondition.toLowerCase().includes(q)) ||
+          (a.ownerName && a.ownerName.toLowerCase().includes(q));
+        if (!match) return false;
+      }
+      if (projFilter !== "all" && a.projectId !== projFilter) return false;
+      if (prioFilter !== "all" && a.severity !== prioFilter) return false;
+      if (categoryFilter !== "all" && a.category !== categoryFilter) return false;
+      if (statusFilter !== "all" && a.status !== statusFilter) return false;
+      return true;
+    });
+  }, [alerts, searchFilter, projFilter, prioFilter, categoryFilter, statusFilter]);
 
   return (
     <>
@@ -1198,201 +1512,203 @@ function AlertsTab() {
       </div>
 
       <section className="rounded-xl border border-border bg-card shadow-sm">
-        {/* Filters Panel */}
+        {/* Action Header & Filters */}
         <header className="border-b border-border p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="h-4.5 w-4.5 text-yellow-500" />
-            <h3 className="text-sm font-semibold">PMO Health & Governance Governance Panel</h3>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 text-xs">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Project</span>
-              <select
-                value={projFilter}
-                onChange={(e) => setProjFilter(e.target.value)}
-                className="form-input rounded-md border border-border p-1.5 bg-card"
+          {canManageAlerts && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleTriggerScan}
+                disabled={isScanning}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                title="Run real-time SLA breach evaluation scan across all BRD categories"
               >
-                <option value="all">All Projects</option>
-                {projectsList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                <RotateCcw className={cn("h-3.5 w-3.5", isScanning && "animate-spin")} />
+                <span>{isScanning ? "Scanning..." : "Scan SLA Rules"}</span>
+              </button>
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                Customer
-              </span>
-              <select
-                value={clientFilter}
-                onChange={(e) => setClientFilter(e.target.value)}
-                className="form-input rounded-md border border-border p-1.5 bg-card"
-              >
-                <option value="all">All Customers</option>
-                {clientsList.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                Priority
-              </span>
-              <select
-                value={prioFilter}
-                onChange={(e) => setPrioFilter(e.target.value)}
-                className="form-input rounded-md border border-border p-1.5 bg-card"
-              >
-                <option value="all">All Priorities</option>
-                {(["Low", "Medium", "High", "Critical"] as const).map((pr) => (
-                  <option key={pr} value={pr}>
-                    {pr}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                Alert Type
-              </span>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="form-input rounded-md border border-border p-1.5 bg-card"
-              >
-                <option value="all">All Types</option>
-                {alertTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="form-input rounded-md border border-border p-1.5 bg-card"
-              >
-                <option value="all">All Statuses</option>
-                {(
-                  [
-                    "Open",
-                    "Acknowledged",
-                    "In Progress",
-                    "Waiting for Customer",
-                    "Resolved",
-                    "Closed",
-                  ] as const
-                ).map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
+          )}
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 text-xs pt-1">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Search</span>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    placeholder="Search code, title, owner..."
+                    className="w-full form-input rounded-md border border-border pl-7 pr-2 py-1.5 text-xs bg-card"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Category</span>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="form-input rounded-md border border-border p-1.5 bg-card"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="DeliveryTatBreach">Delivery TAT / SLA</option>
+                  <option value="EscalationTatBreach">Escalation & Issues SLA</option>
+                  <option value="ChangeManagementTatBreach">Change Management SLA</option>
+                  <option value="DailyOnBenchCount">Daily On-Bench Count</option>
+                  <option value="TimesheetTatBreach">Timesheet SLA Breach</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Severity</span>
+                <select
+                  value={prioFilter}
+                  onChange={(e) => setPrioFilter(e.target.value)}
+                  className="form-input rounded-md border border-border p-1.5 bg-card"
+                >
+                  <option value="all">All Severities</option>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Project</span>
+                <select
+                  value={projFilter}
+                  onChange={(e) => setProjFilter(e.target.value)}
+                  className="form-input rounded-md border border-border p-1.5 bg-card"
+                >
+                  <option value="all">All Projects</option>
+                  {availableProjects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="form-input rounded-md border border-border p-1.5 bg-card"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="Open">Open</option>
+                  <option value="Acknowledged">Acknowledged</option>
+                  <option value="InProgress">In Progress</option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
           </div>
         </header>
-
-        {filtered.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              No governance alerts found matching the active filters.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Alert ID</th>
-                  <th className="px-3 py-2 font-medium">Alert Title</th>
-                  <th className="px-3 py-2 font-medium">Project Name</th>
-                  <th className="px-3 py-2 font-medium">Customer Name</th>
-                  <th className="px-3 py-2 font-medium">Alert Type</th>
-                  <th className="px-3 py-2 font-medium">Priority</th>
-                  <th className="px-3 py-2 font-medium">Raised By</th>
-                  <th className="px-3 py-2 font-medium">Raised Date</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.map((alert) => {
-                  const project = projectsList.find((p) => p.id === alert.projectId);
-                  const client = clientsList.find((c) => c.id === project?.clientId);
-                  return (
-                    <tr key={alert.id} className="hover:bg-accent/30">
-                      <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-800">
-                        {alert.alertId || "ALT-GEN"}
-                      </td>
-                      <td className="px-3 py-2.5 font-medium text-gray-700">{alert.title}</td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-semibold">
-                        {project?.name || "—"}
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                        {client?.name || "—"}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-gray-700">
-                          {alert.alertType || alert.kind}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <PriorityPill priority={alert.priority.toLowerCase() as any} />
-                      </td>
-                      <td className="px-3 py-2.5 text-xs font-medium">{alert.raisedByName}</td>
-                      <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
-                        {new Date(alert.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <span
-                          className={cn(
-                            "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
-                            alert.status === "Open"
-                              ? "bg-orange-50 text-orange-700 border-orange-200"
-                              : alert.status === "In Progress"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : alert.status === "Resolved" || alert.status === "Closed"
-                                  ? "bg-green-50 text-green-700 border-green-200"
-                                  : alert.status === "Waiting for Customer"
-                                    ? "bg-purple-50 text-purple-700 border-purple-200"
-                                    : "bg-muted text-muted-foreground border-border",
-                          )}
-                        >
-                          {alert.status}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-right">
-                        <button
-                          onClick={() => openDetails(alert.id)}
-                          className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
-                        >
-                          Review details
-                        </button>
-                      </td>
+            {isLoading ? (
+              <div className="p-12 text-center text-xs text-muted-foreground">
+                <RotateCcw className="mx-auto h-5 w-5 animate-spin text-primary mb-2" />
+                Loading alerts from PostgreSQL database...
+              </div>
+            ) : filteredAlerts.length === 0 ? (
+              <div className="p-12 text-center">
+                <ShieldAlert className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
+                <p className="text-sm font-medium text-foreground">No alerts matching active filters</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Click "Scan SLA Rules" to trigger an automated breach evaluation.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Alert Code</th>
+                      <th className="px-3 py-2 font-medium">Alert Title</th>
+                      <th className="px-3 py-2 font-medium">Category</th>
+                      <th className="px-3 py-2 font-medium">Severity</th>
+                      <th className="px-3 py-2 font-medium">Trigger Condition</th>
+                      <th className="px-3 py-2 font-medium">Project / Target</th>
+                      <th className="px-3 py-2 font-medium">Owner / Assignee</th>
+                      <th className="px-3 py-2 font-medium">Raised Date</th>
+                      <th className="px-3 py-2 font-medium">Status</th>
+                      <th className="px-3 py-2 font-medium text-right">Actions</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredAlerts.map((alert) => (
+                      <tr key={alert.id} className="hover:bg-accent/30 transition-colors">
+                        <td className="px-3 py-2.5 font-mono text-xs font-bold text-foreground whitespace-nowrap">
+                          {alert.alertCode}
+                        </td>
+                        <td className="px-3 py-2.5 font-medium text-foreground max-w-xs truncate" title={alert.title}>
+                          {alert.title}
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span className="inline-flex rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                            {categoryLabels[alert.category] || alert.category}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <PriorityPill priority={alert.severity.toLowerCase() as any} />
+                        </td>
+                        <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-xs truncate" title={alert.triggerCondition}>
+                          {alert.triggerCondition}
+                        </td>
+                        <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                          {alert.projectName || "—"}
+                        </td>
+                        <td className="px-3 py-2.5 text-xs font-medium whitespace-nowrap">
+                          {alert.ownerName || "PMO Engine"}
+                        </td>
+                        <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap">
+                          {new Date(alert.createdAtUtc).toLocaleDateString()}
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                              alert.status === "Open"
+                                ? "bg-orange-50 text-orange-700 border-orange-200"
+                                : alert.status === "Acknowledged"
+                                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                                  : alert.status === "InProgress"
+                                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                                    : alert.status === "Resolved" || alert.status === "Closed"
+                                      ? "bg-green-50 text-green-700 border-green-200"
+                                      : "bg-muted text-muted-foreground border-border",
+                            )}
+                          >
+                            {alert.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => {
+                              setSelectedAlert(alert);
+                              setAckNotes("");
+                              setResDetails(alert.resolutionDetails || "");
+                            }}
+                            className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary shadow-2xs"
+                          >
+                            Review details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
       </section>
 
-      {/* Alert Details Modal */}
+      {/* Alert Details & Action Modal */}
       {selectedAlert && (
         <Modal
-          title={
-            selectedAlert.kind === "Escalation"
-              ? `Escalation Review Details — ${selectedAlert.alertId || "ALT-GEN"}`
-              : `Governance Alert Details — ${selectedAlert.alertId || "ALT-GEN"}`
-          }
-          onClose={() => setSelectedAlertId(null)}
+          title={`Alert Details — ${selectedAlert.alertCode}`}
+          onClose={() => setSelectedAlert(null)}
           wide
           draggable
         >
@@ -1400,153 +1716,87 @@ function AlertsTab() {
             {/* Left side details */}
             <div className="md:col-span-2 space-y-4">
               <div className="rounded-lg border border-border p-3 bg-muted/10 space-y-1">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase">
-                  {selectedAlert.kind === "Escalation" ? "Escalation Subject" : "Alert Title"}
-                </span>
-                <p className="text-sm font-bold text-gray-800">{selectedAlert.title}</p>
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase">
+                    Alert Title
+                  </span>
+                  <span className="inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold bg-muted text-foreground">
+                    {categoryLabels[selectedAlert.category] || selectedAlert.category}
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-foreground">{selectedAlert.title}</p>
               </div>
 
-              {selectedAlert.kind === "Escalation" && (
-                <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
-                      Service Name
-                    </span>
-                    <span className="font-semibold text-primary">
-                      {selectedAlert.serviceName || "—"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
-                      Escalation Type
-                    </span>
-                    <span className="font-semibold text-gray-800">
-                      {selectedAlert.escalationType || "—"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
-                      Raised By
-                    </span>
-                    <span className="font-semibold text-gray-800">
-                      {selectedAlert.raisedByName || "—"}
-                    </span>
-                  </div>
-                  {selectedAlert.expectedResolutionDate && (
-                    <div>
-                      <span className="text-[9px] uppercase font-bold text-muted-foreground block">
-                        Expected Resolution Date
-                      </span>
-                      <span className="font-semibold text-gray-800">
-                        {selectedAlert.expectedResolutionDate}
-                      </span>
-                    </div>
-                  )}
+              <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+                    Trigger Condition
+                  </span>
+                  <span className="font-semibold text-primary">{selectedAlert.triggerCondition}</span>
                 </div>
-              )}
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+                    Severity / Priority
+                  </span>
+                  <PriorityPill priority={selectedAlert.severity.toLowerCase() as any} />
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+                    Source Entity
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {selectedAlert.sourceEntity} ({selectedAlert.sourceEntityId?.slice(0, 8)}...)
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+                    Owner / Responsible
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {selectedAlert.ownerName || "PMO"}
+                  </span>
+                </div>
+              </div>
 
               <div className="rounded-lg border border-border p-3 bg-card space-y-2">
                 <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
-                  Full Description
+                  Full Breach Description
                 </span>
-                <p className="text-xs text-gray-700 leading-relaxed font-medium">
-                  {selectedAlert.description || "No full description provided."}
+                <p className="text-xs text-foreground leading-relaxed font-medium">
+                  {selectedAlert.description}
                 </p>
               </div>
 
-              <div className="rounded-lg border border-border p-3 bg-card space-y-3">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
-                  Governance Allocation & Ownership
-                </span>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">Alert Owner</span>
-                    <select
-                      value={selectedOwner}
-                      onChange={(e) => setSelectedOwner(e.target.value)}
-                      className="form-input rounded-md border border-border p-1 bg-card"
-                    >
-                      <option value="">Unassigned</option>
-                      {people.map((p) => (
-                        <option key={p.id} value={p.name}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      Resolution Owner
-                    </span>
-                    <select
-                      value={selectedResOwner}
-                      onChange={(e) => setSelectedResOwner(e.target.value)}
-                      className="form-input rounded-md border border-border p-1 bg-card"
-                    >
-                      <option value="">Unassigned</option>
-                      {people.map((p) => (
-                        <option key={p.id} value={p.name}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      Escalation Owner
-                    </span>
-                    <select
-                      value={selectedEscOwner}
-                      onChange={(e) => setSelectedEscOwner(e.target.value)}
-                      className="form-input rounded-md border border-border p-1 bg-card"
-                    >
-                      <option value="">Unassigned</option>
-                      {people.map((p: any) => (
-                        <option key={p.id} value={p.name}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              {selectedAlert.resolutionDetails && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 space-y-1">
+                  <span className="font-semibold text-[10px] text-emerald-800 uppercase block">
+                    Resolution Notes (Resolved by {selectedAlert.resolvedByName || "User"})
+                  </span>
+                  <p className="text-xs text-emerald-950 font-medium">{selectedAlert.resolutionDetails}</p>
                 </div>
-              </div>
+              )}
 
-              {/* Resolution Progress */}
-              <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
-                  Resolution Timeline Details
-                </span>
-                <textarea
-                  value={resDetails}
-                  onChange={(e) => setResDetails(e.target.value)}
-                  placeholder="Document resolution steps, technical outcomes, or internal timeline here..."
-                  rows={2}
-                  className="w-full rounded-md border border-border bg-card p-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-              </div>
-
-              {/* History Timeline Logs */}
-              {selectedAlert.history && selectedAlert.history.length > 0 && (
+              {/* Status Transitions Audit History */}
+              {selectedAlert.auditHistory && selectedAlert.auditHistory.length > 0 && (
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
-                    Status Transitions Timeline
+                    Audit & Transition Log
                   </span>
-                  <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
-                    {selectedAlert.history.map((h, idx) => (
-                      <div key={idx} className="flex gap-2 text-[10px]">
-                        <span className="text-muted-foreground tabular-nums">
-                          {new Date(h.at).toLocaleDateString()}{" "}
-                          {new Date(h.at).toLocaleTimeString([], {
+                  <div className="space-y-1.5 pl-1 max-h-36 overflow-y-auto">
+                    {selectedAlert.auditHistory.map((h, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-[10px]">
+                        <span className="text-muted-foreground tabular-nums whitespace-nowrap">
+                          {new Date(h.timestampUtc).toLocaleDateString()}{" "}
+                          {new Date(h.timestampUtc).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
-                          :
                         </span>
-                        <span>
-                          Status transitioned to{" "}
-                          <strong className="text-gray-800">{h.status}</strong> by {h.updatedBy}{" "}
-                          {h.details ? `— "${h.details}"` : ""}
-                        </span>
+                        <div>
+                          <strong className="text-foreground">{h.action}</strong> by{" "}
+                          <span className="font-medium text-foreground">{h.actorName || "System"}</span>
+                          {h.details && <span className="text-muted-foreground"> — {h.details}</span>}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1554,230 +1804,106 @@ function AlertsTab() {
               )}
             </div>
 
-            {/* Right side communications thread */}
+            {/* Right side actions */}
             <div className="space-y-4 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
-                    Project Link
+                    Current Status
                   </span>
-                  {selectedAlert.projectId ? (
+                  <div
+                    className={cn(
+                      "w-full rounded-md border p-2 text-xs font-bold text-center",
+                      selectedAlert.status === "Open"
+                        ? "bg-orange-50 border-orange-200 text-orange-700"
+                        : selectedAlert.status === "Acknowledged"
+                          ? "bg-amber-50 border-amber-200 text-amber-700"
+                          : selectedAlert.status === "InProgress"
+                            ? "bg-blue-50 border-blue-200 text-blue-700"
+                            : selectedAlert.status === "Resolved"
+                              ? "bg-green-50 border-green-200 text-green-700"
+                              : "bg-muted text-muted-foreground border-border",
+                    )}
+                  >
+                    {selectedAlert.status}
+                  </div>
+                </div>
+
+                {selectedAlert.projectId && (
+                  <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+                    <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                      Target Project
+                    </span>
                     <Link
                       to="/projects/$projectId"
                       params={{ projectId: selectedAlert.projectId }}
-                      hash="health-alerts"
                       className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-md px-2.5 py-1.5 font-bold hover:bg-primary/20 text-xs w-full justify-between"
                     >
-                      <span>
-                        {projectsList.find((p) => p.id === selectedAlert.projectId)?.name ||
-                          "Go to project"}
-                      </span>
+                      <span>{selectedAlert.projectName || "Go to project"}</span>
                       <ExternalLink className="h-3 w-3" />
                     </Link>
-                  ) : (
-                    <span className="text-muted-foreground italic">No linked project.</span>
-                  )}
-                </div>
-
-                <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block">
-                    Attachments
-                  </span>
-                  {selectedAlert.attachments && selectedAlert.attachments.length > 0 ? (
-                    <div className="space-y-1">
-                      {selectedAlert.attachments.map((file, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-1.5 text-[10px] text-primary hover:underline cursor-pointer"
-                        >
-                          <Paperclip className="h-3 w-3 text-muted-foreground" />
-                          <span>{file}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground italic text-[10px]">
-                      No attachments.
-                    </span>
-                  )}
-                </div>
-
-                {/* Escalated To */}
-                {selectedAlert.kind === "Escalation" && selectedAlert.escalatedTo && (
-                  <div className="rounded-lg border border-border p-3 bg-muted/10 space-y-1">
-                    <span className="font-semibold text-[10px] text-muted-foreground uppercase block">
-                      Escalated To
-                    </span>
-                    <p
-                      className="text-xs font-semibold text-primary truncate"
-                      title={selectedAlert.escalatedTo.join(", ")}
-                    >
-                      {selectedAlert.escalatedTo.join(", ")}
-                    </p>
                   </div>
                 )}
 
-                {/* Status Switcher */}
-                <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block">
-                    {isRequirementAlert ? "Status" : "Set Status"}
-                  </span>
-                  {isRequirementAlert ? (
-                    // Requirement alerts start as Open; status is updated later by the
-                    // assigned manager / higher authority, not from this window.
-                    <div
-                      className={cn(
-                        "w-full rounded-md border p-2 text-xs font-bold shadow-xs",
-                        selectedAlert.status === "Resolved" || selectedAlert.status === "Closed"
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          : selectedAlert.status === "Open"
-                            ? "bg-orange-50 border-orange-200 text-orange-700"
-                            : "bg-gray-50 border-gray-200 text-gray-600",
-                      )}
-                    >
-                      {selectedAlert.status}
-                    </div>
-                  ) : (
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => setSelectedStatus(e.target.value as any)}
-                      className={cn(
-                        "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                        selectedStatus === "Resolved" || selectedStatus === "Closed"
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                          : selectedStatus === "Open"
-                            ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
-                            : selectedStatus === "In Progress"
-                              ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                              : selectedStatus === "Waiting for Customer"
-                                ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-                                : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100",
-                      )}
-                    >
-                      {selectedAlert.kind === "Escalation"
-                        ? (
-                            [
-                              "Open",
-                              "Acknowledged",
-                              "In Progress",
-                              "Waiting for Customer",
-                              "Resolved",
-                              "Closed",
-                            ] as const
-                          ).map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))
-                        : (["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                    </select>
-                  )}
-                </div>
+                {/* Lifecycle action controls */}
+                {canManageAlerts && selectedAlert.status !== "Resolved" && selectedAlert.status !== "Closed" && (
+                  <div className="rounded-lg border border-border p-3 bg-card space-y-3">
+                    <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                      Manage Alert Lifecycle
+                    </span>
 
-                {/* Discussion Area Comment box */}
-                <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
-                    Discussion Chat Thread
-                  </span>
-                  <div className="space-y-2 max-h-36 overflow-y-auto pl-1 pr-0.5 text-[10px] leading-relaxed">
-                    {selectedAlert.comments.map((cm) => (
-                      <div
-                        key={cm.id}
-                        className="bg-muted/30 border border-border p-2 rounded-md space-y-0.5"
-                      >
-                        <div className="flex justify-between font-semibold text-gray-800 text-[9px]">
-                          <span>{cm.authorName}</span>
-                          <span className="text-muted-foreground">
-                            {new Date(cm.at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p className="text-gray-700">{cm.text}</p>
+                    {selectedAlert.status === "Open" && (
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted-foreground block">
+                          Acknowledgement Notes (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={ackNotes}
+                          onChange={(e) => setAckNotes(e.target.value)}
+                          placeholder="e.g. Under active review by PM..."
+                          className="w-full form-input rounded-md border border-border p-1.5 text-xs bg-card"
+                        />
+                        <button
+                          onClick={handleAcknowledge}
+                          disabled={isSubmitting}
+                          className="w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                        >
+                          {isSubmitting ? "Updating..." : "Acknowledge Alert"}
+                        </button>
                       </div>
-                    ))}
-                    {selectedAlert.comments.length === 0 && (
-                      <span className="text-muted-foreground italic text-[10px]">
-                        No chat messages yet.
-                      </span>
                     )}
+
+                    <div className="space-y-2 pt-2 border-t border-border/50">
+                      <label className="text-[10px] font-bold text-muted-foreground block">
+                        Resolution Details (Required to Resolve)
+                      </label>
+                      <textarea
+                        value={resDetails}
+                        onChange={(e) => setResDetails(e.target.value)}
+                        placeholder="Detail corrective actions taken, scope adjustments, or root cause fix..."
+                        rows={3}
+                        className="w-full rounded-md border border-border p-1.5 text-xs bg-card outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                      <button
+                        onClick={handleResolve}
+                        disabled={isSubmitting || !resDetails.trim()}
+                        className="w-full rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                      >
+                        {isSubmitting ? "Resolving..." : "Resolve Alert"}
+                      </button>
+                    </div>
                   </div>
-                  <textarea
-                    value={newChatMsg}
-                    onChange={(e) => setNewChatMsg(e.target.value)}
-                    placeholder="Type an internal governance comment or reply..."
-                    rows={2}
-                    className="w-full rounded-md border border-border p-1.5 text-xs bg-card outline-none focus-visible:ring-1 focus-visible:ring-ring mt-2"
-                  />
-                </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 border-t border-border pt-3">
-                {canManageAlerts ? (
-                  isRequirementAlert ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          setApproved(true);
-                          toast.success("Requirement approved — click Update to save");
-                        }}
-                        className={cn(
-                          "rounded-md border px-3.5 py-1.5 text-xs font-medium transition-colors",
-                          approved
-                            ? "border-emerald-600 bg-emerald-600 text-white"
-                            : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
-                        )}
-                      >
-                        {approved ? "Approved ✓" : "Approve"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          toast("Requirement rejected — manager notification will be enabled later");
-                          setSelectedAlertId(null);
-                        }}
-                        className="rounded-md border border-red-300 bg-red-50 px-3.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
-                      >
-                        Reject
-                      </button>
-                      <button
-                        onClick={handleUpdateAlert}
-                        disabled={!approved}
-                        className={cn(
-                          "rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors",
-                          approved
-                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                            : "border border-border bg-muted text-muted-foreground cursor-not-allowed",
-                        )}
-                      >
-                        Update
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => setSelectedAlertId(null)}
-                        className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium hover:bg-accent"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleUpdateAlert}
-                        className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                      >
-                        Save Governance Changes
-                      </button>
-                    </>
-                  )
-                ) : (
-                  <button
-                    onClick={() => setSelectedAlertId(null)}
-                    className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium hover:bg-accent"
-                  >
-                    Close
-                  </button>
-                )}
+                <button
+                  onClick={() => setSelectedAlert(null)}
+                  className="rounded-md border border-input bg-card px-4 py-1.5 text-xs font-medium hover:bg-accent"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

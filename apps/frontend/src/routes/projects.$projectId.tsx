@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate, notFound } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -60,8 +60,15 @@ import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
 import { findProjectByWbsId, isRenewedProject } from "@/lib/project-renewal";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
-import type { DateRange } from "react-day-picker";
 import { fetchEmployees, type ApiEmployeeListItem } from "@/lib/api/employees";
+import {
+  createIssueApi,
+  fetchProjectIssuesApi,
+  updateIssueStatusApi,
+  escalateIssueManuallyApi,
+  type ProjectIssueApiItem,
+} from "@/lib/api/issues";
+import { createApprovalRequest } from "@/lib/api/approvals";
 
 // Helper function for consistent date formatting in DD/MM/YYYY (date/month/year)
 function formatDate(dateInput: Date | string | undefined | null): string {
@@ -130,6 +137,8 @@ const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
 };
 
 // ---------- Date Range Picker — two small inline calendars ----------
+type DateRange = { from?: Date; to?: Date };
+
 function startOfToday(): Date {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -2859,6 +2868,27 @@ function ExtensionRequestCard({ project }: { project: Project }) {
       return;
     }
     dhStore.submitExtensionRequest(project.id, newEndDate, extDays, reason, taggedIds, user.name, user.id);
+    createApprovalRequest({
+      approvalType: "ProjectExtension",
+      projectId: isApiGuid(project.id) ? project.id : null,
+      projectName: project.name,
+      department: "PMO",
+      title: `Project End-Date Extension: +${extDays} Days for ${project.name}`,
+      description: `Timeline Extension: Requesting extension of ${extDays} days. New End Date: ${newEndDate}. Reason: ${reason.trim()}`,
+      requestedByEmployeeId: isApiGuid(user.id) ? user.id : "00000000-0000-4000-8000-000000000028",
+      requestedByName: user.name || "Aarav Mehta",
+      requestedByRole: "Project Manager",
+      assignedApproverRole: "EM",
+      assignedApproverName: taggedIds.map((id) => getPerson(id)?.name).filter(Boolean).join(", ") || "EM & PMO Team",
+      priority: extDays > 30 ? "High" : "Medium",
+      payloadJson: JSON.stringify({
+        currentEndDate: project.endDate,
+        proposedEndDate: newEndDate,
+        daysExtended: extDays,
+        reason: reason.trim(),
+      }),
+    }).catch((err) => console.warn("Failed to persist extension approval to backend", err));
+
     toast.success("Timeline Extension Approval request submitted successfully!");
     setReason("");
     setTaggedIds([]);
@@ -3158,7 +3188,10 @@ function ChangeLeaderPanel({
   onClose: () => void;
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
+  const { user } = useRoleContext();
   const [search, setSearch] = useState("");
+  const [changeReason, setChangeReason] = useState("Operational leadership reassignment");
+  const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().split("T")[0]);
   // Working copy of assigned IDs — saved on "Done" (multi-select supported)
   const [assignedIds, setAssignedIds] = useState<string[]>(assignedPeople.map((p) => p.id));
   const [saving, setSaving] = useState(false);
@@ -3353,7 +3386,49 @@ function ChangeLeaderPanel({
       }
       dhStore.updateLeadershipAssignment(project.id, role, assignedIds, peopleForRole);
       const names = peopleForRole.map((p) => p.name).join(", ") || "None";
-      toast.success(`${role} updated`, { description: names });
+      const currentNames = assignedPeople.map((p) => p.name);
+
+      // Create leadership change approval in backend
+      createApprovalRequest({
+        approvalType: "LeadershipChange",
+        projectId: isApiGuid(project.id) ? project.id : null,
+        projectName: project.name,
+        department: "PMO",
+        title: `Leadership Change: Designate ${names} as ${role}`,
+        description: `Leadership Change Request — ${role}: Assigning [${names}] on project "${project.name}". Effective: ${effectiveDate}. Reason: ${changeReason.trim()}`,
+        requestedByEmployeeId: isApiGuid(user.id) ? user.id : "00000000-0000-4000-8000-000000000040",
+        requestedByName: user.name || "Dhanshree",
+        requestedByRole: "Delivery Lead",
+        assignedApproverRole: "EM",
+        assignedApproverName: "EM & PMO Team",
+        priority: "High",
+        payloadJson: JSON.stringify({
+          leadershipRole: role,
+          currentLeaderNames: currentNames,
+          newLeaderIds: assignedIds,
+          newLeaderNames: names,
+          effectiveDate,
+          changeReason: changeReason.trim(),
+        }),
+      }).catch((err) => console.warn("Failed to persist leadership change approval to backend", err));
+
+      // Register central approval in client store
+      dhStore.submitLeadershipChangeRequest({
+        projectId: project.id,
+        role,
+        currentLeaderIds: assignedPeople.map((p) => p.id),
+        currentLeaderNames: currentNames,
+        newLeaderIds: assignedIds,
+        newLeaderNames: peopleForRole.map((p) => p.name),
+        effectiveDate,
+        changeReason: changeReason.trim(),
+        additionalComments: "",
+        notifyPersonIds: assignedIds,
+        requestedBy: user.name || "Dhanshree",
+        requestedById: user.id || "u14",
+      });
+
+      toast.success(`${role} Change Request submitted for approval`, { description: names });
       onClose();
     } catch (err) {
       toast.error("Could not update leaders", {
@@ -3507,6 +3582,33 @@ function ChangeLeaderPanel({
               )}
             </ul>
           )}
+        </div>
+
+        {/* Approval Metadata: Effective Date & Reason */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border">
+          <div>
+            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide block mb-1">
+              Effective Date
+            </label>
+            <input
+              type="date"
+              value={effectiveDate}
+              onChange={(e) => setEffectiveDate(e.target.value)}
+              className="h-8 w-full rounded-md border border-input bg-card px-2.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide block mb-1">
+              Reason for Change
+            </label>
+            <input
+              type="text"
+              value={changeReason}
+              onChange={(e) => setChangeReason(e.target.value)}
+              placeholder="e.g. Workload rebalancing, role handover..."
+              className="h-8 w-full rounded-md border border-input bg-card px-2.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
         </div>
 
         {/* Actions */}
@@ -4735,6 +4837,18 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
           historyEntries={useApiTasks ? assignHistory : undefined}
           onClose={() => { setAssignFor(null); setAssignHistory([]); }}
           onSave={(ids) => {
+            const parentSvc = visibleTree.find(s => {
+              if (s.quarters) {
+                return s.quarters.some(q => q.aps.some(a => a.tasks.some(task => task.id === assignFor.id)));
+              } else if (s.aps) {
+                return s.aps.some(a => a.tasks.some(task => task.id === assignFor.id));
+              }
+              return false;
+            });
+            const svcName = parentSvc?.serviceName || "";
+            const taskTitle = parentSvc ? `${svcName} - ${assignFor.serviceModel}` : `${assignFor.taskId} - ${assignFor.serviceModel}`;
+            const dueDate = parentSvc?.wbsEndDate || "";
+
             if (useApiTasks) {
               if (!assignFor.dbId) {
                 toast.error("Could not save assignments", {
@@ -4761,21 +4875,10 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                 .catch((err) => toast.error(err instanceof Error ? err.message : "Could not save assignments"));
               return;
             }
-            const parentSvc = visibleTree.find(s => {
-              if (s.quarters) {
-                return s.quarters.some(q => q.aps.some(a => a.tasks.some(task => task.id === assignFor.id)));
-              } else if (s.aps) {
-                return s.aps.some(a => a.tasks.some(task => task.id === assignFor.id));
-              }
-              return false;
-            });
-            const svcName = parentSvc?.serviceName || "";
-            const taskTitle = parentSvc ? `${svcName} - ${assignFor.serviceModel}` : `${assignFor.taskId} - ${assignFor.serviceModel}`;
-            const dueDate = parentSvc?.wbsEndDate || "";
 
             dhStore.assignResourcesToTreeTask(project.id, assignFor.id, ids, taskTitle, dueDate, "medium");
             ids.forEach((resId) => {
-              addTaskAssignment(project.id, assignFor.id, { resourceId: resId, role: "Member" }).catch(() => { });
+              addTaskAssignment(project.id, assignFor.id, { employeeId: resId, role: "Member" }).catch(() => { });
             });
             toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
             setAssignFor(null);
@@ -6323,8 +6426,10 @@ function HealthTab({ project }: { project: Project }) {
 }
 
 function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; project: Project; canRaise: boolean }) {
-  const store = useDhStore((s) => s);
   const { user } = useRoleContext();
+  const [dbIssues, setDbIssues] = useState<ProjectIssueApiItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
   const [showRaiseModal, setShowRaiseModal] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -6333,132 +6438,338 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
     priority: "Medium" as DhPriority,
   });
 
-  const handleSubmit = () => {
+  const loadIssues = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetchProjectIssuesApi(project.id);
+      setDbIssues(res);
+    } catch (err) {
+      console.warn("Could not load db issues", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [project.id]);
+
+  useEffect(() => {
+    loadIssues();
+  }, [loadIssues]);
+
+  const handleSubmit = async () => {
     if (!formData.title.trim() || !formData.description.trim()) {
       toast.error("Fill all fields");
       return;
     }
-    dhStore.raiseIssue({
-      title: formData.title,
-      description: formData.description,
-      projectId: project.id,
-      raisedById: user.id,
-      raisedByName: user.name,
-      raisedByRole: user.role,
-      category: formData.category,
-      priority: formData.priority,
-    });
-    toast.success("Issue raised", { description: "PMs and SPMs notified" });
-    setShowRaiseModal(false);
-    setFormData({ title: "", description: "", category: "Technical Related Issues", priority: "Medium" });
+    try {
+      const created = await createIssueApi({
+        projectId: project.id,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        priority: formData.priority,
+        raisedByEmployeeId: user.id,
+        raisedByName: user.name,
+        raisedByRole: user.role,
+      });
+      toast.success("Issue raised successfully", {
+        description: `Routed to Dotted-Line Reporting Manager (${created.dottedLineManagerName || "PM"} · PM). 2-day escalation SLA started.`,
+      });
+      setShowRaiseModal(false);
+      setFormData({ title: "", description: "", category: "Technical Related Issues", priority: "Medium" });
+      loadIssues();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not raise issue");
+    }
   };
 
-  const hasNoIssues = issues.length === 0;
+  const handleStatusChange = async (issueId: string, newStatus: string) => {
+    try {
+      await updateIssueStatusApi(issueId, newStatus, undefined, user.name);
+      toast.success(`Issue status updated to ${newStatus}`);
+      loadIssues();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update status");
+    }
+  };
+
+  const handleManualEscalate = async (issueId: string) => {
+    try {
+      const updated = await escalateIssueManuallyApi(issueId, user.name);
+      toast.warning(`Issue escalated to Level ${updated.escalationLevel} (${updated.currentAssigneeRole})`);
+      loadIssues();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not escalate issue");
+    }
+  };
+
+  const displayIssues = dbIssues;
+  const hasNoIssues = displayIssues.length === 0;
+
+  const ESCALATION_CONFIG: Record<number, { role: string; full: string; badgeCls: string }> = {
+    1: { role: "PM", full: "Project Manager", badgeCls: "bg-blue-50 text-blue-700 border-blue-200" },
+    2: { role: "SPM", full: "Senior Project Manager", badgeCls: "bg-amber-50 text-amber-700 border-amber-200" },
+    3: { role: "EM", full: "Engagement Manager", badgeCls: "bg-purple-50 text-purple-700 border-purple-200" },
+    4: { role: "PMO", full: "PMO Head", badgeCls: "bg-rose-50 text-rose-700 border-rose-200" },
+    5: { role: "HOD", full: "Head of Department", badgeCls: "bg-red-50 text-red-700 border-red-300 font-bold" },
+    6: { role: "CEO", full: "Chief Executive Officer", badgeCls: "bg-red-100 text-red-900 border-red-400 font-extrabold animate-pulse" },
+  };
 
   return (
-    <div className="space-y-3">
-      {hasNoIssues && canRaise ? (
-        <div className="rounded-lg border-2 border-dashed border-border bg-muted/20 py-12 text-center">
-          <p className="text-sm text-muted-foreground mb-4">No issues raised yet</p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Project Issues & Escalations</h3>
+          <p className="text-xs text-muted-foreground">
+            Escalation Hierarchy: PM (Day 0) → SPM (Day 2) → EM (Day 4) → PMO (Day 6) → HOD (Day 8) → CEO (Day 10)
+          </p>
+        </div>
+        {canRaise && (
           <button
             onClick={() => setShowRaiseModal(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
           >
-            <Plus className="h-4 w-4" /> Raise Issues Alerts
+            <Plus className="h-3.5 w-3.5" /> Raise Issue
           </button>
-        </div>
-      ) : (
-        canRaise && (
-          <div className="flex justify-end">
+        )}
+      </div>
+
+      {hasNoIssues ? (
+        <div className="rounded-lg border-2 border-dashed border-border bg-muted/20 py-12 text-center">
+          <p className="text-sm text-muted-foreground mb-4">
+            {loading ? "Loading project issues…" : "No issues raised yet for this project"}
+          </p>
+          {canRaise && !loading && (
             <button
               onClick={() => setShowRaiseModal(true)}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
             >
-              <Plus className="h-3.5 w-3.5" /> Raise Issues Alerts
+              <Plus className="h-4 w-4" /> Raise Issue
             </button>
-          </div>
-        )
-      )}
-
-      {showRaiseModal && (
-        <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
-          <div className="space-y-3">
-            <Field label="Issue Title">
-              <input value={formData.title} onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))} placeholder="Brief summary..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-            </Field>
-            <Field label="Description">
-              <textarea value={formData.description} onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))} placeholder="Detailed description..." rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-            </Field>
-            <Field label="Issue Type">
-              <select value={formData.category} onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-            </Field>
-            <Field label="Priority">
-              <select value={formData.priority} onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => <option key={pri} value={pri}>{pri}</option>)}
-              </select>
-            </Field>
-            <div className="flex justify-end gap-2 border-t border-border pt-3">
-              <button onClick={() => setShowRaiseModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-              <button onClick={handleSubmit} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Raise Issue</button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {issues.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
-          <p className="text-sm text-muted-foreground">No issues raised yet</p>
+          )}
         </div>
       ) : (
-        <div className="space-y-2">
-          {issues.map((issue: DhIssue) => {
-            const priorityColors: Record<DhPriority, string> = { Low: "border-info/30 bg-info/10 text-info", Medium: "border-warning/30 bg-warning/15 text-warning-foreground", High: "border-destructive/30 bg-destructive/10 text-destructive", Critical: "border-destructive/30 bg-destructive/10 text-destructive" };
+        <div className="space-y-3">
+          {displayIssues.map((issue) => {
+            const isResolved = issue.status === "Resolved" || issue.status === "Closed";
+            const esc = ESCALATION_CONFIG[issue.escalationLevel] || ESCALATION_CONFIG[1];
+            const isExpanded = expandedIssueId === issue.id;
+
             return (
-              <div key={issue.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
+              <div
+                key={issue.id}
+                className="rounded-lg border border-border bg-card p-4 hover:shadow-xs transition-shadow"
+              >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
+                  <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-sm font-medium">{issue.title}</h4>
-                      <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", priorityColors[issue.priority])}>{issue.priority}</span>
+                      <h4 className="text-sm font-bold text-gray-900">{issue.title}</h4>
+
+                      {/* Priority Pill */}
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
+                          issue.priority === "Critical" && "bg-rose-50 text-rose-700 border-rose-300",
+                          issue.priority === "High" && "bg-orange-50 text-orange-700 border-orange-300",
+                          issue.priority === "Medium" && "bg-amber-50 text-amber-700 border-amber-300",
+                          issue.priority === "Low" && "bg-slate-50 text-slate-700 border-slate-300",
+                        )}
+                      >
+                        {issue.priority}
+                      </span>
+
+                      {/* Escalation Level Badge */}
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold shadow-2xs",
+                          esc.badgeCls,
+                        )}
+                        title={`Current Escalation: Level ${issue.escalationLevel} (${esc.full})`}
+                      >
+                        Level {issue.escalationLevel}: {issue.currentAssigneeRole}
+                      </span>
+
+                      {/* Category Badge */}
+                      <span className="inline-flex rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground border border-border/60">
+                        {issue.category}
+                      </span>
+
+                      {/* Status Selector / Badge */}
                       {canRaise ? (
                         <select
                           value={issue.status}
-                          onChange={(e) => {
-                            dhStore.updateIssueStatus(issue.id, e.target.value as DhIssueStatus, user.name);
-                            toast.success(`Issue status updated to ${e.target.value}`);
-                          }}
+                          onChange={(e) => handleStatusChange(issue.id, e.target.value)}
                           className={cn(
-                            "h-6 rounded-md border px-2 text-[10px] font-bold shadow-xs transition-colors cursor-pointer outline-none",
-                            issue.status === "resolved" || issue.status === "closed"
+                            "h-6 rounded-md border px-2 text-[10px] font-bold shadow-2xs transition-colors cursor-pointer outline-none",
+                            isResolved
                               ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                              : issue.status === "in_progress"
+                              : issue.status === "In Progress"
                                 ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                                : "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                                : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100",
                           )}
                         >
-                          {(["open", "in_progress", "resolved", "closed"] as DhIssueStatus[]).map((st) => (
-                            <option key={st} value={st}>{st.replace("_", " ")}</option>
+                          {["Open", "In Progress", "Resolved", "Closed"].map((st) => (
+                            <option key={st} value={st}>
+                              {st}
+                            </option>
                           ))}
                         </select>
                       ) : (
-                        <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground capitalize">{issue.status.replace("_", " ")}</span>
+                        <span
+                          className={cn(
+                            "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold",
+                            isResolved
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                              : "bg-amber-50 border-amber-200 text-amber-700",
+                          )}
+                        >
+                          {issue.status}
+                        </span>
+                      )}
+
+                      {/* Manual Escalate Button (if not resolved and level < 6) */}
+                      {!isResolved && issue.escalationLevel < 6 && (
+                        <button
+                          onClick={() => handleManualEscalate(issue.id)}
+                          className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700 hover:bg-red-100 transition-colors shadow-2xs cursor-pointer ml-auto"
+                          title="Manually escalate immediately to the next managerial level"
+                        >
+                          Escalate to Level {issue.escalationLevel + 1}
+                        </button>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{issue.description}</p>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{issue.raisedByName} · {issue.raisedByRole}</span>
+
+                    <p className="text-xs text-gray-700 leading-relaxed">{issue.description}</p>
+
+                    {/* Metadata bar */}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap pt-1">
+                      <span>
+                        <span className="font-semibold text-gray-600">Raised By:</span> {issue.raisedByName} ({issue.raisedByRole})
+                      </span>
+                      <span>
+                        <span className="font-semibold text-gray-600">Dotted-Line Manager:</span>{" "}
+                        <span className="text-primary font-semibold">{issue.dottedLineManagerName || "Reporting Manager"}</span>
+                      </span>
                       <span>·</span>
-                      <span>{new Date(issue.createdAt).toLocaleDateString()}</span>
-                      {issue.comments.length > 0 && <><span>·</span><span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" /> {issue.comments.length}</span></>}
+                      <span>{new Date(issue.createdAtUtc).toLocaleDateString("en-GB")}</span>
+
+                      {/* 2-Day SLA Countdown */}
+                      {!isResolved && issue.escalationLevel < 6 && (
+                        <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          <Clock className="h-3 w-3 text-amber-600" />
+                          Auto-escalates in {Math.round(issue.hoursUntilNextEscalation)}h
+                        </span>
+                      )}
                     </div>
+
+                    {/* Audit History Toggle */}
+                    {issue.auditHistory && issue.auditHistory.length > 0 && (
+                      <div className="pt-2">
+                        <button
+                          onClick={() => setExpandedIssueId(isExpanded ? null : issue.id)}
+                          className="text-[11px] font-semibold text-primary hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          {isExpanded ? "Hide Escalation History ▲" : `View Escalation Timeline (${issue.auditHistory.length}) ▼`}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="mt-2 space-y-1.5 bg-muted/30 p-2.5 rounded-lg border border-border/70 text-xs">
+                            <div className="font-bold text-[11px] text-gray-700 uppercase tracking-wide">
+                              Escalation & Audit Timeline
+                            </div>
+                            {issue.auditHistory.map((item, idx) => (
+                              <div key={idx} className="flex items-start gap-2 text-[11px] text-muted-foreground">
+                                <span className="font-mono text-gray-500 whitespace-nowrap">
+                                  {new Date(item.timestampUtc).toLocaleDateString("en-GB", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                                <span>—</span>
+                                <span className="font-semibold text-gray-800">{item.action}:</span>
+                                <span>{item.details}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* Raise Issue Modal */}
+      {showRaiseModal && (
+        <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
+          <div className="space-y-3">
+            <Field label="Issue Title">
+              <input
+                value={formData.title}
+                onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))}
+                placeholder="Brief summary..."
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </Field>
+            <Field label="Description">
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))}
+                placeholder="Detailed description..."
+                rows={3}
+                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </Field>
+            <Field label="Issue Type">
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))}
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map(
+                  (cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ),
+                )}
+              </select>
+            </Field>
+            <Field label="Priority">
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))}
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => (
+                  <option key={pri} value={pri}>
+                    {pri}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div className="rounded-md bg-blue-50 border border-blue-200 p-2.5 text-xs text-blue-900 leading-relaxed">
+              <span className="font-bold">Escalation Policy:</span> This issue will be assigned directly to your Dotted-Line Reporting Manager (PM). If unresolved after 2 days, it automatically escalates: PM → SPM → EM → PMO → HOD → CEO.
+            </div>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button
+                onClick={() => setShowRaiseModal(false)}
+                className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 cursor-pointer"
+              >
+                Raise Issue
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -7067,7 +7378,7 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
 }
 
 function AdditionalRequirementsPanel({ requirements, project, clientName }: { requirements: DhAdditionalRequirement[]; project: Project; clientName: string }) {
-  const { isAdmin, isDhanshree } = useRoleContext();
+  const { user, isAdmin, isDhanshree } = useRoleContext();
   const { hasAny } = usePermissions();
   const canManageRequirement =
     isAdmin ||
@@ -7127,7 +7438,32 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
       status: "Open",
       comments: []
     });
-    toast.success(isCancellation ? "Scope cancellation request logged!" : "Requirement logged persistently!");
+
+    // Persist to backend database tbl_approval_requests
+    createApprovalRequest({
+      approvalType: "ScopeChange",
+      projectId: isApiGuid(project.id) ? project.id : null,
+      projectName: projName,
+      department: "Project Management",
+      title: isCancellation ? `Scope Cancellation Request: ${scopeCancellation}` : `Scope Addition Request: ${finalTitle}`,
+      description: description.trim(),
+      requestedByEmployeeId: isApiGuid(user.id) ? user.id : "00000000-0000-4000-8000-000000000040",
+      requestedByName: requestedBy.trim(),
+      requestedByRole: "Project Manager",
+      assignedApproverRole: "EM",
+      assignedApproverName: "EM & Sales Team",
+      priority,
+      payloadJson: JSON.stringify({
+        scopeAction: isCancellation ? "Cancellation" : "Addition",
+        serviceName: isCancellation ? scopeCancellation : finalTitle,
+        scopeTitle: finalTitle,
+        reason: description.trim(),
+        requestedDate,
+        attachmentName: attachmentName || undefined,
+      }),
+    }).catch((err) => console.warn("Failed to persist scope approval to backend", err));
+
+    toast.success(isCancellation ? "Scope cancellation request logged & approval sent!" : "Requirement logged & approval sent!");
     setShowModal(false);
     // Reset
     setReqTab("Add Service");

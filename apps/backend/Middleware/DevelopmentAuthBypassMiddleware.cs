@@ -48,7 +48,10 @@ public sealed class DevelopmentAuthBypassMiddleware(RequestDelegate next)
             var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new(ClaimTypes.NameIdentifier, userId.ToString()),
                 new(JwtRegisteredClaimNames.Email, email),
+                new(ClaimTypes.Email, email),
+                new("email", email),
                 new(ClaimTypes.Name, email.Split('@')[0]),
                 new(ClaimTypes.Role, role),
             };
