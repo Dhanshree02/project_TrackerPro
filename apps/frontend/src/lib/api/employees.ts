@@ -43,7 +43,15 @@ export interface ApiEmployeeListItem {
   projectType?: string | null;
   projectAllocated?: string | null;
   clientEngManagerMapping?: string | null;
+  /** On Floor Role: mst_roles.Name */
+  jobRoleName?: string | null;
   jobRole?: string | null;
+  todayAttendance?: string | null;
+  allocationStatus?: string | null;
+  allocationType?: string | null;
+  allocationStartDate?: string | null;
+  allocationEndDate?: string | null;
+  allocatedProjectName?: string | null;
 }
 
 export interface ApiEmployeeDetail {
@@ -152,6 +160,9 @@ export interface ApiMetaOption {
   parentId?: string | null;
   defaultRoleId?: string | null;
   subDepartment?: string | null;
+  /** RBAC role mapped to a designation (mst_designations.DefaultRoleId → roles.Name). */
+  defaultRoleName?: string | null;
+  defaultRoleDisplayName?: string | null;
 }
 
 interface PagedEnvelope<T> {
@@ -169,6 +180,8 @@ export async function fetchEmployees(params: {
   departmentId?: string;
   designationId?: string;
   status?: string;
+  /** Exact On Floor Role name from mst_roles.Name */
+  onFloorRole?: string;
   role?: string;
 } = {}): Promise<PagedEnvelope<ApiEmployeeListItem>> {
   const query = new URLSearchParams();
@@ -178,8 +191,62 @@ export async function fetchEmployees(params: {
   if (params.departmentId) query.set("departmentId", params.departmentId);
   if (params.designationId) query.set("designationId", params.designationId);
   if (params.status) query.set("status", params.status);
+  if (params.onFloorRole) query.set("onFloorRole", params.onFloorRole);
   if (params.role) query.set("role", params.role);
   return apiFetch<PagedEnvelope<ApiEmployeeListItem>>(`/api/v1/employees?${query.toString()}`);
+}
+
+function normalizeOnFloorRole(value?: string | null): string {
+  return (value || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function isActiveEmployee(emp: { status?: string | null }): boolean {
+  return (emp.status || "").trim().toLowerCase() === "active";
+}
+
+let onFloorRoleEmployees: Promise<ApiEmployeeListItem[]> | null = null;
+
+/**
+ * Same employee rows as Resources → Directory, then only Active.
+ * On Floor Role is mst_roles.Name (jobRoleName). Deleted rows are already omitted by the API.
+ */
+export function loadEmployeesWithOnFloorRole(): Promise<ApiEmployeeListItem[]> {
+  if (!onFloorRoleEmployees) {
+    onFloorRoleEmployees = loadEmployeesWithOnFloorRoleOnce().catch((error) => {
+      onFloorRoleEmployees = null;
+      throw error;
+    });
+  }
+  return onFloorRoleEmployees;
+}
+
+async function loadEmployeesWithOnFloorRoleOnce(): Promise<ApiEmployeeListItem[]> {
+  const items = (await fetchAllEmployees()).filter(isActiveEmployee);
+  if (items.some((emp) => emp.jobRoleName)) return items;
+  const roles: string[] = [];
+  const batchSize = 8;
+  for (let start = 0; start < items.length; start += batchSize) {
+    const batch = items.slice(start, start + batchSize);
+    const resolved = await Promise.all(
+      batch.map(async (emp) => {
+        try {
+          const detail = await fetchEmployee(emp.id);
+          return detail.role || "";
+        } catch {
+          return "";
+        }
+      }),
+    );
+    roles.push(...resolved);
+  }
+  return items.map((emp, index) => ({
+    ...emp,
+    jobRoleName: roles[index] || null,
+  }));
+}
+
+export function matchesOnFloorRole(emp: { jobRoleName?: string | null }, roleName: string): boolean {
+  return normalizeOnFloorRole(emp.jobRoleName) === normalizeOnFloorRole(roleName);
 }
 
 export async function fetchEmployee(id: string): Promise<ApiEmployeeDetail> {
@@ -286,8 +353,14 @@ export async function fetchJobRoleOptions(designationId?: string): Promise<ApiMe
   return (await apiFetch<ApiMetaOption[]>(`/api/v1/employees/meta/roles${query}`)) ?? [];
 }
 
-export async function fetchEmployeeStatusOptions(onboardingOnly = false): Promise<ApiMetaOption[]> {
-  const query = onboardingOnly ? "?onboardingOnly=true" : "";
+export async function fetchEmployeeStatusOptions(options?: {
+  onboardingOnly?: boolean;
+  offboardOnly?: boolean;
+}): Promise<ApiMetaOption[]> {
+  const params = new URLSearchParams();
+  if (options?.onboardingOnly) params.set("onboardingOnly", "true");
+  if (options?.offboardOnly) params.set("offboardOnly", "true");
+  const query = params.toString() ? `?${params.toString()}` : "";
   return (await apiFetch<ApiMetaOption[]>(`/api/v1/employees/meta/employee-statuses${query}`)) ?? [];
 }
 
@@ -471,8 +544,26 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     billableStatus: item.billableStatus ?? "",
     clientLocation: item.clientLocation ?? "",
     projectType: item.projectType ?? "",
-    projectAllocated: item.projectAllocated ?? "",
+    projectAllocated: item.projectAllocated ?? item.allocatedProjectName ?? "",
     clientEngManagerMapping: item.clientEngManagerMapping ?? "",
+    todayAttendance: item.todayAttendance ?? "",
+    allocationStatus:
+      item.allocationStatus === "On Leave" ||
+      item.allocationStatus === "Occupied" ||
+      item.allocationStatus === "Free"
+        ? item.allocationStatus
+        : undefined,
+    allocationType:
+      item.allocationType === "Shared" || item.allocationType === "Dedicated"
+        ? item.allocationType
+        : item.allocationType?.toLowerCase().startsWith("shared")
+          ? "Shared"
+          : item.allocationType?.toLowerCase().startsWith("dedicated")
+            ? "Dedicated"
+            : "",
+    allocationStartDate: toDateInputValue(item.allocationStartDate),
+    allocationEndDate: toDateInputValue(item.allocationEndDate),
+    allocatedProjectName: item.allocatedProjectName ?? "",
     complianceStatus: "Pending",
   };
 }

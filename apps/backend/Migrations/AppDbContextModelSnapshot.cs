@@ -43,6 +43,10 @@ namespace PMS.API.Migrations
                     b.Property<Guid?>("CityId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ClientCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("ClientType")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -81,6 +85,10 @@ namespace PMS.API.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.Property<DateOnly?>("CustomerSince")
                         .HasColumnType("date");
 
@@ -101,6 +109,10 @@ namespace PMS.API.Migrations
                     b.Property<string>("GroupSpocName")
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
+
+                    b.Property<string>("GroupSpocPhoneCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
 
                     b.Property<string>("Industry")
                         .IsRequired()
@@ -152,6 +164,11 @@ namespace PMS.API.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CityId");
+
+                    b.HasIndex("ClientCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_clients_ClientCode")
+                        .HasFilter("\"ClientCode\" IS NOT NULL");
 
                     b.HasIndex("CountryId");
 
@@ -286,6 +303,11 @@ namespace PMS.API.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("SubVentureCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -295,6 +317,9 @@ namespace PMS.API.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClientId");
+
+                    b.HasIndex("SubVentureCode")
+                        .IsUnique();
 
                     b.ToTable("tbl_sub_ventures", "customer");
                 });

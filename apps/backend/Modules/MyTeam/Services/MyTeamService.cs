@@ -30,6 +30,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
         var members = await TeamQuery(caller.Id, allEmployees)
             .Include(e => e.Department)
             .Include(e => e.Designation)
+            .Include(e => e.ReportingManager)
             .OrderBy(e => e.FirstName)
             .ThenBy(e => e.LastName)
             .ToListAsync(ct);
@@ -39,9 +40,10 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             return new TeamCalendarDto([], [], []);
         }
 
+        var today = TodayInIst();
         var ids = members.Select(m => m.Id).ToList();
         var entries = await db.TeamDayEntries
-            .Where(e => ids.Contains(e.EmployeeId) && e.WorkDate >= from && e.WorkDate <= to)
+            .Where(e => ids.Contains(e.EmployeeId) && ((e.WorkDate >= from && e.WorkDate <= to) || e.WorkDate == today))
             .OrderBy(e => e.WorkDate)
             .ToListAsync(ct);
         var schedules = await db.TeamMemberSchedules
@@ -52,13 +54,49 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             .OrderBy(h => h.HolidayDate)
             .ToListAsync(ct);
 
+        var minAllocEnd = from < today ? from : today;
+        var teamAllocations = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Include(m => m.Project)
+            .Where(m => ids.Contains(m.EmployeeId)
+                && m.Project != null
+                && m.Project.DeletedAtUtc == null
+                && m.AllocationEndDate >= minAllocEnd)
+            .ToListAsync(ct);
+
+        var allocationsByEmployee = teamAllocations
+            .GroupBy(m => m.EmployeeId)
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .OrderBy(m => m.MemberRole is "ProjectTeam" or "ShadowTeam" ? 0 : 1)
+                    .ThenBy(m => m.AllocationStartDate <= today ? 0 : 1)
+                    .ThenByDescending(m => m.AllocationEndDate)
+                    .ThenByDescending(m => m.CreatedAtUtc)
+                    .ToList());
+
+        var todayAttendanceByEmp = entries
+            .Where(e => e.WorkDate == today)
+            .GroupBy(e => e.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.First().Attendance);
+
         var scheduleByEmployee = schedules.ToDictionary(s => s.EmployeeId);
         var holidaysByEmployee = holidays.GroupBy(h => h.EmployeeId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
+        var rangeEntries = entries
+            .Where(e => e.WorkDate >= from && e.WorkDate <= to)
+            .Select(e => new TeamDayEntryDto(e.EmployeeId, e.WorkDate, e.Attendance, e.Shift))
+            .ToList();
+
         return new TeamCalendarDto(
-            members.Select(m => MapMember(m, m.ReportingManagerId == caller.Id)).ToList(),
-            entries.Select(e => new TeamDayEntryDto(e.EmployeeId, e.WorkDate, e.Attendance, e.Shift)).ToList(),
+            members.Select(m => MapMember(
+                m,
+                m.ReportingManagerId == caller.Id,
+                today,
+                todayAttendanceByEmp.GetValueOrDefault(m.Id),
+                allocationsByEmployee.GetValueOrDefault(m.Id))).ToList(),
+            rangeEntries,
             members.Select(m => MapSchedule(
                 m.Id,
                 scheduleByEmployee.GetValueOrDefault(m.Id),
@@ -266,16 +304,63 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
         return value.Trim().ToLowerInvariant();
     }
 
-    private static TeamMemberDto MapMember(Employee employee, bool directReport)
+    private static TeamMemberDto MapMember(
+        Employee employee,
+        bool directReport,
+        DateOnly today,
+        string? todayAttendance,
+        List<PMS.API.Modules.Projects.Models.ProjectTeamMember>? allocations)
     {
         var name = $"{employee.FirstName} {employee.LastName}".Trim();
+        var managerName = employee.ReportingManager is null
+            ? null
+            : $"{employee.ReportingManager.FirstName} {employee.ReportingManager.LastName}".Trim();
+
+        var activeAlloc = allocations?.FirstOrDefault(a => a.AllocationEndDate >= today);
+        var isOnLeave = string.Equals(todayAttendance, "leave", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(employee.Status, "On Leave", StringComparison.OrdinalIgnoreCase);
+
+        var allocationStatus = isOnLeave
+            ? "On Leave"
+            : activeAlloc is not null
+                ? "Occupied"
+                : "Free";
+
+        string? allocationType = null;
+        if (activeAlloc is not null && !string.IsNullOrWhiteSpace(activeAlloc.ResourceType))
+        {
+            allocationType = activeAlloc.ResourceType.StartsWith("Shared", StringComparison.OrdinalIgnoreCase)
+                ? "Shared"
+                : "Dedicated";
+        }
+
+        var allocDtos = (allocations ?? [])
+            .Select(a => new TeamMemberAllocationDto(
+                a.ProjectId,
+                a.Project?.Name ?? "Project",
+                a.ResourceType.StartsWith("Shared", StringComparison.OrdinalIgnoreCase) ? "Shared" : "Dedicated",
+                a.AllocationStartDate,
+                a.AllocationEndDate,
+                a.Billability,
+                a.MemberRole))
+            .ToList();
+
         return new TeamMemberDto(
             employee.Id,
             name,
             Initials(employee.FirstName, employee.LastName),
             employee.Designation?.Name ?? "",
             employee.Department?.Name ?? "",
-            directReport);
+            directReport,
+            employee.EmployeeCode,
+            managerName,
+            employee.Status,
+            allocationStatus,
+            allocationType,
+            activeAlloc?.AllocationStartDate,
+            activeAlloc?.AllocationEndDate,
+            activeAlloc?.Project?.Name,
+            allocDtos);
     }
 
     private static TeamMemberScheduleDto MapSchedule(

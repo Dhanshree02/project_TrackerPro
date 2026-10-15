@@ -14,4 +14,15 @@ public static class PhoneValidationExtensions
             .Must(v => string.IsNullOrWhiteSpace(v) || PhoneRules.IsValid(v))
             .WithMessage(PhoneRules.InvalidMessage);
     }
+
+    /// <summary>
+    /// Customer phones follow the selected country's length. They are not Indian mobiles.
+    /// </summary>
+    public static IRuleBuilderOptions<T, string?> MustBeValidNationalPhone<T>(
+        this IRuleBuilder<T, string?> ruleBuilder)
+    {
+        return ruleBuilder
+            .Must(v => string.IsNullOrWhiteSpace(v) || PhoneRules.IsValidNationalNumber(v))
+            .WithMessage(PhoneRules.NationalInvalidMessage);
+    }
 }

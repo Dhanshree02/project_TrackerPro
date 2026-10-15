@@ -65,9 +65,13 @@ database/prune_uat.sql
 database/trackerpro-uat-seed-clean.sql
 
 
-# Local File Storage (Tracked in git)
+# Local file storage (tracked in git)
 !storage/
 !storage/**
+
+# Repo Documents tree — KYC, PO, repository uploads (tracked in git)
+!Documents/
+!Documents/**
 
 
 

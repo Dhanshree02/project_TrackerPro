@@ -3,7 +3,7 @@ import { useNavigate, useRouter } from "@tanstack/react-router";
 import { Search, Bell, ChevronDown, Check } from "lucide-react";
 import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
-import { DEFAULT_DEMO_ROLE, DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/demo-roles";
+import { DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/demo-roles";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -48,7 +48,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
           p.code === demoRole,
       ) ??
       DEMO_PERSONAS.find((p) => p.roleKey === authUser?.role) ??
-      DEMO_PERSONAS.find((p) => p.key === DEFAULT_DEMO_ROLE) ??
+      DEMO_PERSONAS.find((p) => p.roleKey === "Admin") ??
       DEMO_PERSONAS[0]
     );
   }, [demoRole, authUser]);
@@ -95,7 +95,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
   const categories = useMemo(() => Array.from(grouped.keys()), [grouped]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-border bg-background px-4 md:px-6">
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
       {/* Left: Page Title & Subtitle */}
       <div className="min-w-0 flex-1 md:flex-initial md:w-60 lg:w-72">
         <h1 className="truncate text-base font-semibold leading-tight text-foreground">{title}</h1>

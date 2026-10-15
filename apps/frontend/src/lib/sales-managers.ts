@@ -1,49 +1,78 @@
 import { useEffect, useState } from "react";
 import {
   fetchAllEmployees,
+  fetchDesignationOptions,
   fetchEmployees,
   type ApiEmployeeListItem,
 } from "@/lib/api/employees";
 
-/** Normalizes role / designation strings to check if employee has RBAC 'Sales Manager' */
-export function isSalesManagerRole(roleOrDesignation?: string | null): boolean {
-  if (!roleOrDesignation) return false;
-  const r = roleOrDesignation.trim().toLowerCase();
+export const SALES_MANAGER_DESIGNATIONS = [
+  "Business Development Associate - I",
+  "Customer Success Representative - II",
+] as const;
+
+export const FUNCTIONAL_SALES_DEPARTMENT = "Functional - Sales";
+
+/** Matches mst_departments name/code for the Sales org unit (legacy fallback). */
+export function isFunctionalSalesDepartment(nameOrCode: string | null | undefined): boolean {
+  const n = (nameOrCode ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  return n === "functional - sales" || n === "functional-sales" || n === "functional_sales";
+}
+
+/** Matches the 2 designated Sales Manager designations from the database. */
+export function isSalesManagerDesignation(designationName: string | null | undefined): boolean {
+  if (!designationName) return false;
+  const normalized = designationName
+    .trim()
+    .toLowerCase()
+    .replace(/\s*-\s*/g, " - ")
+    .replace(/\s+/g, " ");
   return (
-    r === "sales manager" ||
-    r === "sales_manager" ||
-    r === "salesmanager" ||
-    r === "sales manger" ||
-    r === "functional - sales manager" ||
-    r.includes("sales manager") ||
-    r.includes("sales manger")
+    normalized === "business development associate - i" ||
+    normalized === "customer success representative - ii"
   );
 }
 
-/** Active employees whose RBAC is 'Sales Manager' / 'Sales Manger' in the database. */
+/** Active employees whose designation is Business Development Associate - I or Customer Success Representative - II. */
 export async function fetchSalesManagers(): Promise<ApiEmployeeListItem[]> {
   const byId = new Map<string, ApiEmployeeListItem>();
 
-  // 1. Try server-side query with role
   try {
-    const res = await fetchEmployees({ role: "Sales Manager", perPage: 100 });
-    for (const item of res.items ?? []) {
-      byId.set(item.id, item);
-    }
-  } catch (err) {
-    console.warn("fetchEmployees with role query failed, falling back to full directory", err);
-  }
+    const designations = await fetchDesignationOptions();
+    const targetDesignationIds = (Array.isArray(designations) ? designations : [])
+      .filter((d) => isSalesManagerDesignation(d.name))
+      .map((d) => d.id);
 
-  // 2. Fetch full directory to ensure no active employee with Sales Manager role or designation is missed
-  try {
-    const all = await fetchAllEmployees();
-    for (const e of all) {
-      if (isSalesManagerRole(e.role) || isSalesManagerRole(e.designation)) {
-        byId.set(e.id, e);
+    if (targetDesignationIds.length > 0) {
+      const pages = await Promise.all(
+        targetDesignationIds.map((designationId) =>
+          fetchEmployees({ designationId, perPage: 100, status: "Active" })
+            .then((p) => p.items ?? [])
+            .catch(() => [] as ApiEmployeeListItem[]),
+        ),
+      );
+      for (const item of pages.flat()) {
+        if (item?.id) byId.set(item.id, item);
       }
     }
   } catch (err) {
-    console.error("Failed to load employees for Sales Managers pool", err);
+    console.warn("fetchSalesManagers: designation query failed", err);
+  }
+
+  // Augmentation / directory fallback
+  try {
+    const all = await fetchAllEmployees();
+    for (const e of all) {
+      if (isSalesManagerDesignation(e.designation)) {
+        if ((!e.status || e.status === "Active") && !byId.has(e.id)) {
+          byId.set(e.id, e);
+        }
+      }
+    }
+  } catch (err) {
+    if (byId.size === 0) {
+      console.warn("fetchSalesManagers: fetchAllEmployees fallback also failed", err);
+    }
   }
 
   return [...byId.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -55,7 +84,6 @@ export function filterSalesManagers(pool: ApiEmployeeListItem[], query: string):
   return pool.filter(
     (p) =>
       p.fullName.toLowerCase().includes(q) ||
-      (p.role ?? "").toLowerCase().includes(q) ||
       (p.designation ?? "").toLowerCase().includes(q) ||
       (p.department ?? "").toLowerCase().includes(q) ||
       (p.workEmail ?? "").toLowerCase().includes(q) ||

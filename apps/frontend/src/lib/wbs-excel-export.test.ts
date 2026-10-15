@@ -183,6 +183,7 @@ describe("buildWbsWorkbook", () => {
 
   it("names the download file from the WBS ID", () => {
     expect(wbsWorkbookFileName("IN-2026-27-C002-P004")).toBe("IN-2026-27-C002-P004.xlsx");
+    expect(wbsWorkbookFileName("IN-2026-27/C013-01/P056")).toBe("IN-2026-27-C013-01-P056.xlsx");
     expect(wbsWorkbookFileName("IN/2025/26/398/270")).toBe("IN-2025-26-398-270.xlsx");
   });
 

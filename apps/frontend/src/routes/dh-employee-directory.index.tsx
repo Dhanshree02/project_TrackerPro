@@ -20,7 +20,6 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
-import { usePermissions } from "@/lib/permissions";
 import { Avatar, ProgressBar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
@@ -107,6 +106,7 @@ import {
   type OnboardErrors,
   type OnboardField,
   type OnboardValues,
+  employeeStatusDisplayLabel,
 } from "@/lib/onboard-validation";
 import {
   WORKER_TYPES,
@@ -129,10 +129,10 @@ export const Route = createFileRoute("/dh-employee-directory/")({
   }),
   head: () => ({
     meta: [
-      { title: "Directory & Resource Pool — Pulse PMO" },
+      { title: "Employee Directory — Pulse PMO" },
       {
         name: "description",
-        content: "Browse and manage the full employee directory & resource pool.",
+        content: "Browse and manage the full employee directory.",
       },
     ],
   }),
@@ -140,7 +140,7 @@ export const Route = createFileRoute("/dh-employee-directory/")({
 });
 
 const DEFAULT_PAGE_SIZE = 15;
-const ENABLE_RESOURCE_POOL = true;
+const ENABLE_RESOURCE_POOL = false;
 
 type DirectorySortKey =
   | "id"
@@ -172,7 +172,7 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: str
   { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
   { label: "Category", key: "category", className: "w-60 min-w-[210px]" },
   { label: "Joining Date", key: "joiningDate", className: "w-40 min-w-[145px]" },
-  { label: "Status", key: "status", className: "w-36 min-w-[125px]" },
+  { label: "Status", key: "status", className: "w-56 min-w-[220px]" },
   { label: "KPI", key: "kpiScore", className: "w-28 min-w-[100px]" },
 ];
 
@@ -187,9 +187,9 @@ const POOL_COLUMNS: { label: string; key: PoolSortKey | null; className?: string
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Employee Name", key: "name", className: "w-56 min-w-[190px]" },
   { label: "Reporting Manager", key: "reportingManager", className: "w-48 min-w-[170px]" },
-  { label: "Allocation Status", key: null, className: "w-48 min-w-[170px]" },
+  { label: "Allocation Status", key: "allocationStatus", className: "w-48 min-w-[170px]" },
   { label: "Allocation Type", key: null, className: "w-44 min-w-[150px]" },
-  { label: "Allocation Duration", key: null, className: "w-48 min-w-[170px]" },
+  { label: "Allocation Duration", key: null, className: "w-56 min-w-[205px]" },
   { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
   { label: "Tasks", key: null, className: "w-28 min-w-[100px]", align: "right" },
 ];
@@ -214,23 +214,42 @@ function compareEmployees(a: Employee, b: Employee, key: DirectorySortKey): numb
 }
 
 // ── Allocation Status type ──────────────────────────
-type AllocationStatus = "Allocated" | "Bench" | "OnLeave" | "Trainee";
+type AllocationStatus = "Occupied" | "Free" | "OnLeave";
+
+function todayLocalIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function getAllocationStatus(e: Employee): AllocationStatus {
-  if (e.status === "On Leave") return "OnLeave";
-  if (e.category?.includes("Intern") || e.designation.toLowerCase().includes("intern") || e.id.startsWith("TKI"))
-    return "Trainee";
-  if (e.projectAllocated && e.projectAllocated !== "Internal / Bench" && e.projectAllocated !== "NA" && e.projectAllocated !== "-") {
-    return "Allocated";
+  // Priority 1: Team attendance (Leave) or employee status On Leave overwrites Occupied / Free.
+  if (
+    e.allocationStatus === "On Leave" ||
+    e.todayAttendance?.toLowerCase() === "leave" ||
+    e.status === "On Leave"
+  ) {
+    return "OnLeave";
   }
-  return "Bench";
+
+  // Priority 2: Occupied if marked for a project and allocation end date is yet to finish, else Free.
+  if (e.allocationStatus === "Occupied") return "Occupied";
+  if (e.allocationStatus === "Free") return "Free";
+
+  if (e.allocationEndDate && e.allocationEndDate >= todayLocalIso()) {
+    return "Occupied";
+  }
+  return "Free";
+}
+
+function formatPoolAllocationDuration(e: Employee): string {
+  if (!e.allocationStartDate || !e.allocationEndDate) return "—";
+  return `${formatDateDMY(e.allocationStartDate)} → ${formatDateDMY(e.allocationEndDate)}`;
 }
 
 const ALLOCATION_STATUS_ORDER: Record<AllocationStatus, number> = {
-  Allocated: 0,
-  Bench: 1,
-  Trainee: 2,
-  OnLeave: 3,
+  Occupied: 0,
+  Free: 1,
+  OnLeave: 2,
 };
 
 function comparePoolEmployees(a: Employee, b: Employee, key: PoolSortKey): number {
@@ -331,32 +350,54 @@ function dash(value?: string | null): string {
   return value && value.trim() && value !== "—" && value !== "–" && value !== "-" ? value : "—";
 }
 
-const DIRECTORY_STATUSES: EmployeeStatus[] = ["Active", "Probation", "Notice Period"];
+const DIRECTORY_STATUSES: EmployeeStatus[] = [
+  "Active",
+  "Probation",
+  "Resignation Under Review",
+  "Notice Period",
+];
 
 // ── Allocation Status pill ──────────────────────────
 function AllocationStatusBadge({ status }: { status: AllocationStatus }) {
   const map: Record<AllocationStatus, string> = {
-    Allocated: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    Bench: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    Occupied: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    Free: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     OnLeave: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
-    Trainee: "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400",
   };
 
   const labels: Record<AllocationStatus, string> = {
-    Allocated: "Allocated",
-    Bench: "On Bench",
+    Occupied: "Occupied",
+    Free: "Free",
     OnLeave: "On Leave",
-    Trainee: "Trainee",
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide shadow-xs",
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide shadow-xs",
         map[status],
       )}
     >
       {labels[status]}
+    </span>
+  );
+}
+
+function AllocationTypeBadge({ type }: { type?: string | null }) {
+  if (!type || type === "—" || type === "-") {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  const normalized = type.toLowerCase().startsWith("shared") ? "Shared" : "Dedicated";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+        normalized === "Dedicated"
+          ? "border-primary/30 bg-primary/10 text-primary"
+          : "border-info/30 bg-info/10 text-info",
+      )}
+    >
+      {normalized}
     </span>
   );
 }
@@ -366,6 +407,11 @@ function EmpStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     Active: "border-success/30 bg-success/10 text-success",
     Probation: "border-warning/40 bg-warning/15 text-warning-foreground",
+    "Resignation Under Review": "border-warning/40 bg-warning/15 text-warning-foreground",
+    "Resignation - Under Review": "border-warning/40 bg-warning/15 text-warning-foreground",
+    Resigned: "border-destructive/30 bg-destructive/10 text-destructive",
+    Terminated: "border-destructive/30 bg-destructive/10 text-destructive",
+    Absconded: "border-destructive/30 bg-destructive/10 text-destructive",
     "Notice Period": "border-destructive/30 bg-destructive/10 text-destructive",
     Inactive: "border-muted-foreground/30 bg-muted text-muted-foreground",
     "On Leave": "border-info/30 bg-info/10 text-info",
@@ -373,9 +419,11 @@ function EmpStatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        "inline-flex max-w-full items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium leading-snug",
+        status.length > 18 && "text-[10px] px-2",
         map[status] ?? "border-border bg-muted text-muted-foreground",
       )}
+      title={status}
     >
       {status}
     </span>
@@ -418,7 +466,9 @@ function ResourceTasksModal({
   employee: Employee;
   onClose: () => void;
 }) {
-  const isOnLeave = employee.status === "On Leave";
+  const allocStatus = getAllocationStatus(employee);
+  const isOnLeave = allocStatus === "OnLeave";
+  const hasAllocation = Boolean(employee.allocationStartDate && employee.allocationEndDate);
 
   return (
     <Modal
@@ -438,30 +488,13 @@ function ResourceTasksModal({
                 {dash(employee.department)} · {dash(employee.designation)}
               </div>
               <div className="text-[11px] text-muted-foreground font-mono">{employee.id}</div>
-              {isOnLeave && (
-                <span className="mt-1 inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-600 dark:text-amber-400">
-                  On Leave
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Skills
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {employee.skills.length === 0 ? (
-                <span className="text-sm text-muted-foreground">—</span>
-              ) : (
-                employee.skills.map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground/80"
-                  >
-                    {s}
-                  </span>
-                ))
+              <div className="mt-1.5">
+                <AllocationStatusBadge status={allocStatus} />
+              </div>
+              {isOnLeave && hasAllocation && (
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  Assigned to project (overridden by Leave today)
+                </div>
               )}
             </div>
           </div>
@@ -469,12 +502,26 @@ function ResourceTasksModal({
 
         <div className="md:col-span-2 space-y-3">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Active Projects & Tasks
+            Active Project Allocation
           </h4>
-          <p className="text-sm text-muted-foreground">
-            Project assignments are not in the database yet. Allocation duration will show here once
-            projects are wired.
-          </p>
+          {hasAllocation ? (
+            <div className="rounded-lg border border-border bg-card p-4 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-foreground">
+                  {employee.allocatedProjectName || employee.projectAllocated || "Assigned Project"}
+                </div>
+                <AllocationTypeBadge type={employee.allocationType} />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Allocation Duration: </span>
+                {formatPoolAllocationDuration(employee)}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No active project allocation. Resource is currently free.
+            </p>
+          )}
         </div>
       </div>
     </Modal>
@@ -780,84 +827,18 @@ function RequestAllocationModal({
 // -- Main page ----------------------------------------
 function EmployeeDirectoryPage() {
   const { status: authStatus } = useAuth();
-  const {
-    isDhanshree,
-    isAdmin,
-    isHr,
-    isEmployee,
-    isPmFamily,
-    isPmoFamily,
-    isAccounts,
-    isSales,
-    isPMO,
-    isEngagementManager,
-  } = useRoleContext();
-  const { hasPermission, hasAny } = usePermissions();
-
-  const canViewDirectory =
-    isAdmin ||
-    isDhanshree ||
-    hasAny("Resource|Resource Directory:view", "resources.directory.view");
-
-  const canViewPool =
-    isAdmin ||
-    isDhanshree ||
-    hasAny("Resource|Reource Pool:view", "Resource|Resource Pool:view", "resources.pool.view", "resources.pool");
-
-  const canManagePool =
-    isAdmin ||
-    isDhanshree ||
-    hasAny("Resource|Reource Pool:manage", "Resource|Resource Pool:manage", "resources.pool.manage");
-
-  const canManageDirectory =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Resource|Resource Directory:manage",
-      "resources.manage",
-      "Resource:manage",
-      "resources.profile.create",
-      "resources.profile.edit",
-    );
-
-  const canOnboardEmployee =
-    isAdmin ||
-    isDhanshree ||
-    (!isPMO &&
-      !isEngagementManager &&
-      hasAny(
-        "Resource|Resource Directory|Resource Detailes|Personal Information:manage",
-        "resources.add_employee",
-        "resources.profile.create",
-      ));
-
+  const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
+    useRoleContext();
   const { tab: searchTab } = Route.useSearch();
-  const [tabState, setTabState] = useState<"directory" | "pool">(() => {
-    if (searchTab === "pool" && canViewPool) return "pool";
-    if (canViewDirectory) return "directory";
-    if (canViewPool) return "pool";
-    return "directory";
-  });
-
-  const tab: "directory" | "pool" =
-    canViewDirectory && canViewPool
-      ? (searchTab === "pool" ? "pool" : tabState)
-      : canViewPool
-        ? "pool"
-        : "directory";
-
   const basicDirectoryView =
-    !canManageDirectory && (isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales);
-
+    isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
+  const [tab, setTabState] = useState<"directory" | "pool">("directory");
   const navigate = useNavigate({ from: Route.fullPath });
 
   useEffect(() => {
-    if (searchTab === "pool" && canViewPool) {
-      setTabState("pool");
-    } else if (searchTab === "directory" && canViewDirectory) {
-      setTabState("directory");
-    }
-  }, [searchTab, canViewPool, canViewDirectory]);
+    if (!searchTab) return;
+    void navigate({ search: (prev) => ({ ...prev, tab: undefined }), replace: true });
+  }, [searchTab, navigate]);
 
   const [q, setQ] = useState("");
   const [dept, setDept] = useState("");
@@ -883,8 +864,8 @@ function EmployeeDirectoryPage() {
   const [allocReqEmployee, setAllocReqEmployee] = useState<Employee | null>(null);
 
   const setTab = (newTab: "directory" | "pool") => {
-    if (newTab === "pool" && !canViewPool) return;
-    if (newTab === "directory" && !canViewDirectory) return;
+    if (!ENABLE_RESOURCE_POOL && newTab === "pool") return;
+    if (basicDirectoryView) return;
     setTabState(newTab);
   };
 
@@ -985,6 +966,10 @@ function EmployeeDirectoryPage() {
       e.complianceStatus,
       e.managerFeedback,
       e.promotionReadiness,
+      e.allocationStatus,
+      e.allocationType,
+      e.allocatedProjectName,
+      formatPoolAllocationDuration(e),
     ]
       .filter(Boolean)
       .join(" ")
@@ -1001,7 +986,9 @@ function EmployeeDirectoryPage() {
         matchQ &&
         (!dept || e.department === dept) &&
         (!desig || e.designation === desig) &&
-        (!status || e.status === status)
+        (!status ||
+          e.status === status ||
+          (status === "Active" && e.status === "Resignation Under Review"))
       );
     });
     return [...filtered].sort((a, b) => {
@@ -1018,7 +1005,9 @@ function EmployeeDirectoryPage() {
         matchQ &&
         (!dept || e.department === dept) &&
         (!desig || e.designation === desig) &&
-        (!status || e.status === status)
+        (!status ||
+          e.status === status ||
+          (status === "Active" && e.status === "Resignation Under Review"))
       );
     });
     return [...filtered].sort((a, b) => {
@@ -1040,17 +1029,11 @@ function EmployeeDirectoryPage() {
     setPage(1);
   }, [q, dept, desig, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
 
-  // Access Guard: If user has neither Directory nor Resource Pool access, redirect to /
-  if (!canViewDirectory && !canViewPool && !isAdmin && !isDhanshree) {
-    return <Navigate to="/" replace />;
-  }
+  // Admin and HR both manage the full employee directory (HR uses it for
+  // onboarding); every other role is redirected.
+  if (!isDhanshree && !basicDirectoryView) return <Navigate to="/" />;
 
-  const title =
-    canViewDirectory && canViewPool
-      ? "Directory & Resource Pool"
-      : tab === "pool"
-        ? "Resource Pool"
-        : "Directory";
+  const title = basicDirectoryView ? "Directory" : "Employee Directory";
   const subtitle =
     tab === "directory"
       ? `${activeRows.length} of ${dbEmployees.length} employees`
@@ -1070,7 +1053,7 @@ function EmployeeDirectoryPage() {
       <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Left: [Directory] / [Resource Pool] view switcher */}
         <div>
-          {canViewDirectory && canViewPool && ENABLE_RESOURCE_POOL && (
+          {!basicDirectoryView && ENABLE_RESOURCE_POOL && (
             <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
               <button
                 onClick={() => setTab("directory")}
@@ -1102,8 +1085,8 @@ function EmployeeDirectoryPage() {
           )}
         </div>
 
-        {/* Right: Bulk upload menu and [+ Add Employee] button */}
-        {canOnboardEmployee && (
+        {/* Right: Bulk upload menu (ðŸ“¥) and [+ Add Employee] button */}
+        {(isDhanshree || isHr) && (
           <div className="flex items-center gap-2.5 shrink-0">
             <EmployeeBulkUploadMenu
               onImported={() => {
@@ -1277,8 +1260,8 @@ function EmployeeDirectoryPage() {
                         <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">
                           {formatDateDMY(e.joiningDate)}
                         </td>
-                        <td className="w-36 min-w-[120px] whitespace-nowrap px-4 py-3.5">
-                          <EmpStatusBadge status={e.status} />
+                        <td className="w-56 min-w-[220px] px-4 py-3.5 align-middle">
+                          <EmpStatusBadge status={employeeStatusDisplayLabel(e)} />
                         </td>
                         <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5">
                           <div className="flex items-center gap-2">
@@ -1403,52 +1386,41 @@ function EmployeeDirectoryPage() {
                   return (
                     <tr
                       key={e.id}
-                      onClick={() => {
-                        if (canViewDirectory) {
-                          navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } });
-                        } else {
-                          setSelectedEmployee(e);
-                        }
-                      }}
+                      onClick={() =>
+                        navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } })
+                      }
                       className="cursor-pointer transition-colors hover:bg-accent/30"
                     >
                       <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3.5 font-semibold text-foreground/90 truncate" title={e.department}>
                         {dash(e.department)}
                       </td>
                       <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3.5">
-                        {canViewDirectory ? (
-                          <Link
-                            to="/dh-employee-directory/$id"
-                            params={{ id: e.id }}
-                            className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
-                          >
-                            <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                            <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
-                              {e.firstName} {e.lastName}
-                            </span>
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={(evt) => {
-                              evt.stopPropagation();
-                              setSelectedEmployee(e);
-                            }}
-                            className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0 text-left cursor-pointer"
-                          >
-                            <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                            <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
-                              {e.firstName} {e.lastName}
-                            </span>
-                          </button>
-                        )}
+                        <Link
+                          to="/dh-employee-directory/$id"
+                          params={{ id: e.id }}
+                          className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
+                        >
+                          <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
+                          <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
+                            {e.firstName} {e.lastName}
+                          </span>
+                        </Link>
                       </td>
                       <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
                         {dash(e.reportingManager)}
                       </td>
-                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
-                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
-                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">-</td>
+                      <td className="w-48 min-w-[170px] whitespace-nowrap px-4 py-3.5">
+                        <AllocationStatusBadge status={getAllocationStatus(e)} />
+                      </td>
+                      <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5">
+                        <AllocationTypeBadge type={e.allocationType} />
+                      </td>
+                      <td
+                        className="w-56 min-w-[205px] whitespace-nowrap px-4 py-3.5 text-xs font-medium tabular-nums text-muted-foreground"
+                        title={e.allocatedProjectName ? `${e.allocatedProjectName}: ${formatPoolAllocationDuration(e)}` : undefined}
+                      >
+                        {formatPoolAllocationDuration(e)}
+                      </td>
                       <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
                         {e.workLocation === "Onsite" && e.projectSite ? (
                           <span className="inline-flex items-center gap-1.5">
@@ -1462,24 +1434,22 @@ function EmployeeDirectoryPage() {
                         )}
                       </td>
                       <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5 text-right">
-                        {canManagePool && (
-                          <button
-                            onClick={(evt) => {
-                              evt.stopPropagation();
-                              setAllocReqEmployee(e);
-                            }}
-                            title="Request Allocation"
-                            className="mr-1.5 inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-primary/20 bg-primary/5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                          >
-                            <UserPlus className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={(evt) => {
+                            evt.stopPropagation();
+                            setAllocReqEmployee(e);
+                          }}
+                          title="Request Allocation"
+                          className="mr-1.5 inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-primary/20 bg-primary/5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={(evt) => {
                             evt.stopPropagation();
                             setSelectedEmployee(e);
                           }}
-                          className="inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-input bg-card text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+                          className="inline-flex h-7 px-2.5 items-center justify-center gap-1 rounded-md border border-input bg-card text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </button>

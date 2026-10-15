@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, Plus, FileText } from "lucide-react";
+import { X, Plus, FileText, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -58,6 +58,7 @@ import {
   validateOnboardForm,
   blankToNull,
   csvToList,
+  directoryStatusFromEmployeeStatusName,
   EMERGENCY_RELATION_OPTIONS,
   BILLABLE_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
@@ -80,7 +81,65 @@ import { allProjects, allClients } from "@/lib/dh-store";
 
 // ── Local Form Components ─────────────────────────
 
+const FIELD_LABELS: Record<string, string> = {
+  firstName: "First Name",
+  lastName: "Last Name",
+  workEmail: "Work Email",
+  personalEmail: "Personal Email",
+  employeeCode: "TK ID",
+  phone: "Phone (Personal)",
+  altPhone: "Alternate Contact Number",
+  emergencyContact: "Emergency Contact Number",
+  emergencyContactName: "Emergency Contact Name",
+  emergencyContactRelation: "Relation with Emergency Contact",
+  address: "Current Address - City",
+  departmentId: "Department",
+  designationId: "Designation",
+  jobRoleId: "On Floor Role",
+  role: "Assigned RBAC Role",
+  businessUnit: "Business Unit",
+  reportingManagerId: "Reporting Manager",
+  workLocation: "Work Location",
+  projectSite: "Location / Site",
+  joiningDate: "Date of Joining",
+  assetId: "Asset ID",
+  employeeStatusId: "Employee Status",
+  probationStatus: "Probation Status",
+  workerType: "Worker Type",
+  bondDelivered: "Bond Delivered",
+  bondDurationMonths: "Bond Duration",
+  gradDegree: "Graduation Degree Name",
+  gradYear: "Graduation Passing Year",
+  postGradDegree: "Post Graduation Degree Name",
+  postGradYear: "Post Graduation Passing Year",
+  expType: "Experience / Fresher",
+  priorTotalExp: "Total Prior Experience",
+  priorTotalExpYears: "Total Prior Experience (Years)",
+  priorTotalExpMonths: "Total Prior Experience (Months)",
+  priorRelevantExp: "Relevant Prior Experience",
+  priorRelevantExpYears: "Relevant Prior Experience (Years)",
+  priorRelevantExpMonths: "Relevant Prior Experience (Months)",
+  clientEngManagerMapping: "Client Engagement Manager",
+};
+
+/**
+ * RBAC role for a designation. The designation carries its mapped role name, so the
+ * roles list (which needs role-management rights) is only used to confirm the id match.
+ */
+function resolveDesignationRbacRoleName(
+  designation: ApiMetaOption | undefined,
+  rbacRoles: ApiRole[],
+): string | null {
+  if (!designation) return null;
+  if (designation.defaultRoleId && rbacRoles.length > 0) {
+    const matched = rbacRoles.find((r) => r.id === designation.defaultRoleId);
+    if (matched) return matched.name;
+  }
+  return designation.defaultRoleName?.trim() || null;
+}
+
 function FormField({
+  id,
   label,
   type = "text",
   placeholder = "",
@@ -101,6 +160,7 @@ function FormField({
   max,
   hideErrorText,
 }: {
+  id?: string;
   label: string;
   type?: string;
   placeholder?: string;
@@ -146,7 +206,7 @@ function FormField({
           data-1p-ignore="true"
           data-bwignore="true"
           data-form-type="other"
-          id={name ? `form-${name}` : undefined}
+          id={id || (name ? `form-${name}` : undefined)}
           type={type}
           placeholder={placeholder}
           maxLength={maxLength}
@@ -185,6 +245,7 @@ function FormField({
 }
 
 function FormSelect({
+  id,
   label,
   options,
   value,
@@ -195,6 +256,7 @@ function FormSelect({
   placeholder = "Select…",
   showSearch,
 }: {
+  id?: string;
   label: string;
   options: Array<string | { value: string; label: string; subLabel?: string }>;
   value?: string;
@@ -207,6 +269,7 @@ function FormSelect({
 }) {
   return (
     <SearchableSelect
+      id={id}
       label={label}
       options={options}
       value={value}
@@ -525,7 +588,7 @@ export function EmployeeFormModal({
 
     // In edit mode, load ALL statuses; in create mode, load only onboarding statuses
     const onlyOnboarding = mode === "create";
-    void fetchEmployeeStatusOptions(onlyOnboarding)
+    void fetchEmployeeStatusOptions({ onboardingOnly: onlyOnboarding })
       .then((rows) => {
         const list = rows ?? [];
         setEmployeeStatusOptions(list);
@@ -658,18 +721,15 @@ export function EmployeeFormModal({
       return;
     }
 
-    // Auto-map RBAC Role if designation has defaultRoleId
+    // RBAC Role is mapped from the designation (mst_designations.DefaultRoleId).
     const matchedDesig = desigOptions.find((d) => d.id === form.designationId);
-    if (matchedDesig?.defaultRoleId && rbacRoleOptions.length > 0) {
-      const matchedRole = rbacRoleOptions.find(
-        (r) => r.id === matchedDesig.defaultRoleId || r.name.toLowerCase() === matchedDesig.defaultRoleId?.toLowerCase(),
-      );
-      if (matchedRole) {
-        setForm((prev) => {
-          if (prev.role && mode === "edit" && prev.designationId === initialEmployee?.designationId) return prev;
-          return { ...prev, role: matchedRole.name };
-        });
-      }
+    const mappedRoleName = resolveDesignationRbacRoleName(matchedDesig, rbacRoleOptions);
+    if (mappedRoleName) {
+      setForm((prev) => {
+        if (prev.role && mode === "edit" && prev.designationId === initialEmployee?.designationId) return prev;
+        if (prev.role === mappedRoleName) return prev;
+        return { ...prev, role: mappedRoleName };
+      });
     }
 
     // Auto-map Sub-Department
@@ -934,8 +994,30 @@ export function EmployeeFormModal({
       }
     }
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      toast.error("Please complete all mandatory fields");
+    const errorEntries = Object.entries(nextErrors) as [OnboardField, string][];
+    if (errorEntries.length > 0) {
+      if (errorEntries.length === 1) {
+        const [field, msg] = errorEntries[0];
+        toast.error(`Please fix error: ${FIELD_LABELS[field] || field} - ${msg}`);
+      } else {
+        const firstFew = errorEntries.slice(0, 3).map(([f]) => FIELD_LABELS[f] || f).join(", ");
+        const more = errorEntries.length > 3 ? ` (+${errorEntries.length - 3} more)` : "";
+        toast.error(`Please fix ${errorEntries.length} field errors: ${firstFew}${more}`);
+      }
+
+      // Smoothly scroll to the first invalid field or error banner
+      const firstField = errorEntries[0][0];
+      const targetElement =
+        document.getElementById(`form-${firstField}`) ||
+        document.querySelector(`[name="${firstField}"]`) ||
+        document.getElementById("form-error-summary");
+
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        if ("focus" in targetElement && typeof (targetElement as any).focus === "function") {
+          setTimeout(() => (targetElement as HTMLElement).focus(), 150);
+        }
+      }
       return;
     }
     setIsSubmitting(true);
@@ -967,7 +1049,6 @@ export function EmployeeFormModal({
       }
 
       let resolvedJobRoleId = form.jobRoleId || null;
-      let resolvedRoleName = roleOptions.find((r) => r.id === form.jobRoleId)?.name ?? null;
       if (resolvedJobRoleId && resolvedJobRoleId.startsWith("__new__")) {
         const rawName = resolvedJobRoleId.replace(/^__new__/, "");
         if (!resolvedDesignationId) {
@@ -977,7 +1058,6 @@ export function EmployeeFormModal({
         }
         const createdRole = await createJobRoleOption(rawName, resolvedDesignationId);
         resolvedJobRoleId = createdRole.id;
-        resolvedRoleName = createdRole.name;
         setRoleOptions((prev) =>
           prev.map((r) => (r.id === form.jobRoleId ? createdRole : r)),
         );
@@ -1084,17 +1164,15 @@ export function EmployeeFormModal({
         departmentId: resolvedDepartmentId,
         designationId: resolvedDesignationId,
         jobRoleId: resolvedJobRoleId,
-        role: form.role || resolvedRoleName,
+        // RBAC role is the designation's mapped role. The API derives it from the designation
+        // as well, so an On Floor Role name is never sent here in its place.
+        role: form.role || null,
         reportingManagerId: resolvedReportingManagerId,
         businessUnit: resolvedBusinessUnit,
         workLocation: resolvedWorkLocation,
         category: calculatedCategory,
         joiningDate: blankToNull(form.joiningDate),
-        status: employeeStatusName.startsWith("Inactive")
-          ? "Inactive"
-          : employeeStatusName.startsWith("Resignation")
-            ? "Notice Period"
-            : "Active",
+        status: directoryStatusFromEmployeeStatusName(employeeStatusName),
         employeeStatusId: form.employeeStatusId || null,
         confirmationStatus: employeeStatusName,
         probationStatus,
@@ -1293,6 +1371,7 @@ export function EmployeeFormModal({
               />
               <div>
                 <FormSelect
+                  id="form-address"
                   label="Current Address - City"
                   required
                   error={errors.address}
@@ -1339,6 +1418,7 @@ export function EmployeeFormModal({
                 error={errors.emergencyContact}
               />
               <FormSelect
+                id="form-emergencyContactRelation"
                 label="Relation with Emergency Contact"
                 required
                 error={errors.emergencyContactRelation}
@@ -1351,6 +1431,7 @@ export function EmployeeFormModal({
 
             <FormSection title="2. Organization Assignment" disabled={mode === "edit" && !canManageOrg}>
               <TkIdField
+                id="form-employeeCode"
                 required
                 prefix={tkPrefix}
                 digits={splitTkId(form.employeeCode).digits}
@@ -1362,6 +1443,7 @@ export function EmployeeFormModal({
                 error={errors.employeeCode}
               />
               <CreatableCatalogSelect
+                id="form-departmentId"
                 label="Department"
                 required
                 error={errors.departmentId}
@@ -1380,6 +1462,7 @@ export function EmployeeFormModal({
                 }}
               />
               <CreatableCatalogSelect
+                id="form-designationId"
                 label="Designation"
                 required
                 error={errors.designationId}
@@ -1390,14 +1473,8 @@ export function EmployeeFormModal({
                 onSelect={(id) => {
                   setField("designationId", id);
                   const matchedDesig = desigOptions.find((d) => d.id === id);
-                  if (matchedDesig?.defaultRoleId && rbacRoleOptions.length > 0) {
-                    const matchedRole = rbacRoleOptions.find(
-                      (r) => r.id === matchedDesig.defaultRoleId || r.name.toLowerCase() === matchedDesig.defaultRoleId?.toLowerCase(),
-                    );
-                    if (matchedRole) {
-                      setField("role", matchedRole.name);
-                    }
-                  }
+                  const mappedRoleName = resolveDesignationRbacRoleName(matchedDesig, rbacRoleOptions);
+                  setField("role", mappedRoleName ?? "");
                 }}
                 onCreate={async (name) => {
                   const trimmed = name.trim();
@@ -1437,46 +1514,28 @@ export function EmployeeFormModal({
                   )}
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-foreground flex items-center justify-between">
-                  <span>Assigned RBAC Role <span className="text-destructive">*</span></span>
-                  <span className="text-[10px] text-muted-foreground font-normal">Auto-mapped</span>
-                </label>
-                <SearchableSelect
-                  id="emp-field-role"
-                  placeholder="Select RBAC Role..."
-                  searchPlaceholder="Search RBAC roles..."
-                  options={rbacRoleOptions.map((r) => ({
-                    value: r.name,
-                    label: r.displayName || r.name,
-                  }))}
-                  value={form.role}
-                  onChange={(val) => setField("role", val)}
-                  disabled={!form.designationId}
-                  disabledHint="Select a designation first"
-                  error={errors.role}
-                  className="w-full text-xs"
-                  buttonClassName={cn(
-                    "h-9 text-xs transition-all",
-                    !form.role && "text-muted-foreground",
-                    errors.role && "!border-destructive text-destructive",
-                  )}
-                />
-                <span className="text-[10px] text-muted-foreground">
-                  Default software permissions from catalog (overridable)
-                </span>
-                {errors.role && (
-                  <p className="text-[11px] text-destructive">{errors.role}</p>
-                )}
-              </div>
+              <FormField
+                id="form-role"
+                label="Assigned RBAC Role"
+                required
+                readOnly
+                value={
+                  rbacRoleOptions.find((r) => r.name === form.role)?.displayName
+                  || desigOptions.find((d) => d.id === form.designationId && d.defaultRoleName === form.role)?.defaultRoleDisplayName
+                  || form.role
+                  || (form.designationId ? "No RBAC role is mapped to this designation" : "Select a designation first")
+                }
+                error={errors.role}
+              />
               <CreatableCatalogSelect
+                id="form-jobRoleId"
                 label="On Floor Role"
                 options={roleOptions}
                 valueId={form.jobRoleId}
-                disabled={!form.designationId}
-                disabledHint="Select a designation first"
-                placeholder="Select on floor role"
-                onSelect={(id) => setField("jobRoleId", id)}
+                disabled
+                disabledHint={form.designationId ? "Mapped from designation" : "Select a designation first"}
+                placeholder="Mapped from designation"
+                onSelect={() => undefined}
                 onCreate={async (name) => {
                   const trimmed = name.trim();
                   const existing = roleOptions.find(
@@ -1490,6 +1549,7 @@ export function EmployeeFormModal({
               />
               <div className="md:col-span-2 lg:col-span-2">
                 <CreatableCatalogSelect
+                  id="form-businessUnit"
                   label="Business Unit"
                   options={buOptions}
                   valueId={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
@@ -1506,6 +1566,7 @@ export function EmployeeFormModal({
                 />
               </div>
               <CreatableCatalogSelect
+                id="form-reportingManagerId"
                 label="Reporting Manager"
                 required
                 error={errors.reportingManagerId}
@@ -1529,6 +1590,7 @@ export function EmployeeFormModal({
                 }}
               />
               <CreatableCatalogSelect
+                id="form-workLocation"
                 label="Work Location"
                 required
                 error={errors.workLocation}
@@ -1566,6 +1628,8 @@ export function EmployeeFormModal({
                 }}
               />
               <FormField
+                id="form-projectSite"
+                name="projectSite"
                 label="Location"
                 disabled={form.workLocation !== "Onsite"}
                 placeholder="Enter onsite location"
@@ -1577,6 +1641,8 @@ export function EmployeeFormModal({
 
             <FormSection title="3. Employment Information" disabled={mode === "edit" && !canManageEmployment}>
               <FormField
+                id="form-joiningDate"
+                name="joiningDate"
                 label="Date of Joining"
                 type="date"
                 required={mode === "create"}
@@ -1587,6 +1653,8 @@ export function EmployeeFormModal({
                 error={mode === "create" ? errors.joiningDate : undefined}
               />
               <FormField
+                id="form-assetId"
+                name="assetId"
                 label="Asset ID"
                 placeholder="e.g. AST-1001"
                 maxLength={FIELD_MAX.assetId}
@@ -1594,6 +1662,7 @@ export function EmployeeFormModal({
                 onChange={(v) => setField("assetId", v)}
               />
               <FormSelect
+                id="form-employeeStatusId"
                 label="Employee Status"
                 required
                 error={errors.employeeStatusId}
@@ -1603,6 +1672,7 @@ export function EmployeeFormModal({
               />
               {mode === "edit" ? (
                 <FormSelect
+                  id="form-probationStatus"
                   label="Probation Status"
                   options={["Ongoing", "Completed", "Not Completed"]}
                   value={form.probationStatus || "Ongoing"}
@@ -1610,29 +1680,35 @@ export function EmployeeFormModal({
                 />
               ) : null}
               <FormSelect
+                id="form-workerType"
                 label="Worker Type"
                 required
+                placeholder="Select worker type"
                 error={errors.workerType}
                 options={[...WORKER_TYPES]}
                 value={form.workerType}
                 onChange={(v) => setField("workerType", v)}
               />
               <FormSelect
+                id="form-bondDelivered"
                 label="Bond Delivered"
                 required
+                placeholder="Select bond delivered"
                 error={errors.bondDelivered}
                 options={[...BOND_DELIVERED_OPTIONS]}
                 value={form.bondDelivered}
                 onChange={(v) => setField("bondDelivered", v)}
               />
               <FormField
+                id="form-bondDurationMonths"
+                name="bondDurationMonths"
                 label="Bond Duration"
                 inputMode="numeric"
                 maxLength={3}
                 placeholder="Months"
                 suffix="months"
                 disabled={form.bondDelivered !== "Yes"}
-                value={form.bondDelivered === "Yes" ? form.bondDurationMonths : "0"}
+                value={form.bondDelivered === "Yes" ? form.bondDurationMonths : ""}
                 onChange={(v) => setField("bondDurationMonths", v)}
                 onBlur={() => blurField("bondDurationMonths")}
                 error={errors.bondDurationMonths}
@@ -1640,17 +1716,18 @@ export function EmployeeFormModal({
               <FormField
                 label="Bond Expiry Date"
                 readOnly
-                value={bondExpiryDisplay}
+                value={form.bondDelivered ? bondExpiryDisplay : ""}
               />
               <FormField
                 label="Bond Status"
                 readOnly
-                value={bondStatusDisplay}
+                value={form.bondDelivered ? bondStatusDisplay : ""}
               />
             </FormSection>
 
             <FormSection title="4. Education & Experience" disabled={mode === "edit" && !canManageEducation}>
               <CreatableCatalogSelect
+                id="form-gradDegree"
                 label="Graduation Degree Name"
                 options={gradDegreeOptions}
                 valueId={
@@ -1672,6 +1749,7 @@ export function EmployeeFormModal({
               />
 
               <FormSelect
+                id="form-gradYear"
                 label="Graduation - Passing Year"
                 options={PASSING_YEAR_OPTIONS.map((y) => ({ value: y, label: y }))}
                 value={form.gradYear}
@@ -1684,6 +1762,7 @@ export function EmployeeFormModal({
               />
 
               <CreatableCatalogSelect
+                id="form-postGradDegree"
                 label="Post Graduation Degree Name"
                 options={postGradDegreeOptions}
                 valueId={
@@ -1710,6 +1789,7 @@ export function EmployeeFormModal({
               />
 
               <FormSelect
+                id="form-postGradYear"
                 label="Post Graduation - Passing Year"
                 options={[
                   { value: "NA", label: "NA" },
@@ -1730,12 +1810,14 @@ export function EmployeeFormModal({
               />
 
               <FormSelect
-                label="Exp / Fresher"
+                id="form-expType"
+                label="Experience / Fresher"
+                placeholder="Select experience"
                 options={[
                   { value: "Fresher", label: "Fresher" },
                   { value: "Experienced", label: "Experienced" },
                 ]}
-                value={form.expType || "Fresher"}
+                value={form.expType}
                 onChange={(v) => {
                   setForm((prev) => ({
                     ...prev,
@@ -1750,13 +1832,13 @@ export function EmployeeFormModal({
                 }}
               />
 
-              <div className="space-y-1">
-                <span className={FORM_LABEL_CLS}>Total exp prior to Talakunchi</span>
+              <div id="form-priorTotalExpMonths" className="space-y-1">
+                <span className={FORM_LABEL_CLS}>Total experience prior to Talakunchi</span>
                 <div className="grid grid-cols-2 gap-2">
                   <FormField
                     label=""
                     placeholder="0"
-                    suffix="yrs"
+                    suffix="years"
                     inputMode="numeric"
                     maxLength={2}
                     disabled={form.expType === "Fresher"}
@@ -1787,13 +1869,13 @@ export function EmployeeFormModal({
                 ) : null}
               </div>
 
-              <div className="space-y-1">
-                <span className={FORM_LABEL_CLS}>Relevant exp prior to Talakunchi</span>
+              <div id="form-priorRelevantExpMonths" className="space-y-1">
+                <span className={FORM_LABEL_CLS}>Relevant experience prior to Talakunchi</span>
                 <div className="grid grid-cols-2 gap-2">
                   <FormField
                     label=""
                     placeholder="0"
-                    suffix="yrs"
+                    suffix="years"
                     inputMode="numeric"
                     maxLength={2}
                     disabled={form.expType === "Fresher"}
@@ -1842,6 +1924,7 @@ export function EmployeeFormModal({
             {mode === "edit" && (
               <FormSection title="5. PMO Section" disabled={mode === "edit" && !canManagePmo}>
                 <FormSelect
+                  id="form-pmoDepartment"
                   label="Department"
                   options={PMO_DEPARTMENT_OPTIONS}
                   value={form.pmoDepartment}
@@ -1850,6 +1933,7 @@ export function EmployeeFormModal({
                   showSearch
                 />
                 <FormSelect
+                  id="form-billableStatus"
                   label="Billable / Non Billable Status"
                   options={[...BILLABLE_STATUS_OPTIONS]}
                   value={form.billableStatus}
@@ -1857,6 +1941,7 @@ export function EmployeeFormModal({
                   placeholder="Select status…"
                 />
                 <FormSelect
+                  id="form-clientLocation"
                   label="Client Location"
                   options={addressCityOptions}
                   value={form.clientLocation}
@@ -1865,6 +1950,7 @@ export function EmployeeFormModal({
                   showSearch
                 />
                 <FormSelect
+                  id="form-projectType"
                   label="Project Type"
                   options={[...PROJECT_TYPE_OPTIONS]}
                   value={form.projectType}
@@ -1872,6 +1958,7 @@ export function EmployeeFormModal({
                   placeholder="Select project type…"
                 />
                 <FormSelect
+                  id="form-projectAllocated"
                   label="Project Allocated"
                   options={projectAllocatedOptions}
                   value={form.projectAllocated}
@@ -1885,6 +1972,7 @@ export function EmployeeFormModal({
                 />
                 <div className="space-y-1">
                   <FormField
+                    id="form-clientEngManagerMapping"
                     label="Client Engagement Manager"
                     name="clientEngManagerMapping"
                     disabled

@@ -2,14 +2,9 @@ import {
   LayoutDashboard,
   ListChecks,
   FolderKanban,
-  BarChart3,
   Users,
   Building2,
   Building,
-  Activity,
-  CheckCircle2,
-  Inbox,
-  Layers,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -42,7 +37,14 @@ export interface NavItem {
   subItems?: NavSubItem[];
 }
 
-// ─── Standard Unified Navigation (Admin & All Roles) ─────────────────────────
+/** Sidebar modules turned off for UAT (direct URLs redirect to Projects). */
+const HIDDEN_NAV_LABELS = new Set(["Reports"]);
+
+function stripHiddenNavItems(items: NavItem[]): NavItem[] {
+  return items.filter((item) => !HIDDEN_NAV_LABELS.has(item.label));
+}
+
+// ─── Generic (non-Dhanshree) navigation ─────────────────────────────────────
 export const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard.view" },
   {
@@ -52,56 +54,17 @@ export const NAV_ITEMS: NavItem[] = [
     permission: "action-center.view",
   },
   { to: "/projects", label: "Projects", icon: FolderKanban, permission: "projects.view" },
-  { to: "/dh-reports", label: "Reports", icon: BarChart3, permission: "reports.view" },
-  {
-    label: "Resources",
-    icon: Users,
-    permission: "resources.view",
-    subItems: [
-      {
-        to: "/dh-employee-directory",
-        label: "Directory & Resource Pool",
-        permission: [
-          "Resource|Resource Directory:view",
-          "resources.directory.view",
-          "Resource|Reource Pool:view",
-          "Resource|Resource Pool:view",
-          "resources.pool.view",
-          "resources.pool",
-        ],
-      },
-      {
-        to: "/dh-exit-summary",
-        label: "Exit Summary",
-        permission: [
-          "Resource|Exit Summary:view",
-          "resources.exit_summary",
-          "resources.exit_summary.view",
-        ],
-      },
-    ],
-  },
+  { to: "/resources", label: "Resources", icon: Users, permission: "resources.view" },
   { to: "/customers", label: "Customers", icon: Building2, permission: "customers.view" },
   { to: "/my-org", label: "Repository", icon: Building, permission: "repository.view" },
   {
     label: "My Team",
     icon: Users,
-    permission: ["My team:view", "my-team.view"],
     subItems: [
-      {
-        to: "/my-team/",
-        label: "Team Dashboard",
-        permission: ["My team|Team Dashboard:view", "my-team.team-dashboard.view"],
-      },
+      { to: "/my-team/", label: "Team Dashboard" },
       {
         to: "/my-team/timesheets",
-        label: "Timesheets",
-        permission: [
-          "My team|Timesheets:view",
-          "my-team.timesheets.view",
-          "My team|Timesheets|My timsheet:view",
-          "My team|Timesheets|Timesheet Approval:view",
-        ],
+        label: "Timesheet Approval",
       },
     ],
   },
@@ -113,49 +76,60 @@ export const NAV_ITEMS: NavItem[] = [
       {
         to: "/dh-settings-security-roles",
         label: "Roles & Permissions",
-        permission: [
-          "Settings|Roles & Permission:view",
-          "Settings|Roles & Permission|Moduleswise Access:view",
-          "Settings|Roles & Permission|User Role Access:view",
-          "Settings|Role:view",
-          "Settings|Moduleswise Access:view",
-          "settings.manage_roles",
-          "roles:manage",
-          "settings.roles.view",
-          "roles.view",
-        ],
+        permission: "settings.view",
       },
-      {
-        to: "/dh-settings-masters",
-        label: "Masters",
-        permission: [
-          "Settings|Masters:view",
-          "settings.masters.view",
-          "settings.masters.projects.view",
-          "settings.masters.customers.view",
-          "settings.masters.resources.view",
-        ],
-      },
+      { to: "/dh-settings-masters", label: "Masters", permission: "settings.view" },
     ],
   },
 ];
 
-export const DH_NAV_ITEMS = NAV_ITEMS;
+// ─── Dhanshree / Admin (super-admin workspace) navigation ───────────────────
+export const DH_NAV_ITEMS: NavItem[] = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard.view" },
+  {
+    to: "/action-centre",
+    label: "Action Centre",
+    icon: ListChecks,
+    permission: "action-center.view",
+  },
+  { to: "/projects", label: "Projects", icon: FolderKanban, permission: "projects.view" },
+  {
+    label: "Resources",
+    icon: Users,
+    permission: "resources.view",
+    subItems: [
+      { to: "/dh-employee-directory", label: "Employee Directory" },
+      { to: "/dh-exit-summary", label: "Exit Summary" },
+    ],
+  },
+  { to: "/customers", label: "Customers", icon: Building2, permission: "customers.view" },
+  { to: "/my-org", label: "Repository", icon: Building, permission: "repository.view" },
+  {
+    label: "My Team",
+    icon: Users,
+    subItems: [
+      { to: "/my-team/", label: "Team Dashboard" },
+      {
+        to: "/my-team/timesheets",
+        label: "Timesheets",
+      },
+    ],
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    permission: "settings.view",
+    subItems: [
+      { to: "/dh-settings-security-roles", label: "Roles & Permissions" },
+      { to: "/dh-settings-masters", label: "Masters" },
+    ],
+  },
+];
 
 /**
  * Filters a nav registry to the items the user may see. An item with
  * sub-items is shown when at least one sub-item passes (or it passes on its
  * own); sub-items inherit the parent permission unless they declare their own.
- *
- * Role-driven replacements:
- * - Admin: sees every module and every sub-item without filtering.
- * - HR: the single "Resources" item becomes the admin-style folder
- *   (Directory + Exit Summary) — HR manages the employee directory
- *   for onboarding (no resource pool).
- * - Employee / PM family / PMO family / Accounts / Sales: Resources opens the
- *   DH directory (view only, basic details).
- * - PM family + PMO family: Health & Governance / Approvals stay hidden
- *   (health lives inside each project; approvals live in Action Centre).
  */
 export type NavRoleFlags = {
   isAdmin?: boolean;
@@ -178,11 +152,13 @@ export function filterNavItems(
 
   // Admin has super-admin visibility into every module and submodule
   if (isAdmin) {
-    return items.map((item) => ({
-      ...item,
-      permission: undefined,
-      subItems: item.subItems?.map((s) => ({ ...s, permission: undefined })),
-    }));
+    return stripHiddenNavItems(
+      items.map((item) => ({
+        ...item,
+        permission: undefined,
+        subItems: item.subItems?.map((s) => ({ ...s, permission: undefined })),
+      })),
+    );
   }
 
   const allowed = (perm?: string | string[]): boolean => {

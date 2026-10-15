@@ -22,10 +22,12 @@ services:
       - ConnectionStrings__DefaultConnection=Host=pms_uat_db;Port=5432;Database=pms_development;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
       - Database__AutoMigrate=true
       - Storage__RootPath=/app/storage
+      - Storage__DocumentsPath=/app/Documents
     ports:
       - "${DEV_BACKEND_PORT:-5194}:8080"
     volumes:
       - backend_storage:/app/storage
+      - ./Documents:/app/Documents
       - ./apps/backend/Log:/app/Log
     networks:
       - pms_shared

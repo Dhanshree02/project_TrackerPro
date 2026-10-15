@@ -54,7 +54,7 @@ describe("DEMO_PERSONAS catalog", () => {
 
   it("has valid emails and roles for all personas", () => {
     for (const persona of DEMO_PERSONAS) {
-      expect(persona.email).toMatch(/@(talakunchi\.com|acme\.co)$/);
+      expect(persona.email).toMatch(/@talakunchi\.com$/);
       expect(persona.roleKey).toBeTruthy();
       expect(persona.name).toBeTruthy();
       expect(persona.avatar).toBeTruthy();
@@ -84,10 +84,10 @@ describe("DEMO_PERSONAS catalog", () => {
   });
 
   it("finds persona by email (case-insensitive)", () => {
-    const ceo = getDemoPersona("VIKRANT@TALAKUNCHI.COM");
-    expect(ceo.name).toBe("Vikrant Malhotra");
-    expect(ceo.code).toBe("TK-0001");
-    expect(ceo.roleKey).toBe("CEO");
+    const divya = getDemoPersona("DIVYA.RAO@TALAKUNCHI.COM");
+    expect(divya.name).toBe("Divya Rao");
+    expect(divya.code).toBe("TK-0040");
+    expect(divya.roleKey).toBe("Testing-Manager");
 
     const itAdmin = getDemoPersona("itadmin@talakunchi.com");
     expect(itAdmin.name).toBe("IT Admin User");

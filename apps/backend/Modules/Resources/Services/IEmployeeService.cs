@@ -12,12 +12,15 @@ public interface IEmployeeService
         Guid? departmentId,
         Guid? designationId,
         string? status,
+        string? onFloorRole = null,
         string? role = null,
         CancellationToken ct = default);
 
     Task<EmployeeDetailDto?> GetEmployeeAsync(string idOrCode, CancellationToken ct = default);
 
     Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, CancellationToken ct = default);
+
+    Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, bool checkIdentity, CancellationToken ct = default);
 
     Task<string> GetNextEmployeeCodeAsync(bool isIntern, CancellationToken ct = default);
 
@@ -53,7 +56,10 @@ public interface IEmployeeService
 
     Task<IReadOnlyList<MetaOptionDto>> GetOfficesAsync(Guid? workLocationId = null, CancellationToken ct = default);
 
-    Task<IReadOnlyList<MetaOptionDto>> GetEmployeeStatusesAsync(bool onboardingOnly = false, CancellationToken ct = default);
+    Task<IReadOnlyList<MetaOptionDto>> GetEmployeeStatusesAsync(
+        bool onboardingOnly = false,
+        bool offboardOnly = false,
+        CancellationToken ct = default);
 
     Task<MetaOptionDto> CreateDepartmentAsync(string name, CancellationToken ct = default);
 

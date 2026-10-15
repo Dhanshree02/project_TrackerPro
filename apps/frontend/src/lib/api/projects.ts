@@ -555,9 +555,14 @@ export async function fetchProject(id: string): Promise<ApiProject | null> {
   return apiFetch<ApiProject>(`/api/v1/projects/${id}`);
 }
 
-/** GET /api/v1/projects/next-code?clientId= */
-export async function fetchNextProjectCode(clientId: string): Promise<NextProjectCodeResult | null> {
-  return apiFetch<NextProjectCodeResult>(`/api/v1/projects/next-code?clientId=${encodeURIComponent(clientId)}`);
+/** GET /api/v1/projects/next-code?clientId=&subVentureId= */
+export async function fetchNextProjectCode(
+  clientId: string,
+  subVentureId?: string | null,
+): Promise<NextProjectCodeResult | null> {
+  const params = new URLSearchParams({ clientId });
+  if (subVentureId) params.set("subVentureId", subVentureId);
+  return apiFetch<NextProjectCodeResult>(`/api/v1/projects/next-code?${params.toString()}`);
 }
 
 /** POST /api/v1/projects */

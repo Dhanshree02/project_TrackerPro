@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate, notFound } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Loader2 } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
@@ -9,7 +9,7 @@ import { usePermissions } from "@/lib/permissions";
 import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person, type WbsService } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType, people as dhPeople } from "@/lib/dh-helpers";
-import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhServicePrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/dh-store";
+import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/dh-store";
 import { Modal } from "@/routes/projects.index";
 import { Field } from "@/components/form-row";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
@@ -60,15 +60,8 @@ import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
 import { findProjectByWbsId, isRenewedProject } from "@/lib/project-renewal";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
-import { fetchEmployees, type ApiEmployeeListItem } from "@/lib/api/employees";
-import {
-  createIssueApi,
-  fetchProjectIssuesApi,
-  updateIssueStatusApi,
-  escalateIssueManuallyApi,
-  type ProjectIssueApiItem,
-} from "@/lib/api/issues";
-import { createApprovalRequest } from "@/lib/api/approvals";
+import type { DateRange } from "react-day-picker";
+import { fetchEmployees, loadEmployeesWithOnFloorRole, matchesOnFloorRole, type ApiEmployeeListItem } from "@/lib/api/employees";
 
 // Helper function for consistent date formatting in DD/MM/YYYY (date/month/year)
 function formatDate(dateInput: Date | string | undefined | null): string {
@@ -137,8 +130,6 @@ const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
 };
 
 // ---------- Date Range Picker — two small inline calendars ----------
-type DateRange = { from?: Date; to?: Date };
-
 function startOfToday(): Date {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -148,15 +139,24 @@ function isBeforeDay(day: Date, boundary: Date): boolean {
   return new Date(day.getFullYear(), day.getMonth(), day.getDate()) < boundary;
 }
 
+function isAfterDay(day: Date, boundary: Date): boolean {
+  const left = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  const right = new Date(boundary.getFullYear(), boundary.getMonth(), boundary.getDate());
+  return left > right;
+}
+
 function DateRangePicker({
   value,
   onChange,
   disablePastStart = false,
+  maxEndDate,
 }: {
   value: string;
   onChange: (val: string) => void;
   /** Add Team Member: start date is today or later. End date rules are unchanged. */
   disablePastStart?: boolean;
+  /** Allocation end date cannot be after the project end date. */
+  maxEndDate?: string;
 }) {
   // Parse "DD/MM/YYYY → DD/MM/YYYY" (formatDate output). Do NOT use
   // `new Date("24/09/2026")` — browsers treat slash dates as invalid/US-only.
@@ -192,6 +192,8 @@ function DateRangePicker({
     };
   }, [value]);
 
+  const projectEnd = parseStoredDate(maxEndDate?.slice(0, 10));
+
   // Single shared month — both calendars always show the same month
   const [currentMonth, setCurrentMonth] = useState<Date>(parsedRange.from ?? new Date());
 
@@ -226,6 +228,10 @@ function DateRangePicker({
   // Click on start calendar
   const handleFromDay = (day: Date) => {
     if (disablePastStart && isBeforeDay(day, startOfToday())) return;
+    if (projectEnd && isAfterDay(day, projectEnd)) {
+      toast.error("Start date cannot be after the project end date");
+      return;
+    }
     setFromInput(toInputFmt(day));
     // If picked start > current end, clear end
     const newTo = parsedRange.to && day > parsedRange.to ? undefined : parsedRange.to;
@@ -236,6 +242,10 @@ function DateRangePicker({
   // Click on end calendar
   const handleToDay = (day: Date) => {
     if (disablePastStart && isBeforeDay(day, startOfToday())) return;
+    if (projectEnd && isAfterDay(day, projectEnd)) {
+      toast.error("End date cannot be after the project end date");
+      return;
+    }
     const from = parsedRange.from ?? parseInputFmt(fromInput);
     // end must not be before start
     if (from && day < from) {
@@ -253,6 +263,10 @@ function DateRangePicker({
       toast.error("Start date cannot be in the past");
       return;
     }
+    if (d && projectEnd && isAfterDay(d, projectEnd)) {
+      toast.error("Start date cannot be after the project end date");
+      return;
+    }
     setFromInput(next);
     if (d) { setCurrentMonth(d); commit(d, parsedRange.to); }
   };
@@ -262,6 +276,10 @@ function DateRangePicker({
     const d = parseInputFmt(next);
     if (d && disablePastStart && isBeforeDay(d, startOfToday())) {
       toast.error("End date cannot be in the past");
+      return;
+    }
+    if (d && projectEnd && isAfterDay(d, projectEnd)) {
+      toast.error("End date cannot be after the project end date");
       return;
     }
     setToInput(next);
@@ -288,7 +306,12 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
-            disabled={disablePastStart ? { before: startOfToday() } : undefined}
+            disabled={(() => {
+              const matchers: Array<{ before: Date } | { after: Date }> = [];
+              if (disablePastStart) matchers.push({ before: startOfToday() });
+              if (projectEnd) matchers.push({ after: projectEnd });
+              return matchers.length > 0 ? matchers : undefined;
+            })()}
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -303,18 +326,17 @@ function DateRangePicker({
             onMonthChange={setCurrentMonth}
             showOutsideDays
             captionLayout="label"
-            disabled={
-              disablePastStart
-                ? {
-                  before:
-                    parsedRange.from && parsedRange.from > startOfToday()
-                      ? parsedRange.from
-                      : startOfToday(),
-                }
-                : parsedRange.from
-                  ? { before: parsedRange.from }
-                  : undefined
-            }
+            disabled={(() => {
+              const matchers: Array<{ before: Date } | { after: Date }> = [];
+              const earliest = disablePastStart
+                ? parsedRange.from && parsedRange.from > startOfToday()
+                  ? parsedRange.from
+                  : startOfToday()
+                : parsedRange.from;
+              if (earliest) matchers.push({ before: earliest });
+              if (projectEnd) matchers.push({ after: projectEnd });
+              return matchers.length > 0 ? matchers : undefined;
+            })()}
             className="w-full [--cell-size:1.45rem] text-[10px]"
           />
         </div>
@@ -441,21 +463,41 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
   );
 }
 
-function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
-  const toAssignee = (member: ApiProjectTeamMember) => ({
-    employeeId: member.employeeId,
-    name: (member.employeeName || "").trim(),
-  });
-  return {
-    projectManagers: items
-      .filter((member) => member.memberRole === "ProjectManager")
-      .map(toAssignee)
-      .filter((person) => person.employeeId && person.name),
-    seniorProjectManagers: items
-      .filter((member) => member.memberRole === "SeniorProjectManager")
-      .map(toAssignee)
-      .filter((person) => person.employeeId && person.name),
-  };
+const ON_FLOOR_PROJECT_MANAGER = "Manager (Mng.)";
+const ON_FLOOR_SENIOR_PROJECT_MANAGER = "Sr. Manager (Sr.Mng.)";
+
+function isStoredManager(member: ApiProjectTeamMember): boolean {
+  return member.memberRole === "ProjectManager" || member.memberRole === "SeniorProjectManager";
+}
+
+/**
+ * Assigned managers are placed by On Floor Role (mst_roles.Name).
+ * Manager (Mng.) → Project Managers. Sr. Manager (Sr.Mng.) → Senior Project Managers.
+ */
+async function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
+  const employees = await loadEmployeesWithOnFloorRole();
+  const byId = new Map(employees.map((emp) => [emp.id.toLowerCase(), emp]));
+  const projectManagers: { employeeId: string; name: string }[] = [];
+  const seniorProjectManagers: { employeeId: string; name: string }[] = [];
+  // Team Leads are Project Team rows marked Team Lead on the Team tab.
+  const teamLeads = items
+    .filter((member) => member.isTeamLead && (member.memberRole === "ProjectTeam" || (!member.memberRole && !member.isShadowTeam)))
+    .map((member) => ({ employeeId: member.employeeId, name: (member.employeeName || "").trim() }))
+    .filter((person) => person.employeeId && person.name);
+  for (const member of items) {
+    if (!isStoredManager(member)) continue;
+    const name = (member.employeeName || "").trim();
+    if (!member.employeeId || !name) continue;
+    const employee = byId.get(member.employeeId.toLowerCase());
+    const onFloorRole = employee?.jobRoleName || null;
+    const person = { employeeId: member.employeeId, name };
+    if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_PROJECT_MANAGER)) {
+      projectManagers.push(person);
+    } else if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_SENIOR_PROJECT_MANAGER)) {
+      seniorProjectManagers.push(person);
+    }
+  }
+  return { projectManagers, seniorProjectManagers, teamLeads };
 }
 
 function ProjectDetail() {
@@ -463,10 +505,8 @@ function ProjectDetail() {
   const loaderData = Route.useLoaderData() as { project?: Project; client?: Client } | undefined;
   const rawId = params.projectId ? decodeURIComponent(params.projectId).trim() : "";
 
-  const { hasAny, hasPermission } = usePermissions();
   const {
     user,
-    isAdmin,
     isDhanshree,
     isEmployee,
     isPmFamily,
@@ -484,7 +524,10 @@ function ProjectDetail() {
   const poDocuments = useDhStore((s) => s.poDocuments);
 
   const [dbProject, setDbProject] = useState<ApiProject | null>(null);
-  const [dbLeaders, setDbLeaders] = useState<ReturnType<typeof managersFromTeamMembers> | null>(null);
+  const [dbLeaders, setDbLeaders] = useState<Awaited<ReturnType<typeof managersFromTeamMembers>> | null>(null);
+  const applyLeadershipRows = useCallback((items: ApiProjectTeamMember[]) => {
+    managersFromTeamMembers(items).then(setDbLeaders).catch(() => {});
+  }, []);
   const [liveServiceDates, setLiveServiceDates] = useState<Array<{ startDate?: string | null; endDate?: string | null }> | null>(null);
   const [dbServices, setDbServices] = useState<ApiProjectService[] | null>(null);
   useEffect(() => {
@@ -495,17 +538,19 @@ function ProjectDetail() {
     const rawIsGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
     if (rawId && (rawIsGuid || rawId.length > 20)) {
       if (rawIsGuid) {
-        fetchProjectTeamMembers(rawId).then((items) => {
-          if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
-        }).catch(() => { });
+        fetchProjectTeamMembers(rawId).then(async (items) => {
+          const leaders = await managersFromTeamMembers(items);
+          if (!cancelled) setDbLeaders(leaders);
+        }).catch(() => {});
       }
       fetchProject(rawId).then(async (p) => {
         if (cancelled || !p) return;
         setDbProject(p);
         if (!rawIsGuid) {
-          fetchProjectTeamMembers(p.id).then((items) => {
-            if (!cancelled) setDbLeaders(managersFromTeamMembers(items));
-          }).catch(() => { });
+          fetchProjectTeamMembers(p.id).then(async (items) => {
+            const leaders = await managersFromTeamMembers(items);
+            if (!cancelled) setDbLeaders(leaders);
+          }).catch(() => {});
         }
         try {
           const rows = await fetchProjectServices(p.id);
@@ -552,37 +597,49 @@ function ProjectDetail() {
       ? (!dbProject
         ? fromStore
         : {
-          ...fromStore,
-          renewedFromProjectId: fromStore.renewedFromProjectId || dbProject.renewedFromProjectId || undefined,
-          renewedFromWbsId: fromStore.renewedFromWbsId || dbProject.renewedFromWbsId || undefined,
-        })
+            ...fromStore,
+            renewedFromProjectId: fromStore.renewedFromProjectId || dbProject.renewedFromProjectId || undefined,
+            renewedFromWbsId: fromStore.renewedFromWbsId || dbProject.renewedFromWbsId || undefined,
+          })
       : dbProject
         ? mapApiProjectToProject(dbProject)
         : loaderData?.project;
     if (!base) return base;
     const withManagers = dbProject
       ? {
-        ...base,
-        projectManagers: dbProject.projectManagers ?? base.projectManagers ?? [],
-        seniorProjectManagers: dbProject.seniorProjectManagers ?? base.seniorProjectManagers ?? [],
-        projectManagerId: dbProject.projectManagerId ?? base.projectManagerId,
-        projectManagerName: dbProject.projectManagerName ?? base.projectManagerName,
-      }
+          ...base,
+          projectManagers: dbProject.projectManagers ?? base.projectManagers ?? [],
+          seniorProjectManagers: dbProject.seniorProjectManagers ?? base.seniorProjectManagers ?? [],
+          projectManagerId: dbProject.projectManagerId ?? base.projectManagerId,
+          projectManagerName: dbProject.projectManagerName ?? base.projectManagerName,
+        }
       : base;
     const withLeaders = dbLeaders
       ? {
-        ...withManagers,
-        projectManagers: dbLeaders.projectManagers,
-        seniorProjectManagers: dbLeaders.seniorProjectManagers,
-      }
-      : withManagers;
+          ...withManagers,
+          projectManagers: dbLeaders.projectManagers,
+          seniorProjectManagers: dbLeaders.seniorProjectManagers,
+          teamLeads: dbLeaders.teamLeads,
+          teamLeadId: dbLeaders.teamLeads[0]?.employeeId,
+          teamLeadName: dbLeaders.teamLeads[0]?.name,
+        }
+      : dbProject
+        ? {
+            ...withManagers,
+            projectManagers: [],
+            seniorProjectManagers: [],
+            teamLeads: [],
+            teamLeadId: undefined,
+            teamLeadName: undefined,
+          }
+        : withManagers;
     const dateSource = liveServiceDates?.length ? liveServiceDates : withLeaders.wbsDetails?.services;
     const dated = !dateSource?.length
       ? withLeaders
       : (() => {
-        const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
-        return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
-      })();
+          const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
+          return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
+        })();
     if (!dbProject || !dbServices?.length) return dated;
     const mapped = mapApiProjectToProject(dbProject, dbServices);
     return {
@@ -610,14 +667,14 @@ function ProjectDetail() {
     };
     return allClients().find((c) => c.id === project.clientId) ?? loaderData?.client ?? {
       id: project.clientId,
-      name: (project as any).clientName || "Client",
+      name: "Client",
       industry: "General",
       status: "active",
       health: "green",
       projectCount: 1,
       totalRevenue: 0,
       accountManagerId: "u1",
-      logo: ((project as any).clientName || "C").slice(0, 2).toUpperCase(),
+      logo: "",
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.clientId, extraCount, loaderData?.client]);
@@ -677,158 +734,63 @@ function ProjectDetail() {
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
   const [invoiceNumberInput, setInvoiceNumberInput] = useState("");
-  // Dynamic tabs driven purely by 0/1 permissions
-  const canViewOverview =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Overview:view",
-      "Projects|projects Cards|Overview|Budget:view",
-      "Projects|projects Cards|Overview|Extension Request:view",
-      "Projects|projects Cards|Overview|Sr.project Manger:view",
-      "Projects|projects Cards|Overview|Project manager:view",
-      "Projects|projects Cards|Overview|Team leads:view",
-      "projects.overview.view",
-      "projects.tab.overview",
-    );
-
-  const canViewWbs =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|WBS:view",
-      "Projects|projects Cards|WBS|Billing Information:view",
-      "Projects|projects Cards|WBS|PMO Intake & Prerequiste Workflow:view",
-      "Projects|projects Cards|WBS|Invoice:view",
-      "projects.wbs:read",
-      "projects.wbs.view",
-      "projects.tab.wbs",
-    );
-
-  const canViewTeam =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Team:view",
-      "projects.team.view",
-      "projects.tab.team",
-    );
-
-  const canViewTasks =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Task:view",
-      "projects.task.view",
-      "projects.tasks.view",
-      "projects.tab.tasks",
-    );
-
-  const canViewHealth =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Health:view",
-      "Projects|projects Cards|Health|Issues:view",
-      "Projects|projects Cards|Health|Aletrs:view",
-      "Projects|projects Cards|Health|Escalation:view",
-      "Projects|projects Cards|Health|Appreciation:view",
-      "Projects|projects Cards|Health|Customer Engagment:view",
-      "projects.health.view",
-      "projects.tab.health",
-    );
-
-  const canViewInvoices =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Invoice:view",
-      "Projects|projects Cards|WBS|Invoice:view",
-      "invoices:read",
-      "invoices.view",
-      "projects.tab.invoices",
-    );
-
-  const visibleTabs: Tab[] = tabs.filter((t) => {
-    if (t === "Overview") return canViewOverview;
-    if (t === "WBS") return canViewWbs;
-    if (t === "Team") return canViewTeam;
-    if (t === "Tasks") return canViewTasks;
-    if (t === "Health") return canViewHealth;
-    if (t === "Invoices") return canViewInvoices;
-    return false;
-  });
-  const canManageTeam =
-    isAdmin ||
-    isDhanshree ||
-    hasAny("Projects|projects Cards|Team:manage", "projects.team.manage", "projects.tab.team.manage");
-
-  const canManageTasks =
-    isAdmin ||
-    isDhanshree ||
-    hasAny("Projects|projects Cards|Task:manage", "projects.task.manage", "projects.tasks.manage", "projects.tab.tasks.manage");
-
-  const canManagePmoIntake =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|WBS|PMO Intake & Prerequiste Workflow:manage",
-      "projects.wbs.pmo_intake.manage",
-      "projects.pmo.manage",
-    );
-
-  const canManageInvoice =
-    isAdmin ||
-    isDhanshree ||
-    hasAny("Projects|projects Cards|Invoice:manage", "invoices.manage", "invoices:write");
-
-  const useDhWorkspace = true;
-  const invoiceEditable = canManageInvoice && !isViewOnly;
-  const invoicePmoColumns = !isViewOnly;
+  // Employees only get Team / Tasks / Health — every other submodule is hidden.
+  // PM family get everything except Invoices.
+  // Accounts: Overview, WBS, Invoices only.
+  const visibleTabs: Tab[] = isEmployee
+    ? ["Team", "Tasks", "Health"]
+    : isPmFamily
+      ? tabs.filter((t) => t !== "Invoices")
+      : isAccounts
+        ? ["Overview", "WBS", "Invoices"]
+        : [...tabs];
+  const useDhWorkspace = isDhanshree || isPmFamily || isPmoFamily || isSales;
+  const invoiceEditable = isDhanshree || isAccounts;
+  const invoicePmoColumns = isPmoFamily;
 
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window !== "undefined") {
       const h = window.location.hash;
-      if ((h === "#health" || h.startsWith("#health-")) && canViewHealth) {
+      if (h === "#health" || h.startsWith("#health-")) {
         return "Health";
       }
       // Deep link from the Action Centre bucket list — land on the task list.
-      if (isEmployee && h && canViewTasks) {
+      if (isEmployee && h) {
         return "Tasks";
       }
     }
-    if (isEmployee && canViewTeam) return "Team";
-    if (canViewOverview) return "Overview";
-    return visibleTabs[0] || "Overview";
+    return isEmployee ? "Team" : "Overview";
   });
-
-  useEffect(() => {
-    if (visibleTabs.length > 0 && !visibleTabs.includes(tab)) {
-      setTab(visibleTabs[0]);
-    }
-  }, [visibleTabs, tab]);
 
   useEffect(() => {
     if (!isApiGuid(project.id)) return;
     let active = true;
     fetchProjectTeamMembers(project.id)
-      .then((items) => {
+      .then(async (items) => {
         if (!active) return;
-        if (items.length > 0 && items.every((m) => !m.memberRole)) return;
-        const managers = items.filter((m) => isManagerRole(m.memberRole));
+        const leaders = await managersFromTeamMembers(items);
+        if (!active) return;
         dhStore.assignPMsWithPeople(
           project.id,
-          managers.filter((m) => m.memberRole === "ProjectManager").map((m) => m.employeeId),
-          managers.filter((m) => m.memberRole === "SeniorProjectManager").map((m) => m.employeeId),
-          managers.map((m) => ({
-            id: m.employeeId,
-            name: m.employeeName,
-            role: m.memberRole === "SeniorProjectManager" ? "Senior Project Manager" : "Project Manager",
-            email: m.employeeEmail || "",
-          })),
+          leaders.projectManagers.map((person) => person.employeeId),
+          leaders.seniorProjectManagers.map((person) => person.employeeId),
+          [
+            ...leaders.projectManagers.map((person) => ({
+              id: person.employeeId,
+              name: person.name,
+              role: "Project Manager",
+              email: "",
+            })),
+            ...leaders.seniorProjectManagers.map((person) => ({
+              id: person.employeeId,
+              name: person.name,
+              role: "Senior Project Manager",
+              email: "",
+            })),
+          ],
         );
       })
-      .catch(() => { });
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -1157,14 +1119,12 @@ function ProjectDetail() {
     };
   }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
 
-  // Scope project detail: check dynamic RBAC view permission.
-  if (
-    !isDhanshree &&
-    !isAdmin &&
-    !hasPermission("projects.view") &&
-    !hasAny("projects.view", "Projects:view", "projects:read")
-  ) {
-    return <Navigate to="/" replace />;
+  // Scope project detail to the role's assigned portfolio.
+  if (isEmployee && employeeProjectIds && !employeeProjectIds.has(project.id)) {
+    return <Navigate to="/access-denied" />;
+  }
+  if (!isDhanshree && assignedProjects.length > 0 && !assignedProjects.some((p) => p.id === project.id)) {
+    return <Navigate to="/access-denied" />;
   }
 
   return (
@@ -1293,7 +1253,7 @@ function ProjectDetail() {
               tl={tl}
               team={team}
               customerRouteId={customerRouteId}
-              onLeadershipSaved={(items) => setDbLeaders(managersFromTeamMembers(items))}
+              onLeadershipSaved={applyLeadershipRows}
             />
           )}
 
@@ -1301,7 +1261,7 @@ function ProjectDetail() {
             <WbsTab
               project={project}
               client={client}
-              onLeadershipSaved={(items) => setDbLeaders(managersFromTeamMembers(items))}
+              onLeadershipSaved={applyLeadershipRows}
               onRaiseInvoice={(invoiceId) => {
                 setRaiseInvoiceId(invoiceId);
                 const existing = snapshotInvoices.find((i) => i.id === invoiceId);
@@ -1328,14 +1288,14 @@ function ProjectDetail() {
 
           {tab === "Tasks" &&
             (useDhWorkspace ? (
-              <DhTasksTab project={project} readOnly={!canManageTasks} />
+              <DhTasksTab project={project} readOnly={isViewOnly || isSales} />
             ) : (
               <DefaultTasksTab project={project} />
             ))}
 
           {tab === "Team" &&
             (useDhWorkspace ? (
-              <DhTeamTab project={project} readOnly={!canManageTeam} />
+              <DhTeamTab project={project} readOnly={isViewOnly || isSales} />
             ) : (
               <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />
             ))}
@@ -1540,27 +1500,27 @@ function ProjectDetail() {
 
               {/* Project Closure Section */}
               {(isDhanshree || isAccounts) && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm mt-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Project closure requires all 4 project stages to be completed and all invoice payments to be received.</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleProjectClosure}
-                    disabled={project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold shadow-sm transition-all",
-                      project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"
-                        ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                        : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer"
-                    )}
-                  >
-                    <Archive className="h-4 w-4" />
-                    {project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived" ? "Project Archived" : "Project Closure"}
-                  </button>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm mt-4">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Project closure requires all 4 project stages to be completed and all invoice payments to be received.</span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleProjectClosure}
+                  disabled={project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold shadow-sm transition-all",
+                    project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"
+                      ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer"
+                  )}
+                >
+                  <Archive className="h-4 w-4" />
+                  {project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived" ? "Project Archived" : "Project Closure"}
+                </button>
+              </div>
               )}
             </div>
           )}
@@ -1740,39 +1700,9 @@ function WbsTab({
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
   const snapshotInvoices = useDhStore((s) => s.invoices);
-  const { user, isDhanshree, isPmFamily, isAccounts, hideBudget, isAdmin } = useRoleContext();
-  const { hasAny } = usePermissions();
-  const canViewPrereq =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|WBS|PMO Intake & Prerequiste Workflow:view",
-      "projects.wbs.pmo_intake.view"
-    );
-  const canViewBudget =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Overview|Budget:view",
-      "projects.overview.budget",
-      "projects.budget.view",
-    );
-  const canViewBilling =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|WBS|Billing Information:view",
-      "projects.wbs.billing"
-    );
-  const canViewInvoiceSchedule =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|WBS|Invoice Schedule:view",
-      "projects.wbs.invoice_schedule"
-    );
-  const hideAmounts = !canViewBudget;
-  const hidePrereq = !canViewPrereq;
+  const { user, isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
+  const hideAmounts = isPmFamily || hideBudget;
+  const hidePrereq = isPmFamily || isAccounts;
   const canRaise = isDhanshree || isAccounts;
   const [apiWbsServices, setApiWbsServices] = useState<WbsService[] | null>(null);
   const [confirmPaidId, setConfirmPaidId] = useState<string | null>(null);
@@ -1841,19 +1771,17 @@ function WbsTab({
               <InfoRow label="Sales Person" value={project.salesPerson || wbsDetails.salesPerson || "—"} />
             </div>
           </div>
-          {canViewBilling && (
-            <div className="rounded-lg border border-border bg-card p-4">
-              <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
-              <div className="space-y-2">
-                <InfoRow label="Billing Model" value={wbsDetails.accounts?.billingModel || (project as any).billingModel || "—"} />
-                <InfoRow label="Payment Terms" value={wbsDetails.accounts?.paymentTerms || (project as any).paymentTerms || "—"} />
-                {!hideAmounts && (
-                  <InfoRow label="Total Services Value" value={`${currency} ${(totalServices || project.budget || 0).toLocaleString()}`} />
-                )}
-                <InfoRow label="Currency" value={currency} />
-              </div>
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
+            <div className="space-y-2">
+              <InfoRow label="Billing Model" value={wbsDetails.accounts?.billingModel || (project as any).billingModel || "—"} />
+              <InfoRow label="Payment Terms" value={wbsDetails.accounts?.paymentTerms || (project as any).paymentTerms || "—"} />
+              {!hideAmounts && (
+                <InfoRow label="Total Services Value" value={`${currency} ${(totalServices || project.budget || 0).toLocaleString()}`} />
+              )}
+              <InfoRow label="Currency" value={currency} />
             </div>
-          )}
+          </div>
         </div>
 
         {!hidePrereq && (
@@ -2084,17 +2012,15 @@ function WbsTab({
             <InfoRow label="Sales Person" value={project.salesPerson || "—"} />
           </div>
         </div>
-        {canViewBilling && (
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
-            <div className="space-y-2">
-              <InfoRow label="Project Type" value={project.projectType || "—"} />
-              <InfoRow label="Billing Model" value={(project as any).billingModel || "—"} />
-              {!hideAmounts && <InfoRow label="Total Amount" value={`${project.currency || "INR"} ${(project.budget || 0).toLocaleString()}`} />}
-              <InfoRow label="Currency" value={project.currency || "INR"} />
-            </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
+          <div className="space-y-2">
+            <InfoRow label="Project Type" value={project.projectType || "—"} />
+            <InfoRow label="Billing Model" value={(project as any).billingModel || "—"} />
+            {!hideAmounts && <InfoRow label="Total Amount" value={`${project.currency || "INR"} ${(project.budget || 0).toLocaleString()}`} />}
+            <InfoRow label="Currency" value={project.currency || "INR"} />
           </div>
-        )}
+        </div>
       </div>
 
       {/* PMO Intake & Prerequisite Workflow — hidden for PM family and Accounts */}
@@ -2179,8 +2105,8 @@ function WbsTab({
         </div>
       </div>
 
-      {/* Invoice Schedule — hidden when budget or invoice schedule is not permitted */}
-      {canViewInvoiceSchedule && !hideAmounts && (
+      {/* Invoice Schedule — hidden when budget is not visible */}
+      {!hideAmounts && (
         <div>
           <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
           <div className="overflow-x-auto rounded-lg border border-border">
@@ -2366,16 +2292,6 @@ function OverviewTab({
     useRoleContext();
   const { hasAny } = usePermissions();
 
-  const canViewBudget =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Overview|Budget:view",
-      "projects.overview.budget",
-      "projects.budget.view",
-    );
-  const hideAmounts = !canViewBudget;
-
   const canViewSpm =
     hasAny(
       "Projects|projects Cards|Overview|Sr.project Manger:view",
@@ -2415,28 +2331,6 @@ function OverviewTab({
     isSeniorPm ||
     isProjectManager;
 
-  const canViewExtension =
-    hasAny(
-      "Projects|projects Cards|Overview|Extension Request:view",
-      "Projects|projects Cards|Overview|Extension Request:manage",
-      "projects.overview.extension.view",
-      "projects.overview.extension",
-    ) || isDhanshree || isAdmin;
-  const canManageExtension =
-    hasAny("Projects|projects Cards|Overview|Extension Request:manage", "projects.overview.extension") ||
-    isDhanshree ||
-    isAdmin;
-
-  const canViewCustomer =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Customers|Customers Card|Customer profile:view",
-      "Customers|Customers Card:view",
-      "customers.view",
-      "Customers:view",
-    );
-
   const showLeadership =
     isAdmin ||
     isDhanshree ||
@@ -2451,7 +2345,7 @@ function OverviewTab({
     canViewTl ||
     canManageTl;
 
-  const showSidebar = canViewCustomer || canManageExtension || canViewExtension;
+  const hideAmounts = isPmFamily || hideBudget;
   // Reactive leadership assignments from store (Dhanshree overrides)
   const leadershipAssignment = useDhStore((s) => s.leadershipAssignments[project.id] ?? null);
   const prereq = useDhStore((s) => s.prereqs[project.id]);
@@ -2473,7 +2367,7 @@ function OverviewTab({
           })),
         );
       })
-      .catch(() => { });
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -2538,6 +2432,17 @@ function OverviewTab({
   }, [leadershipAssignment, prereq, project, knownPeople]);
 
   const tls: Person[] = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.teamLeads ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({
+          id: person.employeeId,
+          name: person.name.trim(),
+          role: "Team Lead",
+          avatar: person.name.trim().slice(0, 2).toUpperCase(),
+          email: "",
+        }));
+    }
     if (leadershipAssignment?.tlIds?.length) {
       const list = leadershipAssignment.tlIds.map(getPerson).filter(Boolean) as Person[];
       if (list.length > 0) return list;
@@ -2637,7 +2542,7 @@ function OverviewTab({
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <div className={cn("space-y-4", showSidebar ? "md:col-span-2" : "md:col-span-3")}>
+      <div className={cn("space-y-4", showLeadership ? "md:col-span-2" : "md:col-span-3")}>
         <div>
           <h3 className="text-sm font-semibold">Project Description</h3>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -2704,7 +2609,7 @@ function OverviewTab({
                   <DetailField key={f.label} label={f.label} value={f.value} />
                 ))}
             </div>
-            {totalServices > 0 && !hideAmounts && (
+            {totalServices > 0 && (
               <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
                 <div>
                   <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Services Subtotal</div>
@@ -2776,50 +2681,48 @@ function OverviewTab({
           </div>
         )}
       </div>
-      {showSidebar && (
+      {showLeadership && (
         <aside className="space-y-3">
-          {canViewCustomer && (
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border pb-2">
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground" /> Customer Information
-              </h3>
-              <div className="space-y-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Customer ID</span>
-                  <span className="font-semibold text-primary block font-mono">
-                    {formatCustomerId(client?.id || project.clientId)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Customer Name</span>
-                  {customerRouteId ? (
-                    <Link
-                      to="/customers/$clientId"
-                      params={{ clientId: customerRouteId }}
-                      className="font-semibold text-primary hover:underline block truncate"
-                    >
-                      {client?.name || "Customer"}
-                    </Link>
-                  ) : (
-                    <span className="font-semibold text-foreground block truncate">{client?.name || "Customer"}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Name</span>
-                  <span className="font-medium text-foreground block truncate">{client?.groupSpocName || client?.contactName || "—"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Contact</span>
-                  <span className="font-medium text-foreground block truncate">{client?.groupSpocContact || client?.contactPhone || "—"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground font-medium block mb-0.5">Country / Region</span>
-                  <span className="font-medium text-foreground block truncate">{[client?.city, client?.country].filter(Boolean).join(", ") || client?.country || "—"}</span>
-                </div>
+          <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border pb-2">
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" /> Customer Information
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Customer ID</span>
+                <span className="font-semibold text-primary block font-mono">
+                  {formatCustomerId(client?.id || project.clientId)}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Customer Name</span>
+                {customerRouteId ? (
+                  <Link
+                    to="/customers/$clientId"
+                    params={{ clientId: customerRouteId }}
+                    className="font-semibold text-primary hover:underline block truncate"
+                  >
+                    {client?.name || "Customer"}
+                  </Link>
+                ) : (
+                  <span className="font-semibold text-foreground block truncate">{client?.name || "Customer"}</span>
+                )}
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Name</span>
+                <span className="font-medium text-foreground block truncate">{client?.groupSpocName || client?.contactName || "—"}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Group SPOC Contact</span>
+                <span className="font-medium text-foreground block truncate">{client?.groupSpocContact || client?.contactPhone || "—"}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium block mb-0.5">Country / Region</span>
+                <span className="font-medium text-foreground block truncate">{[client?.city, client?.country].filter(Boolean).join(", ") || client?.country || "—"}</span>
               </div>
             </div>
-          )}
-          {(canManageExtension || canViewExtension) && (
+          </div>
+          {isDhanshree && (
             <div className="rounded-lg border border-border bg-accent/30 p-4">
               <ExtensionRequestCard project={project} />
             </div>
@@ -2868,27 +2771,6 @@ function ExtensionRequestCard({ project }: { project: Project }) {
       return;
     }
     dhStore.submitExtensionRequest(project.id, newEndDate, extDays, reason, taggedIds, user.name, user.id);
-    createApprovalRequest({
-      approvalType: "ProjectExtension",
-      projectId: isApiGuid(project.id) ? project.id : null,
-      projectName: project.name,
-      department: "PMO",
-      title: `Project End-Date Extension: +${extDays} Days for ${project.name}`,
-      description: `Timeline Extension: Requesting extension of ${extDays} days. New End Date: ${newEndDate}. Reason: ${reason.trim()}`,
-      requestedByEmployeeId: isApiGuid(user.id) ? user.id : "00000000-0000-4000-8000-000000000028",
-      requestedByName: user.name || "Aarav Mehta",
-      requestedByRole: "Project Manager",
-      assignedApproverRole: "EM",
-      assignedApproverName: taggedIds.map((id) => getPerson(id)?.name).filter(Boolean).join(", ") || "EM & PMO Team",
-      priority: extDays > 30 ? "High" : "Medium",
-      payloadJson: JSON.stringify({
-        currentEndDate: project.endDate,
-        proposedEndDate: newEndDate,
-        daysExtended: extDays,
-        reason: reason.trim(),
-      }),
-    }).catch((err) => console.warn("Failed to persist extension approval to backend", err));
-
     toast.success("Timeline Extension Approval request submitted successfully!");
     setReason("");
     setTaggedIds([]);
@@ -3056,9 +2938,9 @@ function LeadershipBlock({
       {!viewOnly && !hideChange && (
         <button
           onClick={() => setShowPanel(true)}
-          className="mt-auto w-full h-7 rounded-md border border-primary/40 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 transition-colors"
+          className="mt-auto w-full min-h-7 rounded-md border border-primary/40 bg-primary/5 px-2 py-1 text-primary text-[11px] font-semibold leading-tight hover:bg-primary/10 transition-colors"
         >
-          Change Leader
+          Change {role}
         </button>
       )}
       {showPanel && (
@@ -3075,13 +2957,6 @@ function LeadershipBlock({
 }
 
 // ---------- Database Leader Roster & Workload Stats Helpers ----------
-export interface ManagerRosterItem {
-  id: string;
-  name: string;
-  role: string;
-  designation: string;
-}
-
 export interface ManagerWorkloadStats {
   total: number;
   ongoing: number;
@@ -3090,40 +2965,18 @@ export interface ManagerWorkloadStats {
   projectCodes: string[];
 }
 
-export const DB_PM_FALLBACK: ManagerRosterItem[] = [];
-
-export const DB_SPM_FALLBACK: ManagerRosterItem[] = [];
-
-export function isEmployeePM(emp: {
-  id: string;
-  fullName?: string;
-  name?: string;
-  designation?: string | null;
-  role?: string | null;
-  jobRole?: string | null;
-}): boolean {
-  const onFloorRole = (emp.jobRole || emp.role || "").trim().toLowerCase();
-  return (
-    onFloorRole === "manager (mng.)" ||
-    onFloorRole === "manager (mng)" ||
-    (onFloorRole.includes("manager") && onFloorRole.includes("mng") && !onFloorRole.includes("sr"))
-  );
+function isActiveEmployeeStatus(status?: string | null): boolean {
+  return (status || "").trim().toLowerCase() === "active";
 }
 
-export function isEmployeeSPM(emp: {
-  id: string;
-  fullName?: string;
-  name?: string;
-  designation?: string | null;
-  role?: string | null;
-  jobRole?: string | null;
-}): boolean {
-  const onFloorRole = (emp.jobRole || emp.role || "").trim().toLowerCase();
-  return (
-    onFloorRole === "sr. manager (sr.mng.)" ||
-    onFloorRole === "sr. manager (sr.mng)" ||
-    (onFloorRole.includes("sr") && onFloorRole.includes("manager") && onFloorRole.includes("mng"))
-  );
+/** On Floor Role from mst_roles.Name: Manager (Mng.). */
+export function isEmployeePM(emp: { jobRoleName?: string | null; role?: string | null }): boolean {
+  return matchesOnFloorRole(emp, "Manager (Mng.)");
+}
+
+/** On Floor Role from mst_roles.Name: Sr. Manager (Sr.Mng.). */
+export function isEmployeeSPM(emp: { jobRoleName?: string | null; role?: string | null }): boolean {
+  return matchesOnFloorRole(emp, "Sr. Manager (Sr.Mng.)");
 }
 
 export function calculateManagerStats(
@@ -3188,10 +3041,7 @@ function ChangeLeaderPanel({
   onClose: () => void;
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
-  const { user } = useRoleContext();
   const [search, setSearch] = useState("");
-  const [changeReason, setChangeReason] = useState("Operational leadership reassignment");
-  const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().split("T")[0]);
   // Working copy of assigned IDs — saved on "Done" (multi-select supported)
   const [assignedIds, setAssignedIds] = useState<string[]>(assignedPeople.map((p) => p.id));
   const [saving, setSaving] = useState(false);
@@ -3201,41 +3051,40 @@ function ChangeLeaderPanel({
     useDhStore((s) => s.projectTeamAdditions[project.id]) ?? EMPTY_ID_LIST;
   const storeTlIds =
     useDhStore((s) => s.leadershipAssignments[project.id]?.tlIds) ?? EMPTY_ID_LIST;
-  const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
+  const [dbProjects, setDbProjects] = useState<any[]>([]);
   const [dbEmployees, setDbEmployees] = useState<ApiEmployeeListItem[]>([]);
+  const [employeesReady, setEmployeesReady] = useState(false);
   const [projectTeamMembers, setProjectTeamMembers] = useState<ApiProjectTeamMember[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    Promise.all([
-      fetchProjects({ perPage: 100 }).catch((err) => {
-        console.warn("Failed to fetch projects for ChangeLeaderPanel", err);
-        return { items: [] };
-      }),
-      fetchEmployees({ perPage: 100 }).catch((err) => {
-        console.warn("Failed to fetch employees for ChangeLeaderPanel", err);
-        return { items: [] };
-      }),
-    ]).then(([projRes, empRes]) => {
-      if (!active) return;
-      if (projRes?.items?.length) {
-        setDbProjects(projRes.items);
-      }
-      if (empRes?.items?.length) {
-        setDbEmployees(empRes.items);
+    fetchProjects({ perPage: 100 })
+      .then((res) => {
+        if (active && res?.items && res.items.length > 0) {
+          setDbProjects(res.items);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch projects for ChangeLeaderPanel", err));
+
+    loadEmployeesWithOnFloorRole()
+      .then((items) => {
+        if (!active) return;
+        setEmployeesReady(true);
+        if (items.length === 0) return;
+        setDbEmployees(items);
         dhStore.registerPeople(
-          empRes.items.map((emp) => ({
+          items.map((emp) => ({
             id: emp.id,
             name: emp.fullName,
-            role: emp.designation || emp.role || "User",
+            role: emp.jobRoleName || emp.role || emp.designation || "User",
             email: emp.workEmail || "",
           })),
         );
-      }
-      setLoading(false);
-    });
+      })
+      .catch((err) => {
+        if (active) setEmployeesReady(true);
+        console.warn("Failed to fetch employees for ChangeLeaderPanel", err);
+      });
 
     return () => {
       active = false;
@@ -3268,21 +3117,29 @@ function ChangeLeaderPanel({
   }, [role, project.id]);
 
   const candidatePool = useMemo(() => {
+    const managerSubtitle = (emp: ApiEmployeeListItem, fallbackRole: string) =>
+      [emp.employeeCode, emp.department, emp.jobRoleName || fallbackRole].filter(Boolean).join(" · ");
     if (role === "Project Manager") {
-      return dbEmployees.filter(isEmployeePM).map((emp) => ({
-        id: emp.id,
-        name: emp.fullName,
-        role: "Project Manager",
-        designation: emp.designation || "Manager (Mng.)",
-      }));
+      return dbEmployees
+        .filter((emp) => isActiveEmployeeStatus(emp.status) && isEmployeePM(emp))
+        .map((emp) => ({
+          id: emp.id,
+          name: emp.fullName,
+          role: "Project Manager",
+          designation: managerSubtitle(emp, "Manager (Mng.)"),
+          email: emp.workEmail || "",
+        }));
     }
     if (role === "Senior Project Manager") {
-      return dbEmployees.filter(isEmployeeSPM).map((emp) => ({
-        id: emp.id,
-        name: emp.fullName,
-        role: "Senior Project Manager",
-        designation: emp.designation || "Sr. Manager (Sr.Mng.)",
-      }));
+      return dbEmployees
+        .filter((emp) => isActiveEmployeeStatus(emp.status) && isEmployeeSPM(emp))
+        .map((emp) => ({
+          id: emp.id,
+          name: emp.fullName,
+          role: "Senior Project Manager",
+          designation: managerSubtitle(emp, "Sr. Manager (Sr.Mng.)"),
+          email: emp.workEmail || "",
+        }));
     }
     if (role === "Engagement Manager") {
       const fromApi = dbEmployees.filter(
@@ -3368,6 +3225,7 @@ function ChangeLeaderPanel({
             await apiUpdateProjectTeamMember(project.id, m.id, { isTeamLead: shouldBeLead });
           }),
         );
+        onLeadershipSaved?.(await fetchProjectTeamMembers(project.id));
       }
 
       if ((role === "Project Manager" || role === "Senior Project Manager") && isApiGuid(project.id)) {
@@ -3386,49 +3244,7 @@ function ChangeLeaderPanel({
       }
       dhStore.updateLeadershipAssignment(project.id, role, assignedIds, peopleForRole);
       const names = peopleForRole.map((p) => p.name).join(", ") || "None";
-      const currentNames = assignedPeople.map((p) => p.name);
-
-      // Create leadership change approval in backend
-      createApprovalRequest({
-        approvalType: "LeadershipChange",
-        projectId: isApiGuid(project.id) ? project.id : null,
-        projectName: project.name,
-        department: "PMO",
-        title: `Leadership Change: Designate ${names} as ${role}`,
-        description: `Leadership Change Request — ${role}: Assigning [${names}] on project "${project.name}". Effective: ${effectiveDate}. Reason: ${changeReason.trim()}`,
-        requestedByEmployeeId: isApiGuid(user.id) ? user.id : "00000000-0000-4000-8000-000000000040",
-        requestedByName: user.name || "Dhanshree",
-        requestedByRole: "Delivery Lead",
-        assignedApproverRole: "EM",
-        assignedApproverName: "EM & PMO Team",
-        priority: "High",
-        payloadJson: JSON.stringify({
-          leadershipRole: role,
-          currentLeaderNames: currentNames,
-          newLeaderIds: assignedIds,
-          newLeaderNames: names,
-          effectiveDate,
-          changeReason: changeReason.trim(),
-        }),
-      }).catch((err) => console.warn("Failed to persist leadership change approval to backend", err));
-
-      // Register central approval in client store
-      dhStore.submitLeadershipChangeRequest({
-        projectId: project.id,
-        role,
-        currentLeaderIds: assignedPeople.map((p) => p.id),
-        currentLeaderNames: currentNames,
-        newLeaderIds: assignedIds,
-        newLeaderNames: peopleForRole.map((p) => p.name),
-        effectiveDate,
-        changeReason: changeReason.trim(),
-        additionalComments: "",
-        notifyPersonIds: assignedIds,
-        requestedBy: user.name || "Dhanshree",
-        requestedById: user.id || "u14",
-      });
-
-      toast.success(`${role} Change Request submitted for approval`, { description: names });
+      toast.success(`${role} updated`, { description: names });
       onClose();
     } catch (err) {
       toast.error("Could not update leaders", {
@@ -3440,7 +3256,7 @@ function ChangeLeaderPanel({
   };
 
   return (
-    <Modal title={`Change Leader — ${role}`} onClose={onClose} draggable>
+    <Modal title={`Change ${role}`} onClose={onClose} draggable>
       <div className="space-y-3">
         {/* Currently assigned chips */}
         <div>
@@ -3475,15 +3291,15 @@ function ChangeLeaderPanel({
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
               {role === "Project Manager"
-                ? "Database Project Managers"
+                ? "On Floor Role: Manager (Mng.)"
                 : role === "Senior Project Manager"
-                  ? "Database Senior Project Managers"
+                  ? "On Floor Role: Sr. Manager (Sr.Mng.)"
                   : role === "Team Lead"
                     ? "Project Team members"
                     : "All Leaders"}
             </p>
             <span className="text-[10px] text-muted-foreground">
-              {loading ? "Loading…" : `${visible.length} available`}
+              {visible.length} available
             </span>
           </div>
           <div className="relative mb-2">
@@ -3494,8 +3310,8 @@ function ChangeLeaderPanel({
               placeholder={
                 role === "Team Lead"
                   ? "Search project team by name…"
-                  : role === "Project Manager"
-                    ? "Search PM by name or designation…"
+                  : role === "Project Manager" || role === "Senior Project Manager"
+                    ? "Search by name or department…"
                     : "Search by name or role…"
               }
               className="h-8 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -3503,112 +3319,80 @@ function ChangeLeaderPanel({
             />
           </div>
 
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground border rounded-md border-border">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <span className="text-xs">Loading employees from database...</span>
-            </div>
-          ) : (
-            <ul className="max-h-64 overflow-y-auto divide-y divide-border rounded-md border border-border">
-              {visible.map((p) => {
-                const isAssigned = assignedIds.includes(p.id);
-                const designationText = (p as any).designation || p.role;
-                const showWorkload = role !== "Team Lead";
-                const stats = showWorkload ? calculateManagerStats(p, dbProjects, allPrereqs) : null;
-                const freeColor = stats
-                  ? stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive"
-                  : "";
-                const barColor = stats
-                  ? stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive"
-                  : "";
+          <ul className="max-h-64 overflow-y-auto divide-y divide-border rounded-md border border-border">
+            {visible.map((p) => {
+              const isAssigned = assignedIds.includes(p.id);
+              const designationText = (p as any).designation || p.role;
+              const showWorkload = role !== "Team Lead";
+              const stats = showWorkload ? calculateManagerStats(p, dbProjects, allPrereqs) : null;
+              const freeColor = stats
+                ? stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive"
+                : "";
+              const barColor = stats
+                ? stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive"
+                : "";
 
-                return (
-                  <li key={p.id}>
-                    <button
-                      onClick={() => toggle(p.id)}
-                      className={cn(
-                        "flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-accent/40",
-                        isAssigned && "bg-primary/5"
-                      )}
-                    >
-                      <Avatar name={p.name} size={24} />
-                      <div className="flex-1 min-w-0 space-y-0.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-gray-800 truncate">{p.name}</span>
-                          {showWorkload && stats && (
-                            <span className={cn("font-bold text-[10px] tabular-nums shrink-0", freeColor)}>
-                              {stats.freePct}% free
-                            </span>
-                          )}
-                        </div>
-                        {showWorkload && stats ? (
-                          <>
-                            <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
-                              <span className="truncate">{designationText}</span>
-                              <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
-                            </div>
-                            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                              <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
-                            </div>
-                          </>
-                        ) : (
-                          <div className="text-[10px] text-muted-foreground truncate">{designationText}</div>
+              return (
+                <li key={p.id}>
+                  <button
+                    onClick={() => toggle(p.id)}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-accent/40",
+                      isAssigned && "bg-primary/5"
+                    )}
+                  >
+                    <Avatar name={p.name} size={24} />
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-gray-800 truncate">{p.name}</span>
+                        {showWorkload && stats && (
+                          <span className={cn("font-bold text-[10px] tabular-nums shrink-0", freeColor)}>
+                            {stats.freePct}% free
+                          </span>
                         )}
                       </div>
-                      <div className={cn(
-                        "shrink-0 h-4 w-4 rounded border flex items-center justify-center transition-colors ml-1",
-                        isAssigned
-                          ? "bg-primary border-primary text-primary-foreground"
-                          : "border-input bg-card"
-                      )}>
-                        {isAssigned && <Check className="h-2.5 w-2.5" />}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-              {visible.length === 0 && (
-                <li className="px-3 py-6 text-center text-xs text-muted-foreground">
-                  {role === "Team Lead"
-                    ? "No project team members yet — add them on the Team tab first"
-                    : search
+                      {showWorkload && stats ? (
+                        <>
+                          <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
+                            <span className="truncate">{designationText}</span>
+                            <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
+                          </div>
+                          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                            <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-[10px] text-muted-foreground truncate">{designationText}</div>
+                      )}
+                    </div>
+                    <div className={cn(
+                      "shrink-0 h-4 w-4 rounded border flex items-center justify-center transition-colors ml-1",
+                      isAssigned
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "border-input bg-card"
+                    )}>
+                      {isAssigned && <Check className="h-2.5 w-2.5" />}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+            {visible.length === 0 && (
+              <li className="px-3 py-6 text-center text-xs text-muted-foreground">
+                {role === "Team Lead"
+                  ? "No project team members yet — add them on the Team tab first"
+                  : !employeesReady
+                    ? "Loading employees…"
+                    : search.trim()
                       ? "No match"
                       : role === "Project Manager"
-                        ? "No employees with On Floor Role 'Manager (Mng.)' found in database"
+                        ? "No Active employees with On Floor Role Manager (Mng.)"
                         : role === "Senior Project Manager"
-                          ? "No employees with On Floor Role 'Sr. Manager (Sr.Mng.)' found in database"
-                          : "No available members"}
-                </li>
-              )}
-            </ul>
-          )}
-        </div>
-
-        {/* Approval Metadata: Effective Date & Reason */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border">
-          <div>
-            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide block mb-1">
-              Effective Date
-            </label>
-            <input
-              type="date"
-              value={effectiveDate}
-              onChange={(e) => setEffectiveDate(e.target.value)}
-              className="h-8 w-full rounded-md border border-input bg-card px-2.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </div>
-          <div>
-            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide block mb-1">
-              Reason for Change
-            </label>
-            <input
-              type="text"
-              value={changeReason}
-              onChange={(e) => setChangeReason(e.target.value)}
-              placeholder="e.g. Workload rebalancing, role handover..."
-              className="h-8 w-full rounded-md border border-input bg-card px-2.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </div>
+                          ? "No Active employees with On Floor Role Sr. Manager (Sr.Mng.)"
+                          : "No match"}
+              </li>
+            )}
+          </ul>
         </div>
 
         {/* Actions */}
@@ -4076,18 +3860,18 @@ function applyPersistedTasks(
     ...svc,
     quarters: svc.quarters
       ? svc.quarters.map((q) => ({
-        ...q,
-        aps: q.aps.map((ap) => ({
-          ...ap,
-          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, ap.label)),
-        })),
-      }))
+          ...q,
+          aps: q.aps.map((ap) => ({
+            ...ap,
+            tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, ap.label)),
+          })),
+        }))
       : null,
     aps: svc.aps
       ? svc.aps.map((ap) => ({
-        ...ap,
-        tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, "", ap.label)),
-      }))
+          ...ap,
+          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, "", ap.label)),
+        }))
       : null,
   }));
 }
@@ -4601,12 +4385,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                 if (useApiTasks && t.dbId) {
                                                   setDbTasks((prev) => prev.map((row) => row.id === t.dbId
                                                     ? {
-                                                      ...row,
-                                                      actualStartDate: newStart,
-                                                      actualEndDate: autoEndDate || row.actualEndDate,
-                                                      stage: nextStage,
-                                                      utilizedHours: nextStage === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0,
-                                                    }
+                                                        ...row,
+                                                        actualStartDate: newStart,
+                                                        actualEndDate: autoEndDate || row.actualEndDate,
+                                                        stage: nextStage,
+                                                        utilizedHours: nextStage === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0,
+                                                      }
                                                     : row));
                                                   updateProjectTask(project.id, t.dbId, {
                                                     actualStartDate: newStart || null,
@@ -4615,12 +4399,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                   }).then((saved) => {
                                                     setDbTasks((prev) => prev.map((row) => row.id === t.dbId
                                                       ? {
-                                                        ...row,
-                                                        actualStartDate: (saved.actualStartDate || "").slice(0, 10),
-                                                        actualEndDate: (saved.actualEndDate || "").slice(0, 10),
-                                                        stage: saved.stage,
-                                                        utilizedHours: saved.utilizedHours,
-                                                      }
+                                                          ...row,
+                                                          actualStartDate: (saved.actualStartDate || "").slice(0, 10),
+                                                          actualEndDate: (saved.actualEndDate || "").slice(0, 10),
+                                                          stage: saved.stage,
+                                                          utilizedHours: saved.utilizedHours,
+                                                        }
                                                       : row));
                                                   }).catch((err) => toast.error(err instanceof Error ? err.message : "Could not save start date"));
                                                   return;
@@ -4665,103 +4449,103 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                         <td className="px-3 py-2 align-middle text-center">
                                           <div className="flex items-center justify-center h-8">
                                             {!readOnly && (
-                                              <button
-                                                onClick={async () => {
-                                                  if (useApiTasks) {
-                                                    try {
-                                                      const [projectMembers, shadowMembers] = await Promise.all([
-                                                        fetchProjectTeamMembers(project.id),
-                                                        fetchProjectTeamMembers(project.id, { shadow: true }),
-                                                      ]);
-                                                      const named = [...projectMembers, ...shadowMembers].filter(
-                                                        (m) => m.employeeId && m.employeeName?.trim() && m.employeeName !== "Unknown User" && !isManagerRole(m.memberRole),
-                                                      );
-                                                      dhStore.registerPeople(named.map((m) => ({
+                                            <button
+                                              onClick={async () => {
+                                                if (useApiTasks) {
+                                                  try {
+                                                    const [projectMembers, shadowMembers] = await Promise.all([
+                                                      fetchProjectTeamMembers(project.id),
+                                                      fetchProjectTeamMembers(project.id, { shadow: true }),
+                                                    ]);
+                                                    const named = [...projectMembers, ...shadowMembers].filter(
+                                                      (m) => m.employeeId && m.employeeName?.trim() && m.employeeName !== "Unknown User" && !isManagerRole(m.memberRole),
+                                                    );
+                                                    dhStore.registerPeople(named.map((m) => ({
+                                                      id: m.employeeId,
+                                                      name: m.employeeName,
+                                                      role: m.employeeRole || "Team Member",
+                                                      email: m.employeeEmail || "",
+                                                    })));
+                                                    setApiPool(named.map((m) => ({
+                                                      person: {
                                                         id: m.employeeId,
                                                         name: m.employeeName,
                                                         role: m.employeeRole || "Team Member",
+                                                        avatar: m.employeeName.slice(0, 2).toUpperCase(),
                                                         email: m.employeeEmail || "",
-                                                      })));
-                                                      setApiPool(named.map((m) => ({
-                                                        person: {
-                                                          id: m.employeeId,
-                                                          name: m.employeeName,
-                                                          role: m.employeeRole || "Team Member",
-                                                          avatar: m.employeeName.slice(0, 2).toUpperCase(),
-                                                          email: m.employeeEmail || "",
-                                                        },
-                                                        isProjectTeam: m.memberRole ? m.memberRole === "ProjectTeam" : !m.isShadowTeam,
-                                                        isShadowTeam: m.memberRole ? m.memberRole === "ShadowTeam" : m.isShadowTeam,
-                                                      })));
-                                                    } catch (err) {
-                                                      toast.error(err instanceof Error ? err.message : "Could not load team members");
-                                                    }
+                                                      },
+                                                      isProjectTeam: m.memberRole ? m.memberRole === "ProjectTeam" : !m.isShadowTeam,
+                                                      isShadowTeam: m.memberRole ? m.memberRole === "ShadowTeam" : m.isShadowTeam,
+                                                    })));
+                                                  } catch (err) {
+                                                    toast.error(err instanceof Error ? err.message : "Could not load team members");
                                                   }
-                                                  if (useApiTasks && t.dbId) {
-                                                    try {
-                                                      const [resources, history] = await Promise.all([
-                                                        fetchAssignableTaskResources(project.id, t.dbId),
-                                                        fetchTaskAssignmentHistory(project.id, t.dbId),
-                                                      ]);
-                                                      setAssignHistory(history);
-                                                      const namedResources = resources.filter(
-                                                        (r) => r.employeeId && r.employeeName?.trim() && r.employeeName !== "Unknown User",
-                                                      );
-                                                      dhStore.registerPeople(namedResources.map((r) => ({
+                                                }
+                                                if (useApiTasks && t.dbId) {
+                                                  try {
+                                                    const [resources, history] = await Promise.all([
+                                                      fetchAssignableTaskResources(project.id, t.dbId),
+                                                      fetchTaskAssignmentHistory(project.id, t.dbId),
+                                                    ]);
+                                                    setAssignHistory(history);
+                                                    const namedResources = resources.filter(
+                                                      (r) => r.employeeId && r.employeeName?.trim() && r.employeeName !== "Unknown User",
+                                                    );
+                                                    dhStore.registerPeople(namedResources.map((r) => ({
+                                                      id: r.employeeId,
+                                                      name: r.employeeName,
+                                                      role: r.employeeRole || "Team Member",
+                                                      email: "",
+                                                    })));
+                                                    setApiPool(namedResources.map((r) => ({
+                                                      person: {
                                                         id: r.employeeId,
                                                         name: r.employeeName,
                                                         role: r.employeeRole || "Team Member",
+                                                        avatar: r.employeeName.slice(0, 2).toUpperCase(),
                                                         email: "",
-                                                      })));
-                                                      setApiPool(namedResources.map((r) => ({
-                                                        person: {
-                                                          id: r.employeeId,
-                                                          name: r.employeeName,
-                                                          role: r.employeeRole || "Team Member",
-                                                          avatar: r.employeeName.slice(0, 2).toUpperCase(),
-                                                          email: "",
-                                                        },
-                                                        isProjectTeam: r.teamType !== "Shadow Team",
-                                                        isShadowTeam: r.teamType === "Shadow Team",
-                                                      })));
-                                                      const selectedIds = resources.filter((r) => r.isAssigned).map((r) => r.employeeId);
-                                                      setDbTasks((prev) => prev.map((row) => {
-                                                        if (row.id !== t.dbId) return row;
-                                                        const previous = new Map((row.assignments ?? []).map((a) => [a.employeeId, a]));
-                                                        return {
-                                                          ...row,
-                                                          assignments: resources.filter((r) => r.isAssigned).map((r) => {
-                                                            const kept = previous.get(r.employeeId);
-                                                            return {
-                                                              id: kept?.id || r.employeeId,
-                                                              taskId: t.dbId!,
-                                                              employeeId: r.employeeId,
-                                                              employeeName: r.employeeName,
-                                                              employeeCode: r.employeeCode,
-                                                              workEmail: kept?.workEmail || "",
-                                                              role: r.employeeRole || kept?.role || "Contributor",
-                                                              allocatedHours: kept?.allocatedHours,
-                                                              utilizedHours: kept?.utilizedHours ?? 0,
-                                                              timerAccumulatedSeconds: kept?.timerAccumulatedSeconds ?? 0,
-                                                              isTimerRunning: kept?.isTimerRunning ?? false,
-                                                              currentElapsedSeconds: kept?.currentElapsedSeconds ?? 0,
-                                                              isActive: true,
-                                                            };
-                                                          }),
-                                                        };
-                                                      }));
-                                                      setAssignFor({ ...t, assigneeIds: selectedIds });
-                                                    } catch (err) {
-                                                      toast.error(err instanceof Error ? err.message : "Could not load team members");
-                                                    }
-                                                    return;
+                                                      },
+                                                      isProjectTeam: r.teamType !== "Shadow Team",
+                                                      isShadowTeam: r.teamType === "Shadow Team",
+                                                    })));
+                                                    const selectedIds = resources.filter((r) => r.isAssigned).map((r) => r.employeeId);
+                                                    setDbTasks((prev) => prev.map((row) => {
+                                                      if (row.id !== t.dbId) return row;
+                                                      const previous = new Map((row.assignments ?? []).map((a) => [a.employeeId, a]));
+                                                      return {
+                                                        ...row,
+                                                        assignments: resources.filter((r) => r.isAssigned).map((r) => {
+                                                          const kept = previous.get(r.employeeId);
+                                                          return {
+                                                            id: kept?.id || r.employeeId,
+                                                            taskId: t.dbId!,
+                                                            employeeId: r.employeeId,
+                                                            employeeName: r.employeeName,
+                                                            employeeCode: r.employeeCode,
+                                                            workEmail: kept?.workEmail || "",
+                                                            role: r.employeeRole || kept?.role || "Contributor",
+                                                            allocatedHours: kept?.allocatedHours,
+                                                            utilizedHours: kept?.utilizedHours ?? 0,
+                                                            timerAccumulatedSeconds: kept?.timerAccumulatedSeconds ?? 0,
+                                                            isTimerRunning: kept?.isTimerRunning ?? false,
+                                                            currentElapsedSeconds: kept?.currentElapsedSeconds ?? 0,
+                                                            isActive: true,
+                                                          };
+                                                        }),
+                                                      };
+                                                    }));
+                                                    setAssignFor({ ...t, assigneeIds: selectedIds });
+                                                  } catch (err) {
+                                                    toast.error(err instanceof Error ? err.message : "Could not load team members");
                                                   }
-                                                  setAssignFor(t);
-                                                }}
-                                                className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
-                                              >
-                                                <UserPlus className="h-3.5 w-3.5" /> Assign
-                                              </button>
+                                                  return;
+                                                }
+                                                setAssignFor(t);
+                                              }}
+                                              className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
+                                            >
+                                              <UserPlus className="h-3.5 w-3.5" /> Assign
+                                            </button>
                                             )}
                                           </div>
                                         </td>
@@ -4783,12 +4567,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                     updateTaskStage(project.id, t.dbId, v).then((saved) => {
                                                       setDbTasks((prev) => prev.map((row) => row.id === t.dbId
                                                         ? {
-                                                          ...row,
-                                                          stage: saved.stage,
-                                                          utilizedHours: saved.utilizedHours,
-                                                          actualStartDate: (saved.actualStartDate || row.actualStartDate || "").slice(0, 10),
-                                                          actualEndDate: (saved.actualEndDate || row.actualEndDate || "").slice(0, 10),
-                                                        }
+                                                            ...row,
+                                                            stage: saved.stage,
+                                                            utilizedHours: saved.utilizedHours,
+                                                            actualStartDate: (saved.actualStartDate || row.actualStartDate || "").slice(0, 10),
+                                                            actualEndDate: (saved.actualEndDate || row.actualEndDate || "").slice(0, 10),
+                                                          }
                                                         : row));
                                                     }).catch((err) => {
                                                       toast.error(err instanceof Error ? err.message : "Could not update stage");
@@ -4837,18 +4621,6 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
           historyEntries={useApiTasks ? assignHistory : undefined}
           onClose={() => { setAssignFor(null); setAssignHistory([]); }}
           onSave={(ids) => {
-            const parentSvc = visibleTree.find(s => {
-              if (s.quarters) {
-                return s.quarters.some(q => q.aps.some(a => a.tasks.some(task => task.id === assignFor.id)));
-              } else if (s.aps) {
-                return s.aps.some(a => a.tasks.some(task => task.id === assignFor.id));
-              }
-              return false;
-            });
-            const svcName = parentSvc?.serviceName || "";
-            const taskTitle = parentSvc ? `${svcName} - ${assignFor.serviceModel}` : `${assignFor.taskId} - ${assignFor.serviceModel}`;
-            const dueDate = parentSvc?.wbsEndDate || "";
-
             if (useApiTasks) {
               if (!assignFor.dbId) {
                 toast.error("Could not save assignments", {
@@ -4875,10 +4647,21 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                 .catch((err) => toast.error(err instanceof Error ? err.message : "Could not save assignments"));
               return;
             }
+            const parentSvc = visibleTree.find(s => {
+              if (s.quarters) {
+                return s.quarters.some(q => q.aps.some(a => a.tasks.some(task => task.id === assignFor.id)));
+              } else if (s.aps) {
+                return s.aps.some(a => a.tasks.some(task => task.id === assignFor.id));
+              }
+              return false;
+            });
+            const svcName = parentSvc?.serviceName || "";
+            const taskTitle = parentSvc ? `${svcName} - ${assignFor.serviceModel}` : `${assignFor.taskId} - ${assignFor.serviceModel}`;
+            const dueDate = parentSvc?.wbsEndDate || "";
 
             dhStore.assignResourcesToTreeTask(project.id, assignFor.id, ids, taskTitle, dueDate, "medium");
             ids.forEach((resId) => {
-              addTaskAssignment(project.id, assignFor.id, { employeeId: resId, role: "Member" }).catch(() => { });
+              addTaskAssignment(project.id, assignFor.id, { resourceId: resId, role: "Member" }).catch(() => {});
             });
             toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
             setAssignFor(null);
@@ -4917,56 +4700,56 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
             </p>
           </div>
         ) : (
-          <>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search team member…"
-                className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-            </div>
-            {sel.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
-                {sel.map((id) => {
-                  const p = getPerson(id);
-                  const teamInfo = pool.find(item => item.person.id === id);
-                  const teamLabel = teamInfo?.isShadowTeam ? "(Shadow Team)" : "(Project Team)";
-                  return (
-                    <span key={id} className={cn("inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-1 pr-2 text-xs font-medium shadow-sm",
-                      teamInfo?.isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
-                      <Avatar name={p.name} size={18} /> {p.name} <span className="text-[10px] text-muted-foreground">{teamLabel}</span>
-                      <button onClick={() => toggle(id)} className="ml-1 text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-            <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-md border border-border">
-              {visible.map(({ person: p, isProjectTeam, isShadowTeam }) => {
-                const isSel = sel.includes(p.id);
-                const teamLabel = isShadowTeam ? "Shadow Team" : "Project Team";
-                return (
-                  <li key={p.id}>
-                    <button onClick={() => toggle(p.id)}
-                      className={cn("flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent/40", isSel && "bg-primary/5")}>
-                      <Avatar name={p.name} size={26} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium">{p.name}</div>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                          <span>{p.role}</span>
-                          <span>·</span>
-                          <span className={cn("inline-flex px-1.5 py-0.2 rounded text-[9px] font-semibold border",
-                            isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
-                            {teamLabel}
-                          </span>
-                        </div>
-                      </div>
-                      {isSel && <Check className="h-4 w-4 text-primary" />}
-                    </button>
-                  </li>
-                );
-              })}
-              {visible.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted-foreground">No match</li>}
-            </ul>
-          </>
+        <>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search team member…"
+            className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+        </div>
+        {sel.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
+            {sel.map((id) => {
+              const p = getPerson(id);
+              const teamInfo = pool.find(item => item.person.id === id);
+              const teamLabel = teamInfo?.isShadowTeam ? "(Shadow Team)" : "(Project Team)";
+              return (
+                <span key={id} className={cn("inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-1 pr-2 text-xs font-medium shadow-sm",
+                  teamInfo?.isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
+                  <Avatar name={p.name} size={18} /> {p.name} <span className="text-[10px] text-muted-foreground">{teamLabel}</span>
+                  <button onClick={() => toggle(id)} className="ml-1 text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+        <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-md border border-border">
+          {visible.map(({ person: p, isProjectTeam, isShadowTeam }) => {
+            const isSel = sel.includes(p.id);
+            const teamLabel = isShadowTeam ? "Shadow Team" : "Project Team";
+            return (
+              <li key={p.id}>
+                <button onClick={() => toggle(p.id)}
+                  className={cn("flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent/40", isSel && "bg-primary/5")}>
+                  <Avatar name={p.name} size={26} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{p.name}</div>
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <span>{p.role}</span>
+                      <span>·</span>
+                      <span className={cn("inline-flex px-1.5 py-0.2 rounded text-[9px] font-semibold border",
+                        isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
+                        {teamLabel}
+                      </span>
+                    </div>
+                  </div>
+                  {isSel && <Check className="h-4 w-4 text-primary" />}
+                </button>
+              </li>
+            );
+          })}
+          {visible.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted-foreground">No match</li>}
+        </ul>
+        </>
         )}
 
         {/* Assignment History Log */}
@@ -5395,12 +5178,12 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
           ))}
         </div>
         {!readOnly && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-3.5 w-3.5" /> Add Team Member
-          </button>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-3.5 w-3.5" /> Add Team Member
+        </button>
         )}
       </div>
       <div className="rounded-lg border border-border overflow-x-auto">
@@ -5427,171 +5210,171 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                 ? formatAllocationDuration(String(project.startDate).slice(0, 10), String(project.endDate).slice(0, 10))
                 : (r.duration || "—");
               return (
-                <tr key={r.person.id} className="hover:bg-accent/30">
-                  {/* Resource — left aligned with avatar */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <Avatar name={r.person.name} size={28} />
-                      <div>
-                        <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
-                          {r.person.name}
-                          {managerLabel && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
-                              <Crown className="h-2.5 w-2.5" /> {managerLabel}
-                            </span>
-                          )}
-                          {teamTab === "project" && !managerLabel && teamLeadIds.has(r.person.id) && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
-                              <Crown className="h-2.5 w-2.5" /> Team Lead
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground leading-tight">{r.person.role}</div>
+              <tr key={r.person.id} className="hover:bg-accent/30">
+                {/* Resource — left aligned with avatar */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={r.person.name} size={28} />
+                    <div>
+                      <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
+                        {r.person.name}
+                        {managerLabel && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
+                            <Crown className="h-2.5 w-2.5" /> {managerLabel}
+                          </span>
+                        )}
+                        {teamTab === "project" && !managerLabel && teamLeadIds.has(r.person.id) && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
+                            <Crown className="h-2.5 w-2.5" /> Team Lead
+                          </span>
+                        )}
                       </div>
+                      <div className="text-[11px] text-muted-foreground leading-tight">{r.person.role}</div>
                     </div>
-                  </td>
-                  {/* Department — center */}
-                  <td className="px-3 py-3 text-center text-sm align-middle">
-                    {teamTab === "project" && "department" in r && r.department
-                      ? r.department
-                      : getDept(r.person)}
-                  </td>
-                  {/* Sub Department — center */}
-                  <td className="px-3 py-3 text-center text-sm text-muted-foreground align-middle">
-                    {teamTab === "project" && "subDepartment" in r && r.subDepartment
-                      ? r.subDepartment
-                      : getSubDept(r.person)}
-                  </td>
-                  {/* Allocation Duration — center, monospaced */}
-                  <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{allocationLabel}</td>
-                  {/* Billability — center pill */}
-                  <td className="px-3 py-3 text-center align-middle">
-                    <span className={cn(
-                      "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
-                      r.billability === "Billable"
-                        ? "bg-success/10 border-success/30 text-success"
-                        : "bg-muted border-border text-muted-foreground"
-                    )}>
-                      {r.billability}
-                    </span>
-                  </td>
-                  {/* Resource Type — center pill */}
-                  <td className="px-3 py-3 text-center align-middle">
-                    <span className={cn(
-                      "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
-                      r.resourceType === "Dedicated"
-                        ? "bg-primary/10 border-primary/30 text-primary"
-                        : "bg-info/10 border-info/30 text-info"
-                    )}>
-                      {r.resourceType}
-                    </span>
-                  </td>
-                  {/* Actions — center */}
-                  <td className="px-3 py-3 text-center align-middle">
-                    <div className="inline-flex items-center gap-1">
-                      <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "View"} disabled={actionsLocked} onClick={() => setAction({ type: "view", person: r.person })}
-                        className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Eye className="h-3.5 w-3.5" /></button>
-                      {!readOnly && (
-                        <>
-                          <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Edit"} disabled={actionsLocked} onClick={() => setAction({ type: "edit", person: r.person })}
-                            className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Pencil className="h-3.5 w-3.5" /></button>
-                          <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Remove"} disabled={actionsLocked} onClick={() => setAction({ type: "remove", person: r.person })}
-                            className={cn("rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </td>
+                {/* Department — center */}
+                <td className="px-3 py-3 text-center text-sm align-middle">
+                  {teamTab === "project" && "department" in r && r.department
+                    ? r.department
+                    : getDept(r.person)}
+                </td>
+                {/* Sub Department — center */}
+                <td className="px-3 py-3 text-center text-sm text-muted-foreground align-middle">
+                  {teamTab === "project" && "subDepartment" in r && r.subDepartment
+                    ? r.subDepartment
+                    : getSubDept(r.person)}
+                </td>
+                {/* Allocation Duration — center, monospaced */}
+                <td className="px-3 py-3 text-center text-xs text-muted-foreground align-middle whitespace-nowrap">{allocationLabel}</td>
+                {/* Billability — center pill */}
+                <td className="px-3 py-3 text-center align-middle">
+                  <span className={cn(
+                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+                    r.billability === "Billable"
+                      ? "bg-success/10 border-success/30 text-success"
+                      : "bg-muted border-border text-muted-foreground"
+                  )}>
+                    {r.billability}
+                  </span>
+                </td>
+                {/* Resource Type — center pill */}
+                <td className="px-3 py-3 text-center align-middle">
+                  <span className={cn(
+                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+                    r.resourceType === "Dedicated"
+                      ? "bg-primary/10 border-primary/30 text-primary"
+                      : "bg-info/10 border-info/30 text-info"
+                  )}>
+                    {r.resourceType}
+                  </span>
+                </td>
+                {/* Actions — center */}
+                <td className="px-3 py-3 text-center align-middle">
+                  <div className="inline-flex items-center gap-1">
+                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "View"} disabled={actionsLocked} onClick={() => setAction({ type: "view", person: r.person })}
+                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Eye className="h-3.5 w-3.5" /></button>
+                    {!readOnly && (
+                    <>
+                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Edit"} disabled={actionsLocked} onClick={() => setAction({ type: "edit", person: r.person })}
+                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Pencil className="h-3.5 w-3.5" /></button>
+                    <button title={actionsLocked ? "Assigned from WBS Project Allocation" : "Remove"} disabled={actionsLocked} onClick={() => setAction({ type: "remove", person: r.person })}
+                      className={cn("rounded-md border border-input bg-card p-1.5 text-destructive hover:bg-destructive/10", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button
+                      title={actionsLocked ? "Assigned from WBS Project Allocation" : "More"}
+                      disabled={actionsLocked}
+                      onClick={(e) => {
+                        if (menuOpen === r.person.id) {
+                          setMenuOpen(null);
+                          setMenuPos(null);
+                          return;
+                        }
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        const menuWidth = 192;
+                        const menuHeight = teamTab === "project" && isWbsCreated ? 168 : 132;
+                        const openUp = rect.bottom + menuHeight > window.innerHeight - 8;
+                        const top = openUp ? Math.max(8, rect.top - menuHeight - 4) : rect.bottom + 4;
+                        const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+                        setMenuPos({ top, left });
+                        setMenuOpen(r.person.id);
+                      }}
+                      className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </button>
+                    </>
+                    )}
+                    {menuOpen === r.person.id && menuPos && !actionsLocked && (
+                      <div
+                        className="fixed z-[9999] w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg"
+                        style={{ top: menuPos.top, left: menuPos.left }}
+                        onMouseLeave={() => { setMenuOpen(null); setMenuPos(null); }}
+                      >
+                        {teamTab === "project" && isWbsCreated && (
                           <button
-                            title={actionsLocked ? "Assigned from WBS Project Allocation" : "More"}
-                            disabled={actionsLocked}
-                            onClick={(e) => {
-                              if (menuOpen === r.person.id) {
-                                setMenuOpen(null);
-                                setMenuPos(null);
+                            onClick={async () => {
+                              setMenuOpen(null);
+                              setMenuPos(null);
+                              const isLead = teamLeadIds.has(r.person.id);
+                              if (useApiTeam && apiTeamRows) {
+                                const row = apiTeamRows.find((x) => x.person.id === r.person.id);
+                                if (!row?.memberId) return;
+                                try {
+                                  const updated = await apiUpdateProjectTeamMember(project.id, row.memberId, {
+                                    isTeamLead: !isLead,
+                                  });
+                                  const nextRows = (apiTeamRows ?? []).map((x) =>
+                                    x.memberId === updated.id ? mapApiTeamMemberToRow(updated) : x,
+                                  );
+                                  setApiTeamRows(nextRows);
+                                  syncTeamLeadsToStore(project.id, nextRows);
+                                  toast.success(
+                                    isLead ? "Team Lead removed" : "Team Lead assigned",
+                                    { description: r.person.name },
+                                  );
+                                } catch (err) {
+                                  toast.error("Could not update Team Lead", {
+                                    description: err instanceof Error ? err.message : "API error",
+                                  });
+                                }
                                 return;
                               }
-                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                              const menuWidth = 192;
-                              const menuHeight = teamTab === "project" && isWbsCreated ? 168 : 132;
-                              const openUp = rect.bottom + menuHeight > window.innerHeight - 8;
-                              const top = openUp ? Math.max(8, rect.top - menuHeight - 4) : rect.bottom + 4;
-                              const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
-                              setMenuPos({ top, left });
-                              setMenuOpen(r.person.id);
+                              const current = snapshot.leadershipAssignments[project.id]?.tlIds ?? [];
+                              const next = current.includes(r.person.id)
+                                ? current.filter((id) => id !== r.person.id)
+                                : [...current, r.person.id];
+                              dhStore.updateLeadershipAssignment(project.id, "Team Lead", next, [{
+                                id: r.person.id,
+                                name: r.person.name,
+                                role: r.person.role,
+                                email: r.person.email || "",
+                              }]);
+                              toast.success(
+                                current.includes(r.person.id) ? "Team Lead removed" : "Team Lead assigned",
+                                { description: r.person.name },
+                              );
                             }}
-                            className={cn("rounded-md border border-input bg-card p-1.5 hover:bg-accent", actionsLocked && "cursor-not-allowed opacity-40 hover:bg-card")}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent"
                           >
-                            <MoreHorizontal className="h-3.5 w-3.5" />
+                            <Crown className="h-3.5 w-3.5 text-muted-foreground" />
+                            {teamLeadIds.has(r.person.id) ? "Remove Team Lead" : "Set as Team Lead"}
                           </button>
-                        </>
-                      )}
-                      {menuOpen === r.person.id && menuPos && !actionsLocked && (
-                        <div
-                          className="fixed z-[9999] w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg"
-                          style={{ top: menuPos.top, left: menuPos.left }}
-                          onMouseLeave={() => { setMenuOpen(null); setMenuPos(null); }}
-                        >
-                          {teamTab === "project" && isWbsCreated && (
-                            <button
-                              onClick={async () => {
-                                setMenuOpen(null);
-                                setMenuPos(null);
-                                const isLead = teamLeadIds.has(r.person.id);
-                                if (useApiTeam && apiTeamRows) {
-                                  const row = apiTeamRows.find((x) => x.person.id === r.person.id);
-                                  if (!row?.memberId) return;
-                                  try {
-                                    const updated = await apiUpdateProjectTeamMember(project.id, row.memberId, {
-                                      isTeamLead: !isLead,
-                                    });
-                                    const nextRows = (apiTeamRows ?? []).map((x) =>
-                                      x.memberId === updated.id ? mapApiTeamMemberToRow(updated) : x,
-                                    );
-                                    setApiTeamRows(nextRows);
-                                    syncTeamLeadsToStore(project.id, nextRows);
-                                    toast.success(
-                                      isLead ? "Team Lead removed" : "Team Lead assigned",
-                                      { description: r.person.name },
-                                    );
-                                  } catch (err) {
-                                    toast.error("Could not update Team Lead", {
-                                      description: err instanceof Error ? err.message : "API error",
-                                    });
-                                  }
-                                  return;
-                                }
-                                const current = snapshot.leadershipAssignments[project.id]?.tlIds ?? [];
-                                const next = current.includes(r.person.id)
-                                  ? current.filter((id) => id !== r.person.id)
-                                  : [...current, r.person.id];
-                                dhStore.updateLeadershipAssignment(project.id, "Team Lead", next, [{
-                                  id: r.person.id,
-                                  name: r.person.name,
-                                  role: r.person.role,
-                                  email: r.person.email || "",
-                                }]);
-                                toast.success(
-                                  current.includes(r.person.id) ? "Team Lead removed" : "Team Lead assigned",
-                                  { description: r.person.name },
-                                );
-                              }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent"
-                            >
-                              <Crown className="h-3.5 w-3.5 text-muted-foreground" />
-                              {teamLeadIds.has(r.person.id) ? "Remove Team Lead" : "Set as Team Lead"}
-                            </button>
-                          )}
-                          {[
-                            { k: "praise", label: "Give Praise", icon: Star },
-                            { k: "feedback", label: "Give Feedback", icon: MessageSquare },
-                            { k: "request", label: "Request Feedback", icon: Send },
-                          ].map((o) => (
-                            <button key={o.k} onClick={() => { setMenuOpen(null); setMenuPos(null); setAction({ type: o.k as ActionType, person: r.person }); }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent">
-                              <o.icon className="h-3.5 w-3.5 text-muted-foreground" /> {o.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                        )}
+                        {[
+                          { k: "praise", label: "Give Praise", icon: Star },
+                          { k: "feedback", label: "Give Feedback", icon: MessageSquare },
+                          { k: "request", label: "Request Feedback", icon: Send },
+                        ].map((o) => (
+                          <button key={o.k} onClick={() => { setMenuOpen(null); setMenuPos(null); setAction({ type: o.k as ActionType, person: r.person }); }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-accent">
+                            <o.icon className="h-3.5 w-3.5 text-muted-foreground" /> {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
               );
             })}
             {!teamLoading && (teamTab === "project" ? rows : shadowRows).length === 0 && (
@@ -5836,7 +5619,12 @@ function TeamActionModal({
       <Modal title={`Edit Allocation — ${person.name}`} onClose={onClose}>
         <div className="space-y-3">
           <Field label="Allocation Duration">
-            <DateRangePicker value={editState.duration} onChange={(val) => setEditState((s) => ({ ...s, duration: val }))} />
+            <DateRangePicker
+              value={editState.duration}
+              onChange={(val) => setEditState((s) => ({ ...s, duration: val }))}
+              disablePastStart
+              maxEndDate={project.endDate ? String(project.endDate).slice(0, 10) : undefined}
+            />
           </Field>
 
           <Field label="Billability">
@@ -5885,11 +5673,11 @@ function TeamActionModal({
               onClick={() => onSaveEdit(teamType === "shadow"
                 ? { duration: editState.duration, billability: "Non-Billable", resourceType: "Shared Resource" }
                 : {
-                  billability: editState.billability,
-                  resourceType: editState.resourceType,
-                  duration: editState.duration,
-                  ...(canSetTeamLead ? { isTeamLead: editState.asTeamLead } : {}),
-                }
+                    billability: editState.billability,
+                    resourceType: editState.resourceType,
+                    duration: editState.duration,
+                    ...(canSetTeamLead ? { isTeamLead: editState.asTeamLead } : {}),
+                  }
               )}
               className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
@@ -6072,12 +5860,12 @@ function AddTeamMemberModal({
 
     const selectedPerson = useApiResources && selectedCandidate
       ? {
-        id: selectedCandidate.id,
-        name: selectedCandidate.fullName,
-        role: selectedCandidate.role || selectedCandidate.designation || "Team Member",
-        avatar: selectedCandidate.fullName.slice(0, 2).toUpperCase(),
-        email: selectedCandidate.workEmail,
-      }
+          id: selectedCandidate.id,
+          name: selectedCandidate.fullName,
+          role: selectedCandidate.role || selectedCandidate.designation || "Team Member",
+          avatar: selectedCandidate.fullName.slice(0, 2).toUpperCase(),
+          email: selectedCandidate.workEmail,
+        }
       : getPerson(selectedPersonId);
 
     const newRow: ReturnType<typeof getProjectTeam>[number] = {
@@ -6162,6 +5950,7 @@ function AddTeamMemberModal({
             value={duration}
             onChange={setDuration}
             disablePastStart
+            maxEndDate={project.endDate ? String(project.endDate).slice(0, 10) : undefined}
           />
         </Field>
 
@@ -6280,8 +6069,7 @@ function PersonRow({ label, person, unassigned }: { label: string; person: Perso
 // ---------- Health Tab ----------
 function HealthTab({ project }: { project: Project }) {
   const store = useDhStore((s) => s);
-  const { hasAny } = usePermissions();
-  const { user, isDhanshree, isPmFamily, isEngagementManager, isSales, isViewOnly, isPmoFamily, isAdmin } = useRoleContext();
+  const { user, isDhanshree, isPmFamily, isEngagementManager, isSales, isViewOnly, isPmoFamily } = useRoleContext();
   const isEmployee = user.role === "Employee";
   const [healthTab, setHealthTab] = useState<string>(() => {
     let initial: string = "Issues";
@@ -6324,41 +6112,15 @@ function HealthTab({ project }: { project: Project }) {
   }, [store.escalations, store.alerts, project.id]);
   const projectAppreciations = store.appreciations.filter((a) => a.projectId === project.id);
 
-  const canManageIssues =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Health|Issues:manage",
-      "projects.health.issues.manage",
-      "projects.health.issues",
-    );
-
-  const canManageAlerts =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Health|Aletrs:manage",
-      "projects.health.alerts.manage",
-      "projects.health.alerts",
-    );
-
-  const canManageEscalations =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Health|Escalation:manage",
-      "projects.health.escalations.manage",
-      "projects.health.escalation",
-    );
-
-  const canManageAppreciation =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Health|Appreciation:manage",
-      "projects.health.appreciations.manage",
-      "projects.health.appreciation",
-    );
+  const canRaiseIssue =
+    !isViewOnly &&
+    (isEmployee ||
+      isPmFamily ||
+      isSales ||
+      isDhanshree ||
+      user.role === "Team Member" ||
+      user.role === "Team Lead" ||
+      user.role === "Dhanshree");
 
   // Check if user has access to Client Communication
   const canAccessClientComm = ["Dhanshree", "PMO", "Project Manager", "Engagement Manager", "Senior Project Manager", "Head of Delivery", "Business Operations"].includes(user.role);
@@ -6374,20 +6136,16 @@ function HealthTab({ project }: { project: Project }) {
     logo: "",
   };
 
-  const canViewIssues = hasAny("Projects|projects Cards|Health|Issues:view", "projects.view");
-  const canViewAlerts = hasAny("Projects|projects Cards|Health|Aletrs:view", "projects.view");
-  const canViewEscalations = hasAny("Projects|projects Cards|Health|Escalation:view", "projects.view");
-  const canViewAppreciation = hasAny("Projects|projects Cards|Health|Appreciation:view", "projects.view");
-  const canViewCustomerEngagement = hasAny("Projects|projects Cards|Health|Customer Engagment:view");
-
-  const allHealthOptions = [
-    { name: "Issues", allowed: canViewIssues },
-    { name: "Alerts", allowed: canViewAlerts },
-    { name: "Escalations", allowed: canViewEscalations },
-    { name: "Appreciation", allowed: canViewAppreciation },
-    { name: "Customer Engagement", allowed: canViewCustomerEngagement },
-  ];
-  const tabsList = allHealthOptions.filter((o) => o.allowed).map((o) => o.name);
+  // Employee: Health shows only Issues / Alerts / Appreciation — all view-only
+  // apart from raising an issue and writing an appreciation.
+  // Project Manager: full Health except customer engagement / communication.
+  const tabsList = isEmployee
+    ? (["Issues", "Alerts", "Appreciation"] as const)
+    : isDhanshree || isEngagementManager
+      ? (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Engagement"] as const)
+      : isPmFamily || isSales || isPmoFamily
+        ? (["Issues", "Alerts", "Escalations", "Appreciation"] as const)
+        : (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Communication"] as const);
 
   return (
     <div className="space-y-4">
@@ -6403,12 +6161,12 @@ function HealthTab({ project }: { project: Project }) {
         ))}
       </div>
 
-      {healthTab === "Issues" && <HealthIssuesPanel issues={projectIssues} project={project} canRaise={canManageIssues} />}
-      {healthTab === "Alerts" && <HealthAlertsPanel alerts={projectAlerts} canManage={canManageAlerts} />}
-      {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} canRaise={canManageEscalations} />}
-      {healthTab === "Appreciation" && <HealthAppreciationPanel appreciations={projectAppreciations} project={project} canAppreciate={canManageAppreciation} />}
+      {healthTab === "Issues" && <HealthIssuesPanel issues={projectIssues} project={project} canRaise={canRaiseIssue} />}
+      {healthTab === "Alerts" && <HealthAlertsPanel alerts={projectAlerts} />}
+      {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} canRaise={canRaiseIssue} />}
+      {healthTab === "Appreciation" && <HealthAppreciationPanel appreciations={projectAppreciations} project={project} />}
 
-      {healthTab === "Customer Engagement" && (
+      {(isDhanshree || isEngagementManager) && healthTab === "Customer Engagement" && (
         <DhClientEngagementTab project={project} clientName={client.name} />
       )}
 
@@ -6426,10 +6184,8 @@ function HealthTab({ project }: { project: Project }) {
 }
 
 function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; project: Project; canRaise: boolean }) {
+  const store = useDhStore((s) => s);
   const { user } = useRoleContext();
-  const [dbIssues, setDbIssues] = useState<ProjectIssueApiItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
   const [showRaiseModal, setShowRaiseModal] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -6438,262 +6194,104 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
     priority: "Medium" as DhPriority,
   });
 
-  const loadIssues = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetchProjectIssuesApi(project.id);
-      setDbIssues(res);
-    } catch (err) {
-      console.warn("Could not load db issues", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [project.id]);
-
-  useEffect(() => {
-    loadIssues();
-  }, [loadIssues]);
-
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!formData.title.trim() || !formData.description.trim()) {
       toast.error("Fill all fields");
       return;
     }
-    try {
-      const created = await createIssueApi({
-        projectId: project.id,
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: formData.category,
-        priority: formData.priority,
-        raisedByEmployeeId: user.id,
-        raisedByName: user.name,
-        raisedByRole: user.role,
-      });
-      toast.success("Issue raised successfully", {
-        description: `Routed to Dotted-Line Reporting Manager (${created.dottedLineManagerName || "PM"} · PM). 2-day escalation SLA started.`,
-      });
-      setShowRaiseModal(false);
-      setFormData({ title: "", description: "", category: "Technical Related Issues", priority: "Medium" });
-      loadIssues();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not raise issue");
-    }
+    dhStore.raiseIssue({
+      title: formData.title,
+      description: formData.description,
+      projectId: project.id,
+      raisedById: user.id,
+      raisedByName: user.name,
+      raisedByRole: user.role,
+      category: formData.category,
+      priority: formData.priority,
+    });
+    toast.success("Issue raised", { description: "PMs and SPMs notified" });
+    setShowRaiseModal(false);
+    setFormData({ title: "", description: "", category: "Technical Related Issues", priority: "Medium" });
   };
 
-  const handleStatusChange = async (issueId: string, newStatus: string) => {
-    try {
-      await updateIssueStatusApi(issueId, newStatus, undefined, user.name);
-      toast.success(`Issue status updated to ${newStatus}`);
-      loadIssues();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update status");
-    }
-  };
-
-  const handleManualEscalate = async (issueId: string) => {
-    try {
-      const updated = await escalateIssueManuallyApi(issueId, user.name);
-      toast.warning(`Issue escalated to Level ${updated.escalationLevel} (${updated.currentAssigneeRole})`);
-      loadIssues();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not escalate issue");
-    }
-  };
-
-  const displayIssues = dbIssues;
-  const hasNoIssues = displayIssues.length === 0;
-
-  const ESCALATION_CONFIG: Record<number, { role: string; full: string; badgeCls: string }> = {
-    1: { role: "PM", full: "Project Manager", badgeCls: "bg-blue-50 text-blue-700 border-blue-200" },
-    2: { role: "SPM", full: "Senior Project Manager", badgeCls: "bg-amber-50 text-amber-700 border-amber-200" },
-    3: { role: "EM", full: "Engagement Manager", badgeCls: "bg-purple-50 text-purple-700 border-purple-200" },
-    4: { role: "PMO", full: "PMO Head", badgeCls: "bg-rose-50 text-rose-700 border-rose-200" },
-    5: { role: "HOD", full: "Head of Department", badgeCls: "bg-red-50 text-red-700 border-red-300 font-bold" },
-    6: { role: "CEO", full: "Chief Executive Officer", badgeCls: "bg-red-100 text-red-900 border-red-400 font-extrabold animate-pulse" },
-  };
+  const hasNoIssues = issues.length === 0;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Project Issues & Escalations</h3>
-          <p className="text-xs text-muted-foreground">
-            Escalation Hierarchy: PM (Day 0) → SPM (Day 2) → EM (Day 4) → PMO (Day 6) → HOD (Day 8) → CEO (Day 10)
-          </p>
-        </div>
-        {canRaise && (
+    <div className="space-y-3">
+      {hasNoIssues && canRaise ? (
+        <div className="rounded-lg border-2 border-dashed border-border bg-muted/20 py-12 text-center">
+          <p className="text-sm text-muted-foreground mb-4">No issues raised yet</p>
           <button
             onClick={() => setShowRaiseModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            <Plus className="h-3.5 w-3.5" /> Raise Issue
+            <Plus className="h-4 w-4" /> Raise Issues Alerts
           </button>
-        )}
-      </div>
-
-      {hasNoIssues ? (
-        <div className="rounded-lg border-2 border-dashed border-border bg-muted/20 py-12 text-center">
-          <p className="text-sm text-muted-foreground mb-4">
-            {loading ? "Loading project issues…" : "No issues raised yet for this project"}
-          </p>
-          {canRaise && !loading && (
-            <button
-              onClick={() => setShowRaiseModal(true)}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
-            >
-              <Plus className="h-4 w-4" /> Raise Issue
-            </button>
-          )}
         </div>
       ) : (
-        <div className="space-y-3">
-          {displayIssues.map((issue) => {
-            const isResolved = issue.status === "Resolved" || issue.status === "Closed";
-            const esc = ESCALATION_CONFIG[issue.escalationLevel] || ESCALATION_CONFIG[1];
-            const isExpanded = expandedIssueId === issue.id;
+        canRaise && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowRaiseModal(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-3.5 w-3.5" /> Raise Issues Alerts
+            </button>
+          </div>
+        )
+      )}
 
+      {showRaiseModal && (
+        <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
+          <div className="space-y-3">
+            <Field label="Issue Title">
+              <input value={formData.title} onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))} placeholder="Brief summary..." className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </Field>
+            <Field label="Description">
+              <textarea value={formData.description} onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))} placeholder="Detailed description..." rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </Field>
+            <Field label="Issue Type">
+              <select value={formData.category} onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            </Field>
+            <Field label="Priority">
+              <select value={formData.priority} onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => <option key={pri} value={pri}>{pri}</option>)}
+              </select>
+            </Field>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button onClick={() => setShowRaiseModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button onClick={handleSubmit} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Raise Issue</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {issues.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">No issues raised yet</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {issues.map((issue: DhIssue) => {
+            const priorityColors: Record<DhPriority, string> = { Low: "border-info/30 bg-info/10 text-info", Medium: "border-warning/30 bg-warning/15 text-warning-foreground", High: "border-destructive/30 bg-destructive/10 text-destructive", Critical: "border-destructive/30 bg-destructive/10 text-destructive" };
             return (
-              <div
-                key={issue.id}
-                className="rounded-lg border border-border bg-card p-4 hover:shadow-xs transition-shadow"
-              >
+              <div key={issue.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-sm font-bold text-gray-900">{issue.title}</h4>
-
-                      {/* Priority Pill */}
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
-                          issue.priority === "Critical" && "bg-rose-50 text-rose-700 border-rose-300",
-                          issue.priority === "High" && "bg-orange-50 text-orange-700 border-orange-300",
-                          issue.priority === "Medium" && "bg-amber-50 text-amber-700 border-amber-300",
-                          issue.priority === "Low" && "bg-slate-50 text-slate-700 border-slate-300",
-                        )}
-                      >
-                        {issue.priority}
-                      </span>
-
-                      {/* Escalation Level Badge */}
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold shadow-2xs",
-                          esc.badgeCls,
-                        )}
-                        title={`Current Escalation: Level ${issue.escalationLevel} (${esc.full})`}
-                      >
-                        Level {issue.escalationLevel}: {issue.currentAssigneeRole}
-                      </span>
-
-                      {/* Category Badge */}
-                      <span className="inline-flex rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground border border-border/60">
-                        {issue.category}
-                      </span>
-
-                      {/* Status Selector / Badge */}
-                      {canRaise ? (
-                        <select
-                          value={issue.status}
-                          onChange={(e) => handleStatusChange(issue.id, e.target.value)}
-                          className={cn(
-                            "h-6 rounded-md border px-2 text-[10px] font-bold shadow-2xs transition-colors cursor-pointer outline-none",
-                            isResolved
-                              ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                              : issue.status === "In Progress"
-                                ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                                : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100",
-                          )}
-                        >
-                          {["Open", "In Progress", "Resolved", "Closed"].map((st) => (
-                            <option key={st} value={st}>
-                              {st}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span
-                          className={cn(
-                            "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold",
-                            isResolved
-                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                              : "bg-amber-50 border-amber-200 text-amber-700",
-                          )}
-                        >
-                          {issue.status}
-                        </span>
-                      )}
-
-                      {/* Manual Escalate Button (if not resolved and level < 6) */}
-                      {!isResolved && issue.escalationLevel < 6 && (
-                        <button
-                          onClick={() => handleManualEscalate(issue.id)}
-                          className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700 hover:bg-red-100 transition-colors shadow-2xs cursor-pointer ml-auto"
-                          title="Manually escalate immediately to the next managerial level"
-                        >
-                          Escalate to Level {issue.escalationLevel + 1}
-                        </button>
-                      )}
+                      <h4 className="text-sm font-medium">{issue.title}</h4>
+                      <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", priorityColors[issue.priority])}>{issue.priority}</span>
+                      <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{issue.status}</span>
                     </div>
-
-                    <p className="text-xs text-gray-700 leading-relaxed">{issue.description}</p>
-
-                    {/* Metadata bar */}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap pt-1">
-                      <span>
-                        <span className="font-semibold text-gray-600">Raised By:</span> {issue.raisedByName} ({issue.raisedByRole})
-                      </span>
-                      <span>
-                        <span className="font-semibold text-gray-600">Dotted-Line Manager:</span>{" "}
-                        <span className="text-primary font-semibold">{issue.dottedLineManagerName || "Reporting Manager"}</span>
-                      </span>
+                    <p className="mt-1 text-xs text-muted-foreground">{issue.description}</p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{issue.raisedByName} · {issue.raisedByRole}</span>
                       <span>·</span>
-                      <span>{new Date(issue.createdAtUtc).toLocaleDateString("en-GB")}</span>
-
-                      {/* 2-Day SLA Countdown */}
-                      {!isResolved && issue.escalationLevel < 6 && (
-                        <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          <Clock className="h-3 w-3 text-amber-600" />
-                          Auto-escalates in {Math.round(issue.hoursUntilNextEscalation)}h
-                        </span>
-                      )}
+                      <span>{new Date(issue.createdAt).toLocaleDateString()}</span>
+                      {issue.comments.length > 0 && <><span>·</span><span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" /> {issue.comments.length}</span></>}
                     </div>
-
-                    {/* Audit History Toggle */}
-                    {issue.auditHistory && issue.auditHistory.length > 0 && (
-                      <div className="pt-2">
-                        <button
-                          onClick={() => setExpandedIssueId(isExpanded ? null : issue.id)}
-                          className="text-[11px] font-semibold text-primary hover:underline cursor-pointer flex items-center gap-1"
-                        >
-                          {isExpanded ? "Hide Escalation History ▲" : `View Escalation Timeline (${issue.auditHistory.length}) ▼`}
-                        </button>
-
-                        {isExpanded && (
-                          <div className="mt-2 space-y-1.5 bg-muted/30 p-2.5 rounded-lg border border-border/70 text-xs">
-                            <div className="font-bold text-[11px] text-gray-700 uppercase tracking-wide">
-                              Escalation & Audit Timeline
-                            </div>
-                            {issue.auditHistory.map((item, idx) => (
-                              <div key={idx} className="flex items-start gap-2 text-[11px] text-muted-foreground">
-                                <span className="font-mono text-gray-500 whitespace-nowrap">
-                                  {new Date(item.timestampUtc).toLocaleDateString("en-GB", {
-                                    day: "2-digit",
-                                    month: "short",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                                <span>—</span>
-                                <span className="font-semibold text-gray-800">{item.action}:</span>
-                                <span>{item.details}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -6701,81 +6299,11 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
           })}
         </div>
       )}
-
-      {/* Raise Issue Modal */}
-      {showRaiseModal && (
-        <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
-          <div className="space-y-3">
-            <Field label="Issue Title">
-              <input
-                value={formData.title}
-                onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))}
-                placeholder="Brief summary..."
-                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </Field>
-            <Field label="Description">
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))}
-                placeholder="Detailed description..."
-                rows={3}
-                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </Field>
-            <Field label="Issue Type">
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))}
-                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map(
-                  (cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ),
-                )}
-              </select>
-            </Field>
-            <Field label="Priority">
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))}
-                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => (
-                  <option key={pri} value={pri}>
-                    {pri}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <div className="rounded-md bg-blue-50 border border-blue-200 p-2.5 text-xs text-blue-900 leading-relaxed">
-              <span className="font-bold">Escalation Policy:</span> This issue will be assigned directly to your Dotted-Line Reporting Manager (PM). If unresolved after 2 days, it automatically escalates: PM → SPM → EM → PMO → HOD → CEO.
-            </div>
-            <div className="flex justify-end gap-2 border-t border-border pt-3">
-              <button
-                onClick={() => setShowRaiseModal(false)}
-                className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 cursor-pointer"
-              >
-                Raise Issue
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }
 
-function HealthAlertsPanel({ alerts, canManage }: { alerts: DhAlert[]; canManage?: boolean }) {
+function HealthAlertsPanel({ alerts }: { alerts: DhAlert[] }) {
   if (alerts.length === 0) {
     return <div className="rounded-lg border border-border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">No active alerts</p></div>;
   }
@@ -6783,38 +6311,12 @@ function HealthAlertsPanel({ alerts, canManage }: { alerts: DhAlert[]; canManage
     <div className="space-y-2">
       {alerts.map((alert) => (
         <div key={alert.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between">
             <div>
               <h4 className="text-sm font-medium">{alert.title}</h4>
               <p className="mt-1 text-xs text-muted-foreground">Raised by {alert.raisedByName} · {new Date(alert.createdAt).toLocaleDateString()}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">{alert.status}</span>
-              {canManage && alert.status !== "Resolved" && (
-                <div className="flex items-center gap-1.5">
-                  {alert.status !== "Acknowledged" && (
-                    <button
-                      onClick={() => {
-                        dhStore.ackAlert(alert.id);
-                        toast.success("Alert acknowledged");
-                      }}
-                      className="rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-bold hover:bg-accent text-foreground transition-colors"
-                    >
-                      Acknowledge
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      dhStore.resolveAlert(alert.id);
-                      toast.success("Alert resolved");
-                    }}
-                    className="rounded-md bg-emerald-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-700 transition-colors"
-                  >
-                    Resolve
-                  </button>
-                </div>
-              )}
-            </div>
+            <span className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">{alert.status}</span>
           </div>
         </div>
       ))}
@@ -7060,11 +6562,10 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
                 <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Resolution & Outcome Notes</span>
                 <textarea
                   value={resDetails}
-                  disabled={!canRaise}
                   onChange={(e) => setResDetails(e.target.value)}
-                  placeholder={canRaise ? "Document resolution steps, technical outcomes, or action plan here..." : "No resolution notes."}
+                  placeholder="Document resolution steps, technical outcomes, or action plan here..."
                   rows={3}
-                  className="w-full rounded-md border border-border bg-card p-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:bg-muted/50 disabled:cursor-not-allowed"
+                  className="w-full rounded-md border border-border bg-card p-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
@@ -7122,10 +6623,9 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
                   <span className="font-semibold text-[9px] text-muted-foreground uppercase block">Set Status</span>
                   <select
                     value={selectedStatus}
-                    disabled={!canRaise}
                     onChange={(e) => setSelectedStatus(e.target.value as any)}
                     className={cn(
-                      "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-75",
+                      "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
                       selectedStatus === "Resolved" || selectedStatus === "Closed" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
                         selectedStatus === "Open" ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100" :
                           selectedStatus === "In Progress" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
@@ -7156,15 +6656,13 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
                       <span className="text-muted-foreground italic text-[9px]">No chat messages yet.</span>
                     )}
                   </div>
-                  {canRaise && (
-                    <textarea
-                      value={newChatMsg}
-                      onChange={(e) => setNewChatMsg(e.target.value)}
-                      placeholder="Type a message or reply to conversation thread..."
-                      rows={2}
-                      className="w-full rounded-md border border-border p-1.5 text-xs bg-card outline-none focus-visible:ring-1 focus-visible:ring-ring mt-2"
-                    />
-                  )}
+                  <textarea
+                    value={newChatMsg}
+                    onChange={(e) => setNewChatMsg(e.target.value)}
+                    placeholder="Type a message or reply to conversation thread..."
+                    rows={2}
+                    className="w-full rounded-md border border-border p-1.5 text-xs bg-card outline-none focus-visible:ring-1 focus-visible:ring-ring mt-2"
+                  />
                 </div>
               </div>
 
@@ -7172,14 +6670,12 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
                 <button onClick={() => setSelectedEscId(null)} className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-semibold hover:bg-accent">
                   Cancel
                 </button>
-                {canRaise && (
-                  <button
-                    onClick={handleUpdateEscalation}
-                    className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                  >
-                    Save Changes
-                  </button>
-                )}
+                <button
+                  onClick={handleUpdateEscalation}
+                  className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  Save Changes
+                </button>
               </div>
             </div>
           </div>
@@ -7248,19 +6744,27 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
   );
 }
 
-function HealthAppreciationPanel({
-  appreciations,
-  project,
-  canAppreciate = false,
-}: {
-  appreciations: DhAppreciation[];
-  project: Project;
-  canAppreciate?: boolean;
-}) {
+function HealthAppreciationPanel({ appreciations, project }: { appreciations: DhAppreciation[]; project: Project }) {
   const store = useDhStore((s) => s);
-  const { user } = useRoleContext();
+  const { user, isEmployee, isPmFamily, isDhanshree, isSales, isViewOnly } = useRoleContext();
   const [showAppreciateModal, setShowAppreciateModal] = useState(false);
   const [formData, setFormData] = useState({ toUserId: project.teamIds[0] || "u5", badge: "Star Performer" as const, note: "" });
+  const canAppreciate =
+    !isViewOnly &&
+    (isEmployee ||
+      isPmFamily ||
+      isSales ||
+      isDhanshree ||
+      user.role === "Employee" ||
+      user.role === "ProjectManager" ||
+      user.role === "Project Manager" ||
+      user.role === "Senior Project Manager" ||
+      user.role === "SeniorPm" ||
+      user.role === "Team Lead" ||
+      user.role === "TeamLead" ||
+      user.role === "Engagement Manager" ||
+      user.role === "EngagementManager" ||
+      user.role === "Dhanshree");
 
   const teamPool = useMemo(() => {
     const ids = [project.pmId, project.tlId, ...project.teamIds];
@@ -7338,20 +6842,12 @@ function HealthAppreciationPanel({
 // ---------- Dhanshree Client Engagement Tab ----------
 function DhClientEngagementTab({ project, clientName }: { project: Project; clientName: string }) {
   const store = useDhStore((s) => s);
-  const { user, isAdmin } = useRoleContext();
-  const { hasAny } = usePermissions();
+  const { user } = useRoleContext();
   const [commTab, setCommTab] = useState<"Interview Scheduling" | "Additional Customer Requirement">("Interview Scheduling");
 
   const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
   const projectRequirements = store.requirements.filter((r) => r.projectId === project.id);
-  const isEM =
-    user.role === "Engagement Manager" ||
-    user.role === "Dhanshree" ||
-    isAdmin ||
-    hasAny(
-      "Projects|projects Cards|Health|Customer Engagment|Interview Scheduling:manage",
-      "projects.health.interviews.manage",
-    );
+  const isEM = user.role === "Engagement Manager" || user.role === "Dhanshree";
 
   return (
     <div className="space-y-4">
@@ -7378,16 +6874,6 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
 }
 
 function AdditionalRequirementsPanel({ requirements, project, clientName }: { requirements: DhAdditionalRequirement[]; project: Project; clientName: string }) {
-  const { user, isAdmin, isDhanshree } = useRoleContext();
-  const { hasAny } = usePermissions();
-  const canManageRequirement =
-    isAdmin ||
-    isDhanshree ||
-    hasAny(
-      "Projects|projects Cards|Health|Customer Engagment|Additional customer Requirement:manage",
-      "projects.health.requirements.manage",
-    );
-
   const [showModal, setShowModal] = useState(false);
   const [selectedReq, setSelectedReq] = useState<DhAdditionalRequirement | null>(null);
 
@@ -7438,32 +6924,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
       status: "Open",
       comments: []
     });
-
-    // Persist to backend database tbl_approval_requests
-    createApprovalRequest({
-      approvalType: "ScopeChange",
-      projectId: isApiGuid(project.id) ? project.id : null,
-      projectName: projName,
-      department: "Project Management",
-      title: isCancellation ? `Scope Cancellation Request: ${scopeCancellation}` : `Scope Addition Request: ${finalTitle}`,
-      description: description.trim(),
-      requestedByEmployeeId: isApiGuid(user.id) ? user.id : "00000000-0000-4000-8000-000000000040",
-      requestedByName: requestedBy.trim(),
-      requestedByRole: "Project Manager",
-      assignedApproverRole: "EM",
-      assignedApproverName: "EM & Sales Team",
-      priority,
-      payloadJson: JSON.stringify({
-        scopeAction: isCancellation ? "Cancellation" : "Addition",
-        serviceName: isCancellation ? scopeCancellation : finalTitle,
-        scopeTitle: finalTitle,
-        reason: description.trim(),
-        requestedDate,
-        attachmentName: attachmentName || undefined,
-      }),
-    }).catch((err) => console.warn("Failed to persist scope approval to backend", err));
-
-    toast.success(isCancellation ? "Scope cancellation request logged & approval sent!" : "Requirement logged & approval sent!");
+    toast.success(isCancellation ? "Scope cancellation request logged!" : "Requirement logged persistently!");
     setShowModal(false);
     // Reset
     setReqTab("Add Service");
@@ -7494,14 +6955,12 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Additional Requirements ({requirements.length})</h4>
-        {canManageRequirement && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-3.5 w-3.5" /> Log Requirement
-          </button>
-        )}
+        <button
+          onClick={() => setShowModal(true)}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-3.5 w-3.5" /> Log Requirement
+        </button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -7630,7 +7089,6 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
       {selectedReq && (
         <RequirementDetailsModal
           requirement={selectedReq}
-          canManage={canManageRequirement}
           onClose={() => setSelectedReq(null)}
         />
       )}
@@ -7638,15 +7096,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
   );
 }
 
-function RequirementDetailsModal({
-  requirement,
-  canManage = true,
-  onClose,
-}: {
-  requirement: DhAdditionalRequirement;
-  canManage?: boolean;
-  onClose: () => void;
-}) {
+function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAdditionalRequirement; onClose: () => void }) {
   const [commentText, setCommentText] = useState("");
   const store = useDhStore(s => s);
 
@@ -7682,28 +7132,26 @@ function RequirementDetailsModal({
               <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold", statusColors[req.status])}>
                 {req.status}
               </span>
-              {canManage && (
-                <select
-                  value={req.status}
-                  onChange={(e) => {
-                    const s = e.target.value as RequirementStatus;
-                    dhStore.updateRequirementStatus(req.id, s, "dhanshree", "Dhanshree");
-                    toast.success(`Status updated to ${s}`);
-                  }}
-                  className={cn(
-                    "h-8 rounded-md border px-2.5 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                    req.status === "Approved" || req.status === "Implemented" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
-                      req.status === "Open" ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100" :
-                        req.status === "Under Review" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-                          req.status === "Rejected" ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" :
-                            "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                  )}
-                >
-                  {["Open", "Under Review", "Approved", "Rejected", "Implemented"].map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              )}
+              <select
+                value={req.status}
+                onChange={(e) => {
+                  const s = e.target.value as RequirementStatus;
+                  dhStore.updateRequirementStatus(req.id, s, "dhanshree", "Dhanshree");
+                  toast.success(`Status updated to ${s}`);
+                }}
+                className={cn(
+                  "h-8 rounded-md border px-2.5 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  req.status === "Approved" || req.status === "Implemented" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
+                    req.status === "Open" ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100" :
+                      req.status === "Under Review" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
+                        req.status === "Rejected" ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" :
+                          "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                )}
+              >
+                {["Open", "Under Review", "Approved", "Rejected", "Implemented"].map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -7773,24 +7221,22 @@ function RequirementDetailsModal({
             </div>
           </div>
 
-          {canManage && (
-            <div className="border-t border-border pt-3 flex gap-2">
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Add a remark, feedback, or update to the thread..."
-                rows={2}
-                className="flex-1 resize-none rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-              <button
-                onClick={handleComment}
-                disabled={!commentText.trim()}
-                className="inline-flex items-center gap-1.5 self-end rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                <Send className="h-3.5 w-3.5" /> Post
-              </button>
-            </div>
-          )}
+          <div className="border-t border-border pt-3 flex gap-2">
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Add a remark, feedback, or update to the thread..."
+              rows={2}
+              className="flex-1 resize-none rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <button
+              onClick={handleComment}
+              disabled={!commentText.trim()}
+              className="inline-flex items-center gap-1.5 self-end rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Send className="h-3.5 w-3.5" /> Post
+            </button>
+          </div>
         </div>
       </div>
     </Modal>
@@ -7800,20 +7246,12 @@ function RequirementDetailsModal({
 // ---------- Client Communication Tab ----------
 function ClientCommTab({ project }: { project: Project }) {
   const store = useDhStore((s) => s);
-  const { user, isAdmin } = useRoleContext();
-  const { hasAny } = usePermissions();
+  const { user } = useRoleContext();
   const [commTab, setCommTab] = useState<"Interview Scheduling" | "Prerequisite Validation">("Interview Scheduling");
 
   const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
   const projectPrereq = store.prereqs[project.id];
-  const isEM =
-    user.role === "Engagement Manager" ||
-    user.role === "Dhanshree" ||
-    isAdmin ||
-    hasAny(
-      "Projects|projects Cards|Health|Customer Engagment|Interview Scheduling:manage",
-      "projects.health.interviews.manage",
-    );
+  const isEM = user.role === "Engagement Manager" || user.role === "Dhanshree";
 
   return (
     <div className="space-y-4">
@@ -8000,8 +7438,8 @@ function getClientInfo(clientId: string, clientProp?: Client | null, subVentureN
   const svName = (subVentureName ?? "").trim();
   const matchedSv = svName
     ? client.subVentures?.find(
-      (sv: any) => sv.name.trim().toLowerCase() === svName.toLowerCase() || sv.id === svName
-    )
+        (sv: any) => sv.name.trim().toLowerCase() === svName.toLowerCase() || sv.id === svName
+      )
     : client.subVentures?.[0];
 
   let contacts: any[] = [];
@@ -8033,28 +7471,10 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
   const prereqData = allPrereqs[project.id];
   const knownPeople = useDhStore((s) => s.knownPeople);
   const alerts = useDhStore((s) => s.alerts);
-  const { user, isSales, isViewOnly, isAdmin, isDhanshree } = useRoleContext();
-  const { hasAny } = usePermissions();
-  const canManagePmoIntake =
-    !isViewOnly &&
-    (isAdmin ||
-      isDhanshree ||
-      hasAny(
-        "Projects|projects Cards|WBS|PMO Intake & Prerequiste Workflow:manage",
-        "projects.wbs.pmo_intake.manage",
-        "projects.pmo.manage",
-      ));
-  const canManageEscalations =
-    !isViewOnly &&
-    (isAdmin ||
-      isDhanshree ||
-      hasAny(
-        "Projects|projects Cards|Health|Escalation:manage",
-        "projects.health.escalations.manage"
-      ));
+  const { user, isSales, isViewOnly } = useRoleContext();
   const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
 
-  const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
+  const [dbProjects, setDbProjects] = useState<any[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -8118,6 +7538,28 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
       auditTrail: []
     };
   }, [prereqData, defaultPmIds, defaultSpmIds, project.id]);
+
+  const assignedProjectManagers = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.projectManagers ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({ employeeId: person.employeeId, name: person.name.trim() }));
+    }
+    return prereq.assignedPmIds
+      .map((id) => ({ employeeId: id, name: getPerson(id).name }))
+      .filter((person) => person.name?.trim());
+  }, [project.id, project.projectManagers, prereq.assignedPmIds, knownPeople]);
+
+  const assignedSeniorProjectManagers = useMemo(() => {
+    if (isApiGuid(project.id)) {
+      return (project.seniorProjectManagers ?? [])
+        .filter((person) => person.employeeId && person.name?.trim())
+        .map((person) => ({ employeeId: person.employeeId, name: person.name.trim() }));
+    }
+    return prereq.assignedSpmIds
+      .map((id) => ({ employeeId: id, name: getPerson(id).name }))
+      .filter((person) => person.name?.trim());
+  }, [project.id, project.seniorProjectManagers, prereq.assignedSpmIds, knownPeople]);
 
   const servicesList: DhServicePrereq[] = useMemo(() => {
     const rawServices: any[] = project.wbsDetails?.services ?? [];
@@ -8259,7 +7701,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
   };
 
   const handleServiceChange = (serviceId: string, field: "collectionStatus" | "validationStatus" | "billingStatus", value: string) => {
-    if (!canManagePmoIntake || isViewOnly) return;
+    if (isViewOnly) return;
     dhStore.setServicePrereqStatus(project.id, serviceId, field, value, user.id, user.name);
     toast.success("Service status updated successfully");
     if (isApiGuid(project.id) && isApiGuid(serviceId)) {
@@ -8282,7 +7724,9 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch mb-4">
 
           {/* CLIENT PROFILE INFORMATION */}
-          <div className="lg:col-span-7 xl:col-span-8 rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full">
+          <div className={cn("rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full",
+            isSales ? "lg:col-span-12" : "lg:col-span-7 xl:col-span-8"
+          )}>
             <div className="flex items-center gap-2 border-b border-border pb-2">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
               <h4 className="text-xs font-bold text-gray-800">Customer Profile Information</h4>
@@ -8328,8 +7772,8 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                 </div>
                 <div className={cn("grid gap-2",
                   subVentureContacts.slice(0, 3).length === 1 ? "grid-cols-1 max-w-sm" :
-                    subVentureContacts.slice(0, 3).length === 2 ? "grid-cols-1 sm:grid-cols-2" :
-                      "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  subVentureContacts.slice(0, 3).length === 2 ? "grid-cols-1 sm:grid-cols-2" :
+                  "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                 )}>
                   {subVentureContacts.slice(0, 3).map((spoc: any, idx: number) => (
                     <div key={idx} className="rounded-md border border-border bg-muted/20 p-2 text-xs space-y-1">
@@ -8355,6 +7799,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
           </div>
 
           {/* PM/SPM ASSIGNMENT FLOW */}
+          {!isSales && (
           <div className="lg:col-span-5 xl:col-span-4 rounded-lg border border-border bg-card p-3.5 space-y-3 shadow-xs flex flex-col justify-between h-full">
             <div className="space-y-3">
               <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -8366,72 +7811,66 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                 <div>
                   <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Project Managers</p>
                   <div className="flex flex-wrap gap-1.5" key={`pm-${Object.keys(knownPeople).length}`}>
-                    {prereq.assignedPmIds.map((id) => {
-                      const p = getPerson(id);
-                      return (
-                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
-                          <Avatar name={p.name} size={14} /> {p.name}
-                        </span>
-                      );
-                    })}
-                    {prereq.assignedPmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
+                    {assignedProjectManagers.map((person) => (
+                      <span key={person.employeeId} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
+                        <Avatar name={person.name} size={14} /> {person.name}
+                      </span>
+                    ))}
+                    {assignedProjectManagers.length === 0 && <span className="text-muted-foreground italic text-[11px]">No PM assigned yet</span>}
                   </div>
                 </div>
 
                 <div>
                   <p className="font-bold text-muted-foreground uppercase text-[10px] mb-1">Assigned Senior PMs</p>
                   <div className="flex flex-wrap gap-1.5" key={`spm-${Object.keys(knownPeople).length}`}>
-                    {prereq.assignedSpmIds.map((id) => {
-                      const p = getPerson(id);
-                      return (
-                        <span key={id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
-                          <Avatar name={p.name} size={14} /> {p.name}
-                        </span>
-                      );
-                    })}
-                    {prereq.assignedSpmIds.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
+                    {assignedSeniorProjectManagers.map((person) => (
+                      <span key={person.employeeId} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 font-medium text-[11px]">
+                        <Avatar name={person.name} size={14} /> {person.name}
+                      </span>
+                    ))}
+                    {assignedSeniorProjectManagers.length === 0 && <span className="text-muted-foreground italic text-[11px]">No Senior PM assigned yet</span>}
                   </div>
                 </div>
               </div>
             </div>
 
-            {canManagePmoIntake && !isViewOnly && (
-              <div className="space-y-2 pt-2 border-t border-border/50">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setAssignModalMode("pm")}
-                    disabled={!canShowAssignment}
-                    className={cn(
-                      "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-                      canShowAssignment
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                    )}
-                  >
-                    <UserPlus className="h-3.5 w-3.5" /> Assign PM
-                  </button>
-                  <button
-                    onClick={() => setAssignModalMode("spm")}
-                    disabled={!canShowAssignment}
-                    className={cn(
-                      "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-                      canShowAssignment
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                    )}
-                  >
-                    <UserPlus className="h-3.5 w-3.5" /> Assign SPM
-                  </button>
-                </div>
-                {!canShowAssignment && (
-                  <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
-                )}
+            <div className="space-y-2 pt-2 border-t border-border/50">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setAssignModalMode("pm")}
+                  disabled={!canShowAssignment || isViewOnly}
+                  className={cn(
+                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                    canShowAssignment
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                  )}
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Assign PM
+                </button>
+                <button
+                  onClick={() => setAssignModalMode("spm")}
+                  disabled={!canShowAssignment || isViewOnly}
+                  className={cn(
+                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                    canShowAssignment
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                  )}
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Assign SPM
+                </button>
               </div>
-            )}
+              {!canShowAssignment && (
+                <p className="text-[9px] text-muted-foreground italic text-center">Locked until all service collect &amp; validate prerequisites are validated.</p>
+              )}
+            </div>
           </div>
+          )}
         </div>
 
         {/* STEP 3 & 4: SERVICE WISE TRACKING TABLE */}
+        {!isSales && (
         <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div className="md:col-span-4 rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
             <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -8471,15 +7910,15 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                         <td className="px-3 py-2.5 text-center align-middle">
                           <select
                             value={isResourceDept ? "NA" : svc.collectionStatus}
-                            disabled={isResourceDept || !canManagePmoIntake || isViewOnly}
+                            disabled={isResourceDept}
                             onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
                             className={cn(
-                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-                              isResourceDept || !canManagePmoIntake || isViewOnly
-                                ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                              isResourceDept
+                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                                 : svc.collectionStatus === "Collected"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                             )}
                           >
                             {isResourceDept ? (
@@ -8495,15 +7934,15 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                         <td className="px-3 py-2.5 text-center align-middle">
                           <select
                             value={isResourceDept ? "NA" : svc.validationStatus}
-                            disabled={isResourceDept || !isCollected || !canManagePmoIntake || isViewOnly}
+                            disabled={isResourceDept || !isCollected}
                             onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
                             className={cn(
-                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-                              isResourceDept || !isCollected || !canManagePmoIntake || isViewOnly
-                                ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                              (isResourceDept || !isCollected)
+                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                                 : svc.validationStatus === "Validated"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                             )}
                           >
                             {isResourceDept ? (
@@ -8519,17 +7958,14 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                         <td className="px-3 py-2.5 text-center align-middle">
                           <select
                             value={svc.billingStatus ?? "Advance Pending"}
-                            disabled={!canManagePmoIntake || isViewOnly}
                             onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
                             className={cn(
-                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-                              !canManagePmoIntake || isViewOnly
-                                ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
-                                : svc.billingStatus === "Advance Received"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-                                  : svc.billingStatus === "Advance Not Required"
-                                    ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
-                                    : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 cursor-pointer"
+                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                              svc.billingStatus === "Advance Received"
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                : svc.billingStatus === "Advance Not Required"
+                                  ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                  : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
                             )}
                           >
                             <option value="Advance Pending">Advance Pending</option>
@@ -8545,9 +7981,8 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                               </span>
                             ) : (
                               <button
-                                disabled={!canStart || !canManagePmoIntake || isViewOnly}
+                                disabled={!canStart}
                                 onClick={() => {
-                                  if (!canManagePmoIntake || isViewOnly) return;
                                   dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
                                   toast.success("Service marked as Ready to Start", { description: svc.serviceName });
                                   if (isApiGuid(project.id) && isApiGuid(svc.serviceId)) {
@@ -8558,17 +7993,11 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                                 }}
                                 className={cn(
                                   "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
-                                  canStart && canManagePmoIntake && !isViewOnly
+                                  canStart
                                     ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
                                     : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
                                 )}
-                                title={
-                                  !canManagePmoIntake || isViewOnly
-                                    ? "View only permission"
-                                    : !canStart
-                                      ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first")
-                                      : "Mark this service as Ready to Start"
-                                }
+                                title={!canStart ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Mark this service as Ready to Start"}
                               >
                                 Ready
                               </button>
@@ -8592,7 +8021,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                             >
                               ⚠️ {activeEsc.status} ({activeEsc.priority})
                             </button>
-                          ) : canManageEscalations ? (
+                          ) : (
                             <button
                               onClick={() => {
                                 setEscalationModalSvc(svc);
@@ -8602,8 +8031,6 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                             >
                               Raise Escalation
                             </button>
-                          ) : (
-                            <span className="text-muted-foreground text-[11px]">—</span>
                           )}
                         </td>
                       </tr>
@@ -8613,7 +8040,9 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
               </table>
             </div>
           </div>
+
         </div>
+        )}
       </div>
 
       {/* Raise Escalation Modal */}
@@ -8850,40 +8279,38 @@ function WbsAssignmentModal({
   const [spmQuery, setSpmQuery] = useState("");
 
   const allPrereqs = useDhStore((s) => s.prereqs);
-  const [dbProjects, setDbProjects] = useState<any[]>(() => allProjects());
+  const [dbProjects, setDbProjects] = useState<any[]>([]);
   const [dbEmployees, setDbEmployees] = useState<ApiEmployeeListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [employeesReady, setEmployeesReady] = useState(false);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    Promise.all([
-      fetchProjects({ perPage: 100 }).catch((err) => {
-        console.warn("Failed to fetch projects for assign modal", err);
-        return { items: [] };
-      }),
-      fetchEmployees({ perPage: 100 }).catch((err) => {
-        console.warn("Failed to fetch employees for assign modal", err);
-        return { items: [] };
-      }),
-    ]).then(([projRes, empRes]) => {
-      if (!active) return;
-      if (projRes?.items?.length) {
-        setDbProjects(projRes.items);
-      }
-      if (empRes?.items?.length) {
-        setDbEmployees(empRes.items);
+    fetchProjects({ perPage: 100 })
+      .then((res) => {
+        if (active && res?.items && res.items.length > 0) {
+          setDbProjects(res.items);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch projects for assign modal", err));
+
+    loadEmployeesWithOnFloorRole()
+      .then((items) => {
+        if (!active) return;
+        setDbEmployees(items);
+        setEmployeesReady(true);
         dhStore.registerPeople(
-          empRes.items.map((emp) => ({
+          items.map((emp) => ({
             id: emp.id,
             name: emp.fullName,
-            role: emp.designation || emp.role || "User",
+            role: emp.jobRoleName || emp.role || emp.designation || "User",
             email: emp.workEmail || "",
           })),
         );
-      }
-      setLoading(false);
-    });
+      })
+      .catch((err) => {
+        if (active) setEmployeesReady(true);
+        console.warn("Failed to fetch employees for assign modal", err);
+      });
 
     return () => {
       active = false;
@@ -8891,30 +8318,38 @@ function WbsAssignmentModal({
   }, []);
 
   const pmPool = useMemo(() => {
-    return dbEmployees.filter(isEmployeePM).map((emp) => ({
+    return dbEmployees.filter((emp) => isActiveEmployeeStatus(emp.status) && isEmployeePM(emp)).map((emp) => ({
       id: emp.id,
       name: emp.fullName,
+      code: emp.employeeCode,
+      department: emp.department || "",
       role: "PM",
-      designation: emp.designation || "Manager (Mng.)",
+      designation: emp.jobRoleName || "Manager (Mng.)",
     }));
   }, [dbEmployees]);
 
   const spmPool = useMemo(() => {
-    return dbEmployees.filter(isEmployeeSPM).map((emp) => ({
+    return dbEmployees.filter((emp) => isActiveEmployeeStatus(emp.status) && isEmployeeSPM(emp)).map((emp) => ({
       id: emp.id,
       name: emp.fullName,
+      code: emp.employeeCode,
+      department: emp.department || "",
       role: "Senior PM",
-      designation: emp.designation || "Sr. Manager (Sr.Mng.)",
+      designation: emp.jobRoleName || "Sr. Manager (Sr.Mng.)",
     }));
   }, [dbEmployees]);
 
+  const matchesQuery = (person: { name: string; code?: string; department?: string; designation: string }, query: string) => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return true;
+    return [person.name, person.code, person.department, person.designation]
+      .some((value) => (value || "").toLowerCase().includes(needle));
+  };
   const pmVisiblePool = pmPool.filter(p =>
-    !selectedSPMs.includes(p.id) &&
-    (!pmQuery.trim() || p.name.toLowerCase().includes(pmQuery.toLowerCase()) || p.designation.toLowerCase().includes(pmQuery.toLowerCase()))
+    !selectedSPMs.includes(p.id) && matchesQuery(p, pmQuery)
   );
   const spmVisiblePool = spmPool.filter(p =>
-    !selectedPMs.includes(p.id) &&
-    (!spmQuery.trim() || p.name.toLowerCase().includes(spmQuery.toLowerCase()) || p.designation.toLowerCase().includes(spmQuery.toLowerCase()))
+    !selectedPMs.includes(p.id) && matchesQuery(p, spmQuery)
   );
 
   const selectedPMPeople = pmPool.filter(p => selectedPMs.includes(p.id));
@@ -8993,150 +8428,143 @@ function WbsAssignmentModal({
             : "Select one or more Senior Project Managers to assign to this project based on their workload."}
         </p>
 
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground border rounded-md border-border">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-xs">Loading employees from database...</span>
-          </div>
-        ) : (
-          <div>
-            {mode === "pm" ? (
-              /* Project Managers Selection */
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Project Managers</label>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    value={pmQuery}
-                    onChange={(e) => setPmQuery(e.target.value)}
-                    placeholder="Search PM..."
-                    className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-                {selectedPMPeople.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedPMPeople.map(p => (
-                      <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
-                        <Avatar name={p.name} size={16} /> {p.name}
-                        <button onClick={() => togglePM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
-                  {pmVisiblePool.map(p => {
-                    const isSel = selectedPMs.includes(p.id);
-                    const stats = calculateManagerStats(p, dbProjects, allPrereqs);
-                    const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
-                    const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
-                    return (
-                      <li key={p.id}>
-                        <button
-                          onClick={() => togglePM(p.id)}
-                          className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
-                        >
-                          <Avatar name={p.name} size={24} />
-                          <div className="flex-1 min-w-0 space-y-0.5">
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold text-gray-800">{p.name}</span>
-                              <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
-                                {stats.freePct}% free
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
-                              <span className="truncate">{p.designation}</span>
-                              <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
-                            </div>
-                            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                              <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
-                            </div>
-                          </div>
-                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                            {isSel && <Check className="h-4 w-4 text-primary" />}
-                          </div>
-                        </button>
-                      </li>
-                    );
-                  })}
-                  {pmVisiblePool.length === 0 && (
-                    <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                      {pmQuery ? "No match" : "No employees with On Floor Role 'Manager (Mng.)' found in database"}
-                    </li>
-                  )}
-                </ul>
+        <div>
+          {mode === "pm" ? (
+            /* Project Managers Selection */
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Project Managers</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={pmQuery}
+                  onChange={(e) => setPmQuery(e.target.value)}
+                  placeholder="Search PM..."
+                  className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
               </div>
-            ) : (
-              /* Senior PMs Selection */
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Senior Project Managers</label>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    value={spmQuery}
-                    onChange={(e) => setSpmQuery(e.target.value)}
-                    placeholder="Search SPM..."
-                    className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
+              {selectedPMPeople.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedPMPeople.map(p => (
+                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
+                      <Avatar name={p.name} size={16} /> {p.name}
+                      <button onClick={() => togglePM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
                 </div>
-                {selectedSPMPeople.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedSPMPeople.map(p => (
-                      <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
-                        <Avatar name={p.name} size={16} /> {p.name}
-                        <button onClick={() => toggleSPM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
-                  {spmVisiblePool.map(p => {
-                    const isSel = selectedSPMs.includes(p.id);
-                    const stats = calculateManagerStats(p, dbProjects, allPrereqs);
-                    const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
-                    const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
-                    return (
-                      <li key={p.id}>
-                        <button
-                          onClick={() => toggleSPM(p.id)}
-                          className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
-                        >
-                          <Avatar name={p.name} size={24} />
-                          <div className="flex-1 min-w-0 space-y-0.5">
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold text-gray-800">{p.name}</span>
-                              <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
-                                {stats.freePct}% free
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
-                              <span className="truncate">{p.designation}</span>
-                              <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
-                            </div>
-                            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                              <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
-                            </div>
+              )}
+              <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
+                {pmVisiblePool.map(p => {
+                  const isSel = selectedPMs.includes(p.id);
+                  const stats = calculateManagerStats(p, dbProjects, allPrereqs);
+                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                  const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
+                  return (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => togglePM(p.id)}
+                        className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
+                      >
+                        <Avatar name={p.name} size={24} />
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-800">{p.name}</span>
+                            <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
+                              {stats.freePct}% free
+                            </span>
                           </div>
-                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                            {isSel && <Check className="h-4 w-4 text-primary" />}
+                          <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
+                            <span className="truncate">{[p.code, p.department, p.designation].filter(Boolean).join(" · ")}</span>
+                            <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
                           </div>
-                        </button>
-                      </li>
-                    );
-                  })}
-                  {spmVisiblePool.length === 0 && (
-                    <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                      {spmQuery ? "No match" : "No employees with On Floor Role 'Sr. Manager (Sr.Mng.)' found in database"}
+                          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                            <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
+                          </div>
+                        </div>
+                        <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                          {isSel && <Check className="h-4 w-4 text-primary" />}
+                        </div>
+                      </button>
                     </li>
-                  )}
-                </ul>
+                  );
+                })}
+                {pmVisiblePool.length === 0 && (
+                  <li className="px-3 py-4 text-center text-xs text-muted-foreground">
+                    {!employeesReady ? "Loading employees…" : pmQuery ? "No match" : "No employees with On Floor Role Manager (Mng.)"}
+                  </li>
+                )}
+              </ul>
+            </div>
+          ) : (
+            /* Senior PMs Selection */
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Senior Project Managers</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={spmQuery}
+                  onChange={(e) => setSpmQuery(e.target.value)}
+                  placeholder="Search SPM..."
+                  className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
               </div>
-            )}
-          </div>
-        )}
+              {selectedSPMPeople.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedSPMPeople.map(p => (
+                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-primary/10 px-2 py-0.5 text-xs">
+                      <Avatar name={p.name} size={16} /> {p.name}
+                      <button onClick={() => toggleSPM(p.id)} className="ml-1 text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <ul className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
+                {spmVisiblePool.map(p => {
+                  const isSel = selectedSPMs.includes(p.id);
+                  const stats = calculateManagerStats(p, dbProjects, allPrereqs);
+                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                  const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
+                  return (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => toggleSPM(p.id)}
+                        className={cn("flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/40 text-xs transition-colors", isSel && "bg-primary/5")}
+                      >
+                        <Avatar name={p.name} size={24} />
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-800">{p.name}</span>
+                            <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
+                              {stats.freePct}% free
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
+                            <span className="truncate">{[p.code, p.department, p.designation].filter(Boolean).join(" · ")}</span>
+                            <span className="shrink-0">{stats.total} Total Projects • {stats.ongoing} Ongoing</span>
+                          </div>
+                          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                            <div className={cn("h-full rounded-full", barColor)} style={{ width: `${stats.freePct}%` }} />
+                          </div>
+                        </div>
+                        <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                          {isSel && <Check className="h-4 w-4 text-primary" />}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+                {spmVisiblePool.length === 0 && (
+                  <li className="px-3 py-4 text-center text-xs text-muted-foreground">
+                    {!employeesReady ? "Loading employees…" : spmQuery ? "No match" : "No employees with On Floor Role Sr. Manager (Sr.Mng.)"}
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end gap-2 border-t border-border pt-3">
           <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">

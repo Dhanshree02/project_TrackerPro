@@ -3,9 +3,12 @@ import { attendanceMeta } from "@/modules/my-team/constants";
 import type {
   AttendanceType,
   MemberScheduleConfig,
+  PoolAllocationStatus,
+  PoolAllocationType,
   SelectableAttendanceType,
   ShiftType,
   TeamMember,
+  TeamMemberProjectAllocation,
   TeamSchedule,
 } from "@/modules/my-team/types";
 
@@ -25,6 +28,23 @@ interface CalendarResponse {
     designation: string;
     department: string;
     directReport?: boolean;
+    employeeCode?: string | null;
+    reportingManagerName?: string | null;
+    status?: string | null;
+    allocationStatus?: string | null;
+    allocationType?: string | null;
+    allocationStartDate?: string | null;
+    allocationEndDate?: string | null;
+    allocatedProjectName?: string | null;
+    allocations?: Array<{
+      projectId: string;
+      projectName: string;
+      allocationType: string;
+      allocationStartDate: string;
+      allocationEndDate: string;
+      billability?: string | null;
+      memberRole?: string | null;
+    }> | null;
   }>;
   entries: Array<{
     employeeId: string;
@@ -54,6 +74,16 @@ function isShift(value: string | null | undefined): value is ShiftType {
   return value === "Morning" || value === "Afternoon" || value === "Night" || value === "General";
 }
 
+function normalizeAllocationType(val?: string | null): PoolAllocationType | undefined {
+  if (!val) return undefined;
+  return val.toLowerCase().startsWith("shared") ? "Shared" : "Dedicated";
+}
+
+function normalizeAllocationStatus(val?: string | null): PoolAllocationStatus | undefined {
+  if (val === "On Leave" || val === "Occupied" || val === "Free") return val;
+  return undefined;
+}
+
 export const teamDataService = {
   async getCalendar(from: string, to: string, allEmployees = false): Promise<TeamCalendarPayload> {
     const scope = allEmployees ? "&all=true" : "";
@@ -61,16 +91,37 @@ export const teamDataService = {
       `/api/v1/my-team/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${scope}`,
     );
 
-    const members: TeamMember[] = data.members.map((member) => ({
-      id: member.id,
-      name: member.name,
-      initials: member.initials,
-      designation: member.designation,
-      department: member.department,
-      status: "Active",
-      avatarColor: avatarColor(member.id),
-      directReport: member.directReport !== false,
-    }));
+    const members: TeamMember[] = data.members.map((member) => {
+      const allocations: TeamMemberProjectAllocation[] = (member.allocations ?? []).map((a) => ({
+        projectId: a.projectId,
+        projectName: a.projectName,
+        allocationType: normalizeAllocationType(a.allocationType) ?? "Dedicated",
+        allocationStartDate: a.allocationStartDate.slice(0, 10),
+        allocationEndDate: a.allocationEndDate.slice(0, 10),
+        billability: a.billability ?? undefined,
+        memberRole: a.memberRole ?? undefined,
+      }));
+
+      return {
+        id: member.id,
+        name: member.name,
+        initials: member.initials,
+        designation: member.designation,
+        department: member.department,
+        status: "Active",
+        avatarColor: avatarColor(member.id),
+        directReport: member.directReport !== false,
+        employeeCode: member.employeeCode ?? undefined,
+        reportingManagerName: member.reportingManagerName ?? undefined,
+        employeeStatus: member.status ?? undefined,
+        allocationStatus: normalizeAllocationStatus(member.allocationStatus),
+        allocationType: normalizeAllocationType(member.allocationType),
+        allocationStartDate: member.allocationStartDate?.slice(0, 10) ?? undefined,
+        allocationEndDate: member.allocationEndDate?.slice(0, 10) ?? undefined,
+        allocatedProjectName: member.allocatedProjectName ?? undefined,
+        allocations,
+      };
+    });
 
     const schedule: TeamSchedule = {};
     for (const member of members) schedule[member.id] = {};

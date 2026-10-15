@@ -17,6 +17,7 @@ import {
   buildProjectDisplayId,
   buildWbsId,
 } from "@/lib/dh-store";
+import { composeWbsId } from "@/lib/wbs-id";
 import { fetchClients, mapApiClient, formatCustomerId, type ApiClient } from "@/lib/api/clients";
 import {
   fetchServiceHierarchy,
@@ -728,7 +729,13 @@ function WbsNewProjectPage() {
   const [dbClients, setDbClients] = useState<ApiClient[]>([]);
   const [dbServiceHierarchy, setDbServiceHierarchy] = useState<ServiceHierarchyGroup[]>([]);
   const [dbServiceGroups, setDbServiceGroups] = useState<ServiceGroupOption[]>([]);
-  const [nextCodeData, setNextCodeData] = useState<{ projectSeqId: string; wbsId: string; clientProjectCount: number } | null>(null);
+  const [nextCodeData, setNextCodeData] = useState<{
+    projectSeqId: string;
+    wbsId: string;
+    financialYear: string;
+    clientProjectCount: number;
+    formattedClientProjectCount?: string;
+  } | null>(null);
 
   // Load clients, projects, and service hierarchy on mount
   useEffect(() => {
@@ -873,15 +880,18 @@ function WbsNewProjectPage() {
   const [clientDropOpen, setClientDropOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState("");
   const selectedClient = clients.find((c) => c.id === selectedClientId) ?? null;
+  const [selectedSubVenture, setSelectedSubVenture] = useState("");
 
-  // Fetch sequential Next Project Code & WBS ID from API whenever selectedClientId changes
+  // Fetch sequential Next Project Code & WBS ID from API whenever the client or sub-venture changes.
+  // Project sequencing stays global. The WBS segment uses the selected sub-venture when one is chosen.
   useEffect(() => {
     if (!selectedClientId) {
       setNextCodeData(null);
       return;
     }
+    const subVentureId = selectedClient?.subVentures?.find((sv) => sv.name === selectedSubVenture)?.id;
     let active = true;
-    fetchNextProjectCode(selectedClientId).then((res) => {
+    fetchNextProjectCode(selectedClientId, subVentureId).then((res) => {
       if (active && res) {
         setNextCodeData(res);
       }
@@ -889,14 +899,15 @@ function WbsNewProjectPage() {
       if (active) setNextCodeData(null);
     });
     return () => { active = false; };
-  }, [selectedClientId]);
+  }, [selectedClientId, selectedSubVenture, selectedClient]);
 
   // ── Sub-venture (searchable, depends on selected client) ──
   const [svSearch, setSvSearch] = useState("");
   const [svDropOpen, setSvDropOpen] = useState(false);
-  const [selectedSubVenture, setSelectedSubVenture] = useState("");
 
   const clientSubVentures = selectedClient?.subVentures ?? [];
+  const selectedSubVentureRecord =
+    clientSubVentures.find((sv) => sv.name === selectedSubVenture) ?? null;
   const filteredSubVentures = clientSubVentures.filter(
     (sv) => svSearch.trim() === "" || sv.name.toLowerCase().includes(svSearch.toLowerCase()),
   );
@@ -909,10 +920,14 @@ function WbsNewProjectPage() {
       c.industry.toLowerCase().includes(clientSearch.toLowerCase()),
   );
 
-  // Sequential Project ID and WBS ID (e.g. Project ID: P045, WBS ID: IN-2026-27-C042-P045)
-  // Ensures the selected customer ID (e.g. C042) is always directly reflected in the WBS ID
+  // Project ID stays on the existing global sequence. WBS ID uses the selected sub-venture.
   const projectId = nextCodeData?.projectSeqId ?? buildProjectDisplayId();
-  const wbsId = nextCodeData?.wbsId ?? (selectedClient ? buildWbsId(selectedClient.id, projectId) : "—");
+  const subVentureDisplayId = selectedSubVentureRecord?.subVentureCode || "—";
+  const wbsId = selectedSubVentureRecord?.subVentureCode
+    ? (nextCodeData?.financialYear
+        ? composeWbsId(nextCodeData.financialYear, selectedSubVentureRecord.subVentureCode, projectId)
+        : buildWbsId(selectedClient?.id ?? "", projectId, selectedSubVentureRecord.subVentureCode))
+    : "—";
 
   // ── Project Catalog Store (Contract Types) ──
   const {
@@ -3323,6 +3338,21 @@ function WbsNewProjectPage() {
                   </div>
                   <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
                     {selectedClient ? formatCustomerId(selectedClient.id) : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      color: "#6b7280",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Sub-Venture ID
+                  </div>
+                  <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
+                    {subVentureDisplayId}
                   </div>
                 </div>
                 <div>

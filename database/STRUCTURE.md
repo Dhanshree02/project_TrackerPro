@@ -18,6 +18,24 @@ PostgreSQL schemas match product modules. `__EFMigrationsHistory` stays in `publ
 
 Prefixes: `mst_` catalog, `tbl_` business table, `log_` activity or audit, `vw_` view, `fnc_` function. `auth.tbl_roles` is RBAC. `master.mst_roles` is the job-title catalog.
 
+## UAT SQL snapshots
+
+Two files hold the same **`pms_uat`** database content and must stay in sync when you refresh UAT:
+
+| File | Used for |
+| --- | --- |
+| `database/trackerpro-uat.sql` | Reference / legacy name in docs and some compose stacks |
+| `database/pms_uat.sql` | Docker init (`docker-compose.uat.yml` → `pms_uat_db` on first volume create) |
+
+After changing data on the live UAT database, regenerate both from the running Postgres (host port **41763** by default):
+
+```bash
+docker exec pms_uat_db pg_dump -U postgres -d pms_uat --no-owner --no-acl > database/trackerpro-uat.sql
+cp database/trackerpro-uat.sql database/pms_uat.sql
+```
+
+Commit and push **`trackerpro-uat.sql`** and **`pms_uat.sql`** together. Do not commit ad-hoc backups (`database/*-backup*.sql`, `*.dump`, `*.sql.gz`) — those stay in `.gitignore`.
+
 ## Current implementation status
 
 - Implemented (Core & Auth): `users`, `roles`, `refresh_tokens`, `role_permission_audits`, `clients`, `sub_ventures`, `client_assignments`, `client_contacts`

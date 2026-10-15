@@ -21,6 +21,19 @@ export type SelectableAttendanceType = "onsite" | "wfh" | "leave" | "clear";
 
 export type ShiftType = "Morning" | "Afternoon" | "Night" | "General";
 
+export type PoolAllocationStatus = "Occupied" | "Free" | "On Leave";
+export type PoolAllocationType = "Dedicated" | "Shared";
+
+export type TeamMemberProjectAllocation = {
+  projectId: string;
+  projectName: string;
+  allocationType: PoolAllocationType;
+  allocationStartDate: string; // YYYY-MM-DD
+  allocationEndDate: string;   // YYYY-MM-DD
+  billability?: string;
+  memberRole?: string;
+};
+
 export type TeamMember = {
   id: string;
   name: string;
@@ -31,6 +44,15 @@ export type TeamMember = {
   avatarColor: string;
   /** False on the All Employees tab when this person does not report to the signed-in user. */
   directReport?: boolean;
+  employeeCode?: string;
+  reportingManagerName?: string;
+  employeeStatus?: string;
+  allocationStatus?: PoolAllocationStatus;
+  allocationType?: PoolAllocationType;
+  allocationStartDate?: string;
+  allocationEndDate?: string;
+  allocatedProjectName?: string;
+  allocations?: TeamMemberProjectAllocation[];
 };
 
 export type CalendarEvent = {

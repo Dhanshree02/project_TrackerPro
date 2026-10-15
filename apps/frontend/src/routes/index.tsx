@@ -26,6 +26,7 @@ import {
   benchResourceIds,
   pmBuckets,
 } from "@/lib/mock-data";
+import { TeamMisSection } from "@/components/dashboard/team-mis-section";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -127,7 +128,7 @@ function Dashboard() {
       title={`Welcome back, ${user.name.split(" ")[0]}`}
       subtitle={`${user.role || roleLabels[role] || "User"} · ${assignedProjects.length} projects across ${new Set(assignedProjects.map((p) => p.clientId)).size} customers`}
     >
-      {hasPermission("Dashboard|KPI'S:view") && (
+      {false && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat
             label="Ongoing projects"
@@ -144,18 +145,60 @@ function Dashboard() {
             tone={red > 0 ? "danger" : "warn"}
           />
           <Stat
-            label="Pending Approvals"
-            value={pendingTimesheets.length}
-            sub="Timesheets awaiting review"
+            label={
+              isEmployee
+                ? "Pending Approvals"
+                : isBO
+                  ? "Open escalations"
+                  : isAccounts
+                    ? "Invoices · raised"
+                    : isSales
+                      ? "Customers"
+                      : showExec
+                        ? "Pending approvals (all)"
+                        : "Pending Approvals"
+            }
+            value={
+              isBO && !isEmployee
+                ? openIssues
+                : isAccounts
+                  ? invRaised
+                  : isSales
+                    ? assignedClients.length
+                    : pendingTimesheets.length
+            }
+            sub={
+              isEmployee
+                ? "Timesheets awaiting review"
+                : isBO
+                  ? "Strategic issues to review"
+                  : isAccounts
+                    ? `${invPaid} paid · ${invOverdue} overdue`
+                    : isSales
+                      ? "Active customer accounts"
+                      : isPMO || isHOD
+                        ? "PM/TL/Employee timesheets in flow"
+                        : "PM timesheets awaiting review"
+            }
             icon={CheckCircle2}
             tone="warn"
           />
           <Stat
-            label="People on the project"
-            value={teamSet.size}
-            sub="Across PM, TL and engineers"
-            icon={Users}
-            tone="default"
+            label={
+              isAccounts
+                ? "People on the project"
+                : showExec && !isEmployee
+                  ? "Invoices · raised"
+                  : "People on the project"
+            }
+            value={showExec && !isEmployee && !isAccounts ? invRaised : teamSet.size}
+            sub={
+              showExec && !isEmployee && !isAccounts
+                ? `${invPaid} paid · ${invOverdue} overdue`
+                : "Across PM, TL and engineers"
+            }
+            icon={showExec && !isEmployee && !isAccounts ? CheckCircle2 : Users}
+            tone={showExec && !isEmployee && !isAccounts && invOverdue > 0 ? "danger" : "default"}
           />
         </div>
       )}
@@ -418,6 +461,10 @@ function Dashboard() {
         </section>
         )}
       </div>
+      </>
+      )}
+
+      <TeamMisSection />
     </AppShell>
   );
 }

@@ -30,6 +30,7 @@ export function SearchableSelect({
   disabled,
   disabledHint,
   error,
+  hideErrorText,
   required,
   className,
   buttonClassName,
@@ -49,6 +50,7 @@ export function SearchableSelect({
   disabled?: boolean;
   disabledHint?: string;
   error?: string;
+  hideErrorText?: boolean;
   required?: boolean;
   className?: string;
   buttonClassName?: string;
@@ -210,12 +212,13 @@ export function SearchableSelect({
           )}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
+          aria-invalid={Boolean(error)}
         >
           <span className="truncate">
-            {disabled
-              ? disabledHint ?? placeholder
-              : selectedOption
-                ? selectedOption.label
+            {selectedOption
+              ? selectedOption.label
+              : disabled
+                ? disabledHint ?? placeholder
                 : value || placeholder}
           </span>
           <div className="flex shrink-0 items-center gap-1">
@@ -349,7 +352,7 @@ export function SearchableSelect({
         )}
       </div>
 
-      {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
+      {error && !hideErrorText ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
     </div>
   );
 }
@@ -358,6 +361,7 @@ export function SearchableSelect({
  * Creatable Catalog Select with Searchable Dropdown + Quick Add Button
  */
 export function CreatableCatalogSelect({
+  id,
   label,
   options,
   valueId,
@@ -370,6 +374,7 @@ export function CreatableCatalogSelect({
   onSelect,
   onCreate,
 }: {
+  id?: string;
   label: string;
   options: CatalogSelectOption[];
   valueId: string;
@@ -409,19 +414,23 @@ export function CreatableCatalogSelect({
 
   return (
     <div className={cn("block", className)}>
-      <span className={FORM_LABEL_CLS}>
-        {label}
-        {required ? <span className="text-destructive"> *</span> : null}
-      </span>
+      {label ? (
+        <span className={FORM_LABEL_CLS}>
+          {label}
+          {required ? <span className="text-destructive"> *</span> : null}
+        </span>
+      ) : null}
       <div className="flex h-9 w-full items-stretch">
         <div className="min-w-0 flex-1">
           <SearchableSelect
+            id={id}
             options={selectOptions}
             value={valueId}
             disabled={disabled || adding}
             disabledHint={disabledHint}
             placeholder={disabled ? disabledHint ?? placeholder : placeholder}
             error={error}
+            hideErrorText={true}
             onChange={(selectedId) => {
               setAdding(false);
               setNewName("");
@@ -443,7 +452,6 @@ export function CreatableCatalogSelect({
             "hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800",
             "disabled:cursor-not-allowed disabled:opacity-40 disabled:bg-muted disabled:border-border disabled:text-muted-foreground disabled:shadow-none",
             adding && !disabled && "bg-blue-700 ring-2 ring-blue-500/30 shadow-xs",
-            error && "bg-destructive hover:bg-destructive/90 text-destructive-foreground",
           )}
           onClick={() => {
             if (disabled) return;
@@ -455,6 +463,8 @@ export function CreatableCatalogSelect({
           Add
         </button>
       </div>
+
+      {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
 
       {adding && !disabled ? (
         <div className="mt-2 flex gap-1.5 animate-in fade-in duration-100">

@@ -5,7 +5,6 @@ using PMS.API.Shared.Constants;
 using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Repository.Models;
-using PMS.API.Modules.Resources;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Infrastructure.Authentication;
@@ -152,44 +151,44 @@ public static class DbSeeder
     {
         var seed = new (string Id, string Name, string Email, string Avatar, string Role)[]
         {
-            ("u1", "Aarav Mehta", "aarav@talakunchi.com", "AM", "SOC-Senior Manager"),
-            ("u2", "Riya Kapoor", "riya@talakunchi.com", "RK", "EngagementManager"),
-            ("u3", "Vikram Shah", "vikram@talakunchi.com", "VS", "SOC-Manager"),
-            ("u4", "Sana Iyer", "sana@talakunchi.com", "SI", "Consulting-Manager"),
-            ("u5", "Nikhil Rao", "nikhil@talakunchi.com", "NR", "SOC-Team Leader"),
-            ("u6", "Priya Verma", "priya@talakunchi.com", "PV", "Consulting-Team Leader"),
-            ("u7", "Arjun Singh", "arjun@talakunchi.com", "AS", "Testing-Team Member"),
-            ("u8", "Meera Joshi", "meera@talakunchi.com", "MJ", "Testing-Team Member"),
-            ("u9", "Dev Patel", "dev@talakunchi.com", "DP", "Testing-Team Member"),
-            ("u10", "Kavya Nair", "kavya@talakunchi.com", "KN", "Testing-Team Member"),
-            ("u11", "Rahul Gupta", "rahul@talakunchi.com", "RG", "PMO"),
-            ("u12", "Anita Desai", "anita@talakunchi.com", "AD", "Consulting-HOD"),
-            ("u13", "Vikrant Malhotra", "vikrant@talakunchi.com", "VM", "CEO"),
-            ("u14", "Dhanshree Pansare", "dhanshree@talakunchi.com", "DP", "COO"),
-            ("u15", "Admin User", "admin@talakunchi.com", "AU", "Admin"),
-            ("u16", "HR User", "hr@talakunchi.com", "HU", "HR"),
-            ("u17", "Accounts User", "accounts@talakunchi.com", "AC", "Accounts"),
-            ("u18", "Sales User", "sales@talakunchi.com", "SU", "Sales Manager"),
-            ("u19", "Kunal Deshmukh", "kunal.deshmukh@talakunchi.com", "KD", "CTO"),
-            ("u20", "Pooja Sharma", "pooja.sharma@talakunchi.com", "PS", "Sales team member"),
-            ("u21", "Ananya Verma", "ananya.verma@talakunchi.com", "AV", "Intern"),
-            ("u22", "Girish Shenoy", "girish.shenoy@talakunchi.com", "GS", "Testing HOD"),
-            ("u23", "Suresh Pillai", "suresh.pillai@talakunchi.com", "SP", "Testing Senior Manager"),
-            ("u24", "Manoj Bhatt", "manoj.bhatt@talakunchi.com", "MB", "Testing-Manager"),
-            ("u25", "Kiran Mathur", "kiran.mathur@talakunchi.com", "KM", "Testing-Team Leader"),
-            ("u26", "Swati Mishra", "swati.mishra@talakunchi.com", "SM", "Consulting-Team member"),
-            ("u27", "Rajesh Kadam", "rajesh.kadam@talakunchi.com", "RK", "SOC-HOD"),
-            ("u28", "Deepak Sawant", "deepak.sawant@talakunchi.com", "DS", "SOC-Senior Manager"),
-            ("u29", "Amit Pandey", "amit.pandey@talakunchi.com", "AP", "SOC-Team Leader"),
-            ("u30", "Pooja Nair", "pooja.nair@talakunchi.com", "PN", "SOC-Team Member"),
-            ("u31", "Kavya Desai", "kavya.desai@talakunchi.com", "KD", "R&D - Team member"),
-            ("u32", "IT Admin User", "itadmin@talakunchi.com", "IT", "IT Admin"),
+            ("u1", "Aarav Mehta", "aarav@acme.co", "AM", "SOC-Senior Manager"),
+            ("u2", "Riya Kapoor", "riya@acme.co", "RK", "EngagementManager"),
+            ("u3", "Vikram Shah", "vikram@acme.co", "VS", "SOC-Manager"),
+            ("u4", "Sana Iyer", "sana@acme.co", "SI", "Consulting-Manager"),
+            ("u5", "Nikhil Rao", "nikhil@acme.co", "NR", "SOC-Team Leader"),
+            ("u6", "Priya Verma", "priya@acme.co", "PV", "Consulting-Team Leader"),
+            ("u7", "Arjun Singh", "arjun@acme.co", "AS", "Testing-Team Member"),
+            ("u8", "Meera Joshi", "meera@acme.co", "MJ", "Testing-Team Member"),
+            ("u9", "Dev Patel", "dev@acme.co", "DP", "Testing-Team Member"),
+            ("u10", "Kavya Nair", "kavya@acme.co", "KN", "Testing-Team Member"),
+            ("u11", "Rahul Gupta", "rahul@acme.co", "RG", "PMO"),
+            ("u12", "Anita Desai", "anita@acme.co", "AD", "Consulting-HOD"),
+            ("u13", "Vikrant Malhotra", "vikrant@acme.co", "VM", "CEO"),
+            ("u14", "Dhanshree Pansare", "dhanshree@acme.co", "DP", "COO"),
+            ("u15", "Admin User", "admin@acme.co", "AU", "Admin"),
+            ("u16", "HR User", "hr@acme.co", "HU", "HR"),
+            ("u17", "Accounts User", "accounts@acme.co", "AC", "Accounts"),
+            ("u18", "Sales User", "sales@acme.co", "SU", "Sales Manager"),
+            ("u19", "Kunal Deshmukh", "kunal.deshmukh@acme.co", "KD", "CTO"),
+            ("u20", "Pooja Sharma", "pooja.sharma@acme.co", "PS", "Sales team member"),
+            ("u21", "Ananya Verma", "ananya.verma@acme.co", "AV", "Intern"),
+            ("u22", "Girish Shenoy", "girish.shenoy@acme.co", "GS", "Testing HOD"),
+            ("u23", "Suresh Pillai", "suresh.pillai@acme.co", "SP", "Testing Senior Manager"),
+            ("u24", "Manoj Bhatt", "manoj.bhatt@acme.co", "MB", "Testing-Manager"),
+            ("u25", "Kiran Mathur", "kiran.mathur@acme.co", "KM", "Testing-Team Leader"),
+            ("u26", "Swati Mishra", "swati.mishra@acme.co", "SM", "Consulting-Team member"),
+            ("u27", "Rajesh Kadam", "rajesh.kadam@acme.co", "RK", "SOC-HOD"),
+            ("u28", "Deepak Sawant", "deepak.sawant@acme.co", "DS", "SOC-Senior Manager"),
+            ("u29", "Amit Pandey", "amit.pandey@acme.co", "AP", "SOC-Team Leader"),
+            ("u30", "Pooja Nair", "pooja.nair@acme.co", "PN", "SOC-Team Member"),
+            ("u31", "Kavya Desai", "kavya.desai@acme.co", "KD", "R&D - Team member"),
+            ("u32", "IT Admin User", "itadmin@acme.co", "IT", "IT Admin"),
         };
 
         // Some imported/legacy user rows have NULL PasswordHash. The User entity
         // maps it as non-nullable string, so materializing those rows crashes startup.
         await db.Database.ExecuteSqlRawAsync(
-            """UPDATE auth.tbl_users SET "PasswordHash" = '' WHERE "PasswordHash" IS NULL""",
+            $"""UPDATE {db.TableName<User>()} SET "PasswordHash" = '' WHERE "PasswordHash" IS NULL""",
             ct);
 
         var existingUsers = await db.Users.ToListAsync(ct);
@@ -332,7 +331,6 @@ public static class DbSeeder
 
         await SeedContactDesignationsAsync(db, ct);
         await SeedContactTypesAsync(db, ct);
-        await SeedAddressCitiesAsync(db, ct);
         await SeedNationalitiesAsync(db, ct);
         await SeedSalaryBandsAsync(db, ct);
         var existingDesignations = await db.Designations.ToDictionaryAsync(d => d.Code, ct);
@@ -399,34 +397,6 @@ public static class DbSeeder
                 IsActive = true,
                 SortOrder = sortOrder,
             });
-        }
-    }
-
-    private static async Task SeedAddressCitiesAsync(AppDbContext db, CancellationToken ct)
-    {
-        var existing = await db.AddressCities.IgnoreQueryFilters().ToListAsync(ct);
-        var codes = existing.Select(c => c.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var sort = 1;
-        foreach (var name in AddressCityCatalog.Names)
-        {
-            var row = existing.FirstOrDefault(c =>
-                string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
-            if (row is not null)
-            {
-                sort++;
-                continue;
-            }
-
-            var entity = new MstAddressCity
-            {
-                Code = AddressCityCatalog.CodeFor(name, codes),
-                Name = name,
-                Line = AddressCityCatalog.LineOf(name),
-                IsActive = true,
-                SortOrder = sort++,
-            };
-            db.AddressCities.Add(entity);
-            existing.Add(entity);
         }
     }
 
@@ -603,20 +573,20 @@ public static class DbSeeder
         // 2. Default seeded managers if none were added
         var defaults = new (string Name, string Desig, string Email)[]
         {
-            ("Dhanshree Pansare", "Director & Delivery Head", "dhanshree.pansare@talakunchi.com"),
-            ("Sneha Iyer", "Tech Lead", "sneha.iyer@talakunchi.com"),
-            ("Divya Rao", "Product Manager", "divya.rao@talakunchi.com"),
-            ("Neha Kulkarni", "Technical Lead", "neha.kulkarni@talakunchi.com"),
-            ("Samar Patel", "HR Business Partner", "samar.patel@talakunchi.com"),
-            ("Aanya Joshi", "Sales Executive", "aanya.joshi@talakunchi.com"),
-            ("Harsh Nair", "Business Analyst", "harsh.nair@talakunchi.com"),
-            ("Vikram Gupta", "Project Manager", "vikram.gupta@talakunchi.com"),
-            ("Pooja Menon", "HR Business Partner", "pooja.menon@talakunchi.com"),
-            ("Nikhil Khanna", "Sales Executive", "nikhil.khanna@talakunchi.com"),
-            ("Riya Kapoor", "Engagement Manager", "riya.kapoor@talakunchi.com"),
-            ("Rahul Sharma", "Engagement Manager", "rahul.sharma@talakunchi.com"),
-            ("Pradeep Singh", "Engagement Manager", "pradeep.singh@talakunchi.com"),
-            ("Arjun Mehta", "Engagement Manager", "arjun.mehta@talakunchi.com"),
+            ("Dhanshree Pansare", "Director & Delivery Head", "dhanshree.pansare@acme.co"),
+            ("Sneha Iyer", "Tech Lead", "sneha.iyer@acme.co"),
+            ("Divya Rao", "Product Manager", "divya.rao@acme.co"),
+            ("Neha Kulkarni", "Technical Lead", "neha.kulkarni@acme.co"),
+            ("Samar Patel", "HR Business Partner", "samar.patel@acme.co"),
+            ("Aanya Joshi", "Sales Executive", "aanya.joshi@acme.co"),
+            ("Harsh Nair", "Business Analyst", "harsh.nair@acme.co"),
+            ("Vikram Gupta", "Project Manager", "vikram.gupta@acme.co"),
+            ("Pooja Menon", "HR Business Partner", "pooja.menon@acme.co"),
+            ("Nikhil Khanna", "Sales Executive", "nikhil.khanna@acme.co"),
+            ("Riya Kapoor", "Engagement Manager", "riya.kapoor@acme.co"),
+            ("Rahul Sharma", "Engagement Manager", "rahul.sharma@acme.co"),
+            ("Pradeep Singh", "Engagement Manager", "pradeep.singh@acme.co"),
+            ("Arjun Mehta", "Engagement Manager", "arjun.mehta@acme.co"),
         };
 
         foreach (var (name, desig, email) in defaults)
@@ -720,123 +690,167 @@ public static class DbSeeder
         IReadOnlyDictionary<string, MstDesignation> designations,
         CancellationToken ct)
     {
-        var onFloorRolesByDesignation = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        // One On Floor Role per designation. Keyed by (department, designation) because a
+        // designation name such as "Associate Manager - III" exists in more than one department.
+        // Department → Designation → On Floor Role → RBAC Role (mst_designations.DefaultRoleId).
+        var onFloorRoleByDesignation = new Dictionary<(string Department, string Designation), string>(DesignationKeyComparer.Instance)
         {
-            ["Director and Chief Executive Officer"] = ["Leader (L)"],
-            ["Director and Chief Operating Officer"] = ["Leader (L)"],
-            ["Director and Chief Technology Officer"] = ["Leader (L)"],
-            ["IT Admin"] = ["Team Member (TM)"],
-            ["Desktop Support Engineer - I"] = ["Team Member (TM)"],
-            ["Desktop Support Engineer - II"] = ["Team Member (TM)"],
-            ["Accountant - I"] = ["Manager (Mng.)"],
-            ["Accountant - II"] = ["Manager (Mng.)"],
-            ["Accountant - III"] = ["Manager (Mng.)"],
-            ["Senior Accountant - I"] = ["Manager (Mng.)"],
-            ["Senior Accountant - II"] = ["Manager (Mng.)"],
-            ["Senior Accountant - III"] = ["Manager (Mng.)"],
-            ["HR Head"] = ["HR"],
-            ["Recruitment Coordinator - I"] = ["HR"],
-            ["Recruitment Coordinator - II"] = ["HR"],
-            ["Senior HR Executive - I"] = ["HR"],
-            ["Senior HR Executive - II"] = ["HR"],
-            ["Business Development Associate - I"] = ["Manager (Mng.)"],
-            ["Customer Success Representative - II"] = ["Manager (Mng.)"],
-            ["Director - Product Sales"] = ["Team Member (TM)"],
-            ["Sales Associate"] = ["Team Member (TM)"],
-            ["Associate Customer Success Representative - I"] = ["Team Member (TM)"],
-            ["Associate Customer Success Representative - II"] = ["Team Member (TM)"],
-            ["Associate PMO - I"] = ["Team Member (TM)"],
-            ["Associate PMO - II"] = ["Team Member (TM)"],
-            ["Senior PMO - I"] = ["Team Leader (TL)"],
-            ["Senior PMO - II"] = ["Manager (Mng.)"],
-            ["Delivery Account Manager - I"] = ["Team Member (TM)"],
-            ["Delivery Account Manager - II"] = ["Team Member (TM)"],
-            ["Senior Delivery Account Manager - I"] = ["Team Leader (TL)"],
-            ["Senior Delivery Account Manager - II"] = ["Manager (Mng.)"],
-            ["Python Developer - I"] = ["Team Member (TM)"],
-            ["Python Developer - II"] = ["Team Member (TM)"],
-            ["Python Developer - III"] = ["Team Member (TM)"],
-            ["SOC Analyst - I"] = ["Team Member (TM)"],
-            ["SOC Analyst - II"] = ["Team Member (TM)"],
-            ["SOC Analyst - III"] = ["Team Member (TM)"],
-            ["SOC Analyst - IV"] = ["Team Member (TM)"],
-            ["SIEM Admin - I"] = ["Team Member (TM)"],
-            ["SIEM Admin - II"] = ["Team Member (TM)"],
-            ["SIEM Admin - III"] = ["Team Member (TM)"],
-            ["SIEM Admin - IV"] = ["Team Member (TM)"],
-            ["SOC Consultant - I"] = ["Team Member (TM)"],
-            ["SOC Consultant - II"] = ["Team Member (TM)"],
-            ["SOC Shift Lead - I"] = ["Team Leader (TL)"],
-            ["SOC Shift Lead - II"] = ["Team Leader (TL)"],
-            ["SOC Lead - I"] = ["Team Leader (TL)"],
-            ["SOC Lead - II"] = ["Team Leader (TL)"],
-            ["GRC Auditor - I"] = ["Team Member (TM)"],
-            ["GRC Auditor - II"] = ["Team Member (TM)"],
-            ["GRC Auditor - III"] = ["Team Member (TM)"],
-            ["GRC Auditor - IV"] = ["Team Member (TM)"],
-            ["Senior GRC Auditor - I"] = ["Team Leader (TL)"],
-            ["Senior GRC Auditor - II"] = ["Team Leader (TL)"],
-            ["Associate Manager - III"] = ["Manager (Mng.)", "Team Leader (TL)"],
-            ["Principal Manager - I"] = ["Sr. Manager (Sr.Mng.)"],
-            ["Senior Vice President - Principal Consultant"] = ["Head Of Department (HOD)"],
-            ["PenTester - I"] = ["Team Member (TM)"],
-            ["PenTester - II"] = ["Team Member (TM)"],
-            ["PenTester - III"] = ["Team Member (TM)"],
-            ["PenTester - IV"] = ["Team Member (TM)"],
-            ["Senior Pentester - I"] = ["Team Member (TM)"],
-            ["Senior Pentester - II"] = ["Team Member (TM)"],
-            ["Associate Manager - I"] = ["Team Leader (TL)"],
-            ["Associate Manager - II"] = ["Team Leader (TL)"],
-            ["Associate Project Manager"] = ["Manager (Mng.)"],
-            ["Manager - I"] = ["Sr. Manager (Sr.Mng.)"],
-            ["DevSecOps Practitioner - I"] = ["Team Member (TM)"],
-            ["DevSecOps Practitioner - II"] = ["Team Member (TM)"],
-            ["DevSecOps Practitioner - III"] = ["Team Member (TM)"],
-            ["DevSecOps Associate"] = ["Team Leader (TL)"],
-            ["DevSecOps Specialist - II"] = ["Manager (Mng.)"],
-            ["Red Team Practitioner - II"] = ["Team Member (TM)"],
-            ["Red Team Practitioner - III"] = ["Team Member (TM)"],
-            ["Red Team Specialist - II"] = ["Manager (Mng.)"],
-            ["Senior Cloud Security Consultant - I"] = ["Manager (Mng.)"],
-            ["Associate AI Engineer - Contractual"] = ["Team Member (TM)"],
-            ["Intern"] = ["Team Member (TM)"],
+            // Core
+            [("Core", "Director and Chief Executive Officer")] = "Leader (L)",
+            [("Core", "Director and Chief Operating Officer")] = "Leader (L)",
+            [("Core", "Director and Chief Technology Officer")] = "Leader (L)",
+            // Functional - IT Administration
+            [("Functional - IT Administration", "IT Admin")] = "IT Admin",
+            [("Functional - IT Administration", "Desktop Support Engineer - I")] = "IT Admin",
+            [("Functional - IT Administration", "Desktop Support Engineer - II")] = "IT Admin",
+            // Functional - Accounts
+            [("Functional - Accounts", "Accountant - I")] = "Accounts",
+            [("Functional - Accounts", "Accountant - II")] = "Accounts",
+            [("Functional - Accounts", "Accountant - III")] = "Accounts",
+            [("Functional - Accounts", "Senior Accountant - I")] = "Accounts",
+            [("Functional - Accounts", "Senior Accountant - II")] = "Accounts",
+            [("Functional - Accounts", "Senior Accountant - III")] = "Accounts",
+            // Functional - HR
+            [("Functional - HR", "HR Head")] = "HR",
+            [("Functional - HR", "Recruitment Coordinator - I")] = "HR",
+            [("Functional - HR", "Recruitment Coordinator - II")] = "HR",
+            [("Functional - HR", "Senior HR Executive - I")] = "HR",
+            [("Functional - HR", "Senior HR Executive - II")] = "HR",
+            // Functional - Sales
+            [("Functional - Sales", "Business Development Associate - I")] = "Sales Manager",
+            [("Functional - Sales", "Customer Success Representative - II")] = "Sales Manager",
+            [("Functional - Sales", "Director - Product Sales")] = "Sales team member",
+            [("Functional - Sales", "Sales Associate")] = "Sales team member",
+            [("Functional - Sales", "Associate Customer Success Representative - I")] = "Sales team member",
+            [("Functional - Sales", "Associate Customer Success Representative - II")] = "Sales team member",
+            // Functional - Project Management
+            [("Functional - Project Management", "Associate PMO - I")] = "Team Member (TM)",
+            [("Functional - Project Management", "Associate PMO - II")] = "Team Member (TM)",
+            [("Functional - Project Management", "Senior PMO - I")] = "Team Leader (TL)",
+            [("Functional - Project Management", "Senior PMO - II")] = "Manager (Mng.)",
+            [("Functional - Project Management", "Delivery Account Manager - I")] = "Team Member (TM)",
+            [("Functional - Project Management", "Delivery Account Manager - II")] = "Team Member (TM)",
+            [("Functional - Project Management", "Senior Delivery Account Manager - I")] = "Team Leader (TL)",
+            [("Functional - Project Management", "Senior Delivery Account Manager - II")] = "Manager (Mng.)",
+            // R&D (Research & Development)
+            [("R&D (Research & Development)", "Python Developer - I")] = "Team Member (TM)",
+            [("R&D (Research & Development)", "Python Developer - II")] = "Team Member (TM)",
+            [("R&D (Research & Development)", "Python Developer - III")] = "Team Member (TM)",
+            // Services - Operations
+            [("Services - Operations", "SOC Analyst - I")] = "Team Member (TM)",
+            [("Services - Operations", "SOC Analyst - II")] = "Team Member (TM)",
+            [("Services - Operations", "SOC Analyst - III")] = "Team Member (TM)",
+            [("Services - Operations", "SOC Analyst - IV")] = "Team Member (TM)",
+            [("Services - Operations", "SIEM Admin - I")] = "Team Member (TM)",
+            [("Services - Operations", "SIEM Admin - II")] = "Team Member (TM)",
+            [("Services - Operations", "SIEM Admin - III")] = "Team Member (TM)",
+            [("Services - Operations", "SIEM Admin - IV")] = "Team Leader (TL)",
+            [("Services - Operations", "SOC Consultant - I")] = "Team Member (TM)",
+            [("Services - Operations", "SOC Consultant - II")] = "Team Member (TM)",
+            [("Services - Operations", "SOC Shift Lead - I")] = "Team Leader (TL)",
+            [("Services - Operations", "SOC Shift Lead - II")] = "Team Leader (TL)",
+            [("Services - Operations", "SOC Lead - I")] = "Manager (Mng.)",
+            [("Services - Operations", "SOC Lead - II")] = "Sr. Manager (Sr.Mng.)",
+            [("Services - Operations", "Principal Manager - I")] = "Head Of Department (HOD)",
+            // Services - Consulting
+            [("Services - Consulting", "GRC Auditor - I")] = "Team Member (TM)",
+            [("Services - Consulting", "GRC Auditor - II")] = "Team Member (TM)",
+            [("Services - Consulting", "GRC Auditor - III")] = "Team Member (TM)",
+            [("Services - Consulting", "GRC Auditor - IV")] = "Team Member (TM)",
+            [("Services - Consulting", "Senior GRC Auditor - I")] = "Team Leader (TL)",
+            [("Services - Consulting", "Senior GRC Auditor - II")] = "Team Leader (TL)",
+            [("Services - Consulting", "Associate Manager - III")] = "Manager (Mng.)",
+            [("Services - Consulting", "Senior Vice President - Principal Consultant")] = "Head Of Department (HOD)",
+            // Services - Testing
+            [("Services - Testing", "PenTester - I")] = "Team Member (TM)",
+            [("Services - Testing", "PenTester - II")] = "Team Member (TM)",
+            [("Services - Testing", "PenTester - III")] = "Team Member (TM)",
+            [("Services - Testing", "PenTester - IV")] = "Team Member (TM)",
+            [("Services - Testing", "Senior Pentester - I")] = "Team Member (TM)",
+            [("Services - Testing", "Senior Pentester - II")] = "Team Member (TM)",
+            [("Services - Testing", "Associate Manager - I")] = "Team Leader (TL)",
+            [("Services - Testing", "Associate Manager - II")] = "Team Leader (TL)",
+            [("Services - Testing", "Associate Manager - III")] = "Team Leader (TL)",
+            [("Services - Testing", "Associate Project Manager")] = "Manager (Mng.)",
+            [("Services - Testing", "Manager - I")] = "Sr. Manager (Sr.Mng.)",
+            [("Services - Testing", "DevSecOps Practitioner - I")] = "Team Member (TM)",
+            [("Services - Testing", "DevSecOps Practitioner - II")] = "Team Member (TM)",
+            [("Services - Testing", "DevSecOps Practitioner - III")] = "Team Member (TM)",
+            [("Services - Testing", "DevSecOps Associate")] = "Team Leader (TL)",
+            [("Services - Testing", "DevSecOps Specialist - II")] = "Manager (Mng.)",
+            [("Services - Testing", "Red Team Practitioner - II")] = "Team Member (TM)",
+            [("Services - Testing", "Red Team Practitioner - III")] = "Team Member (TM)",
+            [("Services - Testing", "Red Team Specialist - II")] = "Manager (Mng.)",
+            [("Services - Testing", "Senior Cloud Security Consultant - I")] = "Manager (Mng.)",
+            [("Services - Testing", "Associate AI Engineer - Contractual")] = "Team Member (TM)",
         };
+        // Intern exists on every department and is always Team Member (TM).
+        const string internOnFloorRole = "Team Member (TM)";
 
-        var allDesignations = await db.Designations.ToListAsync(ct);
+        var allDesignations = await db.Designations.Include(d => d.Department).ToListAsync(ct);
         var existingCodes = await db.JobRoles.Select(r => r.Code).ToHashSetAsync(ct);
-        var existingPairs = await db.JobRoles
-            .Select(r => new { r.DesignationId, r.Name })
-            .ToListAsync(ct);
-        var existingKeys = existingPairs
+        var existingRoles = await db.JobRoles.ToListAsync(ct);
+        var existingKeys = existingRoles
             .Select(r => (r.DesignationId, r.Name))
+            .ToHashSet();
+        var designationsWithActiveRole = existingRoles
+            .Where(r => r.IsActive)
+            .Select(r => r.DesignationId)
             .ToHashSet();
 
         foreach (var desig in allDesignations)
         {
-            if (!onFloorRolesByDesignation.TryGetValue(desig.Name.Trim(), out var names)) continue;
-            foreach (var name in names)
+            var designationName = desig.Name.Trim();
+            var departmentName = desig.Department?.Name?.Trim() ?? string.Empty;
+            string? name = null;
+            if (string.Equals(designationName, "Intern", StringComparison.OrdinalIgnoreCase))
             {
-                if (existingKeys.Contains((desig.Id, name))) continue;
-                var roleCode = Truncate($"{desig.Code}_{Slug(name)}", 80);
-                var n = 2;
-                while (existingCodes.Contains(roleCode))
-                {
-                    var suffix = $"_{n}";
-                    roleCode = Truncate(desig.Code + "_" + Slug(name), 80 - suffix.Length) + suffix;
-                    n++;
-                }
-
-                db.JobRoles.Add(new MstRole
-                {
-                    Code = roleCode,
-                    Name = name,
-                    DesignationId = desig.Id,
-                    IsActive = true,
-                });
-                existingCodes.Add(roleCode);
-                existingKeys.Add((desig.Id, name));
+                name = internOnFloorRole;
             }
+            else if (!onFloorRoleByDesignation.TryGetValue((departmentName, designationName), out name))
+            {
+                continue;
+            }
+
+            // A designation keeps exactly one active On Floor Role. When one is already
+            // there, it is left alone — master corrections are made in SQL, not by reseeding.
+            if (designationsWithActiveRole.Contains(desig.Id)) continue;
+            if (existingKeys.Contains((desig.Id, name))) continue;
+
+            var roleCode = Truncate($"{desig.Code}_{Slug(name)}", 80);
+            var n = 2;
+            while (existingCodes.Contains(roleCode))
+            {
+                var suffix = $"_{n}";
+                roleCode = Truncate(desig.Code + "_" + Slug(name), 80 - suffix.Length) + suffix;
+                n++;
+            }
+
+            db.JobRoles.Add(new MstRole
+            {
+                Code = roleCode,
+                Name = name,
+                DesignationId = desig.Id,
+                IsActive = true,
+            });
+            existingCodes.Add(roleCode);
+            existingKeys.Add((desig.Id, name));
+            designationsWithActiveRole.Add(desig.Id);
         }
+    }
+
+    private sealed class DesignationKeyComparer : IEqualityComparer<(string Department, string Designation)>
+    {
+        public static readonly DesignationKeyComparer Instance = new();
+
+        public bool Equals((string Department, string Designation) x, (string Department, string Designation) y) =>
+            string.Equals(x.Department, y.Department, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.Designation, y.Designation, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode((string Department, string Designation) obj) =>
+            HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Department),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Designation));
     }
 
     private static string Truncate(string value, int max) =>
@@ -1047,7 +1061,7 @@ public static class DbSeeder
         for (var i = 0; i < seed.Length; i++)
         {
             var row = seed[i];
-            var workEmail = $"{row.FirstName.ToLowerInvariant()}.{row.LastName.ToLowerInvariant()}@talakunchi.com";
+            var workEmail = $"{row.FirstName.ToLowerInvariant()}.{row.LastName.ToLowerInvariant()}@acme.co";
             if (existingCodes.Contains(row.Code) || existingEmails.Contains(workEmail)) continue;
             departments.TryGetValue(row.Department, out var dept);
             designations.TryGetValue(row.Designation, out var desig);
@@ -1056,7 +1070,7 @@ public static class DbSeeder
             var n = i + 1;
 
             var pmoDept = row.Code == "TK-0001" ? "Core"
-                : row.Code.StartsWith("TKI") ? "Internship Program"
+                : row.Code.StartsWith("TKI") ? row.Department
                 : row.Department.Contains("Testing") ? "Services - Testing"
                 : row.Department.Contains("Operations") ? "Services - Operations"
                 : row.Department.Contains("Consulting") ? "Services - Consulting"
@@ -1079,7 +1093,7 @@ public static class DbSeeder
                 WorkEmail = workEmail,
                 Phone = (9820000000 + n).ToString(),
                 DateOfBirth = new DateOnly(1990 + (i % 8), 1 + (i % 12), 1 + (i % 27)),
-                Address = andheri ? "Andheri (Western Line)" : "Dombivli (Central Line)",
+                Address = $"{120 + n}, {location}",
                 EmergencyContact = (9811101000 + n).ToString(),
                 EmergencyContactName = $"Contact {row.FirstName}",
                 EmergencyContactRelation = i % 3 == 0 ? "Spouse" : "Father",
@@ -1215,8 +1229,8 @@ public static class DbSeeder
     {
         // Backfill Customer Since for clients created before the column existed.
         await db.Database.ExecuteSqlRawAsync(
-            """
-            UPDATE customer.tbl_clients
+            $"""
+            UPDATE {db.TableName<Client>()}
             SET "CustomerSince" = (("CreatedAtUtc" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')::date
             WHERE "CustomerSince" IS NULL AND "DeletedAtUtc" IS NULL;
             """,

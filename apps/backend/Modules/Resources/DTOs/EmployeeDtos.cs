@@ -41,7 +41,14 @@ public sealed record EmployeeListItemDto(
     string? ProjectType = null,
     string? ProjectAllocated = null,
     string? ClientEngManagerMapping = null,
-    string? JobRole = null);
+    string? JobRoleName = null,
+    string? JobRole = null,
+    string? TodayAttendance = null,
+    string? AllocationStatus = null,
+    string? AllocationType = null,
+    DateOnly? AllocationStartDate = null,
+    DateOnly? AllocationEndDate = null,
+    string? AllocatedProjectName = null);
 
 public sealed record EmployeeDetailDto(
     Guid Id,
@@ -149,7 +156,15 @@ public sealed record ExitedEmployeeDto(
     bool ClearanceCompleted = false,
     decimal? ExitRating = null);
 
-public sealed record MetaOptionDto(Guid Id, string Code, string Name, Guid? ParentId = null, Guid? DefaultRoleId = null, string? SubDepartment = null);
+public sealed record MetaOptionDto(
+    Guid Id,
+    string Code,
+    string Name,
+    Guid? ParentId = null,
+    Guid? DefaultRoleId = null,
+    string? SubDepartment = null,
+    string? DefaultRoleName = null,
+    string? DefaultRoleDisplayName = null);
 
 public sealed record CreateCatalogItemRequest(string Name, Guid? ParentId = null, Guid? DefaultRoleId = null);
 

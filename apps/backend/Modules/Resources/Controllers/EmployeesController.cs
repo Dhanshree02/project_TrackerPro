@@ -20,12 +20,13 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         [FromQuery] Guid? departmentId = null,
         [FromQuery] Guid? designationId = null,
         [FromQuery] string? status = null,
+        [FromQuery] string? onFloorRole = null,
         [FromQuery] string? role = null,
         CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         perPage = Math.Clamp(perPage, 1, 100);
-        var result = await employees.GetEmployeesAsync(page, perPage, search, departmentId, designationId, status, role, ct);
+        var result = await employees.GetEmployeesAsync(page, perPage, search, departmentId, designationId, status, onFloorRole, role, ct);
         return Ok(ApiResponse<PagedResult<EmployeeListItemDto>>.Ok(result, new ApiMeta
         {
             Total = result.Total,
@@ -281,10 +282,11 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmployeeStatuses(
         [FromQuery] bool onboardingOnly = false,
+        [FromQuery] bool offboardOnly = false,
         CancellationToken ct = default)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(
-            await employees.GetEmployeeStatusesAsync(onboardingOnly, ct)));
+            await employees.GetEmployeeStatusesAsync(onboardingOnly, offboardOnly, ct)));
     }
 
     [HttpGet("bulk/sample")]

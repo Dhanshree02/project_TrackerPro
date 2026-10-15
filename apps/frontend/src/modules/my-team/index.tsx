@@ -5,9 +5,13 @@ import {
   CalendarCog,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  Search,
+  UserPlus,
   Users,
   UsersRound,
   X,
+  RotateCcw,
 } from "lucide-react";
 import { Navigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
@@ -15,7 +19,7 @@ import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
-import { formatDateDMY } from "@/lib/utils";
+import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import { teamDataService, type TeamCalendarPayload } from "./services/teamDataService";
 import {
@@ -45,9 +49,12 @@ import type {
   CellRef,
   MemberScheduleConfig,
   OpenCell,
+  PoolAllocationStatus,
+  PoolAllocationType,
   SelectableAttendanceType,
   ShiftType,
   TeamMember,
+  TeamMemberProjectAllocation,
   TeamSchedule,
 } from "./types";
 import { DEFAULT_MEMBER_SCHEDULE_CONFIG } from "./types";
@@ -61,6 +68,495 @@ type Roster = "reportees" | "all";
 
 function rosterCacheKey(month: Date, scope: Roster) {
   return `${month.getFullYear()}-${month.getMonth()}:${scope}`;
+}
+
+function getMemberLiveAllocationStatus(
+  member: TeamMember,
+  schedule: TeamSchedule,
+  todayKey: string,
+): PoolAllocationStatus {
+  const todayEvent = schedule[member.id]?.[todayKey];
+  if (todayEvent?.type === "leave" || member.employeeStatus === "On Leave") {
+    return "On Leave";
+  }
+  const hasActiveAllocation =
+    (member.allocationEndDate && member.allocationEndDate >= todayKey) ||
+    Boolean(member.allocations?.some((a) => a.allocationEndDate >= todayKey));
+  if (hasActiveAllocation || member.allocationStatus === "Occupied") {
+    return "Occupied";
+  }
+  return "Free";
+}
+
+function resolveDayAllocation(
+  member: TeamMember,
+  dateKey: string,
+): TeamMemberProjectAllocation | undefined {
+  if (member.allocations && member.allocations.length > 0) {
+    const match = member.allocations.find(
+      (a) => a.allocationStartDate <= dateKey && dateKey <= a.allocationEndDate,
+    );
+    if (match) return match;
+  }
+  if (
+    member.allocationStartDate &&
+    member.allocationEndDate &&
+    member.allocationStartDate <= dateKey &&
+    dateKey <= member.allocationEndDate
+  ) {
+    return {
+      projectId: member.id,
+      projectName: member.allocatedProjectName || "Assigned Project",
+      allocationType: member.allocationType || "Dedicated",
+      allocationStartDate: member.allocationStartDate,
+      allocationEndDate: member.allocationEndDate,
+    };
+  }
+  return undefined;
+}
+
+function TeamAllocationStatusBadge({
+  status,
+  compact = false,
+}: {
+  status: PoolAllocationStatus;
+  compact?: boolean;
+}) {
+  const styles: Record<PoolAllocationStatus, string> = {
+    Occupied: "border-amber-500/35 bg-amber-500/12 text-amber-700 dark:text-amber-400",
+    Free: "border-emerald-500/35 bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
+    "On Leave": "border-rose-500/35 bg-rose-500/12 text-rose-700 dark:text-rose-400",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border font-semibold tracking-wide shadow-2xs whitespace-nowrap",
+        compact ? "px-1.5 py-0 text-[9.5px] leading-[15px]" : "px-2.5 py-0.5 text-[11px]",
+        styles[status],
+      )}
+    >
+      {status}
+    </span>
+  );
+}
+
+function TeamAllocationTypeBadge({
+  type,
+  compact = false,
+}: {
+  type?: PoolAllocationType;
+  compact?: boolean;
+}) {
+  if (!type) return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border font-semibold whitespace-nowrap",
+        compact ? "px-1.5 py-0 text-[9px] leading-[15px]" : "px-2.5 py-0.5 text-[11px]",
+        type === "Dedicated"
+          ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
+          : "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+      )}
+    >
+      {type}
+    </span>
+  );
+}
+
+function TeamWorkloadTasksModal({
+  member,
+  liveStatus,
+  onClose,
+}: {
+  member: TeamMember;
+  liveStatus: PoolAllocationStatus;
+  onClose: () => void;
+}) {
+  const isOnLeave = liveStatus === "On Leave";
+  const allocations: TeamMemberProjectAllocation[] = useMemo(() => {
+    if (member.allocations && member.allocations.length > 0) return member.allocations;
+    if (member.allocationStartDate && member.allocationEndDate) {
+      return [
+        {
+          projectId: member.id,
+          projectName: member.allocatedProjectName || "Assigned Project",
+          allocationType: member.allocationType || "Dedicated",
+          allocationStartDate: member.allocationStartDate,
+          allocationEndDate: member.allocationEndDate,
+        },
+      ];
+    }
+    return [];
+  }, [member]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
+      <div
+        className="relative w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border pb-4 mb-5">
+          <h2 className="text-base font-semibold text-foreground">
+            {member.name} — Workload & Tasks
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground hover:bg-accent transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/25 p-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-2xs"
+                style={{ backgroundColor: member.avatarColor }}
+              >
+                {member.initials}
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold truncate">{member.name}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {member.department || "—"} · {member.designation || "—"}
+                </div>
+                {member.employeeCode && (
+                  <div className="text-[11px] text-muted-foreground font-mono">
+                    {member.employeeCode}
+                  </div>
+                )}
+                <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                  <TeamAllocationStatusBadge status={liveStatus} />
+                  {member.allocationType && (
+                    <TeamAllocationTypeBadge type={member.allocationType} />
+                  )}
+                </div>
+                {isOnLeave && allocations.length > 0 && (
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    Assigned to project (overridden by Leave today)
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-2 space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Active Project Allocation
+            </h4>
+            {allocations.length > 0 ? (
+              <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+                {allocations.map((alloc, idx) => (
+                  <div
+                    key={`${alloc.projectId}-${idx}`}
+                    className="rounded-lg border border-border bg-card p-4 space-y-2"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-foreground">
+                        {alloc.projectName}
+                      </div>
+                      <TeamAllocationTypeBadge type={alloc.allocationType} />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">Allocation Duration: </span>
+                      {formatDateDMY(alloc.allocationStartDate)} → {formatDateDMY(alloc.allocationEndDate)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No active project allocation. Resource is currently free.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeamRequestAllocationModal({
+  member,
+  colleagues,
+  onClose,
+}: {
+  member: TeamMember;
+  colleagues: TeamMember[];
+  onClose: () => void;
+}) {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [comment, setComment] = useState("");
+  const [taggedPeople, setTaggedPeople] = useState<TeamMember[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(-1);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const managerDisplay = member.reportingManagerName?.trim() || "Reporting Manager";
+
+  const filteredPeople = useMemo(() => {
+    if (mentionQuery === null) return [];
+    return colleagues
+      .filter((p) => {
+        return (
+          p.name.toLowerCase().includes(mentionQuery.toLowerCase()) &&
+          !taggedPeople.some((tp) => tp.id === p.id)
+        );
+      })
+      .slice(0, 5);
+  }, [mentionQuery, taggedPeople, colleagues]);
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setComment(value);
+
+    const selectionStart = e.target.selectionStart;
+    const beforeCursor = value.slice(0, selectionStart);
+    const match = beforeCursor.match(/@(\w*)$/);
+    if (match) {
+      setMentionQuery(match[1]);
+      setShowDropdown(true);
+      if (textareaRef.current) {
+        const textLines = beforeCursor.split("\n");
+        const currentLine = textLines.length;
+        const currentCol = textLines[textLines.length - 1].length;
+        setDropdownPosition({
+          top: currentLine * 20 + 35,
+          left: Math.min(250, currentCol * 8 + 10),
+        });
+      }
+    } else {
+      setShowDropdown(false);
+      setMentionQuery(null);
+    }
+  };
+
+  const handleSelectPerson = (person: TeamMember) => {
+    if (!textareaRef.current) return;
+    const value = comment;
+    const selectionStart = textareaRef.current.selectionStart;
+    const beforeCursor = value.slice(0, selectionStart);
+    const afterCursor = value.slice(selectionStart);
+
+    const newBeforeCursor = beforeCursor.replace(/@(\w*)$/, `@${person.name} `);
+    const newValue = newBeforeCursor + afterCursor;
+
+    setComment(newValue);
+    setTaggedPeople((prev) => {
+      if (prev.some((p) => p.id === person.id)) return prev;
+      return [...prev, person];
+    });
+    setShowDropdown(false);
+    setMentionQuery(null);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newCursorPos = newBeforeCursor.length;
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showDropdown && filteredPeople.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIndex((prev) => (prev + 1) % filteredPeople.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIndex((prev) => (prev - 1 + filteredPeople.length) % filteredPeople.length);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        const selected = filteredPeople[mentionIndex >= 0 ? mentionIndex : 0];
+        if (selected) handleSelectPerson(selected);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setShowDropdown(false);
+        setMentionQuery(null);
+      }
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!startDate || !endDate) {
+      toast.error("Please enter both start and end dates");
+      return;
+    }
+    if (new Date(startDate) > new Date(endDate)) {
+      toast.error("Start date cannot be after end date");
+      return;
+    }
+    toast.success(`Allocation request for ${member.name} sent to ${managerDisplay}!`);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
+      <div
+        className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Request Allocation</h2>
+            <p className="text-xs text-muted-foreground">
+              Request allocation of {member.name}
+              {member.employeeCode ? ` (ID: ${member.employeeCode})` : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground hover:bg-accent transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="my-4 rounded-lg bg-primary/5 border border-primary/10 p-3.5 flex items-center justify-between">
+          <div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-primary/80">
+              Routing To:
+            </div>
+            <div className="mt-0.5 text-sm font-semibold text-foreground">
+              {managerDisplay}
+            </div>
+            <div className="text-[11px] text-muted-foreground font-medium">
+              Reporting Manager Action Center
+            </div>
+          </div>
+          <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+            Auto-Routed
+          </span>
+        </div>
+
+        <form autoComplete="off" onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                Start Date
+              </span>
+              <input
+                autoComplete="off"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">End Date</span>
+              <input
+                autoComplete="off"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
+                required
+              />
+            </label>
+          </div>
+
+          <div className="relative">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                Comments (Type @ to tag team members)
+              </span>
+              <textarea
+                autoComplete="off"
+                ref={textareaRef}
+                value={comment}
+                onChange={handleTextareaChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Type @ to tag people from the directory..."
+                className="w-full rounded-md border border-input bg-card p-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring min-h-[100px] resize-none"
+              />
+            </label>
+
+            {showDropdown && filteredPeople.length > 0 && (
+              <div
+                className="absolute z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-lg overflow-hidden py-1"
+                style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
+              >
+                {filteredPeople.map((p, idx) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleSelectPerson(p)}
+                    onMouseEnter={() => setMentionIndex(idx)}
+                    className={cn(
+                      "w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-accent hover:text-accent-foreground",
+                      (mentionIndex === idx || (mentionIndex === -1 && idx === 0)) &&
+                        "bg-accent text-accent-foreground",
+                    )}
+                  >
+                    <span
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                      style={{ backgroundColor: p.avatarColor }}
+                    >
+                      {p.initials}
+                    </span>
+                    <span className="truncate">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {taggedPeople.length > 0 && (
+            <div>
+              <span className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Tagged CC's ({taggedPeople.length}):
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {taggedPeople.map((p) => (
+                  <span
+                    key={p.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs text-primary font-medium shadow-xs"
+                  >
+                    <span>{p.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setTaggedPeople((prev) => prev.filter((item) => item.id !== p.id))}
+                      className="ml-1 rounded-full p-0.5 hover:bg-primary/10 text-primary/70 hover:text-primary transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-2 border-t border-border pt-4 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"
+            >
+              Send Request
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 export function MyTeamPage() {
@@ -94,9 +590,17 @@ export function MyTeamPage() {
   });
 
   const [scheduleDialogMember, setScheduleDialogMember] = useState<TeamMember | null>(null);
+  const [workloadMember, setWorkloadMember] = useState<TeamMember | null>(null);
+  const [allocRequestMember, setAllocRequestMember] = useState<TeamMember | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
+  const [allocStatusFilter, setAllocStatusFilter] = useState<"" | PoolAllocationStatus>("");
+  const [allocTypeFilter, setAllocTypeFilter] = useState<"" | PoolAllocationType>("");
 
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>({ kind: "all" });
   const [openCell, setOpenCell] = useState<OpenCell>(null);
+  const teamCalendarRef = useRef<HTMLDivElement>(null);
   const [focusedCell, setFocusedCell] = useState<CellRef | null>(null);
   const [rangeAnchor, setRangeAnchor] = useState<CellRef | null>(null);
   const [lastUsedShift, setLastUsedShift] = useState<ShiftType | null>(null);
@@ -107,6 +611,14 @@ export function MyTeamPage() {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const calendarMinWidth = CALENDAR_NAME_COL_PX + daysInMonth * CALENDAR_DAY_COL_PX + CALENDAR_END_PAD_PX;
   const dayGridTemplate = `repeat(${daysInMonth}, minmax(${CALENDAR_DAY_COL_PX}px, 1fr))`;
+
+  /** Hover `title` tooltips sit above the attendance popover and cover the name column. */
+  useEffect(() => {
+    if (!openCell) return;
+    const root = teamCalendarRef.current;
+    if (!root) return;
+    root.querySelectorAll("[title]").forEach((el) => el.removeAttribute("title"));
+  }, [openCell]);
 
   // today at midnight — locks past dates
   const today = useMemo(() => {
@@ -185,19 +697,64 @@ export function MyTeamPage() {
     return map;
   }, [teamMembers, teamSchedule, todayKey]);
 
+  const departmentOptions = useMemo(
+    () =>
+      [...new Set(teamMembers.map((m) => m.department).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [teamMembers],
+  );
+
   const filteredMembers = useMemo(() => {
-    if (activeFilter.kind === "all") return teamMembers;
+    let base = teamMembers;
     if (activeFilter.kind === "presence") {
-      if (activeFilter.status === "onsite") return onsiteMembers;
-      if (activeFilter.status === "offsite") return offsiteMembers;
-      if (activeFilter.status === "wfh") return wfhMembers;
-      if (activeFilter.status === "leave") return onLeaveMembers;
+      if (activeFilter.status === "onsite") base = onsiteMembers;
+      else if (activeFilter.status === "offsite") base = offsiteMembers;
+      else if (activeFilter.status === "wfh") base = wfhMembers;
+      else if (activeFilter.status === "leave") base = onLeaveMembers;
+    } else if (activeFilter.kind === "shift") {
+      base = shiftMembers[activeFilter.shift as ShiftType] ?? teamMembers;
     }
-    if (activeFilter.kind === "shift") {
-      return shiftMembers[activeFilter.shift as ShiftType] ?? teamMembers;
-    }
-    return teamMembers;
-  }, [activeFilter, teamMembers, onsiteMembers, offsiteMembers, wfhMembers, onLeaveMembers, shiftMembers]);
+
+    const q = searchQuery.trim().toLowerCase();
+    return base.filter((m) => {
+      if (deptFilter && m.department !== deptFilter) return false;
+      const liveStatus = getMemberLiveAllocationStatus(m, teamSchedule, todayKey);
+      if (allocStatusFilter && liveStatus !== allocStatusFilter) return false;
+      if (allocTypeFilter && m.allocationType !== allocTypeFilter) return false;
+      if (q) {
+        const hay = [
+          m.name,
+          m.employeeCode,
+          m.department,
+          m.designation,
+          m.reportingManagerName,
+          m.allocatedProjectName,
+          liveStatus,
+          m.allocationType,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [
+    activeFilter,
+    teamMembers,
+    onsiteMembers,
+    offsiteMembers,
+    wfhMembers,
+    onLeaveMembers,
+    shiftMembers,
+    searchQuery,
+    deptFilter,
+    allocStatusFilter,
+    allocTypeFilter,
+    teamSchedule,
+    todayKey,
+  ]);
 
   const paginateRoster = roster === "all";
   const totalPages = totalPageCount(filteredMembers.length, pageSize);
@@ -210,7 +767,7 @@ export function MyTeamPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [roster, activeFilter, pageSize]);
+  }, [roster, activeFilter, pageSize, searchQuery, deptFilter, allocStatusFilter, allocTypeFilter]);
 
   const rosterCache = useRef(new Map<string, TeamCalendarPayload>());
   const rosterInflight = useRef(new Map<string, Promise<TeamCalendarPayload>>());
@@ -574,6 +1131,30 @@ export function MyTeamPage() {
     return () => document.removeEventListener("keydown", handler);
   }, [focusedCell, visibleMembers, daysInMonth, year, monthIndex, memberConfigs, today, reportSaveError]);
 
+  const hasActiveToolbarFilters = Boolean(
+    searchQuery.trim() ||
+      deptFilter ||
+      allocStatusFilter ||
+      allocTypeFilter ||
+      activeFilter.kind !== "all",
+  );
+
+  const clearToolbarFilters = () => {
+    setSearchQuery("");
+    setDeptFilter("");
+    setAllocStatusFilter("");
+    setAllocTypeFilter("");
+    setActiveFilter({ kind: "all" });
+  };
+
+  const filterSelectClass = (active: boolean) =>
+    cn(
+      "h-9 w-full rounded-md border bg-card px-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary transition-all",
+      active
+        ? "border-blue-500/50 font-medium text-foreground bg-blue-500/5"
+        : "border-input text-muted-foreground",
+    );
+
   // ── Render ────────────────────────────────────────────────────────────────────
   if (!canViewTeam && !isAdmin && !isDhanshree) {
     return <Navigate to="/" replace />;
@@ -645,9 +1226,9 @@ export function MyTeamPage() {
 
         {/* Team calendar */}
         <section>
-          <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
             <div>
-              <h2 className="text-sm font-semibold">Team calendar</h2>
+              <h2 className="text-sm font-semibold">Team calendar & resource pool</h2>
             </div>
 
             {/* Filter badge if active */}
@@ -680,6 +1261,88 @@ export function MyTeamPage() {
             )}
           </div>
 
+          {/* Team calendar & resource pool filters (matches Employee Directory bar) */}
+          <div className="mb-3 rounded-xl border border-border bg-card p-3.5 shadow-xs">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search resource, ID, or project…"
+                  className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-8 text-xs font-normal text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                    title="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="w-full md:w-44 shrink-0">
+                <select
+                  value={deptFilter}
+                  onChange={(e) => setDeptFilter(e.target.value)}
+                  aria-label="Filter by Department"
+                  className={filterSelectClass(Boolean(deptFilter))}
+                >
+                  <option value="">All Departments</option>
+                  {departmentOptions.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-full md:w-48 shrink-0">
+                <select
+                  value={allocStatusFilter}
+                  onChange={(e) => setAllocStatusFilter(e.target.value as "" | PoolAllocationStatus)}
+                  aria-label="Filter by Allocation Status"
+                  className={filterSelectClass(Boolean(allocStatusFilter))}
+                >
+                  <option value="">All Allocation Statuses</option>
+                  <option value="Free">Free</option>
+                  <option value="Occupied">Occupied</option>
+                  <option value="On Leave">On Leave</option>
+                </select>
+              </div>
+
+              <div className="w-full md:w-44 shrink-0">
+                <select
+                  value={allocTypeFilter}
+                  onChange={(e) => setAllocTypeFilter(e.target.value as "" | PoolAllocationType)}
+                  aria-label="Filter by Allocation Type"
+                  className={filterSelectClass(Boolean(allocTypeFilter))}
+                >
+                  <option value="">All Allocation Types</option>
+                  <option value="Dedicated">Dedicated</option>
+                  <option value="Shared">Shared</option>
+                </select>
+              </div>
+
+              <div className="w-20 shrink-0 flex items-center">
+                {hasActiveToolbarFilters && (
+                  <button
+                    type="button"
+                    onClick={clearToolbarFilters}
+                    className="h-9 inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span>Reset</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="relative z-0 mt-5 isolate overflow-hidden rounded-[22px] bg-[#fbfbfc] shadow-[inset_0_0.5px_0_rgba(255,255,255,1),inset_0_0_0_0.5px_rgba(255,255,255,0.7),0_0_0_0.5px_rgba(0,0,0,0.18),0_18px_48px_-20px_rgba(15,23,42,0.28)]">
             <div className="border-b border-black/[0.06] bg-white/45 px-5 py-3.5 backdrop-blur-xl backdrop-saturate-150">
               {/* ── Month navigation ── */}
@@ -709,12 +1372,18 @@ export function MyTeamPage() {
 
             <div className="overflow-x-auto">
             <div
+              ref={teamCalendarRef}
+              data-team-calendar=""
               className="w-full"
               style={{ minWidth: calendarMinWidth }}
             >
               <div className="flex w-full border-b border-[#edf0f4]">
                 <aside
-                  className="sticky left-0 z-10 flex shrink-0 flex-col border-r border-white/50 bg-white/45 shadow-[inset_1px_0_0_rgba(255,255,255,0.7)] backdrop-blur-[28px] backdrop-saturate-150"
+                  className={`sticky left-0 flex shrink-0 flex-col border-r border-white/50 shadow-[inset_1px_0_0_rgba(255,255,255,0.7)] backdrop-blur-[28px] backdrop-saturate-150 ${
+                    openCell
+                      ? "z-[560] bg-white/98 dark:bg-slate-950/98"
+                      : "z-10 bg-white/45"
+                  }`}
                   style={{ width: CALENDAR_NAME_COL_PX }}
                 >
                   <div
@@ -723,12 +1392,15 @@ export function MyTeamPage() {
                   />
                   {visibleMembers.map((member, memberIdx) => {
                     const viewOnly = roster === "all" && member.directReport === false;
+                    const liveStatus = getMemberLiveAllocationStatus(member, teamSchedule, todayKey);
+                    const isNameRowActive = openCell?.memberId === member.id;
+                    const suppressNativeTitle = Boolean(openCell);
                     return (
                     <div
                       key={member.id}
-                      className={`flex items-center gap-2.5 px-3.5 ${
+                      className={`flex items-center gap-2.5 px-3 ${
                         memberIdx < visibleMembers.length - 1 ? "border-b border-[#edf0f4]" : ""
-                      }`}
+                      } ${isNameRowActive ? "relative z-[561] bg-white/98 dark:bg-slate-950/98" : ""}`}
                       style={{ height: CALENDAR_ROW_PX }}
                     >
                       <div
@@ -741,25 +1413,54 @@ export function MyTeamPage() {
                         <div className="flex items-center justify-between gap-1">
                           <p
                             className="truncate text-[13px] font-semibold text-[#3d3d5c] leading-tight"
-                            title={member.name}
+                            title={suppressNativeTitle ? undefined : member.name}
                           >
                             {member.name}
                           </p>
-                          {!viewOnly && (
-                          <button
-                            type="button"
-                            onClick={() => setScheduleDialogMember(member)}
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-transparent text-[#8b93a3] hover:border-black/10 hover:bg-[#f0eef9] hover:text-[#5a49b8] transition-all"
-                            title={`Configure working days, holidays & comments for ${member.name}`}
-                            aria-label={`Configure schedule for ${member.name}`}
-                          >
-                            <CalendarCog className="h-3.5 w-3.5" />
-                          </button>
-                          )}
+                          <div className="flex shrink-0 items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setAllocRequestMember(member)}
+                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 transition-colors"
+                              title={`Request Allocation for ${member.name}`}
+                              aria-label={`Request allocation for ${member.name}`}
+                            >
+                              <UserPlus className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setWorkloadMember(member)}
+                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-black/10 bg-white/80 text-[#586174] hover:bg-[#f0eef9] hover:text-[#5a49b8] transition-colors"
+                              title={`Workload & Tasks for ${member.name}`}
+                              aria-label={`Workload and tasks for ${member.name}`}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                            {!viewOnly && (
+                              <button
+                                type="button"
+                                onClick={() => setScheduleDialogMember(member)}
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-transparent text-[#8b93a3] hover:border-black/10 hover:bg-[#f0eef9] hover:text-[#5a49b8] transition-all"
+                                title={`Configure working days, holidays & comments for ${member.name}`}
+                                aria-label={`Configure schedule for ${member.name}`}
+                              >
+                                <CalendarCog className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <p className="truncate text-[11px] text-[#8b93a3] leading-tight mt-0.5">
+                        <p
+                          className="truncate text-[10.5px] text-[#8b93a3] leading-tight mt-0.5"
+                          title={suppressNativeTitle ? undefined : member.designation}
+                        >
                           {member.designation}
                         </p>
+                        <div className="mt-1 flex items-center gap-1 flex-wrap">
+                          <TeamAllocationStatusBadge status={liveStatus} compact />
+                          {member.allocationType && (
+                            <TeamAllocationTypeBadge type={member.allocationType} compact />
+                          )}
+                        </div>
                       </div>
                     </div>
                     );
@@ -829,6 +1530,7 @@ export function MyTeamPage() {
                           const isHoliday = Boolean(holidayEntry);
                           const isWeeklyOff = !workingDaysSet.has(date.getDay());
                           const monFri = getMonFriKeys(date);
+                          const dayAllocation = resolveDayAllocation(member, dateKey);
 
                           return (
                             <CalendarDayCell
@@ -848,6 +1550,7 @@ export function MyTeamPage() {
                               holidayComment={holidayEntry?.comment}
                               isWeeklyOff={isWeeklyOff}
                               weekRangeLabel={`${formatDateDMY(monFri[0])} to ${formatDateDMY(monFri[4])}`}
+                              dayAllocation={dayAllocation}
                               onToggle={(shiftKey) => handleCellToggle(member.id, date, shiftKey)}
                               onClose={() => setOpenCell(null)}
                               onFocusCell={() => setFocusedCell({ memberId: member.id, dateKey })}
@@ -876,6 +1579,19 @@ export function MyTeamPage() {
                 <ShiftChipLegend chip={shiftMeta.Afternoon.chip} text="Afternoon" />
                 <ShiftChipLegend chip={shiftMeta.Night.chip}     text="Night" />
                 <ShiftChipLegend chip={shiftMeta.General.chip}   text="General (default)" />
+                <span className="h-3 w-px bg-[#e5e8ef]" />
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="rounded bg-[#4f46e5] px-1.5 py-0.5 text-[8.5px] font-bold uppercase text-white">
+                    DED
+                  </span>
+                  <span>Dedicated Project</span>
+                </div>
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="rounded bg-[#0284c7] px-1.5 py-0.5 text-[8.5px] font-bold uppercase text-white">
+                    SHR
+                  </span>
+                  <span>Shared Project</span>
+                </div>
               </div>
               {paginateRoster && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80">
@@ -935,6 +1651,22 @@ export function MyTeamPage() {
           config={scheduleDialogMember ? memberConfigs[scheduleDialogMember.id] : undefined}
           onSave={handleSaveMemberSchedule}
         />
+
+        {workloadMember && (
+          <TeamWorkloadTasksModal
+            member={workloadMember}
+            liveStatus={getMemberLiveAllocationStatus(workloadMember, teamSchedule, todayKey)}
+            onClose={() => setWorkloadMember(null)}
+          />
+        )}
+
+        {allocRequestMember && (
+          <TeamRequestAllocationModal
+            member={allocRequestMember}
+            colleagues={teamMembers}
+            onClose={() => setAllocRequestMember(null)}
+          />
+        )}
       </div>
     </AppShell>
   );

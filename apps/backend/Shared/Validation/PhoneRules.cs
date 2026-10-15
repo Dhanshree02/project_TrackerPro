@@ -36,4 +36,19 @@ public static class PhoneRules
         if (digits.Distinct().Count() == 1) return false;
         return true;
     }
+
+    public const string NationalInvalidMessage =
+        "Enter the phone number for the selected country, without the country code";
+
+    /// <summary>
+    /// National number for any onboarded country. The country dial code is stored separately.
+    /// </summary>
+    public static bool IsValidNationalNumber(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        var digits = new string(value.Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length is < 6 or > 15) return false;
+        if (digits.Distinct().Count() == 1) return false;
+        return true;
+    }
 }

@@ -1,50 +1,73 @@
 import { useEffect, useState } from "react";
 import {
   fetchAllEmployees,
+  fetchDesignationOptions,
   fetchEmployees,
   type ApiEmployeeListItem,
 } from "@/lib/api/employees";
 
-/** Normalizes role / designation strings to check if employee has RBAC 'EM (Engagement Manager)' */
-export function isEngagementManagerRole(roleOrDesignation?: string | null): boolean {
-  if (!roleOrDesignation) return false;
-  const r = roleOrDesignation.trim().toLowerCase();
+export const ENGAGEMENT_MANAGER_DESIGNATIONS = [
+  "Delivery Account Manager - I",
+  "Delivery Account Manager - II",
+  "Senior Delivery Account Manager - I",
+  "Senior Delivery Account Manager - II",
+] as const;
+
+export function isEngagementManagerDesignation(designationName: string | null | undefined): boolean {
+  if (!designationName) return false;
+  const normalized = designationName
+    .trim()
+    .toLowerCase()
+    .replace(/\s*-\s*/g, " - ")
+    .replace(/\s+/g, " ");
   return (
-    r === "engagementmanager" ||
-    r === "engagement manager" ||
-    r === "engagement_manager" ||
-    r === "engagement manager (em)" ||
-    r === "em (engagement manager)" ||
-    r === "em" ||
-    r.includes("engagement manager") ||
-    r.startsWith("em (")
+    normalized === "delivery account manager - i" ||
+    normalized === "delivery account manager - ii" ||
+    normalized === "senior delivery account manager - i" ||
+    normalized === "senior delivery account manager - ii"
   );
 }
 
-/** Active employees whose RBAC is 'EM (Engagement Manager)' / 'EngagementManager' in the database. */
+/** Active employees whose designation is one of the Delivery Account Manager designations. */
 export async function fetchEngagementManagers(): Promise<ApiEmployeeListItem[]> {
   const byId = new Map<string, ApiEmployeeListItem>();
 
-  // 1. Try server-side query with role
   try {
-    const res = await fetchEmployees({ role: "EngagementManager", perPage: 100 });
-    for (const item of res.items ?? []) {
-      byId.set(item.id, item);
-    }
-  } catch (err) {
-    console.warn("fetchEmployees with role query failed, falling back to full directory", err);
-  }
+    const designations = await fetchDesignationOptions();
+    const emDesignationIds = (Array.isArray(designations) ? designations : [])
+      .filter((d) => isEngagementManagerDesignation(d.name))
+      .map((d) => d.id);
 
-  // 2. Fetch full active directory to guarantee anyone with EM role or designation is included
-  try {
-    const all = await fetchAllEmployees();
-    for (const e of all) {
-      if (isEngagementManagerRole(e.role) || isEngagementManagerRole(e.designation)) {
-        byId.set(e.id, e);
+    if (emDesignationIds.length > 0) {
+      const pages = await Promise.all(
+        emDesignationIds.map((designationId) =>
+          fetchEmployees({ designationId, perPage: 100, status: "Active" })
+            .then((p) => p.items ?? [])
+            .catch(() => [] as ApiEmployeeListItem[]),
+        ),
+      );
+      for (const item of pages.flat()) {
+        if (item?.id) byId.set(item.id, item);
       }
     }
   } catch (err) {
-    console.error("Failed to load employees for Engagement Managers pool", err);
+    console.warn("fetchEngagementManagers: designation query failed", err);
+  }
+
+  // Augmentation / directory fallback
+  try {
+    const all = await fetchAllEmployees();
+    for (const e of all) {
+      if (isEngagementManagerDesignation(e.designation)) {
+        if ((!e.status || e.status === "Active") && !byId.has(e.id)) {
+          byId.set(e.id, e);
+        }
+      }
+    }
+  } catch (err) {
+    if (byId.size === 0) {
+      console.warn("fetchEngagementManagers: fetchAllEmployees fallback also failed", err);
+    }
   }
 
   return [...byId.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -59,7 +82,6 @@ export function filterEngagementManagers(
   return pool.filter(
     (p) =>
       p.fullName.toLowerCase().includes(q) ||
-      (p.role ?? "").toLowerCase().includes(q) ||
       (p.designation ?? "").toLowerCase().includes(q) ||
       (p.workEmail ?? "").toLowerCase().includes(q) ||
       (p.employeeCode ?? "").toLowerCase().includes(q),

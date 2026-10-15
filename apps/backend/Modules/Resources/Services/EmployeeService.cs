@@ -27,6 +27,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         Guid? departmentId,
         Guid? designationId,
         string? status,
+        string? onFloorRole = null,
         string? role = null,
         CancellationToken ct = default)
     {
@@ -68,6 +69,11 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             query = query.Where(e => e.DesignationId == designationId.Value);
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(e => e.Status == status);
+        if (!string.IsNullOrWhiteSpace(onFloorRole))
+        {
+            var roleName = onFloorRole.Trim().ToLowerInvariant();
+            query = query.Where(e => e.JobRole != null && e.JobRole.Name.ToLower() == roleName);
+        }
         if (!string.IsNullOrWhiteSpace(role))
         {
             var roleNeedle = role.Trim().ToLowerInvariant();
@@ -129,8 +135,76 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.ProjectType,
                 e.ProjectAllocated,
                 e.ClientEngManagerMapping,
+                e.JobRole != null ? e.JobRole.Name : null,
                 e.JobRole != null ? e.JobRole.Name : null))
             .ToListAsync(ct);
+
+        if (items.Count > 0)
+        {
+            var todayIst = TodayInIst();
+            var employeeIds = items.Select(i => i.Id).ToList();
+
+            var todayEntries = await db.TeamDayEntries
+                .AsNoTracking()
+                .Where(t => employeeIds.Contains(t.EmployeeId) && t.WorkDate == todayIst)
+                .ToListAsync(ct);
+            var attendanceByEmp = todayEntries
+                .GroupBy(t => t.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.First().Attendance);
+
+            var activeAllocations = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Include(m => m.Project)
+                .Where(m => employeeIds.Contains(m.EmployeeId)
+                    && m.Project != null
+                    && m.Project.DeletedAtUtc == null
+                    && m.AllocationEndDate >= todayIst)
+                .ToListAsync(ct);
+
+            var allocationByEmp = activeAllocations
+                .GroupBy(m => m.EmployeeId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g
+                        .OrderBy(m => m.MemberRole is "ProjectTeam" or "ShadowTeam" ? 0 : 1)
+                        .ThenBy(m => m.AllocationStartDate <= todayIst ? 0 : 1)
+                        .ThenByDescending(m => m.AllocationEndDate)
+                        .ThenByDescending(m => m.CreatedAtUtc)
+                        .First());
+
+            items = items.Select(item =>
+            {
+                attendanceByEmp.TryGetValue(item.Id, out var todayAttendance);
+                allocationByEmp.TryGetValue(item.Id, out var alloc);
+
+                var isOnLeave = string.Equals(todayAttendance, "leave", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(item.Status, "On Leave", StringComparison.OrdinalIgnoreCase);
+
+                var allocationStatus = isOnLeave
+                    ? "On Leave"
+                    : alloc is not null
+                        ? "Occupied"
+                        : "Free";
+
+                string? allocationType = null;
+                if (alloc is not null && !string.IsNullOrWhiteSpace(alloc.ResourceType))
+                {
+                    allocationType = alloc.ResourceType.StartsWith("Shared", StringComparison.OrdinalIgnoreCase)
+                        ? "Shared"
+                        : "Dedicated";
+                }
+
+                return item with
+                {
+                    TodayAttendance = todayAttendance,
+                    AllocationStatus = allocationStatus,
+                    AllocationType = allocationType,
+                    AllocationStartDate = alloc?.AllocationStartDate,
+                    AllocationEndDate = alloc?.AllocationEndDate,
+                    AllocatedProjectName = alloc?.Project?.Name,
+                };
+            }).ToList();
+        }
 
         return new PagedResult<EmployeeListItemDto>(items, page, perPage, total);
     }
@@ -190,8 +264,10 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             ?? BondRules.ComputeBondExpiry(request.JoiningDate, bondDelivered, bondDurationMonths);
         var bondStatus = BondRules.ComputeBondStatus(bondDelivered, bondExpiryDate);
         var confirmationStatus = employeeStatus?.Name ?? request.ConfirmationStatus;
-        var directoryStatus = request.Status
-            ?? (string.Equals(confirmationStatus, "Active", StringComparison.OrdinalIgnoreCase) ? "Active" : "Inactive");
+        var directoryStatus = employeeStatus is not null
+            ? MapDirectoryStatusFromEmployeeStatusName(employeeStatus.Name)
+            : request.Status
+              ?? (string.Equals(confirmationStatus, "Active", StringComparison.OrdinalIgnoreCase) ? "Active" : "Inactive");
 
         var subDepartment = request.SubDepartment;
         if (string.IsNullOrWhiteSpace(subDepartment) && request.DesignationId.HasValue)
@@ -455,9 +531,18 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             if (entity.BusinessUnit != request.BusinessUnit) changes.Add("Business Unit");
             entity.BusinessUnit = request.BusinessUnit;
         }
+        string? previousWorkLocation = null;
+        string? nextWorkLocation = null;
+        var workLocationChanged = false;
         if (request.WorkLocation is not null)
         {
-            if (entity.WorkLocation != request.WorkLocation) changes.Add("Work Location");
+            if (entity.WorkLocation != request.WorkLocation)
+            {
+                changes.Add("Work Location");
+                previousWorkLocation = entity.WorkLocation;
+                nextWorkLocation = request.WorkLocation;
+                workLocationChanged = true;
+            }
             entity.WorkLocation = request.WorkLocation;
         }
         if (request.OfficeBranch is not null)
@@ -508,15 +593,32 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             if (entity.JoiningDate != request.JoiningDate) changes.Add("Joining Date");
             entity.JoiningDate = request.JoiningDate;
         }
-        if (request.Status is not null)
+        if (request.EmployeeStatusId.HasValue)
         {
-            if (entity.Status != request.Status) changes.Add("Status");
-            entity.Status = request.Status;
+            var selectedStatus = await db.EmployeeStatuses
+                .FirstOrDefaultAsync(s => s.Id == request.EmployeeStatusId.Value && s.IsActive, ct);
+            if (selectedStatus is not null)
+            {
+                if (entity.EmployeeStatusId != selectedStatus.Id) changes.Add("Employee Status");
+                entity.EmployeeStatusId = selectedStatus.Id;
+                entity.ConfirmationStatus = selectedStatus.Name;
+                var mappedStatus = MapDirectoryStatusFromEmployeeStatusName(selectedStatus.Name);
+                if (entity.Status != mappedStatus) changes.Add("Status");
+                entity.Status = mappedStatus;
+            }
         }
-        if (request.ConfirmationStatus is not null)
+        else
         {
-            if (entity.ConfirmationStatus != request.ConfirmationStatus) changes.Add("Confirmation Status");
-            entity.ConfirmationStatus = request.ConfirmationStatus;
+            if (request.Status is not null)
+            {
+                if (entity.Status != request.Status) changes.Add("Status");
+                entity.Status = request.Status;
+            }
+            if (request.ConfirmationStatus is not null)
+            {
+                if (entity.ConfirmationStatus != request.ConfirmationStatus) changes.Add("Confirmation Status");
+                entity.ConfirmationStatus = request.ConfirmationStatus;
+            }
         }
         if (request.ProbationStatus is not null)
         {
@@ -691,9 +793,18 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 }
             }
         }
+        string? previousBillableStatus = null;
+        string? nextBillableStatus = null;
+        var billableStatusChanged = false;
         if (request.BillableStatus is not null)
         {
-            if (entity.BillableStatus != request.BillableStatus) changes.Add("Billable Status");
+            if (entity.BillableStatus != request.BillableStatus)
+            {
+                changes.Add("Billable Status");
+                previousBillableStatus = entity.BillableStatus;
+                nextBillableStatus = request.BillableStatus;
+                billableStatusChanged = true;
+            }
             entity.BillableStatus = request.BillableStatus;
         }
         if (request.ClientLocation is not null)
@@ -766,12 +877,6 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             if (entity.BondExpiryDate != request.BondExpiryDate) changes.Add("Bond Expiry Date");
             entity.BondExpiryDate = request.BondExpiryDate;
         }
-        if (request.EmployeeStatusId.HasValue)
-        {
-            if (entity.EmployeeStatusId != request.EmployeeStatusId) changes.Add("Employee Status");
-            entity.EmployeeStatusId = request.EmployeeStatusId;
-        }
-
         await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), entity.Id, ct);
         await ApplyCatalogNamesAsync(entity, ct);
         try
@@ -784,6 +889,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 ? $"Updated: {string.Join(", ", distinctChanges.Take(6))}{(distinctChanges.Count > 6 ? $" (+{distinctChanges.Count - 6} more)" : "")}"
                 : "Profile details updated";
 
+            var changedAt = DateTime.UtcNow;
             db.EmployeeActivityLogs.Add(new EmployeeActivityLog
             {
                 Id = Guid.NewGuid(),
@@ -792,8 +898,34 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 PerformedByEmail = performerEmail,
                 PerformedByName = performerName,
                 Details = changeDesc,
-                CreatedAtUtc = DateTime.UtcNow
+                CreatedAtUtc = changedAt
             });
+            if (workLocationChanged)
+            {
+                db.EmployeeActivityLogs.Add(new EmployeeActivityLog
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeId = entity.Id,
+                    Action = "WorkLocationChanged",
+                    PerformedByEmail = performerEmail,
+                    PerformedByName = performerName,
+                    Details = $"{previousWorkLocation} -> {nextWorkLocation}",
+                    CreatedAtUtc = changedAt
+                });
+            }
+            if (billableStatusChanged)
+            {
+                db.EmployeeActivityLogs.Add(new EmployeeActivityLog
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeId = entity.Id,
+                    Action = "BillableStatusChanged",
+                    PerformedByEmail = performerEmail,
+                    PerformedByName = performerName,
+                    Details = $"{previousBillableStatus} -> {nextBillableStatus}",
+                    CreatedAtUtc = changedAt
+                });
+            }
             await db.SaveChangesAsync(ct);
             await SyncLinkedUserAsync(entity, ct);
         }
@@ -824,7 +956,6 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
-        var statusAtExit = employee.Status;
         string? selectedStatusName = null;
         if (request.EmployeeStatusId is Guid statusId)
         {
@@ -839,6 +970,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (selectedStatusName is null)
             employee.Status = "Notice Period";
+        var statusAtExit = employee.Status;
         employee.ExitType = request.ExitType ?? employee.ExitType;
         employee.ExitReason = request.ExitReason ?? employee.ExitReason;
         if (!string.IsNullOrWhiteSpace(request.NoticePeriodServed))
@@ -876,6 +1008,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         else
         {
+            existingExit.StatusAtExit = statusAtExit;
             existingExit.ResignationDate = request.ResignationDate ?? existingExit.ResignationDate;
             existingExit.LastWorkingDay = request.LastWorkingDay ?? existingExit.LastWorkingDay;
             existingExit.ReasonForLeaving = request.ReasonForLeaving ?? existingExit.ReasonForLeaving;
@@ -968,9 +1101,19 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         if (departmentId is not null)
             query = query.Where(d => d.DepartmentId == departmentId);
 
+        // The RBAC role travels with the designation so the onboarding form can show it
+        // with resources-read access alone (the roles endpoint needs role management rights).
         return await query
             .OrderBy(d => d.Name)
-            .Select(d => new MetaOptionDto(d.Id, d.Code, d.Name, d.DepartmentId, d.DefaultRoleId, d.SubDepartment))
+            .Select(d => new MetaOptionDto(
+                d.Id,
+                d.Code,
+                d.Name,
+                d.DepartmentId,
+                d.DefaultRoleId,
+                d.SubDepartment,
+                d.DefaultRole != null ? d.DefaultRole.Name : null,
+                d.DefaultRole != null ? d.DefaultRole.DisplayName : null))
             .ToListAsync(ct);
     }
 
@@ -1087,11 +1230,14 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
     public async Task<IReadOnlyList<MetaOptionDto>> GetEmployeeStatusesAsync(
         bool onboardingOnly = false,
+        bool offboardOnly = false,
         CancellationToken ct = default)
     {
         var query = db.EmployeeStatuses.Where(s => s.IsActive);
         if (onboardingOnly)
             query = query.Where(s => s.AllowOnboarding);
+        else if (offboardOnly)
+            query = query.Where(s => !s.AllowOnboarding && s.Code.ToLower() != "absconded");
 
         return await query
             .OrderBy(s => s.SortOrder)
@@ -1457,6 +1603,28 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.DesignationId,
         e.JobRoleId);
 
+    private static string MapDirectoryStatusFromEmployeeStatusName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Active";
+        var trimmed = name.Trim();
+        if (trimmed.StartsWith("Inactive", StringComparison.OrdinalIgnoreCase)) return "Inactive";
+        if (trimmed.Equals("Active - Probation", StringComparison.OrdinalIgnoreCase)) return "Probation";
+        if (trimmed.Equals("Resignation Under Review", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("Resignation - Under Review", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Resignation Under Review";
+        }
+        if (trimmed.Equals("Resignation - Accepted", StringComparison.OrdinalIgnoreCase)) return "Notice Period";
+        if (trimmed.Equals("Resigned", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("Terminated", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("Absconded", StringComparison.OrdinalIgnoreCase))
+        {
+            return trimmed;
+        }
+        if (trimmed.Equals("Active", StringComparison.OrdinalIgnoreCase)) return "Active";
+        return trimmed;
+    }
+
     private async Task ApplyCatalogNamesAsync(Employee entity, CancellationToken ct)
     {
         if (entity.NationalityId is Guid nationalityId)
@@ -1469,12 +1637,35 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             entity.NationalityId = await ResolveNationalityIdAsync(entity.Nationality, ct);
         }
 
+        // Department → Designation → On Floor Role → RBAC Role is one chain.
+        // The designation decides the other three, so a stale or mismatched value
+        // sent by a client (or an older row) is replaced with the designation's mapping.
         if (entity.DesignationId is Guid desigId)
         {
-            var desig = await db.Designations.Include(d => d.DefaultRole).FirstOrDefaultAsync(d => d.Id == desigId, ct);
-            if (desig?.DefaultRole is not null && (string.IsNullOrWhiteSpace(entity.Role) || entity.Role == "Employee" || entity.Role == desig.Name))
+            var desig = await db.Designations
+                .Include(d => d.DefaultRole)
+                .Include(d => d.Roles)
+                .FirstOrDefaultAsync(d => d.Id == desigId, ct);
+            if (desig is not null)
             {
-                entity.Role = desig.DefaultRole.Name;
+                if (desig.DepartmentId is Guid desigDeptId)
+                {
+                    entity.DepartmentId = desigDeptId;
+                }
+
+                var onFloorRole = desig.Roles
+                    .Where(r => r.IsActive && r.DeletedAtUtc == null)
+                    .OrderBy(r => r.CreatedAtUtc)
+                    .FirstOrDefault();
+                if (onFloorRole is not null)
+                {
+                    entity.JobRoleId = onFloorRole.Id;
+                }
+
+                if (desig.DefaultRole is not null)
+                {
+                    entity.Role = desig.DefaultRole.Name;
+                }
             }
         }
 

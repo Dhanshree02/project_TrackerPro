@@ -1,4 +1,5 @@
 using FluentValidation.TestHelper;
+using PMS.API.Modules.Customers.Services;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Projects.Services;
@@ -23,6 +24,31 @@ public class ProjectNamingAndValidationTests
     {
         var result = ProjectAppService.BuildProjectName(clientName, subVentureName, subDepts, count);
         Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("2026-27", "C013-01", "P056", "IN-2026-27/C013-01/P056")]
+    [InlineData("2026-27", "C013-03", "P057", "IN-2026-27/C013-03/P057")]
+    [InlineData("2027-28", "C019-01", "P056", "IN-2027-28/C019-01/P056")]
+    public void BuildWbsId_UsesFinancialYearSubVentureAndProject(
+        string financialYear,
+        string subVentureCode,
+        string projectSeqId,
+        string expected)
+    {
+        Assert.Equal(expected, ProjectAppService.BuildWbsId(financialYear, subVentureCode, projectSeqId));
+    }
+
+    [Fact]
+    public void SubVentureCodes_SequenceIsScopedAndStable()
+    {
+        Assert.Equal("C013-01", SubVentureCodes.Format("C013", 1));
+        Assert.Equal("C013-03", SubVentureCodes.Format("C013", 3));
+        Assert.Equal("C002-01", SubVentureCodes.Format("C002", 1));
+        Assert.Equal(1, SubVentureCodes.ReadSequence("C002-01"));
+        Assert.Equal(3, SubVentureCodes.ReadSequence("C013-03"));
+        Assert.Equal("C013", SubVentureCodes.PrefixOf("C013-03"));
+        Assert.Equal(0, SubVentureCodes.ReadSequence(null));
     }
 
     [Fact]

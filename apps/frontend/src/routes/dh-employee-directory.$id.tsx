@@ -9,7 +9,10 @@ import { usePermissions } from "@/lib/permissions";
 import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
-import { SearchableSelect } from "@/components/creatable-catalog-select";
+import {
+  employeeStatusDisplayLabel,
+  isAbscondedEmployeeStatus,
+} from "@/lib/onboard-validation";
 import {
   fetchEmployee,
   fetchEmployeeLogs,
@@ -107,7 +110,11 @@ function EmpStatusBadge({ status }: { status?: string }) {
     Active: "border-success/30 bg-success/10 text-success",
     "Active - Probation": "border-warning/40 bg-warning/15 text-warning-foreground",
     "Resignation - Under Review": "border-warning/40 bg-warning/15 text-warning-foreground",
+    "Resignation Under Review": "border-warning/40 bg-warning/15 text-warning-foreground",
     "Resignation - Accepted": "border-destructive/30 bg-destructive/10 text-destructive",
+    Resigned: "border-destructive/30 bg-destructive/10 text-destructive",
+    Terminated: "border-destructive/30 bg-destructive/10 text-destructive",
+    Absconded: "border-destructive/30 bg-destructive/10 text-destructive",
     "Inactive - After Onboarding": "border-muted-foreground/30 bg-muted text-muted-foreground",
     Probation: "border-warning/40 bg-warning/15 text-warning-foreground",
     "Notice Period": "border-destructive/30 bg-destructive/10 text-destructive",
@@ -179,29 +186,55 @@ function OffboardConfirmDialog({
     reasonForLeaving: string;
     noticePeriodServed: string;
     employeeStatusId: string;
+    exitType?: string;
   }) => void;
   onCancel: () => void;
 }) {
   const [noticePeriodDays, setNoticePeriodDays] = useState(parseNoticeDays(employee.noticePeriod));
   const [resignationDate, setResignationDate] = useState(todayIso);
   const [reasonForLeaving, setReasonForLeaving] = useState("");
-  const [employeeStatusId, setEmployeeStatusId] = useState("");
   const [statusOptions, setStatusOptions] = useState<ApiMetaOption[]>([]);
+  const [employeeStatusId, setEmployeeStatusId] = useState<string>("");
+  const [loadingStatuses, setLoadingStatuses] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
-    void fetchEmployeeStatusOptions(false)
+    void fetchEmployeeStatusOptions({ offboardOnly: true })
       .then((rows) => {
-        if (!cancelled) setStatusOptions(rows ?? []);
+        if (cancelled) return;
+        const list = rows ?? [];
+        setStatusOptions(list);
+        if (list.length > 0) {
+          const empStatus = (employee.confirmationStatus || employee.status || "").trim();
+          const matchedCurrent = list.find(
+            (s) => s.name.toLowerCase() === empStatus.toLowerCase(),
+          );
+          const resigned = list.find((s) => s.name.toLowerCase() === "resigned");
+          const terminated = list.find((s) => s.name.toLowerCase() === "terminated");
+          const resignationReview = list.find((s) =>
+            s.name.toLowerCase().includes("resignation under review"),
+          );
+          const selected =
+            matchedCurrent?.id ??
+            resigned?.id ??
+            terminated?.id ??
+            resignationReview?.id ??
+            list[0].id;
+          setEmployeeStatusId(selected);
+        }
       })
       .catch(() => {
-        if (!cancelled) setStatusOptions([]);
+        toast.error("Could not load employee statuses");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingStatuses(false);
       });
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [employee]);
 
   const inputCls =
     "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring text-foreground";
@@ -215,6 +248,7 @@ function OffboardConfirmDialog({
 
   const submit = () => {
     const next: Record<string, string> = {};
+    if (!employeeStatusId) next.employeeStatusId = "Employment status is required";
     if (!noticePeriodDays.trim()) next.noticePeriodDays = "Notice period is required";
     else if (!Number.isInteger(noticeDays) || noticeDays < 0 || noticeDays > 730) {
       next.noticePeriodDays = "Enter notice period in days (0–730)";
@@ -223,15 +257,17 @@ function OffboardConfirmDialog({
     if (!lastWorkingDay) next.lastWorkingDay = "Last working day could not be calculated";
     if (!reasonForLeaving.trim()) next.reasonForLeaving = "Reason for leaving is required";
     if (reasonForLeaving.trim().length > 500) next.reasonForLeaving = "Reason must be 500 characters or less";
-    if (!employeeStatusId) next.employeeStatusId = "Employee status is required";
     setErrors(next);
     if (Object.keys(next).length > 0) return;
+
+    const chosenStatus = statusOptions.find((s) => s.id === employeeStatusId);
     onConfirm({
       resignationDate,
       lastWorkingDay,
       reasonForLeaving: reasonForLeaving.trim(),
       noticePeriodServed: `${noticeDays} days`,
       employeeStatusId,
+      exitType: chosenStatus?.name ?? "Resign",
     });
   };
 
@@ -281,20 +317,39 @@ function OffboardConfirmDialog({
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <SearchableSelect
-              label="Employee Status"
-              required
-              placeholder="Select employee status"
-              searchPlaceholder="Search statuses..."
-              options={statusOptions.map((status) => ({ value: status.id, label: status.name }))}
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Employment Status <span className="text-destructive">*</span>
+            </span>
+            <select
               value={employeeStatusId}
-              onChange={setEmployeeStatusId}
-              error={errors.employeeStatusId}
-              disabled={isSubmitting}
-              clearable={false}
-            />
-          </div>
+              onChange={(e) => {
+                setEmployeeStatusId(e.target.value);
+                if (errors.employeeStatusId) {
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.employeeStatusId;
+                    return copy;
+                  });
+                }
+              }}
+              disabled={isSubmitting || loadingStatuses}
+              className={cn(inputCls, errors.employeeStatusId && "border-destructive")}
+            >
+              {loadingStatuses ? (
+                <option value="">Loading employment statuses…</option>
+              ) : (
+                statusOptions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))
+              )}
+            </select>
+            {errors.employeeStatusId ? (
+              <p className="mt-1 text-[11px] text-destructive">{errors.employeeStatusId}</p>
+            ) : null}
+          </label>
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-muted-foreground">
               Notice Period (days) <span className="text-destructive">*</span>
@@ -567,6 +622,7 @@ function EmployeeProfilePage() {
     reasonForLeaving: string;
     noticePeriodServed: string;
     employeeStatusId: string;
+    exitType?: string;
   }) => {
     if (!emp || isOffboarding) return;
     setIsOffboarding(true);
@@ -576,7 +632,7 @@ function EmployeeProfilePage() {
         lastWorkingDay: details.lastWorkingDay,
         reasonForLeaving: details.reasonForLeaving,
         noticePeriodServed: details.noticePeriodServed,
-        exitType: "Resign",
+        exitType: details.exitType || "Resign",
         exitReason: details.reasonForLeaving,
         employeeStatusId: details.employeeStatusId,
       });
@@ -591,6 +647,14 @@ function EmployeeProfilePage() {
       setIsOffboarding(false);
     }
   };
+
+  const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
+  const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "personal") : tabs;
+  const statusLabel = employeeStatusDisplayLabel(emp);
+  const onNoticePeriod = emp.status === "Notice Period";
+  const isAbsconded =
+    isAbscondedEmployeeStatus(statusLabel) || isAbscondedEmployeeStatus(emp.confirmationStatus);
+  const offboardBlocked = onNoticePeriod || isAbsconded;
 
   return (
     <AppShell
@@ -618,7 +682,7 @@ function EmployeeProfilePage() {
                 <h1 className="text-xl font-semibold tracking-tight text-foreground">
                   {emp.firstName} {emp.lastName}
                 </h1>
-                <EmpStatusBadge status={emp.confirmationStatus || emp.status} />
+                <EmpStatusBadge status={statusLabel} />
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
                 {emp.designation || "—"} · {emp.department || "—"}
@@ -638,10 +702,14 @@ function EmployeeProfilePage() {
                 <button
                   type="button"
                   onClick={() => setOffboardConfirmOpen(true)}
-                  disabled={isOffboarding || emp.status === "Notice Period"}
+                  disabled={isOffboarding || offboardBlocked}
                   className="rounded-md bg-destructive px-3.5 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60 transition-colors shadow-2xs"
                 >
-                  {emp.status === "Notice Period" ? "On Notice Period" : "Offboard Employee"}
+                  {onNoticePeriod
+                    ? "On Notice Period"
+                    : isAbsconded
+                      ? "Absconded"
+                      : "Offboard Employee"}
                 </button>
               )}
             </div>
@@ -700,6 +768,7 @@ function EmployeeProfilePage() {
                 <Row label="Business Unit" value={emp.businessUnit} />
                 <Row label="Department" value={emp.department} />
                 <Row label="Designation" value={emp.designation} />
+                <Row label="Sub-Department" value={emp.subDepartment} />
                 <Row label="On Floor Role" value={emp.role} />
                 <Row label="Reporting Manager" value={emp.reportingManager} />
                 <Row label="Work Location" value={emp.workLocation} />
@@ -717,7 +786,7 @@ function EmployeeProfilePage() {
                 <Row label="Date of Joining" value={formatDateDMY(emp.joiningDate)} />
                 <Row
                   label="Employment Status"
-                  value={<EmpStatusBadge status={emp.confirmationStatus || emp.status} />}
+                  value={<EmpStatusBadge status={statusLabel} />}
                 />
                 <Row
                   label="Probation Status"

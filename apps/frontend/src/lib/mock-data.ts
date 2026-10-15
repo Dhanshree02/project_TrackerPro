@@ -1,4 +1,4 @@
-export type Role =
+  export type Role =
   | "Admin"
   | "senior_pm"
   | "engagement_manager"
@@ -79,12 +79,12 @@ export interface Task {
   actualEndDate?: string; // auto-calculated from actualStartDate + estimatedHours (skip weekends)
   utilizedHours?: number;
   stage?:
-    | "Ready to Start"
-    | "Ongoing"
-    | "Completed"
-    | "On Hold (Internal)"
-    | "On Hold (Client End)"
-    | "After Release";
+  | "Ready to Start"
+  | "Ongoing"
+  | "Completed"
+  | "On Hold (Internal)"
+  | "On Hold (Client End)"
+  | "After Release";
 }
 
 export interface WBSNode {
@@ -282,6 +282,8 @@ export interface Client {
   billingMedium?: string;
   /** Client-level Group SPOC name (onboarding Company step). Not a sub-venture contact. */
   groupSpocName?: string;
+  /** Dial code stored with the Group SPOC phone, e.g. +91. */
+  groupSpocPhoneCode?: string;
   /** Client-level Group SPOC phone (onboarding Company step). */
   groupSpocContact?: string;
   notes?: string;
@@ -290,6 +292,8 @@ export interface Client {
   kycDocumentPath?: string;
   /** ISO date (yyyy-mm-dd) when the customer relationship started. */
   customerSince?: string;
+  /** Name of the person who onboarded this customer. */
+  createdByName?: string;
   clientCode?: string; // Sequential code e.g. "C001", "C018"
   contacts?: ClientContact[]; // full list of SPOC persons
 }
@@ -858,193 +862,193 @@ export const invoices: {
   raisedOn: string;
   paymentReceivedDate?: string;
 }[] = [
-  {
-    projectId: "p1",
-    unitPrice: 80000,
-    qty: 4,
-    currency: "USD",
-    invoiceAmount: 320000,
-    status: "paid",
-    paymentStatus: "completed",
-    raisedOn: "2026-04-02",
-    paymentReceivedDate: "2026-04-15",
-  },
-  {
-    projectId: "p1",
-    unitPrice: 60000,
-    qty: 3,
-    currency: "USD",
-    invoiceAmount: 180000,
-    status: "raised",
-    paymentStatus: "pending",
-    raisedOn: "2026-05-02",
-  },
-  {
-    projectId: "p2",
-    unitPrice: 40000,
-    qty: 4,
-    currency: "USD",
-    invoiceAmount: 160000,
-    status: "paid",
-    paymentStatus: "completed",
-    raisedOn: "2026-04-10",
-    paymentReceivedDate: "2026-04-20",
-  },
-  {
-    projectId: "p3",
-    unitPrice: 60000,
-    qty: 4,
-    currency: "USD",
-    invoiceAmount: 240000,
-    status: "overdue",
-    paymentStatus: "overdue",
-    raisedOn: "2026-03-25",
-  },
-  {
-    projectId: "p4",
-    unitPrice: 30000,
-    qty: 3,
-    currency: "USD",
-    invoiceAmount: 90000,
-    status: "pending",
-    paymentStatus: "pending",
-    raisedOn: "2026-05-01",
-  },
-  {
-    projectId: "p5",
-    unitPrice: 70000,
-    qty: 3,
-    currency: "USD",
-    invoiceAmount: 210000,
-    status: "raised",
-    paymentStatus: "pending",
-    raisedOn: "2026-04-28",
-  },
-  {
-    projectId: "p6",
-    unitPrice: 70000,
-    qty: 4,
-    currency: "USD",
-    invoiceAmount: 280000,
-    status: "raised",
-    paymentStatus: "pending",
-    raisedOn: "2026-03-30",
-    paymentReceivedDate: "",
-  },
-  {
-    projectId: "p7",
-    unitPrice: 35000,
-    qty: 4,
-    currency: "USD",
-    invoiceAmount: 140000,
-    status: "pending",
-    paymentStatus: "pending",
-    raisedOn: "2026-05-05",
-  },
-  {
-    projectId: "p8",
-    unitPrice: 62000,
-    qty: 5,
-    currency: "USD",
-    invoiceAmount: 310000,
-    status: "raised",
-    paymentStatus: "pending",
-    raisedOn: "2026-04-22",
-  },
-  {
-    projectId: "p9",
-    unitPrice: 52000,
-    qty: 5,
-    currency: "USD",
-    invoiceAmount: 260000,
-    status: "raised",
-    paymentStatus: "pending",
-    raisedOn: "2026-04-30",
-  },
-  {
-    projectId: "p10",
-    unitPrice: 70000,
-    qty: 4,
-    currency: "USD",
-    invoiceAmount: 280000,
-    status: "paid",
-    paymentStatus: "completed",
-    raisedOn: "2026-04-15",
-    paymentReceivedDate: "2026-04-25",
-  },
-  {
-    projectId: "p10",
-    unitPrice: 67000,
-    qty: 5,
-    currency: "USD",
-    invoiceAmount: 335000,
-    status: "pending",
-    paymentStatus: "pending",
-    raisedOn: "2026-05-10",
-  },
-  {
-    projectId: "p11",
-    unitPrice: 50000,
-    qty: 4,
-    currency: "USD",
-    invoiceAmount: 200000,
-    status: "paid",
-    paymentStatus: "completed",
-    raisedOn: "2026-04-05",
-    paymentReceivedDate: "2026-04-18",
-  },
-  {
-    projectId: "p11",
-    unitPrice: 45000,
-    qty: 4,
-    currency: "USD",
-    invoiceAmount: 180000,
-    status: "raised",
-    paymentStatus: "pending",
-    raisedOn: "2026-05-08",
-  },
-  {
-    projectId: "p12",
-    unitPrice: 70000,
-    qty: 5,
-    currency: "USD",
-    invoiceAmount: 350000,
-    status: "pending",
-    paymentStatus: "pending",
-    raisedOn: "2026-04-18",
-  },
-  {
-    projectId: "p13",
-    unitPrice: 60000,
-    qty: 4,
-    currency: "USD",
-    invoiceAmount: 240000,
-    status: "paid",
-    paymentStatus: "completed",
-    raisedOn: "2026-04-25",
-    paymentReceivedDate: "2026-05-05",
-  },
-  {
-    projectId: "p13",
-    unitPrice: 43000,
-    qty: 5,
-    currency: "USD",
-    invoiceAmount: 215000,
-    status: "raised",
-    paymentStatus: "pending",
-    raisedOn: "2026-05-12",
-  },
-  {
-    projectId: "p14",
-    unitPrice: 76000,
-    qty: 5,
-    currency: "USD",
-    invoiceAmount: 380000,
-    status: "raised",
-    paymentStatus: "pending",
-    raisedOn: "2026-04-20",
-  },
-];
+    {
+      projectId: "p1",
+      unitPrice: 80000,
+      qty: 4,
+      currency: "USD",
+      invoiceAmount: 320000,
+      status: "paid",
+      paymentStatus: "completed",
+      raisedOn: "2026-04-02",
+      paymentReceivedDate: "2026-04-15",
+    },
+    {
+      projectId: "p1",
+      unitPrice: 60000,
+      qty: 3,
+      currency: "USD",
+      invoiceAmount: 180000,
+      status: "raised",
+      paymentStatus: "pending",
+      raisedOn: "2026-05-02",
+    },
+    {
+      projectId: "p2",
+      unitPrice: 40000,
+      qty: 4,
+      currency: "USD",
+      invoiceAmount: 160000,
+      status: "paid",
+      paymentStatus: "completed",
+      raisedOn: "2026-04-10",
+      paymentReceivedDate: "2026-04-20",
+    },
+    {
+      projectId: "p3",
+      unitPrice: 60000,
+      qty: 4,
+      currency: "USD",
+      invoiceAmount: 240000,
+      status: "overdue",
+      paymentStatus: "overdue",
+      raisedOn: "2026-03-25",
+    },
+    {
+      projectId: "p4",
+      unitPrice: 30000,
+      qty: 3,
+      currency: "USD",
+      invoiceAmount: 90000,
+      status: "pending",
+      paymentStatus: "pending",
+      raisedOn: "2026-05-01",
+    },
+    {
+      projectId: "p5",
+      unitPrice: 70000,
+      qty: 3,
+      currency: "USD",
+      invoiceAmount: 210000,
+      status: "raised",
+      paymentStatus: "pending",
+      raisedOn: "2026-04-28",
+    },
+    {
+      projectId: "p6",
+      unitPrice: 70000,
+      qty: 4,
+      currency: "USD",
+      invoiceAmount: 280000,
+      status: "raised",
+      paymentStatus: "pending",
+      raisedOn: "2026-03-30",
+      paymentReceivedDate: "",
+    },
+    {
+      projectId: "p7",
+      unitPrice: 35000,
+      qty: 4,
+      currency: "USD",
+      invoiceAmount: 140000,
+      status: "pending",
+      paymentStatus: "pending",
+      raisedOn: "2026-05-05",
+    },
+    {
+      projectId: "p8",
+      unitPrice: 62000,
+      qty: 5,
+      currency: "USD",
+      invoiceAmount: 310000,
+      status: "raised",
+      paymentStatus: "pending",
+      raisedOn: "2026-04-22",
+    },
+    {
+      projectId: "p9",
+      unitPrice: 52000,
+      qty: 5,
+      currency: "USD",
+      invoiceAmount: 260000,
+      status: "raised",
+      paymentStatus: "pending",
+      raisedOn: "2026-04-30",
+    },
+    {
+      projectId: "p10",
+      unitPrice: 70000,
+      qty: 4,
+      currency: "USD",
+      invoiceAmount: 280000,
+      status: "paid",
+      paymentStatus: "completed",
+      raisedOn: "2026-04-15",
+      paymentReceivedDate: "2026-04-25",
+    },
+    {
+      projectId: "p10",
+      unitPrice: 67000,
+      qty: 5,
+      currency: "USD",
+      invoiceAmount: 335000,
+      status: "pending",
+      paymentStatus: "pending",
+      raisedOn: "2026-05-10",
+    },
+    {
+      projectId: "p11",
+      unitPrice: 50000,
+      qty: 4,
+      currency: "USD",
+      invoiceAmount: 200000,
+      status: "paid",
+      paymentStatus: "completed",
+      raisedOn: "2026-04-05",
+      paymentReceivedDate: "2026-04-18",
+    },
+    {
+      projectId: "p11",
+      unitPrice: 45000,
+      qty: 4,
+      currency: "USD",
+      invoiceAmount: 180000,
+      status: "raised",
+      paymentStatus: "pending",
+      raisedOn: "2026-05-08",
+    },
+    {
+      projectId: "p12",
+      unitPrice: 70000,
+      qty: 5,
+      currency: "USD",
+      invoiceAmount: 350000,
+      status: "pending",
+      paymentStatus: "pending",
+      raisedOn: "2026-04-18",
+    },
+    {
+      projectId: "p13",
+      unitPrice: 60000,
+      qty: 4,
+      currency: "USD",
+      invoiceAmount: 240000,
+      status: "paid",
+      paymentStatus: "completed",
+      raisedOn: "2026-04-25",
+      paymentReceivedDate: "2026-05-05",
+    },
+    {
+      projectId: "p13",
+      unitPrice: 43000,
+      qty: 5,
+      currency: "USD",
+      invoiceAmount: 215000,
+      status: "raised",
+      paymentStatus: "pending",
+      raisedOn: "2026-05-12",
+    },
+    {
+      projectId: "p14",
+      unitPrice: 76000,
+      qty: 5,
+      currency: "USD",
+      invoiceAmount: 380000,
+      status: "raised",
+      paymentStatus: "pending",
+      raisedOn: "2026-04-20",
+    },
+  ];
 
 // Allocation history — ownership/assignment changes maintained by PMO
 export interface AllocationEvent {

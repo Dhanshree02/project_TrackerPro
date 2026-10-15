@@ -14,6 +14,8 @@ public sealed class SubVentureConfiguration : IEntityTypeConfiguration<SubVentur
         builder.HasIndex(s => s.ClientId);
 
         builder.Property(s => s.Name).HasMaxLength(255).IsRequired();
+        builder.Property(s => s.SubVentureCode).HasMaxLength(32).IsRequired();
+        builder.HasIndex(s => s.SubVentureCode).IsUnique();
         builder.Property(s => s.Notes).HasMaxLength(2000);
         builder.Property(s => s.KycDocumentName).HasMaxLength(255);
         builder.Property(s => s.KycDocumentPath).HasMaxLength(500);
