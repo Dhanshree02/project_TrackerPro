@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
+import { formatOnFloorRoleDisplay } from "@/lib/on-floor-role";
 
 export const Route = createFileRoute("/dh-settings-security-roles")({
   head: () => ({
@@ -335,8 +336,11 @@ function UserRoleAccessTab() {
                       <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={user.designation}>
                         {user.designation || "—"}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={user.profileRole}>
-                        {user.profileRole || "—"}
+                      <td
+                        className="whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate"
+                        title={formatOnFloorRoleDisplay(user.profileRole) || user.profileRole}
+                      >
+                        {formatOnFloorRoleDisplay(user.profileRole) || user.profileRole || "—"}
                       </td>
                       <td className="px-4 py-2.5">
                         <SearchableSelect

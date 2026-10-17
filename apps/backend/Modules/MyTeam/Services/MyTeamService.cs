@@ -31,6 +31,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             .Include(e => e.Department)
             .Include(e => e.Designation)
             .Include(e => e.ReportingManager)
+            .Include(e => e.JobRole)
             .OrderBy(e => e.FirstName)
             .ThenBy(e => e.LastName)
             .ToListAsync(ct);
@@ -167,6 +168,22 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
         }
 
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<string>> GetOnFloorRoleNamesAsync(CancellationToken ct = default)
+    {
+        var names = await db.JobRoles
+            .AsNoTracking()
+            .Where(r => r.IsActive && r.DeletedAtUtc == null)
+            .Select(r => r.Name)
+            .ToListAsync(ct);
+
+        return names
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     public async Task SaveScheduleAsync(Guid employeeId, SaveTeamScheduleRequest request, CancellationToken ct = default)
@@ -351,6 +368,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             Initials(employee.FirstName, employee.LastName),
             employee.Designation?.Name ?? "",
             employee.Department?.Name ?? "",
+            employee.JobRole?.Name,
             directReport,
             employee.EmployeeCode,
             managerName,

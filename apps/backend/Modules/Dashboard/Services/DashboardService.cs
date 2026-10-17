@@ -734,9 +734,9 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
 
     private static readonly string[] AllowedSubDepartments =
     [
-        "Leading Sales & A/C Dept.",
-        "Leading Delivery Dept.",
-        "Leading Compliance & HR Dept.",
+        "Leading Sales & A/C Department",
+        "Leading Delivery Department",
+        "Leading Compliance & HR Department",
         "PMO (Project Management Office)",
         "EM (Engagement Manager)",
         "Service - Testing - AppSec",
@@ -759,10 +759,14 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
 
     private static string NormalizeSubDepartment(string name)
     {
-        if (name.Equals("EM (Engagement Manager)", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("Engagement Manager", StringComparison.OrdinalIgnoreCase))
+        var trimmed = name.Trim();
+        if (trimmed.EndsWith(" Dept.", StringComparison.OrdinalIgnoreCase))
+            trimmed = string.Concat(trimmed.AsSpan(0, trimmed.Length - 6), " Department");
+
+        if (trimmed.Equals("EM (Engagement Manager)", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("Engagement Manager", StringComparison.OrdinalIgnoreCase))
             return "EM (Engagement Manager)";
-        return name;
+        return trimmed;
     }
 
     private static bool IsOnsite(string? workLocation) =>
@@ -1031,11 +1035,24 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
         return name.Contains("jr") && name.Contains("lead");
     }
 
-    private static bool IsProjectManagerFloorRole(string role) =>
-        role.Equals("Manager (Mng.)", StringComparison.OrdinalIgnoreCase)
-        || role.Equals("Sr. Manager (Sr.Mng.)", StringComparison.OrdinalIgnoreCase)
-        || role.Equals("Project Manager", StringComparison.OrdinalIgnoreCase)
-        || role.Equals("Senior Project Manager", StringComparison.OrdinalIgnoreCase);
+    private static bool IsProjectManagerFloorRole(string role)
+    {
+        var normalized = StripOnFloorRoleAbbreviation(role);
+        return normalized.Equals("Manager", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("Sr. Manager", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("Project Manager", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("Senior Project Manager", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string StripOnFloorRoleAbbreviation(string? role)
+    {
+        if (string.IsNullOrWhiteSpace(role)) return "";
+        var trimmed = role.Trim();
+        var open = trimmed.LastIndexOf(" (", StringComparison.Ordinal);
+        if (open < 0) return trimmed;
+        if (trimmed.EndsWith(')')) return trimmed[..open].Trim();
+        return trimmed;
+    }
 
     private static (OffsiteCapacityFormula Formula, string? Effort, string? Unit) ResolveCapacityRule(string subDepartment)
     {

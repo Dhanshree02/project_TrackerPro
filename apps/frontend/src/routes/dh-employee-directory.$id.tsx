@@ -22,6 +22,7 @@ import {
   type EmployeeActivityLog,
 } from "@/lib/api/employees";
 import type { Employee } from "@/lib/employee-data";
+import { formatOnFloorRoleDisplay } from "@/lib/on-floor-role";
 import { EmployeeFormModal } from "@/components/employee-form-modal";
 
 export const Route = createFileRoute("/dh-employee-directory/$id")({
@@ -688,7 +689,10 @@ function EmployeeProfilePage() {
                 <Row label="Department" value={emp.department} />
                 <Row label="Designation" value={emp.designation} />
                 <Row label="Sub-Department" value={emp.subDepartment} />
-                <Row label="On Floor Role" value={emp.role} />
+                <Row
+                  label="On Floor Role"
+                  value={formatOnFloorRoleDisplay(emp.role) || emp.role}
+                />
                 <Row label="Reporting Manager" value={emp.reportingManager} />
                 <Row label="Work Location" value={emp.workLocation} />
                 {emp.workLocation === "Onsite" && (

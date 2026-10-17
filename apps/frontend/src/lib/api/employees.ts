@@ -1,5 +1,13 @@
 import { apiFetch, apiDownload } from "@/lib/api-client";
 import type { Employee } from "@/lib/employee-data";
+import {
+  formatOnFloorRoleDisplay,
+  matchesOnFloorRole as matchOnFloorRoleByName,
+  normalizeOnFloorRole,
+} from "@/lib/on-floor-role";
+import { formatSubDepartmentDisplay } from "@/lib/sub-department";
+
+export { formatOnFloorRoleDisplay, normalizeOnFloorRole } from "@/lib/on-floor-role";
 
 export interface ApiEmployeeListItem {
   id: string;
@@ -196,10 +204,6 @@ export async function fetchEmployees(params: {
   return apiFetch<PagedEnvelope<ApiEmployeeListItem>>(`/api/v1/employees?${query.toString()}`);
 }
 
-function normalizeOnFloorRole(value?: string | null): string {
-  return (value || "").replace(/\s+/g, " ").trim().toLowerCase();
-}
-
 function isActiveEmployee(emp: { status?: string | null }): boolean {
   return (emp.status || "").trim().toLowerCase() === "active";
 }
@@ -246,7 +250,7 @@ async function loadEmployeesWithOnFloorRoleOnce(): Promise<ApiEmployeeListItem[]
 }
 
 export function matchesOnFloorRole(emp: { jobRoleName?: string | null }, roleName: string): boolean {
-  return normalizeOnFloorRole(emp.jobRoleName) === normalizeOnFloorRole(roleName);
+  return matchOnFloorRoleByName(emp, roleName);
 }
 
 export async function fetchEmployee(id: string): Promise<ApiEmployeeDetail> {
@@ -540,7 +544,7 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     pfUan: item.pfUan ?? "",
     taxRegime: "",
     pmoDepartment: item.pmoDepartment ?? "",
-    subDepartment: item.subDepartment ?? "",
+    subDepartment: formatSubDepartmentDisplay(item.subDepartment) || item.subDepartment || "",
     billableStatus: item.billableStatus ?? "",
     clientLocation: item.clientLocation ?? "",
     projectType: item.projectType ?? "",
@@ -627,7 +631,7 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     pfUan: detail.pfUan ?? "",
     taxRegime: detail.taxRegime ?? "",
     pmoDepartment: detail.pmoDepartment ?? "",
-    subDepartment: detail.subDepartment ?? "",
+    subDepartment: formatSubDepartmentDisplay(detail.subDepartment) || detail.subDepartment || "",
     billableStatus: detail.billableStatus ?? "",
     clientLocation: detail.clientLocation ?? "",
     projectType: detail.projectType ?? "",

@@ -22,6 +22,8 @@ import { CreatableCatalogSelect, SearchableSelect } from "@/components/creatable
 import { TkIdField } from "@/components/tk-id-field";
 import { WorkEmailField } from "@/components/work-email-field";
 import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
+import { formatOnFloorRoleDisplay } from "@/lib/on-floor-role";
+import { formatSubDepartmentDisplay, normalizeSubDepartmentKey } from "@/lib/sub-department";
 import {
   createBusinessUnitOption,
   createDepartmentOption,
@@ -653,10 +655,18 @@ export function EmployeeFormModal({
 
     // Auto-map Sub-Department
     if (matchedDesig?.subDepartment) {
-      const subs = matchedDesig.subDepartment.split(",").map((s) => s.trim()).filter(Boolean);
+      const subs = matchedDesig.subDepartment
+        .split(",")
+        .map((s) => formatSubDepartmentDisplay(s.trim()) || s.trim())
+        .filter(Boolean);
       if (subs.length > 0) {
         setForm((prev) => {
-          if (prev.subDepartment && subs.includes(prev.subDepartment)) return prev;
+          if (
+            prev.subDepartment &&
+            subs.some((s) => normalizeSubDepartmentKey(s) === normalizeSubDepartmentKey(prev.subDepartment))
+          ) {
+            return prev;
+          }
           return { ...prev, subDepartment: subs[0] };
         });
       }
@@ -666,7 +676,10 @@ export function EmployeeFormModal({
     void fetchJobRoleOptions(form.designationId)
       .then((roles) => {
         if (cancelled) return;
-        const list = roles ?? [];
+        const list = (roles ?? []).map((r) => ({
+          ...r,
+          name: formatOnFloorRoleDisplay(r.name) || r.name,
+        }));
         setRoleOptions(list);
         setForm((prev) => {
           if (prev.designationId !== form.designationId) return prev;
@@ -698,7 +711,10 @@ export function EmployeeFormModal({
     if (!form.designationId) return [];
     const matched = desigOptions.find((d) => d.id === form.designationId);
     if (!matched?.subDepartment) return [];
-    return matched.subDepartment.split(",").map((s) => s.trim()).filter(Boolean);
+    return matched.subDepartment
+      .split(",")
+      .map((s) => formatSubDepartmentDisplay(s.trim()) || s.trim())
+      .filter(Boolean);
   }, [desigOptions, form.designationId]);
 
   const bondExpiryDisplay = useMemo(
@@ -742,7 +758,10 @@ export function EmployeeFormModal({
       updatedForm.jobRoleId = "";
       const matchedDesig = desigOptions.find((d) => d.id === nextValue);
       if (matchedDesig?.subDepartment) {
-        const subs = matchedDesig.subDepartment.split(",").map((s) => s.trim()).filter(Boolean);
+        const subs = matchedDesig.subDepartment
+          .split(",")
+          .map((s) => formatSubDepartmentDisplay(s.trim()) || s.trim())
+          .filter(Boolean);
         updatedForm.subDepartment = subs[0] ?? "";
       } else {
         updatedForm.subDepartment = "";
@@ -1072,7 +1091,7 @@ export function EmployeeFormModal({
         priorRelevantExp: formatExpDisplay(form.priorRelevantExpYears, form.priorRelevantExpMonths) || form.priorRelevantExp || "0",
         certifications: csvToList(form.certifications),
         pmoDepartment: blankToNull(form.pmoDepartment),
-        subDepartment: blankToNull(form.subDepartment),
+        subDepartment: blankToNull(formatSubDepartmentDisplay(form.subDepartment) || form.subDepartment),
         billableStatus: blankToNull(form.billableStatus),
         clientLocation: blankToNull(form.clientLocation),
         projectType: blankToNull(form.projectType),

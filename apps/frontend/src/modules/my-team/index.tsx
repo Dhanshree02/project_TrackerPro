@@ -16,6 +16,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
+import { normalizeOnFloorRole } from "@/lib/on-floor-role";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import { teamDataService, type TeamCalendarPayload } from "./services/teamDataService";
@@ -577,6 +578,8 @@ export function MyTeamPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
+  const [onFloorRoleFilter, setOnFloorRoleFilter] = useState("");
+  const [onFloorRoleMasterOptions, setOnFloorRoleMasterOptions] = useState<string[]>([]);
   const [allocStatusFilter, setAllocStatusFilter] = useState<"" | PoolAllocationStatus>("");
   const [allocTypeFilter, setAllocTypeFilter] = useState<"" | PoolAllocationType>("");
 
@@ -687,6 +690,26 @@ export function MyTeamPage() {
     [teamMembers],
   );
 
+  const onFloorRoleOptions = onFloorRoleMasterOptions;
+
+  useEffect(() => {
+    let cancelled = false;
+    void teamDataService
+      .getOnFloorRoleNames()
+      .then((names) => {
+        if (!cancelled) setOnFloorRoleMasterOptions(names);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          toast.error("Could not load On Floor Role list from master catalog.");
+          setOnFloorRoleMasterOptions([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const filteredMembers = useMemo(() => {
     let base = teamMembers;
     if (activeFilter.kind === "presence") {
@@ -701,6 +724,12 @@ export function MyTeamPage() {
     const q = searchQuery.trim().toLowerCase();
     return base.filter((m) => {
       if (deptFilter && m.department !== deptFilter) return false;
+      if (
+        onFloorRoleFilter &&
+        normalizeOnFloorRole(m.jobRoleName) !== normalizeOnFloorRole(onFloorRoleFilter)
+      ) {
+        return false;
+      }
       const liveStatus = getMemberLiveAllocationStatus(m, teamSchedule, todayKey);
       if (allocStatusFilter && liveStatus !== allocStatusFilter) return false;
       if (allocTypeFilter && m.allocationType !== allocTypeFilter) return false;
@@ -710,6 +739,7 @@ export function MyTeamPage() {
           m.employeeCode,
           m.department,
           m.designation,
+          m.jobRoleName,
           m.reportingManagerName,
           m.allocatedProjectName,
           liveStatus,
@@ -732,6 +762,7 @@ export function MyTeamPage() {
     shiftMembers,
     searchQuery,
     deptFilter,
+    onFloorRoleFilter,
     allocStatusFilter,
     allocTypeFilter,
     teamSchedule,
@@ -749,7 +780,7 @@ export function MyTeamPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [roster, activeFilter, pageSize, searchQuery, deptFilter, allocStatusFilter, allocTypeFilter]);
+  }, [roster, activeFilter, pageSize, searchQuery, deptFilter, onFloorRoleFilter, allocStatusFilter, allocTypeFilter]);
 
   const rosterCache = useRef(new Map<string, TeamCalendarPayload>());
   const rosterInflight = useRef(new Map<string, Promise<TeamCalendarPayload>>());
@@ -1110,6 +1141,7 @@ export function MyTeamPage() {
   const hasActiveToolbarFilters = Boolean(
     searchQuery.trim() ||
       deptFilter ||
+      onFloorRoleFilter ||
       allocStatusFilter ||
       allocTypeFilter ||
       activeFilter.kind !== "all",
@@ -1118,6 +1150,7 @@ export function MyTeamPage() {
   const clearToolbarFilters = () => {
     setSearchQuery("");
     setDeptFilter("");
+    setOnFloorRoleFilter("");
     setAllocStatusFilter("");
     setAllocTypeFilter("");
     setActiveFilter({ kind: "all" });
@@ -1268,6 +1301,22 @@ export function MyTeamPage() {
                   {departmentOptions.map((dept) => (
                     <option key={dept} value={dept}>
                       {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-full md:w-48 shrink-0">
+                <select
+                  value={onFloorRoleFilter}
+                  onChange={(e) => setOnFloorRoleFilter(e.target.value)}
+                  aria-label="Filter by On Floor Role"
+                  className={filterSelectClass(Boolean(onFloorRoleFilter))}
+                >
+                  <option value="">All On Floor Roles</option>
+                  {onFloorRoleOptions.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
                     </option>
                   ))}
                 </select>

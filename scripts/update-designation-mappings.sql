@@ -39,7 +39,7 @@ ON CONFLICT ("Code") DO UPDATE SET "Name" = EXCLUDED."Name", "IsActive" = true;
 -- 3. Upsert Designations and link Roles
 -- Director and Chief Executive Officer (Core)
 INSERT INTO mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "SubDepartment", "CreatedAtUtc")
-SELECT 'f00bacfa-347b-548d-810c-c1999813b987', 'core_director_and_chief_executive_officer', 'Director and Chief Executive Officer', true, d."Id", 'Leading Sales & A/C Dept.', NOW()
+SELECT 'f00bacfa-347b-548d-810c-c1999813b987', 'core_director_and_chief_executive_officer', 'Director and Chief Executive Officer', true, d."Id", 'Leading Sales & A/C Department', NOW()
 FROM mst_departments d WHERE d."Name" = 'Core'
 ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "SubDepartment" = EXCLUDED."SubDepartment",
@@ -54,7 +54,7 @@ ON CONFLICT ("DesignationId", "Name") DO UPDATE SET "IsActive" = true;
 
 -- Director and Chief Operating Officer (Core)
 INSERT INTO mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "SubDepartment", "CreatedAtUtc")
-SELECT '4cd69f28-8a17-5f09-bd8f-4288e50903f6', 'core_director_and_chief_operating_officer', 'Director and Chief Operating Officer', true, d."Id", 'Leading Delivery Dept.', NOW()
+SELECT '4cd69f28-8a17-5f09-bd8f-4288e50903f6', 'core_director_and_chief_operating_officer', 'Director and Chief Operating Officer', true, d."Id", 'Leading Delivery Department', NOW()
 FROM mst_departments d WHERE d."Name" = 'Core'
 ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "SubDepartment" = EXCLUDED."SubDepartment",
@@ -69,7 +69,7 @@ ON CONFLICT ("DesignationId", "Name") DO UPDATE SET "IsActive" = true;
 
 -- Director and Chief Technology Officer (Core)
 INSERT INTO mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "SubDepartment", "CreatedAtUtc")
-SELECT 'b64d56b5-f629-5fce-a41c-7cde896eced6', 'core_director_and_chief_technology_officer', 'Director and Chief Technology Officer', true, d."Id", 'Leading Compliance & HR Dept.', NOW()
+SELECT 'b64d56b5-f629-5fce-a41c-7cde896eced6', 'core_director_and_chief_technology_officer', 'Director and Chief Technology Officer', true, d."Id", 'Leading Compliance & HR Department', NOW()
 FROM mst_departments d WHERE d."Name" = 'Core'
 ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "SubDepartment" = EXCLUDED."SubDepartment",

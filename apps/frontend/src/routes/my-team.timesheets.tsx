@@ -63,6 +63,8 @@ function TimesheetsRoute() {
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MAX_DAY_COMMENT_LENGTH = 1000;
+const MAX_APPROVAL_COMMENT_LENGTH = 200;
 interface TsRow {
   id: string;
   projectId: string;
@@ -269,6 +271,18 @@ function MyTimesheetView() {
     };
   }, [weekStart, loadTasksForProject]);
 
+  function validateDayComments(): string | null {
+    for (const row of rows) {
+      for (let dayIndex = 0; dayIndex < row.notes.length; dayIndex += 1) {
+        const note = row.notes[dayIndex]?.trim() ?? "";
+        if (note.length > MAX_DAY_COMMENT_LENGTH) {
+          return `Day note for ${days[dayIndex]} must be ${MAX_DAY_COMMENT_LENGTH} characters or fewer.`;
+        }
+      }
+    }
+    return null;
+  }
+
   function toSaveLines() {
     return rows.filter((row) => row.projectId && row.taskId).map((row) => {
       const project = dbProjects.find((item) => item.id === row.projectId);
@@ -342,6 +356,11 @@ function MyTimesheetView() {
     setWeekStart(localDate(dt));
   }
   async function handleSave(submit: boolean) {
+    const commentError = validateDayComments();
+    if (commentError) {
+      toast.error(commentError);
+      return;
+    }
     setSaving(true);
     try {
       const saved = submit
@@ -357,9 +376,13 @@ function MyTimesheetView() {
     }
   }
 
-  const activeRow = commentOpen ? rows.find((r) => r.id === commentOpen.row) : null;
   const currentStatus = weekStatus;
   const locked = currentStatus === "submitted" || currentStatus === "approved";
+  const activeRow = commentOpen ? rows.find((r) => r.id === commentOpen.row) : null;
+  const activeDayOpen =
+    commentOpen !== null ? isTimesheetDayOpen(weekStart, commentOpen.day) : false;
+  const activeCommentReadOnly =
+    commentOpen !== null && (locked || !activeDayOpen);
 
   return (
     <>
@@ -513,6 +536,9 @@ function MyTimesheetView() {
                   </td>
                   {r.hours.map((h, di) => {
                     const open = isTimesheetDayOpen(weekStart, di);
+                    const hasNote = Boolean(r.notes[di]?.trim());
+                    const canEditComment = open && !locked;
+                    const canOpenComment = canEditComment || hasNote;
                     return (
                     <td key={di} className="px-2 py-2 text-center align-top">
                       <div className="flex flex-col items-center gap-1">
@@ -523,13 +549,14 @@ function MyTimesheetView() {
                           onChange={(hours) => setHour(r.id, di, String(hours))}
                         />
                         <button
-                          onClick={() => open && setCommentOpen({ row: r.id, day: di })}
-                          disabled={!open || locked}
+                          type="button"
+                          onClick={() => canOpenComment && setCommentOpen({ row: r.id, day: di })}
+                          disabled={!canOpenComment}
                           className={cn(
                             "inline-flex h-5 w-5 items-center justify-center rounded-md hover:bg-accent disabled:pointer-events-none disabled:opacity-40",
-                            r.notes[di] ? "text-primary" : "text-muted-foreground",
+                            hasNote ? "text-primary" : "text-muted-foreground",
                           )}
-                          aria-label="Day comment"
+                          aria-label={hasNote ? "View or edit day note" : "Add day note"}
                         >
                           <MessageSquare className="h-3 w-3" />
                         </button>
@@ -588,9 +615,12 @@ function MyTimesheetView() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold">Day note · {days[commentOpen.day]}</h3>
+                <h3 className="text-sm font-semibold">
+                  Day note · {days[commentOpen.day]}
+                  {activeCommentReadOnly ? " (read only)" : ""}
+                </h3>
                 <p className="text-xs text-muted-foreground">
-                  {projectsList.find((p) => p.id === activeRow.projectId)?.name}
+                  {dbProjects.find((p) => p.id === activeRow.projectId)?.name}
                 </p>
               </div>
               <button
@@ -602,25 +632,41 @@ function MyTimesheetView() {
               </button>
             </div>
             <textarea
-              value={activeRow.notes[commentOpen.day]}
-              onChange={(e) => setNote(activeRow.id, commentOpen.day, e.target.value)}
+              value={activeRow.notes[commentOpen.day] ?? ""}
+              readOnly={activeCommentReadOnly}
+              maxLength={MAX_DAY_COMMENT_LENGTH}
+              onChange={(e) =>
+                setNote(activeRow.id, commentOpen.day, e.target.value.slice(0, MAX_DAY_COMMENT_LENGTH))
+              }
               placeholder="Add a note for this day · visible to your approver"
               rows={5}
-              className="mt-3 w-full rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn(
+                "mt-3 w-full rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                activeCommentReadOnly && "cursor-default bg-muted/30",
+              )}
             />
+            {!activeCommentReadOnly && (
+              <p className="mt-1 text-right text-[11px] text-muted-foreground">
+                {(activeRow.notes[commentOpen.day] ?? "").length}/{MAX_DAY_COMMENT_LENGTH}
+              </p>
+            )}
             <div className="mt-3 flex justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setCommentOpen(null)}
                 className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent"
               >
-                Cancel
+                {activeCommentReadOnly ? "Close" : "Cancel"}
               </button>
+              {!activeCommentReadOnly && (
               <button
+                type="button"
                 onClick={() => setCommentOpen(null)}
                 className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
               >
-                Save note
+                Done
               </button>
+              )}
             </div>
           </div>
         </div>,
@@ -630,12 +676,8 @@ function MyTimesheetView() {
   );
 }
 
-function commentText(data: { history: { text: string }[] } | null): string {
-  if (!data) return "";
-  return data.history
-    .map((message) => message.text.trim())
-    .filter(Boolean)
-    .join("\n");
+function dayCommentNote(entry: ApprovalLine, dayIdx: number): string {
+  return entry.notes[dayIdx]?.trim() ?? "";
 }
 
 function CommentTip({ text, children }: { text: string; children: ReactNode }) {
@@ -953,45 +995,21 @@ function TimesheetApprovalView() {
     null,
   );
 
-  const getCellCommentData = (entry: any, dayIdx: number) => {
-    if (entry.cellComments?.[dayIdx]) return entry.cellComments[dayIdx];
-    const legacyNote = entry.notes?.[dayIdx] || (dayIdx === 0 ? entry.note : undefined);
-    if (legacyNote?.trim())
-      return {
-        status: "new" as const,
-        history: [
-          {
-            author: selectedTs?.employeeName || "Employee",
-            text: legacyNote,
-            type: "comment" as const,
-            createdAt: selectedTs?.submittedAt || new Date().toISOString(),
-          },
-        ],
-      };
-    return null;
-  };
-
   const commentedEntriesCount = useMemo(() => {
     if (!selectedTs) return 0;
     return selectedTs.entries.reduce((acc, entry) => {
-      return (
-        acc +
-        days.filter((_, idx) => {
-          const d = getCellCommentData(entry, idx);
-          return d && d.history.length > 0;
-        }).length
-      );
+      return acc + days.filter((_, idx) => dayCommentNote(entry, idx).length > 0).length;
     }, 0);
   }, [selectedTs]);
 
   const askAction = (action: ReviewAction) => {
     const comment = actionComment.trim();
     if (!comment) {
-      toast.error("A comment is mandatory for all timesheet approval actions!");
+      toast.error("Enter a supervisor decision comment (up to 200 characters) before approving, rejecting, or requesting changes.");
       return;
     }
-    if (comment.length > 200) {
-      toast.error("Comment must be 200 characters or fewer.");
+    if (comment.length > MAX_APPROVAL_COMMENT_LENGTH) {
+      toast.error(`Supervisor comment must be ${MAX_APPROVAL_COMMENT_LENGTH} characters or fewer.`);
       return;
     }
     if (selectedEntries.length === 0) {
@@ -1324,16 +1342,9 @@ function TimesheetApprovalView() {
                             {e.taskName || "Unknown Task"}
                           </td>
                           {e.hours.map((h, i) => {
-                            const commentData = getCellCommentData(e, i);
-                            const note = commentText(commentData);
+                            const note = dayCommentNote(e, i);
                             const hasComment = note.length > 0;
-                            const dotColor = hasComment
-                              ? commentData?.status === "clarification_requested"
-                                ? "text-red-500"
-                                : commentData?.status === "viewed"
-                                  ? "text-blue-500"
-                                  : "text-green-500"
-                              : "";
+                            const dotColor = hasComment ? "text-green-500" : "";
                             const cell = (
                               <>
                                 <span>{h || "—"}</span>
@@ -1386,14 +1397,14 @@ function TimesheetApprovalView() {
               </label>
               <textarea
                 value={actionComment}
-                maxLength={200}
-                onChange={(e) => setActionComment(e.target.value.slice(0, 200))}
+                maxLength={MAX_APPROVAL_COMMENT_LENGTH}
+                onChange={(e) => setActionComment(e.target.value.slice(0, MAX_APPROVAL_COMMENT_LENGTH))}
                 placeholder="Provide approval, rejection, or change request reason comments..."
                 rows={3}
                 className="w-full rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
               />
-              <p className={cn("text-right text-[11px]", actionComment.length >= 200 ? "text-destructive" : "text-muted-foreground")}>
-                {actionComment.length}/200
+              <p className={cn("text-right text-[11px]", actionComment.length >= MAX_APPROVAL_COMMENT_LENGTH ? "text-destructive" : "text-muted-foreground")}>
+                {actionComment.length}/{MAX_APPROVAL_COMMENT_LENGTH}
               </p>
             </div>
             <div className="flex justify-end gap-2 border-t border-border pt-3">
@@ -1460,7 +1471,7 @@ function TimesheetApprovalView() {
         typeof document !== "undefined" &&
         createPortal((() => {
           const entry = selectedTs.entries[activeCell.entryIndex];
-          const note = commentText(getCellCommentData(entry, activeCell.dayIndex));
+          const note = dayCommentNote(entry, activeCell.dayIndex);
           return (
             <div
               className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]"

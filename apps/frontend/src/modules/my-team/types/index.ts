@@ -40,6 +40,8 @@ export type TeamMember = {
   initials: string;
   designation: string;
   department: string;
+  /** On Floor Role from master.mst_roles */
+  jobRoleName?: string;
   status: MemberStatus;
   avatarColor: string;
   /** False on the All Employees tab when this person does not report to the signed-in user. */

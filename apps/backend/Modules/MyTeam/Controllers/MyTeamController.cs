@@ -11,6 +11,13 @@ namespace PMS.API.Modules.MyTeam.Controllers;
 [Route("api/v1/my-team")]
 public class MyTeamController(IMyTeamService myTeam) : ControllerBase
 {
+    [HttpGet("on-floor-roles")]
+    [RequirePermission(Permissions.MyTeamDashboardView)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<string>>>> OnFloorRoles(CancellationToken ct = default)
+    {
+        return Ok(ApiResponse<IReadOnlyList<string>>.Ok(await myTeam.GetOnFloorRoleNamesAsync(ct)));
+    }
+
     [HttpGet("calendar")]
     [RequirePermission(Permissions.MyTeamDashboardView)]
     public async Task<ActionResult<ApiResponse<TeamCalendarDto>>> Calendar(

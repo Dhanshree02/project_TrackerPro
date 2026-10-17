@@ -1,4 +1,6 @@
 import { apiFetch } from "@/lib/api-client";
+import { fetchAllEmployees, fetchJobRoleOptions } from "@/lib/api/employees";
+import { uniqueOnFloorRoleLabels } from "@/lib/on-floor-role";
 import { attendanceMeta } from "@/modules/my-team/constants";
 import type {
   AttendanceType,
@@ -27,6 +29,7 @@ interface CalendarResponse {
     initials: string;
     designation: string;
     department: string;
+    jobRoleName?: string | null;
     directReport?: boolean;
     employeeCode?: string | null;
     reportingManagerName?: string | null;
@@ -84,7 +87,60 @@ function normalizeAllocationStatus(val?: string | null): PoolAllocationStatus | 
   return undefined;
 }
 
+let employeeOnFloorRoleById: Promise<Map<string, string>> | null = null;
+
+async function loadEmployeeOnFloorRoleById(): Promise<Map<string, string>> {
+  if (!employeeOnFloorRoleById) {
+    employeeOnFloorRoleById = fetchAllEmployees()
+      .then((rows) => {
+        const map = new Map<string, string>();
+        for (const row of rows) {
+          const role = (row.jobRoleName ?? row.jobRole ?? "").trim();
+          if (role) map.set(row.id, role);
+        }
+        return map;
+      })
+      .catch((error) => {
+        employeeOnFloorRoleById = null;
+        throw error;
+      });
+  }
+  return employeeOnFloorRoleById;
+}
+
+async function attachOnFloorRoles(members: TeamMember[]): Promise<TeamMember[]> {
+  if (members.length === 0) return members;
+  if (members.every((m) => m.jobRoleName)) return members;
+
+  const byId = await loadEmployeeOnFloorRoleById();
+  return members.map((member) => {
+    if (member.jobRoleName) return member;
+    const role = byId.get(member.id);
+    return role ? { ...member, jobRoleName: role } : member;
+  });
+}
+
 export const teamDataService = {
+  /** Active on-floor role names from master.mst_roles. */
+  async getOnFloorRoleNames(): Promise<string[]> {
+    try {
+      const fromTeam = await apiFetch<string[]>("/api/v1/my-team/on-floor-roles");
+      const labels = uniqueOnFloorRoleLabels(fromTeam ?? []);
+      if (labels.length > 0) return labels;
+    } catch {
+      // UAT images built before my-team/on-floor-roles still load via meta/roles.
+    }
+    try {
+      const byId = await loadEmployeeOnFloorRoleById();
+      const fromRoster = uniqueOnFloorRoleLabels(byId.values());
+      if (fromRoster.length > 0) return fromRoster;
+    } catch {
+      // fall through to designation catalog
+    }
+    const catalog = await fetchJobRoleOptions();
+    return uniqueOnFloorRoleLabels(catalog.map((row) => row.name));
+  },
+
   async getCalendar(from: string, to: string, allEmployees = false): Promise<TeamCalendarPayload> {
     const scope = allEmployees ? "&all=true" : "";
     const data = await apiFetch<CalendarResponse>(
@@ -108,6 +164,7 @@ export const teamDataService = {
         initials: member.initials,
         designation: member.designation,
         department: member.department,
+        jobRoleName: member.jobRoleName?.trim() || undefined,
         status: "Active",
         avatarColor: avatarColor(member.id),
         directReport: member.directReport !== false,
@@ -152,7 +209,9 @@ export const teamDataService = {
       };
     }
 
-    return { members, schedule, configs };
+    const membersWithRoles = await attachOnFloorRoles(members);
+
+    return { members: membersWithRoles, schedule, configs };
   },
 
   upsertDays(body: {

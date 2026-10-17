@@ -50,6 +50,7 @@ import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/f
 import { EmployeeBulkUploadMenu } from "@/components/employee-bulk-upload";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
+import { formatSubDepartmentDisplay, normalizeSubDepartmentKey } from "@/lib/sub-department";
 import {
   createBusinessUnitOption,
   createDepartmentOption,
@@ -147,6 +148,7 @@ type DirectorySortKey =
   | "name"
   | "department"
   | "designation"
+  | "subDepartment"
   | "reportingManager"
   | "workLocation"
   | "category"
@@ -155,6 +157,7 @@ type DirectorySortKey =
   | "kpiScore";
 type PoolSortKey =
   | "department"
+  | "subDepartment"
   | "name"
   | "reportingManager"
   | "allocationStatus"
@@ -168,6 +171,7 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: str
   { label: "Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-52 min-w-[185px]" },
+  { label: "Sub-Department", key: "subDepartment", className: "w-52 min-w-[185px]" },
   { label: "Reporting Manager", key: "reportingManager", className: "w-48 min-w-[170px]" },
   { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
   { label: "Category", key: "category", className: "w-60 min-w-[210px]" },
@@ -181,10 +185,12 @@ const BASIC_DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className
   { label: "Employee Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-64 min-w-[210px]" },
+  { label: "Sub-Department", key: "subDepartment", className: "w-52 min-w-[185px]" },
 ];
 
 const POOL_COLUMNS: { label: string; key: PoolSortKey | null; className?: string; align?: "right" }[] = [
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
+  { label: "Sub-Department", key: "subDepartment", className: "w-52 min-w-[185px]" },
   { label: "Employee Name", key: "name", className: "w-56 min-w-[190px]" },
   { label: "Reporting Manager", key: "reportingManager", className: "w-48 min-w-[170px]" },
   { label: "Allocation Status", key: "allocationStatus", className: "w-48 min-w-[170px]" },
@@ -265,6 +271,8 @@ function comparePoolEmployees(a: Employee, b: Employee, key: PoolSortKey): numbe
     switch (key) {
       case "department":
         return e.department;
+      case "subDepartment":
+        return e.subDepartment ?? "";
       case "reportingManager":
         return e.reportingManager;
       case "officeBranch":
@@ -486,6 +494,7 @@ function ResourceTasksModal({
               </div>
               <div className="text-[11px] text-muted-foreground">
                 {dash(employee.department)} · {dash(employee.designation)}
+                {employee.subDepartment ? ` · ${dash(employee.subDepartment)}` : ""}
               </div>
               <div className="text-[11px] text-muted-foreground font-mono">{employee.id}</div>
               <div className="mt-1.5">
@@ -843,6 +852,7 @@ function EmployeeDirectoryPage() {
   const [q, setQ] = useState("");
   const [dept, setDept] = useState("");
   const [desig, setDesig] = useState("");
+  const [subDept, setSubDept] = useState("");
   const [status, setStatus] = useState("");
   const [deptCatalog, setDeptCatalog] = useState<ApiMetaOption[]>([]);
   const [desigCatalog, setDesigCatalog] = useState<ApiMetaOption[]>([]);
@@ -911,6 +921,31 @@ function EmployeeDirectoryPage() {
     return [...new Set(scoped.map((d) => d.name).filter(Boolean))];
   }, [desigCatalog, deptCatalog, dept]);
 
+  const subDepartmentFilterOptions = useMemo(() => {
+    const selectedDept = deptCatalog.find((d) => d.name === dept);
+    let scopedDesigs = selectedDept
+      ? desigCatalog.filter((d) => d.parentId === selectedDept.id)
+      : desigCatalog;
+    if (desig) {
+      scopedDesigs = scopedDesigs.filter((d) => d.name === desig);
+    }
+    const names = new Set<string>();
+    for (const row of scopedDesigs) {
+      if (!row.subDepartment) continue;
+      for (const part of row.subDepartment.split(",").map((s) => s.trim()).filter(Boolean)) {
+        const label = formatSubDepartmentDisplay(part) || part;
+        names.add(label);
+      }
+    }
+    for (const e of dbEmployees) {
+      if (dept && e.department !== dept) continue;
+      if (desig && e.designation !== desig) continue;
+      const value = formatSubDepartmentDisplay(e.subDepartment) || e.subDepartment?.trim();
+      if (value) names.add(value);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }, [desigCatalog, deptCatalog, dbEmployees, dept, desig]);
+
   // -- Deep Comprehensive Employee Search --------------
   const matchesEmployeeSearch = (e: Employee, query: string): boolean => {
     if (!query) return true;
@@ -934,6 +969,7 @@ function EmployeeDirectoryPage() {
       e.maritalStatus,
       e.department,
       e.designation,
+      e.subDepartment,
       e.role,
       e.businessUnit,
       e.workLocation,
@@ -986,6 +1022,7 @@ function EmployeeDirectoryPage() {
         matchQ &&
         (!dept || e.department === dept) &&
         (!desig || e.designation === desig) &&
+        (!subDept || normalizeSubDepartmentKey(e.subDepartment) === normalizeSubDepartmentKey(subDept)) &&
         (!status ||
           e.status === status ||
           (status === "Active" && e.status === "Resignation Under Review"))
@@ -995,7 +1032,7 @@ function EmployeeDirectoryPage() {
       const cmp = compareEmployees(a, b, sortKey);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [dbEmployees, q, dept, desig, status, sortKey, sortDir]);
+  }, [dbEmployees, q, dept, desig, subDept, status, sortKey, sortDir]);
 
   // -- Pool Filtering ----------------------------------
   const poolRows = useMemo(() => {
@@ -1005,6 +1042,7 @@ function EmployeeDirectoryPage() {
         matchQ &&
         (!dept || e.department === dept) &&
         (!desig || e.designation === desig) &&
+        (!subDept || normalizeSubDepartmentKey(e.subDepartment) === normalizeSubDepartmentKey(subDept)) &&
         (!status ||
           e.status === status ||
           (status === "Active" && e.status === "Resignation Under Review"))
@@ -1014,7 +1052,7 @@ function EmployeeDirectoryPage() {
       const cmp = comparePoolEmployees(a, b, poolSortKey);
       return poolSortDir === "asc" ? cmp : -cmp;
     });
-  }, [dbEmployees, q, dept, desig, status, poolSortKey, poolSortDir]);
+  }, [dbEmployees, q, dept, desig, subDept, status, poolSortKey, poolSortDir]);
 
   // Determine active rows based on tab
   const activeRows = tab === "directory" ? directoryRows : poolRows;
@@ -1027,7 +1065,7 @@ function EmployeeDirectoryPage() {
   // Reset page when filters, tab, or pageSize change
   useEffect(() => {
     setPage(1);
-  }, [q, dept, desig, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
+  }, [q, dept, desig, subDept, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
 
   // Admin and HR both manage the full employee directory (HR uses it for
   // onboarding); every other role is redirected.
@@ -1039,11 +1077,12 @@ function EmployeeDirectoryPage() {
       ? `${activeRows.length} of ${dbEmployees.length} employees`
       : `${activeRows.length} of ${dbEmployees.length} resources active`;
 
-  const hasActiveFilters = Boolean(q || dept || desig || status);
+  const hasActiveFilters = Boolean(q || dept || desig || subDept || status);
   const clearAllFilters = () => {
     setQ("");
     setDept("");
     setDesig("");
+    setSubDept("");
     setStatus("");
   };
 
@@ -1138,6 +1177,7 @@ function EmployeeDirectoryPage() {
               onChange={(value) => {
                 setDept(value);
                 setDesig("");
+                setSubDept("");
               }}
               placeholder="All Departments"
               options={departmentFilterOptions}
@@ -1148,9 +1188,22 @@ function EmployeeDirectoryPage() {
           <div className="w-full md:w-48 shrink-0">
             <FilterSelect
               value={desig}
-              onChange={setDesig}
+              onChange={(value) => {
+                setDesig(value);
+                setSubDept("");
+              }}
               placeholder="All Designations"
               options={designationFilterOptions}
+            />
+          </div>
+
+          {/* Sub-Department Filter */}
+          <div className="w-full md:w-52 shrink-0">
+            <FilterSelect
+              value={subDept}
+              onChange={setSubDept}
+              placeholder="All Sub-Departments"
+              options={subDepartmentFilterOptions}
             />
           </div>
 
@@ -1184,7 +1237,7 @@ function EmployeeDirectoryPage() {
       {tab === "directory" ? (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
-            <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[800px]" : "min-w-[1480px]")}>
+            <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[985px]" : "min-w-[1665px]")}>
               <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
                 <tr>
                   {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col, idx, arr) => (
@@ -1237,6 +1290,15 @@ function EmployeeDirectoryPage() {
                     <td className={cn("whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate", basicDirectoryView ? "w-64 min-w-[210px]" : "w-52 min-w-[185px]")} title={e.designation}>
                       {dash(e.designation)}
                     </td>
+                    <td
+                      className={cn(
+                        "whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate",
+                        basicDirectoryView ? "w-52 min-w-[185px]" : "w-52 min-w-[185px]",
+                      )}
+                      title={e.subDepartment}
+                    >
+                      {dash(e.subDepartment)}
+                    </td>
                     {!basicDirectoryView && (
                       <>
                         <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
@@ -1276,7 +1338,7 @@ function EmployeeDirectoryPage() {
                 {pageRows.length === 0 && (
                   <tr>
                     <td
-                      colSpan={basicDirectoryView ? 4 : 10}
+                      colSpan={basicDirectoryView ? 5 : 11}
                       className="px-4 py-10 text-center text-sm text-muted-foreground"
                     >
                       {isLoading
@@ -1339,7 +1401,7 @@ function EmployeeDirectoryPage() {
       ) : (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
-            <table className="w-full min-w-[1440px] table-fixed text-sm">
+            <table className="w-full min-w-[1590px] table-fixed text-sm">
               <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
                 <tr>
                   {POOL_COLUMNS.map((col, idx, arr) =>
@@ -1393,6 +1455,9 @@ function EmployeeDirectoryPage() {
                     >
                       <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3.5 font-semibold text-foreground/90 truncate" title={e.department}>
                         {dash(e.department)}
+                      </td>
+                      <td className="w-52 min-w-[185px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.subDepartment}>
+                        {dash(e.subDepartment)}
                       </td>
                       <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3.5">
                         <Link
@@ -1459,7 +1524,7 @@ function EmployeeDirectoryPage() {
                 })}
                 {pageRows.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                    <td colSpan={9} className="px-4 py-12 text-center text-sm text-muted-foreground">
                       No resources match the selected criteria.
                     </td>
                   </tr>

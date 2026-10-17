@@ -7,6 +7,7 @@ import {
   setStoredDemoRole,
   type DemoRoleKey,
 } from "@/lib/demo-roles";
+import { loadEmployeePersonas } from "@/lib/employee-personas";
 
 export type AuthStatus = "authed";
 
@@ -39,6 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const persona = getDemoPersona(stored);
     setDemoRole(persona.key as DemoRoleKey);
     setUser((current) => (current?.email === persona.email ? current : mockAuthUser(persona.key)));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadEmployeePersonas().then(() => {
+      if (cancelled) return;
+      const stored = getStoredDemoRole();
+      const persona = getDemoPersona(stored);
+      setDemoRole(persona.key as DemoRoleKey);
+      setUser(mockAuthUser(persona.key));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

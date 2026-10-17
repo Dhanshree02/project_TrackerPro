@@ -1653,13 +1653,27 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                     entity.DepartmentId = desigDeptId;
                 }
 
-                var onFloorRole = desig.Roles
+                var activeRoles = desig.Roles
                     .Where(r => r.IsActive && r.DeletedAtUtc == null)
-                    .OrderBy(r => r.CreatedAtUtc)
-                    .FirstOrDefault();
-                if (onFloorRole is not null)
+                    .ToList();
+
+                var mappedRole = entity.JobRoleId is Guid currentJobRoleId
+                    ? activeRoles.FirstOrDefault(r => r.Id == currentJobRoleId)
+                    : null;
+
+                if (mappedRole is null)
                 {
-                    entity.JobRoleId = onFloorRole.Id;
+                    mappedRole = activeRoles
+                        .OrderBy(r => r.CreatedAtUtc)
+                        .FirstOrDefault();
+                    if (mappedRole is not null)
+                    {
+                        entity.JobRoleId = mappedRole.Id;
+                    }
+                    else
+                    {
+                        entity.JobRoleId = null;
+                    }
                 }
 
                 if (desig.DefaultRole is not null)

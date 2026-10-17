@@ -1,9 +1,10 @@
-import { useState, useMemo, type ReactNode } from "react";
+import { useState, useMemo, useEffect, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Search, Bell, ChevronDown, Check } from "lucide-react";
 import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
 import { DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/demo-roles";
+import { getCachedEmployeePersonas, loadEmployeePersonas } from "@/lib/employee-personas";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -19,6 +20,16 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
   const navigate = useNavigate();
   const [roleQuery, setRoleQuery] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
+  const [switchPersonas, setSwitchPersonas] = useState<DemoPersona[]>(() => {
+    const live = getCachedEmployeePersonas();
+    return live.length > 0 ? live : DEMO_PERSONAS;
+  });
+
+  useEffect(() => {
+    void loadEmployeePersonas().then((list) => {
+      if (list.length > 0) setSwitchPersonas(list);
+    });
+  }, []);
 
   const roleLabel = authUser?.role
     ? (backendRoleLabels[authUser.role] ?? roleLabels[role as keyof typeof roleLabels] ?? authUser.role)
@@ -35,29 +46,30 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
 
   const activePersona = useMemo(() => {
     return (
-      DEMO_PERSONAS.find(
+      switchPersonas.find(
         (p) =>
+          (authUser?.employeeId && p.id.toLowerCase() === authUser.employeeId.toLowerCase()) ||
           (authUser?.employeeId && p.code.toLowerCase() === authUser.employeeId.toLowerCase()) ||
           (authUser?.email && p.email.toLowerCase() === authUser.email.toLowerCase()) ||
           p.key === demoRole ||
           p.code === demoRole,
       ) ??
-      DEMO_PERSONAS.find((p) => p.roleKey === authUser?.role) ??
-      DEMO_PERSONAS.find((p) => p.roleKey === "Admin") ??
-      DEMO_PERSONAS[0]
+      switchPersonas.find((p) => p.roleKey === authUser?.role) ??
+      switchPersonas.find((p) => p.code === "TK-0004") ??
+      switchPersonas[0]
     );
-  }, [demoRole, authUser]);
+  }, [demoRole, authUser, switchPersonas]);
 
   const departments = useMemo(() => {
     const set = new Set<string>();
-    for (const p of DEMO_PERSONAS) {
+    for (const p of switchPersonas) {
       if (p.category) set.add(p.category);
     }
-    return ["All", ...Array.from(set)];
-  }, []);
+    return ["All", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [switchPersonas]);
 
   const filteredPersonas = useMemo(() => {
-    let list = DEMO_PERSONAS;
+    let list = switchPersonas;
     if (selectedDept !== "All") {
       list = list.filter((p) => p.category === selectedDept);
     }
@@ -75,7 +87,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
         p.designation.toLowerCase().includes(q) ||
         p.roleKey.toLowerCase().includes(q),
     );
-  }, [roleQuery, selectedDept]);
+  }, [roleQuery, selectedDept, switchPersonas]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, DemoPersona[]>();
@@ -155,7 +167,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
                   <p className="text-[10px] text-muted-foreground">Select any employee to view as them</p>
                 </div>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  {DEMO_PERSONAS.length} Employees
+                  {switchPersonas.length} Employees
                 </span>
               </div>
 
@@ -209,7 +221,8 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
               {/* Department quick filter pills */}
               <div className="flex items-center gap-1 overflow-x-auto mt-2 pb-1 scrollbar-none">
                 {departments.map((dept) => {
-                  const count = dept === "All" ? DEMO_PERSONAS.length : DEMO_PERSONAS.filter((p) => p.category === dept).length;
+                  const count =
+                    dept === "All" ? switchPersonas.length : switchPersonas.filter((p) => p.category === dept).length;
                   const isDeptActive = selectedDept === dept;
                   const label = dept === "All" ? "All" : dept.replace("Functional - ", "").replace("Services - ", "").replace(" (Research & Development)", "");
                   return (

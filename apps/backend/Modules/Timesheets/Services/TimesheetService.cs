@@ -12,6 +12,7 @@ namespace PMS.API.Modules.Timesheets.Services;
 
 public sealed class TimesheetService(AppDbContext db, ICurrentUserService currentUser) : ITimesheetService
 {
+    private const int MaxDayCommentLength = 1000;
     private static readonly HashSet<string> Editable = ["draft", "rejected", "change_requested"];
 
     public async Task<TimesheetWeekDto?> GetMineAsync(DateOnly weekStart, CancellationToken ct = default)
@@ -340,6 +341,19 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
             if (line.Days.Any(d => d.DayIndex is < 0 or > 6 || d.Hours < 0 || d.Hours > 24))
             {
                 throw new ValidationException([new ValidationFailure("hours", "Hours must be between 0 and 24.")]);
+            }
+
+            foreach (var day in line.Days)
+            {
+                if (string.IsNullOrWhiteSpace(day.Comment)) continue;
+                if (day.Comment.Trim().Length > MaxDayCommentLength)
+                {
+                    throw new ValidationException([
+                        new ValidationFailure(
+                            "comment",
+                            $"Day notes must be {MaxDayCommentLength} characters or fewer."),
+                    ]);
+                }
             }
         }
 

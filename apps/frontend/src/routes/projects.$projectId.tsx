@@ -61,6 +61,11 @@ import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 import { fetchEmployees, loadEmployeesWithOnFloorRole, matchesOnFloorRole, type ApiEmployeeListItem } from "@/lib/api/employees";
+import {
+  formatOnFloorRoleDisplay,
+  ON_FLOOR_MANAGER,
+  ON_FLOOR_SENIOR_MANAGER,
+} from "@/lib/on-floor-role";
 
 // Helper function for consistent date formatting in DD/MM/YYYY (date/month/year)
 function formatDate(dateInput: Date | string | undefined | null): string {
@@ -462,16 +467,13 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
   );
 }
 
-const ON_FLOOR_PROJECT_MANAGER = "Manager (Mng.)";
-const ON_FLOOR_SENIOR_PROJECT_MANAGER = "Sr. Manager (Sr.Mng.)";
-
 function isStoredManager(member: ApiProjectTeamMember): boolean {
   return member.memberRole === "ProjectManager" || member.memberRole === "SeniorProjectManager";
 }
 
 /**
  * Assigned managers are placed by On Floor Role (mst_roles.Name).
- * Manager (Mng.) → Project Managers. Sr. Manager (Sr.Mng.) → Senior Project Managers.
+ * Manager → Project Managers. Sr. Manager → Senior Project Managers.
  */
 async function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
   const employees = await loadEmployeesWithOnFloorRole();
@@ -490,9 +492,9 @@ async function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
     const employee = byId.get(member.employeeId.toLowerCase());
     const onFloorRole = employee?.jobRoleName || null;
     const person = { employeeId: member.employeeId, name };
-    if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_PROJECT_MANAGER)) {
+    if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_MANAGER)) {
       projectManagers.push(person);
-    } else if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_SENIOR_PROJECT_MANAGER)) {
+    } else if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_SENIOR_MANAGER)) {
       seniorProjectManagers.push(person);
     }
   }
@@ -2909,14 +2911,14 @@ function isActiveEmployeeStatus(status?: string | null): boolean {
   return (status || "").trim().toLowerCase() === "active";
 }
 
-/** On Floor Role from mst_roles.Name: Manager (Mng.). */
+/** On Floor Role from mst_roles.Name: Manager. */
 export function isEmployeePM(emp: { jobRoleName?: string | null; role?: string | null }): boolean {
-  return matchesOnFloorRole(emp, "Manager (Mng.)");
+  return matchesOnFloorRole(emp, ON_FLOOR_MANAGER);
 }
 
-/** On Floor Role from mst_roles.Name: Sr. Manager (Sr.Mng.). */
+/** On Floor Role from mst_roles.Name: Sr. Manager. */
 export function isEmployeeSPM(emp: { jobRoleName?: string | null; role?: string | null }): boolean {
-  return matchesOnFloorRole(emp, "Sr. Manager (Sr.Mng.)");
+  return matchesOnFloorRole(emp, ON_FLOOR_SENIOR_MANAGER);
 }
 
 export function calculateManagerStats(
@@ -3058,7 +3060,13 @@ function ChangeLeaderPanel({
 
   const candidatePool = useMemo(() => {
     const managerSubtitle = (emp: ApiEmployeeListItem, fallbackRole: string) =>
-      [emp.employeeCode, emp.department, emp.jobRoleName || fallbackRole].filter(Boolean).join(" · ");
+      [
+        emp.employeeCode,
+        emp.department,
+        formatOnFloorRoleDisplay(emp.jobRoleName) || fallbackRole,
+      ]
+        .filter(Boolean)
+        .join(" · ");
     if (role === "Project Manager") {
       return dbEmployees
         .filter((emp) => isActiveEmployeeStatus(emp.status) && isEmployeePM(emp))
@@ -3066,7 +3074,7 @@ function ChangeLeaderPanel({
           id: emp.id,
           name: emp.fullName,
           role: "Project Manager",
-          designation: managerSubtitle(emp, "Manager (Mng.)"),
+          designation: managerSubtitle(emp, ON_FLOOR_MANAGER),
           email: emp.workEmail || "",
         }));
     }
@@ -3077,7 +3085,7 @@ function ChangeLeaderPanel({
           id: emp.id,
           name: emp.fullName,
           role: "Senior Project Manager",
-          designation: managerSubtitle(emp, "Sr. Manager (Sr.Mng.)"),
+          designation: managerSubtitle(emp, ON_FLOOR_SENIOR_MANAGER),
           email: emp.workEmail || "",
         }));
     }
@@ -3231,9 +3239,9 @@ function ChangeLeaderPanel({
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
               {role === "Project Manager"
-                ? "On Floor Role: Manager (Mng.)"
+                ? `On Floor Role: ${ON_FLOOR_MANAGER}`
                 : role === "Senior Project Manager"
-                  ? "On Floor Role: Sr. Manager (Sr.Mng.)"
+                  ? `On Floor Role: ${ON_FLOOR_SENIOR_MANAGER}`
                   : role === "Team Lead"
                     ? "Project Team members"
                     : "All Leaders"}
@@ -3326,9 +3334,9 @@ function ChangeLeaderPanel({
                     : search.trim()
                       ? "No match"
                       : role === "Project Manager"
-                        ? "No Active employees with On Floor Role Manager (Mng.)"
+                        ? `No Active employees with On Floor Role ${ON_FLOOR_MANAGER}`
                         : role === "Senior Project Manager"
-                          ? "No Active employees with On Floor Role Sr. Manager (Sr.Mng.)"
+                          ? `No Active employees with On Floor Role ${ON_FLOOR_SENIOR_MANAGER}`
                           : "No match"}
               </li>
             )}
@@ -8264,7 +8272,7 @@ function WbsAssignmentModal({
       code: emp.employeeCode,
       department: emp.department || "",
       role: "PM",
-      designation: emp.jobRoleName || "Manager (Mng.)",
+      designation: formatOnFloorRoleDisplay(emp.jobRoleName) || ON_FLOOR_MANAGER,
     }));
   }, [dbEmployees]);
 
@@ -8275,7 +8283,7 @@ function WbsAssignmentModal({
       code: emp.employeeCode,
       department: emp.department || "",
       role: "Senior PM",
-      designation: emp.jobRoleName || "Sr. Manager (Sr.Mng.)",
+      designation: formatOnFloorRoleDisplay(emp.jobRoleName) || ON_FLOOR_SENIOR_MANAGER,
     }));
   }, [dbEmployees]);
 
@@ -8431,7 +8439,7 @@ function WbsAssignmentModal({
                 })}
                 {pmVisiblePool.length === 0 && (
                   <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    {!employeesReady ? "Loading employees…" : pmQuery ? "No match" : "No employees with On Floor Role Manager (Mng.)"}
+                    {!employeesReady ? "Loading employees…" : pmQuery ? "No match" : `No employees with On Floor Role ${ON_FLOOR_MANAGER}`}
                   </li>
                 )}
               </ul>
@@ -8498,7 +8506,7 @@ function WbsAssignmentModal({
                 })}
                 {spmVisiblePool.length === 0 && (
                   <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    {!employeesReady ? "Loading employees…" : spmQuery ? "No match" : "No employees with On Floor Role Sr. Manager (Sr.Mng.)"}
+                    {!employeesReady ? "Loading employees…" : spmQuery ? "No match" : `No employees with On Floor Role ${ON_FLOOR_SENIOR_MANAGER}`}
                   </li>
                 )}
               </ul>

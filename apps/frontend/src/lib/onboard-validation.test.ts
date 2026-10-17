@@ -228,9 +228,9 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       expect(PMO_DEPARTMENT_OPTIONS).toContain("Services - Testing");
 
       expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Core"]).toEqual([
-        "Leading Sales & A/C Dept.",
-        "Leading Delivery Dept.",
-        "Leading Compliance & HR Dept.",
+        "Leading Sales & A/C Department",
+        "Leading Delivery Department",
+        "Leading Compliance & HR Department",
       ]);
 
       expect(PMO_DEPARTMENT_SUB_DEPARTMENTS["Functional - Project Management"]).toEqual([
@@ -252,7 +252,7 @@ describe("Onboarding Form Validation & Exception Handling", () => {
 
     it("should allow PMO section fields", () => {
       expect(validateOnboardField("pmoDepartment", { ...EMPTY_ONBOARD, pmoDepartment: "Core" })).toBeUndefined();
-      expect(validateOnboardField("subDepartment", { ...EMPTY_ONBOARD, subDepartment: "Leading Delivery Dept." })).toBeUndefined();
+      expect(validateOnboardField("subDepartment", { ...EMPTY_ONBOARD, subDepartment: "Leading Delivery Department" })).toBeUndefined();
       expect(validateOnboardField("billableStatus", { ...EMPTY_ONBOARD, billableStatus: "Billable" })).toBeUndefined();
       expect(validateOnboardField("clientLocation", { ...EMPTY_ONBOARD, clientLocation: "Andheri (Western Line)" })).toBeUndefined();
       expect(validateOnboardField("projectType", { ...EMPTY_ONBOARD, projectType: "Long Term" })).toBeUndefined();

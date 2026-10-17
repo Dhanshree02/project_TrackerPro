@@ -1,5 +1,6 @@
 import type { AuthUser } from "@/lib/api-client";
 import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
+import { findEmployeePersona, isEmployeePersonaKey } from "@/lib/employee-personas";
 
 /**
  * RBAC system roles + employee identity keys.
@@ -900,6 +901,8 @@ export const DEMO_PERSONAS: DemoPersona[] = [
 export function isDemoRoleKey(value: string | null | undefined): boolean {
   if (!value) return false;
   const normalized = value.trim().toLowerCase();
+  if (isEmployeePersonaKey(value)) return true;
+  if (/^tk-\d{4}$/i.test(value.trim())) return true;
   return DEMO_PERSONAS.some(
     (p) =>
       p.key.toLowerCase() === normalized ||
@@ -923,12 +926,15 @@ export function setStoredDemoRole(roleOrKey: string): void {
 
 export function getDemoPersona(roleOrKey: string): DemoPersona {
   const normalized = (roleOrKey || "").trim().toLowerCase();
+  const fromEmployees = findEmployeePersona(roleOrKey);
+  if (fromEmployees) return fromEmployees;
   return (
     DEMO_PERSONAS.find(
       (p) =>
         p.key.toLowerCase() === normalized ||
         p.code.toLowerCase() === normalized ||
-        p.email.toLowerCase() === normalized,
+        p.email.toLowerCase() === normalized ||
+        p.id.toLowerCase() === normalized,
     ) ??
     DEMO_PERSONAS.find(
       (p) =>
@@ -946,6 +952,7 @@ export function mockAuthUser(roleOrKey: string): AuthUser {
     id: persona.id,
     email: persona.email,
     name: persona.name,
+    employeeId: persona.id,
     role: persona.roleKey,
     mustChangePassword: false,
     permissions: persona.permissions,

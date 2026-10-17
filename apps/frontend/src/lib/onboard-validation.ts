@@ -33,9 +33,9 @@ export type ProjectTypeOption = (typeof PROJECT_TYPE_OPTIONS)[number];
 
 export const PMO_DEPARTMENT_SUB_DEPARTMENTS: Record<string, string[]> = {
   "Core": [
-    "Leading Sales & A/C Dept.",
-    "Leading Delivery Dept.",
-    "Leading Compliance & HR Dept.",
+    "Leading Sales & A/C Department",
+    "Leading Delivery Department",
+    "Leading Compliance & HR Department",
   ],
   "Functional - IT Administration": ["-"],
   "Functional - Accounts": ["-"],
