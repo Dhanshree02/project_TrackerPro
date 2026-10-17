@@ -15,6 +15,17 @@ import {
   type MisDashboardView,
   type OnsiteProjectCounts,
 } from "@/lib/api/dashboard";
+import { ChartDismiss, GraphZoom, rowBarChart, useGraphZoomMotion, xAxisLabel, yAxisLabel } from "@/components/dashboard/graph-frame";
+import {
+  misHeadRow,
+  misRow,
+  misTable,
+  misTableScroll,
+  misTdLabel,
+  misTdNumber,
+  misThLabel,
+  misThNumber,
+} from "@/components/dashboard/dashboard-table";
 
 const PAGE_SIZE = 8;
 
@@ -89,6 +100,13 @@ export function OnsiteProjectCountSection({
           <h3 className="text-sm font-semibold">Team Utilization – Onsite: Project-wise Resource Count</h3>
           <p className="text-xs text-muted-foreground">People assigned to the project's onsite services</p>
         </div>
+        <div className="flex items-end gap-2">
+        {showChart && !loading && !error && data && filtered.length > 0 && (
+          <GraphZoom
+            title="Team Utilization – Onsite: Project-wise Resource Count"
+            render={() => <ProjectCountChart chartRows={chartRows} months={months} />}
+          />
+        )}
         {!loading && !error && data && data.projects.length > 0 && (
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             Search
@@ -103,6 +121,7 @@ export function OnsiteProjectCountSection({
             />
           </label>
         )}
+        </div>
       </div>
 
       {loading && (
@@ -141,7 +160,7 @@ export function OnsiteProjectCountSection({
                   <select
                     value={chartLimit}
                     onChange={(event) => setChartLimit(Number(event.target.value))}
-                    className="h-8 rounded-md border border-input bg-card px-2 text-xs text-foreground"
+                    className="h-8 min-w-[7rem] rounded-md border border-input bg-card py-0 pl-2 pr-8 text-xs text-foreground"
                   >
                     <option value={10}>Top 10</option>
                     <option value={20}>Top 20</option>
@@ -150,14 +169,15 @@ export function OnsiteProjectCountSection({
                   </select>
                 </label>
               </div>
+              <ChartDismiss>
               <ChartContainer
                 config={chartConfig}
                 className="aspect-auto w-full"
-                style={{ height: Math.max(260, chartRows.length * 42 + 48) }}
+                style={{ height: Math.max(240, chartRows.length * 56 + 36) }}
               >
-                <BarChart data={chartRows} layout="vertical" margin={{ left: 8, right: 24, top: 8 }}>
+                <BarChart data={chartRows} layout="vertical" margin={{ left: 28, right: 28, top: 8, bottom: 28 }} {...rowBarChart}>
                   <CartesianGrid horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+                  <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} label={xAxisLabel("Onsite resource count")} />
                   <YAxis
                     type="category"
                     dataKey="projectName"
@@ -166,33 +186,35 @@ export function OnsiteProjectCountSection({
                     axisLine={false}
                     tick={{ fontSize: 10 }}
                     tickFormatter={(value: string) => (value.length > 26 ? `${value.slice(0, 24)}…` : value)}
+                    label={yAxisLabel("Project")}
                   />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip trigger="click" cursor={false} content={<ChartTooltipContent />} />
                   <ChartLegend content={<ChartLegendContent />} />
-                  <Bar dataKey="m0" fill="var(--color-m0)" radius={4}>
+                  <Bar isAnimationActive animationDuration={800} minPointSize={6} maxBarSize={16} dataKey="m0" fill="var(--color-m0)" radius={4}>
                     <LabelList dataKey="m0" position="right" className="fill-foreground" fontSize={10} />
                   </Bar>
-                  <Bar dataKey="m1" fill="var(--color-m1)" radius={4}>
+                  <Bar isAnimationActive animationDuration={800} minPointSize={6} maxBarSize={16} dataKey="m1" fill="var(--color-m1)" radius={4}>
                     <LabelList dataKey="m1" position="right" className="fill-foreground" fontSize={10} />
                   </Bar>
-                  <Bar dataKey="m2" fill="var(--color-m2)" radius={4}>
+                  <Bar isAnimationActive animationDuration={800} minPointSize={6} maxBarSize={16} dataKey="m2" fill="var(--color-m2)" radius={4}>
                     <LabelList dataKey="m2" position="right" className="fill-foreground" fontSize={10} />
                   </Bar>
                 </BarChart>
               </ChartContainer>
+              </ChartDismiss>
             </div>
           )}
 
           {showTable && (
             <div className="min-w-0">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[520px] text-sm">
+              <div className={misTableScroll}>
+                <table className={`${misTable} min-w-[520px]`}>
                   <thead>
-                    <tr className="border-b border-border text-xs text-muted-foreground">
-                      <th className="py-2 pr-3 text-left font-medium">Project Name</th>
-                      <th className="px-2 py-2 text-right font-medium">Onsite Resource Count</th>
+                    <tr className={misHeadRow}>
+                      <th className={misThLabel}>Project Name</th>
+                      <th className={misThNumber}>Onsite Resource Count</th>
                       {months.map((month) => (
-                        <th key={month.month} className="px-2 py-2 text-right font-medium">
+                        <th key={month.month} className={misThNumber}>
                           {month.month}
                         </th>
                       ))}
@@ -200,11 +222,11 @@ export function OnsiteProjectCountSection({
                   </thead>
                   <tbody>
                     {pageRows.map((project) => (
-                      <tr key={project.projectName} className="border-b border-border last:border-0">
-                        <td className="py-2 pr-3">{project.projectName}</td>
-                        <td className="px-2 py-2 text-right tabular-nums">{project.onsiteResourceCount}</td>
+                      <tr key={project.projectName} className={misRow}>
+                        <td className={misTdLabel} title={project.projectName}>{project.projectName}</td>
+                        <td className={misTdNumber}>{project.onsiteResourceCount}</td>
                         {months.map((month, index) => (
-                          <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                          <td key={month.month} className={misTdNumber}>
                             {project.monthlyCounts[index] ?? 0}
                           </td>
                         ))}
@@ -241,5 +263,55 @@ export function OnsiteProjectCountSection({
         </div>
       )}
     </article>
+  );
+}
+
+function ProjectCountChart({
+  chartRows,
+  months,
+}: {
+  chartRows: Array<{ projectName: string; m0: number; m1: number; m2: number }>;
+  months: OnsiteProjectCounts["months"];
+}) {
+  const zoom = useGraphZoomMotion();
+  const chartConfig = {
+    m0: { label: months[0]?.month ?? "Month 1", color: "var(--chart-1)" },
+    m1: { label: months[1]?.month ?? "Month 2", color: "var(--chart-2)" },
+    m2: { label: months[2]?.month ?? "Month 3", color: "var(--chart-4)" },
+  } satisfies ChartConfig;
+
+  return (
+    <ChartDismiss>
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto w-full"
+        style={{ height: Math.max(240, chartRows.length * 56 + 36) }}
+      >
+        <BarChart data={chartRows} layout="vertical" margin={{ left: 28, right: 28, top: 8, bottom: 28 }} {...rowBarChart}>
+          <CartesianGrid horizontal={false} />
+          <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} label={xAxisLabel("Onsite resource count")} />
+          <YAxis
+            type="category"
+            dataKey="projectName"
+            width={180}
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 10 }}
+            label={yAxisLabel("Project")}
+          />
+          <ChartTooltip trigger="click" cursor={false} content={<ChartTooltipContent />} />
+          <ChartLegend content={<ChartLegendContent />} />
+          <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} maxBarSize={16} dataKey="m0" fill="var(--color-m0)" radius={4}>
+            <LabelList dataKey="m0" position="right" className="fill-foreground" fontSize={10} />
+          </Bar>
+          <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} maxBarSize={16} dataKey="m1" fill="var(--color-m1)" radius={4}>
+            <LabelList dataKey="m1" position="right" className="fill-foreground" fontSize={10} />
+          </Bar>
+          <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} maxBarSize={16} dataKey="m2" fill="var(--color-m2)" radius={4}>
+            <LabelList dataKey="m2" position="right" className="fill-foreground" fontSize={10} />
+          </Bar>
+        </BarChart>
+      </ChartContainer>
+    </ChartDismiss>
   );
 }

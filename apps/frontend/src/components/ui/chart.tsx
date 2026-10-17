@@ -90,6 +90,26 @@ ${colorConfig
   );
 };
 
+const MONTH_LABELS: Record<string, string> = {
+  Jan: "January",
+  Feb: "February",
+  Mar: "March",
+  Apr: "April",
+  May: "May",
+  Jun: "June",
+  Jul: "July",
+  Aug: "August",
+  Sep: "September",
+  Oct: "October",
+  Nov: "November",
+  Dec: "December",
+};
+
+function presentCategory(value: unknown) {
+  if (typeof value !== "string") return value;
+  return MONTH_LABELS[value] ?? value;
+}
+
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
 const ChartTooltipContent = React.forwardRef<
@@ -146,7 +166,7 @@ const ChartTooltipContent = React.forwardRef<
         return null;
       }
 
-      return <div className={cn("font-medium", labelClassName)}>{value}</div>;
+      return <div className={cn("font-medium", labelClassName)}>{presentCategory(value)}</div>;
     }, [label, labelFormatter, payload, hideLabel, labelClassName, config, labelKey]);
 
     if (!active || !payload?.length) {
@@ -164,7 +184,7 @@ const ChartTooltipContent = React.forwardRef<
         )}
       >
         {!nestLabel ? tooltipLabel : null}
-        <div className="grid gap-1.5">
+        <div className="grid gap-2.5">
           {payload
             .filter((item) => item.type !== "none")
             .map((item, index) => {
@@ -210,19 +230,19 @@ const ChartTooltipContent = React.forwardRef<
                       )}
                       <div
                         className={cn(
-                          "flex flex-1 justify-between leading-none",
+                          "flex flex-1 items-center justify-between gap-8 leading-none",
                           nestLabel ? "items-end" : "items-center",
                         )}
                       >
                         <div className="grid gap-1.5">
                           {nestLabel ? tooltipLabel : null}
-                          <span className="text-muted-foreground">
-                            {itemConfig?.label || item.name}
+                          <span className="whitespace-nowrap text-muted-foreground">
+                            {itemConfig?.label || item.name}:
                           </span>
                         </div>
-                        {item.value && (
-                          <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
+                        {item.value != null && item.value !== "" && (
+                          <span className="ml-6 font-mono font-medium tabular-nums text-foreground">
+                            {typeof item.value === "number" ? item.value.toLocaleString("en-IN") : item.value}
                           </span>
                         )}
                       </div>
@@ -258,7 +278,7 @@ const ChartLegendContent = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "flex items-center justify-center gap-4",
+        "flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs",
         verticalAlign === "top" ? "pb-3" : "pt-3",
         className,
       )}

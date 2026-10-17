@@ -16,6 +16,17 @@ import {
   type ResignationCountRow,
   type ResignationCounts,
 } from "@/lib/api/dashboard";
+import { ChartDismiss, columnBarChart, GraphZoom, useGraphZoomMotion, xAxisLabel, yAxisLabel } from "@/components/dashboard/graph-frame";
+import {
+  misHeadRow,
+  misRow,
+  misTable,
+  misTableScroll,
+  misTdLabel,
+  misTdNumber,
+  misThLabel,
+  misThNumber,
+} from "@/components/dashboard/dashboard-table";
 
 const chartConfig = {
   totalCount: { label: "Total Count", color: "var(--chart-1)" },
@@ -62,8 +73,23 @@ export function ResignationCountSection({
 
   return (
     <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <h3 className="text-sm font-semibold">Team Resignation Count – Onsite/Offsite ({dashboardPeriodLabel(period)})</h3>
-      <p className="text-xs text-muted-foreground">Role counts for the selected period. Bond Free is bond status No. On Paper is a resignation in this period.</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">Team Resignation Count – Onsite/Offsite ({dashboardPeriodLabel(period)})</h3>
+          <p className="text-xs text-muted-foreground">Role counts for the selected period. Bond Free is bond status No bond. On Paper is a resignation in this period.</p>
+        </div>
+        {!loading && !error && data && showChart && (
+          <GraphZoom
+            title={`Team Resignation Count – Onsite/Offsite (${dashboardPeriodLabel(period)})`}
+            render={() => (
+              <div className="grid gap-6 lg:grid-cols-2">
+                <RolePanel title="Offsite" rows={data.offsite} showChart showTable={false} />
+                <RolePanel title="Onsite" rows={data.onsite} showChart showTable={false} />
+              </div>
+            )}
+          />
+        )}
+      </div>
 
       {loading && (
         <div className="mt-4 rounded-lg border border-border px-4 py-10 text-center text-sm text-muted-foreground">
@@ -105,12 +131,14 @@ function RolePanel({
   showChart: boolean;
   showTable: boolean;
 }) {
+  const zoom = useGraphZoomMotion();
   return (
     <div className="min-w-0 space-y-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
       {showChart && (
+        <ChartDismiss>
         <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height: 320 }}>
-          <BarChart data={rows} margin={{ left: 0, right: 8, top: 8, bottom: 8 }}>
+          <BarChart data={rows} margin={{ left: 8, right: 8, top: 8, bottom: 28 }} {...columnBarChart}>
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="role"
@@ -121,15 +149,17 @@ function RolePanel({
               angle={-24}
               textAnchor="end"
               height={72}
+              label={xAxisLabel("Role")}
             />
-            <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} label={yAxisLabel("Count")} />
+            <ChartTooltip trigger="click" cursor={false} content={<ChartTooltipContent />} />
             <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="totalCount" fill="var(--color-totalCount)" radius={4} />
-            <Bar dataKey="bondFree" fill="var(--color-bondFree)" radius={4} />
-            <Bar dataKey="onPaper" fill="var(--color-onPaper)" radius={4} />
+            <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} dataKey="totalCount" fill="var(--color-totalCount)" radius={4} />
+            <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} dataKey="bondFree" fill="var(--color-bondFree)" radius={4} />
+            <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} dataKey="onPaper" fill="var(--color-onPaper)" radius={4} />
           </BarChart>
         </ChartContainer>
+        </ChartDismiss>
       )}
       {showTable && <RoleTable rows={rows} />}
     </div>
@@ -138,23 +168,23 @@ function RolePanel({
 
 function RoleTable({ rows }: { rows: ResignationCountRow[] }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-amber-200">
-      <table className="w-full min-w-[320px] text-sm">
+    <div className={misTableScroll}>
+      <table className={`${misTable} min-w-[320px]`}>
         <thead>
-          <tr className="bg-amber-300 text-xs text-amber-950">
-            <th className="px-3 py-2 text-left font-semibold">Team Role</th>
-            <th className="px-3 py-2 text-right font-semibold">Total Count</th>
-            <th className="px-3 py-2 text-right font-semibold">Bond Free</th>
-            <th className="px-3 py-2 text-right font-semibold">On Paper</th>
+          <tr className={misHeadRow}>
+            <th className={misThLabel}>Team Role</th>
+            <th className={misThNumber}>Total Count</th>
+            <th className={misThNumber}>Bond Free</th>
+            <th className={misThNumber}>On Paper</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.role} className="border-t border-amber-100 bg-amber-50/70">
-              <td className="px-3 py-2">{row.role}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{row.totalCount}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{row.bondFree}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{row.onPaper}</td>
+            <tr key={row.role} className={misRow}>
+              <td className={misTdLabel}>{row.role}</td>
+              <td className={misTdNumber}>{row.totalCount}</td>
+              <td className={misTdNumber}>{row.bondFree}</td>
+              <td className={misTdNumber}>{row.onPaper}</td>
             </tr>
           ))}
         </tbody>

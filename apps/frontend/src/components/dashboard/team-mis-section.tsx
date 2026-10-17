@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
   ChartLegend,
@@ -20,6 +20,18 @@ import { OnsiteProjectCountSection } from "@/components/dashboard/onsite-project
 import { OnsiteUtilizationSection } from "@/components/dashboard/onsite-utilization-section";
 import { ResignationCountSection } from "@/components/dashboard/resignation-count-section";
 import { OffsiteCapacitySection } from "@/components/dashboard/offsite-capacity-section";
+import { ChartDismiss, columnBarChart, GraphZoom, useGraphZoomMotion, xAxisLabel, yAxisLabel } from "@/components/dashboard/graph-frame";
+import {
+  misRow,
+  misTable,
+  misTableScroll,
+  misTdLabel,
+  misTdNote,
+  misTdNumber,
+  misThLabel,
+  misThNumber,
+  misHeadRow,
+} from "@/components/dashboard/dashboard-table";
 import { RoleAllocationSection } from "@/components/dashboard/role-allocation-section";
 
 const PERIODS: { id: DashboardPeriod; label: string }[] = [
@@ -182,45 +194,50 @@ export function TeamMisSection() {
           )}
         <div className={`grid gap-6 lg:grid-cols-2 ${loading || error ? "invisible" : ""}`}>
           <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <h3 className="text-sm font-semibold">Total Team Size</h3>
-            <p className="text-xs text-muted-foreground">Onsite and offsite at each month end</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">Total Team Size</h3>
+                <p className="text-xs text-muted-foreground">Onsite and offsite at each month end</p>
+              </div>
+              {view !== "list" && <GraphZoom title="Total Team Size" render={() => <TotalTeamChart months={months} />} />}
+            </div>
             {view !== "graph" && (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[280px] text-sm">
+            <div className={`mt-4 ${misTableScroll}`}>
+              <table className={`${misTable} min-w-[280px]`}>
                 <thead>
-                  <tr className="border-b border-border text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 text-left font-medium">Teams</th>
+                  <tr className={misHeadRow}>
+                    <th className={misThLabel}>Teams</th>
                     {months.map((month) => (
-                      <th key={month.month} className="px-2 py-2 text-right font-medium">
+                      <th key={month.month} className={misThNumber}>
                         {month.month}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-border">
-                    <td className="py-2 pr-3">Total Team Size</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>Total Team Size</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         {month.totalTeamSize}
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-border">
-                    <td className="py-2 pr-3">Onsite Team</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>Onsite Team</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         <div>{month.onsiteTeam}</div>
-                        <div className="text-xs text-muted-foreground">{month.onsitePercentage}%</div>
+                        <div className={misTdNote}>{month.onsitePercentage}%</div>
                       </td>
                     ))}
                   </tr>
-                  <tr>
-                    <td className="py-2 pr-3">Offsite Team</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>Offsite Team</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         <div>{month.offsiteTeam}</div>
-                        <div className="text-xs text-muted-foreground">{month.offsitePercentage}%</div>
+                        <div className={misTdNote}>{month.offsitePercentage}%</div>
                       </td>
                     ))}
                   </tr>
@@ -228,51 +245,43 @@ export function TeamMisSection() {
               </table>
             </div>
             )}
-            {view !== "list" && (
-            <ChartContainer config={teamChartConfig} className="mt-4 aspect-auto h-[260px] w-full">
-              <BarChart data={months} margin={{ left: 0, right: 8, top: 8 }}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="totalTeamSize" fill="var(--color-totalTeamSize)" radius={4} />
-                <Bar dataKey="onsiteTeam" fill="var(--color-onsiteTeam)" radius={4} />
-                <Bar dataKey="offsiteTeam" fill="var(--color-offsiteTeam)" radius={4} />
-              </BarChart>
-            </ChartContainer>
-            )}
+            {view !== "list" && <TotalTeamChart months={months} />}
           </article>
 
           <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <h3 className="text-sm font-semibold">Resource Boarding Details</h3>
-            <p className="text-xs text-muted-foreground">Joins and last working days in each month</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">Resource Boarding Details</h3>
+                <p className="text-xs text-muted-foreground">Joins and last working days in each month</p>
+              </div>
+              {view !== "list" && <GraphZoom title="Resource Boarding Details" render={() => <BoardingChart months={months} />} />}
+            </div>
             {view !== "graph" && (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[280px] text-sm">
+            <div className={`mt-4 ${misTableScroll}`}>
+              <table className={`${misTable} min-w-[280px]`}>
                 <thead>
-                  <tr className="border-b border-border text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 text-left font-medium">Resource Boarding Details</th>
+                  <tr className={misHeadRow}>
+                    <th className={misThLabel}>Resource Boarding Details</th>
                     {months.map((month) => (
-                      <th key={month.month} className="px-2 py-2 text-right font-medium">
+                      <th key={month.month} className={misThNumber}>
                         {month.month}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-border">
-                    <td className="py-2 pr-3">On-boarding</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>On-boarding</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         {month.onboarding}
                       </td>
                     ))}
                   </tr>
-                  <tr>
-                    <td className="py-2 pr-3">Off-boarding</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>Off-boarding</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         {month.offboarding}
                       </td>
                     ))}
@@ -281,19 +290,7 @@ export function TeamMisSection() {
               </table>
             </div>
             )}
-            {view !== "list" && (
-            <ChartContainer config={boardingChartConfig} className="mt-4 aspect-auto h-[260px] w-full">
-              <BarChart data={months} margin={{ left: 0, right: 8, top: 8 }}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="onboarding" fill="var(--color-onboarding)" radius={4} />
-                <Bar dataKey="offboarding" fill="var(--color-offboarding)" radius={4} />
-              </BarChart>
-            </ChartContainer>
-            )}
+            {view !== "list" && <BoardingChart months={months} />}
           </article>
         </div>
         </div>
@@ -306,5 +303,46 @@ export function TeamMisSection() {
       <ResignationCountSection period={period} view={view} />
       <OffsiteCapacitySection period={period} view={view} />
     </section>
+  );
+}
+
+function TotalTeamChart({ months }: { months: TeamSummary["months"] }) {
+  const zoom = useGraphZoomMotion();
+  return (
+    <ChartDismiss>
+      <ChartContainer config={teamChartConfig} className="mt-4 aspect-auto h-[260px] w-full">
+        <BarChart data={months} margin={{ left: 8, right: 8, top: 16, bottom: 24 }} {...columnBarChart}>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} label={xAxisLabel("Month")} />
+          <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} tick={{ fontSize: 12 }} label={yAxisLabel("Team size")} />
+          <ChartTooltip trigger="click" cursor={false} content={<ChartTooltipContent />} />
+          <ChartLegend content={<ChartLegendContent />} />
+          <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} dataKey="totalTeamSize" fill="var(--color-totalTeamSize)" radius={4} />
+          <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} dataKey="onsiteTeam" fill="var(--color-onsiteTeam)" radius={4}>
+            <LabelList dataKey="onsiteTeam" position="top" className="fill-foreground" fontSize={11} />
+          </Bar>
+          <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} dataKey="offsiteTeam" fill="var(--color-offsiteTeam)" radius={4} />
+        </BarChart>
+      </ChartContainer>
+    </ChartDismiss>
+  );
+}
+
+function BoardingChart({ months }: { months: TeamSummary["months"] }) {
+  const zoom = useGraphZoomMotion();
+  return (
+    <ChartDismiss>
+      <ChartContainer config={boardingChartConfig} className="mt-4 aspect-auto h-[260px] w-full">
+        <BarChart data={months} margin={{ left: 8, right: 8, top: 12, bottom: 24 }} {...columnBarChart}>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} label={xAxisLabel("Month")} />
+          <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} tick={{ fontSize: 12 }} label={yAxisLabel("Count")} />
+          <ChartTooltip trigger="click" cursor={false} content={<ChartTooltipContent />} />
+          <ChartLegend content={<ChartLegendContent />} />
+          <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} dataKey="onboarding" fill="var(--color-onboarding)" radius={4} />
+          <Bar isAnimationActive={!zoom} animationDuration={800} minPointSize={6} dataKey="offboarding" fill="var(--color-offboarding)" radius={4} />
+        </BarChart>
+      </ChartContainer>
+    </ChartDismiss>
   );
 }

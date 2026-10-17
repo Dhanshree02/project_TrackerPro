@@ -329,32 +329,38 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
             var monthEnd = FinancialQuarter.EndOfMonth(month.Year, month.Month);
             var onsiteTm = new HashSet<Guid>();
             var onsiteLeads = new HashSet<Guid>();
+            var onsitePm = new HashSet<Guid>();
             var offsiteTm = new HashSet<Guid>();
             var offsiteLeads = new HashSet<Guid>();
+            var offsitePm = new HashSet<Guid>();
 
             foreach (var link in links)
             {
                 if (!peopleById.TryGetValue(link.EmployeeId, out var person)) continue;
                 if (!IsOnTeamForMonth(person, exitByEmployee, monthEnd, today)) continue;
                 if (!RoleCoversMonth(link, monthStart, monthEnd)) continue;
-                if (IsProjectManagerRole(link.MemberRole)) continue;
 
                 var onsite = string.Equals(link.Location?.Trim(), "Onsite", StringComparison.OrdinalIgnoreCase);
                 var leads = link.IsTeamLead == true;
+                var manager = IsProjectManagerRole(link.MemberRole);
                 if (onsite)
                 {
-                    if (leads) onsiteLeads.Add(link.EmployeeId);
+                    if (manager) onsitePm.Add(link.EmployeeId);
+                    else if (leads) onsiteLeads.Add(link.EmployeeId);
                     else onsiteTm.Add(link.EmployeeId);
                 }
                 else
                 {
-                    if (leads) offsiteLeads.Add(link.EmployeeId);
+                    if (manager) offsitePm.Add(link.EmployeeId);
+                    else if (leads) offsiteLeads.Add(link.EmployeeId);
                     else offsiteTm.Add(link.EmployeeId);
                 }
             }
 
             onsiteTm.ExceptWith(onsiteLeads);
+            onsiteTm.ExceptWith(onsitePm);
             offsiteTm.ExceptWith(offsiteLeads);
+            offsiteTm.ExceptWith(offsitePm);
 
             return new RoleAllocationMonthDto(
                 month.Label,
@@ -363,7 +369,8 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
                 onsiteLeads.Count,
                 offsiteTm.Count,
                 offsiteLeads.Count,
-                0);
+                offsitePm.Count,
+                onsitePm.Count);
         }).ToList();
 
         return new RoleAllocationDto(quarter, financialYear, points);
@@ -568,6 +575,10 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
                 && resigned >= periodStart
                 && resigned <= periodEnd;
 
+            // One side for the whole period. The latest month they are still on the team
+            // decides onsite or offsite, so an earlier offsite month cannot also count them offsite.
+            bool? latestOnsite = null;
+            var onPaper = false;
             foreach (var month in months)
             {
                 var monthEnd = FinancialQuarter.EndOfMonth(month.Year, month.Month);
@@ -575,26 +586,26 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
 
                 locationByEmployee.TryGetValue(employee.Id, out var changes);
                 var location = ValueForMonth(changes ?? [], employee.WorkLocation, month.Year, month.Month);
-                var side = IsOnsite(location) ? onsite : offsite;
-                if (!side.ContainsKey(employee.Id))
-                {
-                    side[employee.Id] = new ResignationSeat { Bucket = bucket, BondFree = bondFree };
-                }
+                latestOnsite = IsOnsite(location);
 
                 if (resignedInPeriod
                     && resignationDate!.Value.Year == month.Year
                     && resignationDate.Value.Month == month.Month)
                 {
-                    side[employee.Id].OnPaper = true;
+                    onPaper = true;
                 }
             }
+
+            if (latestOnsite is null) continue;
+            var seat = new ResignationSeat { Bucket = bucket, BondFree = bondFree, OnPaper = onPaper };
+            (latestOnsite.Value ? onsite : offsite)[employee.Id] = seat;
         }
 
         return new ResignationCountDto(
             quarter,
             financialYear,
-            BuildResignationRows(offsite, includeProjectManagers: true),
-            BuildResignationRows(onsite, includeProjectManagers: false));
+            BuildResignationRows(offsite, offsiteSide: true),
+            BuildResignationRows(onsite, offsiteSide: false));
     }
 
     public async Task<OffsiteCapacityDto> GetOffsiteCapacityAsync(TeamSummaryQuery query, CancellationToken ct = default)
@@ -985,7 +996,7 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
 
     private static List<ResignationCountRowDto> BuildResignationRows(
         IReadOnlyDictionary<Guid, ResignationSeat> people,
-        bool includeProjectManagers)
+        bool offsiteSide)
     {
         ResignationCountRowDto Row(string role, Func<ResignationSeat, bool> match)
         {
@@ -997,15 +1008,13 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
                 matched.Count(seat => seat.OnPaper));
         }
 
-        var rows = new List<ResignationCountRowDto>
-        {
+        return
+        [
             Row("Total Team", _ => true),
-            Row(includeProjectManagers ? "Offsite - TM" : "Onsite TM", seat => seat.Bucket == ResignationBucket.Tm),
-            Row(includeProjectManagers ? "Offsite - Leads" : "Onsite Leads", seat => seat.Bucket == ResignationBucket.Leads),
-        };
-        if (includeProjectManagers)
-            rows.Add(Row("Offsite - PM", seat => seat.Bucket == ResignationBucket.Pm));
-        return rows;
+            Row(offsiteSide ? "Offsite - TM" : "Onsite TM", seat => seat.Bucket == ResignationBucket.Tm),
+            Row(offsiteSide ? "Offsite - Leads" : "Onsite Leads", seat => seat.Bucket == ResignationBucket.Leads),
+            Row(offsiteSide ? "Offsite - PM" : "Onsite PM", seat => seat.Bucket == ResignationBucket.Pm),
+        ];
     }
 
     /// <summary>
@@ -1080,8 +1089,13 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
         IpsPerDay,
     }
 
-    private static bool IsBondFree(string? bondStatus) =>
-        string.Equals(bondStatus?.Trim(), "No", StringComparison.OrdinalIgnoreCase);
+    private static bool IsBondFree(string? bondStatus)
+    {
+        var value = bondStatus?.Trim();
+        return value is not null
+            && (value.Equals("No", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("No bond", StringComparison.OrdinalIgnoreCase));
+    }
 
     private static bool IsResignationExit(string? exitType)
     {

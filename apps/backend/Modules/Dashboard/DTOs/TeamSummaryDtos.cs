@@ -28,7 +28,8 @@ public sealed record RoleAllocationMonthDto(
     int OnsiteLeads,
     int OffsiteTm,
     int OffsiteLeads,
-    int OffsitePm);
+    int OffsitePm,
+    int OnsitePm);
 
 public sealed record OnsiteProjectCountDto(
     string Quarter,
