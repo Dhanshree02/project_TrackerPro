@@ -634,7 +634,7 @@ interface DhState {
   leadershipChangeRequests: LeadershipChangeRequest[];
   leadershipAssignments: Record<
     string,
-    { emIds: string[]; spmIds: string[]; pmIds: string[]; tlIds: string[] }
+    { emIds: string[]; spmIds: string[]; pmIds: string[]; tlIds: string[]; teamLeadsSynced?: boolean }
   >;
   /** Cached id→person for API employees so leadership chips show names immediately. */
   knownPeople: Record<string, Person>;
@@ -4308,7 +4308,7 @@ export const dhStore = {
         ...(role === "Engagement Manager" ? { emIds: ids } : {}),
         ...(role === "Senior Project Manager" ? { spmIds: ids } : {}),
         ...(role === "Project Manager" ? { pmIds: ids } : {}),
-        ...(role === "Team Lead" ? { tlIds: ids } : {}),
+        ...(role === "Team Lead" ? { tlIds: ids, teamLeadsSynced: true } : {}),
       },
     };
     // Keep state.prereqs synced as well

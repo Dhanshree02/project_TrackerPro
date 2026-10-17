@@ -46,7 +46,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '1b3c5571-9d4d-523e-a9c9-34327c4efc26', 'r_core_director_and_chief_executive_officer_leader_l', 'Leader (L)', true, des."Id", NOW()
+SELECT '1b3c5571-9d4d-523e-a9c9-34327c4efc26', 'r_core_director_and_chief_executive_officer_leader_l', 'Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Director and Chief Executive Officer' AND dept."Name" = 'Core'
@@ -61,7 +61,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '65fc5ce4-d81d-5818-a13a-78f12d22efc7', 'r_core_director_and_chief_operating_officer_leader_l', 'Leader (L)', true, des."Id", NOW()
+SELECT '65fc5ce4-d81d-5818-a13a-78f12d22efc7', 'r_core_director_and_chief_operating_officer_leader_l', 'Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Director and Chief Operating Officer' AND dept."Name" = 'Core'
@@ -76,7 +76,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '1ccf28e2-bb70-5fe6-854c-0b4e9bdd143f', 'r_core_director_and_chief_technology_officer_leader_l', 'Leader (L)', true, des."Id", NOW()
+SELECT '1ccf28e2-bb70-5fe6-854c-0b4e9bdd143f', 'r_core_director_and_chief_technology_officer_leader_l', 'Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Director and Chief Technology Officer' AND dept."Name" = 'Core'
@@ -391,7 +391,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'd576d8b7-1719-5d12-97cf-2b052f07977c', 'r_functional_project_m_associate_pmo_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'd576d8b7-1719-5d12-97cf-2b052f07977c', 'r_functional_project_m_associate_pmo_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Associate PMO - I' AND dept."Name" = 'Functional - Project Management'
@@ -406,7 +406,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '63166ffb-e72d-5f97-8b5e-45290de3c7b4', 'r_functional_project_m_associate_pmo_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '63166ffb-e72d-5f97-8b5e-45290de3c7b4', 'r_functional_project_m_associate_pmo_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Associate PMO - II' AND dept."Name" = 'Functional - Project Management'
@@ -421,7 +421,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '0c9ac4b8-0e4f-548a-9c95-facc1613669c', 'r_functional_project_m_senior_pmo_i_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT '0c9ac4b8-0e4f-548a-9c95-facc1613669c', 'r_functional_project_m_senior_pmo_i_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior PMO - I' AND dept."Name" = 'Functional - Project Management'
@@ -436,7 +436,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'ed6683ea-dd34-599f-b831-b36ff4ce6186', 'r_functional_project_m_senior_pmo_ii_manager_mng', 'Manager (Mng.)', true, des."Id", NOW()
+SELECT 'ed6683ea-dd34-599f-b831-b36ff4ce6186', 'r_functional_project_m_senior_pmo_ii_manager_mng', 'Manager', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior PMO - II' AND dept."Name" = 'Functional - Project Management'
@@ -451,7 +451,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '3e19f87d-0997-530b-a07b-142f81d8f58e', 'r_functional_project_m_delivery_account_manager_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '3e19f87d-0997-530b-a07b-142f81d8f58e', 'r_functional_project_m_delivery_account_manager_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Delivery Account Manager - I' AND dept."Name" = 'Functional - Project Management'
@@ -466,7 +466,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '5f339123-b8f5-5a11-965a-83f9ee3cb67f', 'r_functional_project_m_delivery_account_manager_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '5f339123-b8f5-5a11-965a-83f9ee3cb67f', 'r_functional_project_m_delivery_account_manager_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Delivery Account Manager - II' AND dept."Name" = 'Functional - Project Management'
@@ -481,7 +481,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '14f76de6-3cf8-5e5c-8b53-5ebecd5b5a56', 'r_functional_project_m_senior_delivery_account_manager_i_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT '14f76de6-3cf8-5e5c-8b53-5ebecd5b5a56', 'r_functional_project_m_senior_delivery_account_manager_i_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior Delivery Account Manager - I' AND dept."Name" = 'Functional - Project Management'
@@ -496,7 +496,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '72fad4b7-7294-529d-a166-c04192fb9b8b', 'r_functional_project_m_senior_delivery_account_manager_ii_manager_mng', 'Manager (Mng.)', true, des."Id", NOW()
+SELECT '72fad4b7-7294-529d-a166-c04192fb9b8b', 'r_functional_project_m_senior_delivery_account_manager_ii_manager_mng', 'Manager', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior Delivery Account Manager - II' AND dept."Name" = 'Functional - Project Management'
@@ -511,7 +511,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '08f5aefe-1c23-5cb9-8f09-71ffe7d5f61b', 'r_r_d_research_develop_python_developer_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '08f5aefe-1c23-5cb9-8f09-71ffe7d5f61b', 'r_r_d_research_develop_python_developer_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Python Developer - I' AND dept."Name" = 'R&D (Research & Development)'
@@ -526,7 +526,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '465e39ab-c119-5d9e-9fe2-f22d9ab34b8a', 'r_r_d_research_develop_python_developer_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '465e39ab-c119-5d9e-9fe2-f22d9ab34b8a', 'r_r_d_research_develop_python_developer_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Python Developer - II' AND dept."Name" = 'R&D (Research & Development)'
@@ -541,7 +541,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '3e04099b-2a7f-5508-ad95-119609f87d6b', 'r_r_d_research_develop_python_developer_iii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '3e04099b-2a7f-5508-ad95-119609f87d6b', 'r_r_d_research_develop_python_developer_iii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Python Developer - III' AND dept."Name" = 'R&D (Research & Development)'
@@ -556,7 +556,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '7150e1a7-a0ac-5cdb-b1cf-87710275f91e', 'r_services_operations_soc_analyst_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '7150e1a7-a0ac-5cdb-b1cf-87710275f91e', 'r_services_operations_soc_analyst_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SOC Analyst - I' AND dept."Name" = 'Services - Operations'
@@ -571,7 +571,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'ceee480e-04df-52f2-a52c-dd43a3d11ee2', 'r_services_operations_soc_analyst_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'ceee480e-04df-52f2-a52c-dd43a3d11ee2', 'r_services_operations_soc_analyst_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SOC Analyst - II' AND dept."Name" = 'Services - Operations'
@@ -586,7 +586,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'b1bf0c7f-6672-5315-926d-579d79a1d329', 'r_services_operations_soc_analyst_iii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'b1bf0c7f-6672-5315-926d-579d79a1d329', 'r_services_operations_soc_analyst_iii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SOC Analyst - III' AND dept."Name" = 'Services - Operations'
@@ -601,7 +601,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '6e6b070e-0222-554f-9fa0-6ddcf1946824', 'r_services_operations_soc_analyst_iv_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '6e6b070e-0222-554f-9fa0-6ddcf1946824', 'r_services_operations_soc_analyst_iv_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SOC Analyst - IV' AND dept."Name" = 'Services - Operations'
@@ -616,7 +616,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '60eca61d-6443-5862-81d9-f8c257d199ae', 'r_services_operations_siem_admin_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '60eca61d-6443-5862-81d9-f8c257d199ae', 'r_services_operations_siem_admin_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SIEM Admin - I' AND dept."Name" = 'Services - Operations'
@@ -631,7 +631,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '31b27d19-6537-597f-85f6-e932cad90e06', 'r_services_operations_siem_admin_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '31b27d19-6537-597f-85f6-e932cad90e06', 'r_services_operations_siem_admin_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SIEM Admin - II' AND dept."Name" = 'Services - Operations'
@@ -646,7 +646,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'e9937015-1bb3-5ac5-b3e0-9dc4ec82b3c8', 'r_services_operations_siem_admin_iii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'e9937015-1bb3-5ac5-b3e0-9dc4ec82b3c8', 'r_services_operations_siem_admin_iii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SIEM Admin - III' AND dept."Name" = 'Services - Operations'
@@ -661,7 +661,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '907bfa12-c952-5ae3-a0c1-68d239642f92', 'r_services_operations_siem_admin_iv_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT '907bfa12-c952-5ae3-a0c1-68d239642f92', 'r_services_operations_siem_admin_iv_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SIEM Admin - IV' AND dept."Name" = 'Services - Operations'
@@ -676,7 +676,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '3228805d-8ab4-5e91-bd08-db676d211fcb', 'r_services_operations_soc_consultant_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '3228805d-8ab4-5e91-bd08-db676d211fcb', 'r_services_operations_soc_consultant_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SOC Consultant - I' AND dept."Name" = 'Services - Operations'
@@ -691,7 +691,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '466440fd-b79e-505a-8b77-8b689b328a66', 'r_services_operations_soc_consultant_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '466440fd-b79e-505a-8b77-8b689b328a66', 'r_services_operations_soc_consultant_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SOC Consultant - II' AND dept."Name" = 'Services - Operations'
@@ -706,7 +706,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'c92f885e-8b1b-5e1f-9298-1c275f553e8f', 'r_services_operations_soc_shift_lead_i_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT 'c92f885e-8b1b-5e1f-9298-1c275f553e8f', 'r_services_operations_soc_shift_lead_i_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SOC Shift Lead - I' AND dept."Name" = 'Services - Operations'
@@ -721,7 +721,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '6f1be6ae-8e0b-5b50-afc4-67a669338fb5', 'r_services_operations_soc_shift_lead_ii_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT '6f1be6ae-8e0b-5b50-afc4-67a669338fb5', 'r_services_operations_soc_shift_lead_ii_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SOC Shift Lead - II' AND dept."Name" = 'Services - Operations'
@@ -751,7 +751,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '082af918-a1a8-5b85-883f-91c0f6b50d16', 'r_services_operations_soc_lead_ii_sr_manager_sr_m', 'Sr. Manager (Sr.Mng.)', true, des."Id", NOW()
+SELECT '082af918-a1a8-5b85-883f-91c0f6b50d16', 'r_services_operations_soc_lead_ii_sr_manager_sr_m', 'Sr. Manager', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'SOC Lead - II' AND dept."Name" = 'Services - Operations'
@@ -766,7 +766,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'e8f39646-823f-5fbf-a9c1-83ba720ff103', 'r_services_operations_principal_manager_i_head_of_departm', 'Head Of Department (HOD)', true, des."Id", NOW()
+SELECT 'e8f39646-823f-5fbf-a9c1-83ba720ff103', 'r_services_operations_principal_manager_i_head_of_departm', 'Head Of Department', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Principal Manager - I' AND dept."Name" = 'Services - Operations'
@@ -781,7 +781,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '3ef42444-c6ff-58c0-a3fc-e4192dd90e8d', 'r_services_consulting_grc_auditor_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '3ef42444-c6ff-58c0-a3fc-e4192dd90e8d', 'r_services_consulting_grc_auditor_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'GRC Auditor - I' AND dept."Name" = 'Services - Consulting'
@@ -796,7 +796,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '96f73221-1dcd-5b2f-9d58-89dfa8d34592', 'r_services_consulting_grc_auditor_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '96f73221-1dcd-5b2f-9d58-89dfa8d34592', 'r_services_consulting_grc_auditor_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'GRC Auditor - II' AND dept."Name" = 'Services - Consulting'
@@ -811,7 +811,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '0a086d55-93f8-584b-b758-40cdffcec87e', 'r_services_consulting_grc_auditor_iii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '0a086d55-93f8-584b-b758-40cdffcec87e', 'r_services_consulting_grc_auditor_iii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'GRC Auditor - III' AND dept."Name" = 'Services - Consulting'
@@ -826,7 +826,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '2e1e7830-06e0-5a83-8a4f-e5e50869f1ed', 'r_services_consulting_grc_auditor_iv_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '2e1e7830-06e0-5a83-8a4f-e5e50869f1ed', 'r_services_consulting_grc_auditor_iv_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'GRC Auditor - IV' AND dept."Name" = 'Services - Consulting'
@@ -841,7 +841,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '03531b73-2375-5a75-bf8d-0983d3f09fed', 'r_services_consulting_senior_grc_auditor_i_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT '03531b73-2375-5a75-bf8d-0983d3f09fed', 'r_services_consulting_senior_grc_auditor_i_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior GRC Auditor - I' AND dept."Name" = 'Services - Consulting'
@@ -856,7 +856,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '28f79e27-f3f8-5615-9092-c226e052ae10', 'r_services_consulting_senior_grc_auditor_ii_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT '28f79e27-f3f8-5615-9092-c226e052ae10', 'r_services_consulting_senior_grc_auditor_ii_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior GRC Auditor - II' AND dept."Name" = 'Services - Consulting'
@@ -871,7 +871,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'e598697f-9348-5f78-a344-8e4a7c3c3e6c', 'r_services_consulting_associate_manager_iii_manager_mng', 'Manager (Mng.)', true, des."Id", NOW()
+SELECT 'e598697f-9348-5f78-a344-8e4a7c3c3e6c', 'r_services_consulting_associate_manager_iii_manager_mng', 'Manager', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Associate Manager - III' AND dept."Name" = 'Services - Consulting'
@@ -886,7 +886,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'b913dc33-c6e4-58b3-aa50-865cfe6e7e00', 'r_services_consulting_senior_vice_president_principal_consulta_head_of_departm', 'Head Of Department (HOD)', true, des."Id", NOW()
+SELECT 'b913dc33-c6e4-58b3-aa50-865cfe6e7e00', 'r_services_consulting_senior_vice_president_principal_consulta_head_of_departm', 'Head Of Department', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior Vice President - Principal Consultant' AND dept."Name" = 'Services - Consulting'
@@ -901,7 +901,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'fee5793c-896c-5975-ad83-a2dd8cc5c865', 'r_services_testing_pentester_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'fee5793c-896c-5975-ad83-a2dd8cc5c865', 'r_services_testing_pentester_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'PenTester - I' AND dept."Name" = 'Services - Testing'
@@ -916,7 +916,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '18d8ff9d-2fa8-5744-8bc9-e98f03da676a', 'r_services_testing_pentester_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '18d8ff9d-2fa8-5744-8bc9-e98f03da676a', 'r_services_testing_pentester_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'PenTester - II' AND dept."Name" = 'Services - Testing'
@@ -931,7 +931,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'ef662994-8ebe-5cf7-8c8a-bb5792eb973c', 'r_services_testing_pentester_iii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'ef662994-8ebe-5cf7-8c8a-bb5792eb973c', 'r_services_testing_pentester_iii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'PenTester - III' AND dept."Name" = 'Services - Testing'
@@ -946,7 +946,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '128ef222-24e6-549b-acab-1159e2fdafe6', 'r_services_testing_pentester_iv_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '128ef222-24e6-549b-acab-1159e2fdafe6', 'r_services_testing_pentester_iv_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'PenTester - IV' AND dept."Name" = 'Services - Testing'
@@ -961,7 +961,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'b48d8558-3c02-522e-bc90-0853a846b4f2', 'r_services_testing_senior_pentester_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'b48d8558-3c02-522e-bc90-0853a846b4f2', 'r_services_testing_senior_pentester_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior Pentester - I' AND dept."Name" = 'Services - Testing'
@@ -976,7 +976,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'd25a8b8b-3d9f-58b7-b006-34f5dd0dc6ee', 'r_services_testing_senior_pentester_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'd25a8b8b-3d9f-58b7-b006-34f5dd0dc6ee', 'r_services_testing_senior_pentester_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior Pentester - II' AND dept."Name" = 'Services - Testing'
@@ -991,7 +991,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'e9a49f9d-a66b-5671-8b5f-d6acc31cd1b9', 'r_services_testing_associate_manager_i_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT 'e9a49f9d-a66b-5671-8b5f-d6acc31cd1b9', 'r_services_testing_associate_manager_i_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Associate Manager - I' AND dept."Name" = 'Services - Testing'
@@ -1006,7 +1006,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '6c01e1c4-9d4f-59ac-bb9f-4e4f6e10950a', 'r_services_testing_associate_manager_ii_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT '6c01e1c4-9d4f-59ac-bb9f-4e4f6e10950a', 'r_services_testing_associate_manager_ii_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Associate Manager - II' AND dept."Name" = 'Services - Testing'
@@ -1021,7 +1021,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '89b315ea-303b-5066-92cc-4197b899d043', 'r_services_testing_associate_manager_iii_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT '89b315ea-303b-5066-92cc-4197b899d043', 'r_services_testing_associate_manager_iii_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Associate Manager - III' AND dept."Name" = 'Services - Testing'
@@ -1036,7 +1036,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'e95e37d1-6225-5789-9c0c-429709a6573c', 'r_services_testing_associate_project_manager_manager_mng', 'Manager (Mng.)', true, des."Id", NOW()
+SELECT 'e95e37d1-6225-5789-9c0c-429709a6573c', 'r_services_testing_associate_project_manager_manager_mng', 'Manager', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Associate Project Manager' AND dept."Name" = 'Services - Testing'
@@ -1051,7 +1051,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '1c6cf3be-f242-546c-9eb2-dfbd19e76426', 'r_services_testing_manager_i_sr_manager_sr_m', 'Sr. Manager (Sr.Mng.)', true, des."Id", NOW()
+SELECT '1c6cf3be-f242-546c-9eb2-dfbd19e76426', 'r_services_testing_manager_i_sr_manager_sr_m', 'Sr. Manager', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Manager - I' AND dept."Name" = 'Services - Testing'
@@ -1066,7 +1066,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '16c3fdcb-4231-5643-9c63-60b1b7621f10', 'r_services_testing_devsecops_practitioner_i_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '16c3fdcb-4231-5643-9c63-60b1b7621f10', 'r_services_testing_devsecops_practitioner_i_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'DevSecOps Practitioner - I' AND dept."Name" = 'Services - Testing'
@@ -1081,7 +1081,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'e8c94988-1ece-5906-87ec-8bf403a0f3ea', 'r_services_testing_devsecops_practitioner_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'e8c94988-1ece-5906-87ec-8bf403a0f3ea', 'r_services_testing_devsecops_practitioner_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'DevSecOps Practitioner - II' AND dept."Name" = 'Services - Testing'
@@ -1096,7 +1096,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '9936ca2e-3b90-52cb-a6b3-e09ae363daf0', 'r_services_testing_devsecops_practitioner_iii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '9936ca2e-3b90-52cb-a6b3-e09ae363daf0', 'r_services_testing_devsecops_practitioner_iii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'DevSecOps Practitioner - III' AND dept."Name" = 'Services - Testing'
@@ -1111,7 +1111,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '398d684e-b320-5a50-973e-ffd122a6c473', 'r_services_testing_devsecops_associate_team_leader_tl', 'Team Leader (TL)', true, des."Id", NOW()
+SELECT '398d684e-b320-5a50-973e-ffd122a6c473', 'r_services_testing_devsecops_associate_team_leader_tl', 'Team Leader', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'DevSecOps Associate' AND dept."Name" = 'Services - Testing'
@@ -1126,7 +1126,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'af82255e-5c41-5a04-940e-aacbd0553d0a', 'r_services_testing_devsecops_specialist_ii_manager_mng', 'Manager (Mng.)', true, des."Id", NOW()
+SELECT 'af82255e-5c41-5a04-940e-aacbd0553d0a', 'r_services_testing_devsecops_specialist_ii_manager_mng', 'Manager', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'DevSecOps Specialist - II' AND dept."Name" = 'Services - Testing'
@@ -1141,7 +1141,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '13a042e8-1158-56a5-9344-e46934968e49', 'r_services_testing_red_team_practitioner_ii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '13a042e8-1158-56a5-9344-e46934968e49', 'r_services_testing_red_team_practitioner_ii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Red Team Practitioner - II' AND dept."Name" = 'Services - Testing'
@@ -1156,7 +1156,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '79644c1a-de9d-52a2-9d9b-00c2c08397ac', 'r_services_testing_red_team_practitioner_iii_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '79644c1a-de9d-52a2-9d9b-00c2c08397ac', 'r_services_testing_red_team_practitioner_iii_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Red Team Practitioner - III' AND dept."Name" = 'Services - Testing'
@@ -1171,7 +1171,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '632b4073-e68d-503d-bb26-60d624fedea7', 'r_services_testing_red_team_specialist_ii_manager_mng', 'Manager (Mng.)', true, des."Id", NOW()
+SELECT '632b4073-e68d-503d-bb26-60d624fedea7', 'r_services_testing_red_team_specialist_ii_manager_mng', 'Manager', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Red Team Specialist - II' AND dept."Name" = 'Services - Testing'
@@ -1186,7 +1186,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'e615dd26-db92-5017-b5ac-5e0fe0738a42', 'r_services_testing_senior_cloud_security_consultant_i_manager_mng', 'Manager (Mng.)', true, des."Id", NOW()
+SELECT 'e615dd26-db92-5017-b5ac-5e0fe0738a42', 'r_services_testing_senior_cloud_security_consultant_i_manager_mng', 'Manager', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Senior Cloud Security Consultant - I' AND dept."Name" = 'Services - Testing'
@@ -1201,7 +1201,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT 'c8afd795-d35c-5abc-87f5-732c554b7145', 'r_services_testing_associate_ai_engineer_contractual_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT 'c8afd795-d35c-5abc-87f5-732c554b7145', 'r_services_testing_associate_ai_engineer_contractual_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Associate AI Engineer - Contractual' AND dept."Name" = 'Services - Testing'
@@ -1216,7 +1216,7 @@ ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET
   "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '18fd966d-a36e-5169-a72f-9f0489aaf33e', 'r_internship_program_intern_team_member_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '18fd966d-a36e-5169-a72f-9f0489aaf33e', 'r_internship_program_intern_team_member_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des 
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Intern' AND dept."Name" = 'Internship Program'
@@ -1229,7 +1229,7 @@ FROM mst_departments d WHERE d."Name" = 'Functional - Project Management'
 ON CONFLICT ("DepartmentId", "Name") DO UPDATE SET "SubDepartment" = 'EM (Engagement Manager)', "IsActive" = true;
 
 INSERT INTO mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc")
-SELECT '6989d9c6-31fb-572a-ab25-33f095869d01', 'r_em_tm', 'Team Member (TM)', true, des."Id", NOW()
+SELECT '6989d9c6-31fb-572a-ab25-33f095869d01', 'r_em_tm', 'Team Member', true, des."Id", NOW()
 FROM mst_designations des
 JOIN mst_departments dept ON des."DepartmentId" = dept."Id"
 WHERE des."Name" = 'Engagement Manager' AND dept."Name" = 'Functional - Project Management'

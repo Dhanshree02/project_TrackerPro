@@ -4,6 +4,7 @@ import {
   EMPTY_DOCS,
   EMPTY_ONBOARD,
   blankToNull,
+  buildEmployeeUniquenessIndex,
   csvToList,
   digitsOnly,
   formatBytes,
@@ -28,9 +29,10 @@ import {
 import {
   isoDateToday,
   isoDateYearsAgo,
-  isValidEmail,
+  isValidEmailLocalPart,
   isValidIndianPhone,
   phoneError,
+  toEmailLocalPart,
   toTenDigitPhone,
 } from "./form-validation";
 
@@ -148,6 +150,30 @@ describe("Onboarding Form Validation & Exception Handling", () => {
       );
       expect(validateOnboardField("officeBranch", { ...EMPTY_ONBOARD, officeBranch: "" })).toBeUndefined();
     });
+
+    it("requires Location when work location is Onsite", () => {
+      expect(
+        validateOnboardField("projectSite", {
+          ...EMPTY_ONBOARD,
+          workLocation: "Onsite",
+          projectSite: "",
+        }),
+      ).toBe("Location is required when work location is Onsite");
+      expect(
+        validateOnboardField("projectSite", {
+          ...EMPTY_ONBOARD,
+          workLocation: "Onsite",
+          projectSite: "Client office, Pune",
+        }),
+      ).toBeUndefined();
+      expect(
+        validateOnboardField("projectSite", {
+          ...EMPTY_ONBOARD,
+          workLocation: "Suvidha Square, Andheri",
+          projectSite: "",
+        }),
+      ).toBeUndefined();
+    });
   });
 
   describe("Employment Terms Validation", () => {
@@ -174,6 +200,16 @@ describe("Onboarding Form Validation & Exception Handling", () => {
           bondDurationMonths: "",
         }),
       ).toBe("Bond duration is required when bond is delivered");
+    });
+
+    it("should not require bond duration when bond is not delivered", () => {
+      expect(
+        validateOnboardField("bondDurationMonths", {
+          ...EMPTY_ONBOARD,
+          bondDelivered: "No",
+          bondDurationMonths: "",
+        }),
+      ).toBeUndefined();
     });
 
     it("should reject past joining dates in create mode", () => {
@@ -494,6 +530,79 @@ describe("Onboarding Form Validation & Exception Handling", () => {
 
       const errors = validateOnboardForm(validForm, ["TK-1001"]);
       expect(Object.keys(errors).length).toBe(0);
+    });
+  });
+
+  describe("Duplicate work email and phone", () => {
+    const uniqueness = buildEmployeeUniquenessIndex([
+      { employeeCode: "TK-0001", workEmail: "taken@talakunchi.com", phone: "9876543210" },
+    ]);
+
+    it("flags duplicate work email on create", () => {
+      expect(
+        validateOnboardField(
+          "workEmail",
+          { ...EMPTY_ONBOARD, workEmail: "taken@talakunchi.com" },
+          [],
+          { uniqueness },
+        ),
+      ).toBe("work email already exist");
+    });
+
+    it("allows same work email when editing that employee", () => {
+      expect(
+        validateOnboardField(
+          "workEmail",
+          { ...EMPTY_ONBOARD, workEmail: "taken@talakunchi.com" },
+          [],
+          { uniqueness, excludeEmployeeCode: "TK-0001" },
+        ),
+      ).toBeUndefined();
+    });
+
+    it("flags duplicate work email that includes a hyphen, as stored TK addresses do", () => {
+      const uniqueness = buildEmployeeUniquenessIndex([
+        {
+          employeeCode: "TK-0004",
+          workEmail: "admin.user.tk-0004@talakunchi.com",
+          phone: "9000000001",
+        },
+      ]);
+      expect(toEmailLocalPart("admin.user.tk-0004")).toBe("admin.user.tk-0004");
+      expect(isValidEmailLocalPart("admin.user.tk-0004")).toBe(true);
+      expect(
+        validateOnboardField(
+          "workEmail",
+          { ...EMPTY_ONBOARD, workEmail: "admin.user.tk-0004@talakunchi.com" },
+          [],
+          { uniqueness },
+        ),
+      ).toBe("work email already exist");
+    });
+
+    it("flags duplicate phone on create", () => {
+      expect(
+        validateOnboardField(
+          "phone",
+          { ...EMPTY_ONBOARD, phone: "9876543210" },
+          [],
+          { uniqueness },
+        ),
+      ).toBe("Phone number already exist");
+    });
+
+    it("flags a phone that matches another employee's alternate number", () => {
+      const uniqueness = buildEmployeeUniquenessIndex([
+        { employeeCode: "TK-0002", workEmail: "other@talakunchi.com", altPhone: "9123456789" },
+      ]);
+      expect(
+        validateOnboardField(
+          "phone",
+          { ...EMPTY_ONBOARD, phone: "9123456789" },
+          [],
+          { uniqueness },
+        ),
+      ).toBe("Phone number already exist");
     });
   });
 

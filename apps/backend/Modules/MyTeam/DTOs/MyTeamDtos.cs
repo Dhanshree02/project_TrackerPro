@@ -13,7 +13,9 @@ public sealed record TeamMemberDto(
     string Department,
     /// <summary>On Floor Role: <c>master.mst_roles.Name</c> via <c>tbl_employees.JobRoleId</c>.</summary>
     string? JobRoleName,
-    bool DirectReport,
+    /// <summary>FK to <c>master.mst_roles.Id</c>.</summary>
+    Guid? JobRoleId = null,
+    bool DirectReport = true,
     string? EmployeeCode = null,
     string? ReportingManagerName = null,
     string? Status = null,

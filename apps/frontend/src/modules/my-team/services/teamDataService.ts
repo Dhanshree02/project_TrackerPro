@@ -30,6 +30,7 @@ interface CalendarResponse {
     designation: string;
     department: string;
     jobRoleName?: string | null;
+    jobRoleId?: string | null;
     directReport?: boolean;
     employeeCode?: string | null;
     reportingManagerName?: string | null;
@@ -87,18 +88,26 @@ function normalizeAllocationStatus(val?: string | null): PoolAllocationStatus | 
   return undefined;
 }
 
-let employeeOnFloorRoleById: Promise<Map<string, string>> | null = null;
+type EmployeeOnFloorRoleLookup = {
+  nameByEmployeeId: Map<string, string>;
+  roleIdByEmployeeId: Map<string, string>;
+};
 
-async function loadEmployeeOnFloorRoleById(): Promise<Map<string, string>> {
+let employeeOnFloorRoleById: Promise<EmployeeOnFloorRoleLookup> | null = null;
+
+async function loadEmployeeOnFloorRoleById(): Promise<EmployeeOnFloorRoleLookup> {
   if (!employeeOnFloorRoleById) {
     employeeOnFloorRoleById = fetchAllEmployees()
       .then((rows) => {
-        const map = new Map<string, string>();
+        const nameByEmployeeId = new Map<string, string>();
+        const roleIdByEmployeeId = new Map<string, string>();
         for (const row of rows) {
           const role = (row.jobRoleName ?? row.jobRole ?? "").trim();
-          if (role) map.set(row.id, role);
+          if (role) nameByEmployeeId.set(row.id, role);
+          const roleId = row.jobRoleId?.trim();
+          if (roleId) roleIdByEmployeeId.set(row.id, roleId);
         }
-        return map;
+        return { nameByEmployeeId, roleIdByEmployeeId };
       })
       .catch((error) => {
         employeeOnFloorRoleById = null;
@@ -110,13 +119,18 @@ async function loadEmployeeOnFloorRoleById(): Promise<Map<string, string>> {
 
 async function attachOnFloorRoles(members: TeamMember[]): Promise<TeamMember[]> {
   if (members.length === 0) return members;
-  if (members.every((m) => m.jobRoleName)) return members;
+  if (members.every((m) => m.jobRoleName && m.jobRoleId)) return members;
 
-  const byId = await loadEmployeeOnFloorRoleById();
+  const lookup = await loadEmployeeOnFloorRoleById();
   return members.map((member) => {
-    if (member.jobRoleName) return member;
-    const role = byId.get(member.id);
-    return role ? { ...member, jobRoleName: role } : member;
+    const jobRoleName = member.jobRoleName ?? lookup.nameByEmployeeId.get(member.id);
+    const jobRoleId = member.jobRoleId ?? lookup.roleIdByEmployeeId.get(member.id);
+    if (!jobRoleName && !jobRoleId) return member;
+    return {
+      ...member,
+      ...(jobRoleName ? { jobRoleName } : {}),
+      ...(jobRoleId ? { jobRoleId } : {}),
+    };
   });
 }
 
@@ -131,8 +145,8 @@ export const teamDataService = {
       // UAT images built before my-team/on-floor-roles still load via meta/roles.
     }
     try {
-      const byId = await loadEmployeeOnFloorRoleById();
-      const fromRoster = uniqueOnFloorRoleLabels(byId.values());
+      const lookup = await loadEmployeeOnFloorRoleById();
+      const fromRoster = uniqueOnFloorRoleLabels(lookup.nameByEmployeeId.values());
       if (fromRoster.length > 0) return fromRoster;
     } catch {
       // fall through to designation catalog
@@ -165,6 +179,7 @@ export const teamDataService = {
         designation: member.designation,
         department: member.department,
         jobRoleName: member.jobRoleName?.trim() || undefined,
+        jobRoleId: member.jobRoleId?.trim() || undefined,
         status: "Active",
         avatarColor: avatarColor(member.id),
         directReport: member.directReport !== false,

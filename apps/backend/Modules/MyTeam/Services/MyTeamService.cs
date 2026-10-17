@@ -369,6 +369,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             employee.Designation?.Name ?? "",
             employee.Department?.Name ?? "",
             employee.JobRole?.Name,
+            employee.JobRoleId,
             directReport,
             employee.EmployeeCode,
             managerName,

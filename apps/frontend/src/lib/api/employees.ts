@@ -54,6 +54,8 @@ export interface ApiEmployeeListItem {
   /** On Floor Role: mst_roles.Name */
   jobRoleName?: string | null;
   jobRole?: string | null;
+  /** FK to master.mst_roles.Id */
+  jobRoleId?: string | null;
   todayAttendance?: string | null;
   allocationStatus?: string | null;
   allocationType?: string | null;

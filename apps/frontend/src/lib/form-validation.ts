@@ -164,16 +164,16 @@ export function isLettersName(value: string): boolean {
   return /^[A-Za-z]+(?:['\s\-][A-Za-z]+)*$/.test(value.trim());
 }
 
-/** Keep alphanumeric characters and "." for username/local part of work email. */
+/** Username of a work email. Letters, digits, `.` `_` `-` (so `name.tk-0001` matches stored addresses). */
 export function toEmailLocalPart(value: string): string {
-  return value.replace(/[^A-Za-z0-9.]/g, "").slice(0, 64);
+  return value.replace(/[^A-Za-z0-9._-]/g, "").slice(0, 64);
 }
 
 export function isValidEmailLocalPart(value: string): boolean {
   const v = value.trim();
   if (!v || v.length > 64) return false;
-  if (v.startsWith(".") || v.endsWith(".") || v.includes("..")) return false;
-  return /^[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*$/.test(v);
+  if (/^[._-]|[._-]$/.test(v) || /[._-]{2}/.test(v)) return false;
+  return /^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/.test(v);
 }
 
 /** Strict allowed domains for company work emails: @talakunchi.com, @talakunchi.in, @squad1.io */

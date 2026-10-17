@@ -136,7 +136,8 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.ProjectAllocated,
                 e.ClientEngManagerMapping,
                 e.JobRole != null ? e.JobRole.Name : null,
-                e.JobRole != null ? e.JobRole.Name : null))
+                e.JobRole != null ? e.JobRole.Name : null,
+                e.JobRoleId))
             .ToListAsync(ct);
 
         if (items.Count > 0)

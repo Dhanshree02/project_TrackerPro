@@ -1584,6 +1584,7 @@ function EmployeeDirectoryPage() {
         open={onboardOpen}
         onClose={() => setOnboardOpen(false)}
         existingCodes={dbEmployees.map((e) => e.id)}
+        existingEmployees={dbEmployees}
         managers={managers}
         onSuccess={() => {
           void loadEmployees();

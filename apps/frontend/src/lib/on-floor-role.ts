@@ -1,5 +1,7 @@
 /**
- * On Floor Role catalog lives in PostgreSQL `master.mst_roles` (employee FK: `JobRoleId`).
+ * On Floor Role catalog lives in PostgreSQL `master.mst_roles`.
+ * Each employee links via `resource.tbl_employees."JobRoleId"` (UUID FK) — not by name.
+ * APIs expose `jobRoleId` + `jobRoleName`; RBAC access role stays in `tbl_employees."Role"`.
  * Team Dashboard filter: `GET /api/v1/my-team/on-floor-roles`. Onboarding: `GET /api/v1/employees/meta/roles`.
  */
 /** Canonical on-floor role names (no parenthetical abbreviations). */

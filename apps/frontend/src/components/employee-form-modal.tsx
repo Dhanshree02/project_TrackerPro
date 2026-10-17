@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, Plus, FileText, AlertCircle } from "lucide-react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -29,6 +29,7 @@ import {
   createDepartmentOption,
   createDesignationOption,
   createEmployee,
+  fetchAllEmployees,
   updateEmployee,
   createJobRoleOption,
   createReportingManagerOption,
@@ -54,8 +55,12 @@ import { fetchRoles, type ApiRole } from "@/lib/api/users";
 import { fetchAddressCities } from "@/lib/api/catalogs";
 import {
   EMPTY_ONBOARD,
+  buildEmployeeUniquenessIndex,
+  mergeEmployeeUniquenessIndices,
   validateOnboardField,
   validateOnboardForm,
+  type EmployeeUniquenessIndex,
+  type ValidationOptions,
   blankToNull,
   csvToList,
   directoryStatusFromEmployeeStatusName,
@@ -73,6 +78,7 @@ import {
   WORKER_TYPES,
   BOND_DELIVERED_OPTIONS,
   computeBondStatus,
+  computeBondExpiryDate,
   formatBondExpiryDisplay,
 } from "@/lib/employment-bond";
 import type { Employee } from "@/lib/employee-data";
@@ -80,47 +86,6 @@ import { MUMBAI_RAILWAY_STATIONS, addressCityToOption, setLiveAddressCities } fr
 import { allProjects, allClients } from "@/lib/dh-store";
 
 // ── Local Form Components ─────────────────────────
-
-const FIELD_LABELS: Record<string, string> = {
-  firstName: "First Name",
-  lastName: "Last Name",
-  workEmail: "Work Email",
-  personalEmail: "Personal Email",
-  employeeCode: "TK ID",
-  phone: "Phone (Personal)",
-  altPhone: "Alternate Contact Number",
-  emergencyContact: "Emergency Contact Number",
-  emergencyContactName: "Emergency Contact Name",
-  emergencyContactRelation: "Relation with Emergency Contact",
-  address: "Current Address - City",
-  departmentId: "Department",
-  designationId: "Designation",
-  jobRoleId: "On Floor Role",
-  role: "Assigned RBAC Role",
-  businessUnit: "Business Unit",
-  reportingManagerId: "Reporting Manager",
-  workLocation: "Work Location",
-  projectSite: "Location / Site",
-  joiningDate: "Date of Joining",
-  assetId: "Asset ID",
-  employeeStatusId: "Employee Status",
-  probationStatus: "Probation Status",
-  workerType: "Worker Type",
-  bondDelivered: "Bond Delivered",
-  bondDurationMonths: "Bond Duration",
-  gradDegree: "Graduation Degree Name",
-  gradYear: "Graduation Passing Year",
-  postGradDegree: "Post Graduation Degree Name",
-  postGradYear: "Post Graduation Passing Year",
-  expType: "Experience / Fresher",
-  priorTotalExp: "Total Prior Experience",
-  priorTotalExpYears: "Total Prior Experience (Years)",
-  priorTotalExpMonths: "Total Prior Experience (Months)",
-  priorRelevantExp: "Relevant Prior Experience",
-  priorRelevantExpYears: "Relevant Prior Experience (Years)",
-  priorRelevantExpMonths: "Relevant Prior Experience (Months)",
-  clientEngManagerMapping: "Client Engagement Manager",
-};
 
 /**
  * RBAC role for a designation. The designation carries its mapped role name, so the
@@ -377,6 +342,8 @@ export interface EmployeeFormModalProps {
   mode: "create" | "edit";
   initialEmployee?: Employee | null;
   existingCodes?: string[];
+  /** Optional already-loaded roster (e.g. Directory table) for instant duplicate email/phone checks. */
+  existingEmployees?: Array<{ id: string; email?: string; phone?: string }>;
   managers?: { id: string; name: string }[];
   onSuccess: (saved?: Employee) => void | Promise<void>;
 }
@@ -389,12 +356,14 @@ export function EmployeeFormModal({
   mode,
   initialEmployee,
   existingCodes = [],
+  existingEmployees,
   managers,
   onSuccess,
 }: EmployeeFormModalProps) {
   const [form, setForm] = useState<OnboardValues>(EMPTY_ONBOARD);
   const [errors, setErrors] = useState<OnboardErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uniquenessIndex, setUniquenessIndex] = useState<EmployeeUniquenessIndex | null>(null);
 
   // Metadata catalogs
   const [deptOptions, setDeptOptions] = useState<ApiMetaOption[]>([]);
@@ -413,13 +382,92 @@ export function EmployeeFormModal({
 
   // Split parts
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
-  const [workEmailDomain, setWorkEmailDomain] = useState("");
+  const [workEmailDomain, setWorkEmailDomain] = useState("talakunchi.com");
   const [tkPrefix, setTkPrefix] = useState<TkIdPrefix>("TK");
 
   const formRef = useRef<OnboardValues>(EMPTY_ONBOARD);
   useEffect(() => {
     formRef.current = form;
   }, [form]);
+
+  const propUniquenessIndex = useMemo(() => {
+    if (!existingEmployees?.length) return null;
+    return buildEmployeeUniquenessIndex(existingEmployees);
+  }, [existingEmployees]);
+
+  const effectiveUniqueness = useMemo(
+    () => mergeEmployeeUniquenessIndices(propUniquenessIndex, uniquenessIndex),
+    [propUniquenessIndex, uniquenessIndex],
+  );
+
+  const validationOptions = useMemo((): ValidationOptions => {
+    return {
+      isEdit: mode === "edit",
+      uniqueness: effectiveUniqueness,
+      excludeEmployeeCode:
+        mode === "edit" && initialEmployee ? initialEmployee.id : undefined,
+    };
+  }, [mode, initialEmployee, effectiveUniqueness]);
+
+  const validationOptionsRef = useRef(validationOptions);
+  validationOptionsRef.current = validationOptions;
+  const workEmailPrefixRef = useRef(workEmailPrefix);
+  workEmailPrefixRef.current = workEmailPrefix;
+
+  useEffect(() => {
+    if (!open) {
+      setUniquenessIndex(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchAllEmployees()
+      .then((rows) => {
+        if (!cancelled) setUniquenessIndex(buildEmployeeUniquenessIndex(rows));
+      })
+      .catch(() => {
+        if (!cancelled) setUniquenessIndex(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const excludeCodesRef = useRef(existingCodes);
+  excludeCodesRef.current =
+    mode === "edit" && initialEmployee
+      ? existingCodes.filter((c) => c !== initialEmployee.id)
+      : existingCodes;
+
+  // If employee list finished loading after the user already typed email/phone, re-check non-empty values only.
+  useEffect(() => {
+    if (!open || !effectiveUniqueness) return;
+    const cur = formRef.current;
+    const hasEmail = Boolean((cur.workEmail || "").trim());
+    const hasPhone = Boolean((cur.phone || "").trim());
+    if (!hasEmail && !hasPhone) return;
+
+    const excludeCodes = excludeCodesRef.current;
+    const opts: ValidationOptions = {
+      isEdit: mode === "edit",
+      uniqueness: effectiveUniqueness,
+      excludeEmployeeCode:
+        mode === "edit" && initialEmployee ? initialEmployee.id : undefined,
+    };
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (hasEmail) {
+        const msg = validateOnboardField("workEmail", cur, excludeCodes, opts);
+        if (msg) next.workEmail = msg;
+        else delete next.workEmail;
+      }
+      if (hasPhone) {
+        const msg = validateOnboardField("phone", cur, excludeCodes, opts);
+        if (msg) next.phone = msg;
+        else delete next.phone;
+      }
+      return next;
+    });
+  }, [effectiveUniqueness, open, mode, initialEmployee]);
 
   // Lock background scroll when open
   useEffect(() => {
@@ -473,6 +521,8 @@ export function EmployeeFormModal({
       setIsSubmitting(false);
       return;
     }
+
+    setErrors({});
 
     // Initialize values based on mode
     if (mode === "edit" && initialEmployee) {
@@ -608,6 +658,25 @@ export function EmployeeFormModal({
         if (mode === "create" && list.length > 0) {
           const firstDomain = list[0].code.replace(/^@/, "");
           setWorkEmailDomain(firstDomain);
+          const prefix = workEmailPrefixRef.current;
+          if (prefix) {
+            const fullEmail = `${prefix}@${firstDomain}`;
+            const updatedForm = { ...formRef.current, workEmail: fullEmail };
+            formRef.current = updatedForm;
+            setForm(updatedForm);
+            const msg = validateOnboardField(
+              "workEmail",
+              updatedForm,
+              excludeCodesRef.current,
+              validationOptionsRef.current,
+            );
+            setErrors((prev) => {
+              const next = { ...prev };
+              if (msg) next.workEmail = msg;
+              else delete next.workEmail;
+              return next;
+            });
+          }
         }
       })
       .catch(() => {
@@ -775,8 +844,10 @@ export function EmployeeFormModal({
         }
       }
     }
-    if (field === "bondDelivered" && nextValue === "No") {
+    if (field === "bondDelivered" && nextValue !== "Yes") {
       updatedForm.bondDurationMonths = "0";
+    } else if (field === "bondDelivered" && nextValue === "Yes" && updatedForm.bondDurationMonths === "0") {
+      updatedForm.bondDurationMonths = "";
     }
     if (field === "projectAllocated") {
       const autoEm = getEngagementManagerForProject(nextValue);
@@ -803,28 +874,32 @@ export function EmployeeFormModal({
 
     setErrors((prev) => {
       const nextErrors = { ...prev };
-      const validationOpts = { isEdit: mode === "edit" };
       const excludeCodes = mode === "edit" && initialEmployee ? existingCodes.filter((c) => c !== initialEmployee.id) : existingCodes;
-      const message = validateOnboardField(field, updatedForm, excludeCodes, validationOpts);
+      const message = validateOnboardField(
+        field,
+        updatedForm,
+        excludeCodes,
+        validationOptionsRef.current,
+      );
       if (message) nextErrors[field] = message;
       else delete nextErrors[field];
 
       if (field === "gradYear" || field === "gradDegree") {
-        const gradDegMsg = validateOnboardField("gradDegree", updatedForm, excludeCodes, validationOpts);
+        const gradDegMsg = validateOnboardField("gradDegree", updatedForm, excludeCodes, validationOptions);
         if (gradDegMsg) nextErrors.gradDegree = gradDegMsg;
         else delete nextErrors.gradDegree;
 
-        const gradYrMsg = validateOnboardField("gradYear", updatedForm, excludeCodes, validationOpts);
+        const gradYrMsg = validateOnboardField("gradYear", updatedForm, excludeCodes, validationOptions);
         if (gradYrMsg) nextErrors.gradYear = gradYrMsg;
         else delete nextErrors.gradYear;
       }
 
       if (field === "gradYear" || field === "postGradDegree" || field === "postGradYear") {
-        const postGradDegMsg = validateOnboardField("postGradDegree", updatedForm, excludeCodes, validationOpts);
+        const postGradDegMsg = validateOnboardField("postGradDegree", updatedForm, excludeCodes, validationOptions);
         if (postGradDegMsg) nextErrors.postGradDegree = postGradDegMsg;
         else delete nextErrors.postGradDegree;
 
-        const postGradMsg = validateOnboardField("postGradYear", updatedForm, excludeCodes, validationOpts);
+        const postGradMsg = validateOnboardField("postGradYear", updatedForm, excludeCodes, validationOptions);
         if (postGradMsg) nextErrors.postGradYear = postGradMsg;
         else delete nextErrors.postGradYear;
       }
@@ -837,15 +912,15 @@ export function EmployeeFormModal({
         field === "priorRelevantExpYears" ||
         field === "priorRelevantExpMonths"
       ) {
-        const totMonthsMsg = validateOnboardField("priorTotalExpMonths", updatedForm, excludeCodes, validationOpts);
+        const totMonthsMsg = validateOnboardField("priorTotalExpMonths", updatedForm, excludeCodes, validationOptions);
         if (totMonthsMsg) nextErrors.priorTotalExpMonths = totMonthsMsg;
         else delete nextErrors.priorTotalExpMonths;
 
-        const relMonthsMsg = validateOnboardField("priorRelevantExpMonths", updatedForm, excludeCodes, validationOpts);
+        const relMonthsMsg = validateOnboardField("priorRelevantExpMonths", updatedForm, excludeCodes, validationOptions);
         if (relMonthsMsg) nextErrors.priorRelevantExpMonths = relMonthsMsg;
         else delete nextErrors.priorRelevantExpMonths;
 
-        const relMsg = validateOnboardField("priorRelevantExpYears", updatedForm, excludeCodes, validationOpts);
+        const relMsg = validateOnboardField("priorRelevantExpYears", updatedForm, excludeCodes, validationOptions);
         if (relMsg) {
           nextErrors.priorRelevantExp = relMsg;
           nextErrors.priorRelevantExpYears = relMsg;
@@ -857,6 +932,19 @@ export function EmployeeFormModal({
 
       if (field === "projectAllocated" && updatedForm.clientEngManagerMapping) {
         delete nextErrors.clientEngManagerMapping;
+      }
+
+      if (field === "bondDelivered" && nextValue !== "Yes") {
+        delete nextErrors.bondDurationMonths;
+      } else if (field === "bondDelivered" && nextValue === "Yes" && prev.bondDurationMonths) {
+        const durationMsg = validateOnboardField(
+          "bondDurationMonths",
+          updatedForm,
+          excludeCodes,
+          validationOptions,
+        );
+        if (durationMsg) nextErrors.bondDurationMonths = durationMsg;
+        else delete nextErrors.bondDurationMonths;
       }
 
       return nextErrors;
@@ -872,9 +960,13 @@ export function EmployeeFormModal({
         return;
       }
     }
-    const validationOpts = { isEdit: mode === "edit" };
     const excludeCodes = mode === "edit" && initialEmployee ? existingCodes.filter((c) => c !== initialEmployee.id) : existingCodes;
-    const message = validateOnboardField(field, currentForm, excludeCodes, validationOpts);
+    const message = validateOnboardField(
+      field,
+      currentForm,
+      excludeCodes,
+      validationOptionsRef.current,
+    );
     setErrors((prev) => {
       const nextErrors = { ...prev };
       if (message) nextErrors[field] = message;
@@ -886,27 +978,15 @@ export function EmployeeFormModal({
   // Submit handler
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const validationOpts = { isEdit: mode === "edit" };
     const excludeCodes = mode === "edit" && initialEmployee ? existingCodes.filter((c) => c !== initialEmployee.id) : existingCodes;
-    const nextErrors = validateOnboardForm(form, excludeCodes, validationOpts);
+    const nextErrors = validateOnboardForm(form, excludeCodes, validationOptionsRef.current);
     setErrors(nextErrors);
     const errorEntries = Object.entries(nextErrors) as [OnboardField, string][];
     if (errorEntries.length > 0) {
-      if (errorEntries.length === 1) {
-        const [field, msg] = errorEntries[0];
-        toast.error(`Please fix error: ${FIELD_LABELS[field] || field} - ${msg}`);
-      } else {
-        const firstFew = errorEntries.slice(0, 3).map(([f]) => FIELD_LABELS[f] || f).join(", ");
-        const more = errorEntries.length > 3 ? ` (+${errorEntries.length - 3} more)` : "";
-        toast.error(`Please fix ${errorEntries.length} field errors: ${firstFew}${more}`);
-      }
-
-      // Smoothly scroll to the first invalid field or error banner
       const firstField = errorEntries[0][0];
       const targetElement =
         document.getElementById(`form-${firstField}`) ||
-        document.querySelector(`[name="${firstField}"]`) ||
-        document.getElementById("form-error-summary");
+        document.querySelector(`[name="${firstField}"]`);
 
       if (targetElement) {
         targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1002,12 +1082,10 @@ export function EmployeeFormModal({
       const bondDelivered = form.bondDelivered.trim() || "No";
       const bondDurationMonths =
         bondDelivered === "Yes" ? Number(form.bondDurationMonths || "0") : 0;
-      const bondExpiryIso =
-        bondDelivered === "Yes"
-          ? formatBondExpiryDisplay(form.joiningDate, bondDelivered, form.bondDurationMonths)
-          : null;
       const bondExpiryDate =
-        bondExpiryIso && bondExpiryIso !== "No" && bondExpiryIso !== "—" ? bondExpiryIso : null;
+        bondDelivered === "Yes"
+          ? computeBondExpiryDate(form.joiningDate, bondDelivered, form.bondDurationMonths)
+          : null;
       const bondStatus = computeBondStatus(
         bondDelivered,
         form.joiningDate,
@@ -1163,46 +1241,6 @@ export function EmployeeFormModal({
 
           {/* scrollable body */}
           <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6" id="employee-form-scroll-container">
-            {Object.keys(errors).length > 0 && (
-              <div
-                id="form-error-summary"
-                role="alert"
-                className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-destructive shadow-xs animate-in fade-in duration-150"
-              >
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-destructive" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-destructive">
-                      Please resolve the following {Object.keys(errors).length} error{Object.keys(errors).length > 1 ? "s" : ""}:
-                    </h4>
-                    <ul className="mt-2.5 space-y-1.5 text-xs">
-                      {(Object.entries(errors) as [OnboardField, string][]).map(([field, msg]) => (
-                        <li key={field} className="flex items-start gap-1.5">
-                          <span className="font-semibold text-foreground shrink-0">•</span>
-                          <button
-                            type="button"
-                            className="font-semibold text-foreground underline underline-offset-2 hover:text-destructive text-left cursor-pointer transition-colors"
-                            onClick={() => {
-                              const targetElement =
-                                document.getElementById(`form-${field}`) ||
-                                document.querySelector(`[name="${field}"]`);
-                              if (targetElement) {
-                                targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
-                                if ("focus" in targetElement) (targetElement as HTMLElement).focus();
-                              }
-                            }}
-                          >
-                            {FIELD_LABELS[field] || field}:
-                          </button>
-                          <span className="text-destructive font-medium">{msg}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <FormSection title="1. Personal Information">
               <FormField
                 label="First Name"
@@ -1247,38 +1285,58 @@ export function EmployeeFormModal({
                   const cleanPrefix = toEmailLocalPart(raw);
                   setWorkEmailPrefix(cleanPrefix);
                   const fullEmail = cleanPrefix ? `${cleanPrefix}@${workEmailDomain}` : "";
-                  setForm((prev) => ({ ...prev, workEmail: fullEmail }));
+                  const updatedForm = { ...formRef.current, workEmail: fullEmail };
+                  formRef.current = updatedForm;
+                  setForm(updatedForm);
+                  const excludeCodes =
+                    mode === "edit" && initialEmployee
+                      ? existingCodes.filter((c) => c !== initialEmployee.id)
+                      : existingCodes;
                   setErrors((prev) => {
                     const next = { ...prev };
-                    if (!cleanPrefix) next.workEmail = "Work email is required";
-                    else if (!isValidEmailLocalPart(cleanPrefix))
-                      next.workEmail = "Only alphanumeric and '.' allowed";
-                    else delete next.workEmail;
+                    if (!cleanPrefix) {
+                      next.workEmail = "Work email is required";
+                    } else if (!isValidEmailLocalPart(cleanPrefix)) {
+                      next.workEmail = "Username can only contain letters, numbers, '.', '-' and '_'";
+                    } else {
+        const msg = validateOnboardField(
+          "workEmail",
+          updatedForm,
+          excludeCodes,
+          validationOptionsRef.current,
+        );
+                      if (msg) next.workEmail = msg;
+                      else delete next.workEmail;
+                    }
                     return next;
                   });
                 }}
                 onDomainChange={(newDomain) => {
                   setWorkEmailDomain(newDomain);
                   const fullEmail = workEmailPrefix ? `${workEmailPrefix}@${newDomain}` : "";
-                  setForm((prev) => ({ ...prev, workEmail: fullEmail }));
+                  const updatedForm = { ...formRef.current, workEmail: fullEmail };
+                  formRef.current = updatedForm;
+                  setForm(updatedForm);
                   if (workEmailPrefix && isValidEmailLocalPart(workEmailPrefix)) {
+                    const excludeCodes =
+                      mode === "edit" && initialEmployee
+                        ? existingCodes.filter((c) => c !== initialEmployee.id)
+                        : existingCodes;
+                    const msg = validateOnboardField(
+                      "workEmail",
+                      updatedForm,
+                      excludeCodes,
+                      validationOptionsRef.current,
+                    );
                     setErrors((prev) => {
                       const next = { ...prev };
-                      delete next.workEmail;
+                      if (msg) next.workEmail = msg;
+                      else delete next.workEmail;
                       return next;
                     });
                   }
                 }}
-                onPrefixBlur={() => {
-                  if (!workEmailPrefix) {
-                    setErrors((prev) => ({ ...prev, workEmail: "Work email is required" }));
-                  } else if (!isValidEmailLocalPart(workEmailPrefix)) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      workEmail: "Only alphanumeric and '.' allowed",
-                    }));
-                  }
-                }}
+                onPrefixBlur={() => blurField("workEmail")}
               />
               <FormField
                 label="Phone (Personal)"
@@ -1542,11 +1600,37 @@ export function EmployeeFormModal({
                       (l.code && l.code.toLowerCase() === resolvedName.toLowerCase()),
                   );
                   const selectedName = loc ? loc.name : resolvedName;
-                  setForm((prev) => ({
-                    ...prev,
+                  const updatedForm = {
+                    ...formRef.current,
                     workLocation: selectedName,
-                    projectSite: selectedName === "Onsite" ? prev.projectSite : "",
-                  }));
+                    projectSite: selectedName === "Onsite" ? formRef.current.projectSite : "",
+                  };
+                  formRef.current = updatedForm;
+                  setForm(updatedForm);
+                  const excludeCodes =
+                    mode === "edit" && initialEmployee
+                      ? existingCodes.filter((c) => c !== initialEmployee.id)
+                      : existingCodes;
+                  const locationMsg = validateOnboardField(
+                    "projectSite",
+                    updatedForm,
+                    excludeCodes,
+                    validationOptionsRef.current,
+                  );
+                  const workLocMsg = validateOnboardField(
+                    "workLocation",
+                    updatedForm,
+                    excludeCodes,
+                    validationOptionsRef.current,
+                  );
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    if (workLocMsg) next.workLocation = workLocMsg;
+                    else delete next.workLocation;
+                    if (locationMsg) next.projectSite = locationMsg;
+                    else delete next.projectSite;
+                    return next;
+                  });
                 }}
                 onCreate={async (name) => {
                   const trimmed = name.trim();
@@ -1567,11 +1651,14 @@ export function EmployeeFormModal({
                 id="form-projectSite"
                 name="projectSite"
                 label="Location"
+                required={form.workLocation === "Onsite"}
                 disabled={form.workLocation !== "Onsite"}
                 placeholder="Enter onsite location"
                 maxLength={200}
                 value={form.workLocation === "Onsite" ? form.projectSite : ""}
                 onChange={(v) => setField("projectSite", v)}
+                onBlur={() => blurField("projectSite")}
+                error={form.workLocation === "Onsite" ? errors.projectSite : undefined}
               />
             </FormSection>
 

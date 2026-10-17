@@ -43,6 +43,8 @@ public sealed record EmployeeListItemDto(
     string? ClientEngManagerMapping = null,
     string? JobRoleName = null,
     string? JobRole = null,
+    /// <summary>FK to <c>master.mst_roles.Id</c> (on-floor role).</summary>
+    Guid? JobRoleId = null,
     string? TodayAttendance = null,
     string? AllocationStatus = null,
     string? AllocationType = null,

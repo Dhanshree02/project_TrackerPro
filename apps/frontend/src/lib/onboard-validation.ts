@@ -8,6 +8,7 @@ import {
   isValidEmailLocalPart,
   isValidTkId,
   phoneError,
+  toTenDigitPhone,
 } from "@/lib/form-validation";
 import type { Employee } from "@/lib/employee-data";
 import { addressCityOptions } from "@/lib/mumbai-stations";
@@ -251,6 +252,7 @@ export const ONBOARD_FIELDS: OnboardField[] = [
   "role",
   "reportingManagerId",
   "workLocation",
+  "projectSite",
   "joiningDate",
   "employeeStatusId",
   "workerType",
@@ -363,9 +365,70 @@ export function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+export type EmployeeUniquenessIndex = {
+  workEmailToEmployeeCode: Map<string, string>;
+  phoneToEmployeeCode: Map<string, string>;
+};
+
+export function buildEmployeeUniquenessIndex(
+  employees: Array<{
+    employeeCode?: string | null;
+    id?: string | null;
+    workEmail?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    altPhone?: string | null;
+  }>,
+): EmployeeUniquenessIndex {
+  const workEmailToEmployeeCode = new Map<string, string>();
+  const phoneToEmployeeCode = new Map<string, string>();
+  for (const emp of employees) {
+    const code = (emp.employeeCode || emp.id || "").trim();
+    if (!code) continue;
+    const email = (emp.workEmail ?? emp.email ?? "").trim().toLowerCase();
+    if (email) workEmailToEmployeeCode.set(email, code);
+    for (const raw of [emp.phone, emp.altPhone]) {
+      const phone = toTenDigitPhone(raw ?? "");
+      if (phone.length === 10) phoneToEmployeeCode.set(phone, code);
+    }
+  }
+  return { workEmailToEmployeeCode, phoneToEmployeeCode };
+}
+
+export function mergeEmployeeUniquenessIndices(
+  primary: EmployeeUniquenessIndex | null | undefined,
+  secondary: EmployeeUniquenessIndex | null | undefined,
+): EmployeeUniquenessIndex | undefined {
+  if (!primary && !secondary) return undefined;
+  if (!primary) return secondary ?? undefined;
+  if (!secondary) return primary;
+  const workEmailToEmployeeCode = new Map(primary.workEmailToEmployeeCode);
+  for (const [k, v] of secondary.workEmailToEmployeeCode) workEmailToEmployeeCode.set(k, v);
+  const phoneToEmployeeCode = new Map(primary.phoneToEmployeeCode);
+  for (const [k, v] of secondary.phoneToEmployeeCode) phoneToEmployeeCode.set(k, v);
+  return { workEmailToEmployeeCode, phoneToEmployeeCode };
+}
+
 export type ValidationOptions = {
   isEdit?: boolean;
+  uniqueness?: EmployeeUniquenessIndex;
+  /** TK / TKI employee code — skip duplicate check for this person on edit. */
+  excludeEmployeeCode?: string;
 };
+
+function isDuplicateForOtherEmployee(
+  ownerCode: string | undefined,
+  excludeEmployeeCode?: string,
+): boolean {
+  if (!ownerCode) return false;
+  if (
+    excludeEmployeeCode &&
+    ownerCode.toLowerCase() === excludeEmployeeCode.trim().toLowerCase()
+  ) {
+    return false;
+  }
+  return true;
+}
 
 export function validateOnboardField(
   field: OnboardField,
@@ -390,7 +453,10 @@ export function validateOnboardField(
     }
     case "emergencyContactName": {
       const v = (values.emergencyContactName || "").trim();
-      if (!v) return "Emergency contact name is required";
+      if (!v) {
+        if (options?.isEdit) return undefined;
+        return "Emergency contact name is required";
+      }
       if (v.length < 2) return "Emergency contact name must be at least 2 characters";
       if (v.length > 100) return "Emergency contact name must be 100 characters or less";
       if (!isLettersName(v)) return "Only letters, spaces, hyphens, and apostrophes are allowed";
@@ -398,7 +464,10 @@ export function validateOnboardField(
     }
     case "emergencyContactRelation": {
       const v = (values.emergencyContactRelation || "").trim();
-      if (!v) return "Relation with emergency contact is required";
+      if (!v) {
+        if (options?.isEdit) return undefined;
+        return "Relation with emergency contact is required";
+      }
       return undefined;
     }
     case "gender": {
@@ -437,12 +506,23 @@ export function validateOnboardField(
     }
     case "reportingManagerId": {
       const v = (values.reportingManagerId || "").trim();
-      if (!v) return "Reporting manager is required";
+      if (!v) {
+        if (options?.isEdit) return undefined;
+        return "Reporting manager is required";
+      }
       return undefined;
     }
     case "workLocation": {
       const v = (values.workLocation || "").trim();
       if (!v) return "Work location is required";
+      return undefined;
+    }
+    case "projectSite": {
+      const onsite = (values.workLocation || "").trim().toLowerCase() === "onsite";
+      if (!onsite) return undefined;
+      const v = (values.projectSite || "").trim();
+      if (!v) return "Location is required when work location is Onsite";
+      if (v.length > 200) return "Location must be 200 characters or less";
       return undefined;
     }
     case "officeBranch": {
@@ -487,12 +567,20 @@ export function validateOnboardField(
       const atIdx = v.indexOf("@");
       if (atIdx <= 0) return "Enter a valid username (e.g. john.doe)";
       const local = v.slice(0, atIdx);
-      if (!isValidEmailLocalPart(local)) return "Username can only contain letters, numbers, and '.'";
+      if (!isValidEmailLocalPart(local)) {
+        return "Username can only contain letters, numbers, '.', '-' and '_'";
+      }
       const domain = v.slice(atIdx + 1);
       if (!isAllowedWorkEmailDomain(domain)) {
         return "Only @talakunchi.com, @talakunchi.in, and @squad1.io domains are allowed";
       }
-      return emailError(v, true);
+      const formatErr = emailError(v, true);
+      if (formatErr) return formatErr;
+      const owner = options?.uniqueness?.workEmailToEmployeeCode.get(v.toLowerCase());
+      if (isDuplicateForOtherEmployee(owner, options?.excludeEmployeeCode)) {
+        return "work email already exist";
+      }
+      return undefined;
     }
     case "personalEmail": {
       const v = (values.personalEmail || "").trim();
@@ -514,12 +602,22 @@ export function validateOnboardField(
       return undefined;
     }
     case "phone": {
-      return phoneError(values.phone, true);
+      const formatErr = phoneError(values.phone, true);
+      if (formatErr) return formatErr;
+      const digits = toTenDigitPhone(values.phone ?? "");
+      if (digits.length === 10) {
+        const owner = options?.uniqueness?.phoneToEmployeeCode.get(digits);
+        if (isDuplicateForOtherEmployee(owner, options?.excludeEmployeeCode)) {
+          return "Phone number already exist";
+        }
+      }
+      return undefined;
     }
     case "altPhone": {
       return phoneError(values.altPhone, false);
     }
     case "emergencyContact": {
+      if (options?.isEdit && !(values.emergencyContact || "").trim()) return undefined;
       return phoneError(values.emergencyContact, true);
     }
     case "pan": {
@@ -566,7 +664,6 @@ export function validateOnboardField(
       return undefined;
     case "businessUnit":
     case "team":
-    case "projectSite":
     case "assetId":
     case "exitType":
     case "exitReason":

@@ -63,21 +63,15 @@ internal sealed class EmployeeIdentitySnapshot
         }
 
         if (!string.IsNullOrWhiteSpace(identity.EmployeeCode) && _codes.Contains(identity.EmployeeCode.Trim()))
-            conflicts.Add("This employee ID already exists.");
+            conflicts.Add("This employee ID already exist.");
         if (!string.IsNullOrWhiteSpace(identity.WorkEmail) && _emails.Contains(identity.WorkEmail))
-            conflicts.Add("This work email already exists in the database.");
+            conflicts.Add("This work email already exist.");
         if (!string.IsNullOrWhiteSpace(identity.PersonalEmail) && _emails.Contains(identity.PersonalEmail))
-            conflicts.Add("This personal email already exists in the database.");
+            conflicts.Add("This personal email already exist.");
         if (!string.IsNullOrWhiteSpace(identity.Phone) && _phones.Contains(identity.Phone))
-            conflicts.Add("This phone number already exists in the database.");
+            conflicts.Add("This phone number already exist.");
         if (!string.IsNullOrWhiteSpace(identity.AltPhone) && _phones.Contains(identity.AltPhone))
-            conflicts.Add("This alternate phone number already exists in the database.");
-        if (!string.IsNullOrWhiteSpace(identity.Pan) && _pans.Contains(identity.Pan))
-            conflicts.Add("This PAN number already exists in the database.");
-        if (!string.IsNullOrWhiteSpace(identity.Aadhaar) && _aadhaars.Contains(identity.Aadhaar))
-            conflicts.Add("This Aadhaar number already exists in the database.");
-        if (!string.IsNullOrWhiteSpace(identity.PfUan) && _uans.Contains(identity.PfUan))
-            conflicts.Add("This UAN number already exists in the database.");
+            conflicts.Add("This alternate phone number already exist.");
 
         return conflicts;
     }
@@ -100,11 +94,11 @@ internal sealed class EmployeeIdentitySnapshot
     {
         var conflicts = new List<string>();
         if (!string.IsNullOrWhiteSpace(identity.EmployeeCode) && _codes.Contains(identity.EmployeeCode.Trim()))
-            conflicts.Add("This employee ID already exists.");
+            conflicts.Add("This employee ID already exist.");
         if (!string.IsNullOrWhiteSpace(identity.WorkEmail) && _bulkWorkEmails.Contains(identity.WorkEmail))
-            conflicts.Add("This work email already exists in the database.");
+            conflicts.Add("This work email already exist.");
         if (!string.IsNullOrWhiteSpace(identity.Phone) && _bulkPhones.Contains(identity.Phone))
-            conflicts.Add("This phone number already exists in the database.");
+            conflicts.Add("This phone number already exist.");
         return conflicts;
     }
 

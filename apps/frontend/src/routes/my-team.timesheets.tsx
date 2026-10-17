@@ -95,7 +95,19 @@ function emptyRow(): TsRow {
   };
 }
 
-function rowsFromWeek(week: TimesheetWeek): TsRow[] {
+function rowHasLoggedData(row: Pick<TsRow, "hours" | "notes">): boolean {
+  const totalHours = row.hours.reduce((sum, h) => sum + (Number(h) || 0), 0);
+  const hasNotes = row.notes.some((n) => Boolean(n?.trim()));
+  return totalHours > 0 || hasNotes;
+}
+
+/** Drop project/task on lines with no hours and no day notes so the week opens blank until the user picks them. */
+function sanitizeLoadedRow(row: TsRow): TsRow {
+  if (rowHasLoggedData(row)) return row;
+  return { ...row, projectId: "", taskId: "", taskName: "" };
+}
+
+function mapWeekEntries(week: TimesheetWeek): TsRow[] {
   return week.entries.map((entry) => {
     const hours = [0, 0, 0, 0, 0, 0, 0];
     const notes = ["", "", "", "", "", "", ""];
@@ -114,10 +126,33 @@ function rowsFromWeek(week: TimesheetWeek): TsRow[] {
   });
 }
 
+/** Load current week: hide project/task on lines with no hours and no comments. */
+function rowsFromWeek(week: TimesheetWeek): TsRow[] {
+  const mapped = mapWeekEntries(week).map(sanitizeLoadedRow);
+  if (mapped.length === 0) return [emptyRow()];
+  const allBlank = mapped.every(
+    (row) => !row.projectId && !row.taskId && !rowHasLoggedData(row),
+  );
+  return allBlank ? [emptyRow()] : mapped;
+}
+
 function localDate(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function weekEndFromStart(weekStart: string): string {
+  const [year, month, day] = weekStart.split("-").map(Number);
+  const start = new Date(year, (month || 1) - 1, day || 1);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  return localDate(end);
+}
+
+function formatWeekRange(weekStart: string): string {
+  const end = weekEndFromStart(weekStart);
+  return `${formatDateDMY(weekStart)} – ${formatDateDMY(end)}`;
 }
 
 function thisMonday() {
@@ -332,7 +367,7 @@ function MyTimesheetView() {
         toast.error("No timesheet found for last week.");
         return;
       }
-      const loaded = rowsFromWeek(previous).map((row) => ({
+      const loaded = mapWeekEntries(previous).map((row) => ({
         ...row,
         id: `r${crypto.randomUUID()}`,
         hours: row.hours.map((hours, index) => (isTimesheetDayOpen(weekStart, index) ? hours : 0)),
@@ -368,6 +403,7 @@ function MyTimesheetView() {
         : await saveTimesheetDraft(weekStart, toSaveLines());
       setWeekStatus(saved.status);
       setShowDraft(saved.status === "draft");
+      setRows(rowsFromWeek(saved));
       toast.success(submit ? "Timesheet submitted for approval." : "Timesheet saved as draft.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save the timesheet.");
@@ -491,7 +527,6 @@ function MyTimesheetView() {
                       }}
                       placeholder={loadingProjects ? "Loading projects…" : "Select project"}
                       searchPlaceholder="Search projects…"
-                      clearable={false}
                     />
                   </td>
                   <td className="px-3 py-2 align-top">
@@ -529,7 +564,6 @@ function MyTimesheetView() {
                           }
                           searchPlaceholder="Search tasks…"
                           disabled={!r.projectId || isTaskLoading || pTasks.length === 0}
-                          clearable={false}
                         />
                       );
                     })()}
@@ -851,9 +885,19 @@ function ApprovalSortTh({
 }
 
 // ── TimesheetHistoryView ─────────────────────────────────────────────────────
+type HistoryLogRow = {
+  key: string;
+  weekStart: string;
+  projectName: string;
+  taskName: string;
+  lineHours: number;
+  submittedAt?: string;
+  status: TimesheetWeek["status"];
+  reviewComment?: string | null;
+};
+
 function TimesheetHistoryView() {
   const [sheets, setSheets] = useState<ApprovalSheet[]>([]);
-  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     listMyTimesheetHistory()
@@ -861,7 +905,37 @@ function TimesheetHistoryView() {
       .catch(() => toast.error("Could not load your timesheet history."));
   }, []);
 
-  const open = sheets.find((sheet) => sheet.id === openId) ?? null;
+  const logRows = useMemo((): HistoryLogRow[] => {
+    const rows: HistoryLogRow[] = [];
+    for (const sheet of sheets) {
+      if (sheet.entries.length === 0) {
+        rows.push({
+          key: `${sheet.id}-empty`,
+          weekStart: sheet.weekStart,
+          projectName: "—",
+          taskName: "—",
+          lineHours: 0,
+          submittedAt: sheet.submittedAt,
+          status: sheet.status,
+          reviewComment: sheet.reviewComment,
+        });
+        continue;
+      }
+      for (const entry of sheet.entries) {
+        rows.push({
+          key: entry.id,
+          weekStart: sheet.weekStart,
+          projectName: entry.projectName?.trim() || "—",
+          taskName: entry.taskName?.trim() || "—",
+          lineHours: entry.hours.reduce((sum, h) => sum + (Number(h) || 0), 0),
+          submittedAt: sheet.submittedAt,
+          status: sheet.status,
+          reviewComment: sheet.reviewComment,
+        });
+      }
+    }
+    return rows;
+  }, [sheets]);
 
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -870,7 +944,8 @@ function TimesheetHistoryView() {
           <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700">
             <tr>
               <th className="px-4 py-3 font-semibold">Week</th>
-              <th className="px-4 py-3 font-semibold">Projects</th>
+              <th className="px-4 py-3 font-semibold">Project</th>
+              <th className="px-4 py-3 font-semibold">Task</th>
               <th className="px-4 py-3 font-semibold">Submitted</th>
               <th className="px-4 py-3 font-semibold">Hours</th>
               <th className="px-4 py-3 font-semibold">Status</th>
@@ -878,34 +953,32 @@ function TimesheetHistoryView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {sheets.map((sheet) => {
-              const projects = Array.from(
-                new Set(sheet.entries.map((entry) => entry.projectName).filter(Boolean)),
-              ).join(", ") || "—";
-              return (
-                <tr
-                  key={sheet.id}
-                  onClick={() => setOpenId(sheet.id)}
-                  className="cursor-pointer hover:bg-accent/30"
-                >
-                  <td className="whitespace-nowrap px-4 py-3.5 tabular-nums">{formatDateDMY(sheet.weekStart)}</td>
-                  <td className="px-4 py-3.5 text-muted-foreground truncate" title={projects}>{projects}</td>
-                  <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">
-                    {sheet.submittedAt ? formatDateDMY(sheet.submittedAt.slice(0, 10)) : "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 font-medium tabular-nums">{sheet.totalHours}h</td>
-                  <td className="whitespace-nowrap px-4 py-3.5">
-                    <TimesheetStatusPill status={sheet.status} />
-                  </td>
-                  <td className="px-4 py-3.5 text-muted-foreground truncate" title={sheet.reviewComment ?? ""}>
-                    {sheet.reviewComment?.trim() || "—"}
-                  </td>
-                </tr>
-              );
-            })}
-            {sheets.length === 0 && (
+            {logRows.map((row) => (
+              <tr key={row.key}>
+                <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-xs sm:text-sm">
+                  {formatWeekRange(row.weekStart)}
+                </td>
+                <td className="max-w-[14rem] px-4 py-3.5 truncate" title={row.projectName}>
+                  {row.projectName}
+                </td>
+                <td className="max-w-[14rem] px-4 py-3.5 truncate text-muted-foreground" title={row.taskName}>
+                  {row.taskName}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">
+                  {row.submittedAt ? formatDateDMY(row.submittedAt.slice(0, 10)) : "—"}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3.5 font-medium tabular-nums">{row.lineHours}h</td>
+                <td className="whitespace-nowrap px-4 py-3.5">
+                  <TimesheetStatusPill status={row.status} />
+                </td>
+                <td className="max-w-[16rem] px-4 py-3.5 text-muted-foreground truncate" title={row.reviewComment ?? ""}>
+                  {row.reviewComment?.trim() || "—"}
+                </td>
+              </tr>
+            ))}
+            {logRows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   No timesheet history yet
                 </td>
               </tr>
@@ -913,35 +986,6 @@ function TimesheetHistoryView() {
           </tbody>
         </table>
       </div>
-      {open && (
-        <div className="border-t border-border bg-muted/20 px-4 py-4">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold">Week of {formatDateDMY(open.weekStart)}</p>
-            <button
-              type="button"
-              onClick={() => setOpenId(null)}
-              className="rounded-md p-1 text-muted-foreground hover:bg-accent"
-              aria-label="Close week details"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <ul className="space-y-1 text-sm">
-            {open.entries.map((entry) => (
-              <li key={entry.id} className="flex items-center justify-between gap-3">
-                <span className="truncate">{entry.projectName} · {entry.taskName}</span>
-                <span className="shrink-0 tabular-nums text-muted-foreground">
-                  {entry.hours.reduce((sum, hours) => sum + hours, 0)}h
-                  {entry.reviewDecision ? ` · ${entry.reviewDecision.replace("_", " ")}` : ""}
-                </span>
-              </li>
-            ))}
-            {open.entries.length === 0 && (
-              <li className="text-muted-foreground">No project rows on this week.</li>
-            )}
-          </ul>
-        </div>
-      )}
     </section>
   );
 }

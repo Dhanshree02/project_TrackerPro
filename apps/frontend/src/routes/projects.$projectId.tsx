@@ -1296,7 +1296,11 @@ function ProjectDetail() {
 
           {tab === "Team" &&
             (useDhWorkspace ? (
-              <DhTeamTab project={project} readOnly={isViewOnly || isSales} />
+              <DhTeamTab
+                project={project}
+                readOnly={isViewOnly || isSales}
+                onLeadershipSaved={applyLeadershipRows}
+              />
             ) : (
               <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />
             ))}
@@ -2380,6 +2384,18 @@ function OverviewTab({
 
   const tls: Person[] = useMemo(() => {
     if (isApiGuid(project.id)) {
+      if (leadershipAssignment?.teamLeadsSynced) {
+        return (leadershipAssignment.tlIds ?? [])
+          .map((id) => getPerson(id))
+          .filter(Boolean)
+          .map((person) => ({
+            id: person.id,
+            name: person.name.trim(),
+            role: "Team Lead",
+            avatar: person.name.trim().slice(0, 2).toUpperCase(),
+            email: person.email || "",
+          }));
+      }
       return (project.teamLeads ?? [])
         .filter((person) => person.employeeId && person.name?.trim())
         .map((person) => ({
@@ -4834,7 +4850,30 @@ function syncTeamLeadsToStore(projectId: string, rows: ProjectTeamRow[]) {
   );
 }
 
-function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?: boolean }) {
+function publishTeamLeadsToOverview(
+  projectId: string,
+  rows: ProjectTeamRow[],
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void,
+  teamMembers?: ApiProjectTeamMember[],
+) {
+  syncTeamLeadsToStore(projectId, rows);
+  if (!onLeadershipSaved) return;
+  if (teamMembers) {
+    onLeadershipSaved(teamMembers);
+    return;
+  }
+  void fetchProjectTeamMembers(projectId).then(onLeadershipSaved).catch(() => {});
+}
+
+function DhTeamTab({
+  project,
+  readOnly = false,
+  onLeadershipSaved,
+}: {
+  project: Project;
+  readOnly?: boolean;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
+}) {
   const snapshot = useDhStore((s) => s);
   const prereq = snapshot.prereqs[project.id];
 
@@ -4875,7 +4914,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
       const mappedShadow = shadowItems.map(mapApiTeamMemberToRow);
       setApiTeamRows(mappedProject);
       setApiShadowRows(mappedShadow);
-      syncTeamLeadsToStore(project.id, mappedProject);
+      publishTeamLeadsToOverview(project.id, mappedProject, onLeadershipSaved, projectItems);
       // Register people so names resolve after refresh
       dhStore.registerPeople(
         [...mappedProject, ...mappedShadow].map((r) => ({
@@ -4994,7 +5033,11 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
           return r;
         });
         setApiTeamRows(nextRows);
-        syncTeamLeadsToStore(project.id, nextRows);
+        if (typeof patch.isTeamLead === "boolean") {
+          publishTeamLeadsToOverview(project.id, nextRows, onLeadershipSaved);
+        } else {
+          syncTeamLeadsToStore(project.id, nextRows);
+        }
       } catch (err) {
         toast.error("Could not update team member", {
           description: err instanceof Error ? err.message : "API error",
@@ -5025,7 +5068,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
         await apiRemoveProjectTeamMember(project.id, row.memberId);
         const nextRows = (apiTeamRows ?? []).filter((r) => r.person.id !== id);
         setApiTeamRows(nextRows);
-        syncTeamLeadsToStore(project.id, nextRows);
+        publishTeamLeadsToOverview(project.id, nextRows, onLeadershipSaved);
         toast.success("Resource removed from team");
       } catch (err) {
         toast.error("Could not remove team member", {
@@ -5275,7 +5318,7 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                                     x.memberId === updated.id ? mapApiTeamMemberToRow(updated) : x,
                                   );
                                   setApiTeamRows(nextRows);
-                                  syncTeamLeadsToStore(project.id, nextRows);
+                                  publishTeamLeadsToOverview(project.id, nextRows, onLeadershipSaved);
                                   toast.success(
                                     isLead ? "Team Lead removed" : "Team Lead assigned",
                                     { description: r.person.name },
@@ -5389,7 +5432,11 @@ function DhTeamTab({ project, readOnly = false }: { project: Project; readOnly?:
                   const mapped = mapApiTeamMemberToRow(created);
                   const nextRows = [...(apiTeamRows ?? []), mapped];
                   setApiTeamRows(nextRows);
-                  syncTeamLeadsToStore(project.id, nextRows);
+                  if (extras?.asTeamLead) {
+                    publishTeamLeadsToOverview(project.id, nextRows, onLeadershipSaved);
+                  } else {
+                    syncTeamLeadsToStore(project.id, nextRows);
+                  }
                   toast.success("Team member added");
                   setShowAddModal(false);
                 } catch (err) {
