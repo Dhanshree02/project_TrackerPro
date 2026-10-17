@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person, type WbsService } from "@/lib/mock-data";
 import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType, people as dhPeople } from "@/lib/dh-helpers";
@@ -392,17 +393,10 @@ export const Route = createFileRoute("/projects/$projectId")({
   loader: async ({ params }): Promise<{ project?: Project; client?: Client }> => {
     const rawId = params.projectId ? decodeURIComponent(params.projectId).trim() : "";
 
-    // 1. Look up in local / persisted store by ID, lowercase ID, WBS ID, or ProjectSeqId
-    let project = allProjects().find(
-      (p) =>
-        p.id === rawId ||
-        p.id.toLowerCase() === rawId.toLowerCase() ||
-        p.wbsId === rawId ||
-        p.projectSeqId?.toLowerCase() === rawId.toLowerCase()
-    );
+    let project: Project | undefined = undefined;
 
-    // 2. If not found in store, attempt fetching from backend API
-    if (!project) {
+    // 1. Primary source: fetch from backend API first
+    if (rawId) {
       try {
         const apiProj = await fetchProject(rawId);
         if (apiProj) {
@@ -425,18 +419,29 @@ export const Route = createFileRoute("/projects/$projectId")({
       }
     }
 
-    // 3. Resolve client if project found
+    // 2. Fallback to local / persisted store only if backend has no match
+    if (!project) {
+      project = allProjects().find(
+        (p) =>
+          p.id === rawId ||
+          p.id.toLowerCase() === rawId.toLowerCase() ||
+          p.wbsId === rawId ||
+          p.projectSeqId?.toLowerCase() === rawId.toLowerCase()
+      );
+    }
+
+    // 3. Resolve client from backend API first if project found
     let client: Client | undefined = undefined;
-    if (project) {
-      client = allClients().find((c) => c.id === project.clientId);
-      if (!client && project.clientId) {
-        try {
-          const dbClients = await fetchClients(1, 200);
-          const matched = dbClients.find((c) => c.id === project.clientId);
-          if (matched) client = mapApiClient(matched);
-        } catch {
-          // fallback
-        }
+    if (project?.clientId) {
+      try {
+        const dbClients = await fetchClients(1, 200);
+        const matched = dbClients.find((c) => c.id === project!.clientId);
+        if (matched) client = mapApiClient(matched);
+      } catch {
+        // fallback below
+      }
+      if (!client) {
+        client = allClients().find((c) => c.id === project!.clientId);
       }
     }
 
@@ -519,10 +524,26 @@ function ProjectDetail() {
     assignedProjects,
     hideBudget,
   } = useRoleContext();
+  const { hasPermission } = usePermissions();
 
   // Subscribe to store so runtime-created projects stay live/reactive
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
   const poDocuments = useDhStore((s) => s.poDocuments);
+
+  const [apiClients, setApiClients] = useState<Client[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchClients(1, 200)
+      .then((rows) => {
+        if (!cancelled) setApiClients(rows.map((c) => mapApiClient(c)));
+      })
+      .catch(() => {
+        if (!cancelled) setApiClients([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [dbProject, setDbProject] = useState<ApiProject | null>(null);
   const [dbLeaders, setDbLeaders] = useState<Awaited<ReturnType<typeof managersFromTeamMembers>> | null>(null);
@@ -585,7 +606,7 @@ function ProjectDetail() {
     return () => { cancelled = true; };
   }, [rawId]);
 
-  // Live project resolution from store (hydrated from localStorage), loaderData, or fallback
+  // Live project resolution: DB first (dbProject / loaderData), local store only as fallback
   const project: Project | undefined = useMemo(() => {
     const fromStore = allProjects().find(
       (p) =>
@@ -594,17 +615,33 @@ function ProjectDetail() {
         p.wbsId === rawId ||
         p.projectSeqId?.toLowerCase() === rawId.toLowerCase(),
     );
-    const base = fromStore
-      ? (!dbProject
-        ? fromStore
-        : {
+    const mappedDb = dbProject ? mapApiProjectToProject(dbProject, dbServices ?? undefined) : undefined;
+    const base = mappedDb
+      ? fromStore
+        ? {
             ...fromStore,
-            renewedFromProjectId: fromStore.renewedFromProjectId || dbProject.renewedFromProjectId || undefined,
-            renewedFromWbsId: fromStore.renewedFromWbsId || dbProject.renewedFromWbsId || undefined,
-          })
-      : dbProject
-        ? mapApiProjectToProject(dbProject)
-        : loaderData?.project;
+            ...mappedDb,
+            renewedFromProjectId: mappedDb.renewedFromProjectId || fromStore.renewedFromProjectId || undefined,
+            renewedFromWbsId: mappedDb.renewedFromWbsId || fromStore.renewedFromWbsId || undefined,
+            wbsDetails: {
+              ...(fromStore.wbsDetails ?? {}),
+              ...(mappedDb.wbsDetails ?? {}),
+              services:
+                (mappedDb.wbsDetails?.services?.length ? mappedDb.wbsDetails.services : fromStore.wbsDetails?.services) ?? [],
+              accounts: {
+                ...(fromStore.wbsDetails?.accounts ?? {}),
+                ...(mappedDb.wbsDetails?.accounts ?? {}),
+                poFileDataUrl:
+                  mappedDb.wbsDetails?.accounts?.poFileDataUrl || fromStore.wbsDetails?.accounts?.poFileDataUrl,
+                invoices:
+                  (mappedDb.wbsDetails?.accounts?.invoices?.length
+                    ? mappedDb.wbsDetails.accounts.invoices
+                    : fromStore.wbsDetails?.accounts?.invoices) ?? [],
+              },
+            },
+          }
+        : mappedDb
+      : loaderData?.project ?? fromStore;
     if (!base) return base;
     const withManagers = dbProject
       ? {
@@ -666,19 +703,23 @@ function ProjectDetail() {
       accountManagerId: "u1",
       logo: "",
     };
-    return allClients().find((c) => c.id === project.clientId) ?? loaderData?.client ?? {
-      id: project.clientId,
-      name: "Client",
-      industry: "General",
-      status: "active",
-      health: "green",
-      projectCount: 1,
-      totalRevenue: 0,
-      accountManagerId: "u1",
-      logo: "",
-    };
+    return (
+      apiClients.find((c) => c.id === project.clientId) ??
+      loaderData?.client ??
+      allClients().find((c) => c.id === project.clientId) ?? {
+        id: project.clientId,
+        name: "Client",
+        industry: "General",
+        status: "active",
+        health: "green",
+        projectCount: 1,
+        totalRevenue: 0,
+        accountManagerId: "u1",
+        logo: "",
+      }
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project?.clientId, extraCount, loaderData?.client]);
+  }, [project?.clientId, apiClients, extraCount, loaderData?.client]);
 
   if (!project) {
     return (
@@ -703,20 +744,6 @@ function ProjectDetail() {
       </AppShell>
     );
   }
-  const [apiClients, setApiClients] = useState<Array<{ id: string; name: string }>>([]);
-  useEffect(() => {
-    let cancelled = false;
-    fetchClients(1, 100)
-      .then((rows) => {
-        if (!cancelled) setApiClients(rows.map((c) => mapApiClient(c)));
-      })
-      .catch(() => {
-        if (!cancelled) setApiClients([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
   const customerRouteId = useMemo(
     () => resolveCustomerRouteId(client.id, client.name, apiClients),
     [client.id, client.name, apiClients],
@@ -1120,11 +1147,8 @@ function ProjectDetail() {
     };
   }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
 
-  // Scope project detail to the role's assigned portfolio.
-  if (isEmployee && employeeProjectIds && !employeeProjectIds.has(project.id)) {
-    return <Navigate to="/access-denied" />;
-  }
-  if (!isDhanshree && assignedProjects.length > 0 && !assignedProjects.some((p) => p.id === project.id)) {
+  // Scope project detail to the role's assigned portfolio / permissions.
+  if (!isDhanshree && !hasPermission("projects.view")) {
     return <Navigate to="/access-denied" />;
   }
 
@@ -2293,7 +2317,7 @@ function OverviewTab({
   customerRouteId: string | null;
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
-  const { isDhanshree, isProjectManager, isSeniorPm, isPmFamily, isPmoFamily, isAccounts, isSales, hideBudget } =
+  const { isDhanshree, isProjectManager, isSeniorPm, isPmFamily, isPmoFamily, isAccounts, isSales, hideBudget, assignedProjects } =
     useRoleContext();
   const showLeadership = isDhanshree || isPmFamily || isPmoFamily || isAccounts || isSales;
   const hideAmounts = isPmFamily || hideBudget;
@@ -2433,8 +2457,8 @@ function OverviewTab({
 
   const extraCount = useDhStore((s) => s.extraProjects.length);
   const originalProject = useMemo(
-    () => findProjectByWbsId(allProjects(), project.renewedFromWbsId),
-    [project.renewedFromWbsId, extraCount],
+    () => findProjectByWbsId([...assignedProjects, ...allProjects()], project.renewedFromWbsId),
+    [project.renewedFromWbsId, assignedProjects, extraCount],
   );
   const originalProjectId = (project.renewedFromProjectId || originalProject?.id || "").trim();
 
@@ -6064,7 +6088,7 @@ function PersonRow({ label, person, unassigned }: { label: string; person: Perso
 // ---------- Health Tab ----------
 function HealthTab({ project }: { project: Project }) {
   const store = useDhStore((s) => s);
-  const { user, isDhanshree, isPmFamily, isEngagementManager, isSales, isViewOnly, isPmoFamily } = useRoleContext();
+  const { user, isDhanshree, isPmFamily, isEngagementManager, isSales, isViewOnly, isPmoFamily, assignedClients } = useRoleContext();
   const isEmployee = user.role === "Employee";
   const [healthTab, setHealthTab] = useState<string>(() => {
     let initial: string = "Issues";
@@ -6119,7 +6143,7 @@ function HealthTab({ project }: { project: Project }) {
 
   // Check if user has access to Client Communication
   const canAccessClientComm = ["Dhanshree", "PMO", "Project Manager", "Engagement Manager", "Senior Project Manager", "Head of Delivery", "Business Operations"].includes(user.role);
-  const client = allClients().find((c) => c.id === project.clientId) ?? {
+  const client = assignedClients.find((c) => c.id === project.clientId) ?? allClients().find((c) => c.id === project.clientId) ?? {
     id: project.clientId,
     name: "Client",
     industry: "General",
@@ -6362,7 +6386,7 @@ function HealthEscalationsPanel({ escalations, project, canRaise }: { escalation
       title: formData.title.trim(),
       description: formData.description.trim(),
       priority: "High",
-      raisedByName: user.name || "Dhanshree",
+      raisedByName: user.name,
       serviceName: "Project Health",
       escalationType: formData.escalationType,
       escalatedTo: routes,
@@ -7094,14 +7118,15 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
 function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAdditionalRequirement; onClose: () => void }) {
   const [commentText, setCommentText] = useState("");
   const store = useDhStore(s => s);
+  const { user } = useRoleContext();
 
   const req = store.requirements.find(r => r.id === requirement.id) || requirement;
 
   const handleComment = () => {
     if (!commentText.trim()) return;
     dhStore.addRequirementComment(req.id, {
-      authorId: "u14",
-      authorName: "Dhanshree",
+      authorId: user.id,
+      authorName: user.name,
       text: commentText.trim()
     });
     setCommentText("");
@@ -7131,7 +7156,7 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
                 value={req.status}
                 onChange={(e) => {
                   const s = e.target.value as RequirementStatus;
-                  dhStore.updateRequirementStatus(req.id, s, "dhanshree", "Dhanshree");
+                  dhStore.updateRequirementStatus(req.id, s, user.id, user.name);
                   toast.success(`Status updated to ${s}`);
                 }}
                 className={cn(
@@ -7654,21 +7679,11 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
     }
     // Add EM
     const clientRecord = client || allClients().find((c) => c.id === project.clientId);
-    const emName = project.engagementManager || clientRecord?.engagementManager || "Riya Kapoor";
-    const emObj = people.find((p) => p.name === emName || p.role === "Engagement Manager");
-    if (emObj && !list.some(p => p.id === emObj.id)) list.push(emObj);
-
-    // Add HOD (Anita Desai)
-    const hodObj = people.find(p => p.role === "HOD" || p.name === "Anita Desai");
-    if (hodObj && !list.some(p => p.id === hodObj.id)) list.push(hodObj);
-
-    // Add PMO (Rahul Gupta)
-    const pmoObj = people.find(p => p.role === "PMO" || p.name === "Rahul Gupta");
-    if (pmoObj && !list.some(p => p.id === pmoObj.id)) list.push(pmoObj);
-
-    // Add Business Owner (Vikrant Malhotra)
-    const boObj = people.find(p => p.role === "Business Owner" || p.name === "Vikrant Malhotra");
-    if (boObj && !list.some(p => p.id === boObj.id)) list.push(boObj);
+    const emName = project.engagementManager || clientRecord?.engagementManager;
+    if (emName) {
+      const emObj = getPerson(emName);
+      if (emObj && emObj.id !== "unknown" && !list.some((p) => p.id === emObj.id)) list.push(emObj);
+    }
 
     // Add any assigned SPMs
     if (prereq.assignedSpmIds) {
@@ -8211,7 +8226,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                     title: escSubject,
                     description: escDescription,
                     priority: escPriority,
-                    raisedByName: user.name || "Dhanshree",
+                    raisedByName: user.name,
                     serviceName: escalationModalSvc.serviceName,
                     escalationType: escType,
                     escalatedTo: escTo,

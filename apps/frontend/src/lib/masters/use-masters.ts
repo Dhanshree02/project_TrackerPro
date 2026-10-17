@@ -6,30 +6,14 @@ import {
   INITIAL_PROJECT_MASTERS,
 } from "./mock-data";
 import { useProjectCatalogStore } from "./project-catalog-store";
-
-const STORAGE_KEY_PROJECT = "trackerpro_project_masters_v2";
-const STORAGE_KEY_CUSTOMER = "trackerpro_customer_masters_v1";
-
-function loadFromStorage<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error(`Failed to load ${key} from storage:`, e);
-    return fallback;
-  }
-}
-
-function saveToStorage<T>(key: string, value: T): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    console.error(`Failed to save ${key} to storage:`, e);
-  }
-}
+import {
+  fetchCities,
+  fetchContactDesignations,
+  fetchContactTypes,
+  fetchCountries,
+  fetchIndustries,
+  fetchServiceHierarchy,
+} from "@/lib/api/catalogs";
 
 export function useMastersStore() {
   const {
@@ -45,33 +29,67 @@ export function useMastersStore() {
     resetCatalog,
   } = useProjectCatalogStore();
 
-  const [projectMasters, setProjectMasters] = useState<ProjectMasterItem[]>(() => {
-    const loaded = loadFromStorage<ProjectMasterItem[]>(STORAGE_KEY_PROJECT, INITIAL_PROJECT_MASTERS);
-    return (loaded || []).map((p) => ({
-      ...p,
-      contractType: p.contractType || p.group || "Scope Based",
-      group: p.group || p.contractType || "Scope Based",
-    }));
-  });
+  const [projectMasters, setProjectMasters] = useState<ProjectMasterItem[]>(INITIAL_PROJECT_MASTERS);
+  const [customerMasters, setCustomerMasters] = useState<CustomerMastersState>(INITIAL_CUSTOMER_MASTERS);
 
-  const [customerMasters, setCustomerMasters] = useState<CustomerMastersState>(() =>
-    loadFromStorage<CustomerMastersState>(STORAGE_KEY_CUSTOMER, INITIAL_CUSTOMER_MASTERS),
-  );
+  const loadMastersFromDb = useCallback(async () => {
+    try {
+      const [groups, designations, industries, countries, cities, contactTypes] = await Promise.all([
+        fetchServiceHierarchy(),
+        fetchContactDesignations(),
+        fetchIndustries(),
+        fetchCountries(),
+        fetchCities(),
+        fetchContactTypes(),
+      ]);
 
-  // Sync with localStorage
+      const projRows: ProjectMasterItem[] = [];
+      for (const group of groups) {
+        const isResource =
+          group.code.toUpperCase() === "RESOURCE" ||
+          group.name.toLowerCase().includes("resource");
+        const contractTypeLabel = isResource ? "Resource Based" : "Scope Based";
+        for (const dept of group.departments) {
+          for (const sub of dept.subDepartments) {
+            for (const svc of sub.services) {
+              projRows.push({
+                id: svc.id || `pm-${svc.code.toLowerCase()}`,
+                contractType: contractTypeLabel,
+                group: contractTypeLabel,
+                department: dept.name,
+                service: svc.name,
+                tools: svc.defaultTools ?? "",
+                duration: `${svc.defaultDurationDays ?? 0} Days`,
+                unitPrice: Number(svc.defaultUnitPrice ?? 0),
+                createdAt: new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
+      setProjectMasters(projRows);
+
+      const nowIso = new Date().toISOString();
+      setCustomerMasters({
+        designations: designations.map((d) => ({ id: d.id, name: d.name, code: d.code, createdAt: nowIso })),
+        industries: industries.map((i) => ({ id: i.id, name: i.name, code: i.code, createdAt: nowIso })),
+        countries: countries.map((c) => ({ id: c.id, name: c.name, code: c.code, createdAt: nowIso })),
+        cities: cities.map((c) => ({ id: c.id, name: c.name, code: c.code, createdAt: nowIso })),
+        contactTypes: contactTypes.map((ct) => ({ id: ct.id, name: ct.name, code: ct.code, createdAt: nowIso })),
+      });
+    } catch {
+      toast.error("Could not load master catalogs from database");
+    }
+  }, []);
+
   useEffect(() => {
-    saveToStorage(STORAGE_KEY_PROJECT, projectMasters);
-  }, [projectMasters]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEY_CUSTOMER, customerMasters);
-  }, [customerMasters]);
+    void loadMastersFromDb();
+  }, [loadMastersFromDb]);
 
   // --- Project Master Operations ---
   const addProjectMaster = useCallback(
     (item: Omit<ProjectMasterItem, "id" | "createdAt">): { success: boolean; error?: string } => {
       const contractTypeVal = (item.contractType || item.group || "").trim();
-      // Validate
       if (!contractTypeVal) return { success: false, error: "Please select a Contract Type." };
       if (!item.department?.trim()) return { success: false, error: "Please select a Department." };
       if (!item.service?.trim()) return { success: false, error: "Please select a Service." };
@@ -81,7 +99,6 @@ export function useMastersStore() {
         return { success: false, error: "Unit Price must be a positive numeric value." };
       }
 
-      // Check duplicates (same contractType, department, service)
       const duplicate = projectMasters.some(
         (p) =>
           (p.contractType || p.group || "").toLowerCase() === contractTypeVal.toLowerCase() &&
@@ -250,10 +267,9 @@ export function useMastersStore() {
 
   const resetAllToDefaults = useCallback(() => {
     resetCatalog();
-    setProjectMasters(INITIAL_PROJECT_MASTERS);
-    setCustomerMasters(INITIAL_CUSTOMER_MASTERS);
-    toast.info("Masters reset to default initial data");
-  }, [resetCatalog]);
+    void loadMastersFromDb();
+    toast.info("Reloaded masters from database");
+  }, [resetCatalog, loadMastersFromDb]);
 
   return {
     projectMasters,

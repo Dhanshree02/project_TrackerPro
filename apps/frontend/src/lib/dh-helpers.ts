@@ -1,51 +1,50 @@
-import { people, projects, getPerson, type Person, type Project, type Task } from "@/lib/mock-data";
-
-// ---------- Multi-assignee helpers (Dhanshree views) ----------
-// We derive supplementary EM / PM / TL lists from existing people; the
-// original pmId/tlId on Project remain authoritative for other roles.
-
-const EM_POOL = ["00000000-0000-4000-8000-000000000025", "00000000-0000-4000-8000-000000000023"]; // Arjun Mehta, Rahul Sharma
-const SPM_POOL = ["00000000-0000-4000-8000-000000000017", "00000000-0000-4000-8000-000000000004"]; // Vikram Gupta, Sneha Iyer
-const PM_POOL = ["00000000-0000-4000-8000-000000000006", "00000000-0000-4000-8000-000000000011", "00000000-0000-4000-8000-000000000003"]; // Divya Rao, Harsh Nair, Rohan Mehta
-const TL_POOL = ["00000000-0000-4000-8000-000000000004"]; // Sneha Iyer
-
-const seeded = (seed: string, max: number) =>
-  Math.abs(seed.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % max;
+import { people, getPerson, type Person, type Project, type Task } from "@/lib/mock-data";
 
 export function getProjectEMs(p: Project): Person[] {
-  // If the project was created via the WBS form, use the stored engagementManager name.
-  // Fall back to the hardcoded pool for legacy mock projects.
   if (p.engagementManager) {
-    // Find the person by name (the form stores a display name, not an ID)
     const byName = people.find(
-      (person) => person.name.toLowerCase() === p.engagementManager!.toLowerCase()
+      (person) => person.name.toLowerCase() === p.engagementManager!.toLowerCase(),
     );
     if (byName) return [byName];
-    // Name not found in people list — build a synthetic Person so the UI never breaks
-    return [{
-      id: "em-" + p.id,
-      name: p.engagementManager,
-      role: "Engagement Manager",
-      avatar: p.engagementManager.slice(0, 2).toUpperCase(),
-      email: "",
-    }];
+    return [
+      {
+        id: "em-" + p.id,
+        name: p.engagementManager,
+        role: "Engagement Manager",
+        avatar: p.engagementManager.slice(0, 2).toUpperCase(),
+        email: "",
+      },
+    ];
   }
-  // Legacy fallback for base mock projects
-  const ids = [EM_POOL[0], "u1"];
-  const n = (seeded(p.id, 2) === 0 ? 1 : 2);
-  return ids.slice(0, n).map(getPerson);
+  return [];
 }
 
 export function getProjectPMs(p: Project): Person[] {
-  const ids = [p.pmId, ...PM_POOL.filter((id) => id !== p.pmId), ...SPM_POOL];
-  const n = 1 + seeded(p.id + "pm", 2); // 1..2
-  return Array.from(new Set(ids.slice(0, n))).map(getPerson);
+  if (p.projectManagers?.length) {
+    return p.projectManagers.map((m) => ({
+      id: m.employeeId,
+      name: m.name,
+      role: "Project Manager",
+      avatar: m.name.slice(0, 2).toUpperCase(),
+      email: "",
+    }));
+  }
+  if (p.pmId) return [getPerson(p.pmId)];
+  return [];
 }
 
 export function getProjectTLs(p: Project): Person[] {
-  const ids = [p.tlId, ...TL_POOL.filter((id) => id !== p.tlId)];
-  const n = 1 + seeded(p.id + "tl", 2); // 1..2
-  return Array.from(new Set(ids.slice(0, n))).map(getPerson);
+  if (p.teamLeads?.length) {
+    return p.teamLeads.map((m) => ({
+      id: m.employeeId,
+      name: m.name,
+      role: "Team Lead",
+      avatar: m.name.slice(0, 2).toUpperCase(),
+      email: "",
+    }));
+  }
+  if (p.tlId) return [getPerson(p.tlId)];
+  return [];
 }
 
 // ---------- Departments ----------
@@ -68,7 +67,7 @@ const DEPT_MAP: Record<string, { dept: Dept; sub: SubDept }> = {
 export const getDept = (p: Person) => DEPT_MAP[p.role]?.dept ?? "Operations";
 export const getSubDept = (p: Person) => DEPT_MAP[p.role]?.sub ?? "General";
 
-// ---------- Extended Task fields (Dhanshree view) ----------
+// ---------- Extended Task fields ----------
 export type DhTaskStatus =
   | "Ongoing"
   | "Completed"
@@ -99,9 +98,8 @@ export function getTaskMeta(p: Project, t: Task): DhTaskMeta {
   const idx = p.tasks.findIndex((x) => x.id === t.id);
   const start = new Date(p.startDate);
   start.setDate(start.getDate() + idx * 14);
-  const est = 40 + ((idx + 1) * 12);
+  const est = 40 + (idx + 1) * 12;
   const actual = Math.round(est * (t.progress / 100));
-  // Build secondary assignees from project team
   const extras = p.teamIds.filter((id) => id !== t.assigneeId).slice(0, idx % 2);
   return {
     taskCode: `${p.id.toUpperCase()}-TSK-${String(idx + 1).padStart(3, "0")}`,
@@ -112,7 +110,7 @@ export function getTaskMeta(p: Project, t: Task): DhTaskMeta {
   };
 }
 
-// ---------- Team allocation (Project Team submodule) ----------
+// ---------- Team allocation ----------
 export type Billability = "Billable" | "Non-Billable";
 export type ResourceType = "Fixed" | "Adhoc" | "Dedicated" | "Shared Resource";
 
@@ -124,7 +122,7 @@ export interface TeamAllocation {
 }
 
 export function getProjectTeam(p: Project): TeamAllocation[] {
-  const ids = Array.from(new Set([p.pmId, p.tlId, ...p.teamIds]));
+  const ids = Array.from(new Set([p.pmId, p.tlId, ...p.teamIds].filter(Boolean)));
   return ids.map((id, idx) => {
     const person = getPerson(id);
     return {
@@ -136,7 +134,6 @@ export function getProjectTeam(p: Project): TeamAllocation[] {
   });
 }
 
-// Show "First name +N" for list of people
 export function formatPeopleSummary(list: Person[]): { primary: string; more: number } {
   if (list.length === 0) return { primary: "—", more: 0 };
   return { primary: list[0].name, more: list.length - 1 };

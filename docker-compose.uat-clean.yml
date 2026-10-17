@@ -1,0 +1,67 @@
+# Clean UAT stack — separate app containers + DB `pms_uat_clean` on shared Postgres.
+# Requires the main UAT Postgres container (pms_uat_db on network `pms_shared`):
+#   cd ../project_TrackerPro_UAT && docker compose -f docker-compose.uat.yml -p pms_uat up -d db
+#
+# Build and run from this folder (PMS_uat_clean):
+#   docker compose -f docker-compose.uat-clean.yml build
+#   docker compose -f docker-compose.uat-clean.yml -p pms_uat_clean up -d
+#
+# App:  http://localhost:39107   API http://localhost:52815/swagger
+# DB:   pms_uat_clean @ pms_uat_db:5432 (host port still 41763 from main UAT compose)
+
+name: pms_uat_clean
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    image: pms-backend:uat-clean
+    container_name: pms_uat_clean_backend
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=pms_uat_db;Port=5432;Database=pms_uat_clean;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
+      - Database__AutoMigrate=false
+      - Database__Seed=false
+      - Database__SyncSystemRoleBaselines=false
+      - Storage__RootPath=/app/storage
+      - Storage__DocumentsPath=/app/Documents
+    ports:
+      - "${UAT_CLEAN_BACKEND_PORT:-52815}:8080"
+    volumes:
+      - backend_storage_clean:/app/storage
+      - ./Documents:/app/Documents
+      - ./apps/backend/Log:/app/Log
+    networks:
+      - pms_shared
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    image: pms-frontend:uat-clean
+    container_name: pms_uat_clean_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - VITE_BACKEND_URL=http://pms_uat_clean_backend:8080
+      - VITE_API_URL=
+    ports:
+      - "${UAT_CLEAN_FRONTEND_PORT:-39107}:3000"
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+    networks:
+      - pms_shared
+
+networks:
+  pms_shared:
+    external: true
+    name: pms_shared
+
+volumes:
+  backend_storage_clean:
+    name: pms_project_backend_uat_clean_storage

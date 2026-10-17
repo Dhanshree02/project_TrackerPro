@@ -116,8 +116,6 @@ import {
   formatBondExpiryDisplay,
 } from "@/lib/employment-bond";
 import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
-import { MUMBAI_RAILWAY_STATIONS } from "@/lib/mumbai-stations";
-import { allProjects, allClients } from "@/lib/dh-store";
 import { Modal } from "@/routes/projects.index";
 import { EmployeeFormModal } from "@/components/employee-form-modal";
 

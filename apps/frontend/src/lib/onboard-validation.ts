@@ -952,9 +952,13 @@ export function employeeToOnboardValues(emp: Employee): OnboardValues {
     dateOfBirth: emp.dob || "",
     maritalStatus: emp.maritalStatus || "",
     nationalityId: "",
-    address: addressCityOptions().some((station) => station.value === (emp.address || "").trim())
-      ? emp.address || ""
-      : "",
+    address: (() => {
+      const opts = addressCityOptions();
+      if (opts.length === 0) return emp.address || "";
+      return opts.some((station) => station.value === (emp.address || "").trim())
+        ? emp.address || ""
+        : "";
+    })(),
     emergencyContact: emp.emergencyContact || "",
     emergencyContactName: emp.emergencyContactName || "",
     emergencyContactRelation: emp.emergencyContactRelation || "",

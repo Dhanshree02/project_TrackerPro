@@ -7,11 +7,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import { useRoleContext } from "@/lib/role-context";
+import { useRoleContext, roleLabels } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import {
-  allClients,
-  allProjects,
   dhStore,
   useDhStore,
   buildProjectDisplayId,
@@ -59,9 +57,6 @@ import {
   countProjectsForClient,
   resolveOnboardingProjectName,
 } from "@/lib/onboarding-project-name";
-import {
-  useProjectCatalogStore,
-} from "@/lib/masters/project-catalog-store";
 
 export const Route = createFileRoute("/projects/new")({
   validateSearch: (search: Record<string, unknown>): { draftId?: string } => ({
@@ -81,295 +76,7 @@ type CatalogService = {
   tool: string;
   unitPrice: number;
   days: number;
-  /** Grouping of the existing catalog service — not a new invented offering. */
   subDept: string;
-};
-
-const DEPT_SERVICES: Record<string, CatalogService[]> = {
-  "Penetration Testing": [
-    {
-      id: "PT001",
-      name: "External Network Penetration Testing",
-      tool: "Nessus, Metasploit",
-      unitPrice: 60000,
-      days: 5,
-      subDept: "Network Penetration Testing",
-    },
-    {
-      id: "PT002",
-      name: "Internal Network Penetration Testing",
-      tool: "Burp Suite, Cobalt Strike",
-      unitPrice: 75000,
-      days: 6,
-      subDept: "Network Penetration Testing",
-    },
-    {
-      id: "PT003",
-      name: "Web Application Penetration Testing",
-      tool: "Burp Suite, OWASP ZAP",
-      unitPrice: 50000,
-      days: 5,
-      subDept: "Web Application Penetration Testing",
-    },
-    {
-      id: "PT004",
-      name: "Mobile Application Penetration Testing",
-      tool: "Frida, Burp Suite Mobile",
-      unitPrice: 55000,
-      days: 5,
-      subDept: "Mobile Application Penetration Testing",
-    },
-    {
-      id: "PT005",
-      name: "API Penetration Testing",
-      tool: "Postman, Burp Suite",
-      unitPrice: 40000,
-      days: 4,
-      subDept: "API Penetration Testing",
-    },
-    {
-      id: "PT006",
-      name: "Thick Client Penetration Testing",
-      tool: "Burp Suite, API Fuzzer",
-      unitPrice: 45000,
-      days: 4,
-      subDept: "Thick Client Penetration Testing",
-    },
-  ],
-  "Vulnerability Assessment": [
-    {
-      id: "VA001",
-      name: "Network Vulnerability Assessment",
-      tool: "Nessus, OpenVAS, Qualys",
-      unitPrice: 35000,
-      days: 3,
-      subDept: "Network Vulnerability Assessment",
-    },
-    {
-      id: "VA002",
-      name: "Web Application Vulnerability Assessment",
-      tool: "Acunetix, Qualys, Rapid7",
-      unitPrice: 40000,
-      days: 4,
-      subDept: "Web Application Vulnerability Assessment",
-    },
-    {
-      id: "VA003",
-      name: "Cloud Infrastructure Vulnerability Assessment",
-      tool: "Dome9, CloudSploit",
-      unitPrice: 50000,
-      days: 4,
-      subDept: "Cloud Infrastructure Vulnerability Assessment",
-    },
-  ],
-  "Red Team & Adversary Simulation": [
-    {
-      id: "RT001",
-      name: "Full Spectrum Red Team Exercise",
-      tool: "Cobalt Strike, Metasploit, Mimikatz",
-      unitPrice: 120000,
-      days: 10,
-      subDept: "Adversary Simulation",
-    },
-    {
-      id: "RT002",
-      name: "Targeted Red Team Engagement",
-      tool: "Custom Tools, Cobalt Strike",
-      unitPrice: 80000,
-      days: 7,
-      subDept: "Adversary Simulation",
-    },
-  ],
-  "Cloud Security": [
-    {
-      id: "CS001",
-      name: "AWS Security Assessment",
-      tool: "Scout2, CloudMapper, AWS Inspector",
-      unitPrice: 55000,
-      days: 5,
-      subDept: "AWS Security Assessment",
-    },
-    {
-      id: "CS002",
-      name: "Azure Security Assessment",
-      tool: "Azucar, Microsoft Defender, Qualys",
-      unitPrice: 55000,
-      days: 5,
-      subDept: "Azure Security Assessment",
-    },
-    {
-      id: "CS003",
-      name: "Google Cloud Security Assessment",
-      tool: "GCP Security Command Center",
-      unitPrice: 50000,
-      days: 5,
-      subDept: "Google Cloud Security Assessment",
-    },
-  ],
-  "Code & Application Security": [
-    {
-      id: "CODE001",
-      name: "Source Code Security Review",
-      tool: "SonarQube, Checkmarx, Fortify",
-      unitPrice: 65000,
-      days: 6,
-      subDept: "Source Code Security Review",
-    },
-    {
-      id: "CODE002",
-      name: "Static Application Security Testing (SAST)",
-      tool: "Checkmarx, Veracode, Fortify",
-      unitPrice: 70000,
-      days: 7,
-      subDept: "Static Application Security Testing",
-    },
-    {
-      id: "CODE003",
-      name: "Dynamic Application Security Testing (DAST)",
-      tool: "Burp Suite, Acunetix, AppScan",
-      unitPrice: 60000,
-      days: 6,
-      subDept: "Dynamic Application Security Testing",
-    },
-  ],
-  "Compliance & Audit": [
-    {
-      id: "COMP001",
-      name: "ISO 27001 Security Audit",
-      tool: "AuditBoard, Drata, Vanta",
-      unitPrice: 85000,
-      days: 8,
-      subDept: "ISO 27001 Security Audit",
-    },
-    {
-      id: "COMP002",
-      name: "GDPR Compliance Assessment",
-      tool: "OneTrust, TrustArc, Compliance.ai",
-      unitPrice: 75000,
-      days: 7,
-      subDept: "GDPR Compliance Assessment",
-    },
-    {
-      id: "COMP003",
-      name: "PCI-DSS Compliance Assessment",
-      tool: "Qualys, Rapid7, Nessus",
-      unitPrice: 80000,
-      days: 7,
-      subDept: "PCI-DSS Compliance Assessment",
-    },
-    {
-      id: "COMP004",
-      name: "SOC 2 Type II Audit",
-      tool: "AuditBoard, Drata",
-      unitPrice: 95000,
-      days: 10,
-      subDept: "SOC 2 Type II Audit",
-    },
-  ],
-  "Social Engineering & Awareness": [
-    {
-      id: "SE001",
-      name: "Phishing Campaign & Assessment",
-      tool: "KnowBe4, Gophish, Phish Alert",
-      unitPrice: 30000,
-      days: 2,
-      subDept: "Phishing Campaign & Assessment",
-    },
-    {
-      id: "SE002",
-      name: "Security Awareness Training Program",
-      tool: "LinkedIn Learning, KnowBe4, SANS",
-      unitPrice: 45000,
-      days: 4,
-      subDept: "Security Awareness Training Program",
-    },
-    {
-      id: "SE003",
-      name: "Vishing & Pretexting Assessment",
-      tool: "Custom, KnowBe4",
-      unitPrice: 35000,
-      days: 3,
-      subDept: "Vishing & Pretexting Assessment",
-    },
-  ],
-  "Forensics & Incident Response": [
-    {
-      id: "FOR001",
-      name: "Digital Forensics Investigation",
-      tool: "EnCase, FTK, Volatility, X-Ways",
-      unitPrice: 90000,
-      days: 8,
-      subDept: "Digital Forensics Investigation",
-    },
-    {
-      id: "FOR002",
-      name: "Incident Response & Containment",
-      tool: "Splunk, ELK, Rapid7 InsightIDR",
-      unitPrice: 75000,
-      days: 7,
-      subDept: "Incident Response & Containment",
-    },
-    {
-      id: "FOR003",
-      name: "Malware Analysis",
-      tool: "IDA Pro, Ghidra, Wireshark, Cuckoo",
-      unitPrice: 70000,
-      days: 6,
-      subDept: "Malware Analysis",
-    },
-  ],
-  "Network & Infrastructure": [
-    {
-      id: "NET001",
-      name: "Network Architecture Security Review",
-      tool: "Nmap, Wireshark, NETMON",
-      unitPrice: 55000,
-      days: 5,
-      subDept: "Network Architecture Security Review",
-    },
-    {
-      id: "NET002",
-      name: "Firewall & IDS/IPS Configuration Audit",
-      tool: "Nessus, OpenVAS, Custom Scripts",
-      unitPrice: 65000,
-      days: 6,
-      subDept: "Firewall & IDS/IPS Configuration Audit",
-    },
-    {
-      id: "NET003",
-      name: "Network Segmentation Assessment",
-      tool: "Nmap, Shodan, Custom Tools",
-      unitPrice: 60000,
-      days: 5,
-      subDept: "Network Segmentation Assessment",
-    },
-  ],
-  "Threat Intelligence & Modeling": [
-    {
-      id: "THREAT001",
-      name: "Threat Modeling & Risk Assessment",
-      tool: "Microsoft Threat Modeling Tool, IriusRisk",
-      unitPrice: 50000,
-      days: 4,
-      subDept: "Threat Modeling & Risk Assessment",
-    },
-    {
-      id: "THREAT002",
-      name: "Cyber Threat Intelligence Report",
-      tool: "MISP, Mandiant, CrowdStrike",
-      unitPrice: 40000,
-      days: 3,
-      subDept: "Cyber Threat Intelligence Report",
-    },
-    {
-      id: "THREAT003",
-      name: "Attack Surface Analysis",
-      tool: "Shodan, Censys, Rapid7 Sonar",
-      unitPrice: 45000,
-      days: 4,
-      subDept: "Attack Surface Analysis",
-    },
-  ],
 };
 
 function isResourceContract(ct?: string | null): boolean {
@@ -394,27 +101,8 @@ function findCatalogService(
       if (hit) return hit;
     }
   }
-  for (const svcs of Object.values(DEPT_SERVICES)) {
-    const hit = svcs.find((s) => s.id === svcId);
-    if (hit) return hit;
-  }
   return undefined;
 }
-
-const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
-  "Penetration Testing": "Scope",
-  "Vulnerability Assessment": "Scope",
-  "Red Team & Adversary Simulation": "Resource",
-  "Cloud Security": "Resource",
-  "Code & Application Security": "Scope",
-  "Compliance & Audit": "Resource",
-  "Social Engineering & Awareness": "Scope",
-  "Forensics & Incident Response": "Resource",
-  "Network & Infrastructure": "Scope",
-  "Threat Intelligence & Modeling": "Resource",
-  Audit: "Resource",
-  Testing: "Resource",
-};
 
 const BILLING_MODELS: Record<string, string[]> = {
   "Short term (Ad-hoc)": [
@@ -603,7 +291,7 @@ interface InvoiceRow {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 function WbsNewProjectPage() {
-  const { isDhanshree } = useRoleContext();
+  const { isDhanshree, user, role } = useRoleContext();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
@@ -739,40 +427,45 @@ function WbsNewProjectPage() {
   // Load clients, projects, and service hierarchy on mount
   useEffect(() => {
     let active = true;
-    fetchProjects({ perPage: 200 }).then((res) => {
-      if (active && res?.items && res.items.length > 0) {
-        setDbProjects(res.items);
+    fetchProjects({ perPage: 500 }).then((res) => {
+      if (active) {
+        setDbProjects(res?.items ?? []);
       }
-    }).catch(console.error);
+    }).catch(() => {
+      if (active) toast.error("Could not load projects from database");
+    });
 
     fetchClients(1, 200).then((res) => {
-      if (active && res && res.length > 0) {
-        setDbClients(res);
+      if (active) {
+        setDbClients(res ?? []);
       }
-    }).catch(console.error);
+    }).catch(() => {
+      if (active) toast.error("Could not load customers from database");
+    });
 
     fetchServiceHierarchy().then((res) => {
-      if (active && res && res.length > 0) {
-        setDbServiceHierarchy(res);
+      if (active) {
+        setDbServiceHierarchy(res ?? []);
       }
-    }).catch(console.error);
+    }).catch(() => {
+      if (active) toast.error("Could not load service catalog from database");
+    });
 
     fetchServiceGroups().then((res) => {
-      if (active && res && res.length > 0) {
-        setDbServiceGroups(res);
+      if (active) {
+        setDbServiceGroups(res ?? []);
       }
-    }).catch(console.error);
+    }).catch(() => {
+      if (active) toast.error("Could not load contract types from database");
+    });
 
     return () => { active = false; };
   }, [extraCount]);
 
-  // Use dbClients mapped to frontend Client format if available, fallback to mock store clients
+  // Strictly use database clients mapped to frontend Client format
   const clients = useMemo(() => {
-    if (dbClients.length > 0) {
-      return dbClients.map(mapApiClient);
-    }
-    return allClients();
-  }, [dbClients, extraCount]);
+    return dbClients.map(mapApiClient);
+  }, [dbClients]);
 
 
 
@@ -810,9 +503,7 @@ function WbsNewProjectPage() {
   const [renewalProject, setRenewalProject] = useState<any | null>(null);
 
   const allProjectsList = useMemo(() => {
-    const mock = allProjects();
-    if (dbProjects.length === 0) return mock;
-    const mappedDb = dbProjects.map((p) => ({
+    return dbProjects.map((p) => ({
       id: p.id,
       name: p.name,
       clientId: p.clientId,
@@ -845,9 +536,7 @@ function WbsNewProjectPage() {
       renewedFromWbsId: p.renewedFromWbsId ?? undefined,
       isRenewal: Boolean(p.renewedFromProjectId || p.renewedFromWbsId),
     } as Project));
-    const dbIds = new Set(mappedDb.map((d) => d.id));
-    return [...mappedDb, ...mock.filter((m) => !dbIds.has(m.id))];
-  }, [dbProjects, extraCount]);
+  }, [dbProjects]);
 
   const filteredByWbs = useMemo(() => {
     return allProjectsList.filter((p) => {
@@ -915,11 +604,7 @@ function WbsNewProjectPage() {
         : buildWbsId(selectedClient?.id ?? "", projectId, selectedSubVentureRecord.subVentureCode))
     : "—";
 
-  // ── Project Catalog Store (Contract Types) ──
-  const {
-    contractTypes: catalogContractTypes,
-  } = useProjectCatalogStore();
-
+  // ── Contract Types & Services from Database ──
   const contractTypeOptions = useMemo(() => {
     if (dbServiceGroups.length > 0) {
       return dbServiceGroups.map((g) => g.name);
@@ -927,8 +612,8 @@ function WbsNewProjectPage() {
     if (dbServiceHierarchy.length > 0) {
       return dbServiceHierarchy.map((g) => g.name);
     }
-    return catalogContractTypes;
-  }, [dbServiceGroups, dbServiceHierarchy, catalogContractTypes]);
+    return [];
+  }, [dbServiceGroups, dbServiceHierarchy]);
 
   const selectedHierarchyGroup = useMemo(() => {
     if (!dbServiceHierarchy || dbServiceHierarchy.length === 0) return null;
@@ -951,7 +636,7 @@ function WbsNewProjectPage() {
 
   const dynamicDeptServices = useMemo(() => {
     if (!dbServiceHierarchy || dbServiceHierarchy.length === 0) {
-      return DEPT_SERVICES;
+      return {};
     }
     const targetGroups = selectedHierarchyGroup
       ? [selectedHierarchyGroup]
@@ -978,7 +663,7 @@ function WbsNewProjectPage() {
         }
       }
     }
-    return Object.keys(map).length > 0 ? map : DEPT_SERVICES;
+    return map;
   }, [dbServiceHierarchy, selectedHierarchyGroup]);
 
   const isResourceDept = useCallback(
@@ -1005,7 +690,7 @@ function WbsNewProjectPage() {
         }
       }
 
-      return DEPT_GROUPS[deptName] === "Resource";
+      return false;
     },
     [contractType, selectedHierarchyGroup, dbServiceHierarchy],
   );
@@ -1048,7 +733,7 @@ function WbsNewProjectPage() {
         }
       }
 
-      const services = dynamicDeptServices[deptName] || DEPT_SERVICES[deptName] || [];
+      const services = dynamicDeptServices[deptName] || [];
       const seen: string[] = [];
       for (const s of services) {
         if (s.subDept && !seen.includes(s.subDept)) seen.push(s.subDept);
@@ -1060,7 +745,7 @@ function WbsNewProjectPage() {
 
   // ── Service picker ──
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerDept, setPickerDept] = useState(Object.keys(dynamicDeptServices)[0] ?? "Penetration Testing");
+  const [pickerDept, setPickerDept] = useState("");
   const [pickerSubDept, setPickerSubDept] = useState("");
   const [pickerExpanded, setPickerExpanded] = useState<Record<string, boolean>>({});
   const [pickerSearch, setPickerSearch] = useState("");
@@ -1232,7 +917,6 @@ function WbsNewProjectPage() {
           if (!updated.subDept) {
             updated.subDept =
               dynamicDeptServices[r.dept]?.find((s) => s.id === r.rowId)?.subDept ||
-              DEPT_SERVICES[r.dept]?.find((s) => s.id === r.rowId)?.subDept ||
               findCatalogService(r.rowId, dynamicDeptServices)?.subDept ||
               "";
           }
@@ -1526,9 +1210,7 @@ function WbsNewProjectPage() {
     const rows: ServiceRow[] = [];
     Object.entries(newSelected).forEach(([dept, svcs]) => {
       Object.keys(svcs as Record<string, boolean>).forEach((svcId) => {
-        const svc =
-          (dynamicDeptServices[dept] || []).find((s) => s.id === svcId) ||
-          (DEPT_SERVICES[dept] || []).find((s) => s.id === svcId);
+        const svc = (dynamicDeptServices[dept] || []).find((s) => s.id === svcId);
         if (!svc) return;
         const existing = serviceRows.find((r) => r.rowId === svcId);
         if (existing) {
@@ -2063,7 +1745,7 @@ function WbsNewProjectPage() {
           clientId: parsedClientId,
           clientName: finalClientName,
           salesPerson: salesPerson || null,
-          savedByName: "Dhanshree",
+          savedByName: user.name || null,
           formSnapshotJson,
           rowVersion: currentRowVersion,
         });
@@ -2089,7 +1771,7 @@ function WbsNewProjectPage() {
           clientId: parsedClientId,
           clientName: finalClientName,
           salesPerson: salesPerson || null,
-          savedByName: "Dhanshree",
+          savedByName: user.name || null,
           formSnapshotJson,
         });
         setCurrentDraftId(created.id);
@@ -2699,18 +2381,20 @@ function WbsNewProjectPage() {
           <h1 style={{ fontSize: 16, fontWeight: 700 }}>WBS Management System</h1>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
-          <span>Dhanshree</span>
-          <span
-            style={{
-              background: "rgba(255,255,255,0.2)",
-              padding: "4px 8px",
-              borderRadius: 4,
-              fontSize: 11,
-              fontWeight: 600,
-            }}
-          >
-            Sales
-          </span>
+          {user.name && user.name !== "Unknown User" ? <span>{user.name}</span> : null}
+          {role ? (
+            <span
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                padding: "4px 8px",
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            >
+              {roleLabels[role] ?? user.role ?? role}
+            </span>
+          ) : null}
           <button
             onClick={() => navigate({ to: "/projects" })}
             style={{

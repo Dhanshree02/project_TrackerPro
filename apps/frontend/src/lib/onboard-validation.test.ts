@@ -76,15 +76,20 @@ describe("Onboarding Form Validation & Exception Handling", () => {
     });
 
     it("should require Current Address - City", () => {
-      expect(validateOnboardField("address", { ...EMPTY_ONBOARD, address: "" })).toBe(
-        "Current Address - City is required",
-      );
-      expect(
-        validateOnboardField("address", { ...EMPTY_ONBOARD, address: "Andheri (Western Line)" }),
-      ).toBeUndefined();
-      expect(
-        validateOnboardField("address", { ...EMPTY_ONBOARD, address: "101, Suvidha Square, Andheri" }),
-      ).toBe("Select a city from the list");
+      setLiveAddressCities([{ value: "Andheri (Western Line)", label: "Andheri", subLabel: "Western Line", line: "Western Line" }]);
+      try {
+        expect(validateOnboardField("address", { ...EMPTY_ONBOARD, address: "" })).toBe(
+          "Current Address - City is required",
+        );
+        expect(
+          validateOnboardField("address", { ...EMPTY_ONBOARD, address: "Andheri (Western Line)" }),
+        ).toBeUndefined();
+        expect(
+          validateOnboardField("address", { ...EMPTY_ONBOARD, address: "101, Suvidha Square, Andheri" }),
+        ).toBe("Select a city from the list");
+      } finally {
+        setLiveAddressCities(null);
+      }
     });
 
     it("should accept a city added to the address-city master", () => {
@@ -528,8 +533,13 @@ describe("Onboarding Form Validation & Exception Handling", () => {
         ifsc: "SBIN0001234",
       };
 
-      const errors = validateOnboardForm(validForm, ["TK-1001"]);
-      expect(Object.keys(errors).length).toBe(0);
+      setLiveAddressCities([{ value: "Andheri (Western Line)", label: "Andheri", subLabel: "Western Line", line: "Western Line" }]);
+      try {
+        const errors = validateOnboardForm(validForm, ["TK-1001"]);
+        expect(Object.keys(errors).length).toBe(0);
+      } finally {
+        setLiveAddressCities(null);
+      }
     });
   });
 

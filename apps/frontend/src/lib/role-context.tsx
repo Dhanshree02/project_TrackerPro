@@ -1,15 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
-import type { Role } from "@/lib/mock-data";
+import type { Role, Client, Project, Issue, Timesheet } from "@/lib/mock-data";
 import {
   assignments,
-  clients,
   getPerson,
   people,
-  projects,
   issues,
-  timesheets,
 } from "@/lib/mock-data";
-import { getDept } from "@/lib/dh-helpers";
+import { fetchClients, mapApiClient } from "@/lib/api/clients";
+import { fetchProjects, mapApiProjectToProject } from "@/lib/api/projects";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { RBAC_STORAGE_KEY, permissionsForRole, type PermissionKey } from "@/lib/rbac";
@@ -46,10 +44,10 @@ interface RoleContextValue {
   pmPersonId: string | null;
   employeeProjectIds: Set<string> | null;
   assignedClientIds: string[];
-  assignedClients: typeof clients;
-  assignedProjects: typeof projects;
-  assignedIssues: typeof issues;
-  pendingTimesheets: typeof timesheets;
+  assignedClients: Client[];
+  assignedProjects: Project[];
+  assignedIssues: Issue[];
+  pendingTimesheets: Timesheet[];
 }
 
 const RoleContext = createContext<RoleContextValue | null>(null);
@@ -308,130 +306,108 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const isViewOnly = isBO || isHOD || backendRole === "Intern";
   const hideBudget = isPmoFamily;
 
-  const directoryPersonId = people.find(
-    (p) => p.email.toLowerCase() === (authUser?.email ?? "").toLowerCase(),
-  )?.id ?? null;
+  const [dbProjects, setDbProjects] = useState<Project[]>([]);
+  const [dbClients, setDbClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let active = true;
+    Promise.all([
+      fetchProjects({ perPage: 500 }).catch(() => null),
+      fetchClients(1, 200).catch(() => null),
+    ]).then(([projRes, clientRes]) => {
+      if (!active) return;
+      setDbProjects((projRes?.items ?? []).map((p) => mapApiProjectToProject(p)));
+      setDbClients((clientRes ?? []).map(mapApiClient));
+    });
+    return () => {
+      active = false;
+    };
+  }, [authUser?.id, status]);
+
+  const directoryPersonId =
+    authUser?.employeeId ??
+    people.find(
+      (p) => p.email.toLowerCase() === (authUser?.email ?? "").toLowerCase(),
+    )?.id ??
+    null;
   const employeePersonId = isEmployee ? directoryPersonId : null;
   const pmPersonId = isProjectManager ? directoryPersonId : null;
 
   const employeeProjectIds = useMemo(() => {
     if (!isEmployee || !employeePersonId) return null;
+    const empId = employeePersonId.toLowerCase();
     const ids = new Set<string>();
-    projects.forEach((p) => {
+    dbProjects.forEach((p) => {
       if (
-        p.pmId === employeePersonId ||
-        p.tlId === employeePersonId ||
-        p.teamIds.includes(employeePersonId) ||
-        (p.shadowTeamIds ?? []).includes(employeePersonId)
+        p.pmId?.toLowerCase() === empId ||
+        p.tlId?.toLowerCase() === empId ||
+        (p.teamLeads ?? []).some((tl) => tl.employeeId.toLowerCase() === empId) ||
+        p.teamIds.some((id) => id.toLowerCase() === empId) ||
+        (p.shadowTeamIds ?? []).some((id) => id.toLowerCase() === empId)
       ) {
         ids.add(p.id);
       }
     });
-    return ids;
-  }, [isEmployee, employeePersonId]);
+    return ids.size > 0 ? ids : null;
+  }, [isEmployee, employeePersonId, dbProjects]);
 
-  const hodProjectIds = useMemo(() => {
-    if (!isHOD || !directoryPersonId) return null;
-    const hodPerson = getPerson(directoryPersonId);
-    const hodDept = getDept(hodPerson);
-    const ids = new Set<string>();
-    projects.forEach((p) => {
-      const involved = [p.pmId, p.tlId, ...p.teamIds].map(getPerson);
-      const match =
-        involved.some((person) => getDept(person) === hodDept) ||
-        involved.some((person) => ["Delivery", "Engineering"].includes(getDept(person)));
-      if (match) ids.add(p.id);
-    });
-    return ids;
-  }, [isHOD, directoryPersonId]);
-
-  const assignedClientIds = assignments[role];
+  const assignedClientIds = assignments[role] ?? [];
   const assignedProjects = useMemo(() => {
+    const empId = (directoryPersonId ?? "").toLowerCase();
+    const empName = (authUser?.name ?? "").trim().toLowerCase();
+
     if (isEmployee && employeeProjectIds) {
-      return projects.filter((p) => employeeProjectIds.has(p.id));
+      return dbProjects.filter((p) => employeeProjectIds.has(p.id));
     }
-    if (isProjectManager && pmPersonId) {
-      return projects.filter((p) => p.pmId === pmPersonId);
-    }
-    if (isSeniorPm && directoryPersonId) {
-      return projects.filter((p) => p.pmId === directoryPersonId);
-    }
-    if (isEngagementManager && directoryPersonId) {
-      const em = getPerson(directoryPersonId);
-      return projects.filter(
+    if ((isProjectManager || isSeniorPm) && (empId || empName)) {
+      const matched = dbProjects.filter(
         (p) =>
-          (p.engagementManager ?? "").toLowerCase() === em.name.toLowerCase() ||
-          p.pmId === directoryPersonId,
+          (empId && p.pmId?.toLowerCase() === empId) ||
+          (p.projectManagers ?? []).some(
+            (m) =>
+              (empId && m.employeeId.toLowerCase() === empId) ||
+              (empName && m.name.trim().toLowerCase() === empName),
+          ) ||
+          (p.seniorProjectManagers ?? []).some(
+            (m) =>
+              (empId && m.employeeId.toLowerCase() === empId) ||
+              (empName && m.name.trim().toLowerCase() === empName),
+          ),
       );
+      if (matched.length > 0) return matched;
     }
-    if (isHOD && hodProjectIds) {
-      return projects.filter((p) => hodProjectIds.has(p.id));
+    if (isEngagementManager && empName) {
+      const matched = dbProjects.filter(
+        (p) => (p.engagementManager ?? "").trim().toLowerCase() === empName,
+      );
+      if (matched.length > 0) return matched;
     }
-    if (isAdmin || isPMO || isBO || isAccounts || isSales || isDhanshree) {
-      return projects;
-    }
-    return projects.filter((p) => assignedClientIds.includes(p.clientId));
+    return dbProjects;
   }, [
+    dbProjects,
     isEmployee,
     employeeProjectIds,
     isProjectManager,
-    pmPersonId,
     isSeniorPm,
     isEngagementManager,
     directoryPersonId,
-    isHOD,
-    hodProjectIds,
-    isPMO,
-    isBO,
-    isAccounts,
-    isSales,
-    isDhanshree,
-    assignedClientIds,
+    authUser?.name,
   ]);
 
   const assignedClients = useMemo(() => {
     if (isEmployee && employeeProjectIds) {
       const clientIds = new Set(
-        projects.filter((p) => employeeProjectIds.has(p.id)).map((p) => p.clientId),
+        dbProjects.filter((p) => employeeProjectIds.has(p.id)).map((p) => p.clientId),
       );
-      return clients.filter((c) => clientIds.has(c.id));
+      return dbClients.filter((c) => clientIds.has(c.id));
     }
-    if (isAdmin || isPmFamily || isPmoFamily || isAccounts || isSales || isDhanshree) {
-      if (isHOD && hodProjectIds) {
-        const clientIds = new Set(
-          projects.filter((p) => hodProjectIds.has(p.id)).map((p) => p.clientId),
-        );
-        return clients.filter((c) => clientIds.has(c.id));
-      }
-      return clients;
-    }
-    return clients.filter((c) => assignedClientIds.includes(c.id));
-  }, [
-    isEmployee,
-    employeeProjectIds,
-    isPmFamily,
-    isPmoFamily,
-    isAccounts,
-    isSales,
-    isDhanshree,
-    isHOD,
-    hodProjectIds,
-    assignedClientIds,
-  ]);
+    return dbClients;
+  }, [isEmployee, employeeProjectIds, dbProjects, dbClients]);
 
   const projectIds = new Set(assignedProjects.map((p) => p.id));
   const assignedIssues = issues.filter((i) => projectIds.has(i.projectId));
-  const pendingTimesheets = isEmployee
-    ? timesheets.filter((t) => t.userId === employeePersonId && t.status === "submitted")
-    : timesheets.filter((t) => {
-        if (t.status !== "submitted") return isPMO ? true : false;
-        if (isPMO) return true;
-        if (isHOD) return t.userRole === "Senior PM" || t.userRole === "EM";
-        if (isBO) return false;
-        if (isDhanshree)
-          return t.userRole === "PM" || t.userRole === "TL" || t.userRole === "Employee";
-        return t.userRole === "PM";
-      });
+  const pendingTimesheets: Timesheet[] = [];
 
   const { hasPermission } = usePermissions();
   const [roleOverrides, setRoleOverrides] = useState<Partial<Record<Role, PermissionKey[]>>>(() => {

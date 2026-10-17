@@ -41,8 +41,6 @@ import { TaskStatusPill, TimesheetStatusPill, PriorityPill, Avatar } from "@/com
 import {
   useDhStore,
   dhStore,
-  allProjects,
-  allClients,
   type DhAlert,
   type DhInterview,
   type DhTimesheet,
@@ -358,17 +356,14 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
 }
 
 function BucketList() {
-  const { user, isEmployee, employeePersonId } = useRoleContext();
+  const { user, isEmployee, employeePersonId, assignedProjects } = useRoleContext();
   const store = useDhStore((s) => s);
   const bucketTasks = store.bucketTasks || [];
 
-  // Default to employee's own ID or fallback to "u7" (Arjun Singh) so bucket list tasks are populated by default
   const viewUserId =
     isEmployee && employeePersonId
       ? employeePersonId
-      : bucketTasks.some((bt) => bt.employeeId === user.id)
-        ? user.id
-        : "u7";
+      : user.id;
 
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -391,13 +386,12 @@ function BucketList() {
   }, [bucketTasks, viewUserId]);
 
   const userProjects = useMemo(() => {
-    const list = allProjects();
     const taskProjectIds = Array.from(
       new Set(rows.map((bt) => bt.projectId).filter(Boolean)),
     );
-    const projs = list.filter((p) => taskProjectIds.includes(p.id));
-    return projs.length > 0 ? projs : list;
-  }, [rows]);
+    const projs = assignedProjects.filter((p) => taskProjectIds.includes(p.id));
+    return projs.length > 0 ? projs : assignedProjects;
+  }, [rows, assignedProjects]);
 
   const filtered = rows.filter((r) => {
     if (statusFilter !== "all") {
@@ -417,10 +411,9 @@ function BucketList() {
       toast.error("Fill all fields");
       return;
     }
-    const projectsList = allProjects();
-    const targetProjectId = formData.projectId || userProjects[0]?.id || projectsList[0]?.id || "p1";
-    const proj = projectsList.find((p) => p.id === targetProjectId);
-    const dottedLineMgr = proj ? getPerson(proj.pmId || proj.tlId || "u3") : getPerson("u3");
+    const targetProjectId = formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || "";
+    const proj = assignedProjects.find((p) => p.id === targetProjectId);
+    const dottedLineMgr = proj ? getPerson(proj.pmId || proj.tlId || "") : getPerson("");
 
     dhStore.raiseIssue({
       title: formData.title.trim(),
@@ -431,7 +424,7 @@ function BucketList() {
       raisedByRole: user.role,
       category: formData.category,
       priority: formData.priority,
-      audienceUserIds: [dottedLineMgr.id, "u1", "u3", "u4"],
+      audienceUserIds: [dottedLineMgr.id].filter((id) => id && id !== "unknown"),
     });
 
     toast.success("Issue raised successfully", {
@@ -439,7 +432,7 @@ function BucketList() {
     });
     setShowRaiseModal(false);
     setFormData({
-      projectId: userProjects[0]?.id || projectsList[0]?.id || "p1",
+      projectId: userProjects[0]?.id || assignedProjects[0]?.id || "",
       title: "",
       description: "",
       category: "Technical Related Issues",
@@ -509,7 +502,7 @@ function BucketList() {
           onClick={() => {
             setFormData((prev) => ({
               ...prev,
-              projectId: prev.projectId || userProjects[0]?.id || allProjects()[0]?.id || "p1",
+              projectId: prev.projectId || userProjects[0]?.id || assignedProjects[0]?.id || "",
             }));
             setShowRaiseModal(true);
           }}
@@ -557,7 +550,7 @@ function BucketList() {
           <div className="space-y-3">
             <Field label="Project">
               <select
-                value={formData.projectId || userProjects[0]?.id || allProjects()[0]?.id || "p1"}
+                value={formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || ""}
                 onChange={(e) => setFormData((s) => ({ ...s, projectId: e.target.value }))}
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
@@ -640,7 +633,7 @@ function ApprovalsTab() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const { user, isBO } = useRoleContext();
+  const { user, isBO, assignedProjects } = useRoleContext();
 
   const selectedApproval = useMemo(() => {
     return store.approvals.find((a) => a.id === selectedAppId);
@@ -701,7 +694,7 @@ function ApprovalsTab() {
               className="form-input rounded-md border border-border p-1.5 bg-card"
             >
               <option value="all">All Projects</option>
-              {allProjects().map((p) => (
+              {assignedProjects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
@@ -1002,11 +995,9 @@ function AlertsTab() {
   const [resDetails, setResDetails] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<AlertStatus>("Open");
   const [approved, setApproved] = useState(false);
-  const { user } = useRoleContext();
+  const { user, assignedProjects: projectsList, assignedClients: clientsList } = useRoleContext();
 
   const allAlerts = store.alerts;
-  const projectsList = allProjects();
-  const clientsList = allClients();
 
   const filtered = useMemo(() => {
     return allAlerts.filter((a) => {

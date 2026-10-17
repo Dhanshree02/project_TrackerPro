@@ -21,6 +21,7 @@ apps/frontend/.wrangler/
 
 # Legacy root-level (safety net during migration)
 node_modules/
+scripts/**/node_modules/
 dist/
 dist-ssr/
 .output/

@@ -20,15 +20,16 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
   const navigate = useNavigate();
   const [roleQuery, setRoleQuery] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
-  const [switchPersonas, setSwitchPersonas] = useState<DemoPersona[]>(() => {
-    const live = getCachedEmployeePersonas();
-    return live.length > 0 ? live : DEMO_PERSONAS;
-  });
+  const [switchPersonas, setSwitchPersonas] = useState<DemoPersona[]>(() =>
+    getCachedEmployeePersonas(),
+  );
 
   useEffect(() => {
-    void loadEmployeePersonas().then((list) => {
-      if (list.length > 0) setSwitchPersonas(list);
-    });
+    void loadEmployeePersonas()
+      .then((list) => {
+        setSwitchPersonas(list);
+      })
+      .catch(() => {});
   }, []);
 
   const roleLabel = authUser?.role
@@ -56,9 +57,22 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
       ) ??
       switchPersonas.find((p) => p.roleKey === authUser?.role) ??
       switchPersonas.find((p) => p.code === "TK-0004") ??
-      switchPersonas[0]
+      switchPersonas[0] ?? {
+        key: authUser?.employeeId || "user",
+        code: authUser?.employeeId || "—",
+        label: authUser?.role || "",
+        category: "",
+        email: authUser?.email || "",
+        name: authUser?.name || user.name || "Loading…",
+        id: authUser?.id || "",
+        avatar: user.avatar || "?",
+        department: "",
+        designation: "",
+        roleKey: authUser?.role || "",
+        permissions: [],
+      }
     );
-  }, [demoRole, authUser, switchPersonas]);
+  }, [demoRole, authUser, switchPersonas, user]);
 
   const departments = useMemo(() => {
     const set = new Set<string>();

@@ -29,7 +29,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
-import { type Client, type ClientSubVenture } from "@/lib/mock-data";
+import { type Client, type ClientSubVenture, type Project } from "@/lib/mock-data";
+import { fetchProjects, mapApiProjectToProject } from "@/lib/api/projects";
 import {
   createClient,
   fetchClients,
@@ -49,7 +50,7 @@ import { Modal } from "@/routes/projects.index";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Field } from "@/components/form-row";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
-import { dhStore, useDhStore, allClients, allProjects } from "@/lib/dh-store";
+import { dhStore, useDhStore } from "@/lib/dh-store";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { cn } from "@/lib/utils";
 import {
@@ -272,19 +273,25 @@ function CustomersPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [openNew, setOpenNew] = useState(false);
 
-  // Live data from the TrackerPro API. The customer list is Postgres-only —
+  // Live data from the TrackerPro API. The customer list and project counts are Postgres-only —
   // no mock/dh-store fallback. While loading (or if the backend is unreachable)
   // we show a spinner / empty state instead of mock clients.
   const [apiClients, setApiClients] = useState<Client[] | null>(null);
+  const [apiProjects, setApiProjects] = useState<Project[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
   const refreshApiClients = useCallback(async () => {
     setClientsLoading(true);
     try {
-      const list = await fetchClients();
+      const [list, projPage] = await Promise.all([
+        fetchClients(),
+        fetchProjects({ perPage: 500 }).catch(() => null),
+      ]);
       setApiClients(list.map(mapApiClient));
+      setApiProjects((projPage?.items ?? []).map((item) => mapApiProjectToProject(item) as Project));
     } catch {
       /* backend offline — show empty, do NOT fall back to mock data */
       setApiClients([]);
+      setApiProjects([]);
     } finally {
       setClientsLoading(false);
     }
@@ -304,27 +311,21 @@ function CustomersPage() {
       ),
     );
 
-  // Subscribe to store so newly created projects appear immediately
-  const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
-  // Customer records come exclusively from the API (Postgres). No mock fallback.
+  // Customer and project records come exclusively from the API (Postgres). No mock fallback.
   const clients = useMemo(() => apiClients ?? [], [apiClients]);
   const projects = useMemo(
     () =>
       isDhanshree
-        ? allProjects()
+        ? apiProjects
         : assignedProjects && assignedProjects.length > 0
           ? assignedProjects
-          : allProjects(),
-    [isDhanshree, assignedProjects, extraCount],
+          : apiProjects,
+    [isDhanshree, assignedProjects, apiProjects],
   );
 
   const enriched = useMemo(() => {
-    // API clients have database ids — map them back to the mock client id (by name)
-    // so project counts still work until the Projects module is API-backed.
-    const mockIdByName = new Map(allClients().map((c) => [c.name.toLowerCase(), c.id]));
     return clients.map((c) => {
-      const mockId = apiClients ? (mockIdByName.get(c.name.toLowerCase()) ?? c.id) : c.id;
-      const projs = projects.filter((p) => p.clientId === mockId);
+      const projs = projects.filter((p) => p.clientId === c.id);
       const buckets = categorizeClientProjects(projs);
       return {
         client: c,
@@ -337,7 +338,7 @@ function CustomersPage() {
         active: buckets.new.length + buckets.ongoing.length,
       };
     });
-  }, [clients, projects, apiClients]);
+  }, [clients, projects]);
 
   const matchesClientSearch = (c: Client, query: string): boolean => {
     if (!query) return true;
@@ -987,7 +988,7 @@ function CustomersPage() {
         </div>
       )}
 
-      {open && <CustomerDrawer client={open} onClose={() => setOpenId(null)} />}
+      {open && <CustomerDrawer client={open} projects={projects} onClose={() => setOpenId(null)} />}
       {openNew && (
         <NewClientModal
           apiClients={apiClients}
@@ -2611,8 +2612,15 @@ export function NewClientModal({
   );
 }
 
-function CustomerDrawer({ client, onClose }: { client: Client; onClose: () => void }) {
-  const projects = allProjects();
+function CustomerDrawer({
+  client,
+  projects,
+  onClose,
+}: {
+  client: Client;
+  projects: Project[];
+  onClose: () => void;
+}) {
   const projs = projects.filter((p) => p.clientId === client.id);
   const buckets = categorizeClientProjects(projs);
   return (
@@ -2654,7 +2662,7 @@ function Section({
   empty,
 }: {
   title: string;
-  projs: ReturnType<typeof allProjects>;
+  projs: Project[];
   empty: string;
 }) {
   return (

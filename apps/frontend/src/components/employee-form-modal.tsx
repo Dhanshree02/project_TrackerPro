@@ -82,8 +82,8 @@ import {
   formatBondExpiryDisplay,
 } from "@/lib/employment-bond";
 import type { Employee } from "@/lib/employee-data";
-import { MUMBAI_RAILWAY_STATIONS, addressCityToOption, setLiveAddressCities } from "@/lib/mumbai-stations";
-import { allProjects, allClients } from "@/lib/dh-store";
+import { addressCityToOption, setLiveAddressCities, type RailwayStationOption } from "@/lib/mumbai-stations";
+import { useRoleContext } from "@/lib/role-context";
 
 // ── Local Form Components ─────────────────────────
 
@@ -378,11 +378,11 @@ export function EmployeeFormModal({
   const [postGradDegreeOptions, setPostGradDegreeOptions] = useState<ApiMetaOption[]>([]);
   const [certOptions, setCertOptions] = useState<ApiMetaOption[]>([]);
   const [rbacRoleOptions, setRbacRoleOptions] = useState<ApiRole[]>([]);
-  const [addressCityOptions, setAddressCityOptions] = useState(MUMBAI_RAILWAY_STATIONS);
+  const [addressCityOptions, setAddressCityOptions] = useState<RailwayStationOption[]>([]);
 
   // Split parts
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
-  const [workEmailDomain, setWorkEmailDomain] = useState("talakunchi.com");
+  const [workEmailDomain, setWorkEmailDomain] = useState("");
   const [tkPrefix, setTkPrefix] = useState<TkIdPrefix>("TK");
 
   const formRef = useRef<OnboardValues>(EMPTY_ONBOARD);
@@ -478,33 +478,32 @@ export function EmployeeFormModal({
     };
   }, [open]);
 
-  // Project allocation options
+  // Project allocation options (from DB projects via RoleContext)
+  const { assignedProjects: dbProjects, assignedClients: dbClients } = useRoleContext();
   const projectAllocatedOptions = useMemo(() => {
     try {
-      const list = allProjects().map((p: any) => ({
+      const list = dbProjects.map((p) => ({
         value: p.name,
-        label: p.projectCode ? `${p.name} (${p.projectCode})` : p.name,
+        label: p.projectSeqId ? `${p.name} (${p.projectSeqId})` : p.name,
       }));
       return [{ value: "Internal / Bench", label: "Internal / Bench" }, ...list];
     } catch {
       return [{ value: "Internal / Bench", label: "Internal / Bench" }];
     }
-  }, []);
+  }, [dbProjects]);
 
   const getEngagementManagerForProject = (projectName: string): string => {
     if (!projectName || projectName === "Internal / Bench") return "";
     try {
-      const projects = allProjects();
-      const proj = projects.find(
-        (p: any) =>
+      const proj = dbProjects.find(
+        (p) =>
           p.name.toLowerCase() === projectName.toLowerCase() ||
-          (p.projectCode && `${p.name} (${p.projectCode})`.toLowerCase() === projectName.toLowerCase()),
+          (p.projectSeqId && `${p.name} (${p.projectSeqId})`.toLowerCase() === projectName.toLowerCase()),
       );
       if (proj) {
         if (proj.engagementManager) return proj.engagementManager;
         if (proj.clientId) {
-          const clients = allClients();
-          const client = clients.find((c) => c.id === proj.clientId);
+          const client = dbClients.find((c) => c.id === proj.clientId);
           if (client?.engagementManager) return client.engagementManager;
           if (client?.name) return `${client.name} — Engagement Manager`;
         }
@@ -633,7 +632,7 @@ export function EmployeeFormModal({
 
     void fetchAddressCities()
       .then((rows) => {
-        const options = rows.length > 0 ? rows.map(addressCityToOption) : [...MUMBAI_RAILWAY_STATIONS];
+        const options = rows.map(addressCityToOption);
         setAddressCityOptions(options);
         setLiveAddressCities(options);
         if (mode === "edit" && initialEmployee?.address) {
@@ -644,8 +643,9 @@ export function EmployeeFormModal({
         }
       })
       .catch(() => {
-        setAddressCityOptions([...MUMBAI_RAILWAY_STATIONS]);
-        setLiveAddressCities(null);
+        setAddressCityOptions([]);
+        setLiveAddressCities([]);
+        toast.error("Could not load address cities from database");
       });
 
     void fetchEmailDomainOptions()
@@ -653,10 +653,9 @@ export function EmployeeFormModal({
         const filtered = (domains ?? []).filter((d) =>
           isAllowedWorkEmailDomain(d.code.replace(/^@/, "")),
         );
-        const list = filtered.length > 0 ? filtered : ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS;
-        setEmailDomainOptions(list);
-        if (mode === "create" && list.length > 0) {
-          const firstDomain = list[0].code.replace(/^@/, "");
+        setEmailDomainOptions(filtered);
+        if (mode === "create" && filtered.length > 0) {
+          const firstDomain = filtered[0].code.replace(/^@/, "");
           setWorkEmailDomain(firstDomain);
           const prefix = workEmailPrefixRef.current;
           if (prefix) {
@@ -680,8 +679,9 @@ export function EmployeeFormModal({
         }
       })
       .catch(() => {
-        setEmailDomainOptions(ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS);
-        if (mode === "create") setWorkEmailDomain("talakunchi.com");
+        setEmailDomainOptions([]);
+        if (mode === "create") setWorkEmailDomain("");
+        toast.error("Could not load work email domains from database");
       });
   }, [open, mode, initialEmployee, managers]);
 

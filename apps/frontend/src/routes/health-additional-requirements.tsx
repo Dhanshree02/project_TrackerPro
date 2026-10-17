@@ -38,7 +38,7 @@ function DhPriorityPill({ priority }: { priority: DhPriority }) {
 }
 
 function AdditionalRequirementsPage() {
-  const { isDhanshree } = useRoleContext();
+  const { isDhanshree, user } = useRoleContext();
   const snapshot = useDhStore((s) => s);
   const requirements = snapshot.requirements;
   
@@ -131,7 +131,7 @@ function AdditionalRequirementsPage() {
             <RequirementDetail
               requirement={selected}
               onStatusChange={(status) => {
-                dhStore.updateRequirementStatus(selected.id, status, "dhanshree", "Dhanshree");
+                dhStore.updateRequirementStatus(selected.id, status, user.id, user.name);
                 toast.success(`Status updated to ${status}`);
               }}
               onAddComment={(comment) => {
@@ -185,6 +185,7 @@ function RequirementDetail({
   onStatusChange: (status: RequirementStatus) => void;
   onAddComment: (comment: Omit<DhComment, "id" | "at">) => void;
 }) {
+  const { user } = useRoleContext();
   const [newComment, setNewComment] = useState("");
 
   return (
@@ -265,8 +266,8 @@ function RequirementDetail({
             onClick={() => {
               if (!newComment.trim()) return;
               onAddComment({
-                authorId: "u14",
-                authorName: "Dhanshree",
+                authorId: user.id,
+                authorName: user.name,
                 text: newComment.trim(),
               });
               setNewComment("");
