@@ -1,4 +1,4 @@
-import type { Role } from "@/lib/mock-data";
+import type { Role } from "@/lib/domain-models";
 import { PERMISSION_CATALOG, type PermissionKey } from "./catalog";
 
 const allKeys = PERMISSION_CATALOG.map((p) => p.key) as PermissionKey[];

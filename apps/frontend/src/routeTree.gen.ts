@@ -9,70 +9,54 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WbsAllocationRouteImport } from './routes/wbs-allocation'
-import { Route as TimesheetRouteImport } from './routes/timesheet'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as PortfolioRouteImport } from './routes/portfolio'
+import { Route as SettingsSecurityRolesRouteImport } from './routes/settings-security-roles'
+import { Route as SettingsMastersRouteImport } from './routes/settings-masters'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RepositoryRouteImport } from './routes/repository'
 import { Route as MyTeamRouteImport } from './routes/my-team'
-import { Route as MyOrgRouteImport } from './routes/my-org'
 import { Route as HealthInterviewSchedulingRouteImport } from './routes/health-interview-scheduling'
 import { Route as HealthAdditionalRequirementsRouteImport } from './routes/health-additional-requirements'
-import { Route as HealthRouteImport } from './routes/health'
-import { Route as DhSettingsSecurityRolesRouteImport } from './routes/dh-settings-security-roles'
-import { Route as DhSettingsMastersRouteImport } from './routes/dh-settings-masters'
-import { Route as DhSettingsRouteImport } from './routes/dh-settings'
-import { Route as DhResourcePoolRouteImport } from './routes/dh-resource-pool'
-import { Route as DhReportsRouteImport } from './routes/dh-reports'
-import { Route as DhOrgTreeRouteImport } from './routes/dh-org-tree'
-import { Route as DhExitSummaryRouteImport } from './routes/dh-exit-summary'
-import { Route as DhEmployeeDirectoryRouteImport } from './routes/dh-employee-directory'
+import { Route as ExitSummaryRouteImport } from './routes/exit-summary'
+import { Route as EmployeeDirectoryRouteImport } from './routes/employee-directory'
 import { Route as CustomersRouteImport } from './routes/customers'
-import { Route as ApprovalsRouteImport } from './routes/approvals'
-import { Route as AllocationRouteImport } from './routes/allocation'
 import { Route as ActionCentreRouteImport } from './routes/action-centre'
 import { Route as AccessDeniedRouteImport } from './routes/access-denied'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResourcesIndexRouteImport } from './routes/resources.index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as MyTeamIndexRouteImport } from './routes/my-team.index'
-import { Route as DhEmployeeDirectoryIndexRouteImport } from './routes/dh-employee-directory.index'
+import { Route as EmployeeDirectoryIndexRouteImport } from './routes/employee-directory.index'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
-import { Route as SettingsMastersRouteImport } from './routes/settings.masters'
 import { Route as ResourcesEmployeeIdRouteImport } from './routes/resources.$employeeId'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 import { Route as MyTeamTimesheetsRouteImport } from './routes/my-team.timesheets'
-import { Route as DhEmployeeDirectoryIdRouteImport } from './routes/dh-employee-directory.$id'
+import { Route as EmployeeDirectoryIdRouteImport } from './routes/employee-directory.$id'
 import { Route as CustomersClientIdRouteImport } from './routes/customers.$clientId'
 
-const WbsAllocationRoute = WbsAllocationRouteImport.update({
-  id: '/wbs-allocation',
-  path: '/wbs-allocation',
+const SettingsSecurityRolesRoute = SettingsSecurityRolesRouteImport.update({
+  id: '/settings-security-roles',
+  path: '/settings-security-roles',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TimesheetRoute = TimesheetRouteImport.update({
-  id: '/timesheet',
-  path: '/timesheet',
+const SettingsMastersRoute = SettingsMastersRouteImport.update({
+  id: '/settings-masters',
+  path: '/settings-masters',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PortfolioRoute = PortfolioRouteImport.update({
-  id: '/portfolio',
-  path: '/portfolio',
+const RepositoryRoute = RepositoryRouteImport.update({
+  id: '/repository',
+  path: '/repository',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyTeamRoute = MyTeamRouteImport.update({
   id: '/my-team',
   path: '/my-team',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MyOrgRoute = MyOrgRouteImport.update({
-  id: '/my-org',
-  path: '/my-org',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthInterviewSchedulingRoute =
@@ -87,64 +71,19 @@ const HealthAdditionalRequirementsRoute =
     path: '/health-additional-requirements',
     getParentRoute: () => rootRouteImport,
   } as any)
-const HealthRoute = HealthRouteImport.update({
-  id: '/health',
-  path: '/health',
+const ExitSummaryRoute = ExitSummaryRouteImport.update({
+  id: '/exit-summary',
+  path: '/exit-summary',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DhSettingsSecurityRolesRoute = DhSettingsSecurityRolesRouteImport.update({
-  id: '/dh-settings-security-roles',
-  path: '/dh-settings-security-roles',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DhSettingsMastersRoute = DhSettingsMastersRouteImport.update({
-  id: '/dh-settings-masters',
-  path: '/dh-settings-masters',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DhSettingsRoute = DhSettingsRouteImport.update({
-  id: '/dh-settings',
-  path: '/dh-settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DhResourcePoolRoute = DhResourcePoolRouteImport.update({
-  id: '/dh-resource-pool',
-  path: '/dh-resource-pool',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DhReportsRoute = DhReportsRouteImport.update({
-  id: '/dh-reports',
-  path: '/dh-reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DhOrgTreeRoute = DhOrgTreeRouteImport.update({
-  id: '/dh-org-tree',
-  path: '/dh-org-tree',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DhExitSummaryRoute = DhExitSummaryRouteImport.update({
-  id: '/dh-exit-summary',
-  path: '/dh-exit-summary',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DhEmployeeDirectoryRoute = DhEmployeeDirectoryRouteImport.update({
-  id: '/dh-employee-directory',
-  path: '/dh-employee-directory',
+const EmployeeDirectoryRoute = EmployeeDirectoryRouteImport.update({
+  id: '/employee-directory',
+  path: '/employee-directory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersRoute = CustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApprovalsRoute = ApprovalsRouteImport.update({
-  id: '/approvals',
-  path: '/approvals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AllocationRoute = AllocationRouteImport.update({
-  id: '/allocation',
-  path: '/allocation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActionCentreRoute = ActionCentreRouteImport.update({
@@ -177,21 +116,15 @@ const MyTeamIndexRoute = MyTeamIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MyTeamRoute,
 } as any)
-const DhEmployeeDirectoryIndexRoute =
-  DhEmployeeDirectoryIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => DhEmployeeDirectoryRoute,
-  } as any)
+const EmployeeDirectoryIndexRoute = EmployeeDirectoryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EmployeeDirectoryRoute,
+} as any)
 const CustomersIndexRoute = CustomersIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CustomersRoute,
-} as any)
-const SettingsMastersRoute = SettingsMastersRouteImport.update({
-  id: '/settings/masters',
-  path: '/settings/masters',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const ResourcesEmployeeIdRoute = ResourcesEmployeeIdRouteImport.update({
   id: '/resources/$employeeId',
@@ -213,10 +146,10 @@ const MyTeamTimesheetsRoute = MyTeamTimesheetsRouteImport.update({
   path: '/timesheets',
   getParentRoute: () => MyTeamRoute,
 } as any)
-const DhEmployeeDirectoryIdRoute = DhEmployeeDirectoryIdRouteImport.update({
+const EmployeeDirectoryIdRoute = EmployeeDirectoryIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => DhEmployeeDirectoryRoute,
+  getParentRoute: () => EmployeeDirectoryRoute,
 } as any)
 const CustomersClientIdRoute = CustomersClientIdRouteImport.update({
   id: '/$clientId',
@@ -228,35 +161,24 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access-denied': typeof AccessDeniedRoute
   '/action-centre': typeof ActionCentreRoute
-  '/allocation': typeof AllocationRoute
-  '/approvals': typeof ApprovalsRoute
   '/customers': typeof CustomersRouteWithChildren
-  '/dh-employee-directory': typeof DhEmployeeDirectoryRouteWithChildren
-  '/dh-exit-summary': typeof DhExitSummaryRoute
-  '/dh-org-tree': typeof DhOrgTreeRoute
-  '/dh-reports': typeof DhReportsRoute
-  '/dh-resource-pool': typeof DhResourcePoolRoute
-  '/dh-settings': typeof DhSettingsRoute
-  '/dh-settings-masters': typeof DhSettingsMastersRoute
-  '/dh-settings-security-roles': typeof DhSettingsSecurityRolesRoute
-  '/health': typeof HealthRoute
+  '/employee-directory': typeof EmployeeDirectoryRouteWithChildren
+  '/exit-summary': typeof ExitSummaryRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
-  '/my-org': typeof MyOrgRoute
   '/my-team': typeof MyTeamRouteWithChildren
-  '/portfolio': typeof PortfolioRoute
-  '/reports': typeof ReportsRoute
-  '/timesheet': typeof TimesheetRoute
-  '/wbs-allocation': typeof WbsAllocationRoute
+  '/repository': typeof RepositoryRoute
+  '/settings': typeof SettingsRoute
+  '/settings-masters': typeof SettingsMastersRoute
+  '/settings-security-roles': typeof SettingsSecurityRolesRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
-  '/dh-employee-directory/$id': typeof DhEmployeeDirectoryIdRoute
+  '/employee-directory/$id': typeof EmployeeDirectoryIdRoute
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
   '/resources/$employeeId': typeof ResourcesEmployeeIdRoute
-  '/settings/masters': typeof SettingsMastersRoute
   '/customers/': typeof CustomersIndexRoute
-  '/dh-employee-directory/': typeof DhEmployeeDirectoryIndexRoute
+  '/employee-directory/': typeof EmployeeDirectoryIndexRoute
   '/my-team/': typeof MyTeamIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/resources/': typeof ResourcesIndexRoute
@@ -265,32 +187,21 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access-denied': typeof AccessDeniedRoute
   '/action-centre': typeof ActionCentreRoute
-  '/allocation': typeof AllocationRoute
-  '/approvals': typeof ApprovalsRoute
-  '/dh-exit-summary': typeof DhExitSummaryRoute
-  '/dh-org-tree': typeof DhOrgTreeRoute
-  '/dh-reports': typeof DhReportsRoute
-  '/dh-resource-pool': typeof DhResourcePoolRoute
-  '/dh-settings': typeof DhSettingsRoute
-  '/dh-settings-masters': typeof DhSettingsMastersRoute
-  '/dh-settings-security-roles': typeof DhSettingsSecurityRolesRoute
-  '/health': typeof HealthRoute
+  '/exit-summary': typeof ExitSummaryRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
-  '/my-org': typeof MyOrgRoute
-  '/portfolio': typeof PortfolioRoute
-  '/reports': typeof ReportsRoute
-  '/timesheet': typeof TimesheetRoute
-  '/wbs-allocation': typeof WbsAllocationRoute
+  '/repository': typeof RepositoryRoute
+  '/settings': typeof SettingsRoute
+  '/settings-masters': typeof SettingsMastersRoute
+  '/settings-security-roles': typeof SettingsSecurityRolesRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
-  '/dh-employee-directory/$id': typeof DhEmployeeDirectoryIdRoute
+  '/employee-directory/$id': typeof EmployeeDirectoryIdRoute
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
   '/resources/$employeeId': typeof ResourcesEmployeeIdRoute
-  '/settings/masters': typeof SettingsMastersRoute
   '/customers': typeof CustomersIndexRoute
-  '/dh-employee-directory': typeof DhEmployeeDirectoryIndexRoute
+  '/employee-directory': typeof EmployeeDirectoryIndexRoute
   '/my-team': typeof MyTeamIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/resources': typeof ResourcesIndexRoute
@@ -300,35 +211,24 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/access-denied': typeof AccessDeniedRoute
   '/action-centre': typeof ActionCentreRoute
-  '/allocation': typeof AllocationRoute
-  '/approvals': typeof ApprovalsRoute
   '/customers': typeof CustomersRouteWithChildren
-  '/dh-employee-directory': typeof DhEmployeeDirectoryRouteWithChildren
-  '/dh-exit-summary': typeof DhExitSummaryRoute
-  '/dh-org-tree': typeof DhOrgTreeRoute
-  '/dh-reports': typeof DhReportsRoute
-  '/dh-resource-pool': typeof DhResourcePoolRoute
-  '/dh-settings': typeof DhSettingsRoute
-  '/dh-settings-masters': typeof DhSettingsMastersRoute
-  '/dh-settings-security-roles': typeof DhSettingsSecurityRolesRoute
-  '/health': typeof HealthRoute
+  '/employee-directory': typeof EmployeeDirectoryRouteWithChildren
+  '/exit-summary': typeof ExitSummaryRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
-  '/my-org': typeof MyOrgRoute
   '/my-team': typeof MyTeamRouteWithChildren
-  '/portfolio': typeof PortfolioRoute
-  '/reports': typeof ReportsRoute
-  '/timesheet': typeof TimesheetRoute
-  '/wbs-allocation': typeof WbsAllocationRoute
+  '/repository': typeof RepositoryRoute
+  '/settings': typeof SettingsRoute
+  '/settings-masters': typeof SettingsMastersRoute
+  '/settings-security-roles': typeof SettingsSecurityRolesRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
-  '/dh-employee-directory/$id': typeof DhEmployeeDirectoryIdRoute
+  '/employee-directory/$id': typeof EmployeeDirectoryIdRoute
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
   '/resources/$employeeId': typeof ResourcesEmployeeIdRoute
-  '/settings/masters': typeof SettingsMastersRoute
   '/customers/': typeof CustomersIndexRoute
-  '/dh-employee-directory/': typeof DhEmployeeDirectoryIndexRoute
+  '/employee-directory/': typeof EmployeeDirectoryIndexRoute
   '/my-team/': typeof MyTeamIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/resources/': typeof ResourcesIndexRoute
@@ -339,35 +239,24 @@ export interface FileRouteTypes {
     | '/'
     | '/access-denied'
     | '/action-centre'
-    | '/allocation'
-    | '/approvals'
     | '/customers'
-    | '/dh-employee-directory'
-    | '/dh-exit-summary'
-    | '/dh-org-tree'
-    | '/dh-reports'
-    | '/dh-resource-pool'
-    | '/dh-settings'
-    | '/dh-settings-masters'
-    | '/dh-settings-security-roles'
-    | '/health'
+    | '/employee-directory'
+    | '/exit-summary'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
-    | '/my-org'
     | '/my-team'
-    | '/portfolio'
-    | '/reports'
-    | '/timesheet'
-    | '/wbs-allocation'
+    | '/repository'
+    | '/settings'
+    | '/settings-masters'
+    | '/settings-security-roles'
     | '/customers/$clientId'
-    | '/dh-employee-directory/$id'
+    | '/employee-directory/$id'
     | '/my-team/timesheets'
     | '/projects/$projectId'
     | '/projects/new'
     | '/resources/$employeeId'
-    | '/settings/masters'
     | '/customers/'
-    | '/dh-employee-directory/'
+    | '/employee-directory/'
     | '/my-team/'
     | '/projects/'
     | '/resources/'
@@ -376,32 +265,21 @@ export interface FileRouteTypes {
     | '/'
     | '/access-denied'
     | '/action-centre'
-    | '/allocation'
-    | '/approvals'
-    | '/dh-exit-summary'
-    | '/dh-org-tree'
-    | '/dh-reports'
-    | '/dh-resource-pool'
-    | '/dh-settings'
-    | '/dh-settings-masters'
-    | '/dh-settings-security-roles'
-    | '/health'
+    | '/exit-summary'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
-    | '/my-org'
-    | '/portfolio'
-    | '/reports'
-    | '/timesheet'
-    | '/wbs-allocation'
+    | '/repository'
+    | '/settings'
+    | '/settings-masters'
+    | '/settings-security-roles'
     | '/customers/$clientId'
-    | '/dh-employee-directory/$id'
+    | '/employee-directory/$id'
     | '/my-team/timesheets'
     | '/projects/$projectId'
     | '/projects/new'
     | '/resources/$employeeId'
-    | '/settings/masters'
     | '/customers'
-    | '/dh-employee-directory'
+    | '/employee-directory'
     | '/my-team'
     | '/projects'
     | '/resources'
@@ -410,35 +288,24 @@ export interface FileRouteTypes {
     | '/'
     | '/access-denied'
     | '/action-centre'
-    | '/allocation'
-    | '/approvals'
     | '/customers'
-    | '/dh-employee-directory'
-    | '/dh-exit-summary'
-    | '/dh-org-tree'
-    | '/dh-reports'
-    | '/dh-resource-pool'
-    | '/dh-settings'
-    | '/dh-settings-masters'
-    | '/dh-settings-security-roles'
-    | '/health'
+    | '/employee-directory'
+    | '/exit-summary'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
-    | '/my-org'
     | '/my-team'
-    | '/portfolio'
-    | '/reports'
-    | '/timesheet'
-    | '/wbs-allocation'
+    | '/repository'
+    | '/settings'
+    | '/settings-masters'
+    | '/settings-security-roles'
     | '/customers/$clientId'
-    | '/dh-employee-directory/$id'
+    | '/employee-directory/$id'
     | '/my-team/timesheets'
     | '/projects/$projectId'
     | '/projects/new'
     | '/resources/$employeeId'
-    | '/settings/masters'
     | '/customers/'
-    | '/dh-employee-directory/'
+    | '/employee-directory/'
     | '/my-team/'
     | '/projects/'
     | '/resources/'
@@ -448,62 +315,51 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessDeniedRoute: typeof AccessDeniedRoute
   ActionCentreRoute: typeof ActionCentreRoute
-  AllocationRoute: typeof AllocationRoute
-  ApprovalsRoute: typeof ApprovalsRoute
   CustomersRoute: typeof CustomersRouteWithChildren
-  DhEmployeeDirectoryRoute: typeof DhEmployeeDirectoryRouteWithChildren
-  DhExitSummaryRoute: typeof DhExitSummaryRoute
-  DhOrgTreeRoute: typeof DhOrgTreeRoute
-  DhReportsRoute: typeof DhReportsRoute
-  DhResourcePoolRoute: typeof DhResourcePoolRoute
-  DhSettingsRoute: typeof DhSettingsRoute
-  DhSettingsMastersRoute: typeof DhSettingsMastersRoute
-  DhSettingsSecurityRolesRoute: typeof DhSettingsSecurityRolesRoute
-  HealthRoute: typeof HealthRoute
+  EmployeeDirectoryRoute: typeof EmployeeDirectoryRouteWithChildren
+  ExitSummaryRoute: typeof ExitSummaryRoute
   HealthAdditionalRequirementsRoute: typeof HealthAdditionalRequirementsRoute
   HealthInterviewSchedulingRoute: typeof HealthInterviewSchedulingRoute
-  MyOrgRoute: typeof MyOrgRoute
   MyTeamRoute: typeof MyTeamRouteWithChildren
-  PortfolioRoute: typeof PortfolioRoute
-  ReportsRoute: typeof ReportsRoute
-  TimesheetRoute: typeof TimesheetRoute
-  WbsAllocationRoute: typeof WbsAllocationRoute
+  RepositoryRoute: typeof RepositoryRoute
+  SettingsRoute: typeof SettingsRoute
+  SettingsMastersRoute: typeof SettingsMastersRoute
+  SettingsSecurityRolesRoute: typeof SettingsSecurityRolesRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
   ResourcesEmployeeIdRoute: typeof ResourcesEmployeeIdRoute
-  SettingsMastersRoute: typeof SettingsMastersRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ResourcesIndexRoute: typeof ResourcesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/wbs-allocation': {
-      id: '/wbs-allocation'
-      path: '/wbs-allocation'
-      fullPath: '/wbs-allocation'
-      preLoaderRoute: typeof WbsAllocationRouteImport
+    '/settings-security-roles': {
+      id: '/settings-security-roles'
+      path: '/settings-security-roles'
+      fullPath: '/settings-security-roles'
+      preLoaderRoute: typeof SettingsSecurityRolesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/timesheet': {
-      id: '/timesheet'
-      path: '/timesheet'
-      fullPath: '/timesheet'
-      preLoaderRoute: typeof TimesheetRouteImport
+    '/settings-masters': {
+      id: '/settings-masters'
+      path: '/settings-masters'
+      fullPath: '/settings-masters'
+      preLoaderRoute: typeof SettingsMastersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/portfolio': {
-      id: '/portfolio'
-      path: '/portfolio'
-      fullPath: '/portfolio'
-      preLoaderRoute: typeof PortfolioRouteImport
+    '/repository': {
+      id: '/repository'
+      path: '/repository'
+      fullPath: '/repository'
+      preLoaderRoute: typeof RepositoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-team': {
@@ -511,13 +367,6 @@ declare module '@tanstack/react-router' {
       path: '/my-team'
       fullPath: '/my-team'
       preLoaderRoute: typeof MyTeamRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/my-org': {
-      id: '/my-org'
-      path: '/my-org'
-      fullPath: '/my-org'
-      preLoaderRoute: typeof MyOrgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health-interview-scheduling': {
@@ -534,67 +383,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthAdditionalRequirementsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/health': {
-      id: '/health'
-      path: '/health'
-      fullPath: '/health'
-      preLoaderRoute: typeof HealthRouteImport
+    '/exit-summary': {
+      id: '/exit-summary'
+      path: '/exit-summary'
+      fullPath: '/exit-summary'
+      preLoaderRoute: typeof ExitSummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dh-settings-security-roles': {
-      id: '/dh-settings-security-roles'
-      path: '/dh-settings-security-roles'
-      fullPath: '/dh-settings-security-roles'
-      preLoaderRoute: typeof DhSettingsSecurityRolesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dh-settings-masters': {
-      id: '/dh-settings-masters'
-      path: '/dh-settings-masters'
-      fullPath: '/dh-settings-masters'
-      preLoaderRoute: typeof DhSettingsMastersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dh-settings': {
-      id: '/dh-settings'
-      path: '/dh-settings'
-      fullPath: '/dh-settings'
-      preLoaderRoute: typeof DhSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dh-resource-pool': {
-      id: '/dh-resource-pool'
-      path: '/dh-resource-pool'
-      fullPath: '/dh-resource-pool'
-      preLoaderRoute: typeof DhResourcePoolRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dh-reports': {
-      id: '/dh-reports'
-      path: '/dh-reports'
-      fullPath: '/dh-reports'
-      preLoaderRoute: typeof DhReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dh-org-tree': {
-      id: '/dh-org-tree'
-      path: '/dh-org-tree'
-      fullPath: '/dh-org-tree'
-      preLoaderRoute: typeof DhOrgTreeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dh-exit-summary': {
-      id: '/dh-exit-summary'
-      path: '/dh-exit-summary'
-      fullPath: '/dh-exit-summary'
-      preLoaderRoute: typeof DhExitSummaryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dh-employee-directory': {
-      id: '/dh-employee-directory'
-      path: '/dh-employee-directory'
-      fullPath: '/dh-employee-directory'
-      preLoaderRoute: typeof DhEmployeeDirectoryRouteImport
+    '/employee-directory': {
+      id: '/employee-directory'
+      path: '/employee-directory'
+      fullPath: '/employee-directory'
+      preLoaderRoute: typeof EmployeeDirectoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers': {
@@ -602,20 +402,6 @@ declare module '@tanstack/react-router' {
       path: '/customers'
       fullPath: '/customers'
       preLoaderRoute: typeof CustomersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/approvals': {
-      id: '/approvals'
-      path: '/approvals'
-      fullPath: '/approvals'
-      preLoaderRoute: typeof ApprovalsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/allocation': {
-      id: '/allocation'
-      path: '/allocation'
-      fullPath: '/allocation'
-      preLoaderRoute: typeof AllocationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/action-centre': {
@@ -660,12 +446,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyTeamIndexRouteImport
       parentRoute: typeof MyTeamRoute
     }
-    '/dh-employee-directory/': {
-      id: '/dh-employee-directory/'
+    '/employee-directory/': {
+      id: '/employee-directory/'
       path: '/'
-      fullPath: '/dh-employee-directory/'
-      preLoaderRoute: typeof DhEmployeeDirectoryIndexRouteImport
-      parentRoute: typeof DhEmployeeDirectoryRoute
+      fullPath: '/employee-directory/'
+      preLoaderRoute: typeof EmployeeDirectoryIndexRouteImport
+      parentRoute: typeof EmployeeDirectoryRoute
     }
     '/customers/': {
       id: '/customers/'
@@ -673,13 +459,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/customers/'
       preLoaderRoute: typeof CustomersIndexRouteImport
       parentRoute: typeof CustomersRoute
-    }
-    '/settings/masters': {
-      id: '/settings/masters'
-      path: '/settings/masters'
-      fullPath: '/settings/masters'
-      preLoaderRoute: typeof SettingsMastersRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/resources/$employeeId': {
       id: '/resources/$employeeId'
@@ -709,12 +488,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyTeamTimesheetsRouteImport
       parentRoute: typeof MyTeamRoute
     }
-    '/dh-employee-directory/$id': {
-      id: '/dh-employee-directory/$id'
+    '/employee-directory/$id': {
+      id: '/employee-directory/$id'
       path: '/$id'
-      fullPath: '/dh-employee-directory/$id'
-      preLoaderRoute: typeof DhEmployeeDirectoryIdRouteImport
-      parentRoute: typeof DhEmployeeDirectoryRoute
+      fullPath: '/employee-directory/$id'
+      preLoaderRoute: typeof EmployeeDirectoryIdRouteImport
+      parentRoute: typeof EmployeeDirectoryRoute
     }
     '/customers/$clientId': {
       id: '/customers/$clientId'
@@ -740,18 +519,18 @@ const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
   CustomersRouteChildren,
 )
 
-interface DhEmployeeDirectoryRouteChildren {
-  DhEmployeeDirectoryIdRoute: typeof DhEmployeeDirectoryIdRoute
-  DhEmployeeDirectoryIndexRoute: typeof DhEmployeeDirectoryIndexRoute
+interface EmployeeDirectoryRouteChildren {
+  EmployeeDirectoryIdRoute: typeof EmployeeDirectoryIdRoute
+  EmployeeDirectoryIndexRoute: typeof EmployeeDirectoryIndexRoute
 }
 
-const DhEmployeeDirectoryRouteChildren: DhEmployeeDirectoryRouteChildren = {
-  DhEmployeeDirectoryIdRoute: DhEmployeeDirectoryIdRoute,
-  DhEmployeeDirectoryIndexRoute: DhEmployeeDirectoryIndexRoute,
+const EmployeeDirectoryRouteChildren: EmployeeDirectoryRouteChildren = {
+  EmployeeDirectoryIdRoute: EmployeeDirectoryIdRoute,
+  EmployeeDirectoryIndexRoute: EmployeeDirectoryIndexRoute,
 }
 
-const DhEmployeeDirectoryRouteWithChildren =
-  DhEmployeeDirectoryRoute._addFileChildren(DhEmployeeDirectoryRouteChildren)
+const EmployeeDirectoryRouteWithChildren =
+  EmployeeDirectoryRoute._addFileChildren(EmployeeDirectoryRouteChildren)
 
 interface MyTeamRouteChildren {
   MyTeamTimesheetsRoute: typeof MyTeamTimesheetsRoute
@@ -770,30 +549,19 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessDeniedRoute: AccessDeniedRoute,
   ActionCentreRoute: ActionCentreRoute,
-  AllocationRoute: AllocationRoute,
-  ApprovalsRoute: ApprovalsRoute,
   CustomersRoute: CustomersRouteWithChildren,
-  DhEmployeeDirectoryRoute: DhEmployeeDirectoryRouteWithChildren,
-  DhExitSummaryRoute: DhExitSummaryRoute,
-  DhOrgTreeRoute: DhOrgTreeRoute,
-  DhReportsRoute: DhReportsRoute,
-  DhResourcePoolRoute: DhResourcePoolRoute,
-  DhSettingsRoute: DhSettingsRoute,
-  DhSettingsMastersRoute: DhSettingsMastersRoute,
-  DhSettingsSecurityRolesRoute: DhSettingsSecurityRolesRoute,
-  HealthRoute: HealthRoute,
+  EmployeeDirectoryRoute: EmployeeDirectoryRouteWithChildren,
+  ExitSummaryRoute: ExitSummaryRoute,
   HealthAdditionalRequirementsRoute: HealthAdditionalRequirementsRoute,
   HealthInterviewSchedulingRoute: HealthInterviewSchedulingRoute,
-  MyOrgRoute: MyOrgRoute,
   MyTeamRoute: MyTeamRouteWithChildren,
-  PortfolioRoute: PortfolioRoute,
-  ReportsRoute: ReportsRoute,
-  TimesheetRoute: TimesheetRoute,
-  WbsAllocationRoute: WbsAllocationRoute,
+  RepositoryRoute: RepositoryRoute,
+  SettingsRoute: SettingsRoute,
+  SettingsMastersRoute: SettingsMastersRoute,
+  SettingsSecurityRolesRoute: SettingsSecurityRolesRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   ProjectsNewRoute: ProjectsNewRoute,
   ResourcesEmployeeIdRoute: ResourcesEmployeeIdRoute,
-  SettingsMastersRoute: SettingsMastersRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ResourcesIndexRoute: ResourcesIndexRoute,
 }

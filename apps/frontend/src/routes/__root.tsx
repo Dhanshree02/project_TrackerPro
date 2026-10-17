@@ -82,37 +82,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
+      { title: "Pulse PMO — Enterprise Project & Resource Management" },
       {
         name: "description",
         content:
-          "Project Compass provides role-based project tracking and management for Senior Project Managers and Engagement Managers.",
+          "Pulse PMO provides enterprise project, WBS, resource, timesheet, and governance management for Talakunchi Networks.",
       },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
+      { name: "author", content: "Talakunchi Networks Pvt. Ltd." },
+      { property: "og:title", content: "Pulse PMO — Enterprise Project Management" },
       {
         property: "og:description",
         content:
-          "Project Compass provides role-based project tracking and management for Senior Project Managers and Engagement Managers.",
+          "Pulse PMO provides enterprise project, WBS, resource, timesheet, and governance management for Talakunchi Networks.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
+      { name: "twitter:title", content: "Pulse PMO — Enterprise Project Management" },
       {
         name: "twitter:description",
         content:
-          "Project Compass provides role-based project tracking and management for Senior Project Managers and Engagement Managers.",
-      },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f8d4bc93-9f31-4057-88dc-adb158e5b283/id-preview-464ee16b--81522c4c-e666-47df-a348-80dbb75922ed.lovable.app-1778595294953.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f8d4bc93-9f31-4057-88dc-adb158e5b283/id-preview-464ee16b--81522c4c-e666-47df-a348-80dbb75922ed.lovable.app-1778595294953.png",
+          "Pulse PMO provides enterprise project, WBS, resource, timesheet, and governance management for Talakunchi Networks.",
       },
     ],
     links: [

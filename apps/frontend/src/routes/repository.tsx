@@ -35,7 +35,7 @@ import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { DocumentContentViewer } from "@/modules/my-org/components/DocumentContentViewer";
+import { DocumentContentViewer } from "@/components/document-content-viewer";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { isAllPageSize, paginationRange } from "@/lib/pagination";
 import { openDocumentInNewTab } from "@/lib/document-tab-viewer";
@@ -60,7 +60,7 @@ import {
   type RepositoryDepartmentOption,
 } from "@/lib/api/repository";
 
-export const Route = createFileRoute("/my-org")({
+export const Route = createFileRoute("/repository")({
   head: () => ({
     meta: [
       { title: "Repository — Pulse PMO" },

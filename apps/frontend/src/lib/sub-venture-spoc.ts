@@ -1,15 +1,11 @@
 /**
  * Resolves the SPOC / contact people stored on a sub-venture record.
  *
- * The onboarding form works against the dh-store client list (which merges mock
- * rows with locally created ones), but the authoritative SPOC data lives on the
- * `sub_ventures` rows in Postgres. This helper always prefers the API record and
- * only falls back to the local copy when the API cannot be reached or the client
- * has no API row yet.
+ * The authoritative SPOC data lives on the `sub_ventures` rows in Postgres.
  */
 import type { ApiClientContact } from "@/lib/api/clients";
 import { fetchClientForRoute } from "@/lib/client-route-id";
-import { allClients } from "@/lib/dh-store";
+import { allClients } from "@/lib/workspace-store";
 
 export interface SpocContact {
   name: string;

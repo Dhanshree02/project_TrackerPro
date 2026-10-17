@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ChevronRight, Circle, CheckCircle2, AlertCircle, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { ProjectStageData, StageHistoryEntry } from "@/lib/dh-store";
+import type { ProjectStageData, StageHistoryEntry } from "@/lib/workspace-store";
 
 // ── Sub-stage types (Dhanshree role only) ────────────────────────────────────
 

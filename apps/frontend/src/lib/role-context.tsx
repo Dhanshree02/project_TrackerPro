@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
-import type { Role, Client, Project, Issue, Timesheet } from "@/lib/mock-data";
+import type { Role, Client, Project, Issue, Timesheet } from "@/lib/domain-models";
 import {
   assignments,
   getPerson,
   people,
   issues,
-} from "@/lib/mock-data";
+} from "@/lib/domain-models";
 import { fetchClients, mapApiClient } from "@/lib/api/clients";
 import { fetchProjects, mapApiProjectToProject } from "@/lib/api/projects";
 import { useAuth } from "@/lib/auth-context";

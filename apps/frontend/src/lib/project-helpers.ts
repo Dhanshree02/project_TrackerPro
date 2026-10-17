@@ -1,4 +1,4 @@
-import { people, getPerson, type Person, type Project, type Task } from "@/lib/mock-data";
+import { people, getPerson, type Person, type Project, type Task } from "@/lib/domain-models";
 
 export function getProjectEMs(p: Project): Person[] {
   if (p.engagementManager) {

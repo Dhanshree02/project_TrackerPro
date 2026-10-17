@@ -119,7 +119,7 @@ import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
 import { Modal } from "@/routes/projects.index";
 import { EmployeeFormModal } from "@/components/employee-form-modal";
 
-export const Route = createFileRoute("/dh-employee-directory/")({
+export const Route = createFileRoute("/employee-directory/")({
   validateSearch: (search: Record<string, unknown>): { tab?: "directory" | "pool" } => ({
     tab:
       search.tab === "directory" || search.tab === "pool"
@@ -1263,7 +1263,7 @@ function EmployeeDirectoryPage() {
                   <tr
                     key={e.id}
                     onClick={() =>
-                      navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } })
+                      navigate({ to: "/employee-directory/$id", params: { id: e.id } })
                     }
                     className="cursor-pointer transition-colors hover:bg-accent/30"
                   >
@@ -1272,7 +1272,7 @@ function EmployeeDirectoryPage() {
                     </td>
                     <td className={cn("whitespace-nowrap px-4 py-3.5", basicDirectoryView ? "w-52 min-w-[180px]" : "w-52 min-w-[180px]")}>
                       <Link
-                        to="/dh-employee-directory/$id"
+                        to="/employee-directory/$id"
                         params={{ id: e.id }}
                         className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
                       >
@@ -1447,7 +1447,7 @@ function EmployeeDirectoryPage() {
                     <tr
                       key={e.id}
                       onClick={() =>
-                        navigate({ to: "/dh-employee-directory/$id", params: { id: e.id } })
+                        navigate({ to: "/employee-directory/$id", params: { id: e.id } })
                       }
                       className="cursor-pointer transition-colors hover:bg-accent/30"
                     >
@@ -1459,7 +1459,7 @@ function EmployeeDirectoryPage() {
                       </td>
                       <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3.5">
                         <Link
-                          to="/dh-employee-directory/$id"
+                          to="/employee-directory/$id"
                           params={{ id: e.id }}
                           className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
                         >

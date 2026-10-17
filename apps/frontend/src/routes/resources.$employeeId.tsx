@@ -12,5 +12,5 @@ export const Route = createFileRoute("/resources/$employeeId")({
 
 function EmployeeDetailsRedirect() {
   const { employeeId } = Route.useParams();
-  return <Navigate to="/dh-employee-directory/$id" params={{ id: employeeId }} replace />;
+  return <Navigate to="/employee-directory/$id" params={{ id: employeeId }} replace />;
 }

@@ -2,7 +2,7 @@ import type { ApiEmployeeListItem } from "@/lib/api/employees";
 import { fetchAllEmployees } from "@/lib/api/employees";
 import { apiFetch } from "@/lib/api-client";
 import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
-import type { DemoPersona } from "@/lib/demo-roles";
+import type { DemoPersona } from "@/lib/user-personas";
 
 let cachedPersonas: DemoPersona[] | null = null;
 let loadPromise: Promise<DemoPersona[]> | null = null;

@@ -34,10 +34,10 @@ import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 
-export const Route = createFileRoute("/dh-exit-summary")({
+export const Route = createFileRoute("/exit-summary")({
   head: () => ({
     meta: [
-      { title: "Exit Summary — TrackerPro" },
+      { title: "Exit Summary — Pulse PMO" },
       { name: "description", content: "Offboarding analytics, clearances tracking and historical exit logs." },
     ],
   }),
@@ -406,7 +406,7 @@ function ExitSummaryPage() {
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Link
-            to="/dh-employee-directory"
+            to="/employee-directory"
             className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent shadow-xs active:scale-[0.98] transition-all"
           >
             <Users className="h-3.5 w-3.5 text-muted-foreground" />

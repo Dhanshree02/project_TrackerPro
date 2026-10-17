@@ -19,7 +19,7 @@ import { ProjectMastersSection } from "@/components/masters/project-masters-sect
 import { CustomerMastersSection } from "@/components/masters/customer-masters-section";
 import { ResourceMastersSection } from "@/components/masters/resource-masters-section";
 
-export const Route = createFileRoute("/dh-settings-masters")({
+export const Route = createFileRoute("/settings-masters")({
   head: () => ({
     meta: [
       { title: "Masters — Settings — Pulse PMO" },

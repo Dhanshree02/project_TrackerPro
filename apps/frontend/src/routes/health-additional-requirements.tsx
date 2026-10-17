@@ -4,11 +4,11 @@ import { Plus, Search, Filter, Send, MessageSquare, X, Paperclip } from "lucide-
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
-import { getPerson } from "@/lib/mock-data";
+import { getPerson } from "@/lib/domain-models";
 import { Avatar } from "@/components/pills";
 import { FormRow } from "@/components/form-row";
 import { cn } from "@/lib/utils";
-import { useDhStore, dhStore, type RequirementStatus, type DhPriority, type DhComment, type DhAdditionalRequirement } from "@/lib/dh-store";
+import { useDhStore, dhStore, type RequirementStatus, type DhPriority, type DhComment, type DhAdditionalRequirement } from "@/lib/workspace-store";
 
 export const Route = createFileRoute("/health-additional-requirements")({
   head: () => ({

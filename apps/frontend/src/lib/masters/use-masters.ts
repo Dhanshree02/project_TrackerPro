@@ -4,7 +4,7 @@ import type { CustomerMasterCategory, CustomerMastersState, ProjectMasterItem, S
 import {
   INITIAL_CUSTOMER_MASTERS,
   INITIAL_PROJECT_MASTERS,
-} from "./mock-data";
+} from "./defaults";
 import { useProjectCatalogStore } from "./project-catalog-store";
 import {
   fetchCities,

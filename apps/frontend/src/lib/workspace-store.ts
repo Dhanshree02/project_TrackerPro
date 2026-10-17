@@ -1,6 +1,5 @@
-// Lightweight cross-module store for Dhanshree workflows.
-// Holds extra clients/projects created at runtime, plus issues, alerts,
-// escalations, appreciations, interviews and prerequisite statuses.
+// Lightweight cross-module store for Pulse PMO workflows.
+// Holds runtime alerts, escalations, appreciations, interviews and prerequisite statuses.
 // Uses useSyncExternalStore for reactive updates across modules.
 
 import { useSyncExternalStore } from "react";
@@ -23,14 +22,14 @@ import {
   type TimesheetEntryDecision,
   type CellCommentData,
   type CellCommentMessage,
-} from "@/lib/mock-data";
+} from "@/lib/domain-models";
 
 import {
   type Billability,
   type ResourceType,
   getProjectEMs,
   getProjectPMs,
-} from "@/lib/dh-helpers";
+} from "@/lib/project-helpers";
 
 export const DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {
   "Penetration Testing": "Scope",

@@ -1,5 +1,5 @@
 import { fetchClient, fetchClients, type ApiClient } from "@/lib/api/clients";
-import { allClients } from "@/lib/dh-store";
+import { allClients } from "@/lib/workspace-store";
 
 const MOCK_CLIENT_ID = /^c\d+$/i;
 const UUID =

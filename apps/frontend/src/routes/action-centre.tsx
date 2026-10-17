@@ -36,7 +36,7 @@ import {
   type TaskStatus,
   type CellCommentData,
   type CellCommentMessage,
-} from "@/lib/mock-data";
+} from "@/lib/domain-models";
 import { TaskStatusPill, TimesheetStatusPill, PriorityPill, Avatar } from "@/components/pills";
 import {
   useDhStore,
@@ -49,7 +49,7 @@ import {
   type DhNotification,
   type IssueCategory,
   type DhPriority,
-} from "@/lib/dh-store";
+} from "@/lib/workspace-store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "./projects.index";
@@ -130,7 +130,7 @@ function ActionCentrePage() {
 }
 
 // ---------- Bucket List ----------
-import { type DhBucketTask } from "@/lib/dh-store";
+import { type DhBucketTask } from "@/lib/workspace-store";
 
 function BucketListRow({ r }: { r: DhBucketTask }) {
   const by = getPerson(r.assignedById);

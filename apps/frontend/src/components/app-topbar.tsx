@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Search, Bell, ChevronDown, Check } from "lucide-react";
 import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
-import { DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/demo-roles";
+import { DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/user-personas";
 import { getCachedEmployeePersonas, loadEmployeePersonas } from "@/lib/employee-personas";
 import { cn } from "@/lib/utils";
 import {

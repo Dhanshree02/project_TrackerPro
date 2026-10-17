@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApiClient } from "@/lib/api/clients";
-import type { Client } from "@/lib/mock-data";
+import type { Client } from "@/lib/domain-models";
 
 const fetchClientForRoute = vi.fn<(id: string) => Promise<ApiClient | null>>();
 const allClients = vi.fn<() => Client[]>();
@@ -8,7 +8,7 @@ const allClients = vi.fn<() => Client[]>();
 vi.mock("@/lib/client-route-id", () => ({
   fetchClientForRoute: (id: string) => fetchClientForRoute(id),
 }));
-vi.mock("@/lib/dh-store", () => ({
+vi.mock("@/lib/workspace-store", () => ({
   allClients: () => allClients(),
 }));
 

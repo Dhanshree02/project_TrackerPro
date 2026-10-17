@@ -6,7 +6,7 @@ import {
   mockAuthUser,
   setStoredDemoRole,
   type DemoRoleKey,
-} from "@/lib/demo-roles";
+} from "@/lib/user-personas";
 import { loadEmployeePersonas } from "@/lib/employee-personas";
 
 export type AuthStatus = "authed";

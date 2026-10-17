@@ -1,6 +1,5 @@
 /**
- * /projects/new — Full WBS Form Page (Dhanshree Role Only)
- * Exact layout from wbs-form 2.html, wired to dh-store.
+ * /projects/new — Full WBS Form Page
  */
 import { createFileRoute, Navigate, useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +13,7 @@ import {
   useDhStore,
   buildProjectDisplayId,
   buildWbsId,
-} from "@/lib/dh-store";
+} from "@/lib/workspace-store";
 import { composeWbsId } from "@/lib/wbs-id";
 import { fetchClients, mapApiClient, formatCustomerId, type ApiClient } from "@/lib/api/clients";
 import {
@@ -40,7 +39,7 @@ import {
   updateProjectDraft,
   markDraftConverted,
 } from "@/lib/api/project-drafts";
-import { type Project } from "@/lib/mock-data";
+import { type Project } from "@/lib/domain-models";
 import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
 import { deriveProjectDates } from "@/lib/project-dates";
 import {

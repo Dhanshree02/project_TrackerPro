@@ -13,7 +13,7 @@ import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import { formatOnFloorRoleDisplay } from "@/lib/on-floor-role";
 
-export const Route = createFileRoute("/dh-settings-security-roles")({
+export const Route = createFileRoute("/settings-security-roles")({
   head: () => ({
     meta: [
       { title: "Roles & Permissions — Settings — Pulse PMO" },

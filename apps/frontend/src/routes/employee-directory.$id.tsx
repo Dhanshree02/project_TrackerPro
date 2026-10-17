@@ -25,7 +25,7 @@ import type { Employee } from "@/lib/employee-data";
 import { formatOnFloorRoleDisplay } from "@/lib/on-floor-role";
 import { EmployeeFormModal } from "@/components/employee-form-modal";
 
-export const Route = createFileRoute("/dh-employee-directory/$id")({
+export const Route = createFileRoute("/employee-directory/$id")({
   head: () => ({
     meta: [
       { title: "Employee Profile — Pulse PMO" },
@@ -526,7 +526,7 @@ function EmployeeProfilePage() {
             The record may not exist in the database, or the API is unavailable.
           </p>
           <Link
-            to="/dh-employee-directory"
+            to="/employee-directory"
             className="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             Back to directory
@@ -568,7 +568,7 @@ function EmployeeProfilePage() {
       toast.success(
         `${emp.firstName} ${emp.lastName} added to Exit Summary. They stay in the directory until the day after last working day.`,
       );
-      await navigate({ to: "/dh-exit-summary" });
+      await navigate({ to: "/exit-summary" });
     } catch (error: any) {
       toast.error(error?.message ?? "Failed to offboard employee");
     } finally {
@@ -591,7 +591,7 @@ function EmployeeProfilePage() {
     >
       {/* Breadcrumb */}
       <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-        <Link to="/dh-employee-directory" className="hover:text-foreground transition-colors">
+        <Link to="/employee-directory" className="hover:text-foreground transition-colors">
           Employee Directory
         </Link>
         <span>/</span>
@@ -949,7 +949,7 @@ function EmployeeProfilePage() {
             setEmp(saved);
             if (saved.id !== emp.id) {
               await navigate({
-                to: "/dh-employee-directory/$id",
+                to: "/employee-directory/$id",
                 params: { id: saved.id },
                 replace: true,
               });

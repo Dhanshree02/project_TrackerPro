@@ -7,7 +7,7 @@
  *           will be integrated after full feature development.
  */
 
-import { getStoredDemoRole, getDemoPersona } from "@/lib/demo-roles";
+import { getStoredDemoRole, getDemoPersona } from "@/lib/user-personas";
 
 const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined) ??

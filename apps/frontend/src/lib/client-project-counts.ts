@@ -1,4 +1,4 @@
-import type { Project } from "@/lib/mock-data";
+import type { Project } from "@/lib/domain-models";
 
 /** Mutually exclusive project buckets for a customer. Total = sum of the five. */
 export type ClientProjectBuckets = {

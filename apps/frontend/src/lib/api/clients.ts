@@ -4,7 +4,7 @@ import {
   type Client,
   type ClientContact,
   type ClientSubVenture,
-} from "@/lib/mock-data";
+} from "@/lib/domain-models";
 
 import {
   allClients,
@@ -12,7 +12,7 @@ import {
   registerClientCode,
   registerClients,
   getNextClientCode,
-} from "@/lib/dh-store";
+} from "@/lib/workspace-store";
 
 export { formatCustomerId, registerClientCode, registerClients, getNextClientCode };
 

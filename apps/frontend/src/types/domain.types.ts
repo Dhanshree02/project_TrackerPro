@@ -1,4 +1,4 @@
-import type { TimesheetStatus, TimesheetEntry } from "@/lib/mock-data";
+import type { TimesheetStatus, TimesheetEntry } from "@/lib/domain-models";
 
 export type IssueCategory =
   | "Technical Related Issues"

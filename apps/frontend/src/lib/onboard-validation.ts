@@ -11,7 +11,7 @@ import {
   toTenDigitPhone,
 } from "@/lib/form-validation";
 import type { Employee } from "@/lib/employee-data";
-import { addressCityOptions } from "@/lib/mumbai-stations";
+import { addressCityOptions } from "@/lib/address-cities";
 
 export const ONBOARD_DOC_SLOTS = [
   "Resume",

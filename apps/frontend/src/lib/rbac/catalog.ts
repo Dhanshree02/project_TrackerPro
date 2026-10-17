@@ -1,4 +1,4 @@
-import type { Role } from "@/lib/mock-data";
+import type { Role } from "@/lib/domain-models";
 
 /** Login roles used across Settings and the app. Admin is the super-user (current Dhanshree workspace). */
 export const APP_ROLES = [

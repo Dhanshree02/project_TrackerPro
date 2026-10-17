@@ -39,7 +39,7 @@ import {
 } from "@/lib/api/employees";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { fetchProjects, mapApiProjectToProject } from "@/lib/api/projects";
-import { type Client, type Project } from "@/lib/mock-data";
+import { type Client, type Project } from "@/lib/domain-models";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -87,7 +87,6 @@ export const Route = createFileRoute("/customers/$clientId")({
   },
   loader: async ({ params }) => {
     // Customer records are Postgres-only — always resolve from the API.
-    // (Mock/dh-store clients are intentionally NOT used in the customer module.)
     if (typeof window !== "undefined") {
       try {
         const api = await fetchClientForRoute(params.clientId);
@@ -141,7 +140,7 @@ function CustomerDetailPage() {
     setHealthFilter("all");
   }, [clientId]);
 
-  // API-backed clients (GUID ids) aren't in the dh-store — resolve lazily on the
+  // Resolve API-backed clients (GUID ids) lazily on the
   // client so hard loads / refreshes work even when the loader couldn't fetch.
   const [client, setClient] = useState<Client | undefined>(routeClient);
   // Start loading when the loader couldn't resolve the client (API-backed ids)

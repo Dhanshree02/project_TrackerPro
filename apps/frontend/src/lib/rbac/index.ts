@@ -11,7 +11,7 @@ export {
 
 export { DEFAULT_ROLE_PERMISSIONS, RBAC_STORAGE_KEY } from "./matrix";
 
-import type { Role } from "@/lib/mock-data";
+import type { Role } from "@/lib/domain-models";
 import type { PermissionKey } from "./catalog";
 import { DEFAULT_ROLE_PERMISSIONS } from "./matrix";
 

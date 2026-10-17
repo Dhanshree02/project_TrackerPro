@@ -4,7 +4,7 @@ import {
   getDemoPersona,
   isDemoRoleKey,
   mockAuthUser,
-} from "./demo-roles";
+} from "./user-personas";
 import { DEFAULT_ROLE_PERMISSIONS } from "./rbac";
 
 describe("DEMO_PERSONAS catalog", () => {

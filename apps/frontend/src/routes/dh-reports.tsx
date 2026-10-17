@@ -1,8 +1,0 @@
-import { createFileRoute, Navigate, redirect } from "@tanstack/react-router";
-
-export const Route = createFileRoute("/dh-reports")({
-  beforeLoad: () => {
-    throw redirect({ to: "/projects" });
-  },
-  component: () => <Navigate to="/projects" replace />,
-});

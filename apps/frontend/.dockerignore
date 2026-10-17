@@ -3,6 +3,5 @@ dist/
 .output/
 .vscode/
 .git/
-.lovable/
 .env
 .env.*.local

@@ -6,37 +6,29 @@
 export const APP_ROUTES = {
   HOME: "/",
   ACTION_CENTRE: "/action-centre",
-  
+
   PROJECTS: {
     INDEX: "/projects",
     NEW: "/projects/new",
     DETAIL: (projectId: string) => `/projects/${projectId}`,
   },
-  
+
   CUSTOMERS: {
     INDEX: "/customers",
     DETAIL: (clientId: string) => `/customers/${clientId}`,
   },
-  
+
   EMPLOYEES: {
-    DIRECTORY: "/dh-employee-directory",
-    DETAIL: (id: string) => `/dh-employee-directory/${id}`,
-    EXIT_SUMMARY: "/dh-exit-summary",
+    DIRECTORY: "/employee-directory",
+    DETAIL: (id: string) => `/employee-directory/${id}`,
+    EXIT_SUMMARY: "/exit-summary",
   },
-  
+
   ORGANIZATION: {
-    REPOSITORY: "/my-org",
+    REPOSITORY: "/repository",
     TEAM: "/my-team/",
     TIMESHEETS: "/my-team/timesheets",
   },
-  
-  GOVERNANCE: {
-    HEALTH: "/health",
-    REPORTS: "/reports",
-    APPROVALS: "/approvals",
-    RESOURCES: "/resources",
-    WBS_ALLOCATION: "/wbs-allocation",
-  },
-  
-  SETTINGS: "/dh-settings",
+
+  SETTINGS: "/settings",
 } as const;

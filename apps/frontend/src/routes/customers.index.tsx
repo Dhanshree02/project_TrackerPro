@@ -29,7 +29,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
-import { type Client, type ClientSubVenture, type Project } from "@/lib/mock-data";
+import { type Client, type ClientSubVenture, type Project } from "@/lib/domain-models";
 import { fetchProjects, mapApiProjectToProject } from "@/lib/api/projects";
 import {
   createClient,
@@ -50,7 +50,7 @@ import { Modal } from "@/routes/projects.index";
 import { KycDocPreviewModal } from "@/components/kyc-preview-modal";
 import { Field } from "@/components/form-row";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
-import { dhStore, useDhStore } from "@/lib/dh-store";
+import { dhStore, useDhStore } from "@/lib/workspace-store";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { cn } from "@/lib/utils";
 import {
@@ -274,7 +274,7 @@ function CustomersPage() {
   const [openNew, setOpenNew] = useState(false);
 
   // Live data from the TrackerPro API. The customer list and project counts are Postgres-only —
-  // no mock/dh-store fallback. While loading (or if the backend is unreachable)
+  // strictly from PostgreSQL API. While loading (or if the backend is unreachable)
   // we show a spinner / empty state instead of mock clients.
   const [apiClients, setApiClients] = useState<Client[] | null>(null);
   const [apiProjects, setApiProjects] = useState<Project[]>([]);

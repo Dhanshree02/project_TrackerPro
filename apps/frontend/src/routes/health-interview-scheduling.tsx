@@ -4,11 +4,11 @@ import { Plus, Search, Filter, Send, Trash2, MessageSquare, CheckCircle2, X } fr
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
-import { getPerson, people } from "@/lib/mock-data";
+import { getPerson, people } from "@/lib/domain-models";
 import { Avatar, PriorityPill } from "@/components/pills";
 import { FormRow } from "@/components/form-row";
 import { cn } from "@/lib/utils";
-import { useDhStore, dhStore, type InterviewStatus, type DhInterview } from "@/lib/dh-store";
+import { useDhStore, dhStore, type InterviewStatus, type DhInterview } from "@/lib/workspace-store";
 
 export const Route = createFileRoute("/health-interview-scheduling")({
   head: () => ({

@@ -31,7 +31,7 @@ export function MobileTabs() {
 
   const isSubActive = (subTo: string, subSearch?: Record<string, any>) => {
     if (!pathname.startsWith(subTo)) return false;
-    if (subTo === "/dh-employee-directory") {
+    if (subTo === "/employee-directory") {
       const activeTab = search.tab || "directory";
       const expectedTab = subSearch?.tab || "directory";
       return activeTab === expectedTab;
@@ -106,9 +106,9 @@ export function MobileTabs() {
   };
 
   const isResourceRoute =
-    pathname.startsWith("/dh-employee-directory") ||
+    pathname.startsWith("/employee-directory") ||
     pathname.startsWith("/resources") ||
-    pathname.startsWith("/dh-exit-summary");
+    pathname.startsWith("/exit-summary");
 
   return (
     <nav

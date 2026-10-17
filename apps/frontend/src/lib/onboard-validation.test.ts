@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setLiveAddressCities } from "@/lib/mumbai-stations";
+import { setLiveAddressCities } from "@/lib/address-cities";
 import {
   EMPTY_DOCS,
   EMPTY_ONBOARD,

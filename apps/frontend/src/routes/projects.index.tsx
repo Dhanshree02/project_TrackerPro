@@ -21,15 +21,15 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
-import { dhStore, useDhStore } from "@/lib/dh-store";
+import { dhStore, useDhStore } from "@/lib/workspace-store";
 import { fetchProjectDrafts, deleteProjectDraft, type ProjectDraftListDto } from "@/lib/api/project-drafts";
 import { fetchProjects, type ApiProject } from "@/lib/api/projects";
 import { fetchClients, mapApiClient, type ApiClient } from "@/lib/api/clients";
 import { fetchEmployees } from "@/lib/api/employees";
-import { type Project, type Client, people, type Person, getPerson } from "@/lib/mock-data";
+import { type Project, type Client, people, type Person, getPerson } from "@/lib/domain-models";
 import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { isRenewedProject } from "@/lib/project-renewal";
-import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/dh-helpers";
+import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/project-helpers";
 import { cn } from "@/lib/utils";
 import { useDraggable } from "@/hooks/use-draggable";
 

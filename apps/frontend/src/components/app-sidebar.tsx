@@ -65,7 +65,7 @@ export function AppSidebar() {
 
     if (!pathMatch) return false;
 
-    if (normTo === "/dh-employee-directory") {
+    if (normTo === "/employee-directory") {
       const activeTab = search.tab || "directory";
       const expectedTab = subSearch?.tab || "directory";
       return activeTab === expectedTab;
@@ -78,7 +78,7 @@ export function AppSidebar() {
 
   useEffect(() => {
     // Auto-open Resources if we are in any of the resource sub-routes
-    const resourceRoutes = ["/dh-employee-directory", "/dh-resource-pool", "/dh-exit-summary"];
+    const resourceRoutes = ["/employee-directory", "/exit-summary"];
     if (resourceRoutes.some((route) => pathname.startsWith(route))) {
       setOpenDropdowns((prev) => ({ ...prev, Resources: true }));
     }
@@ -87,7 +87,7 @@ export function AppSidebar() {
       setOpenDropdowns((prev) => ({ ...prev, "My Team": true }));
     }
     // Auto-open Settings if we are in any of its sub-routes
-    if (pathname.startsWith("/dh-settings") || pathname.startsWith("/settings")) {
+    if (pathname.startsWith("/settings")) {
       setOpenDropdowns((prev) => ({ ...prev, Settings: true }));
     }
   }, [pathname]);
