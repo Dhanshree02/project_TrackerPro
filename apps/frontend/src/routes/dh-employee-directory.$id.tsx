@@ -648,8 +648,6 @@ function EmployeeProfilePage() {
     }
   };
 
-  const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "personal") : tabs;
   const statusLabel = employeeStatusDisplayLabel(emp);
   const onNoticePeriod = emp.status === "Notice Period";
   const isAbsconded =

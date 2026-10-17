@@ -461,8 +461,6 @@ function Dashboard() {
         </section>
         )}
       </div>
-      </>
-      )}
 
       <TeamMisSection />
     </AppShell>

@@ -16,7 +16,7 @@ export function AppShell({
   subtitle?: ReactNode;
   children: ReactNode;
 }) {
-  const { isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } = useRoleContext();
+  const { isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales, isAdmin } = useRoleContext();
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {

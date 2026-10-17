@@ -5,7 +5,13 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-14
+**Last updated:** 2026-10-15
+
+- **Action Centre alerts fixed locally:** `trackerpro-uat.sql` had no `action_centre` schema; applied migration `20261015115153_AddActionCentreAlerts` (`tbl_alerts`, approvals, bench snapshots, `project.tbl_project_issues`). Also fixed `20260930173000_AddClientCode` to target `customer.tbl_clients` (was broken `clients` table name).
+
+- **Project detail no longer redirects to Action Centre for RBAC roles.** Mock `assignedProjects` ids did not match API GUIDs → `/access-denied` → `/` → first nav (often Action Centre). API-backed projects skip the mock portfolio gate when the user has Projects view permission; `/access-denied` lands on `/projects` when allowed; route guard fallbacks use the first permitted module.
+
+- **`local-rbac-d` merged `origin/uat` (commit `7783e7d`).** Conflict resolutions: localhost dev DB connection; UAT nav layout + hidden Reports label, RBAC route guards and simple `filterNavItems`; dashboard legacy KPI row kept but not shown; project Overview leadership uses RBAC `canView*` / `canManage*`; employee form personal section stays disabled without manage permission; offboard button uses `canOffboard` plus notice/absconded handling from UAT.
 
 - **MIS Dashboard opens on Last 3 Months.** That is the previous two calendar months plus the current month, calculated in IST. Choosing Q1–Q4 still shows that financial quarter. Graph, List, and Graph and List share the same period.
 - **Working branch is `sahil-dashboard-backend-web`.** `origin/sahil-dashboard-backend-local` (`71abaaf`) is merged into this branch, which was created from `origin/uat` at `ffa4d7e`. The local API still uses UAT PostgreSQL `pms_uat` on `10.50.30.158:41763`. pgAdmin is `http://10.50.30.158:46382`. `Database__AutoMigrate` and `Database__Seed` stay false.
