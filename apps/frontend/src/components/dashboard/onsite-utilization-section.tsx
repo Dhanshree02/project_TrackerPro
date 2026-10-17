@@ -2,10 +2,6 @@ import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
@@ -15,6 +11,32 @@ import {
   type MisDashboardView,
   type OnsiteUtilization,
 } from "@/lib/api/dashboard";
+import { ColumnBarHoverScope, columnBarProps, useColumnBarHover } from "@/components/dashboard/bar-emphasis";
+import {
+  ConfigToggleLegend,
+  LEGEND_BAR_GROW_MS,
+  useLegendSeriesToggle,
+} from "@/components/dashboard/toggle-chart-legend";
+import {
+  ChartDismiss,
+  columnBarChart,
+  DashboardChartBody,
+  chartSeriesLabel,
+  GraphZoom,
+  xAxisLabel,
+  yAxisLabel,
+} from "@/components/dashboard/graph-frame";
+import {
+  misHeadRow,
+  misRow,
+  misTable,
+  misTableScroll,
+  misTdLabel,
+  misTdNote,
+  misTdNumber,
+  misThLabel,
+  misThNumber,
+} from "@/components/dashboard/dashboard-table";
 
 const chartConfig = {
   totalOnsiteTeam: { label: "Total Onsite Team", color: "var(--chart-1)" },
@@ -60,8 +82,15 @@ export function OnsiteUtilizationSection({
 
   return (
     <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <h3 className="text-sm font-semibold">Team Utilization - Onsite ({dashboardPeriodLabel(period)})</h3>
-      <p className="text-xs text-muted-foreground">Onsite employees by billable status</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">Team Utilization - Onsite ({dashboardPeriodLabel(period)})</h3>
+          <p className="text-xs text-muted-foreground">Onsite employees by billable status</p>
+        </div>
+        {!loading && !error && data && view !== "list" && (
+          <GraphZoom title={`Team Utilization - Onsite (${dashboardPeriodLabel(period)})`} render={() => <OnsiteChart months={months} />} />
+        )}
+      </div>
 
       {loading && (
         <div className="mt-4 rounded-lg border border-border px-4 py-10 text-center text-sm text-muted-foreground">
@@ -85,42 +114,42 @@ export function OnsiteUtilizationSection({
       {!loading && !error && data && (
         <div className={`mt-4 grid gap-6 ${view === "both" ? "lg:grid-cols-2" : ""}`}>
           {view !== "graph" && (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[280px] text-sm">
+          <div className={misTableScroll}>
+            <table className={`${misTable} min-w-[280px]`}>
               <thead>
-                <tr className="border-b border-border text-xs text-muted-foreground">
-                  <th className="py-2 pr-3 text-left font-medium">Project Type</th>
+                <tr className={misHeadRow}>
+                  <th className={misThLabel}>Project Type</th>
                   {months.map((month) => (
-                    <th key={month.month} className="px-2 py-2 text-right font-medium">
+                    <th key={month.month} className={misThNumber}>
                       {month.month}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-border">
-                  <td className="py-2 pr-3">Total Onsite Team</td>
+                <tr className={misRow}>
+                  <td className={misTdLabel}>Total Onsite Team</td>
                   {months.map((month) => (
-                    <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                    <td key={month.month} className={misTdNumber}>
                       {month.totalOnsiteTeam}
                     </td>
                   ))}
                 </tr>
-                <tr className="border-b border-border">
-                  <td className="py-2 pr-3">Onsite - Billable</td>
+                <tr className={misRow}>
+                  <td className={misTdLabel}>Onsite - Billable</td>
                   {months.map((month) => (
-                    <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                    <td key={month.month} className={misTdNumber}>
                       <div>{month.billable}</div>
-                      <div className="text-xs text-muted-foreground">{month.billablePercentage}%</div>
+                      <div className={misTdNote}>{month.billablePercentage}%</div>
                     </td>
                   ))}
                 </tr>
-                <tr>
-                  <td className="py-2 pr-3">Onsite - Non billable</td>
+                <tr className={misRow}>
+                  <td className={misTdLabel}>Onsite - Non billable</td>
                   {months.map((month) => (
-                    <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                    <td key={month.month} className={misTdNumber}>
                       <div>{month.nonBillable}</div>
-                      <div className="text-xs text-muted-foreground">{month.nonBillablePercentage}%</div>
+                      <div className={misTdNote}>{month.nonBillablePercentage}%</div>
                     </td>
                   ))}
                 </tr>
@@ -128,22 +157,85 @@ export function OnsiteUtilizationSection({
             </table>
           </div>
           )}
-          {view !== "list" && (
-          <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full">
-            <BarChart data={months} margin={{ left: 0, right: 8, top: 8 }}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="month" tickLine={false} axisLine={false} />
-              <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Bar dataKey="totalOnsiteTeam" fill="var(--color-totalOnsiteTeam)" radius={4} />
-              <Bar dataKey="billable" fill="var(--color-billable)" radius={4} />
-              <Bar dataKey="nonBillable" fill="var(--color-nonBillable)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-          )}
+          {view !== "list" && <OnsiteChart months={months} />}
         </div>
       )}
     </article>
+  );
+}
+
+function OnsiteChart({ months }: { months: OnsiteUtilization["months"] }) {
+  const { hover, setHover, clear } = useColumnBarHover();
+  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  return (
+    <ChartDismiss onMouseLeave={clear}>
+      <DashboardChartBody>
+        {(tipAnchor) => (
+      <div className="w-full">
+      <ColumnBarHoverScope hover={hover}>
+      <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full">
+        <BarChart data={months} margin={{ left: 8, right: 8, top: 16, bottom: 24 }} {...columnBarChart}>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} label={xAxisLabel("Month")} />
+          <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} tick={{ fontSize: 12 }} label={yAxisLabel("Count")} />
+          <Bar
+            isAnimationActive={isGrowingIn("totalOnsiteTeam")}
+            animationDuration={LEGEND_BAR_GROW_MS}
+            minPointSize={6}
+            dataKey="totalOnsiteTeam"
+            fill="var(--color-totalOnsiteTeam)"
+            radius={4}
+            hide={isHidden("totalOnsiteTeam")}
+            {...columnBarProps(
+              "totalOnsiteTeam",
+              setHover,
+              "var(--color-totalOnsiteTeam)",
+              4,
+              tipAnchor,
+              chartSeriesLabel(chartConfig, "totalOnsiteTeam"),
+            )}
+          />
+          <Bar
+            isAnimationActive={isGrowingIn("billable")}
+            animationDuration={LEGEND_BAR_GROW_MS}
+            minPointSize={6}
+            dataKey="billable"
+            fill="var(--color-billable)"
+            radius={4}
+            hide={isHidden("billable")}
+            {...columnBarProps(
+              "billable",
+              setHover,
+              "var(--color-billable)",
+              4,
+              tipAnchor,
+              chartSeriesLabel(chartConfig, "billable"),
+            )}
+          />
+          <Bar
+            isAnimationActive={isGrowingIn("nonBillable")}
+            animationDuration={LEGEND_BAR_GROW_MS}
+            minPointSize={6}
+            dataKey="nonBillable"
+            fill="var(--color-nonBillable)"
+            radius={4}
+            hide={isHidden("nonBillable")}
+            {...columnBarProps(
+              "nonBillable",
+              setHover,
+              "var(--color-nonBillable)",
+              4,
+              tipAnchor,
+              chartSeriesLabel(chartConfig, "nonBillable"),
+            )}
+          />
+        </BarChart>
+      </ChartContainer>
+      </ColumnBarHoverScope>
+      <ConfigToggleLegend config={chartConfig} hidden={hidden} onToggle={toggle} />
+      </div>
+        )}
+      </DashboardChartBody>
+    </ChartDismiss>
   );
 }

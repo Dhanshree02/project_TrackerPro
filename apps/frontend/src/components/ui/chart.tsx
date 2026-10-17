@@ -90,6 +90,26 @@ ${colorConfig
   );
 };
 
+const MONTH_LABELS: Record<string, string> = {
+  Jan: "January",
+  Feb: "February",
+  Mar: "March",
+  Apr: "April",
+  May: "May",
+  Jun: "June",
+  Jul: "July",
+  Aug: "August",
+  Sep: "September",
+  Oct: "October",
+  Nov: "November",
+  Dec: "December",
+};
+
+function presentCategory(value: unknown) {
+  if (typeof value !== "string") return value;
+  return MONTH_LABELS[value] ?? value;
+}
+
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
 const ChartTooltipContent = React.forwardRef<
@@ -146,7 +166,7 @@ const ChartTooltipContent = React.forwardRef<
         return null;
       }
 
-      return <div className={cn("font-medium", labelClassName)}>{value}</div>;
+      return <div className={cn("font-medium", labelClassName)}>{presentCategory(value)}</div>;
     }, [label, labelFormatter, payload, hideLabel, labelClassName, config, labelKey]);
 
     if (!active || !payload?.length) {
@@ -164,7 +184,7 @@ const ChartTooltipContent = React.forwardRef<
         )}
       >
         {!nestLabel ? tooltipLabel : null}
-        <div className="grid gap-1.5">
+        <div className="grid gap-2.5">
           {payload
             .filter((item) => item.type !== "none")
             .map((item, index) => {
@@ -210,19 +230,19 @@ const ChartTooltipContent = React.forwardRef<
                       )}
                       <div
                         className={cn(
-                          "flex flex-1 justify-between leading-none",
+                          "flex flex-1 items-center justify-between gap-8 leading-none",
                           nestLabel ? "items-end" : "items-center",
                         )}
                       >
                         <div className="grid gap-1.5">
                           {nestLabel ? tooltipLabel : null}
-                          <span className="text-muted-foreground">
-                            {itemConfig?.label || item.name}
+                          <span className="whitespace-nowrap text-muted-foreground">
+                            {itemConfig?.label || item.name}:
                           </span>
                         </div>
-                        {item.value && (
-                          <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
+                        {item.value != null && item.value !== "" && (
+                          <span className="ml-6 font-mono font-medium tabular-nums text-foreground">
+                            {typeof item.value === "number" ? item.value.toLocaleString("en-IN") : item.value}
                           </span>
                         )}
                       </div>
@@ -246,19 +266,36 @@ const ChartLegendContent = React.forwardRef<
     Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
       hideIcon?: boolean;
       nameKey?: string;
+      /** Series dataKeys toggled off in the chart (label shown struck through). */
+      hiddenSeries?: ReadonlySet<string>;
+      onSeriesToggle?: (dataKey: string) => void;
     }
->(({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }, ref) => {
+>(
+  (
+    {
+      className,
+      hideIcon = false,
+      payload,
+      verticalAlign = "bottom",
+      nameKey,
+      hiddenSeries,
+      onSeriesToggle,
+    },
+    ref,
+  ) => {
   const { config } = useChart();
 
   if (!payload?.length) {
     return null;
   }
 
+  const interactive = Boolean(onSeriesToggle);
+
   return (
     <div
       ref={ref}
       className={cn(
-        "flex items-center justify-center gap-4",
+        "flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs",
         verticalAlign === "top" ? "pb-3" : "pt-3",
         className,
       )}
@@ -267,27 +304,56 @@ const ChartLegendContent = React.forwardRef<
         .filter((item) => item.type !== "none")
         .map((item) => {
           const key = `${nameKey || item.dataKey || "value"}`;
+          const dataKey = item.dataKey != null ? String(item.dataKey) : key;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
+          const hidden = hiddenSeries?.has(dataKey) ?? false;
+
+          const swatch = itemConfig?.icon && !hideIcon ? (
+            <itemConfig.icon />
+          ) : (
+            <div
+              className="h-2 w-2 shrink-0 rounded-[2px]"
+              style={{
+                backgroundColor: item.color,
+                opacity: hidden ? 0.45 : 1,
+              }}
+            />
+          );
+
+          const label = (
+            <span className={cn(hidden && "text-muted-foreground line-through decoration-foreground/70")}>
+              {itemConfig?.label}
+            </span>
+          );
+
+          if (!interactive) {
+            return (
+              <div
+                key={item.value}
+                className={cn(
+                  "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground",
+                )}
+              >
+                {swatch}
+                {label}
+              </div>
+            );
+          }
 
           return (
-            <div
+            <button
               key={item.value}
+              type="button"
+              aria-pressed={!hidden}
+              onClick={() => onSeriesToggle?.(dataKey)}
               className={cn(
-                "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground",
+                "flex cursor-pointer items-center gap-1.5 rounded-sm border-0 bg-transparent p-0 text-xs text-foreground hover:opacity-80 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground",
+                hidden && "opacity-80",
               )}
             >
-              {itemConfig?.icon && !hideIcon ? (
-                <itemConfig.icon />
-              ) : (
-                <div
-                  className="h-2 w-2 shrink-0 rounded-[2px]"
-                  style={{
-                    backgroundColor: item.color,
-                  }}
-                />
-              )}
-              {itemConfig?.label}
-            </div>
+              {swatch}
+              {label}
+            </button>
           );
         })}
     </div>

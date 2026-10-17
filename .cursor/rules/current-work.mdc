@@ -5,7 +5,15 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-17
+**Last updated:** 2026-10-18
+
+- **Offsite stacked bar charts (Utilization + Capacity):** Horizontal month segments use 4px rounded outer corners (left on first month, right on last) via `horizontalStackSegmentRadii` in `bar-emphasis.tsx` / `StackedMonthChart`.
+
+- **MIS Dashboard legend hide:** Hidden series drop instantly (no shrink); remaining bars slide via transform-only transition (`bar-emphasis.tsx`). **Unstrike (show again):** Recharts grow for 800ms (`isGrowingIn` + `LEGEND_BAR_GROW_MS` in `toggle-chart-legend.tsx`).
+
+- **MIS Dashboard bar hover emphasis:** Pointer cursor on bars; hover a color/series and that hue stays full across the chart while other series lighten (same color, lower opacity—not grey); bar size unchanged on hover; hover dim/clear is instant (`bar-emphasis.tsx`). Tooltips anchor on the hovered bar (`DashboardBarTooltip` + `placeBarTip` on stacked charts), not cursor-follow. **Clickable legend:** `ConfigToggleLegend` below the chart — click toggles series (instant `hide` + strikethrough); remaining bars **ease to new positions** over **800ms** (`MisBarRect` layout transition in `bar-emphasis.tsx`).
+
+- **MIS Dashboard polish from `origin/sahil-dashboard-backend-web` (`04aa1b6`) on `uat` (dashboard-only checkout, not full branch merge).** Backend: `DashboardService`, `TeamSummaryDtos`. Frontend: MIS sections, `graph-frame`, `segmented-month-chart`, `dashboard-table`, `chart.tsx`, `lib/api/dashboard.ts`. Rebuild UAT backend/frontend images to run in Docker. **Staged, not committed** — say if you want a commit.
 
 - **Project Team → Overview Team Leads sync:** Assigning or removing Team Lead on the Team tab updates `leadershipAssignments` (`teamLeadsSynced` + `tlIds`) and refreshes `dbLeaders` via `onLeadershipSaved` so Overview’s Team Leads block matches the Team tab without a full reload.
 

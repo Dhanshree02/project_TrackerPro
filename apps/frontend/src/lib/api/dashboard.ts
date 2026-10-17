@@ -70,6 +70,7 @@ export interface RoleAllocationMonth {
   year: number;
   onsiteTm: number;
   onsiteLeads: number;
+  onsitePm: number;
   offsiteTm: number;
   offsiteLeads: number;
   offsitePm: number;

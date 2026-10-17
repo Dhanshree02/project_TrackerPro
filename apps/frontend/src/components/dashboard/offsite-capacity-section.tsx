@@ -1,13 +1,4 @@
 import { useEffect, useState } from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
 import {
   dashboardPeriodLabel,
   fetchOffsiteCapacity,
@@ -16,8 +7,18 @@ import {
   type OffsiteCapacity,
   type OffsiteCapacityRow,
 } from "@/lib/api/dashboard";
-
-const monthColors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-4)"];
+import { GraphZoom } from "@/components/dashboard/graph-frame";
+import {
+  misHeadRow,
+  misRow,
+  misTable,
+  misTableScroll,
+  misTdLabel,
+  misTdNumber,
+  misThLabel,
+  misThNumber,
+} from "@/components/dashboard/dashboard-table";
+import { StackedMonthChart } from "@/components/dashboard/segmented-month-chart";
 
 export function OffsiteCapacitySection({
   period,
@@ -57,15 +58,37 @@ export function OffsiteCapacitySection({
   const showTable = view !== "graph";
   const months = data?.months ?? [];
   const departments = data?.departments ?? [];
+  const monthKey = months.map((month) => `${month.month}-${month.year}`).join("|");
+  const [appReset, setAppReset] = useState(0);
+  const [ipReset, setIpReset] = useState(0);
+  useEffect(() => {
+    setAppReset((n) => n + 1);
+    setIpReset((n) => n + 1);
+  }, [monthKey]);
   const appRows = departments.filter((row) => row.capacityUnit === "apps");
   const ipRows = departments.filter((row) => row.capacityUnit === "ips");
 
   return (
     <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <h3 className="text-sm font-semibold">Team Capacity – Offsite ({dashboardPeriodLabel(period)})</h3>
-      <p className="text-xs text-muted-foreground">
-        Offsite employees by sub-department. Effective days are {data?.calendarDays ?? 21} × TM.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">Team Capacity – Offsite ({dashboardPeriodLabel(period)})</h3>
+          <p className="text-xs text-muted-foreground">
+            Offsite employees by sub-department. Effective days are {data?.calendarDays ?? 21} × TM.
+          </p>
+        </div>
+        {!loading && !error && data && showChart && departments.length > 0 && (
+          <GraphZoom
+            title={`Team Capacity – Offsite (${dashboardPeriodLabel(period)})`}
+            render={() => (
+              <div className="grid gap-6 xl:grid-cols-2">
+                <CapacityChart title="Application capacity" subtitle="7 days per app" rows={appRows} months={months} resetSignal={appReset} onPeerClear={() => setIpReset((n) => n + 1)} />
+                <CapacityChart title="IP capacity" subtitle="10 IPs per day" rows={ipRows} months={months} resetSignal={ipReset} onPeerClear={() => setAppReset((n) => n + 1)} />
+              </div>
+            )}
+          />
+        )}
+      </div>
 
       {loading && (
         <div className="mt-4 rounded-lg border border-border px-4 py-10 text-center text-sm text-muted-foreground">
@@ -99,12 +122,16 @@ export function OffsiteCapacitySection({
                 subtitle="7 days per app"
                 rows={appRows}
                 months={months}
+                resetSignal={appReset}
+                onPeerClear={() => setIpReset((n) => n + 1)}
               />
               <CapacityChart
                 title="IP capacity"
                 subtitle="10 IPs per day"
                 rows={ipRows}
                 months={months}
+                resetSignal={ipReset}
+                onPeerClear={() => setAppReset((n) => n + 1)}
               />
             </div>
           )}
@@ -129,24 +156,21 @@ function CapacityChart({
   subtitle,
   rows,
   months,
+  resetSignal,
+  onPeerClear,
 }: {
   title: string;
   subtitle: string;
   rows: OffsiteCapacityRow[];
   months: OffsiteCapacity["months"];
+  resetSignal?: number;
+  onPeerClear?: () => void;
 }) {
-  const config = {
-    m0: { label: months[0] ? `${months[0].month} ${months[0].year}` : "Month 1", color: monthColors[0] },
-    m1: { label: months[1] ? `${months[1].month} ${months[1].year}` : "Month 2", color: monthColors[1] },
-    m2: { label: months[2] ? `${months[2].month} ${months[2].year}` : "Month 3", color: monthColors[2] },
-  } satisfies ChartConfig;
-
   const chartRows = rows.map((row) => ({
-    subDepartment: row.subDepartment,
-    m0: row.monthlyCapacity[0] ?? 0,
-    m1: row.monthlyCapacity[1] ?? 0,
-    m2: row.monthlyCapacity[2] ?? 0,
+    name: row.subDepartment,
+    values: row.monthlyCapacity.map((value) => value ?? 0),
   }));
+  const metric = title.toLowerCase().includes("ip") ? "IP capacity" : "Application capacity";
 
   return (
     <div className="min-w-0">
@@ -155,18 +179,20 @@ function CapacityChart({
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">No sub-departments use this effort rule.</p>
       ) : (
-        <ChartContainer config={config} className="aspect-auto w-full" style={{ height: Math.max(280, chartRows.length * 36 + 56) }}>
-          <BarChart data={chartRows} layout="vertical" margin={{ left: 8, right: 16, top: 8 }}>
-            <CartesianGrid horizontal={false} />
-            <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
-            <YAxis type="category" dataKey="subDepartment" width={210} tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="m0" fill="var(--color-m0)" radius={4} />
-            <Bar dataKey="m1" fill="var(--color-m1)" radius={4} />
-            <Bar dataKey="m2" fill="var(--color-m2)" radius={4} />
-          </BarChart>
-        </ChartContainer>
+        <StackedMonthChart
+          rows={chartRows}
+          months={months}
+          metric={metric}
+          formatValue={(value) => value.toLocaleString("en-IN")}
+          note={
+            metric === "IP capacity"
+              ? "Each colored piece is that month's IP capacity. The pieces sit side by side, so the full bar is not one month's capacity."
+              : "Each colored piece is that month's application capacity. The pieces sit side by side, so the full bar is not one month's capacity."
+          }
+          xLabel={metric === "IP capacity" ? "IP capacity" : "Application capacity"}
+          resetSignal={resetSignal}
+          onPeerClear={onPeerClear}
+        />
       )}
     </div>
   );
@@ -186,15 +212,15 @@ function MonthTable({
   return (
     <div>
       <p className="mb-2 text-xs font-semibold">{title}</p>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+      <div className={misTableScroll}>
+        <table className={`${misTable} min-w-[720px]`}>
           <thead>
-            <tr className="border-b border-border text-xs text-muted-foreground">
-              <th className="py-2 pr-3 text-left font-medium">Sub-department</th>
-              <th className="px-2 py-2 text-right font-medium">TM</th>
-              <th className="px-2 py-2 text-right font-medium">Effective Days</th>
-              <th className="px-2 py-2 text-left font-medium">Effort</th>
-              <th className="px-2 py-2 text-right font-medium">Monthly Capacity</th>
+            <tr className={misHeadRow}>
+              <th className={misThLabel}>Sub-department</th>
+              <th className={misThNumber}>TM</th>
+              <th className={misThNumber}>Effective Days</th>
+              <th className={misThLabel}>Effort</th>
+              <th className={misThNumber}>Monthly Capacity</th>
             </tr>
           </thead>
           <tbody>
@@ -203,14 +229,14 @@ function MonthTable({
               const effective = row.effectiveDays[monthIndex] ?? 0;
               const capacity = row.monthlyCapacity[monthIndex];
               return (
-                <tr key={row.subDepartment} className="border-b border-border last:border-0">
-                  <td className="py-2 pr-3">{row.subDepartment}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">{formatCount(tm)}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">
+                <tr key={row.subDepartment} className={misRow}>
+                  <td className={misTdLabel} title={row.subDepartment}>{row.subDepartment}</td>
+                  <td className={misTdNumber}>{formatCount(tm)}</td>
+                  <td className={misTdNumber}>
                     {calendarDays} × {formatCount(tm)} = {formatCount(effective)}
                   </td>
-                  <td className="px-2 py-2">{row.effort ?? "—"}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">{capacity == null ? "—" : formatCount(capacity)}</td>
+                  <td className={misTdLabel}>{row.effort ?? "—"}</td>
+                  <td className={misTdNumber}>{capacity == null ? "—" : formatCount(capacity)}</td>
                 </tr>
               );
             })}

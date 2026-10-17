@@ -1,11 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
@@ -20,6 +16,32 @@ import { OnsiteProjectCountSection } from "@/components/dashboard/onsite-project
 import { OnsiteUtilizationSection } from "@/components/dashboard/onsite-utilization-section";
 import { ResignationCountSection } from "@/components/dashboard/resignation-count-section";
 import { OffsiteCapacitySection } from "@/components/dashboard/offsite-capacity-section";
+import { ColumnBarHoverScope, columnBarProps, useColumnBarHover } from "@/components/dashboard/bar-emphasis";
+import {
+  ConfigToggleLegend,
+  LEGEND_BAR_GROW_MS,
+  useLegendSeriesToggle,
+} from "@/components/dashboard/toggle-chart-legend";
+import {
+  ChartDismiss,
+  columnBarChart,
+  GraphZoom,
+  chartSeriesLabel,
+  useBarTipAnchor,
+  xAxisLabel,
+  yAxisLabel,
+} from "@/components/dashboard/graph-frame";
+import {
+  misRow,
+  misTable,
+  misTableScroll,
+  misTdLabel,
+  misTdNote,
+  misTdNumber,
+  misThLabel,
+  misThNumber,
+  misHeadRow,
+} from "@/components/dashboard/dashboard-table";
 import { RoleAllocationSection } from "@/components/dashboard/role-allocation-section";
 
 const PERIODS: { id: DashboardPeriod; label: string }[] = [
@@ -182,45 +204,50 @@ export function TeamMisSection() {
           )}
         <div className={`grid gap-6 lg:grid-cols-2 ${loading || error ? "invisible" : ""}`}>
           <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <h3 className="text-sm font-semibold">Total Team Size</h3>
-            <p className="text-xs text-muted-foreground">Onsite and offsite at each month end</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">Total Team Size</h3>
+                <p className="text-xs text-muted-foreground">Onsite and offsite at each month end</p>
+              </div>
+              {view !== "list" && <GraphZoom title="Total Team Size" render={() => <TotalTeamChart months={months} />} />}
+            </div>
             {view !== "graph" && (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[280px] text-sm">
+            <div className={`mt-4 ${misTableScroll}`}>
+              <table className={`${misTable} min-w-[280px]`}>
                 <thead>
-                  <tr className="border-b border-border text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 text-left font-medium">Teams</th>
+                  <tr className={misHeadRow}>
+                    <th className={misThLabel}>Teams</th>
                     {months.map((month) => (
-                      <th key={month.month} className="px-2 py-2 text-right font-medium">
+                      <th key={month.month} className={misThNumber}>
                         {month.month}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-border">
-                    <td className="py-2 pr-3">Total Team Size</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>Total Team Size</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         {month.totalTeamSize}
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-border">
-                    <td className="py-2 pr-3">Onsite Team</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>Onsite Team</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         <div>{month.onsiteTeam}</div>
-                        <div className="text-xs text-muted-foreground">{month.onsitePercentage}%</div>
+                        <div className={misTdNote}>{month.onsitePercentage}%</div>
                       </td>
                     ))}
                   </tr>
-                  <tr>
-                    <td className="py-2 pr-3">Offsite Team</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>Offsite Team</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         <div>{month.offsiteTeam}</div>
-                        <div className="text-xs text-muted-foreground">{month.offsitePercentage}%</div>
+                        <div className={misTdNote}>{month.offsitePercentage}%</div>
                       </td>
                     ))}
                   </tr>
@@ -228,51 +255,43 @@ export function TeamMisSection() {
               </table>
             </div>
             )}
-            {view !== "list" && (
-            <ChartContainer config={teamChartConfig} className="mt-4 aspect-auto h-[260px] w-full">
-              <BarChart data={months} margin={{ left: 0, right: 8, top: 8 }}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="totalTeamSize" fill="var(--color-totalTeamSize)" radius={4} />
-                <Bar dataKey="onsiteTeam" fill="var(--color-onsiteTeam)" radius={4} />
-                <Bar dataKey="offsiteTeam" fill="var(--color-offsiteTeam)" radius={4} />
-              </BarChart>
-            </ChartContainer>
-            )}
+            {view !== "list" && <TotalTeamChart months={months} />}
           </article>
 
           <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <h3 className="text-sm font-semibold">Resource Boarding Details</h3>
-            <p className="text-xs text-muted-foreground">Joins and last working days in each month</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">Resource Boarding Details</h3>
+                <p className="text-xs text-muted-foreground">Joins and last working days in each month</p>
+              </div>
+              {view !== "list" && <GraphZoom title="Resource Boarding Details" render={() => <BoardingChart months={months} />} />}
+            </div>
             {view !== "graph" && (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[280px] text-sm">
+            <div className={`mt-4 ${misTableScroll}`}>
+              <table className={`${misTable} min-w-[280px]`}>
                 <thead>
-                  <tr className="border-b border-border text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 text-left font-medium">Resource Boarding Details</th>
+                  <tr className={misHeadRow}>
+                    <th className={misThLabel}>Resource Boarding Details</th>
                     {months.map((month) => (
-                      <th key={month.month} className="px-2 py-2 text-right font-medium">
+                      <th key={month.month} className={misThNumber}>
                         {month.month}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-border">
-                    <td className="py-2 pr-3">On-boarding</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>On-boarding</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         {month.onboarding}
                       </td>
                     ))}
                   </tr>
-                  <tr>
-                    <td className="py-2 pr-3">Off-boarding</td>
+                  <tr className={misRow}>
+                    <td className={misTdLabel}>Off-boarding</td>
                     {months.map((month) => (
-                      <td key={month.month} className="px-2 py-2 text-right tabular-nums">
+                      <td key={month.month} className={misTdNumber}>
                         {month.offboarding}
                       </td>
                     ))}
@@ -281,19 +300,7 @@ export function TeamMisSection() {
               </table>
             </div>
             )}
-            {view !== "list" && (
-            <ChartContainer config={boardingChartConfig} className="mt-4 aspect-auto h-[260px] w-full">
-              <BarChart data={months} margin={{ left: 0, right: 8, top: 8 }}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="onboarding" fill="var(--color-onboarding)" radius={4} />
-                <Bar dataKey="offboarding" fill="var(--color-offboarding)" radius={4} />
-              </BarChart>
-            </ChartContainer>
-            )}
+            {view !== "list" && <BoardingChart months={months} />}
           </article>
         </div>
         </div>
@@ -306,5 +313,168 @@ export function TeamMisSection() {
       <ResignationCountSection period={period} view={view} />
       <OffsiteCapacitySection period={period} view={view} />
     </section>
+  );
+}
+
+function TotalTeamChart({ months }: { months: TeamSummary["months"] }) {
+  const { hover, setHover, clear } = useColumnBarHover();
+  return (
+    <ChartDismiss onMouseLeave={clear}>
+      <TotalTeamChartBody months={months} hover={hover} setHover={setHover} />
+    </ChartDismiss>
+  );
+}
+
+function TotalTeamChartBody({
+  months,
+  hover,
+  setHover,
+}: {
+  months: TeamSummary["months"];
+  hover: ReturnType<typeof useColumnBarHover>["hover"];
+  setHover: ReturnType<typeof useColumnBarHover>["setHover"];
+}) {
+  const tipAnchor = useBarTipAnchor();
+  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  return (
+    <div className="mt-4 w-full">
+      <ColumnBarHoverScope hover={hover}>
+      <ChartContainer config={teamChartConfig} className="aspect-auto h-[260px] w-full">
+        <BarChart data={months} margin={{ left: 8, right: 8, top: 16, bottom: 24 }} {...columnBarChart}>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} label={xAxisLabel("Month")} />
+          <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} tick={{ fontSize: 12 }} label={yAxisLabel("Team size")} />
+          <Bar
+            isAnimationActive={isGrowingIn("totalTeamSize")}
+            animationDuration={LEGEND_BAR_GROW_MS}
+            minPointSize={6}
+            dataKey="totalTeamSize"
+            fill="var(--color-totalTeamSize)"
+            radius={4}
+            hide={isHidden("totalTeamSize")}
+            {...columnBarProps(
+              "totalTeamSize",
+              setHover,
+              "var(--color-totalTeamSize)",
+              4,
+              tipAnchor,
+              chartSeriesLabel(teamChartConfig, "totalTeamSize"),
+            )}
+          >
+            <LabelList dataKey="totalTeamSize" position="top" className="fill-foreground" fontSize={11} />
+          </Bar>
+          <Bar
+            isAnimationActive={isGrowingIn("onsiteTeam")}
+            animationDuration={LEGEND_BAR_GROW_MS}
+            minPointSize={6}
+            dataKey="onsiteTeam"
+            fill="var(--color-onsiteTeam)"
+            radius={4}
+            hide={isHidden("onsiteTeam")}
+            {...columnBarProps(
+              "onsiteTeam",
+              setHover,
+              "var(--color-onsiteTeam)",
+              4,
+              tipAnchor,
+              chartSeriesLabel(teamChartConfig, "onsiteTeam"),
+            )}
+          >
+            <LabelList dataKey="onsiteTeam" position="top" className="fill-foreground" fontSize={11} />
+          </Bar>
+          <Bar
+            isAnimationActive={isGrowingIn("offsiteTeam")}
+            animationDuration={LEGEND_BAR_GROW_MS}
+            minPointSize={6}
+            dataKey="offsiteTeam"
+            fill="var(--color-offsiteTeam)"
+            radius={4}
+            hide={isHidden("offsiteTeam")}
+            {...columnBarProps(
+              "offsiteTeam",
+              setHover,
+              "var(--color-offsiteTeam)",
+              4,
+              tipAnchor,
+              chartSeriesLabel(teamChartConfig, "offsiteTeam"),
+            )}
+          >
+            <LabelList dataKey="offsiteTeam" position="top" className="fill-foreground" fontSize={11} />
+          </Bar>
+        </BarChart>
+      </ChartContainer>
+      </ColumnBarHoverScope>
+      <ConfigToggleLegend config={teamChartConfig} hidden={hidden} onToggle={toggle} />
+    </div>
+  );
+}
+
+function BoardingChart({ months }: { months: TeamSummary["months"] }) {
+  const { hover, setHover, clear } = useColumnBarHover();
+  return (
+    <ChartDismiss onMouseLeave={clear}>
+      <BoardingChartBody months={months} hover={hover} setHover={setHover} />
+    </ChartDismiss>
+  );
+}
+
+function BoardingChartBody({
+  months,
+  hover,
+  setHover,
+}: {
+  months: TeamSummary["months"];
+  hover: ReturnType<typeof useColumnBarHover>["hover"];
+  setHover: ReturnType<typeof useColumnBarHover>["setHover"];
+}) {
+  const tipAnchor = useBarTipAnchor();
+  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  return (
+    <div className="mt-4 w-full">
+      <ColumnBarHoverScope hover={hover}>
+      <ChartContainer config={boardingChartConfig} className="aspect-auto h-[260px] w-full">
+        <BarChart data={months} margin={{ left: 8, right: 8, top: 12, bottom: 24 }} {...columnBarChart}>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} label={xAxisLabel("Month")} />
+          <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} tick={{ fontSize: 12 }} label={yAxisLabel("Count")} />
+          <Bar
+            isAnimationActive={isGrowingIn("onboarding")}
+            animationDuration={LEGEND_BAR_GROW_MS}
+            minPointSize={6}
+            dataKey="onboarding"
+            fill="var(--color-onboarding)"
+            radius={4}
+            hide={isHidden("onboarding")}
+            {...columnBarProps(
+              "onboarding",
+              setHover,
+              "var(--color-onboarding)",
+              4,
+              tipAnchor,
+              chartSeriesLabel(boardingChartConfig, "onboarding"),
+            )}
+          />
+          <Bar
+            isAnimationActive={isGrowingIn("offboarding")}
+            animationDuration={LEGEND_BAR_GROW_MS}
+            minPointSize={6}
+            dataKey="offboarding"
+            fill="var(--color-offboarding)"
+            radius={4}
+            hide={isHidden("offboarding")}
+            {...columnBarProps(
+              "offboarding",
+              setHover,
+              "var(--color-offboarding)",
+              4,
+              tipAnchor,
+              chartSeriesLabel(boardingChartConfig, "offboarding"),
+            )}
+          />
+        </BarChart>
+      </ChartContainer>
+      </ColumnBarHoverScope>
+      <ConfigToggleLegend config={boardingChartConfig} hidden={hidden} onToggle={toggle} />
+    </div>
   );
 }

@@ -1,13 +1,4 @@
 import { useEffect, useState } from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
 import {
   dashboardPeriodLabel,
   fetchOffsiteTeamUtilization,
@@ -15,6 +6,19 @@ import {
   type MisDashboardView,
   type OffsiteTeamUtilization,
 } from "@/lib/api/dashboard";
+import { GraphZoom } from "@/components/dashboard/graph-frame";
+import {
+  misGroupEdge,
+  misRow,
+  misTable,
+  misTableScroll,
+  misTdLabel,
+  misTdNumber,
+  misThGroup,
+  misThLabel,
+  misThNumber,
+} from "@/components/dashboard/dashboard-table";
+import { StackedMonthChart } from "@/components/dashboard/segmented-month-chart";
 
 export function OffsiteTeamUtilizationSection({
   period,
@@ -51,17 +55,6 @@ export function OffsiteTeamUtilizationSection({
   }, [period, reloadKey]);
 
   const months = data?.months ?? [];
-  const strengthConfig = {
-    s0: { label: months[0]?.month ?? "Month 1", color: "var(--chart-1)" },
-    s1: { label: months[1]?.month ?? "Month 2", color: "var(--chart-2)" },
-    s2: { label: months[2]?.month ?? "Month 3", color: "var(--chart-4)" },
-  } satisfies ChartConfig;
-  const utilizationConfig = {
-    u0: { label: months[0]?.month ?? "Month 1", color: "var(--chart-1)" },
-    u1: { label: months[1]?.month ?? "Month 2", color: "var(--chart-2)" },
-    u2: { label: months[2]?.month ?? "Month 3", color: "var(--chart-4)" },
-  } satisfies ChartConfig;
-
   const chartRows = (data?.departments ?? []).map((row) => ({
     department: row.department,
     s0: row.teamStrength[0] ?? 0,
@@ -76,9 +69,14 @@ export function OffsiteTeamUtilizationSection({
 
   return (
     <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div>
-        <h3 className="text-sm font-semibold">Team Utilization – Offsite</h3>
-        <p className="text-xs text-muted-foreground">Offsite team strength and timesheet utilization by employee sub-department</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">Team Utilization – Offsite</h3>
+          <p className="text-xs text-muted-foreground">Offsite team strength and timesheet utilization by employee sub-department</p>
+        </div>
+        {showChart && data && data.departments.length > 0 && (
+          <GraphZoom title="Team Utilization – Offsite" render={() => <OffsiteCharts chartRows={chartRows} months={months} />} />
+        )}
       </div>
 
       {loading && (
@@ -106,70 +104,37 @@ export function OffsiteTeamUtilizationSection({
 
       {!loading && !error && data && data.departments.length > 0 && (
         <div className="mt-4 space-y-6">
-          {showChart && (
-            <div className="grid gap-6 xl:grid-cols-2">
-              <div className="min-w-0">
-                <p className="mb-2 text-xs font-medium text-muted-foreground">Team Strength</p>
-                <ChartContainer config={strengthConfig} className="aspect-auto w-full" style={{ height: Math.max(280, chartRows.length * 36 + 48) }}>
-                  <BarChart data={chartRows} layout="vertical" margin={{ left: 8, right: 16, top: 8 }}>
-                    <CartesianGrid horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
-                    <YAxis type="category" dataKey="department" width={168} tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar dataKey="s0" fill="var(--color-s0)" radius={4} />
-                    <Bar dataKey="s1" fill="var(--color-s1)" radius={4} />
-                    <Bar dataKey="s2" fill="var(--color-s2)" radius={4} />
-                  </BarChart>
-                </ChartContainer>
-              </div>
-              <div className="min-w-0">
-                <p className="mb-2 text-xs font-medium text-muted-foreground">Team Utilization %</p>
-                <ChartContainer config={utilizationConfig} className="aspect-auto w-full" style={{ height: Math.max(280, chartRows.length * 36 + 48) }}>
-                  <BarChart data={chartRows} layout="vertical" margin={{ left: 8, right: 16, top: 8 }}>
-                    <CartesianGrid horizontal={false} />
-                    <XAxis type="number" domain={[0, 100]} allowDecimals={false} tickLine={false} axisLine={false} unit="%" />
-                    <YAxis type="category" dataKey="department" width={168} tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar dataKey="u0" fill="var(--color-u0)" radius={4} />
-                    <Bar dataKey="u1" fill="var(--color-u1)" radius={4} />
-                    <Bar dataKey="u2" fill="var(--color-u2)" radius={4} />
-                  </BarChart>
-                </ChartContainer>
-              </div>
-            </div>
-          )}
+          {showChart && <OffsiteCharts chartRows={chartRows} months={months} />}
 
           {showTable && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-sm">
+            <div className={misTableScroll}>
+              <table className={`${misTable} min-w-[720px]`}>
                 <thead>
-                  <tr className="border-b border-border text-xs text-muted-foreground">
-                    <th rowSpan={2} className="py-2 pr-3 text-left align-bottom font-medium">Department</th>
-                    <th colSpan={months.length || 3} className="px-2 py-2 text-center font-medium">Team Strength</th>
-                    <th colSpan={months.length || 3} className="px-2 py-2 text-center font-medium">Team Utilization %</th>
+                  <tr>
+                    <th rowSpan={2} className={`${misThLabel} bg-blue-50 text-blue-900 dark:bg-blue-950/80 dark:text-blue-100`}>Department</th>
+                    <th colSpan={months.length || 3} className={`${misThGroup} border-b border-blue-200 bg-blue-100 text-blue-950 dark:border-blue-800 dark:bg-blue-900 dark:text-blue-50`}>Team Strength</th>
+                    <th colSpan={months.length || 3} className={`${misThGroup} ${misGroupEdge} border-b border-blue-200 bg-blue-100 text-blue-950 dark:border-blue-800 dark:bg-blue-900 dark:text-blue-50`}>Team Utilization %</th>
                   </tr>
-                  <tr className="border-b border-border text-xs text-muted-foreground">
+                  <tr>
                     {months.map((month) => (
-                      <th key={`s-${month.month}`} className="px-2 py-2 text-right font-medium">{month.month}</th>
+                      <th key={`s-${month.month}`} className={`${misThNumber} bg-blue-100 text-blue-950 dark:bg-blue-900 dark:text-blue-50`}>{month.month}</th>
                     ))}
-                    {months.map((month) => (
-                      <th key={`u-${month.month}`} className="px-2 py-2 text-right font-medium">{month.month}</th>
+                    {months.map((month, index) => (
+                      <th key={`u-${month.month}`} className={`${misThNumber} bg-blue-100 text-blue-950 dark:bg-blue-900 dark:text-blue-50${index === 0 ? ` ${misGroupEdge}` : ""}`}>{month.month}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {data.departments.map((row) => (
-                    <tr key={row.department} className="border-b border-border last:border-0">
-                      <td className="py-2 pr-3">{row.department}</td>
+                    <tr key={row.department} className={misRow}>
+                      <td className={misTdLabel} title={row.department}>{row.department}</td>
                       {months.map((month, index) => (
-                        <td key={`s-${month.month}`} className="px-2 py-2 text-right tabular-nums">
+                        <td key={`s-${month.month}`} className={misTdNumber}>
                           {row.teamStrength[index] ?? 0}
                         </td>
                       ))}
                       {months.map((month, index) => (
-                        <td key={`u-${month.month}`} className="px-2 py-2 text-right tabular-nums">
+                        <td key={`u-${month.month}`} className={index === 0 ? `${misTdNumber} ${misGroupEdge}` : misTdNumber}>
                           {row.utilization[index] ?? 0}%
                         </td>
                       ))}
@@ -182,5 +147,58 @@ export function OffsiteTeamUtilizationSection({
         </div>
       )}
     </article>
+  );
+}
+
+function OffsiteCharts({
+  chartRows,
+  months,
+}: {
+  chartRows: Array<{
+    department: string;
+    s0: number;
+    s1: number;
+    s2: number;
+    u0: number;
+    u1: number;
+    u2: number;
+  }>;
+  months: OffsiteTeamUtilization["months"];
+}) {
+  const [utilReset, setUtilReset] = useState(0);
+  const [strengthReset, setStrengthReset] = useState(0);
+
+  const strengthRows = chartRows.map((row) => ({ name: row.department, values: [row.s0, row.s1, row.s2] }));
+  const utilizationRows = chartRows.map((row) => ({ name: row.department, values: [row.u0, row.u1, row.u2] }));
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-2">
+      <div className="min-w-0">
+        <p className="mb-2 text-xs font-medium text-muted-foreground">Team Strength</p>
+        <StackedMonthChart
+          rows={strengthRows}
+          months={months}
+          metric="Team strength"
+          formatValue={(value) => value.toLocaleString("en-IN")}
+          note="Each colored piece is that month's offsite headcount. The pieces sit side by side, so the full bar is not a combined team size."
+          xLabel="Team strength"
+          resetSignal={strengthReset}
+          onPeerClear={() => setUtilReset((n) => n + 1)}
+        />
+      </div>
+      <div className="min-w-0">
+        <p className="mb-2 text-xs font-medium text-muted-foreground">Team Utilization %</p>
+        <StackedMonthChart
+          rows={utilizationRows}
+          months={months}
+          metric="Team utilization"
+          formatValue={(value) => `${value}%`}
+          note="Each colored piece is that month's utilization percentage. The pieces sit side by side, so the full bar is not one combined utilization percentage."
+          xLabel="Utilization %"
+          resetSignal={utilReset}
+          onPeerClear={() => setStrengthReset((n) => n + 1)}
+        />
+      </div>
+    </div>
   );
 }
